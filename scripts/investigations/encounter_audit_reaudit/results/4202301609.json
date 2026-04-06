@@ -1,0 +1,1361 @@
+[
+  {
+    "encounter_id": "fe8b2f7d-5e5c-43ce-a149-4236b5ee9387",
+    "patient_id": "4202301609",
+    "date": "2024-12-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "left hip pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents pain radiating through the left hip as a distinct anatomical site and should be coded separately from low back pain and leg radiation.",
+          "snomed_search": "left hip pain",
+          "snomed_concept_id": "316781000119100",
+          "preferred_term": "Pain of left hip joint (finding)",
+          "sentence": "goes down through the left hip pain , going towards abdomen - ? spasm",
+          "char_start": 60,
+          "char_end": 120
+        },
+        {
+          "term": "? sciatica / lumbar radiculopathy",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "The clinical pattern of back pain radiating through the left hip and down the left leg is consistent with sciatica/lumbar radiculopathy; the clinician documents '? spasm' indicating diagnostic uncertainty, warranting a possible-assertion code.",
+          "snomed_search": "sciatica",
+          "snomed_concept_id": "23056005",
+          "preferred_term": "Sciatica (disorder)",
+          "sentence": "goes down through the left hip pain , going towards abdomen - ? spasm",
+          "char_start": 60,
+          "char_end": 120
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "427653003",
+          "name": "Pain radiating to right leg (finding)",
+          "severity": "high",
+          "reason": "The encounter note clearly states pain radiates down the LEFT leg, not the right; this concept codes the wrong laterality.",
+          "replace_with_concept_id": "426469008",
+          "replace_with_preferred_term": "Pain radiating to left leg (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The most significant error is a laterality mismatch: pain radiating to the RIGHT leg (427653003) has been coded when the note unambiguously documents LEFT leg radiation \u2014 the correct code is 426469008. Two additional findings are missing: left hip pain as a distinct anatomical site (316781000119100) and possible sciatica (23056005, assertion=possible) reflecting the classic radiculopathy pattern with the clinician's own uncertainty marker '? spasm'. The 'diagnosis deferred' concept (93771000119109) returned as unreliable from the terminology server but is clinically defensible given the deferred abdominal examination; human review of that concept ID is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5146,
+        "output_tokens": 1578,
+        "total_tokens": 6724,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "fe8b2f7d-5e5c-43ce-a149-4236b5ee9387",
+        "date": "2024-12-11",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7f1d95c3-4984-4098-9603-a7d731c33c0d",
+    "patient_id": "4202301609",
+    "date": "2024-12-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "thigh pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Pain radiating down the thigh is explicitly described in the history ('moved into abdomen and around to lower back and down thigh') and confirmed on examination ('GT pain to palp'), making it a distinct active finding warranting its own code.",
+          "snomed_search": "thigh pain",
+          "snomed_concept_id": "78514002",
+          "preferred_term": "Thigh pain (finding)",
+          "sentence": "latearl left hip pain on friday and shopoting into leg for most of day, settled by evening but next day came back adn moved into abdomen and around to lower back and down thigh",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "previous hernias x2",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Two previous hernias are explicitly documented in the history and are clinically relevant to the differential (ruling out recurrence given abdominal pain and prior hernia history).",
+          "snomed_search": "history abdominal hernia",
+          "snomed_concept_id": "161533003",
+          "preferred_term": "History of abdominal hernia (situation)",
+          "sentence": "x2 prev hernias.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The four existing codes (hip pain, low back pain, musculoskeletal pain, lower abdominal pain) are all well-evidenced by the encounter text and clinically appropriate; all four concept lookups returned unreliable terminology server results but there is no clinical basis to challenge them. Two additions are warranted: thigh pain is explicitly described in both history and examination, and the two previous hernias are clinically relevant historical context given the abdominal pain presentation. The 'no SA' notation (absent suicidal ideation) does not require a SNOMED code. All four existing concept IDs returned unreliable lookup results \u2014 a terminology server index check is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6913,
+        "output_tokens": 1446,
+        "total_tokens": 8359,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "7f1d95c3-4984-4098-9603-a7d731c33c0d",
+        "date": "2024-12-12",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "37eb742a-f840-4bb0-9f80-0db91ec213f0",
+    "patient_id": "4202301609",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing code [149421000000109] 'Provision of faecal immunochemical test kit (procedure)' is confirmed correct by SNOMED search (score 1.0); the lookup_concept server returned an unreliable substance tag but this is a known server artefact for this UK extension concept. The note implies a suspected colorectal cancer triage pathway (\"urgent follow up test\"), which is a safety-critical context, but no explicit 2WW referral or red-flag symptom is documented in this encounter text \u2014 the FIT is being used to determine whether such a referral is needed, so no additional code is evidenced. If a 2WW referral is subsequently made, it should be coded at that point.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3759,
+        "output_tokens": 981,
+        "total_tokens": 4740,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "37eb742a-f840-4bb0-9f80-0db91ec213f0",
+        "date": "2025-08-18",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6feda833-7263-4171-bd31-768f070c0b33",
+    "patient_id": "4202301609",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Full blood count (424..)",
+          "snomed_concept_id": "26604007",
+          "preferred_term": "Complete blood count (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Full blood count was performed and reviewed; the procedure should be coded.",
+          "sentence": "Full blood count (424..) ... Full blood count Report, Satisfactory, No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 18 Aug 2025 21:15",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Neutrophil count (42J..) 7.72 10^9/L [1.5 - 7.5] - Outside reference range",
+          "snomed_concept_id": "165518003",
+          "preferred_term": "Neutrophilia (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Neutrophil count is explicitly flagged as outside reference range at 7.72 (ref 1.5\u20137.5). Neutrophilia is a codeable finding. Although the reviewing clinician marked the FBC as 'No Further Action', the abnormal result is clinically relevant and should be recorded. Haematology referral guidelines were also surfaced by the lab.",
+          "sentence": "Neutrophil count (42J..) 7.72 10^9/L [1.5 - 7.5] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Auto-filed FBC result reviewed by Dr Noble on 18 Aug 2025 and marked 'Satisfactory, No Further Action'. All parameters are within range except neutrophils (7.72, ref 1.5\u20137.5), explicitly flagged as outside reference range by the lab. Two codes are missing: (1) the FBC procedure itself (26604007), and (2) neutrophilia (165518003) as a present finding. The lab note also surfaced haematology referral guidelines for abnormal FBC, reinforcing the clinical significance of the neutrophilia. The marginal elevation and NFA decision reduce severity to medium rather than high. 'Not on Thyroid Tx' is a negative contextual note \u2014 not codeable. All other CBC indices are within reference range and do not require coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4306,
+        "output_tokens": 1455,
+        "total_tokens": 5761,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "6feda833-7263-4171-bd31-768f070c0b33",
+        "date": "2025-08-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "20658399-a722-44f3-ba5b-a4417ebd2c54",
+    "patient_id": "4202301609",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Bone profile (44Z2.)",
+          "snomed_concept_id": "167036008",
+          "preferred_term": "Bone profile (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Bone profile blood test was performed and auto-filed; the procedure should be coded.",
+          "sentence": "Bone profile (44Z2.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Serum alkaline phosphatase level (XE2px) 212 iu/L [30 - 130] - Outside reference range",
+          "snomed_concept_id": "166627004",
+          "preferred_term": "Serum alkaline phosphatase above reference range",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "ALP is 212 iu/L against a reference range of 30-130 iu/L \u2014 explicitly flagged as outside reference range. This is a clinically significant abnormal result that requires coding even though the reviewing clinician has marked no further action at this time. Elevated ALP can indicate hepatobiliary disease, bone pathology, or other conditions and should be recorded for longitudinal tracking.",
+          "sentence": "Serum alkaline phosphatase level (XE2px) 212 iu/L [30 - 130] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Auto-filed bone profile result. Two codeable items identified as missing: (1) the bone profile procedure itself (167036008), and (2) the abnormal finding of serum alkaline phosphatase above reference range (166627004) \u2014 ALP 212 iu/L against a reference range of 30-130 iu/L. All other analytes (phosphate, albumin, calcium, adjusted calcium, globulin at 26 g/L) are within normal limits and do not require coding. The globulin interpretive commentary is a standard lab advisory note and does not represent a finding for this patient. The reviewing clinician (Dr Horne) has marked the report as 'Satisfactory, No Further Action', but the elevated ALP result should still be coded for clinical record completeness and longitudinal tracking. Note: lookup_concept returned unreliable for 166627004 (Extension Namespace placeholder); however, search_snomed returned this as the sole high-scoring candidate (score 1.3) for the specific finding term, so it is included with moderate confidence.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5150,
+        "output_tokens": 1774,
+        "total_tokens": 6924,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "20658399-a722-44f3-ba5b-a4417ebd2c54",
+        "date": "2025-08-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4f881092-0330-480f-ab62-a76a323e5a77",
+    "patient_id": "4202301609",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "generalised abdominal pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the pain has become constant and involves the entire abdomen for the past four days, representing a distinct additional finding beyond the localised LUQ pain that is driving the investigation workup.",
+          "snomed_search": "abdominal pain",
+          "snomed_concept_id": "21522001",
+          "preferred_term": "Abdominal pain (finding)",
+          "sentence": "For the past four days, since returning from a holiday on Friday, the pain has become constant and involves the entire abdomen.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "urine dipstick",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A urine dipstick has been formally planned as an investigation to rule out a renal cause such as kidney stones, and represents a clinically significant procedure ordered in this encounter.",
+          "snomed_search": "urine dipstick test",
+          "snomed_concept_id": "167226008",
+          "preferred_term": "Urine dipstick test (procedure)",
+          "sentence": "Urine dipstick to rule out a renal cause such as kidney stones.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "420052009",
+          "name": "Ultrasound scan of lower abdomen (procedure)",
+          "severity": "medium",
+          "reason": "The note documents an abdominal ultrasound to assess internal organs particularly the spleen, which is an upper abdominal structure; coding as 'lower abdomen' is anatomically incorrect for this referral.",
+          "replace_with_concept_id": "418398002",
+          "replace_with_preferred_term": "Ultrasound scan of upper abdomen (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary finding (LUQ pain, 301715003) and FIT observable entity (1049361000000101) are correctly coded, but the abdominal ultrasound has been miscoded as lower abdomen when the clinical focus is the spleen and upper abdominal organs. Generalised abdominal pain (a distinct evolution of the presenting complaint) and the planned urine dipstick procedure are missing. Note: all three existing concept lookups returned unreliable results from the terminology server, but search_snomed confirmed the concept IDs are valid; the ultrasound mismatch was identified via search candidates rather than lookup alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 13936,
+        "output_tokens": 1848,
+        "total_tokens": 15784,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "4f881092-0330-480f-ab62-a76a323e5a77",
+        "date": "2025-08-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "70e10e21-c9f8-4cbf-b1a8-e202e4e31aab",
+    "patient_id": "4202301609",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Positive FIT via immunoassay",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The FIT result of 23 \u00b5g/g is a positive immunoassay finding; the more specific SNOMED concept 71711000112103 'Occult blood detected in feces by immunoassay' should replace the currently coded 59614000 which resolves to a qualifier value (wrong semantic tag) rather than a finding.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "Quantitative faecal immunochemical test (Xaf0H) 23 ug/g POSITIVE FIT",
+          "char_start": 37,
+          "char_end": 97
+        },
+        {
+          "term": "Urgent Suspected Cancer LGI pathway referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly names the 'Urgent Suspected Cancer LGI pathway'; the specific SNOMED concept 892201000000106 'Fast track referral for suspected lower gastrointestinal cancer' should replace the generic 134403003 'Urgent referral' for accurate cancer waiting-time tracking and NG12 safety-netting.",
+          "snomed_search": "fast track referral lower gastrointestinal cancer",
+          "snomed_concept_id": "892201000000106",
+          "preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "sentence": "Refer via Urgent Suspected Cancer LGI pathway.",
+          "char_start": 98,
+          "char_end": 144
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "59614000",
+          "name": "Occult blood detected in feces (finding)",
+          "severity": "high",
+          "reason": "lookup_concept returns this concept as semantic tag 'qualifier value' \u2014 clearly wrong for a clinical finding; it should be replaced with 71711000112103 'Occult blood detected in feces by immunoassay (finding)' which correctly captures a positive FIT result.",
+          "replace_with_concept_id": "71711000112103",
+          "replace_with_preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "134403003",
+          "name": "Urgent referral (procedure)",
+          "severity": "high",
+          "reason": "The generic 'Urgent referral' code is too broad for this encounter; the note specifies the LGI suspected cancer pathway and should be coded with the specific fast-track colorectal/LGI cancer referral concept 892201000000106.",
+          "replace_with_concept_id": "892201000000106",
+          "replace_with_preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Both existing codes require replacement: 59614000 resolves to a qualifier value (wrong semantic tag) and should be swapped for the immunoassay-specific FIT positive finding 71711000112103; 134403003 is an unreliable/generic referral code and should be replaced with the specific LGI fast-track cancer referral 892201000000106 for NG12 compliance and cancer waiting-time tracking. The note also requests digital rectal and abdominal examination 'if not already done' \u2014 this is a recommendation for a future/conditional act and should NOT be coded as a completed procedure at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3855,
+        "output_tokens": 1797,
+        "total_tokens": 5652,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "70e10e21-c9f8-4cbf-b1a8-e202e4e31aab",
+        "date": "2025-08-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dbc44891-6a87-4e9b-a855-c71f6ce196fd",
+    "patient_id": "4202301609",
+    "date": "2025-08-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Referral to medical service",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'Referral to medical service (XaAcN)' added from the questionnaire and this procedure has not been coded.",
+          "snomed_search": "referral to medical service",
+          "snomed_concept_id": "306110004",
+          "preferred_term": "Referral to medical service (procedure)",
+          "sentence": "Referral to medical service (XaAcN) - (Added from Questionnaire)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "61425002",
+          "name": "C reactive protein (substance)",
+          "severity": "medium",
+          "reason": "Concept ID 61425002 resolves as an organism/virus on the terminology server (unreliable); the correct concept for raised CRP as a finding is 119971000119104 'C-reactive protein above reference range (finding)'.",
+          "replace_with_concept_id": "119971000119104",
+          "replace_with_preferred_term": "C-reactive protein above reference range (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "420052009",
+          "name": "Ultrasound scan of lower abdomen (procedure)",
+          "severity": "medium",
+          "reason": "Concept ID 420052009 returns an Extension Namespace placeholder (unreliable); the note documents an abdominal USS request and the correct concept is 45036003 'Ultrasonography of abdomen (procedure)', which also better reflects the whole-abdomen scope documented.",
+          "replace_with_concept_id": "45036003",
+          "replace_with_preferred_term": "Ultrasonography of abdomen (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "Two of the four coded concept IDs are likely incorrect \u2014 the CRP code resolves as an organism rather than a finding, and the USS code returns an Extension Namespace placeholder; both should be replaced with verified SNOMED finding/procedure concepts. Additionally, the explicitly documented referral to medical service has not been coded. Concepts 274770006 (ALP above reference range) and 285387005 (left-sided abdominal pain) also returned unreliable lookups but are clinically plausible and cannot be confirmed or refuted without a reliable terminology server response.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8322,
+        "output_tokens": 1800,
+        "total_tokens": 10122,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "dbc44891-6a87-4e9b-a855-c71f6ce196fd",
+        "date": "2025-08-19",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9f444d28-5e65-4b55-b9ba-176641b9bc9a",
+    "patient_id": "4202301609",
+    "date": "2025-08-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CRP rise",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly documents 'CRP and ALP rise' as the reason for the bone profile request, confirming an elevated CRP result that should be coded as an abnormal finding alongside the already-coded elevated ALP.",
+          "snomed_search": "C-reactive protein raised",
+          "snomed_concept_id": "119971000119104",
+          "preferred_term": "C-reactive protein above reference range (finding)",
+          "sentence": "Clinical Information: Reasons for Request: Abdo pain CRP and ALP rise. Normal FBC and bili.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Bone profile",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The bone profile investigation was performed and reviewed in this encounter; coding the procedure provides a complete record of the investigation that generated the abnormal ALP finding.",
+          "snomed_search": "bone profile blood test",
+          "snomed_concept_id": "167036008",
+          "preferred_term": "Bone profile (procedure)",
+          "sentence": "Bone profile (44Z2.)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes are confirmed correct: abdominal pain (21522001) and elevated ALP (166627004) are well-evidenced by the note. The primary gap is the explicitly documented elevated CRP ('CRP and ALP rise'), which should be coded as an active finding; the bone profile procedure code is a lower-priority addition. All individual bone profile components within range (albumin, calcium, phosphate, globulin) are raw numeric values and do not require coding. The 'no further action' review outcome is administrative and out of scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7070,
+        "output_tokens": 1494,
+        "total_tokens": 8564,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "9f444d28-5e65-4b55-b9ba-176641b9bc9a",
+        "date": "2025-08-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6e76ac50-c73b-46dd-aaa5-fc990f9db03e",
+    "patient_id": "4202301609",
+    "date": "2025-08-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Chaperone declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states 'Chaperone declined' prior to examination \u2014 this is a clinically and medico-legally significant situation that should be coded.",
+          "snomed_search": "chaperone",
+          "snomed_concept_id": "763380007",
+          "preferred_term": "Provision of chaperone declined (situation)",
+          "sentence": "Examination with consent. Chaperone declined.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "61425002",
+          "name": "C reactive protein (substance)",
+          "severity": "low",
+          "reason": "Concept ID 61425002 resolves as an organism/virus on the terminology server (unreliable); furthermore, a raw CRP substance code is outside the SNOMED coding scope for this encounter \u2014 the lab result is handled by the structured pipeline, not the encounter note.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two significant concept ID errors found: the 2WW referral is coded as breast cancer (276341000000100) instead of lower GI cancer (892201000000106) \u2014 a critical patient-safety and cancer-tracking error; and the FIT-positive finding uses an unreliable/wrong concept (59614000) rather than the immunoassay-specific code (71711000112103). The chaperone-declined situation (763380007) is undocumented. The CRP substance code (61425002) is both unreliable on the server and out of scope for encounter-level coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5689,
+        "output_tokens": 1625,
+        "total_tokens": 7314,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "6e76ac50-c73b-46dd-aaa5-fc990f9db03e",
+        "date": "2025-08-22",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "099dcd8d-1c6c-4b99-a412-004d4e02d0fe",
+    "patient_id": "4202301609",
+    "date": "2025-08-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists entirely of receptionist/administrative workflow text (access role entries, choice & booking admin codes, OPD appointment status lines, and referral tracking updates) with no clinical narrative. The existing procedure code 892201000000106 (Fast track referral for suspected lower gastrointestinal cancer) is confirmed correct by SNOMED search and is appropriately retained for cancer tracking and patient safety purposes; no additions or removals are warranted from this administrative note.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2189,
+        "output_tokens": 651,
+        "total_tokens": 2840,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "099dcd8d-1c6c-4b99-a412-004d4e02d0fe",
+        "date": "2025-08-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "232473ed-67e2-4719-800c-a965f62e7a6e",
+    "patient_id": "4202301609",
+    "date": "2025-08-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urology 2WW referral / Fast track referral for suspected urological cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a PRISM 2WW Urology referral and 'Fast track referral for suspected urological cancer' added from questionnaire \u2014 this is the primary safety-critical action of the encounter and must be coded as a procedure.",
+          "snomed_search": "fast track referral suspected urological cancer",
+          "snomed_concept_id": "276431000000102",
+          "preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "sentence": "Urology 2ww referral. / Fast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Declined codeine",
+          "severity": "low",
+          "suggested_assertion": "declined",
+          "reason": "Patient explicitly declined codeine during this encounter; medication declined situations are within SNOMED scope and relevant to the analgesic management plan.",
+          "snomed_search": "medication",
+          "snomed_concept_id": "406149000",
+          "preferred_term": "Medication declined (situation)",
+          "sentence": "Declined codeine currently. If needs different / stronger analgesia let me know and can issue / call.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "175923006",
+          "name": "Open excision of renal lesion (procedure)",
+          "severity": "critical",
+          "reason": "lookup_concept returns this ID as a qualifier value (not a procedure), and clinically the note describes a renal lesion found on USS awaiting 2WW referral \u2014 no surgical excision has occurred or been planned; the correct code is Renal mass (finding).",
+          "replace_with_concept_id": "309088003",
+          "replace_with_preferred_term": "Renal mass (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Critical overcoding error: concept 175923006 resolves to a qualifier value (not a procedure) and clinically represents a surgical excision that has not occurred \u2014 the USS finding should be coded as Renal mass (finding) [309088003]. The primary safety-critical procedure of this encounter \u2014 Fast track referral for suspected urological cancer [276431000000102] \u2014 is absent from the coded list despite being explicitly documented in the PRISM questionnaire output. Concepts 892201000000106 (lower GI fast-track referral) and 397657005 (suspected urological malignancy situation) returned unreliable terminology server results but are clinically supported by the note; the urology 2WW procedure code [276431000000102] supersedes 397657005 as the more precise and actionable code for this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8825,
+        "output_tokens": 1970,
+        "total_tokens": 10795,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "232473ed-67e2-4719-800c-a965f62e7a6e",
+        "date": "2025-08-28",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2dc6b337-6363-4bd2-bb3e-f32a94880709",
+    "patient_id": "4202301609",
+    "date": "2025-09-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3ff4ee7b-c036-4281-88e3-8feebf16fea2",
+    "patient_id": "4202301609",
+    "date": "2025-09-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "pain in left flank after alcohol \u2014 ?alcohol pain associated with lymphoma",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Alcohol-induced pain is a well-recognised red-flag symptom of lymphoma (Pel-Ebstein phenomenon); the clinician explicitly documents this and links it to the lymphoma query \u2014 it must be coded as a safety-critical finding supporting the 2WW referral.",
+          "snomed_search": "pain after alcohol intake",
+          "snomed_concept_id": "315226008",
+          "preferred_term": "Pain in lymph nodes after alcohol consumption (finding)",
+          "sentence": "Pt did state that if he has two pints of lager he gets tremendous pain in the left flank ?Alcohol pain associated with lymphoma.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure) [coded label] \u2014 terminology server returns this ID as a substance (DRB1*09012), not a procedure",
+          "severity": "critical",
+          "reason": "The 2WW referral in this encounter is to haematology to exclude lymphoma, not for suspected breast cancer; the correct code is 276461000000107 'Fast track referral for suspected haematology malignancy (procedure)'.",
+          "replace_with_concept_id": "276461000000107",
+          "replace_with_preferred_term": "Fast track referral for suspected haematology malignancy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Critical coding error: the 2WW referral is coded as 'Fast track referral for suspected breast cancer' (276341000000100) when the referral is clearly to haematology for suspected lymphoma \u2014 the correct code is 276461000000107. Additionally, the clinician-documented alcohol-induced flank pain (a recognised lymphoma red-flag symptom, SNOMED 315226008) is missing and must be coded given its direct relevance to the 2WW safety pathway. Concept 79131000119100 (kidney lesion) returns as unreliable/organism on the terminology server but is retained as the coded label matches the clinical finding; human review of this concept ID is advisable. The viral exanthem (49882001) and suspected lymphoma (315264005) codes are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6738,
+        "output_tokens": 1516,
+        "total_tokens": 8254,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "3ff4ee7b-c036-4281-88e3-8feebf16fea2",
+        "date": "2025-09-13",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "05a2ab63-f74a-4350-8a4a-fa009713213d",
+    "patient_id": "4202301609",
+    "date": "2025-09-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "growth in left kidney",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A renal mass/growth is explicitly documented as a presenting concern; this is a potential red-flag finding (possible renal malignancy) that must be coded and is entirely absent from the coded list.",
+          "snomed_search": "renal mass kidney",
+          "snomed_concept_id": "309088003",
+          "preferred_term": "Renal mass (finding)",
+          "sentence": "growth in left kidney with liver enzyme abnormal",
+          "char_start": 218,
+          "char_end": 265
+        },
+        {
+          "term": "liver enzyme abnormal",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Abnormal liver enzymes are explicitly documented as a presenting concern alongside the renal finding and are not coded.",
+          "snomed_search": "liver enzymes outside reference range",
+          "snomed_concept_id": "166643006",
+          "preferred_term": "Liver enzymes outside reference range (finding)",
+          "sentence": "growth in left kidney with liver enzyme abnormal",
+          "char_start": 218,
+          "char_end": 265
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing rash code (271807003 Eruption of skin) is confirmed correct by SNOMED search despite an unreliable lookup response. Two clinically significant findings are entirely uncoded: a left renal mass (critical \u2014 possible malignancy/2WW red flag) and abnormal liver enzymes (high). The renal mass in particular warrants urgent clinical review and potential 2-week-wait referral consideration. The phrase 'book normal' likely refers to a routine follow-up booking and does not constitute a codeable finding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5471,
+        "output_tokens": 1322,
+        "total_tokens": 6793,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "05a2ab63-f74a-4350-8a4a-fa009713213d",
+        "date": "2025-09-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "17a97542-b899-4d42-9863-f2b785814e6f",
+    "patient_id": "4202301609",
+    "date": "2025-10-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1e9fcff3-e22e-462b-b2c8-4383b4c211e6",
+    "patient_id": "4202301609",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "rebound tenderness",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Rebound tenderness is explicitly documented on examination ('positive with rebound tenderness') and is a distinct, clinically significant peritoneal sign supporting the appendicitis diagnosis and ED referral; it is not captured by McBurney's sign alone.",
+          "snomed_search": "rebound tenderness",
+          "snomed_concept_id": "35611005",
+          "preferred_term": "Rebound tenderness (finding)",
+          "sentence": "Mcburney point positive with rebound tendenress.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "nausea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Nausea is explicitly documented as a current symptom in the history and is clinically relevant to both the renal colic and appendicitis differential.",
+          "snomed_search": "nausea",
+          "snomed_concept_id": "422587007",
+          "preferred_term": "Nausea (finding)",
+          "sentence": "Nausea.  Collapsed as pain ++ earlier no LOC.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lesion on left kidney under investigation ? cancer",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "A renal lesion under investigation for possible malignancy is a safety-critical finding documented in the past medical history; it is directly relevant to the presenting complaint of left-sided kidney pain and must be coded to flag the cancer investigation context.",
+          "snomed_search": "kidney lesion",
+          "snomed_concept_id": "79131000119100",
+          "preferred_term": "Kidney lesion (disorder)",
+          "sentence": "Pmx:- hernia, lesion on left kidney under investigation ? cancer.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "74400008",
+          "name": "Appendicitis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The clinician explicitly documents 'Suspected appendicitis' \u2014 this is a working diagnosis under investigation, not a confirmed diagnosis; coding as present overstates certainty for a safety-critical condition and could mislead downstream clinicians."
+        },
+        {
+          "conceptId": "7093002",
+          "name": "Renal colic (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician documents 'Suspected renal colic' \u2014 while supported by haematuria and renal angle tenderness, it remains unconfirmed at this encounter and should be coded as possible to accurately reflect the diagnostic uncertainty."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Coding is largely comprehensive and clinically appropriate, but two safety-critical assertion errors exist: both 'appendicitis' and 'renal colic' are coded as confirmed (present) when the clinician explicitly documents both as suspected/possible diagnoses. Additionally, the renal lesion under investigation for possible cancer \u2014 a critical PMH item directly relevant to the presenting complaint \u2014 is absent from the coded list, as are rebound tenderness and nausea. The assertion corrections for appendicitis in particular are safety-critical given the downstream implications for the patient's record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7181,
+        "output_tokens": 1888,
+        "total_tokens": 9069,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "1e9fcff3-e22e-462b-b2c8-4383b4c211e6",
+        "date": "2025-10-27",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "602527b4-3556-4e9b-ba39-3b31b337c70e",
+    "patient_id": "4202301609",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "58b95091-a214-4907-85f4-b429f5aee604",
+    "patient_id": "4202301609",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "980c5a05-58bd-4038-8013-f97446c17af0",
+    "patient_id": "4202301609",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "163033001",
+          "name": "Lying blood pressure (observable entity)",
+          "severity": "medium",
+          "reason": "lookup_concept confirms this ID resolves to 'An 7705 (qualifier value)' \u2014 a qualifier value, not an observable entity; the note documents a standard sitting/unspecified BP reading with no indication it was taken lying down, so this code is both semantically wrong and clinically unsupported as 'lying' BP.",
+          "replace_with_concept_id": "75367002",
+          "replace_with_preferred_term": "Blood pressure (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Five of the six coded concepts are appropriate for this UTC triage encounter (NEWS2 score, HR, RR, temperature, and renal pain are all well-evidenced). The blood pressure code [163033001] is incorrect: the terminology server resolves it to a qualifier value rather than an observable entity, and the 'lying' qualifier is unsupported by the note text \u2014 it should be replaced with the generic Blood pressure observable entity [75367002]. The renal pain code [274279008] returned an unreliable lookup result but is confirmed correct by direct SNOMED search.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3347,
+        "output_tokens": 853,
+        "total_tokens": 4200,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "980c5a05-58bd-4038-8013-f97446c17af0",
+        "date": "2025-10-27",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f96faa24-1a87-4405-9c96-f88d3df0b72a",
+    "patient_id": "4202301609",
+    "date": "2025-11-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "23491005",
+          "name": "Replacement of nephrostomy tube (procedure)",
+          "severity": "medium",
+          "reason": "The note consistently describes a 'nephrostomy bag change' (drainage bag replacement) throughout, not a nephrostomy tube replacement; coding a tube replacement overstates the procedure performed.",
+          "replace_with_concept_id": "1234817009",
+          "replace_with_preferred_term": "Replacement of drainage bag (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The verbal consent finding (415812007) is correctly coded \u2014 the terminology server returned an unreliable result for this ID but search_snomed confirms it is the correct concept. The procedure code 23491005 (Replacement of nephrostomy tube) is clinically inaccurate: the note describes a routine weekly nephrostomy drainage bag change, not tube replacement; 1234817009 (Replacement of drainage bag) is the more precise fit. Note also documents carer training (wife taught bag change technique) and discharge from community nursing \u2014 these are procedural/administrative events not requiring additional SNOMED coding in scope, but the discharge is clinically significant context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6978,
+        "output_tokens": 1179,
+        "total_tokens": 8157,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "f96faa24-1a87-4405-9c96-f88d3df0b72a",
+        "date": "2025-11-11",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "76d14cc7-10f1-4325-a65d-305a34d7752a",
+    "patient_id": "4202301609",
+    "date": "2025-11-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "concerning for lymphoma",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The note explicitly states the retroperitoneal mass is 'concerning for lymphoma' \u2014 this suspected malignancy is a safety-critical oncological finding that must be coded separately from the mass itself to support 2WW tracking and clinical audit.",
+          "snomed_search": "lymphoma suspected",
+          "snomed_concept_id": "315264005",
+          "preferred_term": "Malignant lymphoma suspected (situation)",
+          "sentence": "Recent history retroperitoneal mass concerning for lymphoma",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Biopsy 1/7 ago",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A biopsy was performed one week ago (presumably of the retroperitoneal mass) and is a clinically significant recent procedure directly relevant to the oncological workup; it should be coded to support continuity of care.",
+          "snomed_search": "biopsy procedure",
+          "snomed_concept_id": "86273004",
+          "preferred_term": "Biopsy (procedure)",
+          "sentence": "Biopsy 1/7 ago",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The four existing codes are clinically reasonable for this encounter, though all four returned unreliable results from the terminology server (semantic tag mismatches) \u2014 human verification of concept IDs 39834009, 30124006, and 197805009 is advisable; notably 197805009 ('Postoperative ureteric constriction') is a poor fit as the obstruction is caused by the retroperitoneal mass, not a postoperative complication \u2014 consider replacing with 7163005 Urinary tract obstruction (disorder). The critical gap is the absence of a 'suspected lymphoma' code (315264005), which is a safety-critical oncological flag required for 2WW audit trails; the recent biopsy procedure is also uncoded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 11361,
+        "output_tokens": 1682,
+        "total_tokens": 13043,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "76d14cc7-10f1-4325-a65d-305a34d7752a",
+        "date": "2025-11-14",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1ca34839-5f14-4258-96c2-f542cf8b981b",
+    "patient_id": "4202301609",
+    "date": "2025-11-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Rupture of kidney",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "Rupture of kidney is the primary documented diagnosis driving this entire encounter and is explicitly named in the fit note diagnosis and PMHx; it must be coded as a disorder.",
+          "snomed_search": "rupture of kidney",
+          "snomed_concept_id": "30124006",
+          "preferred_term": "Rupture of kidney (disorder)",
+          "sentence": "PMHx: Retroperitoneal mass rupture (end of October 2025). Admitted 27/10/2025. Underwent surgery and subsequently had a kidney biopsy on 13/11/2025.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Kidney biopsy",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "A kidney biopsy was performed on 13/11/2025 with histology pending; this is a significant recent procedure that should be coded.",
+          "snomed_search": "kidney biopsy",
+          "snomed_concept_id": "7246002",
+          "preferred_term": "Kidney biopsy (procedure)",
+          "sentence": "Underwent surgery and subsequently had a kidney biopsy on 13/11/2025. Awaiting results.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Malignant neoplasm of kidney suspected",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "Biopsy results are explicitly pending and future management including nephrectomy and cancer treatment is discussed; a possible/suspected malignancy must be coded rather than confirmed present malignancy.",
+          "snomed_search": "malignant neoplasm kidney suspected",
+          "snomed_concept_id": "315270004",
+          "preferred_term": "Malignant neoplasm of kidney suspected (situation)",
+          "sentence": "Awaiting histology from kidney biopsy. No follow-up appointment arranged yet. Unclear on diagnosis and future management plan (e.g., potential nephrectomy, further cancer treatment).",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Renal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Stinging sensation in the left kidney area and kidney pain are explicitly reported as distinct from general abdominal pain and are driving opioid dose escalation.",
+          "snomed_search": "renal pain",
+          "snomed_concept_id": "274279008",
+          "preferred_term": "Renal pain (finding)",
+          "sentence": "Also reports a stinging sensation in the left kidney area.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Fatigue",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Significant fatigue and reduced energy levels are explicitly reported as active symptoms affecting the patient's daily functioning and contributing to the fit note.",
+          "snomed_search": "fatigue",
+          "snomed_concept_id": "84229001",
+          "preferred_term": "Fatigue (finding)",
+          "sentence": "Notes reduced energy levels and significant fatigue, feeling exhausted after minimal physical activity.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "286628000",
+          "name": "Nephrostomy tube (physical object)",
+          "severity": "medium",
+          "reason": "A physical object concept is outside the SNOMED coding scope for clinical encounters (disorders, findings, procedures, situations); the nephrostomy tube in situ should be represented by a finding or situation code, and the insertion procedure by 39834009 if confirmed valid.",
+          "replace_with_concept_id": "835421000000100",
+          "replace_with_preferred_term": "Drainage tube in situ (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "93849006",
+          "name": "Primary malignant neoplasm of kidney (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "Biopsy histology is explicitly stated as pending and the diagnosis is unconfirmed; coding a confirmed malignancy as present before results are available is clinically unsafe and incorrect \u2014 the assertion must be possible."
+        },
+        {
+          "conceptId": "39834009",
+          "name": "Insertion of nephrostomy tube (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The nephrostomy tube insertion was performed prior to this encounter (the tube is already in situ); the procedure is historical, not occurring at this encounter."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The most critical issue is that [93849006] Primary malignant neoplasm of kidney is coded as 'present' when biopsy results are explicitly pending \u2014 this must be changed to 'possible' (or replaced with 315270004 Malignant neoplasm of kidney suspected) to avoid a dangerous false-positive confirmed cancer code. Several concept IDs returned unreliable/wrong semantic tags from the terminology server (21522001, 39834009, 286628000), suggesting index corruption; the physical object code 286628000 is out of scope and should be replaced. Key missing codes include the primary disorder (Rupture of kidney, 30124006), the recent kidney biopsy procedure (7246002), and active symptoms of renal pain and fatigue that are clinically documented and driving management decisions.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 15627,
+        "output_tokens": 2903,
+        "total_tokens": 18530,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "1ca34839-5f14-4258-96c2-f542cf8b981b",
+        "date": "2025-11-21",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7a59288f-d3ed-4e6e-8e08-16f41f5036e4",
+    "patient_id": "4202301609",
+    "date": "2025-11-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine microscopy and culture",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a urine MC&S being requested and sent \u2014 this procedure should be coded.",
+          "snomed_search": "urine microscopy culture sensitivity",
+          "snomed_concept_id": "167217005",
+          "preferred_term": "Urine microscopy and culture (procedure)",
+          "sentence": "Plan to drop off a urine sample for MC&S.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Liver function tests normal",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'normal liver and kidney function' \u2014 renal function is coded but liver function result is not.",
+          "snomed_search": "liver function tests",
+          "snomed_concept_id": "166929001",
+          "preferred_term": "Liver function tests normal (finding)",
+          "sentence": "Blood tests from yesterday showed normal liver and kidney function.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "64379006",
+          "name": "Decrease in appetite (finding) [as labelled in coded list]",
+          "severity": "high",
+          "reason": "lookup_concept returned semantic_tag 'organism' (unreliable/wrong concept ID); the evidence field describes a medication change, not decreased appetite, and the note contains no mention of decreased appetite whatsoever \u2014 this code is clinically unsupported and likely erroneous."
+        },
+        {
+          "conceptId": "246682000",
+          "name": "Blood clot in eye (disorder) [as labelled in coded list]",
+          "severity": "high",
+          "reason": "lookup_concept returned an Extension Namespace placeholder (unreliable); the concept name 'Blood clot in eye' is anatomically wrong \u2014 the note describes passing blood clots in urine, not an ocular finding; haematuria is already correctly coded as [34436003]."
+        },
+        {
+          "conceptId": "30124006",
+          "name": "Rupture of kidney (disorder)",
+          "severity": "high",
+          "reason": "lookup_concept returned semantic_tag 'qualifier value' (unreliable/wrong); the note describes a nephrostomy that stopped working and was flushed \u2014 there is no clinical evidence of renal rupture in this encounter."
+        },
+        {
+          "conceptId": "281647001",
+          "name": "Adverse reaction (disorder)",
+          "severity": "low",
+          "reason": "The more specific code [419219000] 'Nausea and vomiting caused by drug' is also coded, making this generic adverse reaction code redundant; the specific drug-induced N&V code fully captures the clinical event."
+        },
+        {
+          "conceptId": "422400008",
+          "name": "Vomiting (disorder)",
+          "severity": "low",
+          "reason": "The more specific code [419219000] 'Nausea and vomiting caused by drug' is also coded, making this standalone vomiting code redundant and less precise for this clinical context."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This encounter has several significant coding errors: three concept IDs returned unreliable/wrong semantic tags on lookup (64379006 mapped to an organism, 30124006 to a qualifier value, 246682000 to a namespace placeholder), and the clinical evidence for two of these is either fabricated or anatomically incorrect. The drug-induced N&V code (419219000) is clinically valid and confirmed by search, but renders the generic vomiting and adverse reaction codes redundant. Two findings are missing: urine MC&S procedure and normal liver function result. Note also that an oncology appointment for seminoma management is planned for this afternoon \u2014 future chemotherapy should be coded when it occurs, not now.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 9823,
+        "output_tokens": 2092,
+        "total_tokens": 11915,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "7a59288f-d3ed-4e6e-8e08-16f41f5036e4",
+        "date": "2025-11-26",
+        "coded_count": 21
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e6f6c83b-130f-415a-b137-24acf58ef576",
+    "patient_id": "4202301609",
+    "date": "2025-11-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Microscopy, culture and sensitivities",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note title explicitly names 'Microscopy, culture and sensitivities' \u2014 concept 168132005 is a more specific and direct match than the generic 'Culture sensitivity' currently coded.",
+          "snomed_search": "microscopy culture sensitivity urine",
+          "snomed_concept_id": "168132005",
+          "preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "sentence": "Microscopy, culture and sensitivities (4I16.)",
+          "char_start": 22,
+          "char_end": 60
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "273973005",
+          "name": "Culture sensitivity (procedure)",
+          "severity": "low",
+          "reason": "The lookup returned an unreliable Extension Namespace placeholder for this concept ID; the note text specifically names 'Microscopy, culture and sensitivities', which is better represented by 168132005 \u2014 the generic 'Culture sensitivity' code is less specific and its concept ID cannot be confirmed by the terminology server.",
+          "replace_with_concept_id": "168132005",
+          "replace_with_preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing procedure code (273973005) is unreliable per the terminology server and is less specific than the note warrants; it should be replaced with 168132005 'Microscopy, culture and sensitivities (procedure)'. No explicit clinical diagnosis (e.g. UTI) is stated in the encounter text \u2014 the note is a lab result report only \u2014 so no disorder code can be inferred without a clinician-documented diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4497,
+        "output_tokens": 1249,
+        "total_tokens": 5746,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "e6f6c83b-130f-415a-b137-24acf58ef576",
+        "date": "2025-11-26",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9f91453d-36ec-4426-a005-eca16c614109",
+    "patient_id": "4202301609",
+    "date": "2025-11-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "KESC (Klebsiella) UTI",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The MSU result explicitly identifies KESC (Klebsiella) as the causative organism; a more specific organism-coded UTI concept should replace or supplement the generic UTI code.",
+          "snomed_search": "Klebsiella urinary tract infection",
+          "snomed_concept_id": "369001000119100",
+          "preferred_term": "Urinary tract infection caused by Klebsiella (disorder)",
+          "sentence": "filing results. msu positive.  kesc.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "68566005",
+          "name": "Urinary tract infectious disease (disorder)",
+          "severity": "medium",
+          "reason": "The MSU explicitly identifies Klebsiella (KESC) as the causative organism; the generic UTI code should be replaced by the organism-specific concept 369001000119100.",
+          "replace_with_concept_id": "369001000119100",
+          "replace_with_preferred_term": "Urinary tract infection caused by Klebsiella (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The UTI is coded generically but the MSU result explicitly names KESC (Klebsiella), warranting the more specific organism-coded concept 369001000119100. The nephrostomy procedure code (39834009) is confirmed valid despite a terminology server artefact on lookup; it is clinically appropriate given the note references active bleeding from the nephrostomy site (now resolved). No additional findings (e.g. resolved haematuria) require separate coding as they are contextual to the already-coded conditions.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4652,
+        "output_tokens": 1300,
+        "total_tokens": 5952,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202301609",
+        "encounter_id": "9f91453d-36ec-4426-a005-eca16c614109",
+        "date": "2025-11-28",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  }
+]

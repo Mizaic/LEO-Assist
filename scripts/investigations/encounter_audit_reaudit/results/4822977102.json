@@ -1,0 +1,1410 @@
+[
+  {
+    "encounter_id": "f6c930ee-d3a5-4dea-bc1f-5665b4a4263d",
+    "patient_id": "4822977102",
+    "date": "2024-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lymphoedema",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The ActiLymph garment prescribed is specifically a lymphoedema garment, and the clinical picture (chronic unilateral oedema of left foot/ankle for 40+ years, diurnal variation) is consistent with lymphoedema as the primary diagnosis driving this encounter.",
+          "snomed_search": "lymphoedema",
+          "snomed_concept_id": "234097001",
+          "preferred_term": "Lymphedema (disorder)",
+          "sentence": "Episode of left calf pain before christmas and ongoing issues with chronic oedema to left foot and ankle for the last 40+ years.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "left calf pain",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "An episode of left calf pain before Christmas is explicitly documented and is clinically relevant in the context of a vascular/Doppler assessment.",
+          "snomed_search": "calf pain",
+          "snomed_concept_id": "300954003",
+          "preferred_term": "Pain in calf (finding)",
+          "sentence": "Episode of left calf pain before christmas and ongoing issues with chronic oedema to left foot and ankle for the last 40+ years.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "left ankle brachial pressure index",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter was specifically attended for ABPI assessment and a left ABPI was performed and documented; the procedure itself should be coded, not only the observable entity.",
+          "snomed_search": "left ankle brachial pressure index",
+          "snomed_concept_id": "751071000000105",
+          "preferred_term": "Left ankle brachial pressure index (procedure)",
+          "sentence": "Examination: Attended for ABPI as per Dr Patel.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "home blood pressure monitoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient was explicitly asked to perform home blood pressure monitoring (HBPM) and given a form; this is a coded clinical procedure.",
+          "snomed_search": "blood pressure recorded by patient home",
+          "snomed_concept_id": "413153004",
+          "preferred_term": "Blood pressure recorded by patient at home (procedure)",
+          "sentence": "Asked to do HBPM, known hypertension, given form, states has bp machine at home.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "application of compression hosiery",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient was measured and fitted for a class 2 compression stocking for the left leg; the fitting/application procedure should be coded.",
+          "snomed_search": "application elastic hosiery",
+          "snomed_concept_id": "448400008",
+          "preferred_term": "Application of elastic hosiery (procedure)",
+          "sentence": "Measured for class 2 compression stocking for left leg only.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "408116002",
+          "name": "Venous ulcer compression hosiery (physical object)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an unreliable Extension Namespace placeholder; the garment prescribed is an ActiLymph lymphoedema garment, not a venous ulcer compression stocking \u2014 the physical object code is also outside SNOMED scope for clinical coding (should be a procedure).",
+          "replace_with_concept_id": "448400008",
+          "replace_with_preferred_term": "Application of elastic hosiery (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "102572006",
+          "name": "Edema of lower extremity (finding) [as coded]",
+          "severity": "medium",
+          "reason": "lookup_concept returned semantic_tag 'organism' indicating this concept ID is wrong or corrupted; the clinical finding is lymphoedema (234097001) which is more specific and supported by the ActiLymph garment prescription and 40-year history.",
+          "replace_with_concept_id": "234097001",
+          "replace_with_preferred_term": "Lymphedema (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter has several coding issues: two concept IDs are unreliable/wrong (102572006 returns as an organism, 408116002 as an Extension Namespace placeholder), and the primary diagnosis of lymphoedema is not explicitly coded despite the ActiLymph garment and 40-year oedema history. The ABPI procedure, HBPM instruction, and compression hosiery fitting procedure are also missing. The observable entity codes for ABPI and blood pressure are appropriate but the corresponding procedures should also be present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11016,
+        "output_tokens": 2472,
+        "total_tokens": 13488,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "f6c930ee-d3a5-4dea-bc1f-5665b4a4263d",
+        "date": "2024-01-22",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c234b3aa-ac71-47a4-abe9-feaa8f033fd5",
+    "patient_id": "4822977102",
+    "date": "2024-03-19",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are confirmed valid and correctly evidenced: the observable entity (1049361000000101 \u2014 Quantitative faecal immunochemical test) and the finding (375241000000109 \u2014 BCSP faecal occult blood test abnormal) together fully capture the clinical content of this auto-filed BCSP result. The forthcoming screening colonoscopy is a future/planned procedure and should not be coded from this encounter; it may be coded once performed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3371,
+        "output_tokens": 1041,
+        "total_tokens": 4412,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "c234b3aa-ac71-47a4-abe9-feaa8f033fd5",
+        "date": "2024-03-19",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "62707077-20d8-4ff8-8fca-d68bc79fad27",
+    "patient_id": "4822977102",
+    "date": "2024-04-11",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9a308e92-cb8d-484a-9284-da76ebe8cc69",
+    "patient_id": "4822977102",
+    "date": "2024-05-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "744c2033-9963-414f-b5e9-7e6fc95aa00c",
+    "patient_id": "4822977102",
+    "date": "2024-05-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bowel cancer screening programme (BWEL FIT screening)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the cancer was diagnosed via the BWEL cancer FIT screening programme; the route of diagnosis is clinically significant and should be coded.",
+          "snomed_search": "bowel cancer screening programme",
+          "snomed_concept_id": "286901000000107",
+          "preferred_term": "Bowel cancer screening programme (procedure)",
+          "sentence": "new diagnosis of colorectal cancer via the bwel cancer fit screening.",
+          "char_start": 130,
+          "char_end": 193
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "medium",
+          "reason": "The note and problem title explicitly specify rectal cancer; the site-specific code 363351006 'Malignant neoplasm of rectum (disorder)' is already coded, making this non-specific parent concept redundant and misleading.",
+          "replace_with_concept_id": "363351006",
+          "replace_with_preferred_term": "Malignant neoplasm of rectum (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary coding issue is duplication: the non-specific 'Malignant neoplasm of intestine' (363508008) should be replaced by the already-coded site-specific 'Malignant neoplasm of rectum' (363351006). The route of diagnosis via the NHS Bowel Cancer Screening Programme (FIT) is clinically significant and is missing. Chemotherapy, radiotherapy, and surgery are future/planned \u2014 not yet codeable as present. The terminology server returned unreliable results for concept IDs 395672005 and 720006006 but their clinical descriptions in the coded list are appropriate for the encounter; no action taken on those.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7645,
+        "output_tokens": 1557,
+        "total_tokens": 9202,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "744c2033-9963-414f-b5e9-7e6fc95aa00c",
+        "date": "2024-05-16",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "62501f2e-d4b4-4cab-84fc-dbaeee7b9c5a",
+    "patient_id": "4822977102",
+    "date": "2024-06-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chemotherapy-induced peripheral neuropathy (heavy hands, unsteadiness)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician documents 'hands feeling heavy - like lead' and difficulty mobilising/unsteadiness as chemotherapy side effects; this constellation maps to peripheral neuropathy due to antineoplastic therapy, which is a distinct active disorder not separately captured.",
+          "snomed_search": "chemotherapy induced peripheral neuropathy",
+          "snomed_concept_id": "767659008",
+          "preferred_term": "Peripheral neuropathy due to and following antineoplastic therapy (disorder)",
+          "sentence": "HAnds feeling heavy - like lead - can still move them. Explaiend most likely chemotherapy induced SE",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "eMED3 new statement issued, not fit for work",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'eMED3 (2010) new statement issued, not fit for work' valid from 08 Jun to 07 Sep 2024; this procedure/finding should be coded.",
+          "snomed_search": "eMED3 new statement not fit for work",
+          "snomed_concept_id": "751481000000104",
+          "preferred_term": "eMED3 (2010) new statement issued, not fit for work (finding)",
+          "sentence": "eMED3 (2010) new statement issued, not fit for work (XaX1E)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "low",
+          "reason": "The more specific Adenocarcinoma of rectosigmoid junction (425178004) is already coded; retaining this broad parent creates redundancy and reduces coding precision.",
+          "replace_with_concept_id": "425178004",
+          "replace_with_preferred_term": "Adenocarcinoma of rectosigmoid junction (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1064281000000106",
+          "name": "Cancer chemotherapy management plan (record artifact) \u2014 coded concept ID resolves to a substance (DRB1*08022), not a clinical procedure",
+          "severity": "high",
+          "reason": "Concept ID 1064281000000106 resolves to a substance (DRB1*08022) on the terminology server, not a chemotherapy plan or procedure; the note documents active chemotherapy which should be coded as the procedure Chemotherapy (367336001).",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "419082008",
+          "name": "Adverse reaction caused by oil (disorder) \u2014 coded concept ID resolves to CoAr 1071 virus (organism)",
+          "severity": "high",
+          "reason": "Concept ID 419082008 resolves to 'CoAr 1071 virus (organism)' on the terminology server \u2014 a completely incorrect concept; the intended adverse drug reaction should be coded as Adverse reaction caused by drug (62014003), with the specific neuropathy coded separately.",
+          "replace_with_concept_id": "62014003",
+          "replace_with_preferred_term": "Adverse reaction caused by drug (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two coded concept IDs are critically corrupt: 419082008 resolves to a virus organism and 1064281000000106 to a substance \u2014 both must be replaced with clinically correct SNOMED codes. Additionally, chemotherapy-induced peripheral neuropathy (heavy hands + unsteadiness) warrants its own specific disorder code (767659008), and the eMED3 fit-note issuance is undocumented in the coded list. The broad intestinal malignancy code is redundant given the specific rectosigmoid adenocarcinoma code already present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6222,
+        "output_tokens": 2012,
+        "total_tokens": 8234,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "62501f2e-d4b4-4cab-84fc-dbaeee7b9c5a",
+        "date": "2024-06-08",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4a61ed9c-0411-4708-b07b-7021277726eb",
+    "patient_id": "4822977102",
+    "date": "2024-09-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b705dab2-dd22-4cf7-a190-b02c104eb352",
+    "patient_id": "4822977102",
+    "date": "2024-09-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chemotherapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is 'undergoing chemotherapy', making this an active procedure that must be coded.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Undergoing chemotherapy, due to have radiotherapy now which starts on Monday.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "medium",
+          "reason": "A bare qualifier value ('In progress') is not a valid standalone clinical code for an encounter; the active treatment should be coded as the procedure itself (Chemotherapy, 367336001), not as a generic status qualifier.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The rectosigmoid malignancy is correctly coded (363414004 confirmed by search). The 'In progress' qualifier value (385651009) is an inappropriate standalone code and should be replaced by Chemotherapy procedure (367336001), which is explicitly documented as active. Radiotherapy (1287742003) is mentioned as starting imminently ('on Monday') and is a future/planned procedure at the time of this encounter \u2014 it should not be coded as present but should be added once commenced. Surgery is also mentioned as planned post-radiotherapy and similarly should not be coded yet.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4474,
+        "output_tokens": 1327,
+        "total_tokens": 5801,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "b705dab2-dd22-4cf7-a190-b02c104eb352",
+        "date": "2024-09-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "91aea13e-35c3-435f-b4b9-70f4b21360dd",
+    "patient_id": "4822977102",
+    "date": "2024-10-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "cellulitis at injection site (leg lump red and warm)",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "Patient reports a lump on her leg that is red and warm at an enoxaparin injection site \u2014 clinically consistent with injection site cellulitis and requires in-person review; this is a new, active, clinically significant finding not yet coded.",
+          "snomed_search": "cellulitis injection site",
+          "snomed_concept_id": "860816004",
+          "preferred_term": "Cellulitis at injection site (disorder)",
+          "sentence": "Has a lump on her leg which is red and warm- and worried about this.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "bruises and lumps at injection sites",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports bruising at enoxaparin injection sites, a documented adverse reaction to subcutaneous injection that should be coded as an active finding.",
+          "snomed_search": "injection site bruising",
+          "snomed_concept_id": "95401009",
+          "preferred_term": "Injection site bruising (disorder)",
+          "sentence": "Getting bruises sand lumps where she is injection.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lumps at injection sites",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports multiple lumps at subcutaneous injection sites ('covered in lumps'), consistent with injection site mass/nodule formation, a distinct finding from bruising.",
+          "snomed_search": "injection site mass",
+          "snomed_concept_id": "95395009",
+          "preferred_term": "Injection site mass (disorder)",
+          "sentence": "Feels won't have enough space to inject' for 3 months and worried about this as covered in lumps'",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "neoadjuvant CAPOX chemotherapy completed August 2024",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Four cycles of neoadjuvant CAPOX chemotherapy were completed in August 2024 and are directly relevant to the current clinical context (DVT, injection complications); the procedure should be coded as historical.",
+          "snomed_search": "chemotherapy administration",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Complete four cycles of neoadjuvant CAPOX chemotherapy in Aug 2024",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "medium",
+          "reason": "Lookup returned semantic tag 'substance' indicating this concept ID does not map to the intended disorder in this terminology server; furthermore the note specifies 'rectosigmoid adenocarcinoma' which is more precisely coded as Primary adenocarcinoma of rectosigmoid junction \u2014 the current code is both technically unreliable and insufficiently specific.",
+          "replace_with_concept_id": "184881000119106",
+          "replace_with_preferred_term": "Primary adenocarcinoma of rectosigmoid junction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The cancer code (363508008) is both technically unreliable (wrong semantic tag on lookup) and insufficiently specific \u2014 it should be replaced with the rectosigmoid adenocarcinoma concept. Four clinically significant findings are missing: injection site cellulitis (red/warm leg lump \u2014 high severity, driving the face-to-face review task), injection site bruising, injection site mass, and historical chemotherapy. The DVT code (128053003) is confirmed correct despite the unreliable server flag.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10911,
+        "output_tokens": 2184,
+        "total_tokens": 13095,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "91aea13e-35c3-435f-b4b9-70f4b21360dd",
+        "date": "2024-10-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "308a2834-fae0-4d23-8d45-98e6eebe9afb",
+    "patient_id": "4822977102",
+    "date": "2024-10-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "1255831008",
+          "name": "Chemotherapy for malignant neoplastic disease using targeted agent (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'last chemo was [X] weeks ago', indicating the chemotherapy course has been completed; it should be coded as historical rather than currently active. Additionally, lookup_concept returned an unreliable result (substance tag) for this concept ID \u2014 the specific 'targeted agent' subtype may not be the best fit as the note does not specify targeted therapy; consider replacing with a general chemotherapy procedure code such as 367336001 (Chemotherapy) or 235391000000102 (Delivery of chemotherapy for neoplasm)."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The bowel cancer disorder code (96281000119107) is clinically appropriate and confirmed by search_snomed despite an unreliable terminology server lookup (index corruption). The chemotherapy procedure assertion should be historical as the course is documented as completed; the specific 'targeted agent' subtype is also unverified and may need replacing with a general chemotherapy code. Planned radiotherapy (due 6th November) is a future procedure and should not be coded as present from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6486,
+        "output_tokens": 1276,
+        "total_tokens": 7762,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "308a2834-fae0-4d23-8d45-98e6eebe9afb",
+        "date": "2024-10-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0a2e0b65-0181-4314-9356-6f7e3f5bcf32",
+    "patient_id": "4822977102",
+    "date": "2024-10-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Seasonal influenza vaccination declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "Explicitly documented in the encounter as declined; a specific SNOMED situation code exists and is evidenced by the coded read code XaZ0i in the note text.",
+          "snomed_search": "seasonal influenza vaccination",
+          "snomed_concept_id": "822931000000100",
+          "preferred_term": "Seasonal influenza vaccination declined (situation)",
+          "sentence": "Seasonal influenza vaccination declined (XaZ0i)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "chemotherapy",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note states the patient has had 4 cycles of chemotherapy for her rectosigmoid adenocarcinoma; this completed procedure should be coded as historical.",
+          "snomed_search": "chemotherapy administration",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Has had 4 cycles of chemotherapy",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder) [as coded] \u2014 lookup returned DRB1*08032 (substance)",
+          "severity": "high",
+          "reason": "The terminology server returned this concept ID as a substance (DRB1*08032), not a disorder; the note documents 'Rectosigmoid adenocarcinoma' which maps specifically to Adenocarcinoma of rectosigmoid junction (disorder).",
+          "replace_with_concept_id": "425178004",
+          "replace_with_preferred_term": "Adenocarcinoma of rectosigmoid junction (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "128053003",
+          "name": "Deep venous thrombosis (disorder)",
+          "severity": "low",
+          "reason": "This broad parent concept is redundant as the more specific child concept 293491000119107 (Acute deep vein thrombosis of left iliac vein) is already coded for the same clinical event."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary malignancy code (363508008) is unreliable \u2014 the terminology server returns it as a substance, not a disorder \u2014 and should be replaced with the specific adenocarcinoma of rectosigmoid junction concept (425178004). The broad DVT parent (128053003) is redundant given the specific left iliac vein DVT code already present. Two concepts are missing: the explicitly documented influenza vaccination declination and the historical chemotherapy procedure. Planned chemoradiotherapy is future/not yet occurred and should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9547,
+        "output_tokens": 1935,
+        "total_tokens": 11482,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "0a2e0b65-0181-4314-9356-6f7e3f5bcf32",
+        "date": "2024-10-14",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "14f1f6ae-0840-4e9d-9352-1d61c24d1a9b",
+    "patient_id": "4822977102",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "eMED3 new statement issued, may be fit for work",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents issuance of an eMED3 (2010) 'may be fit for work' statement (code XaX1K referenced in the note header and confirmed in the MED3 statement section); this clinical act is not captured in the coded list.",
+          "snomed_search": "eMED3 may be fit for work",
+          "snomed_concept_id": "751601000000107",
+          "preferred_term": "eMED3 (2010) new statement issued, may be fit for work (finding)",
+          "sentence": "eMED3 (2010) new statement issued, may be fit for work (XaX1K)",
+          "char_start": 55,
+          "char_end": 110
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "high",
+          "reason": "Concept 363508008 resolves in the terminology server as 'DRB1*08032 (substance)' \u2014 a genetic allele substance, not a disorder \u2014 making this an incorrect concept ID for the documented rectosigmoid adenocarcinoma; the correct specific code is Adenocarcinoma of rectosigmoid junction (disorder).",
+          "replace_with_concept_id": "425178004",
+          "replace_with_preferred_term": "Adenocarcinoma of rectosigmoid junction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The primary diagnosis code (363508008) resolves to a genetic substance rather than a colorectal cancer disorder and must be replaced with the specific rectosigmoid adenocarcinoma concept (425178004). The eMED3 'may be fit for work' statement is a key clinical act documented in this encounter and is missing from the coded list. Planned chemo/radiotherapy (due in 2 weeks) has not yet occurred and should not be coded as present at this time.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5523,
+        "output_tokens": 1391,
+        "total_tokens": 6914,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "14f1f6ae-0840-4e9d-9352-1d61c24d1a9b",
+        "date": "2024-10-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "faed21eb-a4e2-4d52-badf-2a4a2d844e76",
+    "patient_id": "4822977102",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "on treatment for cancer",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is 'on treatment for cancer', indicating an active malignancy requiring coding; no cancer diagnosis is present in the coded list.",
+          "snomed_search": "malignant neoplastic disease",
+          "snomed_concept_id": "363346000",
+          "preferred_term": "Malignant neoplastic disease (disorder)",
+          "sentence": "htn review- on treatment for cancer.",
+          "char_start": 107,
+          "char_end": 140
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The hypertension code (38341003) is confirmed correct despite an unreliable lookup response. A significant gap exists: the note states the patient is 'on treatment for cancer' but no malignancy is coded; the cancer type is unspecified so a broad malignant neoplastic disease code is proposed pending clarification of the specific cancer type from the problem list or medical history. The AKI Stage 0 / No AKI result is a negative finding and correctly left uncoded. The two observable entity codes (BP, HbA1c) are pipeline-generated and not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4080,
+        "output_tokens": 1197,
+        "total_tokens": 5277,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "faed21eb-a4e2-4d52-badf-2a4a2d844e76",
+        "date": "2024-10-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "83295064-0387-4f26-b951-7ab22777b8f0",
+    "patient_id": "4822977102",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "high",
+          "reason": "The note explicitly states 'Known Rectosigmoid adenocarcinoma', which maps to a specific histological and anatomical subtype; the coded concept is an overly broad parent that does not capture the adenocarcinoma morphology or rectosigmoid site.",
+          "replace_with_concept_id": "425178004",
+          "replace_with_preferred_term": "Adenocarcinoma of rectosigmoid junction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The ALP finding (166627004) and albumin observable are appropriately coded; however, the malignancy code 363508008 ('Malignant neoplasm of intestine') is too broad \u2014 the note documents a rectosigmoid adenocarcinoma, which should be coded as 425178004 ('Adenocarcinoma of rectosigmoid junction'). Note: lookup_concept returned an unreliable/wrong semantic tag for 363508008, but search_snomed confirms it is a valid disorder; the specificity issue stands independently. The globulin of 19 g/L is within the lab's normal commentary range and does not require additional coding. The 'borderline LFT, repeat test' recommendation is a workflow note and does not generate a new codeable finding beyond the already-coded raised ALP.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7598,
+        "output_tokens": 1421,
+        "total_tokens": 9019,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "83295064-0387-4f26-b951-7ab22777b8f0",
+        "date": "2024-10-18",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "00c9c24e-8614-47ce-9180-90f9075a4f66",
+    "patient_id": "4822977102",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1240414004",
+          "name": "Malignant neoplasm (morphologic abnormality)",
+          "severity": "high",
+          "reason": "Concept 1240414004 has semantic tag 'morphologic abnormality' (confirmed unreliable by terminology server) \u2014 this is a morphology qualifier, not a clinical disorder or situation; the note states the patient is actively 'on treatment for cancer' and requires a disorder-level code.",
+          "replace_with_concept_id": "363346000",
+          "replace_with_preferred_term": "Malignant neoplastic disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The principal coding error is the use of concept 1240414004 'Malignant neoplasm (morphologic abnormality)' \u2014 a morphologic abnormality qualifier \u2014 where the correct code for an active cancer under treatment is the disorder 363346000 'Malignant neoplastic disease (disorder)'. Hypercholesterolaemia (13644009) and all lab observable-entity codes are correctly applied; the note does not specify cancer type so a more granular tumour code cannot be justified from this text alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5279,
+        "output_tokens": 1074,
+        "total_tokens": 6353,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "00c9c24e-8614-47ce-9180-90f9075a4f66",
+        "date": "2024-10-18",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "13ef5640-1797-4fce-8d8b-a15530d5e36c",
+    "patient_id": "4822977102",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chemotherapy-induced nausea and vomiting",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient eating ginger biscuits to manage sickness as a side effect of chemotherapy, confirming active chemotherapy-induced nausea.",
+          "snomed_search": "chemotherapy-induced nausea vomiting",
+          "snomed_concept_id": "18846006",
+          "preferred_term": "Chemotherapy-induced nausea and vomiting (disorder)",
+          "sentence": "has put weight on since been on chemo - eating ginger biscuits etc. to try and help with sickness side effect",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two significant coding issues identified: (1) The cancer code [363508008] returned an unreliable lookup (semantic tag: substance) and is likely wrong \u2014 the note states 'Known Rectosigmoid adenocarcinoma' which maps to 425178004 'Adenocarcinoma of rectosigmoid junction (disorder)' or 184881000119106 'Primary adenocarcinoma of rectosigmoid junction (disorder)'; the cancer code should be reviewed and replaced with the correct rectosigmoid-specific disorder concept. (2) [70292004] is coded as 'Treatment planning for chemotherapy' but the note describes active ongoing chemotherapy (patient modifying behaviour due to chemo side effects), making 367336001 'Chemotherapy (procedure)' more appropriate; additionally, the explicitly documented chemotherapy-induced nausea/vomiting (18846006) is missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7234,
+        "output_tokens": 1462,
+        "total_tokens": 8696,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "13ef5640-1797-4fce-8d8b-a15530d5e36c",
+        "date": "2024-10-18",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c80dc1cc-b860-4a03-98b7-d89235a2f0e4",
+    "patient_id": "4822977102",
+    "date": "2024-10-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chemotherapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The patient has had 4 cycles of chemotherapy for rectal tumour and further chemotherapy is planned; this active treatment should be coded with a valid chemotherapy procedure concept, replacing the incorrectly resolved substance code.",
+          "snomed_search": "delivery chemotherapy neoplasm",
+          "snomed_concept_id": "235391000000102",
+          "preferred_term": "Delivery of chemotherapy for neoplasm (procedure)",
+          "sentence": "had 4 cycles of chemotherapy for rectal tumor",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1255831008",
+          "name": "Chemotherapy for malignant neoplastic disease using targeted agent (procedure)",
+          "severity": "high",
+          "reason": "Terminology server resolves concept ID 1255831008 as 'DRB1*08032 (substance)' \u2014 a substance concept, not a procedure; this is an invalid code for the chemotherapy documented in the note and must be replaced.",
+          "replace_with_concept_id": "235391000000102",
+          "replace_with_preferred_term": "Delivery of chemotherapy for neoplasm (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "397943006",
+          "name": "Planned (qualifier value)",
+          "severity": "medium",
+          "reason": "A standalone qualifier value 'Planned' is not a valid clinical code; the note mentions future radiotherapy (not yet occurred) which per coding rules must not be coded as present, and the concept ID itself resolves as an organism on the terminology server."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is largely well-coded but has two significant issues: concept ID 1255831008 resolves to a substance (not a procedure) and must be replaced with a valid chemotherapy procedure code; concept ID 397943006 is an invalid standalone qualifier value used to represent planned radiotherapy, which should not be coded as a present procedure since it has not yet occurred. The rectal neoplasm (363351006), hypercholesterolaemia (13644009), sedentary lifestyle, and telephone consultation codes are all clinically appropriate and supported by the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5427,
+        "output_tokens": 1659,
+        "total_tokens": 7086,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "c80dc1cc-b860-4a03-98b7-d89235a2f0e4",
+        "date": "2024-10-21",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "80655441-039f-4ed3-86aa-776429d0cbfc",
+    "patient_id": "4822977102",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "128053003",
+          "name": "Deep venous thrombosis (disorder)",
+          "severity": "medium",
+          "reason": "The concept 128053003 (Deep venous thrombosis) has been coded twice in this encounter with identical concept IDs; one instance is a duplicate and should be removed."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "128053003",
+          "name": "Deep venous thrombosis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The DVT is referenced in the context of a past oncology letter (19/12/24) and the anticoagulant (apixaban) was stopped on 19/03/25 on clinical grounds per consultant advice, indicating the DVT is a resolved/historical event rather than currently active."
+        }
+      ],
+      "confidence": 0.78,
+      "notes": "This pharmacist medication reconciliation encounter contains two issues: (1) 128053003 (Deep venous thrombosis) is coded twice \u2014 one entry is a duplicate; (2) the DVT assertion of 'present' is questionable given apixaban was stopped in March 2025 on consultant advice, suggesting the DVT is resolved/historical. The note implies an underlying malignancy under active chemotherapy, but the cancer type is unspecified and not explicitly diagnosed in this encounter text, so no new malignancy code can be proposed without human review of the full problem list and oncology letter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6475,
+        "output_tokens": 1340,
+        "total_tokens": 7815,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "80655441-039f-4ed3-86aa-776429d0cbfc",
+        "date": "2024-12-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8adc0d12-0e36-4dcf-b250-2cb37d443f34",
+    "patient_id": "4822977102",
+    "date": "2025-01-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "eMED3 (2010) new statement issued, may be fit for work",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a new eMED3 statement issued with 'may be fit for work' status, valid 03 Jan\u201302 Feb 2025; this clinical administrative act is not coded.",
+          "snomed_search": "may be fit for work",
+          "snomed_concept_id": "751601000000107",
+          "preferred_term": "eMED3 (2010) new statement issued, may be fit for work (finding)",
+          "sentence": "eMED3 (2010) new statement issued, may be fit for work (XaX1K)",
+          "char_start": 47,
+          "char_end": 100
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363414004",
+          "name": "Malignant neoplasm of rectosigmoid junction (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly states 'rectosigmoid carcinoma', which maps to the more specific concept 'Carcinoma of rectosigmoid junction' (269544008) rather than the broader 'Malignant neoplasm of rectosigmoid junction'.",
+          "replace_with_concept_id": "269544008",
+          "replace_with_preferred_term": "Carcinoma of rectosigmoid junction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two issues identified: (1) the rectosigmoid malignancy is coded at a non-specific level \u2014 'Malignant neoplasm of rectosigmoid junction' should be replaced with the more precise 'Carcinoma of rectosigmoid junction' (269544008) to reflect the explicit histological type documented; (2) the eMED3 'may be fit for work' statement issued during this encounter is entirely absent from the coded list and should be added as 751601000000107.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7861,
+        "output_tokens": 1638,
+        "total_tokens": 9499,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "8adc0d12-0e36-4dcf-b250-2cb37d443f34",
+        "date": "2025-01-03",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "010b4d43-2afd-4b70-9259-c184bd2e7068",
+    "patient_id": "4822977102",
+    "date": "2025-01-07",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "All three coded concepts are confirmed correct by SNOMED search: CT procedure (77477000), left adrenal nodule coded as Nodule of adrenal cortex (874912007), and Umbilical hernia (396347007). The lookup_concept unreliable flags were a terminology server index artefact and do not indicate coding errors. No additional codeable findings are present in the encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3668,
+        "output_tokens": 837,
+        "total_tokens": 4505,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "010b4d43-2afd-4b70-9259-c184bd2e7068",
+        "date": "2025-01-07",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "67c9f241-a8dd-48fe-ae37-cb6d5c9be8fc",
+    "patient_id": "4822977102",
+    "date": "2025-03-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hypertension",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Longstanding hypertension explicitly documented as active problem with current treatment and management plan discussed in this encounter.",
+          "snomed_search": "hypertension",
+          "snomed_concept_id": "38341003",
+          "preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "sentence": "Reports longstanding hypertension for 30 years",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "weight gain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Recent weight gain during cancer treatment is explicitly documented as a current clinical finding relevant to this encounter.",
+          "snomed_search": "weight gain",
+          "snomed_concept_id": "262286000",
+          "preferred_term": "Weight increased (finding)",
+          "sentence": "Recent weight gain during cancer treatment",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "home blood pressure monitoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The management plan explicitly instructs home BP monitoring for one week as an active procedure ordered in this encounter.",
+          "snomed_search": "home blood pressure monitoring",
+          "snomed_concept_id": "413153004",
+          "preferred_term": "Blood pressure recorded by patient at home (procedure)",
+          "sentence": "Plan: Home BP monitoring for 1 week",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "DRB1*08032 (substance) \u2014 coded as 'Malignant neoplasm of intestine'",
+          "severity": "medium",
+          "reason": "Concept ID 363508008 resolves to a substance (DRB1*08032), not a malignant neoplasm of intestine; this is an incorrect code and is superseded by the more specific and correct rectosigmoid junction code 363414004 already present in the coded list.",
+          "replace_with_concept_id": "363414004",
+          "replace_with_preferred_term": "Malignant neoplasm of rectosigmoid junction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter has three clear coding gaps: active hypertension (the primary reason for the consultation), recent weight gain during cancer treatment, and home BP monitoring as a planned procedure. Additionally, concept 363508008 is an erroneous code (resolves to a substance, not a cancer disorder) and should be removed \u2014 the rectosigmoid junction malignancy is correctly captured by 363414004. Note: the terminology server returned unreliable results for 363414004 but search_snomed confirms it is the correct SNOMED disorder concept for this diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5422,
+        "output_tokens": 1650,
+        "total_tokens": 7072,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "67c9f241-a8dd-48fe-ae37-cb6d5c9be8fc",
+        "date": "2025-03-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6d3fc9af-b22f-4821-9a35-77c0a8e4644d",
+    "patient_id": "4822977102",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "home blood pressure monitoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a 1-week period of HBPM with readings brought in today, and the plan includes repeat HBPM in 4 weeks \u2014 this procedure should be coded.",
+          "snomed_search": "blood pressure recorded by patient home",
+          "snomed_concept_id": "413153004",
+          "preferred_term": "Blood pressure recorded by patient at home (procedure)",
+          "sentence": "Has done 1/52 HBPM -brought in readings today",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hypertension (active)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is centred on active hypertension management \u2014 new antihypertensive started, pre-operative BP concern, ongoing monitoring plan \u2014 so active hypertension disorder should be coded rather than (or in addition to) the 'history of' situation code.",
+          "snomed_search": "hypertension",
+          "snomed_concept_id": "38341003",
+          "preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "sentence": "Hypertension Formulary / ABPM / HBPM - Raised: Yes / Raised blood pressure (XM02V)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "225624000",
+          "name": "Panic attack (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'history of panic attacks' \u2014 this is a past condition cited as the reason for Carvedilol, not an active current presentation, so assertion should be historical."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The most significant issue is that active hypertension is coded only as a 'history of' situation (161501007) when the entire encounter concerns active BP management with a new antihypertensive; the active disorder code should be present. Additionally, panic attacks are documented as historical but coded as present. Home BP monitoring (413153004) is explicitly performed and should be coded. Anticoagulant therapy (182764009) and the blood pressure observable are appropriately coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5915,
+        "output_tokens": 1531,
+        "total_tokens": 7446,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "6d3fc9af-b22f-4821-9a35-77c0a8e4644d",
+        "date": "2025-03-13",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "00b154ae-f09f-440f-af4b-bfb3da22ba94",
+    "patient_id": "4822977102",
+    "date": "2025-04-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fad8d37c-ba3f-4437-80df-167691aea621",
+    "patient_id": "4822977102",
+    "date": "2025-06-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hiatus hernia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient is taking a PPI for hiatus hernia with good symptom control, making this an active coded diagnosis.",
+          "snomed_search": "hiatus hernia",
+          "snomed_concept_id": "84089009",
+          "preferred_term": "Hiatal hernia (disorder)",
+          "sentence": "Drug monitoring done: Yes taking for hiatus hernia, controlling symptoms well",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "apixaban stopped",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note records that apixaban was stopped by the patient on 19/03/25 after completing a short course for provoked DVT; discontinuation of anticoagulation therapy is clinically significant and should be coded.",
+          "snomed_search": "drug therapy discontinued",
+          "snomed_concept_id": "274512008",
+          "preferred_term": "Drug therapy discontinued (situation)",
+          "sentence": "apixaban stopped - pt stated stopped on 19/03/25 - was only a short course due to provoked DVT caused by chemo",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "698459008",
+          "name": "Antidepressant drug treatment stopped (situation) [coded] \u2014 actual lookup: DRB1*08032 (substance)",
+          "severity": "high",
+          "reason": "Concept 698459008 resolves to a genetic substance (DRB1 allele), not a clinical situation; the note describes a trial pause of amlodipine due to suspected side effects (paraesthesia), which should be coded as 'Medication stopped - side effect'.",
+          "replace_with_concept_id": "395009001",
+          "replace_with_preferred_term": "Medication stopped - side effect (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "978441000000108",
+          "name": "Provoked deep vein thrombosis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The DVT was caused by chemotherapy (now completed) and the anticoagulation course has ended (apixaban stopped 19/03/25), indicating this is a resolved past event, not an active current condition."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two significant coding errors identified: concept 698459008 is a genetic substance code (DRB1 allele) incorrectly used to represent amlodipine trial pause \u2014 this should be replaced with 395009001 'Medication stopped - side effect'; the provoked DVT assertion should be changed from present to historical as the short anticoagulation course has concluded. Hiatus hernia (actively managed with PPI) and apixaban discontinuation are missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7864,
+        "output_tokens": 1703,
+        "total_tokens": 9567,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "fad8d37c-ba3f-4437-80df-167691aea621",
+        "date": "2025-06-02",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2fa59a31-d997-4e62-9744-101c01274c77",
+    "patient_id": "4822977102",
+    "date": "2025-10-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Smoking cessation programme declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly records 'Smoking cessation programme declined (XaREz)' but this situation is absent from the coded list; it is clinically relevant for LTC review and QOF documentation.",
+          "snomed_search": "smoking cessation programme",
+          "snomed_concept_id": "1087441000000106",
+          "preferred_term": "Smoking cessation programme declined (situation)",
+          "sentence": "^Referral: Smoking cessation programme declined (XaREz)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Smoking cessation advice",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note records 'Smoking cessation advice (Ua1Nz)' as given during this encounter but the corresponding procedure is absent from the coded list.",
+          "snomed_search": "smoking cessation advice",
+          "snomed_concept_id": "225323000",
+          "preferred_term": "Smoking cessation education (procedure)",
+          "sentence": "^Advice: Smoking cessation advice (Ua1Nz)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "163033001",
+          "name": "Lying blood pressure (observable entity)",
+          "severity": "low",
+          "reason": "The note documents BP as 'BP (Left Arm): 115/84' in a surgery setting with no indication the patient was lying; 'Lying blood pressure' is incorrect positional specificity \u2014 however, as a structured-pipeline observable this should be corrected at source rather than deleted.",
+          "replace_with_concept_id": "163035008",
+          "replace_with_preferred_term": "Sitting blood pressure (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two missing codes: smoking cessation advice (procedure) and smoking cessation programme declined (situation) are documented in the note but not coded. The blood pressure observable is coded as 'Lying' when the note specifies 'Left Arm' in a surgery setting \u2014 likely a positional qualifier error from the structured pipeline. The coded obesity finding [414915002] returned an unreliable lookup (organism tag returned by server); the concept may be valid but human verification is recommended \u2014 BMI 35.16 would support 'Body mass index 30+ - obesity' (162864005) as an alternative if 414915002 cannot be confirmed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6631,
+        "output_tokens": 1788,
+        "total_tokens": 8419,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "2fa59a31-d997-4e62-9744-101c01274c77",
+        "date": "2025-10-23",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "69cf6722-d50f-42de-b5f5-f83054135fea",
+    "patient_id": "4822977102",
+    "date": "2025-10-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum triglyceride levels 1.97 mmol/L - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Triglycerides are explicitly flagged as outside reference range (1.97 mmol/L vs upper limit 1.7 mmol/L) and the report is marked Abnormal; the clinical interpretation of hypertriglyceridaemia should be coded as a disorder.",
+          "snomed_search": "hypertriglyceridaemia",
+          "snomed_concept_id": "302870006",
+          "preferred_term": "Hypertriglyceridemia (disorder)",
+          "sentence": "Serum triglyceride levels (XE2q9) 1.97 mmol/L [0 - 1.7] - Outside reference range",
+          "char_start": 130,
+          "char_end": 195
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The LDL cholesterol result is coded with concept 166833005 which the terminology server flags as unreliable (returns an Extension Namespace placeholder); the best available observable entity for this result is 1022191000000100 'Serum low density lipoprotein cholesterol level (observable entity)' \u2014 however, per audit rules this cannot be flagged as overcoded on unreliability alone, and the structured lab pipeline may resolve this correctly in production. The clinically significant gap is the absence of a disorder code for hypertriglyceridaemia, which is explicitly documented as outside reference range and confirmed abnormal by the reviewing clinician.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7031,
+        "output_tokens": 1336,
+        "total_tokens": 8367,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "69cf6722-d50f-42de-b5f5-f83054135fea",
+        "date": "2025-10-23",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b889fe7c-20fb-4bc9-a23c-a313e26552f8",
+    "patient_id": "4822977102",
+    "date": "2025-10-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter is an auto-filed normal urine protein/creatinine ratio result with no further action \u2014 purely administrative/results-routing content with no clinical narrative, diagnosis, or management plan. The six already-coded lab observable entities are structured pipeline codes and are not derived from this encounter text; they must not be flagged as overcoded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 717,
+        "output_tokens": 601,
+        "total_tokens": 1318,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "b889fe7c-20fb-4bc9-a23c-a313e26552f8",
+        "date": "2025-10-23",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "53b948bd-b8d0-4b7e-835c-bb28ecf299df",
+    "patient_id": "4822977102",
+    "date": "2025-10-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "LDL 2.7 mmol/L",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "LDL cholesterol is explicitly documented as a discrete result (2.7 mmol/L) and discussed in the context of cardiovascular risk; it is a distinct observable from total cholesterol and should be coded separately.",
+          "snomed_search": "serum LDL cholesterol level",
+          "snomed_concept_id": "1022191000000100",
+          "preferred_term": "Serum low density lipoprotein cholesterol level (observable entity)",
+          "sentence": "LDL 2.7 mmol/L",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "QRISK2 23.59% \u2014 high cardiovascular risk",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A QRISK2 score of 23.59% constitutes high cardiovascular risk and directly drove the statin discussion; the clinical interpretation (high risk) should be coded as a finding in addition to the observable score.",
+          "snomed_search": "high cardiovascular risk",
+          "snomed_concept_id": "837461000000101",
+          "preferred_term": "High risk of cardiovascular disease (finding)",
+          "sentence": "QRISK2 cardiovascular disease 10 year risk score (XaQVY) 23.59 %",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "406149000",
+          "name": "Medication declined (situation)",
+          "severity": "low",
+          "reason": "The note and structured template both explicitly state 'Statin declined' \u2014 the more specific situation code should be used rather than the generic 'Medication declined'; search_snomed confirms concept 134396000 'Statin declined (situation)' as the preferred specific term, though note that lookup_concept returned an unreliable result for 134396000 and human verification is advised before replacing.",
+          "replace_with_concept_id": "134396000",
+          "replace_with_preferred_term": "Statin declined (situation)",
+          "replace_with_assertion": "declined"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is largely appropriate for this pharmacist statin monitoring telephone consultation. Two additions are recommended: the LDL result as a distinct observable, and the high cardiovascular risk interpretation as a finding. The generic 'Medication declined' code should be replaced with the more specific 'Statin declined' situation code (134396000), though the terminology server returned an unreliable lookup for that concept ID and local verification is advised before substituting.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5093,
+        "output_tokens": 1687,
+        "total_tokens": 6780,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822977102",
+        "encounter_id": "53b948bd-b8d0-4b7e-835c-bb28ecf299df",
+        "date": "2025-10-28",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  }
+]

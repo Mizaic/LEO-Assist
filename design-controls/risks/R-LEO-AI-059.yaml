@@ -1,0 +1,100 @@
+# -- R-LEO-AI-059 -- Spurious benign closure of active cancer episode
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-059"
+  title: "Spurious benign closure of active cancer episode due to unrelated 395100000 coding"
+
+  hazard:
+    description: >
+      SNOMED concept 395100000 (No evidence of cancer found) is used in multiple
+      clinical contexts beyond cancer pathway discharge -- e.g. negative cervical
+      smear results, routine health checks, or screening negatives. If the episode
+      builder queries 395100000 globally across the patient record without a date
+      window, an unrelated coding could close an active cancer investigation episode
+      as 'closed_benign'.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A patient has an open 2WW breast cancer investigation (referral 2024-07). In
+    2026, a cervical smear result is coded as 395100000 (no malignancy detected).
+    Without a date window constraint, the episode builder closes the breast
+    investigation as 'closed_benign', removing it from the open episodes dashboard.
+    The breast cancer investigation is now invisible to clinical reviewers.
+
+  harm:
+    description: >
+      An active cancer investigation is incorrectly marked as resolved, removing
+      it from clinician review queues. Delayed follow-up increases risk of delayed
+      cancer diagnosis.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The benign closure query is scoped per episode: 395100000 must be coded
+        AFTER the referral date AND within 365 days of the referral date. The
+        Cypher query passes explicit after_date and before_date parameters
+        derived from the episode referral date. Codings beyond this window are
+        ignored for this episode.
+      implemented_by: ["DI-LEO-AI-085"]
+      verified_by: ["VT-LEO-AI-085"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Only DOCUMENTS relationships with assertion='present' are considered.
+        Negated or hypothetical 395100000 codings do not trigger benign closure.
+      implemented_by: ["DI-LEO-AI-085"]
+      verified_by: ["VT-LEO-AI-085"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        A confirmed cancer diagnosis (any diagnosis anchor for the episode)
+        takes precedence over benign closure. If both exist, the episode status
+        is 'completed' not 'closed_benign'.
+      implemented_by: ["DI-LEO-AI-085"]
+      verified_by: ["VT-LEO-AI-085"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The 365-day window eliminates the vast majority of spurious closures.
+      Residual risk is limited to scenarios where an unrelated 395100000 is
+      coded within 365 days of a referral -- a narrow time window that
+      corresponds to normal cancer pathway completion. Diagnosis precedence
+      provides an additional safety layer. The residual probability is low
+      because clinically, 395100000 coded within the pathway window is
+      expected to represent a pathway discharge.
+
+  monitoring:
+    monitoring_plan: >
+      Monthly review of 'closed_benign' episodes by clinical quality manager.
+      Validate that closed_benign episodes have a corresponding specialist visit
+      or biopsy encounter. Flag any closed_benign episode without a specialist
+      visit for manual review.
+    metrics:
+      - "Count of closed_benign episodes per month"
+      - "Proportion of closed_benign episodes with specialist_seen=true"
+      - "Proportion of closed_benign episodes with biopsy encounter coded"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "39-episode referral-only audit -- April 2026"
+    identified_date: "2026-04-06"
+    status: "analyzed"
+    tags:
+      - "episode-detector"
+      - "cancer-pathway"
+      - "benign-closure"

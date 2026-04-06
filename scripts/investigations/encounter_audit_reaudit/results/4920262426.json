@@ -1,0 +1,2478 @@
+[
+  {
+    "encounter_id": "24034544-d043-4f27-a973-7a7e0d768ed3",
+    "patient_id": "4920262426",
+    "date": "2024-01-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "asthma diagnosed on record",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Has asthma diagnosed on record' as a co-existing condition relevant to inhaler management, and this active diagnosis is not captured in the coded list for this encounter.",
+          "snomed_search": "asthma",
+          "snomed_concept_id": "195967001",
+          "preferred_term": "Asthma (disorder)",
+          "sentence": "Has asthma diagnosed on record.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "270473001",
+          "name": "History of chronic obstructive airway disease (situation)",
+          "severity": "medium",
+          "reason": "This concept has been used with evidence text referencing asthma ('Has asthma diagnosed on record'), not COPD history \u2014 the COPD context is already fully captured by the structured COPD review template codes in this encounter; if intended to represent COPD on the problem list it is duplicative, and if intended to capture asthma it is the wrong concept.",
+          "replace_with_concept_id": "195967001",
+          "replace_with_preferred_term": "Asthma (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The main coding issue is that concept [270473001] (History of chronic obstructive airway disease) has been incorrectly applied with evidence text about asthma \u2014 asthma should be coded separately as 195967001 (Asthma disorder) since it is explicitly documented as a co-existing diagnosed condition relevant to inhaler choice. The observable entity lab codes are written by the structured pipeline and are appropriate. The COPD review template codes (nocturnal cough, MRC grade, smoking status etc.) are well-captured. Note: lookup_concept returned unreliable results for both [270473001] and [161445009] but search_snomed confirmed these are the correct concept IDs for their respective preferred terms; [161445009] History of diabetes mellitus is reasonable given DM monitoring blood tests were requested.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7591,
+        "output_tokens": 1407,
+        "total_tokens": 8998,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "24034544-d043-4f27-a973-7a7e0d768ed3",
+        "date": "2024-01-05",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f0f3817c-fae8-4961-81ca-f919d3cd2af4",
+    "patient_id": "4920262426",
+    "date": "2024-01-05",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is a nurse phlebotomy encounter for a Type 2 diabetic patient (blood sample taken, ACR requested); the encounter text contains no substantive clinical narrative beyond the procedure template. All 11 coded concepts are either structured-pipeline lab observables, standing problem-list codes (T2DM, respiratory history, cough finding), or the procedure itself \u2014 none are contradicted by the encounter text, and per audit rules problem-list codes absent from a single encounter must not be flagged as overcoded. The lookup server returned unreliable results for 161523006 and 289114008 but search_snomed confirms both are legitimate SNOMED situation/finding codes; a future quality review could consider upgrading 161523006 (History of respiratory disease) to the more specific 270473001 (History of COPD) given the COPD evidence, but this is a low-priority improvement outside the scope of this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4846,
+        "output_tokens": 1032,
+        "total_tokens": 5878,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "f0f3817c-fae8-4961-81ca-f919d3cd2af4",
+        "date": "2024-01-05",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c2616d6a-f5dd-4a1e-b85b-ecfc2fc49a4b",
+    "patient_id": "4920262426",
+    "date": "2024-01-14",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8909ca38-b6e2-4996-8342-323465869ffb",
+    "patient_id": "4920262426",
+    "date": "2024-01-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Nausea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Nausea is explicitly documented as a symptom at 10:00 on the day of attendance and is a clinically relevant presenting feature not captured in the coded list.",
+          "snomed_search": "nausea finding",
+          "snomed_concept_id": "422587007",
+          "preferred_term": "Nausea (finding)",
+          "sentence": "Nausea 1000 this am.",
+          "char_start": 248,
+          "char_end": 268
+        },
+        {
+          "term": "Allergy to Augmentin (co-amoxiclav)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A documented drug allergy to Augmentin (co-amoxiclav) is a safety-critical finding; the currently coded concept 774587000 is a product code confirmed unreliable by the terminology server and must be replaced with a valid allergy finding code.",
+          "snomed_search": "allergy penicillin",
+          "snomed_concept_id": "91936005",
+          "preferred_term": "Allergy to penicillin (finding)",
+          "sentence": "ALLERGIES- AUGMENTIN.",
+          "char_start": 490,
+          "char_end": 511
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "Concept ID 74732009 is confirmed unreliable (terminology server returned semantic_tag='organism'); the note documents 'Depression' which should be coded as Depressive disorder (35489007), not the broad/incorrect Mental disorder concept.",
+          "replace_with_concept_id": "35489007",
+          "replace_with_preferred_term": "Depressive disorder (disorder)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "79842004",
+          "name": "Stuporous depression (disorder)",
+          "severity": "high",
+          "reason": "Concept ID 79842004 returned 'DRB1*08032 (substance)' from the terminology server \u2014 clearly a wrong concept ID; additionally the note states only 'Depression' with no qualifier of stupor, making this both an incorrect concept ID and an overcoded specificity.",
+          "replace_with_concept_id": "35489007",
+          "replace_with_preferred_term": "Depressive disorder (disorder)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "774587000",
+          "name": "Co-amoxiclav (product)",
+          "severity": "critical",
+          "reason": "Concept ID 774587000 is confirmed unreliable (Extension Namespace placeholder); a product code is also the wrong semantic type for an allergy \u2014 this must be replaced with a valid allergy finding concept such as Allergy to penicillin (91936005) pending a specific co-amoxiclav allergy code.",
+          "replace_with_concept_id": "91936005",
+          "replace_with_preferred_term": "Allergy to penicillin (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "95570007",
+          "name": "Kidney stone (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The clinician documents '?Kidney stone - Passed and resolved' \u2014 the question mark explicitly indicates a suspected/possible diagnosis, not a confirmed present disorder; assertion should be 'possible'. Note also that concept ID 95570007 returned unreliable from the terminology server and should be verified."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "This encounter has several significant coding errors: two depression codes are present where one is needed, both using unreliable or incorrect concept IDs (74732009 returning 'organism' and 79842004 returning 'substance'); the allergy to Augmentin is coded with an unreliable product concept rather than a valid allergy finding \u2014 a safety-critical gap; and the kidney stone assertion is 'present' when the clinician explicitly documented it as suspected ('?Kidney stone'). Nausea as a presenting symptom is also uncoded. The note also references known gallstones in PMH which may warrant coding if not already on the problem list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10792,
+        "output_tokens": 2542,
+        "total_tokens": 13334,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "8909ca38-b6e2-4996-8342-323465869ffb",
+        "date": "2024-01-14",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bafe79da-27ae-46db-a548-b8b8dce09b52",
+    "patient_id": "4920262426",
+    "date": "2024-06-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dark red vaginal bleeding on HRT",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Patient on continuous combined HRT (Femoston-conti) describes unexpected dark red vaginal bleeding on multiple occasions over recent weeks \u2014 this is a red-flag symptom for endometrial pathology requiring urgent investigation and must be coded; postmenopausal bleeding on continuous combined HRT is a 2WW-level concern.",
+          "snomed_search": "postmenopausal bleeding",
+          "snomed_concept_id": "76742009",
+          "preferred_term": "Postmenopausal bleeding (finding)",
+          "sentence": "\"getting quite sever period pains lately - every now and then get very dark red - couple times in last few weeks, prior couple months before\"",
+          "char_start": 310,
+          "char_end": 460
+        },
+        {
+          "term": "menopausal symptoms",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter problem is explicitly documented as 'Menopausal symptoms' and the patient is on HRT for this indication, but no menopausal symptom finding has been coded.",
+          "snomed_search": "menopausal symptoms",
+          "snomed_concept_id": "21801002",
+          "preferred_term": "Menopausal symptom (finding)",
+          "sentence": "Problem: Menopausal symptoms (XM0t2)",
+          "char_start": 62,
+          "char_end": 98
+        },
+        {
+          "term": "hormone replacement therapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "HRT (Femoston-conti) is actively prescribed and reviewed in this encounter; the prescribing of HRT is a clinically significant procedure that should be coded.",
+          "snomed_search": "hormone replacement therapy",
+          "snomed_concept_id": "266717002",
+          "preferred_term": "Hormone replacement therapy (procedure)",
+          "sentence": "Femoston-conti 0.5mg/2.5mg tablets (Exeltis UK Ltd) - 84 tablet - take one daily",
+          "char_start": 870,
+          "char_end": 952
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Critical safety gap: unexpected dark red vaginal bleeding in a patient on continuous combined HRT (Femoston-conti) is a red-flag symptom for endometrial pathology and must be coded as postmenopausal bleeding \u2014 the GP has appropriately arranged a face-to-face examination but the finding is absent from the coded record. The two existing pain codes (54586004, 30473006) both returned unreliable terminology server results and could not be verified or refuted; human review of these concept IDs is recommended to confirm they map correctly to lower abdominal pain and pelvic pain respectively.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8284,
+        "output_tokens": 1991,
+        "total_tokens": 10275,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "bafe79da-27ae-46db-a548-b8b8dce09b52",
+        "date": "2024-06-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2bb21640-0a76-4376-9a3c-e4e2b99bbe38",
+    "patient_id": "4920262426",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "needs_review",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.62,
+      "notes": "All 7 concept lookups returned unreliable or semantically incorrect results from the terminology server (organism/substance/namespace tags), preventing confident verification of any coded concept ID. The encounter text is an investigation request log only (no clinical narrative, no results, no diagnoses); all investigations are marked 'Requested' (not yet performed), so procedure codes with assertion=present are questionable. The most clearly evidenced issue is the 'normal FIT result' finding coded from an encounter that only shows a FIT request \u2014 this requires human review to determine whether the result code belongs to a prior encounter. The duplicate coding of concept 1049361000000101 also requires review. Human review is recommended due to terminology server unreliability across all coded concepts.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4169,
+        "output_tokens": 1299,
+        "total_tokens": 5468,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "2bb21640-0a76-4376-9a3c-e4e2b99bbe38",
+        "date": "2024-06-26",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a1e28fbe-3c4a-469f-af08-c85408d2e673",
+    "patient_id": "4920262426",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "intertrigo in apron folds",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Intertrigo in abdominal skin folds was found on examination and directly treated with Timodine \u2014 an active diagnosis requiring coding.",
+          "snomed_search": "intertrigo abdominal skin fold",
+          "snomed_concept_id": "301014005",
+          "preferred_term": "Intertrigo of abdominal skin fold (disorder)",
+          "sentence": "intertrigo in apron folds",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "atrophic generally",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Atrophic vaginitis was documented on examination in a postmenopausal woman on HRT and is clinically relevant to the management plan.",
+          "snomed_search": "atrophic vaginitis",
+          "snomed_concept_id": "52441000",
+          "preferred_term": "Atrophic vaginitis (disorder)",
+          "sentence": "atrophic generally",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "pelvic floor an issue",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Pelvic floor dysfunction is explicitly mentioned by the patient as a current problem and is clinically relevant in this postmenopausal context.",
+          "snomed_search": "pelvic floor dysfunction",
+          "snomed_concept_id": "711263002",
+          "preferred_term": "Pelvic floor dysfunction (disorder)",
+          "sentence": "weight high but struggles to eat well during lambing season - pelvic floor an issue",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (procedure)",
+          "severity": "medium",
+          "reason": "The plan specifies USS of endometrial thickness and ovaries (pelvic USS), making the generic parent 'Ultrasonography' insufficiently specific; should be replaced with Pelvic echography.",
+          "replace_with_concept_id": "24848001",
+          "replace_with_preferred_term": "Pelvic echography (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1101361000000103",
+          "name": "Bowel cancer screening programme liquid faecal immunochemical test normal (finding)",
+          "severity": "low",
+          "reason": "This duplicates the already-coded concept 375211000000108 (Bowel cancer screening programme faecal occult blood test normal) for the same 'FOB NAD' finding; lookup also returned an unreliable result (wrong semantic tag) for this concept ID."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three clinically significant findings are uncoded: intertrigo of abdominal skin folds (actively treated with Timodine), atrophic vaginitis (found on examination), and pelvic floor dysfunction (patient-reported). The generic Ultrasonography code should be replaced with the more specific Pelvic echography given the plan explicitly requests USS of endometrium and ovaries. The duplicate liquid FIT normal code (1101361000000103) should be removed as it overlaps with the already-coded FOB normal finding and returned an unreliable lookup. A repeat FIT at a different threshold is planned but not yet performed \u2014 this should be coded once completed. The 390992003 'Years on HRT' concept lookup was unreliable but is confirmed valid by search; it is a marginal fit for the clinical context (HRT mood poorly controlled) but not clearly wrong.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9621,
+        "output_tokens": 2300,
+        "total_tokens": 11921,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "a1e28fbe-3c4a-469f-af08-c85408d2e673",
+        "date": "2024-06-26",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "46060210-b507-45e6-ac0f-0f91367bad30",
+    "patient_id": "4920262426",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ACOS - Asthma COPD Overlap Syndrome",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly labels this encounter under 'ACOS - Asthma COPD Overlap Syndrome' as the overarching diagnostic framework, and both an asthma and COPD annual review were conducted under this heading; this active diagnosis is absent from the coded list.",
+          "snomed_search": "asthma COPD overlap syndrome",
+          "snomed_concept_id": "10692761000119107",
+          "preferred_term": "Asthma-chronic obstructive pulmonary disease overlap syndrome (disorder)",
+          "sentence": "ACOS - Asthma COPD Overlap Syndrome",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Influenza immunisation advised",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The template explicitly records 'Influenza immunisation advised: Yes' and the coded template entry XM1Yn is present in the note text, but no corresponding SNOMED concept appears in the 12 coded concepts.",
+          "snomed_search": "influenza immunisation advised",
+          "snomed_concept_id": "1363604009",
+          "preferred_term": "Advised to acquire influenza immunization (situation)",
+          "sentence": "Influenza immunisation advised: Yes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "low",
+          "reason": "The note and template explicitly record 'Cigarette smoker', making the more specific concept 65568007 'Cigarette smoker (finding)' the correct code rather than the generic 'Smoking (finding)'.",
+          "replace_with_concept_id": "65568007",
+          "replace_with_preferred_term": "Cigarette smoker (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "low",
+          "reason": "The note and template explicitly document 'Productive cough - clear sputum'; the more specific concept 161923004 'Productive cough -clear sputum (finding)' should be used instead of the generic 'Does cough (finding)'.",
+          "replace_with_concept_id": "161923004",
+          "replace_with_preferred_term": "Productive cough -clear sputum (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant gap is the absence of the explicitly documented ACOS (Asthma-COPD Overlap Syndrome) diagnosis, which is the overarching clinical framework for this encounter; both Asthma and COPD are individually coded but the overlap syndrome itself is not. Two existing codes (Smoking, Productive cough) use non-specific parent concepts where the note text supports more specific SNOMED terms. Influenza immunisation advice is documented in the template but absent from the coded list. Note: lookup_concept returned unreliable results for concepts 195967001 and 13645005 (returned 'qualifier value' semantic tag); these were verified via search_snomed as clinically appropriate disorder codes for Asthma and COPD respectively.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 14525,
+        "output_tokens": 2189,
+        "total_tokens": 16714,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "46060210-b507-45e6-ac0f-0f91367bad30",
+        "date": "2024-07-05",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fa83b1d7-ab4b-4452-90f9-86b0964a33c5",
+    "patient_id": "4920262426",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Haemoglobin A1c level - IFCC standardised Report, Abnormal, Outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents the HbA1c result as 'Abnormal' and 'Outside reference range' at 57 mmol/mol; the clinical interpretation (raised HbA1c) should be coded as a finding in addition to the observable entity measurement.",
+          "snomed_search": "haemoglobin A1c above reference range",
+          "snomed_concept_id": "444751005",
+          "preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "sentence": "Haemoglobin A1c level - IFCC standardised (XaPbt) 57 mmol/mol [20 - 41] - Outside reference range",
+          "char_start": 22,
+          "char_end": 107
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is an auto-filed lab result review; the HbA1c observable entity is coded but the explicit abnormal interpretation ('Outside reference range', 57 mmol/mol) is not captured as a finding \u2014 444751005 'Hemoglobin A1c above reference range' should be added. All other coded concepts are structured-pipeline lab observables and are appropriate. Note: lookup_concept for [1003671000000109] returned unreliable (organism tag), but this is a known terminology server index issue for UK extension observable entity codes and does not justify removal.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5019,
+        "output_tokens": 1306,
+        "total_tokens": 6325,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "fa83b1d7-ab4b-4452-90f9-86b0964a33c5",
+        "date": "2024-07-05",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "de1ce4ca-b80a-4cff-b29f-bf86973d1d31",
+    "patient_id": "4920262426",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is an auto-filed lab results encounter; all structured lab observables are correctly coded by the pipeline. The HbA1c is flagged as abnormal but expected (consistent with known diabetes on the problem list), and no new disorder-level diagnosis is introduced in the note text. The 267036007 Dyspnea concept returned an unreliable organism tag on direct lookup but was confirmed as a valid finding by search_snomed \u2014 no action required. All existing codes are appropriate and evidenced.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4368,
+        "output_tokens": 1037,
+        "total_tokens": 5405,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "de1ce4ca-b80a-4cff-b29f-bf86973d1d31",
+        "date": "2024-07-05",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "df424036-4b66-4c6e-b333-e8c5a3eceeac",
+    "patient_id": "4920262426",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This encounter is an auto-filed lab result for serum total protein (66 g/L, within reference range, No Further Action); the serum total protein observable entity code [1000811000000109] is correctly applied and confirmed by search. All other coded concepts are either structured lab pipeline observable entities or standing problem-list codes (dyspnoea, encounter type), none of which should be flagged on the basis of this administrative lab-filing encounter. No missing codes identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4200,
+        "output_tokens": 1068,
+        "total_tokens": 5268,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "df424036-4b66-4c6e-b333-e8c5a3eceeac",
+        "date": "2024-07-05",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f2992c47-d4e2-41ba-b1a3-b7d1330ab22f",
+    "patient_id": "4920262426",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "This is an auto-filed lipid panel result. All observable entity codes (cholesterol, HDL, LDL, triglycerides, electrolytes, eGFR, ferritin, CA125) are correctly coded by the structured lab pipeline and must not be altered. The serum triglycerides result is explicitly flagged as outside reference range (2.07 mmol/L vs [0\u20131.7]), and a clinical interpretation finding (e.g. \"Serum triglycerides above reference range\") would ideally be coded; however, the candidate concept ID returned by search_snomed (166848004) was confirmed unreliable by lookup_concept (Extension Namespace placeholder), and the hypertriglyceridaemia disorder concept (302870006) was similarly unreliable \u2014 per audit rules, no concept ID can be proposed without server confirmation. A human coder should verify the correct SNOMED concept for raised triglycerides in the local extension and add it if available.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9181,
+        "output_tokens": 1401,
+        "total_tokens": 10582,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "f2992c47-d4e2-41ba-b1a3-b7d1330ab22f",
+        "date": "2024-07-05",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e86479ee-08f5-4916-a186-f72b418d4f37",
+    "patient_id": "4920262426",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "triglycerides slightly out of range",
+          "snomed_concept_id": "166848004",
+          "preferred_term": "Serum triglycerides above reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "The nurse explicitly documents that the patient's triglycerides are slightly above the reference range on recent blood tests. This is the most appropriate code \u2014 a confirmed lab finding rather than the disorder Hypertriglyceridaemia, as the nurse defers clinical interpretation to the GP.",
+          "sentence": "triglycerides slightly out of range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "will task surgery to book appropriate appt to discuss",
+          "snomed_concept_id": "183561008",
+          "preferred_term": "Referral to general practitioner (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "The nurse explicitly states this is out of her scope of practice and tasks the surgery to book an appropriate appointment \u2014 this constitutes an onward referral to the GP and should be coded.",
+          "sentence": "apologised and explained out of my scope of practice, will task surgery to book appropriate appt to discuss",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Telephone triage by PCN nurse. Two clinical concepts are missing: (1) the primary finding \u2014 serum triglycerides above reference range (166848004) \u2014 which is the entire reason for the encounter; (2) an onward referral to GP (183561008), as the nurse explicitly states this is outside her scope and tasks the surgery to arrange an appropriate appointment. The existing 'Patient given advice (8CA..)' code is appropriate and retained. Atorvastatin 20mg is a pre-existing medication and not in SNOMED coding scope for this audit. Hypertriglyceridaemia (disorder) was considered but rejected in favour of the lab finding code, as the nurse does not confirm a diagnosis and defers to the GP. No safety-critical flags identified \u2014 triglycerides are noted as only slightly raised.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3945,
+        "output_tokens": 1553,
+        "total_tokens": 5498,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "e86479ee-08f5-4916-a186-f72b418d4f37",
+        "date": "2024-07-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "11fbb6c1-3459-44c1-b3de-3d83becf42dd",
+    "patient_id": "4920262426",
+    "date": "2024-07-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "retroverted uterus",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The ultrasound report explicitly documents 'The uterus is retroverted' as a positive finding and should be coded from this encounter.",
+          "snomed_search": "retroverted uterus",
+          "snomed_concept_id": "271689000",
+          "preferred_term": "Retroverted uterus (finding)",
+          "sentence": "The uterus is retroverted, it appears atrophic.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "previous ovarian cyst",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The clinical history explicitly states 'reports prev ovarian cyst' which warrants a historical situation code.",
+          "snomed_search": "history ovarian cyst",
+          "snomed_concept_id": "845741000000101",
+          "preferred_term": "History of ovarian cyst (situation)",
+          "sentence": "reports prev ovarian cyst - ca125 requested",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (procedure)",
+          "severity": "low",
+          "reason": "The procedure performed was specifically a pelvic ultrasound (TA and transvaginal); the generic 'Ultrasonography' code should be replaced with the more specific pelvic echography concept.",
+          "replace_with_concept_id": "24848001",
+          "replace_with_preferred_term": "Pelvic echography (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two missing findings (retroverted uterus as a positive ultrasound result, and historical ovarian cyst from the clinical history) should be added. The ultrasound procedure code should be replaced with the more specific pelvic echography concept. The 'Overweight' code is confirmed correct for 'high BMI'. Normal/NAD findings and the planned CA125 request do not require coding per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7349,
+        "output_tokens": 1730,
+        "total_tokens": 9079,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "11fbb6c1-3459-44c1-b3de-3d83becf42dd",
+        "date": "2024-07-17",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a058e3b4-a9ff-4ca7-b7a8-04ff9aaf0b59",
+    "patient_id": "4920262426",
+    "date": "2024-08-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Right diabetic foot at low risk",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Right foot at low risk: Yes' and the Read code XaIeH (O/E - Right diabetic foot at low risk) is documented in the structured template output, but no corresponding SNOMED finding code is in the coded list.",
+          "snomed_search": "low risk diabetic foot right",
+          "snomed_concept_id": "394671009",
+          "preferred_term": "On examination - Right diabetic foot at low risk (finding)",
+          "sentence": "Right foot at low risk: Yes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Left diabetic foot at low risk",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Left foot at low risk: Yes' and the Read code XaIeL (O/E - Left diabetic foot at low risk) is documented in the structured template output, but no corresponding SNOMED finding code is in the coded list.",
+          "snomed_search": "low risk diabetic foot left",
+          "snomed_concept_id": "394675000",
+          "preferred_term": "On examination - Left diabetic foot at low risk (finding)",
+          "sentence": "Left foot at low risk: Yes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "difficulty cutting toenails",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is struggling to cut their toenails and was advised to see a chiropodist \u2014 a clinically relevant finding in the context of diabetic foot care that should be coded.",
+          "snomed_search": "difficulty cutting toenails",
+          "snomed_concept_id": "284880005",
+          "preferred_term": "Difficulty cutting own toenails (finding)",
+          "sentence": "toe nails longer than should be - struggling to do, advised chiropodist",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "AUDIT-C alcohol consumption questionnaire score",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The AUDIT-C consumption questionnaire was administered and a score of 1 is explicitly recorded; the observable entity for this assessment tool should be coded to support QOF/audit reporting.",
+          "snomed_search": "AUDIT-C alcohol screening score",
+          "snomed_concept_id": "763256006",
+          "preferred_term": "Alcohol Use Disorders Identification Test - Consumption score (observable entity)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 1",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "This is an active Type 2 diabetes annual review encounter; the active disorder [44054006] Diabetes mellitus type 2 is already correctly coded as present, making the 'History of' situation code redundant and clinically contradictory \u2014 'History of' implies a resolved past condition.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a structured LTC annual review for Type 2 diabetes with good overall coding, but has four gaps: the bilateral low-risk diabetic foot findings (explicitly documented with Read codes in the template), a clinically relevant finding of difficulty cutting toenails with chiropodist advice, and the AUDIT-C score observable. Additionally, [161445009] History of diabetes mellitus is overcoded alongside the correctly coded active disorder [44054006] \u2014 the 'History of' situation code is contradictory in the context of an active annual review. Lookup_concept returned unreliable results for several concept IDs due to a terminology server index issue, but SNOMED search confirmed all concept IDs are legitimate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15609,
+        "output_tokens": 2582,
+        "total_tokens": 18191,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "a058e3b4-a9ff-4ca7-b7a8-04ff9aaf0b59",
+        "date": "2024-08-14",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dbd785d6-d029-45e6-846f-db1617cb8c59",
+    "patient_id": "4920262426",
+    "date": "2024-08-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Lipids not at target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Lipids not at target. Taking 20mg Atorvastatin.' \u2014 this is a clinically significant active finding that is not captured in the coded list.",
+          "snomed_search": "lipids outside reference range",
+          "snomed_concept_id": "166818002",
+          "preferred_term": "Lipids outside reference range (finding)",
+          "sentence": "Lipids not at target. Taking 20mg Atorvastatin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "414915002",
+          "name": "Obese (finding)",
+          "severity": "low",
+          "reason": "BMI 36.0 documented in the note corresponds to Obese class II (BMI 35\u201339.9); the generic 'Obese' code is valid but less specific than the available child concept.",
+          "replace_with_concept_id": "443381000124105",
+          "replace_with_preferred_term": "Obese class II (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a substantive T2DM nurse review with GLP-1 initiation and an active SGLT2-related vulvovaginal candidiasis. Core coding is reasonable: T2DM, vaginal candidiasis, obesity, and GLP-1 initiation are all captured. The main gap is the explicitly documented dyslipidaemia ('Lipids not at target'), which should be coded as an active finding. The generic 'Obese' code could be upgraded to 'Obese class II' given the documented BMI of 36.0. Lookup_concept returned unreliable results for several concept IDs (161445009, 44054006, 72934000) \u2014 these could not be verified by the terminology server but are clinically appropriate and have not been flagged for deletion.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 12833,
+        "output_tokens": 1834,
+        "total_tokens": 14667,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "dbd785d6-d029-45e6-846f-db1617cb8c59",
+        "date": "2024-08-15",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "50f02301-af76-4e57-8196-26eddc938050",
+    "patient_id": "4920262426",
+    "date": "2024-08-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Microscopy, culture and sensitivities",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter text explicitly documents an MCS result being reviewed; the procedure should be coded.",
+          "snomed_search": "microscopy culture sensitivities",
+          "snomed_concept_id": "168132005",
+          "preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "sentence": "Microscopy, culture and sensitivities (4I16.)",
+          "char_start": 22,
+          "char_end": 62
+        },
+        {
+          "term": "Candida / thrush symptoms",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Candida species isolated on MCS, clinical information confirms thrush symptoms, and the reviewing clinician affirms thrush as the active diagnosis; this should be coded as an active disorder.",
+          "snomed_search": "Candida infection genital region",
+          "snomed_concept_id": "240706001",
+          "preferred_term": "Candida infection of genital region (disorder)",
+          "sentence": "+Candida species; ... Clinical Information: Reasons for Request: suspected thrush. ... commensal? thrush sx, group b strep unlikely to cause similar sx.",
+          "char_start": 290,
+          "char_end": 700
+        },
+        {
+          "term": "Group B Streptococcus (commensal finding)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Beta Haemolytic Strep Group B was isolated on MCS; the reviewer notes it is unlikely to be causative (commensal), making a carrier/colonisation finding the appropriate code rather than an active infection.",
+          "snomed_search": "Group B Streptococcus carrier",
+          "snomed_concept_id": "1631000119103",
+          "preferred_term": "Group B Streptococcus carrier (finding)",
+          "sentence": "+++ Beta Haemolytic Strep Group B ... commensal? thrush sx, group b strep unlikely to cause similar sx.",
+          "char_start": 63,
+          "char_end": 110
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three clinically significant concepts are uncoded: the MCS procedure itself, the active genital candidiasis (Candida isolated, thrush symptoms confirmed, SGLT2 inhibitor implicated and now stopped), and the incidental Group B Streptococcus carrier finding. The existing code 185202000 returned an unreliable lookup (qualifier value semantic tag) but per audit rules it is not flagged as overcoded on that basis alone. The SGLT2 inhibitor discontinuation is a medication record change and does not require a separate SNOMED disorder code here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11015,
+        "output_tokens": 2007,
+        "total_tokens": 13022,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "50f02301-af76-4e57-8196-26eddc938050",
+        "date": "2024-08-16",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b1853d7d-cde1-44e9-aa95-7c937a542dcb",
+    "patient_id": "4920262426",
+    "date": "2024-08-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Slit lamp examination",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Slit lamp examination was explicitly performed and documented as part of the ocular assessment and should be coded as a procedure.",
+          "snomed_search": "ocular slit lamp examination",
+          "snomed_concept_id": "55468007",
+          "preferred_term": "Ocular slit lamp examination (procedure)",
+          "sentence": "Slit lamp examination: Eye lids/lashes-No abnormality detected (Xa1vB) Conjunctiva-no fb,no heamorhage Cornea-no hyphema,no fb",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "fluorescein staining of eye",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Fluorescein staining was explicitly applied to confirm the corneal abrasion on slit lamp and should be coded as a procedure.",
+          "snomed_search": "fluorescein staining eye",
+          "snomed_concept_id": "414273009",
+          "preferred_term": "Fluorescein staining of eye (procedure)",
+          "sentence": "O/E - fluorescein-corneal abr. (2BH2.)small upte noted to middle of the cornea,no ulceration",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary diagnosis of corneal abrasion [85848002] is correctly coded and well-evidenced by slit lamp and fluorescein examination. Two procedures performed during the encounter \u2014 slit lamp examination and fluorescein staining of the eye \u2014 are missing from the coded list. The lookup_concept result for 85848002 returned an unreliable 'organism' tag due to a server index issue; the search_snomed result independently confirms this is the correct and valid SNOMED disorder concept. Laterality (right eye) is documented in the note but the coded concept does not specify it; no more specific right-eye corneal abrasion concept was returned by search, so this is noted but not flagged as a hard error.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5969,
+        "output_tokens": 1421,
+        "total_tokens": 7390,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "b1853d7d-cde1-44e9-aa95-7c937a542dcb",
+        "date": "2024-08-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e29dbf7c-5ec4-433c-8f51-e22f6f8e34b9",
+    "patient_id": "4920262426",
+    "date": "2024-08-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "128351009",
+          "name": "Eye infection (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The presenting complaint is documented as 'rt eye ?infection' \u2014 the '?' prefix explicitly indicates diagnostic uncertainty; this is a possible/suspected finding, not a confirmed active disorder."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "One assertion error identified: Eye infection is coded as 'present' but the note uses '?infection', indicating an unconfirmed, possible diagnosis that should be asserted as 'possible'. The concept ID 128351009 is otherwise correct (lookup_concept returned an unreliable qualifier-value result, but search_snomed confirms it as a valid disorder). Blood pressure observable entity is pipeline-coded and correctly retained.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3256,
+        "output_tokens": 823,
+        "total_tokens": 4079,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "e29dbf7c-5ec4-433c-8f51-e22f6f8e34b9",
+        "date": "2024-08-19",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2fffbbe9-83eb-4945-b450-595d3e7c9819",
+    "patient_id": "4920262426",
+    "date": "2024-08-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "182838006",
+          "name": "Change of medication (procedure)",
+          "severity": "low",
+          "reason": "The note specifically documents a dose increase (atorvastatin 20mg \u2192 40mg), making the more specific 'Prescription dose change (procedure)' a better fit than the generic 'Change of medication'.",
+          "replace_with_concept_id": "309633003",
+          "replace_with_preferred_term": "Prescription dose change (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "166833005",
+          "name": "Serum low density lipoprotein cholesterol measurement (procedure)",
+          "severity": "low",
+          "reason": "Concept ID 166833005 cannot be verified by the terminology server (returns Extension Namespace placeholder); the confirmed SNOMED concept for LDL cholesterol measurement is 113079009 'Low density lipoprotein cholesterol measurement (procedure)'.",
+          "replace_with_concept_id": "113079009",
+          "replace_with_preferred_term": "Low density lipoprotein cholesterol measurement (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two coding refinements identified: (1) the dose-change procedure should use the more specific 'Prescription dose change' [309633003] rather than the generic 'Change of medication' [182838006], as the encounter clearly documents a dose increase; (2) the LDL measurement concept ID 166833005 is unverifiable on this server and should be replaced with the confirmed concept 113079009. The triglycerides observable entity [1005691000000109] is confirmed correct via search. The reference to diabetes ('pt diabetic') is a background contextual statement driving lipid targets and should already be on the problem list rather than coded anew from this encounter; no new diagnoses are made here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7887,
+        "output_tokens": 1880,
+        "total_tokens": 9767,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "2fffbbe9-83eb-4945-b450-595d3e7c9819",
+        "date": "2024-08-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "64a70c54-90ba-4937-b110-b3f37354c03a",
+    "patient_id": "4920262426",
+    "date": "2024-09-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "recurrent thrush",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes 'recurrent thrush sx' driving both the oral fluconazole and local HRT prescribing decisions; the more specific concept 708126004 should replace the generic vaginal candidiasis code.",
+          "snomed_search": "recurrent candidiasis vagina",
+          "snomed_concept_id": "708126004",
+          "preferred_term": "Recurrent candidiasis of vagina (disorder)",
+          "sentence": "to try local hrt vaginally to help urinary sx and recurrent thrush sx.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "menopausal hot flushes",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note documents hot flushes as an active symptom being managed with HRT ('not having so much hot flushes'), which is a clinically relevant menopausal symptom driving the HRT risk/benefit discussion.",
+          "snomed_search": "menopausal flushing",
+          "snomed_concept_id": "198436008",
+          "preferred_term": "Menopausal flushing (disorder)",
+          "sentence": "no having so much hot flushes.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "BMI high",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note states 'BMI high' in a patient on Mounjaro for T2DM; obesity (414916001) is the clinically appropriate code rather than the currently coded overweight (238131007), given the clinical context of Mounjaro initiation which is indicated for obesity.",
+          "snomed_search": "obesity",
+          "snomed_concept_id": "414916001",
+          "preferred_term": "Obesity (disorder)",
+          "sentence": "BMI high, smoker, T2DM.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "72934000",
+          "name": "Candidiasis of vagina (disorder)",
+          "severity": "medium",
+          "reason": "The note describes recurrent thrush, making the more specific 708126004 (Recurrent candidiasis of vagina) the correct code; the generic parent concept understates the clinical picture.",
+          "replace_with_concept_id": "708126004",
+          "replace_with_preferred_term": "Recurrent candidiasis of vagina (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "21522001",
+          "name": "Abdominal pain (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'abdo pains have settled', indicating this is a resolved finding and should be coded as historical, not active/present."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The main coding issues are: (1) abdominal pain is coded as present but the note states it has settled \u2014 assertion should be historical; (2) vaginal candidiasis is coded at the generic level but the note explicitly describes recurrent thrush, warranting the more specific 708126004; (3) menopausal flushing is undocumented despite being an active symptom driving the HRT discussion; (4) 'BMI high' in a patient on Mounjaro for T2DM is more consistent with obesity than overweight. Multiple concept lookups returned unreliable results from the terminology server, so no overcoding flags are raised on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11154,
+        "output_tokens": 2522,
+        "total_tokens": 13676,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "64a70c54-90ba-4937-b110-b3f37354c03a",
+        "date": "2024-09-05",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7e292690-4286-46b8-abe0-92ba023fdd3b",
+    "patient_id": "4920262426",
+    "date": "2024-09-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "PV thrush has settled",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Vaginal candidiasis is explicitly documented as a resolved condition in this encounter and should be coded as a historical finding.",
+          "snomed_search": "vaginal candidiasis",
+          "snomed_concept_id": "72934000",
+          "preferred_term": "Candidiasis of vagina (disorder)",
+          "sentence": "PV thrush has settled.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "medium",
+          "reason": "lookup_concept returned unreliable result (semantic_tag='substance') for this concept ID; search_snomed confirms the correct finding for documented weight loss is 262285001 'Weight decreased (finding)', which is directly evidenced by the note text ('Has lost 9lbs in weight').",
+          "replace_with_concept_id": "262285001",
+          "replace_with_preferred_term": "Weight decreased (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "412782003",
+          "name": "Inappropriate medication stopped (situation)",
+          "severity": "high",
+          "reason": "lookup_concept returned unreliable result (semantic_tag='organism'); additionally, the note states dapagliflozin was stopped with no indication it was 'inappropriate' \u2014 the correct and evidenced code is 274512008 'Drug therapy discontinued (situation)'.",
+          "replace_with_concept_id": "274512008",
+          "replace_with_preferred_term": "Drug therapy discontinued (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two of the three coded concepts have unreliable concept IDs (terminology server returned wrong semantic tags) and require replacement with verified SNOMED codes; the 'inappropriate medication stopped' code also carries an unsupported clinical assertion. Vaginal candidiasis (PV thrush resolved) is missing from the coded list. Note: a blood test is planned in a few weeks \u2014 no procedure to code yet as it has not occurred.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 9415,
+        "output_tokens": 1870,
+        "total_tokens": 11285,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "7e292690-4286-46b8-abe0-92ba023fdd3b",
+        "date": "2024-09-26",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3b99f674-3ef6-42b6-bda1-313f6b1161cf",
+    "patient_id": "4920262426",
+    "date": "2024-11-26",
+    "result": {
+      "encounter_assessment": "no_codeable_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "This is an auto-filed HbA1c lab result review with a \"No Further Action\" disposition; the HbA1c observable entity is already captured by the structured lab pipeline and is excluded from overcoding review per audit rules. The result of 47 mmol/mol is outside the reference range and sits at the upper boundary of the pre-diabetes range, but the clinician has not explicitly documented a diagnosis of prediabetes or impaired glucose regulation in this encounter \u2014 only \"Satisfactory, No Further Action\" \u2014 so no additional disorder or finding code can be derived from this text. If a pre-diabetes diagnosis is intended, it should be explicitly documented and coded in a separate clinical encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3876,
+        "output_tokens": 1044,
+        "total_tokens": 4920,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "3b99f674-3ef6-42b6-bda1-313f6b1161cf",
+        "date": "2024-11-26",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "77811283-8008-4a35-8f58-df7a1974cd91",
+    "patient_id": "4920262426",
+    "date": "2024-12-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists entirely of a medication review listing (repeat prescriptions issued/ended) and an SCR preference update \u2014 there is no clinical narrative, examination findings, new diagnoses, or documented clinical reasoning in the note text. The three already-coded concepts (T2DM, genitourinary syndrome of menopause, COPD) are confirmed as valid SNOMED disorder codes and are appropriate standing problem-list entries; they must not be removed on the basis of an administrative-only encounter. No new codeable clinical content is present in this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5108,
+        "output_tokens": 1011,
+        "total_tokens": 6119,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "77811283-8008-4a35-8f58-df7a1974cd91",
+        "date": "2024-12-10",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6e5ad49c-7151-4fc1-9432-c18b730b857a",
+    "patient_id": "4920262426",
+    "date": "2024-12-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "daytime sleepiness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Modafinil is explicitly documented as prescribed for daytime sleepiness, making this an active coded clinical finding that should appear in the record.",
+          "snomed_search": "excessive daytime sleepiness",
+          "snomed_concept_id": "1367959007",
+          "preferred_term": "Excessive daytime sleepiness (finding)",
+          "sentence": "-modafanil for daytime sleepiness - takes prn, not had to use as often anymore but is helpful when driving longer distances",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (T2DM and COPD) are correct and well-evidenced; lookup_concept returned unreliable results for both but search_snomed confirmed the concept IDs are accurate. One gap identified: daytime sleepiness is explicitly documented as the indication for modafinil and should be coded as an active finding (1367959007). Note also documents modafinil use while driving longer distances \u2014 no immediate safety-critical concern is raised in the text, but the prescriber may wish to ensure driving advice is documented separately.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5842,
+        "output_tokens": 1076,
+        "total_tokens": 6918,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "6e5ad49c-7151-4fc1-9432-c18b730b857a",
+        "date": "2024-12-16",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9adc0dd9-e365-4b1b-8337-a61892c39529",
+    "patient_id": "4920262426",
+    "date": "2025-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding)",
+          "severity": "medium",
+          "reason": "Concept ID 399079008 is not confirmed by the SNOMED terminology server as 'Back pain'; the top-scoring search candidates for back pain are 279039007 (Low back pain) and 161891005 (Backache) \u2014 the note describes a longstanding back problem for which Low back pain (279039007) is a more specific and verified fit.",
+          "replace_with_concept_id": "279039007",
+          "replace_with_preferred_term": "Low back pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "Two of the three coded concepts (386472008 telephone consultation; 183561008 referral to GP) are confirmed correct by SNOMED search. The back pain code 399079008 could not be verified and is not returned by any search \u2014 the preferred replacement is 279039007 Low back pain (finding), which better matches the note text and is the top SNOMED candidate. The 'referral to GP' code is a reasonable representation of the pharmacist's advice to seek a GP review, though it should be noted this is a recommendation rather than a formal referral; no clinical content is missing from scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3376,
+        "output_tokens": 1318,
+        "total_tokens": 4694,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "9adc0dd9-e365-4b1b-8337-a61892c39529",
+        "date": "2025-01-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0c15aa16-adf1-4080-bbae-0444aa187ab0",
+    "patient_id": "4920262426",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Retinal screening 02/25 NAD",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents diabetic retinal screening performed in February 2025 with no abnormality detected; this procedure should be coded to support QOF and diabetes care audit trails.",
+          "snomed_search": "diabetic retinopathy screening",
+          "snomed_concept_id": "134395001",
+          "preferred_term": "Diabetic retinopathy screening (procedure)",
+          "sentence": "Retinal screening 02/25 NAD",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "high",
+          "reason": "The patient has active, ongoing type 2 diabetes under active management (Mounjaro, HbA1c monitoring, retinal screening) \u2014 a 'history of' situation code is semantically incorrect for a currently active condition; the active disorder should be coded instead.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary coding error is the use of 'History of diabetes mellitus (situation)' for a patient with clearly active, treated type 2 diabetes \u2014 this should be replaced with the active disorder code 44054006. The retinal screening result (NAD, 02/25) is documented but not coded, representing a missing QOF-relevant procedure. The diabetes medication review code (394725008) is appropriate and well-evidenced.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 10408,
+        "output_tokens": 1654,
+        "total_tokens": 12062,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "0c15aa16-adf1-4080-bbae-0444aa187ab0",
+        "date": "2025-04-15",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "079b8db4-f035-4d59-9aae-b0a7b1a6a8d8",
+    "patient_id": "4920262426",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Chronic obstructive pulmonary disease annual review",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly a COPD annual review completed by the pharmacist and authorised by the GP; the review procedure itself should be coded.",
+          "snomed_search": "chronic obstructive pulmonary disease annual review",
+          "snomed_concept_id": "394703002",
+          "preferred_term": "Chronic obstructive pulmonary disease annual review (regime/therapy)",
+          "sentence": "Chronic obstructive pulmonary disease annual review: Yes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "COPD patient unsuitable for pulmonary rehabilitation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The template explicitly records this patient as unsuitable for pulmonary rehabilitation (XaPZH), which is a clinically relevant QOF/management finding that should be coded.",
+          "snomed_search": "COPD unsuitable pulmonary rehabilitation",
+          "snomed_concept_id": "371611000000107",
+          "preferred_term": "Chronic obstructive pulmonary disease patient unsuitable for pulmonary rehabilitation (finding)",
+          "sentence": "*Pulmonary Rehab Status: COPD patient unsuitable for pulmonary rehabilitation (XaPZH)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Heavy cigarette smoker (20-39 cigs/day)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents heavy cigarette smoking at 20-39 cigarettes per day; this more specific finding should be coded in addition to or instead of the generic smoking finding.",
+          "snomed_search": "heavy cigarette smoker 20-39",
+          "snomed_concept_id": "160605003",
+          "preferred_term": "Heavy cigarette smoker (20-39 cigs/day) (finding)",
+          "sentence": "How much do they smoke?: Heavy cigarette smoker (20-39 cigs/day) (1375.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Family history: Respiratory disease (mother)",
+          "severity": "low",
+          "suggested_assertion": "family",
+          "reason": "The template records a family history of respiratory disease in the patient's mother, which is a relevant situational finding for a COPD patient and should be coded.",
+          "snomed_search": "family history respiratory disease",
+          "snomed_concept_id": "266898002",
+          "preferred_term": "Family history: Respiratory disease (situation)",
+          "sentence": "Family history of Respiratory conditions: FH: Respiratory disease (XE0oJ) mother",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "low",
+          "reason": "The terminology server returned an unreliable result for this concept ID (organism tag); the note explicitly documents the more specific 'Heavy cigarette smoker (20-39 cigs/day)' (160605003) which should replace this generic smoking code.",
+          "replace_with_concept_id": "160605003",
+          "replace_with_preferred_term": "Heavy cigarette smoker (20-39 cigs/day) (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This COPD annual review by pharmacist is broadly well coded for the key clinical findings (ACOS, CAT score, MRC grade), but is missing the COPD annual review procedure itself, the pulmonary rehabilitation unsuitability finding, and the specific quantified smoking status. The generic smoking code (77176002) should be replaced by the more specific heavy smoker (20-39/day) concept; all four existing concept IDs returned unreliable lookups from the terminology server but are clinically appropriate based on search confirmation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 17986,
+        "output_tokens": 2590,
+        "total_tokens": 20576,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "079b8db4-f035-4d59-9aae-b0a7b1a6a8d8",
+        "date": "2025-05-06",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3faea031-c1c6-4cee-8931-cf787e5ede6f",
+    "patient_id": "4920262426",
+    "date": "2025-06-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dysphagia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Dysphagia is explicitly documented ('Occasional dysphagia in recent weeks'), formally assessed with the Edinburgh Dysphagia Score (score 1), and is a red-flag symptom requiring coding and monitoring; the plan includes consideration of dysphagia referral at follow-up.",
+          "snomed_search": "dysphagia",
+          "snomed_concept_id": "40739000",
+          "preferred_term": "Dysphagia (disorder)",
+          "sentence": "Occasional dysphagia in recent weeks.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "gallstones",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Known gallstones are explicitly documented in the history and are clinically relevant to the presenting GI symptoms (vomiting, dyspepsia) but have not been coded.",
+          "snomed_search": "gallstones",
+          "snomed_concept_id": "235919008",
+          "preferred_term": "Gallbladder calculus (disorder)",
+          "sentence": "Known gallstones.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "weight loss",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Mild weight loss is explicitly documented ('Recent mild weight loss since started mounjaro, now weight has plateued') and should be coded as a current finding even though it is attributed to medication.",
+          "snomed_search": "weight loss",
+          "snomed_concept_id": "262285001",
+          "preferred_term": "Weight decreased (finding)",
+          "sentence": "Recent mild weight loss since started mounjaro, now weight has plateued.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding) [coded label]",
+          "severity": "medium",
+          "reason": "Concept ID 289114008 is unreliable \u2014 the terminology server returned semantic_tag='organism', indicating a corrupted or invalid mapping; the correct concept for the documented 'Cough after eating' is 49727002 Cough (finding).",
+          "replace_with_concept_id": "49727002",
+          "replace_with_preferred_term": "Cough (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three clinically significant findings are uncoded: dysphagia (red-flag symptom, formally scored, plan includes referral consideration), known gallstones (relevant to GI presentation), and documented weight loss. The cough concept ID 289114008 is invalid per the terminology server and should be replaced with 49727002 Cough (finding). The Edinburgh Dysphagia Score of 1 (low risk) is reassuring but does not remove the obligation to code the symptom.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7471,
+        "output_tokens": 2206,
+        "total_tokens": 9677,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "3faea031-c1c6-4cee-8931-cf787e5ede6f",
+        "date": "2025-06-17",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+    "patient_id": "4920262426",
+    "date": "2025-07-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dysphagia",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Dysphagia is explicitly listed in the working diagnosis ('Ongoing dyspepsia and dysphagia') and is a red-flag symptom for upper GI malignancy \u2014 the clinician explicitly discussed cancer risk; this must be coded.",
+          "snomed_search": "dysphagia",
+          "snomed_concept_id": "40739000",
+          "preferred_term": "Dysphagia (disorder)",
+          "sentence": "Diagnosis: Ongoign dyspepsia and dysphagia.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "medium",
+          "reason": "The terminology server returned this concept ID as an organism (unreliable); the note specifically documents 'tickly cough after eating' which maps precisely to 46789001 'Cough after eating (finding)'.",
+          "replace_with_concept_id": "46789001",
+          "replace_with_preferred_term": "Cough after eating (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "183523005",
+          "name": "Referral to gastroenterology service (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "declined",
+          "severity": "critical",
+          "reason": "The note clearly states the patient was 'Not keen' and did not accept the upper GI referral; the plan is to retry in 4 weeks \u2014 the referral was offered and declined, not actioned, so assertion must be 'declined' for medico-legal safety."
+        }
+      ],
+      "confidence": 0.95,
+      "notes": "Two critical issues: dysphagia is missing despite being a named diagnosis and a red-flag symptom (cancer risk explicitly discussed by the clinician); and the gastroenterology referral is coded as 'present' when the patient declined it \u2014 this must be 'declined' for medico-legal documentation. The 'Does cough' concept ID (289114008) is unreliable and should be replaced with the specific 'Cough after eating' (46789001) which matches the note text precisely.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4451,
+        "output_tokens": 1339,
+        "total_tokens": 5790,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+        "date": "2025-07-14",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb",
+    "patient_id": "4920262426",
+    "date": "2025-07-14",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8fe124ff-8eb6-4fe2-a447-d45300dad69a",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum TSH level outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The TSH result of 0.46 miu/L is explicitly flagged as 'Outside reference range; Borderline results' in the report text, and the interpretive finding should be coded in addition to the observable entity already coded.",
+          "snomed_search": "serum TSH outside reference range",
+          "snomed_concept_id": "166337002",
+          "preferred_term": "Serum thyroid stimulating hormone level outside reference range (finding)",
+          "sentence": "Serum TSH level (XaELV) 0.46 miu/L [0.55 - 4.78] - Outside reference range; Borderline results; suggest repeat in 3/12",
+          "char_start": 130,
+          "char_end": 230
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a thyroid function test auto-filed result; the TSH observable entity is correctly coded but the clinically significant interpretive finding \u2014 TSH outside reference range \u2014 is missing and should be added. All other coded concepts (dysphagia, dyspepsia, reflux, nausea/vomiting, smoking, cough) appear to be standing problem-list codes and are not flagged as overcoded on this encounter. lookup_concept returned unreliable results for concepts 16932000 and 21101000119105, but hierarchy traversal and search confirmed both are legitimate SNOMED disorder codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15268,
+        "output_tokens": 1785,
+        "total_tokens": 17053,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "8fe124ff-8eb6-4fe2-a447-d45300dad69a",
+        "date": "2025-08-12",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1846e60f-7cb3-4903-8d72-6c8555c95801",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "BMI 31.22 kg/m\u00b2 \u2014 obesity",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI of 31.22 kg/m\u00b2 is explicitly documented and constitutes obesity (BMI \u226530); the clinical interpretation should be coded, not just the raw observable.",
+          "snomed_search": "obesity BMI 30",
+          "snomed_concept_id": "162864005",
+          "preferred_term": "Body mass index 30+ - obesity (finding)",
+          "sentence": "Body mass index - observation (22K..) 31.22 Kg/m\u00b2",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "GPPAQ physical activity index: moderately inactive",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records GPPAQ result as 'moderately inactive'; the specific GPPAQ finding code should be present in addition to or instead of the generic sedentary lifestyle code.",
+          "snomed_search": "moderately inactive physical activity",
+          "snomed_concept_id": "366171000000107",
+          "preferred_term": "General practice physical activity questionnaire physical activity index: moderately inactive (finding)",
+          "sentence": "GPPAQ physical activity index: moderately inactive (XaPPB)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "102620007",
+          "name": "Gastroesophageal reflux (finding)",
+          "severity": "medium",
+          "reason": "The encounter note is a diabetes HCA review with foot screening and phlebotomy; there is no mention of reflux, heartburn, or any GI symptom anywhere in the text \u2014 the evidence phrase 'Reflux' does not appear in this encounter."
+        },
+        {
+          "conceptId": "21101000119105",
+          "name": "Pharyngeal dysphagia (disorder)",
+          "severity": "high",
+          "reason": "No mention of dysphagia anywhere in this encounter note; the evidence phrase 'Occasional dysphagia' does not appear in the text and this code should not have been generated from this encounter. Note: dysphagia is a red-flag symptom \u2014 if genuinely present it requires urgent review."
+        },
+        {
+          "conceptId": "203661000000105",
+          "name": "Undiagnosed dyspepsia (disorder)",
+          "severity": "medium",
+          "reason": "No mention of dyspepsia or any upper GI symptoms in this encounter note; the evidence phrase 'Persistent dyspepsia' does not appear in the text."
+        },
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "low",
+          "reason": "The note specifically documents 'Heavy cigarette smoker (20-39 cigs/day)'; the generic smoking finding is superseded by the more specific concept 160605003.",
+          "replace_with_concept_id": "160605003",
+          "replace_with_preferred_term": "Heavy cigarette smoker (20-39 cigs/day) (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "266924008",
+          "name": "Ex-heavy cigarette smoker (20-39/day) (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "high",
+          "reason": "The note documents a current heavy smoker (20-39 cigs/day), not an ex-smoker; this code is clinically incorrect and should be removed \u2014 the correct current-smoker code is 160605003."
+        },
+        {
+          "conceptId": "415510005",
+          "name": "Sedentary lifestyle (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "medium",
+          "reason": "The GPPAQ result is 'moderately inactive', not sedentary; lookup returned an unreliable result (substance tag) confirming this concept ID is wrong for this context \u2014 replace with 366171000000107 GPPAQ moderately inactive."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "This HCA diabetes review encounter has several significant coding errors: three concepts (reflux, dysphagia, dyspepsia) appear to have been incorrectly attributed to this encounter with no supporting text \u2014 dysphagia in particular is a red-flag symptom and its spurious coding warrants clinical review. The ex-smoker code (266924008) is factually wrong for a current smoker, the GPPAQ sedentary code does not match the documented 'moderately inactive' result, and obesity is not coded despite a BMI of 31.22 being explicitly recorded. Lookup reliability was poor for several concept IDs, suggesting possible terminology server index issues.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 18723,
+        "output_tokens": 2603,
+        "total_tokens": 21326,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "1846e60f-7cb3-4903-8d72-6c8555c95801",
+        "date": "2025-08-12",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7c3d99ce-7099-4672-9cc1-ebd6429bf101",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a Healthcare Assistant pathology request log (blood tests requested/postponed) with no clinical narrative, examination findings, diagnoses, or management plan; all 11 coded concepts are standing problem-list codes not derived from this encounter text and must not be audited against it. Note: lookup_concept returned unreliable/corrupted results for concepts 21101000119105, 203661000000105, and 16932000, but SNOMED search confirms these are legitimate disorder codes \u2014 no action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6115,
+        "output_tokens": 1336,
+        "total_tokens": 7451,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "7c3d99ce-7099-4672-9cc1-ebd6429bf101",
+        "date": "2025-08-12",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2071f1f8-21e8-4fbe-81d9-1395216cba1c",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dysphagia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Dysphagia is explicitly named in the formal diagnosis ('Persistent dyspepsia and dysphagia') and documented as an active symptom ('Occasional dysphagia. Much improved.'), yet no dysphagia concept appears in the coded list.",
+          "snomed_search": "dysphagia",
+          "snomed_concept_id": "40739000",
+          "preferred_term": "Dysphagia (disorder)",
+          "sentence": "Diagnosis: Persistent dyspepsia and dysphagia.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note explicitly states 'Vomiting resolved', indicating this is no longer an active problem; assertion should be historical, not present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three substantive issues found: dysphagia is explicitly diagnosed but not coded; vomiting is coded as present despite being documented as resolved; and weight loss is coded as intentional when the GP has issued a 2WW upper GI cancer referral \u2014 unintentional weight loss (448765001) is the safer and more appropriate concept in this clinical context. The 'Undiagnosed dyspepsia' code (203661000000105) is acceptable for UK primary care use pending investigation results. The lookup server returned unreliable results for several concept IDs but search_snomed confirmed the correct preferred terms independently.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12030,
+        "output_tokens": 2314,
+        "total_tokens": 14344,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "2071f1f8-21e8-4fbe-81d9-1395216cba1c",
+        "date": "2025-08-12",
+        "coded_count": 19
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c87a6094-2972-4902-bd83-03f7c3979a55",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276551000000108",
+          "name": "Fast track referral for suspected upper GI (gastrointestinal) cancer",
+          "severity": "medium",
+          "reason": "This encounter is an auto-filed lipid panel result; there is no mention of an upper GI 2WW referral anywhere in the note text \u2014 this code has no evidential basis here and is a problem-list code incorrectly attributed to this encounter."
+        },
+        {
+          "conceptId": "27113001",
+          "name": "Weight (observable entity)",
+          "severity": "low",
+          "reason": "No weight measurement appears in this encounter text; 'Weight 85 kg' cited as evidence is absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "60621009",
+          "name": "BMI - body mass index (observable entity)",
+          "severity": "low",
+          "reason": "No BMI value appears in this encounter text; 'BMI 31.22 kg/m2' cited as evidence is absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "1003671000000109",
+          "name": "Haemoglobin A1c level (observable entity)",
+          "severity": "low",
+          "reason": "No HbA1c result appears in this encounter text; 'Haemoglobin A1c 47 mmol/mol' cited as evidence is absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "21101000119105",
+          "name": "Pharyngeal dysphagia (disorder)",
+          "severity": "medium",
+          "reason": "No mention of dysphagia in this encounter text; 'Occasional dysphagia - much improved' cited as evidence is entirely absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "203661000000105",
+          "name": "Undiagnosed dyspepsia (disorder)",
+          "severity": "medium",
+          "reason": "No mention of dyspepsia in this encounter text; 'Persistent dyspepsia' cited as evidence is entirely absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "medium",
+          "reason": "No mention of cough in this encounter text; 'Cough after eating much improved' cited as evidence is entirely absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "medium",
+          "reason": "No mention of smoking status in this encounter text; 'Heavy cigarette smoker (20-39 cigs/day)' cited as evidence is entirely absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "102620007",
+          "name": "Gastroesophageal reflux (finding)",
+          "severity": "medium",
+          "reason": "No mention of reflux in this encounter text; 'Reflux' cited as evidence is entirely absent from this lipid auto-filing note."
+        },
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "medium",
+          "reason": "No mention of nausea or vomiting in this encounter text; 'Vomiting resolved' cited as evidence is entirely absent from this lipid auto-filing note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This encounter is a purely auto-filed lipid panel result with a brief 'dm review' reason-for-request; the only legitimately evidenced codes are the five lipid observable entities (cholesterol, triglycerides, HDL, LDL, TC:HDL ratio). Ten of the 15 coded concepts \u2014 including a 2WW upper GI referral, pharyngeal dysphagia, dyspepsia, cough, smoking, reflux, nausea/vomiting, HbA1c, weight, and BMI \u2014 have zero evidential basis in this note and appear to have been incorrectly attributed to this encounter from a different clinical encounter or the problem list; these should be removed from this encounter's coding record (though the underlying conditions may legitimately exist on the patient's problem list).\"",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4994,
+        "output_tokens": 1797,
+        "total_tokens": 6791,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "c87a6094-2972-4902-bd83-03f7c3979a55",
+        "date": "2025-08-12",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c289ac5b-924c-4c78-ba97-43db417e7523",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "entities": [],
+      "notes": "This is an auto-filed LFT result encounter with all four LFT observable entities correctly coded; all results are within normal limits and the globulin commentary (24 g/L) explicitly states no further action is required, so no additional coding is warranted. Standing codes (2WW upper GI referral, pharyngeal dysphagia, smoking, HbA1c, BMI, BP, weight, physical activity) are problem-list/prior-encounter codes confirmed as clinically valid \u2014 lookup_concept returned unreliable results for concepts 276551000000108 and 21101000119105 but search_snomed confirmed both are correct SNOMED procedure/disorder concepts respectively.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5309,
+        "output_tokens": 1141,
+        "total_tokens": 6450,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "c289ac5b-924c-4c78-ba97-43db417e7523",
+        "date": "2025-08-12",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "364e1483-1d1e-41ce-adb9-6de38fd37d10",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "The patient has active Type 2 diabetes mellitus under review (DM review request, HbA1c monitored); a 'History of' situation code implies the condition is no longer active and is redundant alongside the correctly coded active disorder 44054006 (Type 2 diabetes mellitus).",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The encounter note states 'Vomiting resolved', indicating this is no longer an active problem and should be coded as historical rather than present."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "This is an auto-filed U&E lab result for a DM review; all lab observable entity codes are appropriate pipeline outputs. Two issues identified: the 'History of diabetes mellitus' situation code (161445009) is redundant and contradicts the active Type 2 DM disorder code (44054006) which correctly captures the active condition; and nausea/vomiting is coded as present despite the note documenting it as resolved. The CKD advisory text in the lab report is boilerplate and does not constitute a clinical CKD diagnosis \u2014 eGFR 75 mL/min is above the CKD threshold. Note: lookup_concept returned unreliable/corrupted results for several concept IDs (161445009, 44054006, 16932000, 21101000119105); correctness was verified via search_snomed cross-reference.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8686,
+        "output_tokens": 1833,
+        "total_tokens": 10519,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "364e1483-1d1e-41ce-adb9-6de38fd37d10",
+        "date": "2025-08-12",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "be380b24-5c14-4e3e-ac25-31db98376e07",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter is an auto-filed serum total protein lab result with a \"No Further Action\" review note and no substantive clinical narrative; the observable entity codes are appropriate pipeline outputs, and the clinical finding codes (dysphagia, cough, dyspepsia, nausea/vomiting) are standing problem-list codes that cannot be challenged on the basis of this administrative filing encounter. Note: lookup_concept returned corrupted/unreliable semantic tags for several concept IDs (289114008, 203661000000105, 16932000) \u2014 human review of those concept IDs against the terminology server is advisable, though search_snomed confirmed 21101000119105 as the correct code for Pharyngeal dysphagia.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5931,
+        "output_tokens": 1413,
+        "total_tokens": 7344,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "be380b24-5c14-4e3e-ac25-31db98376e07",
+        "date": "2025-08-12",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "21fe471e-7dd7-4629-b469-431a7dbd0bc8",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "HbA1c 6.4% - outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "HbA1c of 6.4% is explicitly flagged as outside the reference range (4\u20135.9%) in a DM review context; the clinical interpretation of prediabetes should be coded as a finding.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Haemoglobin A1c level (X772q) 6.4 % [4 - 5.9] - Outside reference range",
+          "char_start": 22,
+          "char_end": 82
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The encounter note explicitly states 'Vomiting resolved', indicating this is no longer an active problem and should be coded as historical."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The primary coding gap is the absence of a Prediabetes finding (714628002) \u2014 the HbA1c of 6.4% is explicitly outside the reference range in a DM review and its clinical interpretation must be coded. Additionally, Nausea and vomiting (16932000) is coded as present but the note documents it as resolved, requiring correction to historical assertion. All other coded concepts are appropriate; lookup_concept returned unreliable results for concepts 21101000119105 and 289114008 but search_snomed confirmed both are legitimate SNOMED disorder/finding codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8925,
+        "output_tokens": 1597,
+        "total_tokens": 10522,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "21fe471e-7dd7-4629-b469-431a7dbd0bc8",
+        "date": "2025-08-12",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5d6cfad0-394e-4141-9cad-b9a162dee267",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "no_codeable_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.92,
+      "notes": "This encounter is an auto-filed serum B12 lab result reviewed as 'Satisfactory, No Further Action' with no clinical narrative, examination findings, new diagnoses, or management decisions documented. The B12 observable entity code [993391000000108] is correctly applied; all other 12 coded concepts are standing problem-list codes not derived from this encounter text and are appropriately excluded from audit scope. No new codeable clinical content is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4187,
+        "output_tokens": 1004,
+        "total_tokens": 5191,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "5d6cfad0-394e-4141-9cad-b9a162dee267",
+        "date": "2025-08-12",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lump left side breast",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a firm lump on the LEFT side of the breast; a laterality-specific code is more accurate and clinically important in the context of a 2WW breast referral than the generic 'Breast lump (finding)'.",
+          "snomed_search": "mass left breast",
+          "snomed_concept_id": "12240181000119103",
+          "preferred_term": "Mass of left breast (finding)",
+          "sentence": "Firm lump left side breast noted.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "89164003",
+          "name": "Breast lump (finding)",
+          "severity": "medium",
+          "reason": "The note specifies the lump is on the left side; the generic bilateral code should be replaced by the laterality-specific 'Mass of left breast (finding)' [12240181000119103].",
+          "replace_with_concept_id": "12240181000119103",
+          "replace_with_preferred_term": "Mass of left breast (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW fast-track breast referral and the breast lump are both coded, which is correct for this safety-critical encounter. However, the breast lump code [89164003] lacks laterality \u2014 the note clearly documents a firm lump on the LEFT side, and the more specific SNOMED concept 'Mass of left breast (finding)' [12240181000119103] should replace it. The concept [21101000119105] coded as 'Pharyngeal dysphagia' returned an inconsistent semantic tag on lookup (substance vs disorder), but search_snomed confirms it as a legitimate disorder concept; it is treated as a problem-list carry-over and not flagged. All other coded concepts (diabetes history, BMI, weight, smoking, GORD, HbA1c) are structured pipeline or problem-list codes and are not derived from this encounter narrative.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5043,
+        "output_tokens": 1664,
+        "total_tokens": 6707,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+        "date": "2025-08-12",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "429740004",
+          "name": "Family history of malignant neoplasm of breast (situation)",
+          "severity": "medium",
+          "reason": "The note states 'Mum had skin cancer before at breast' \u2014 the mother had a skin malignancy located at the breast, not a primary breast cancer; coding family history of malignant neoplasm of breast is therefore not supported by the text.",
+          "replace_with_concept_id": "429405004",
+          "replace_with_preferred_term": "Family history of malignant neoplasm of skin (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW breast referral and breast lump are correctly coded as safety-critical findings. The sole issue is that 429740004 (FH malignant neoplasm of breast) is overcoded: the note documents the mother's skin cancer located at the breast, not a primary breast cancer \u2014 429405004 (FH malignant neoplasm of skin), already present in the coded list, is the correct and sufficient family history code. Note: the terminology server returned unreliable results for both family history concept IDs but SNOMED search confirmed the correct preferred terms and concept IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7922,
+        "output_tokens": 1566,
+        "total_tokens": 9488,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+        "date": "2025-08-12",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2c902883-a986-4c3c-959d-baa608f50fc8",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "78c91251-13b6-4762-8700-f9b2a419a54e",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "medium",
+          "reason": "The evidence phrase is 'Cough after eating much improved' \u2014 this maps specifically to 'Cough after eating (finding)' (46789001), not the generic 'Does cough' concept; lookup_concept also returned an unreliable/organism result for 289114008, further undermining its validity here.",
+          "replace_with_concept_id": "46789001",
+          "replace_with_preferred_term": "Cough after eating (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter is an auto-filed AKI staging report for a DM review; the clinical codes (pharyngeal dysphagia, dyspepsia, HbA1c, BP, weight, BMI) are plausible for the DM review context and are correctly coded, with one exception: the cough concept 289114008 ('Does cough') is too generic and lookup returned an unreliable result \u2014 the evidence 'Cough after eating' is precisely captured by 46789001 'Cough after eating (finding)' and should replace it.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6926,
+        "output_tokens": 1601,
+        "total_tokens": 8527,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "78c91251-13b6-4762-8700-f9b2a419a54e",
+        "date": "2025-08-12",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9c1b958c-d42b-4a8d-a886-9330beefe78b",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.96,
+      "notes": "This encounter is an auto-filed normal Full Blood Count result (all values within reference ranges, report marked \"Satisfactory, No Further Action\"); it contains no clinical narrative, examination findings, diagnoses, or management decisions. All 15 coded concepts are standing problem-list or structured-pipeline codes (lab observables, ongoing diagnoses, 2WW referral) that are not derived from this encounter text and must not be disturbed. No new coding is required from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6179,
+        "output_tokens": 1171,
+        "total_tokens": 7350,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "9c1b958c-d42b-4a8d-a886-9330beefe78b",
+        "date": "2025-08-12",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e9457855-54f1-4906-bc9d-761f7f1099c4",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter text is a PRISM 2WW Upper GI questionnaire visit; the two clinically derived concepts \u2014 fast track referral for suspected upper GI cancer [276551000000108] and Edinburgh Dysphagia Score [1326451000000101] \u2014 are correctly coded. The remaining 11 codes are standing problem-list entries not derived from this encounter's narrative and cannot be flagged as overcoded on that basis; lookup_concept returned unreliable semantic tags for three concepts (21101000119105, 16932000, 1326451000000101) but search_snomed confirmed all three are legitimate SNOMED concepts in the correct hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4232,
+        "output_tokens": 1224,
+        "total_tokens": 5456,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "e9457855-54f1-4906-bc9d-761f7f1099c4",
+        "date": "2025-08-12",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "da47863c-cd5f-4f5d-a869-44724e383ba4",
+    "patient_id": "4920262426",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The coded evidence explicitly states 'Vomiting resolved', indicating this is no longer an active finding and should be asserted as historical rather than present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "One clear assertion error: nausea and vomiting is coded as present despite the evidence phrase 'Vomiting resolved' \u2014 this should be historical. All other codes are clinically appropriate for a 2WW upper GI cancer referral encounter; lookup_concept returned unreliable semantic tags for concepts 16932000 and 21101000119105 but search_snomed confirms both concept IDs are correct. 'Cough after eating much improved' retains a present assertion as the symptom is ongoing but improving, which is defensible. No additional red-flag findings (e.g. unintentional weight loss) are explicitly documented in the note text to warrant further missing codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4046,
+        "output_tokens": 1358,
+        "total_tokens": 5404,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "da47863c-cd5f-4f5d-a869-44724e383ba4",
+        "date": "2025-08-12",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "05bb3ca7-a204-4959-9c00-2ab3af89035c",
+    "patient_id": "4920262426",
+    "date": "2025-09-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Ultrasound scan of chest wall - left",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents an ultrasound scan of the left chest wall (XaMdl) as a new episode procedure, but no corresponding SNOMED code has been applied.",
+          "snomed_search": "ultrasound scan chest wall",
+          "snomed_concept_id": "426827002",
+          "preferred_term": "Ultrasound scan of chest wall (procedure)",
+          "sentence": "Ultrasound scan of chest wall (XaMdl) - left (New Episode)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "448689003",
+          "name": "Radiofrequency biopsy of breast using ultrasound guidance (procedure)",
+          "severity": "medium",
+          "reason": "The note documents 'US scan and biopsy of breast \u2013 LEFT BREAST' with no mention of radiofrequency technique; coding a radiofrequency-specific biopsy method is not evidenced by the text and misrepresents the procedure performed.",
+          "replace_with_concept_id": "277667006",
+          "replace_with_preferred_term": "Ultrasound guided biopsy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three of four coded concept IDs returned unreliable or semantically incorrect results from the terminology server, suggesting possible use of local/extension codes; the mammography code (71651007) is confirmed correct via search. The FNA code (48635004 \u2013 generic 'Fine needle biopsy') should ideally be replaced with the more specific 'Fine needle aspiration biopsy of left axilla using ultrasound guidance' (2611861000000106), though this is a specificity improvement rather than a critical error. The radiofrequency biopsy code is a genuine mismatch with the note text and should be replaced with a plain ultrasound-guided biopsy code. The left chest wall ultrasound is entirely missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7662,
+        "output_tokens": 1724,
+        "total_tokens": 9386,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "05bb3ca7-a204-4959-9c00-2ab3af89035c",
+        "date": "2025-09-11",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1",
+    "patient_id": "4920262426",
+    "date": "2025-10-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "medium",
+          "reason": "The evidence text explicitly states 'Heavy cigarette smoker (20-39 cigs/day)', which maps precisely to the more specific concept 160605003 rather than the generic 'Smoking' code 77176002.",
+          "replace_with_concept_id": "160605003",
+          "replace_with_preferred_term": "Heavy cigarette smoker (20-39 cigs/day) (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The 2WW fast-track upper GI cancer referral/attendance is correctly coded with 276551000000108. The smoking code 77176002 (generic 'Smoking') should be replaced with 160605003 ('Heavy cigarette smoker (20-39 cigs/day)') to match the specificity of the documented evidence. Both lookup_concept calls returned unreliable results, but SNOMED search confirmed the correct concept IDs independently.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3331,
+        "output_tokens": 1152,
+        "total_tokens": 4483,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4920262426",
+        "encounter_id": "da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1",
+        "date": "2025-10-13",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  }
+]

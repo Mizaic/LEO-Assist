@@ -79,6 +79,7 @@ EXTRACTION_OUTPUT_SCHEMA: dict = {
                             "refuted",
                             "possible",
                             "historical",
+                            "planned",
                             "hypothetical",
                             "family",
                             "declined",

@@ -1,0 +1,523 @@
+{
+  "generated_at_utc": "2026-04-05T14:10:44.220907+00:00",
+  "summary": {
+    "surface_forms_with_any_mapping": 4183,
+    "surface_form_nodes_total": 4183,
+    "orphans_no_maps_to": 0,
+    "missing_normalized": 0,
+    "normalized_mismatch": 0,
+    "legacy_text_only": 0,
+    "bad_semantic_tag_hits": 13,
+    "inactive_concept_hits": 0,
+    "multi_mapped_forms": 19,
+    "low_confidence_edges": 0
+  },
+  "missing_normalized": [],
+  "normalized_mismatch": [],
+  "legacy_text_only": [],
+  "bad_semantic_tag": [
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3644521",
+      "form": "knee",
+      "cid": "72696002",
+      "fsn": "Knee region structure (body structure)",
+      "tag": "body structure",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3644647",
+      "form": "Cosmocol",
+      "cid": "8030004",
+      "fsn": "Macrogol (substance)",
+      "tag": "substance",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3644654",
+      "form": "Dry Giloy",
+      "cid": "418165002",
+      "fsn": "Herbal medicine agent (substance)",
+      "tag": "substance",
+      "conf": 0.7
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647296",
+      "form": "abx",
+      "cid": "419241000",
+      "fsn": "Substance with antibacterial mechanism of action (substance)",
+      "tag": "substance",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647305",
+      "form": "urol",
+      "cid": "394612005",
+      "fsn": "Urology (qualifier value)",
+      "tag": "qualifier value",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647313",
+      "form": "cisterns",
+      "cid": "61878005",
+      "fsn": "Structure of subarachnoid cistern (body structure)",
+      "tag": "body structure",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647316",
+      "form": "ACEi",
+      "cid": "372733002",
+      "fsn": "Substance with angiotensin-converting enzyme inhibitor mechanism of action (subs",
+      "tag": "substance",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647330",
+      "form": "E45",
+      "cid": "419633007",
+      "fsn": "White paraffin (substance)",
+      "tag": "substance",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647332",
+      "form": "underarm",
+      "cid": "91470000",
+      "fsn": "Axillary region structure (body structure)",
+      "tag": "body structure",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647333",
+      "form": "Coronovirus",
+      "cid": "1263733001",
+      "fsn": "Severe acute respiratory syndrome coronavirus (organism)",
+      "tag": "organism",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647334",
+      "form": "pred",
+      "cid": "116601002",
+      "fsn": "Prednisolone (substance)",
+      "tag": "substance",
+      "conf": 1.0
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3665259",
+      "form": "Diannette",
+      "cid": "126120000",
+      "fsn": "Cyproterone acetate (substance)",
+      "tag": "substance",
+      "conf": 0.9
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3676926",
+      "form": "NAD",
+      "cid": "17621005",
+      "fsn": "Normal (qualifier value)",
+      "tag": "qualifier value",
+      "conf": 1.0
+    }
+  ],
+  "inactive_concept": [],
+  "multi_mapped": [
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3644422",
+      "normalized_stored": "pre existing diabetes mellitus",
+      "form": "Pre-existing diabetes mellitus",
+      "text": null,
+      "expected_normalized": "pre existing diabetes mellitus",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "73211009",
+          "fsn": "Diabetes mellitus (disorder)",
+          "conf": 1.0
+        },
+        {
+          "cid": "161445009",
+          "fsn": "History of diabetes mellitus (situation)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3645354",
+      "normalized_stored": "smoker",
+      "form": "Smoker",
+      "text": null,
+      "expected_normalized": "smoker",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "65568007",
+          "fsn": "Cigarette smoker (finding)",
+          "conf": 0.93
+        },
+        {
+          "cid": "77176002",
+          "fsn": "Smoker (finding)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3645360",
+      "normalized_stored": "current smoker",
+      "form": "Current smoker",
+      "text": null,
+      "expected_normalized": "current smoker",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "65568007",
+          "fsn": "Cigarette smoker (finding)",
+          "conf": 0.95
+        },
+        {
+          "cid": "77176002",
+          "fsn": "Smoker (finding)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3645393",
+      "normalized_stored": "obese",
+      "form": "Obese",
+      "text": null,
+      "expected_normalized": "obese",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "414915002",
+          "fsn": "Obese (finding)",
+          "conf": 1.0
+        },
+        {
+          "cid": "414916001",
+          "fsn": "Obesity (disorder)",
+          "conf": 0.95
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3646149",
+      "normalized_stored": "night sweats",
+      "form": "Night sweats",
+      "text": null,
+      "expected_normalized": "night sweats",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "42984000",
+          "fsn": "Night sweats (finding)",
+          "conf": 1.0
+        },
+        {
+          "cid": "198436008",
+          "fsn": "Menopausal flushing (disorder)",
+          "conf": 0.88
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3646958",
+      "normalized_stored": "congestive heart failure",
+      "form": "Congestive heart failure",
+      "text": null,
+      "expected_normalized": "congestive heart failure",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "42343007",
+          "fsn": "Congestive heart failure (disorder)",
+          "conf": 0.95
+        },
+        {
+          "cid": "48447003",
+          "fsn": "Chronic heart failure (disorder)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647157",
+      "normalized_stored": "monocyte count observation",
+      "form": "Monocyte count - observation",
+      "text": null,
+      "expected_normalized": "monocyte count observation",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "1022621000000100",
+          "fsn": "Monocyte count (observable entity)",
+          "conf": 1.0
+        },
+        {
+          "cid": "1107991000000100",
+          "fsn": "Monocyte count in blood (observable entity)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3647298",
+      "normalized_stored": "cin3",
+      "form": "CIN3",
+      "text": null,
+      "expected_normalized": "cin3",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "92564006",
+          "fsn": "Carcinoma in situ of uterine cervix (disorder)",
+          "conf": 0.97
+        },
+        {
+          "cid": "285636001",
+          "fsn": "Cervical intraepithelial neoplasia (disorder)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3665252",
+      "normalized_stored": "fit",
+      "form": "FIT",
+      "text": null,
+      "expected_normalized": "fit",
+      "mapping_count": 3,
+      "targets": [
+        {
+          "cid": "167667006",
+          "fsn": "Occult blood not detected in feces (finding)",
+          "conf": 0.9
+        },
+        {
+          "cid": "71711000112103",
+          "fsn": "Occult blood detected in feces by immunoassay (finding)",
+          "conf": 0.9
+        },
+        {
+          "cid": "1049361000000101",
+          "fsn": "Quantitative faecal immunochemical test (observable entity)",
+          "conf": 0.88
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675457",
+      "normalized_stored": "low back pain",
+      "form": "low back pain",
+      "text": null,
+      "expected_normalized": "low back pain",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "161891005",
+          "fsn": "Backache (finding)",
+          "conf": 0.95
+        },
+        {
+          "cid": "279039007",
+          "fsn": "Low back pain (finding)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675539",
+      "normalized_stored": "chest tightness",
+      "form": "chest tightness",
+      "text": null,
+      "expected_normalized": "chest tightness",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "23924001",
+          "fsn": "Tight chest (finding)",
+          "conf": 1.0
+        },
+        {
+          "cid": "29857009",
+          "fsn": "Chest pain (finding)",
+          "conf": 0.9
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675693",
+      "normalized_stored": "urine protein creatinine ratio",
+      "form": "urine protein creatinine ratio",
+      "text": null,
+      "expected_normalized": "urine protein creatinine ratio",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "313500004",
+          "fsn": "Urine protein/creatinine ratio measurement (procedure)",
+          "conf": 0.95
+        },
+        {
+          "cid": "1028731000000100",
+          "fsn": "Urine protein/creatinine ratio (observable entity)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675707",
+      "normalized_stored": "perennial rhinitis",
+      "form": "perennial rhinitis",
+      "text": null,
+      "expected_normalized": "perennial rhinitis",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "61582004",
+          "fsn": "Allergic rhinitis (disorder)",
+          "conf": 0.95
+        },
+        {
+          "cid": "86094006",
+          "fsn": "Chronic rhinitis (disorder)",
+          "conf": 0.93
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675756",
+      "normalized_stored": "faecal immunochemical test abnormal",
+      "form": "faecal immunochemical test abnormal",
+      "text": null,
+      "expected_normalized": "faecal immunochemical test abnormal",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "59614000",
+          "fsn": "Occult blood detected in feces (finding)",
+          "conf": 0.95
+        },
+        {
+          "cid": "1101371000000105",
+          "fsn": "Bowel cancer screening programme liquid faecal immunochemical test abnormal (fin",
+          "conf": 0.9
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675758",
+      "normalized_stored": "fit result positive",
+      "form": "FIT result positive",
+      "text": null,
+      "expected_normalized": "fit result positive",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "59614000",
+          "fsn": "Occult blood detected in feces (finding)",
+          "conf": 0.93
+        },
+        {
+          "cid": "71711000112103",
+          "fsn": "Occult blood detected in feces by immunoassay (finding)",
+          "conf": 0.95
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675831",
+      "normalized_stored": "urine albumin creatinine ratio",
+      "form": "urine albumin creatinine ratio",
+      "text": null,
+      "expected_normalized": "urine albumin creatinine ratio",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "271075006",
+          "fsn": "Urine albumin/creatinine ratio measurement (procedure)",
+          "conf": 1.0
+        },
+        {
+          "cid": "5801000237100",
+          "fsn": "Mass concentration ratio of albumin to creatinine in urine (observable entity)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675925",
+      "normalized_stored": "fit 10",
+      "form": "FIT 10",
+      "text": null,
+      "expected_normalized": "fit 10",
+      "mapping_count": 3,
+      "targets": [
+        {
+          "cid": "167667006",
+          "fsn": "Occult blood not detected in feces (finding)",
+          "conf": 0.9
+        },
+        {
+          "cid": "71711000112103",
+          "fsn": "Occult blood detected in feces by immunoassay (finding)",
+          "conf": 0.9
+        },
+        {
+          "cid": "1049361000000101",
+          "fsn": "Quantitative faecal immunochemical test (observable entity)",
+          "conf": 0.85
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675957",
+      "normalized_stored": "faecal calprotectin",
+      "form": "faecal calprotectin",
+      "text": null,
+      "expected_normalized": "faecal calprotectin",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "1002571000000102",
+          "fsn": "Faecal calprotectin content (observable entity)",
+          "conf": 0.98
+        },
+        {
+          "cid": "1031581000000104",
+          "fsn": "Calprotectin level (observable entity)",
+          "conf": 1.0
+        }
+      ]
+    },
+    {
+      "neo4j_element_id": "4:a919c95b-9ca1-409b-90a2-4bb5680acd95:3675959",
+      "normalized_stored": "fecal calprotectin",
+      "form": "fecal calprotectin",
+      "text": null,
+      "expected_normalized": "fecal calprotectin",
+      "mapping_count": 2,
+      "targets": [
+        {
+          "cid": "1002571000000102",
+          "fsn": "Faecal calprotectin content (observable entity)",
+          "conf": 0.97
+        },
+        {
+          "cid": "1031581000000104",
+          "fsn": "Calprotectin level (observable entity)",
+          "conf": 1.0
+        }
+      ]
+    }
+  ],
+  "low_confidence": [],
+  "needs_clinical_review": {
+    "bad_semantic_tag_count": 13,
+    "multi_mapped_count": 19,
+    "note": "After --fix, duplicate SurfaceForms with the same normalized key are merged; if they pointed at different concepts, the keeper may now have multiple MAPS_TO edges. Use POST /terminology/surface-forms/deduplicate or manual review to keep the best single target per form."
+  }
+}

@@ -376,6 +376,47 @@ cannot be auto-coded. Revision captured in VT-081-RUN-002 (33 tests, all pass).
 | Risk | R-LEO-AI-056 | analyzed | Incorrect automated fix changes clinical coding |
 | Verification Test | VT-LEO-AI-082 | draft | LLM gate, audit trail, idempotency, terminology miss |
 
+### 6.10 Domain-Driven Episode Detector (April 2026)
+
+| Artefact | ID | Status | Notes |
+|----------|----|--------|-------|
+| User Need | UN-LEO-AI-052 | draft | Domain-driven episode detector configuration |
+| Design Input | DI-LEO-AI-084 | active | Domain-Driven Episode Detector (v1.1 -- adds IS_A expansion, fast-track pipeline fixes) |
+| Design Output | DO-LEO-AI-082 | draft | anchor_detector.py, registry.py, domains.py, episode_builder.py, UI, encounter_rules.json, sentence_splitter.py, extraction_v1.py |
+| Risk | R-LEO-AI-058 | analyzed | Episode created from negated/historical assertion |
+| Verification Test | VT-LEO-AI-084 | passed | Assertion filter, fail-fast registry, domain_id, flag round-trips, sentence_splitter allowlist, classifier override, IS_A expansion (47 tests) |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-084 | Domain-Driven Episode Detector | R-LEO-AI-058 | VT-LEO-AI-084 |
+
+---
+
+### 6.9 Unified Encounter Coding Agent (April 2026)
+
+| Artefact | ID | Status | Notes |
+|----------|----|--------|-------|
+| User Need | UN-LEO-AI-051 | draft | Unified LangGraph coding/audit agent |
+| Design Input | DI-LEO-AI-083 | draft | Unified Encounter Coding Agent |
+| Design Output | DO-LEO-AI-081 | draft | encounter_coding_agent.py + prompts + extractor provider |
+| Risk | R-LEO-AI-057 | analyzed | Agent miscoding applied without human review |
+| Verification Test | VT-LEO-AI-083 | draft | Tool loop, legacy verdict, NER offsets, kill switch |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-083 | Unified Coding Agent | R-LEO-AI-057 | VT-LEO-AI-083 |
+
+Architecture decisions:
+- Agent produces backward-compatible audit verdict (missing/overcoded/wrong_assertion) for
+  existing audit pipeline compatibility. New fields (sentence, char_start, char_end,
+  snomed_concept_id, metadata) are additive extensions.
+- Runtime AgentExtractorProvider always invokes with apply=False: existing pipeline
+  persistence layer controls all write-back and HITL routing (preserves R-LEO-AI-026
+  and R-LEO-AI-034 mitigations).
+- CODING_AGENT_ENABLED=false kill switch falls back to LLMExtractorProvider without
+  redeployment.
+- 9-layer run_post_processing() stack runs in post_process node before any write-back.
+
 Remediation approach (April 2026 run):
 - Phase A -- Systematic Cypher fixes (no LLM): deleted 539 NAD "Normal appearance"
   (281900007) codes and 104 "Seen in GP surgery" (185202000) codes from telephone
@@ -406,6 +447,47 @@ Key additions:
 - Option B extraction prompt additions: lab interpretation pattern rules added
   to EXTRACTION_SYSTEM_V1 so the LLM recognises structured result phrases
 - NAD: removed from lookup table and moved to _ALWAYS_IGNORE_TERMS (see 6.5)
+
+### 6.10 Benign Cancer Pathway Closure Detection (April 2026)
+
+Addresses 39-episode referral-only audit: cancer investigation episodes that ended
+in a benign histology result were left as 'in_progress' because SNOMED 395100000
+(No evidence of cancer found) was not recognised as a pathway-closure milestone.
+
+Changes:
+- episode_builder.py: _benign_closure_for_episode() scoped per-episode with 365-day
+  window constraint. 395100000 outside the window does NOT close the episode.
+- anchor_detector.py: benign_closure milestone bucket added to _classify_anchor_rows.
+- anchor.py: benign_closure_anchors now included in _flatten_anchor_result and the
+  anchor_result dict passed through LangGraph state.
+- registry.py: no_cancer_discharge domain added to NCDA_DOMAIN_CONFIGS with
+  milestone_type='benign_closure' (fallback path).
+- _seed_no_cancer_discharge_valueset.py: ncda-no-cancer-discharge FHIR ValueSet
+  seeded into Neo4j, linked to cancer_audit AuditDomain via HAS_SUBDOMAIN.
+- _pin_2ww_clinic_aliases.py: 55 surface forms for 2WW clinic shorthand and
+  benign discharge phrases (e.g. 'benign histology', 'Seen in 2WW Clinic') pinned
+  to correct SNOMED concepts via terminology server.
+- extraction_v1.py: LLM prompt updated to extract 2WW clinic shorthand, hospital
+  clinic letter headers as specialist visit evidence, and benign pathway discharge
+  statements as 395100000.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-052 | draft | Extended to cover benign closure milestone |
+| Design Input | DI-LEO-AI-085 | draft | Benign Cancer Pathway Closure Detection |
+| Design Output | DO-LEO-AI-083 | draft | episode_builder.py benign closure logic |
+| Risk | R-LEO-AI-059 | analyzed | Spurious benign closure from unrelated 395100000 |
+| Verification Test | VT-LEO-AI-085 | passed | 8/8 test cases -- pytest 2026-04-06 |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-085 | Benign Closure Detection | R-LEO-AI-059 | VT-LEO-AI-085 |
+
+Safety constraints enforced:
+- Benign closure requires referral anchor (episode must exist before closure can apply).
+- 395100000 must be coded AFTER the referral date AND within 365 days.
+- Cancer diagnosis (any diagnosis anchor) always takes precedence over benign closure.
+- Only present-assertion DOCUMENTS relationships trigger closure.
 
 ---
 

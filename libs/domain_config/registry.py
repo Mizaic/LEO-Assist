@@ -106,6 +106,7 @@ class NCDADomain:
     most_recent_only: bool = False
     semantic_tags: List[str] = field(default_factory=list)
     milestone_type: Optional[str] = None
+    assertion_filter: List[str] = field(default_factory=list)
 
 
 # ── Predefined domain configs (fallback) ─────────────────────────────────
@@ -124,6 +125,7 @@ NCDA_DOMAIN_CONFIGS: Dict[str, NCDADomain] = {
     "place_of_presentation": NCDADomain(name="place_of_presentation", file="snomed_ncda_place_of_first_presentation_mapping.json", description="Place of first presentation", semantic_tags=["Environment"]),
     "seen_by_specialist": NCDADomain(name="seen_by_specialist", file="snomed_ncda_seen_by_specialist_mapping.json", description="Seen by specialist encounters", semantic_tags=["Procedure"], milestone_type="specialist_visit"),
     "referral_outcomes": NCDADomain(name="referral_outcomes", file="snomed_ncda_referral_outcomes_mapping.json", description="Referral outcome codes", semantic_tags=["Situation"]),
+    "no_cancer_discharge": NCDADomain(name="no_cancer_discharge", file="snomed_ncda_no_cancer_discharge_mapping.json", description="No evidence of cancer found -- explicit pathway-level discharge (benign biopsy, histopathology, clinic discharge letter). Closes an episode as benign without a cancer diagnosis.", semantic_tags=["Clinical_finding", "Situation"], milestone_type="benign_closure"),
     "screening": NCDADomain(name="screening", file="snomed_ncda_screening_mapping.json", description="NHS cancer screening programmes — offered/declined/completed situations, FIT/FOB/sigmoidoscopy results, lung/bowel/breast/cervical programme findings, DNA events, eligibility", semantic_tags=["Procedure", "Situation", "Clinical_finding"]),
     "observable_entities": NCDADomain(name="observable_entities", file="snomed_ncda_observable_entities_mapping.json", description="Observable entity measurements", semantic_tags=["Observable_entity"]),
     "ethnicity": NCDADomain(name="ethnicity", file="snomed_ncda_ethnicity_mapping.json", description="Ethnicity codes", semantic_tags=["Ethnic_group"]),
@@ -268,6 +270,8 @@ class DomainRegistry:
                         if tag:
                             semantic_tags.append(tag)
 
+        assertion_filter = list(vs.get("assertionFilter") or [])
+
         return NCDADomain(
             name=domain_name,
             file="",
@@ -275,6 +279,7 @@ class DomainRegistry:
             milestone_type=milestone_type,
             time_window_months=time_window_months,
             semantic_tags=semantic_tags,
+            assertion_filter=assertion_filter,
         )
 
     # ── Accessors ─────────────────────────────────────────────────

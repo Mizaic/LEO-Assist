@@ -1,0 +1,167 @@
+[
+  {
+    "encounter_id": "c1501cc9-b23d-47b2-8688-ad54f09ecc5a",
+    "patient_id": "4185994966",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of administrative metadata: a timestamp, clinician name, encounter type template header, a routing label (\"Medication query\" as reason for contact), encounter modality (telephone), and an N/A free-text field. There is no clinical narrative, no diagnoses, no symptoms, no procedures, and no findings documented. The Read/SNOMED codes present (YciwV, 9N31., XaIgC) are administrative encounter-type codes, not clinical SNOMED entities within scope. No codeable clinical content is present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 2,
+        "input_tokens": 1247,
+        "output_tokens": 512,
+        "total_tokens": 1759,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4185994966",
+        "encounter_id": "c1501cc9-b23d-47b2-8688-ad54f09ecc5a",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3267ea87-8ae2-4c2b-ac93-8be92e846a2a",
+    "patient_id": "4185994966",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "266607004",
+          "term": "Perimenopausal disorder",
+          "status": "correctly_coded"
+        },
+        {
+          "concept_id": "170960008",
+          "term": "Hormonal replacement therapy: combined estrogen/progestogen",
+          "status": "correctly_coded"
+        },
+        {
+          "concept_id": "42984000",
+          "term": "Night sweats",
+          "status": "correctly_coded"
+        },
+        {
+          "concept_id": "75367002",
+          "term": "Blood pressure",
+          "status": "correctly_coded"
+        },
+        {
+          "concept_id": "27113001",
+          "term": "Weight",
+          "status": "correctly_coded"
+        },
+        {
+          "concept_id": "60621009",
+          "term": "BMI - body mass index",
+          "status": "correctly_coded"
+        },
+        {
+          "concept_id": "386472008",
+          "term": "Telephone consultation",
+          "status": "correctly_coded"
+        }
+      ],
+      "missing": [
+        {
+          "term": "HRT initiation",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly titled 'HRT Initiation & Monitoring' and documents a new start of combined HRT (Oestrogel + Utrogestan); coding HRT started as a situation captures this clinically significant event for audit and medication safety.",
+          "snomed_search": "hormone replacement therapy started",
+          "snomed_concept_id": "170955009",
+          "preferred_term": "Hormone replacement therapy started (situation)",
+          "sentence": "Patient presents for follow-up regarding HRT initiation following a consultation on 22/11/2025.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Previous trial of HRT patches unsuitable",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note documents a past trial of HRT patches that were unsuitable, representing a clinically relevant medication history that should be coded to inform future prescribing decisions.",
+          "snomed_search": "hormone replacement therapy side effects",
+          "snomed_concept_id": "170956005",
+          "preferred_term": "Hormone replacement therapy side effects (finding)",
+          "sentence": "PMH: Previous trial of HRT patches, which were unsuitable.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Core coding is sound \u2014 perimenopausal disorder, night sweats, combined HRT type, and vitals are all correctly captured. Two gaps identified: (1) HRT started (170955009) should be coded as a situation to record this as a new initiation event, distinct from the HRT type/regimen code already present; (2) the historical unsuitable HRT patch trial is clinically relevant PMH that should be recorded. Note: lookup_concept returned an unreliable result for 170960008 (organism tag), but SNOMED search confirms this concept ID correctly maps to 'Hormonal replacement therapy: combined estrogen/progestogen (finding)' \u2014 no action needed on that concept.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 3,
+        "input_tokens": 9063,
+        "output_tokens": 1697,
+        "total_tokens": 10760,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4185994966",
+        "encounter_id": "3267ea87-8ae2-4c2b-ac93-8be92e846a2a",
+        "date": "2025-12-02",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0be20936-4a8a-482f-a993-731190959ff1",
+    "patient_id": "4185994966",
+    "date": "2025-12-03",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains purely administrative content \u2014 a patient satisfaction survey invitation following an out-of-hours GP appointment. There is no clinical narrative, diagnosis, finding, procedure, or any other SNOMED-codeable content present. No coding action is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 385,
+        "output_tokens": 217,
+        "total_tokens": 602,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4185994966",
+        "encounter_id": "0be20936-4a8a-482f-a993-731190959ff1",
+        "date": "2025-12-03",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "204c2cd9-d5b2-4251-b454-13389916c0d0",
+    "patient_id": "4185994966",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

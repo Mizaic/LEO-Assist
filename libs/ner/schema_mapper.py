@@ -245,7 +245,7 @@ def _map_entity(
     assertion = raw_entity.get("assertion", "present")
     if assertion not in (
         "present", "absent", "refuted", "possible", "historical",
-        "family", "hypothetical", "declined", "cancelled",
+        "planned", "hypothetical", "family", "declined", "cancelled",
     ):
         assertion = "present"
 

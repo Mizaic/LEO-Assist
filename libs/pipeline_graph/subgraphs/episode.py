@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 class EpisodeState(TypedDict, total=False):
     patient_id: str
     org_id: str
+    domain_id: str
     anchors: list[dict[str, Any]]
     anchor_result: dict[str, Any]
     episodes: list[dict[str, Any]]
@@ -50,6 +51,8 @@ def build_episodes(state: EpisodeState) -> dict[str, Any]:
     logger.info("Building episodes for patient %s", patient_id)
     errors = list(state.get("errors") or [])
 
+    domain_id = state.get("domain_id") or ""
+
     try:
         from libs.neo4j_client.client import PatientGraphClient
 
@@ -60,6 +63,7 @@ def build_episodes(state: EpisodeState) -> dict[str, Any]:
                     patient_id=patient_id,
                     anchors=_to_anchor_result(state),
                     patient_client=client,
+                    domain_id=domain_id,
                 )
             )
         finally:
@@ -75,6 +79,7 @@ def build_episodes(state: EpisodeState) -> dict[str, Any]:
                 patient_id=patient_id,
                 anchors=_to_anchor_result(state),
                 patient_client=_Client(),
+                domain_id=domain_id,
             )
         )
 

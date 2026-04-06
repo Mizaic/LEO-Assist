@@ -40,15 +40,6 @@ interface CodingGroup {
   tag_mismatch_delta: number | null;
 }
 
-interface AssertionGroup {
-  entity_text: string;
-  entity_label: string;
-  review_count: number;
-  assertion: string;
-  sample_review_id: string;
-  sample_encounter_text: string | null;
-}
-
 interface HitlTask {
   task_id: string;
   task_type: string;
@@ -73,6 +64,8 @@ interface SurfaceFormTask {
 
 const SOURCE_LABELS: Record<string, string> = {
   audit_gap: "Audit gap",
+  audit_gap_lab: "Audit gap (lab term)",
+  audit_gap_clinical: "Audit gap (clinical)",
   reviewer_correction: "Reviewer correction",
   llm_auto_detected: "Auto-detected",
 };
@@ -120,25 +113,6 @@ function hitlTaskToItem(t: HitlTask): ReviewItem {
   return base;
 }
 
-function assertionGroupToItem(g: AssertionGroup): ReviewItem {
-  const base: ReviewItem = {
-    id: `context:${g.entity_text}:${g.assertion}`,
-    kind: "context",
-    entityText: g.entity_text,
-    entityLabel: g.entity_label,
-    count: g.review_count,
-    confidence: null,
-    uncoded: true,
-    question: "",
-    explanation: "",
-    assertion: g.assertion,
-    sampleEncounterText: g.sample_encounter_text ?? undefined,
-  };
-  base.question = buildQuestion(base);
-  base.explanation = buildExplanation(base);
-  return base;
-}
-
 function _surfaceFormPriority(t: SurfaceFormTask): number {
   if (t.review_type === "revocation_cascade") return 0;
   if (t.review_type === "overcoded") return 1;
@@ -162,8 +136,20 @@ function surfaceFormTaskToItem(t: SurfaceFormTask): ReviewItem {
     reason: sourceLabel,
     surfaceFormPriority: _surfaceFormPriority(t),
   };
+  const fmtConcept = (term: string, code: string) => {
+    if (term && code) return `${term} (${code})`;
+    if (term) return term;
+    if (code) return code;
+    return "none";
+  };
+  const currentLabel = fmtConcept(t.current_term, t.current_concept);
+  const suggestedLabel = fmtConcept(t.suggested_term, t.suggested_concept);
   base.question = `Check this code mapping for "${t.entity_text}"`;
-  base.explanation = `Current ${t.current_concept || "none"} -> suggested ${t.suggested_concept || "none"}`;
+  base.explanation = `Current: ${currentLabel}\nSuggested: ${suggestedLabel}`;
+  if (t.suggested_concept) {
+    base.suggestedConceptId = t.suggested_concept;
+    base.suggestedConceptTerm = t.suggested_term;
+  }
   return base;
 }
 
@@ -190,15 +176,12 @@ export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
     setLoading(true);
     setError("");
     try {
-      const [codingRes, hitlRes, contextRes, sfRes] = await Promise.allSettled([
+      const [codingRes, hitlRes, sfRes] = await Promise.allSettled([
         jsonFetch<{ groups: CodingGroup[] }>(
           "/api/training/coding-review/grouped?page=1&page_size=50",
         ),
         jsonFetch<{ tasks: HitlTask[] }>(
           "/api/operations/tasks?status=pending",
-        ),
-        jsonFetch<{ groups: AssertionGroup[] }>(
-          "/api/training/coding-review/assertion-queue?page=1&page_size=50",
         ),
         jsonFetch<{ items: SurfaceFormTask[] }>(
           "/api/training/surface-form-tasks?page=1&page_size=50&status=pending",
@@ -211,9 +194,6 @@ export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
       }
       if (hitlRes.status === "fulfilled") {
         items.push(...hitlRes.value.tasks.map(hitlTaskToItem));
-      }
-      if (contextRes.status === "fulfilled") {
-        items.push(...contextRes.value.groups.map(assertionGroupToItem));
       }
       if (sfRes.status === "fulfilled") {
         items.push(...sfRes.value.items.map(surfaceFormTaskToItem));
@@ -331,6 +311,17 @@ export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
       }
     },
     [advance],
+  );
+
+  const handleAcceptSuggestion = useCallback(
+    async (item: ReviewItem) => {
+      if (!item.suggestedConceptId) return;
+      await handleResolveCoding(item, {
+        snomed_concept_id: item.suggestedConceptId,
+        term: item.suggestedConceptTerm ?? item.suggestedConceptId,
+      });
+    },
+    [handleResolveCoding],
   );
 
   const handleSkip = useCallback(() => {
@@ -452,6 +443,11 @@ export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
           onSkip={handleSkip}
           onAllCasesResolved={advance}
           busy={busy}
+          onAcceptSuggestion={
+            current.id.startsWith("surface_form:") && current.suggestedConceptId
+              ? handleAcceptSuggestion
+              : undefined
+          }
         />
       ) : (
         <Card sx={{ p: 4, textAlign: "center" }}>

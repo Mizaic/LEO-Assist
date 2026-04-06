@@ -1,0 +1,92 @@
+# -- R-LEO-AI-058 -- Episode created from wrong assertion state
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-058"
+  title: "Episode of care created from negated or historical concept, causing false pathway tracking"
+
+  hazard:
+    description: >
+      The episode detector creates an EpisodeOfCare node based on a SNOMED
+      concept that was coded as absent, refuted, or historical rather than
+      as an active or suspected clinical finding.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinician documents "no evidence of cancer" or "history of breast cancer
+    (resolved)". The NER pipeline codes these as cancer-type concepts with
+    assertion=absent or assertion=historical. Without assertion filtering, the
+    anchor detector classifies these rows as diagnosis anchors and creates an
+    EpisodeOfCare node. A downstream dashboard or report then incorrectly shows
+    the patient as having an active cancer pathway episode, potentially leading
+    to unnecessary follow-up actions or masking a genuinely missed patient.
+
+  harm:
+    description: >
+      Clinicians may act on incorrect episode data, either triggering
+      unnecessary interventions for patients without active pathways, or
+      missing patients whose episodes were incorrectly suppressed due to
+      misconfigured assertion filters.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Each ValueSet subdomain carries an assertionFilter list. The anchor
+        detector applies this filter in _classify_anchor_rows() so that a
+        concept is only placed in a milestone bucket when its DOCUMENTS
+        relationship assertion is in the filter. Empty filter accepts all
+        assertions (safe default -- no anchors suppressed). The filter is
+        configurable per subdomain via the settings UI without redeployment.
+      implemented_by: ["DI-LEO-AI-084"]
+      verified_by: ["VT-LEO-AI-084"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        The _ANCHOR_QUERY explicitly returns r.assertion from every DOCUMENTS
+        relationship. If the assertion field is missing (NULL in Neo4j) it
+        defaults to "present" so no anchors are silently dropped.
+      implemented_by: ["DI-LEO-AI-084"]
+      verified_by: ["VT-LEO-AI-084"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With assertion filtering in place, miscoded assertions are blocked at the
+      anchor detection layer. The remaining residual risk is that an operator
+      configures an incorrect assertion filter via the UI, which is mitigated by
+      the controlled vocabulary Select (only valid assertion values are
+      selectable) and the fail-fast registry bootstrap that surfaces
+      misconfiguration immediately.
+
+  monitoring:
+    monitoring_plan: >
+      Review EpisodeOfCare node counts per domain quarterly. Alert if episode
+      count per patient increases by more than 2x between runs without a
+      corresponding increase in referral activity. Spot-check episodes against
+      source encounter assertions in Neo4j.
+    metrics:
+      - "Episode creation rate per patient per domain per quarter"
+      - "Proportion of EpisodeOfCare nodes with assertion=absent or assertion=historical in source anchors"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "design-review-DI-LEO-AI-084"
+    identified_date: "2026-04-06"
+    status: "analyzed"
+    tags:
+      - "episode-detector"
+      - "assertion-filtering"
+      - "cancer-pathway"

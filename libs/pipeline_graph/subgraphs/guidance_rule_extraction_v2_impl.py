@@ -118,11 +118,12 @@ _SEMANTIC_EXPANSION_TOOL_CONFIG: dict[str, Any] = {
 _RESOLVE_ACCEPT_SCORE = float(os.getenv("GUIDANCE_RESOLVE_ACCEPT_SCORE", "0.82"))
 _RESOLVE_PARTIAL_SCORE = float(os.getenv("GUIDANCE_RESOLVE_PARTIAL_SCORE", "0.65"))
 
-# Guidance-rule extraction is latency-tolerant compared with interactive flows,
-# so default to a less aggressive timeout while still honoring any larger global
-# terminology timeout already configured for the process.
+# Guidance-rule extraction is latency-tolerant compared with interactive flows.
+# Default 120s: batch /resolve can exceed 45s when the terminology service is
+# busy (Neo4j + hybrid scoring) or multiple dry-run rules run back-to-back.
+# Override with GUIDANCE_RULE_TERMINOLOGY_TIMEOUT.
 _TERMINOLOGY_TIMEOUT = max(
-    float(os.getenv("GUIDANCE_RULE_TERMINOLOGY_TIMEOUT", "45.0")),
+    float(os.getenv("GUIDANCE_RULE_TERMINOLOGY_TIMEOUT", "120.0")),
     float(os.getenv("TERMINOLOGY_API_TIMEOUT", "15.0")),
 )
 _TERMINOLOGY_RETRIES = int(os.getenv("TERMINOLOGY_API_RETRIES", "3"))
@@ -273,6 +274,9 @@ _ACTION_SITE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("vulval", ("vulval", "vulva")),
     ("cervical", ("cervical", "cervix")),
     ("gynaecological", ("gynaecological", "gynecological")),
+    # "gall bladder" must be matched before "bladder" to avoid false-positive
+    # bladder-cancer-site detection for gallbladder ultrasound actions.
+    ("gallbladder", ("gall bladder", "gallbladder")),
     ("bladder", ("bladder",)),
     ("prostate", ("prostate",)),
     ("testicular", ("testicular", "testis")),
@@ -301,6 +305,8 @@ _ACTION_SITE_COMPATIBILITY: dict[str, tuple[str, ...]] = {
     "vulval": ("vulval", "gynaecological"),
     "cervical": ("cervical", "gynaecological"),
     "gynaecological": ("gynaecological", "generic_cancer"),
+    # Gallbladder is hepatobiliary, not urological -- allow self + upper_gi only.
+    "gallbladder": ("gallbladder", "upper_gi"),
     "bladder": ("bladder", "urological"),
     "prostate": ("prostate", "urological"),
     "testicular": ("testicular", "urological"),
@@ -442,6 +448,39 @@ def _dedupe_strs(items: list[str]) -> list[str]:
     return out
 
 
+_GALLBLADDER_RESOLVER_BOOST: tuple[str, ...] = (
+    "enlarged gallbladder",
+    "gallbladder enlarged",
+    "palpable gallbladder",
+    "gallbladder palpable",
+    "distended gallbladder",
+)
+
+
+def _gallbladder_resolver_boost(*text_parts: str) -> list[str]:
+    """High-recall SNOMED lookup phrases (findings) when text mentions gall bladder."""
+    combined = " ".join(p for p in text_parts if p).lower()
+    if ("gall" in combined and "bladder" in combined) or "gallbladder" in combined:
+        return list(_GALLBLADDER_RESOLVER_BOOST)
+    return []
+
+
+_GALLBLADDER_ACTION_BOOST: tuple[str, ...] = (
+    "ultrasound scan of gallbladder",
+    "gallbladder ultrasound",
+    "ultrasonography of gallbladder",
+    "direct access ultrasound of gallbladder",
+)
+
+
+def _gallbladder_action_boost(*text_parts: str) -> list[str]:
+    """Inject pinned procedure terms first when action text refers to gall bladder."""
+    combined = " ".join(p for p in text_parts if p).lower()
+    if ("gall" in combined and "bladder" in combined) or "gallbladder" in combined:
+        return list(_GALLBLADDER_ACTION_BOOST)
+    return []
+
+
 def _merge_tokens(prior: dict[str, int], result_tokens: dict[str, int]) -> dict[str, int]:
     return {
         "input_tokens": prior.get("input_tokens", 0) + result_tokens.get("input_tokens", 0),
@@ -518,7 +557,10 @@ def _make_term_obj(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         text = str(value.get("text") or "").strip()
         source_text = value.get("source_text")
-        search_terms = _expanded_search_terms(text, [text] + list(value.get("search_terms") or []))
+        llm_terms = list(value.get("search_terms") or [])
+        gb_boost = _gallbladder_resolver_boost(text, str(source_text or ""))
+        base_terms = [text] + gb_boost + llm_terms
+        search_terms = _expanded_search_terms(text, base_terms)
         return {
             "text": text,
             "source_text": str(source_text) if source_text else None,
@@ -619,22 +661,43 @@ def _is_referral_text(text: str) -> bool:
 
 
 def _requested_action_urgency(rec: dict[str, Any], action_text: str) -> str:
+    """Determine the required urgency class for an action.
+
+    IMPORTANT: the recommendation `urgency` field reflects the NICE
+    recommendation grade ('routine' = 'consider', 'urgent_2w' = '2WW pathway'),
+    NOT the urgency class of the action itself.  Always check the action text
+    first so that "fast track referral for suspected X cancer" is never
+    downgraded to 'routine' just because the NICE recommendation grade is
+    'routine'/'consider'.
+    """
     urgency = str(rec.get("urgency") or "").lower()
-    blob = _normalise_action_text(f"{action_text} {rec.get('verbatim') or ''}")
-    if "non urgent" in blob or "routine" in blob or urgency == "routine":
-        return "routine"
-    if "very urgent" in blob or "48 hour" in blob or "48 hours" in blob or urgency in {"very_urgent_48h", "immediate"}:
-        return "very_urgent"
+    # -- Check action text FIRST (most authoritative signal) ----------------
+    action_blob = _normalise_action_text(action_text)
     if (
-        "fast track" in blob
-        or "2 week wait" in blob
-        or "2ww" in blob
-        or "suspected cancer pathway" in blob
-        or urgency == "urgent_2w"
+        "fast track" in action_blob
+        or "2 week wait" in action_blob
+        or "2ww" in action_blob
+        or "suspected cancer pathway" in action_blob
     ):
         return "fast_track"
-    if "urgent" in blob or urgency.startswith("urgent"):
+    if "very urgent" in action_blob or "48 hour" in action_blob or "48 hours" in action_blob:
+        return "very_urgent"
+    if "urgent" in action_blob and "non urgent" not in action_blob:
         return "urgent"
+    if "non urgent" in action_blob or "routine" in action_blob:
+        return "routine"
+    # -- Fall back to recommendation urgency field (urgency class, not grade) ---
+    if urgency == "urgent_2w":
+        return "fast_track"
+    if urgency in {"very_urgent_48h", "immediate"}:
+        return "very_urgent"
+    if urgency.startswith("urgent"):
+        return "urgent"
+    # -- Last resort: scan the full verbatim text (but never let "routine" in
+    #    verbatim override an action that hasn't been classified yet) ----------
+    verbatim_blob = _normalise_action_text(rec.get("verbatim") or "")
+    if "non urgent" in verbatim_blob:
+        return "routine"
     return "routine" if _is_referral_text(action_text) else "unspecified"
 
 
@@ -1166,8 +1229,14 @@ def expand_leaves(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     action = dict(raw.get("action") or {})
     if action:
         action_text = str(action.get("text") or "")
-        action_terms = _expand_action_search_terms(action_text, str((state.get("recommendation") or {}).get("verbatim") or ""))
-        action["search_terms"] = _dedupe_strs(list(action.get("search_terms") or []) + action_terms)
+        verbatim = str((state.get("recommendation") or {}).get("verbatim") or "")
+        action_terms = _expand_action_search_terms(action_text, verbatim)
+        # Gallbladder action boost: inject pinned procedure terms FIRST so resolver
+        # turn-1 finds 169250003 before any high-confidence-but-wrong vector hit exits.
+        gb_lead = _gallbladder_action_boost(action_text, verbatim)
+        action["search_terms"] = _dedupe_strs(
+            gb_lead + list(action.get("search_terms") or []) + action_terms
+        )
         if action_text:
             action["original_phrase"] = action_text
             action["expansion_source"] = "action_expansion"
@@ -1352,7 +1421,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 user_msg=attempt_msg,
                 parse_fn=_parse_llm_output,
                 fail_verdict=None,
-                max_tokens=1400,
+                max_tokens=2500,
                 json_mode=True,
             )
             merged = _merge_tokens(
@@ -2670,15 +2739,16 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     verifier_result: dict[str, Any] | None = None
     for attempt in range(2):
         try:
-            from libs.llm_client.consensus import run_consensus
+            from libs.llm_client.consensus import run_consensus, _consensus_verifier_tier
 
             verdict = run_consensus(
                 system_prompt=verifier_prompt,
                 user_msg=_build_verifier_user_msg(rec, raw or {}, working, few_shot),
                 parse_fn=_parse_verifier_output,
                 fail_verdict=None,
-                max_tokens=1400,
+                max_tokens=3000,
                 json_mode=True,
+                tier=_consensus_verifier_tier(),
             )
             merged_tokens = _merge_tokens(
                 merged_tokens,

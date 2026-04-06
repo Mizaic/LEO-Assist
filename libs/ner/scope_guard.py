@@ -4,13 +4,17 @@ Clinical safety rules that prevent the pipeline from operating beyond its
 intended purpose as a retrospective clinical-coding tool:
 
 1. **Safety-netting suppression** -- entities extracted from safety-netting or
-   contingency text (e.g. "if develops chest pain, call 999") must never be
-   coded as present findings; these sentences are suppressed entirely.
+   contingency text (e.g. "if develops chest pain, call 999") are SUPPRESSED
+   (removed from the entity list entirely). Safety-netting is patient advice,
+   not a clinical event. It should never appear in the coding or review queue.
+   ``reclassify_assertion`` returns the sentinel ``"suppressed"`` and the
+   post-processing layer removes those entities before downstream steps.
 
 2. **Treatment recommendation reclassification** -- entities whose sentence
    context contains advisory/recommendation language (e.g. "consider starting",
-   "recommend referral", "advise lifestyle changes") must be reclassified from
-   "present" to "hypothetical" so they do not auto-code.
+   "recommend referral", "advise lifestyle changes") are reclassified from
+   "present" to "hypothetical". The entity IS real but conditional; it is kept
+   in the review queue for a human to decide.
 
 3. **Diagnosis from symptom guard** -- entities tagged as disorder whose
    sentence contains hedged diagnostic language ("consistent with", "in
@@ -18,8 +22,12 @@ intended purpose as a retrospective clinical-coding tool:
    are reclassified to "possible".
 
 These guards run AFTER LLM extraction and the lab-value guard, but BEFORE
-context detection (MedSpaCy ConText).  ConText may further tighten assertions
+context detection (MedSpaCy ConText). ConText may further tighten assertions
 (e.g. from "present" to "absent"), which is always safe.
+
+Distinction between suppression and hypothetical:
+  - Safety netting   = patient instructions ("call 999 if...") -- no entity
+  - Hypothetical     = conditional clinical plan ("start X if no improvement")
 """
 from __future__ import annotations
 
@@ -128,6 +136,9 @@ def has_hedged_diagnosis(sentence_text: str) -> bool:
     return True
 
 
+SUPPRESSED = "suppressed"
+
+
 def reclassify_assertion(
     *,
     entity_semantic_tag: str,
@@ -138,9 +149,13 @@ def reclassify_assertion(
     """Return a corrected assertion if scope-guard rules apply, else None.
 
     Returns:
-        "hypothetical" if the entity should be reclassified (recommendation
-        context or safety-netting), "possible" if hedged diagnosis context,
-        or None if no change is needed.
+        ``SUPPRESSED`` (``"suppressed"``) if the entity originates from a
+        safety-netting sentence and should be REMOVED from the entity list
+        entirely -- caller must filter it out, it must not reach Neo4j.
+        ``"hypothetical"`` if the entity is a conditional clinical plan
+        (recommendation language) that should be kept for human review.
+        ``"possible"`` if hedged diagnostic language applies.
+        ``None`` if no scope-guard rule fires.
     """
     if entity_assertion not in ("present", ""):
         return None
@@ -149,15 +164,15 @@ def reclassify_assertion(
 
     if is_safety_netting_sentence(sentence_text):
         logger.info(
-            "scope_guard: %s → 'hypothetical' (safety-netting) | sent: %.120s",
+            "scope_guard: %s -> SUPPRESSED (safety-netting, not a clinical entity) | sent: %.120s",
             label,
             sentence_text,
         )
-        return "hypothetical"
+        return SUPPRESSED
 
     if has_recommendation_language(sentence_text):
         logger.info(
-            "scope_guard: %s → 'hypothetical' (recommendation) | sent: %.120s",
+            "scope_guard: %s -> 'hypothetical' (conditional clinical plan) | sent: %.120s",
             label,
             sentence_text,
         )
@@ -166,7 +181,7 @@ def reclassify_assertion(
     tag = (entity_semantic_tag or "").lower().replace("_", " ")
     if tag == "disorder" and has_hedged_diagnosis(sentence_text):
         logger.info(
-            "scope_guard: %s → 'possible' (hedged diagnosis) | sent: %.120s",
+            "scope_guard: %s -> 'possible' (hedged diagnosis) | sent: %.120s",
             label,
             sentence_text,
         )

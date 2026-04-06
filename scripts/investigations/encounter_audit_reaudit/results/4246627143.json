@@ -1,0 +1,652 @@
+[
+  {
+    "encounter_id": "e99a82f3-62f7-4b04-a33a-7b0beb59028e",
+    "patient_id": "4246627143",
+    "date": "2024-02-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Family history of cardiovascular disease",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly documents 'FH: Cardiovascular disease' which is clinically relevant to HRT risk assessment and should be coded as a family history situation.",
+          "snomed_search": "family history cardiovascular disease",
+          "snomed_concept_id": "266894000",
+          "preferred_term": "Family history: Cardiovascular disease (situation)",
+          "sentence": "FH: Cardiovascular disease (XE0oF)Family history of cancer (XM1Y3)- lung cancer",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Family history of lung cancer",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly documents family history of lung cancer, which is relevant to the patient's breast cancer risk concern and HRT counselling.",
+          "snomed_search": "family history lung cancer",
+          "snomed_concept_id": "429011007",
+          "preferred_term": "Family history of malignant neoplasm of lung (situation)",
+          "sentence": "FH: Cardiovascular disease (XE0oF)Family history of cancer (XM1Y3)- lung cancer",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Family history of cerebrovascular accident",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly documents 'Family history of cerebrovascular accident', which is directly relevant to HRT risk assessment (VTE/stroke risk) and should be coded.",
+          "snomed_search": "family history cerebrovascular accident",
+          "snomed_concept_id": "275104002",
+          "preferred_term": "Family history of stroke (situation)",
+          "sentence": "Family history of cerebrovascular accident (XM1Jg)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16210691000119101",
+          "name": "Breast cyst specimen (specimen)",
+          "severity": "medium",
+          "reason": "Concept 16210691000119101 resolves to a genetic substance ('DRB1*09011') or at best a specimen type \u2014 not a clinical disorder. The note documents a historical breast cyst assessed by the breast clinic; the correct code is 399294002 | Cyst of breast (disorder) with assertion=historical.",
+          "replace_with_concept_id": "399294002",
+          "replace_with_preferred_term": "Cyst of breast (disorder)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The most significant error is the breast cyst code (16210691000119101) which resolves to a specimen/substance concept entirely unrelated to the clinical finding \u2014 it must be replaced with 399294002 | Cyst of breast (disorder) with historical assertion. Three family history situations documented in the note (cardiovascular disease, lung cancer, cerebrovascular accident) are absent from the coded list despite being clinically relevant to HRT risk stratification. The remaining two coded concepts (HRT procedure and menopausal syndrome) are appropriate; menorrhagia 386692008 is confirmed correct via search despite an unreliable lookup_concept response.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8810,
+        "output_tokens": 1863,
+        "total_tokens": 10673,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "e99a82f3-62f7-4b04-a33a-7b0beb59028e",
+        "date": "2024-02-20",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f32e5daf-6784-4840-ba7d-30a602c15a85",
+    "patient_id": "4246627143",
+    "date": "2024-02-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Advice about risk of hormone replacement therapy",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly went through pros and cons of HRT and addressed breast cancer risk concerns; this procedure is documented in the template entries (XaYGE) but has no corresponding SNOMED concept in the coded list.",
+          "snomed_search": "advice about risk hormone replacement therapy",
+          "snomed_concept_id": "798911000000101",
+          "preferred_term": "Advice about risk of hormone replacement therapy (procedure)",
+          "sentence": "Addressed concerns re breat cysts and risk of breast cancer",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The three existing SNOMED codes are all correct and well-evidenced. One gap exists: the explicit HRT risk counselling performed in this encounter (documented in the template as XaYGE and supported by the narrative) has no SNOMED equivalent in the coded list \u2014 798911000000101 'Advice about risk of hormone replacement therapy (procedure)' should be added. Breast cysts are mentioned only as a patient concern discussed, not as a confirmed diagnosis, so coding as a disorder is not warranted without further clarification.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12000,
+        "output_tokens": 1618,
+        "total_tokens": 13618,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "f32e5daf-6784-4840-ba7d-30a602c15a85",
+        "date": "2024-02-20",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b818faa8-d7d4-4567-9f19-311ffbe71c88",
+    "patient_id": "4246627143",
+    "date": "2024-04-30",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both coded concepts are confirmed correct by SNOMED search: 276341000000100 is a valid 'Fast track referral for suspected breast cancer (procedure)' and 185408004 is the closest available match for the patient awaiting an OPD appointment status \u2014 lookup_concept returned corrupted/unreliable results for both IDs but search_snomed confirmed their legitimacy. No additional codeable clinical content is present in this administrative secretary entry beyond what is already captured.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3055,
+        "output_tokens": 952,
+        "total_tokens": 4007,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "b818faa8-d7d4-4567-9f19-311ffbe71c88",
+        "date": "2024-04-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "720620e5-c15a-4b36-92fa-00f80560b627",
+    "patient_id": "4246627143",
+    "date": "2024-04-30",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing code 276341000000100 (Fast track referral for suspected breast cancer, procedure, assertion=present) is correctly applied and fully evidenced by the PRISM 2WW Breast Female referral pathway text. The encounter contains no clinical narrative specifying the underlying finding (e.g. breast lump), so no additional concept can be coded from this note alone; the procedure code is sufficient and appropriate for this referral-routing encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2847,
+        "output_tokens": 810,
+        "total_tokens": 3657,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "720620e5-c15a-4b36-92fa-00f80560b627",
+        "date": "2024-04-30",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8f311b9c-2f2b-456d-8727-6e0a3a077c2b",
+    "patient_id": "4246627143",
+    "date": "2024-04-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "painful lump - streak like from armpit to right breast",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a painful right breast lump with radiation from the axilla; breast pain is a primary presenting symptom and should be coded separately from the mass finding.",
+          "snomed_search": "pain of right breast",
+          "snomed_concept_id": "1010237000",
+          "preferred_term": "Pain of right breast (finding)",
+          "sentence": "Has sensation of painful lump - streak like from armpit to right breast,",
+          "char_start": 130,
+          "char_end": 195
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "27431007",
+          "name": "Fibrocystic breast changes (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states this was a past diagnosis from a previous breast clinic attendance ('Had this in the past and seen by Breast clinic - as Fibrocytic changes'), not an active current diagnosis; assertion should be historical."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The five coded concepts are clinically appropriate and the concept IDs are confirmed correct by SNOMED search (lookup_concept returned unreliable/mismatched results for several, likely due to a terminology server index issue). Two additions are needed: right breast pain (a primary presenting symptom explicitly documented) and absent family history of breast cancer (clinically relevant for 2WW risk stratification). The fibrocystic breast changes code should be reasserted as historical, as the note clearly places this in the past.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 10571,
+        "output_tokens": 2294,
+        "total_tokens": 12865,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "8f311b9c-2f2b-456d-8727-6e0a3a077c2b",
+        "date": "2024-04-30",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ed97c502-d510-4bfa-a775-9626b7a1c437",
+    "patient_id": "4246627143",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Insect bite to left hand",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The examination explicitly documents 'Insect bite to left hand' \u2014 a site- and laterality-specific concept exists and should replace or supplement the non-specific parent code currently used.",
+          "snomed_search": "insect bite left hand",
+          "snomed_concept_id": "11786041000119107",
+          "preferred_term": "Nonvenomous insect bite of left hand (disorder)",
+          "sentence": "Insect bite to left hand.",
+          "char_start": 430,
+          "char_end": 454
+        },
+        {
+          "term": "local reaction rather than infection",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly characterises the presentation as a local bite reaction ('it looks more like reaction rather than infection') with spreading redness, warmth, and swelling \u2014 this is a distinct clinical finding warranting its own code.",
+          "snomed_search": "insect bite reaction",
+          "snomed_concept_id": "402150002",
+          "preferred_term": "Insect bite reaction (disorder)",
+          "sentence": "concerned about infection but it looks more like reaction rather than infection at this stage.",
+          "char_start": 600,
+          "char_end": 692
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276433004",
+          "name": "Insect bite - wound (disorder)",
+          "severity": "medium",
+          "reason": "The non-specific parent concept should be replaced by the site- and laterality-specific child concept 'Nonvenomous insect bite of left hand' (11786041000119107), which precisely matches the examination finding.",
+          "replace_with_concept_id": "11786041000119107",
+          "replace_with_preferred_term": "Nonvenomous insect bite of left hand (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing code (276433004) is a non-specific parent; the examination documents a left-hand bite with a local inflammatory reaction, both of which have precise SNOMED concepts available. Note also a minor history/examination discrepancy (history says right hand, examination says left hand) \u2014 the examination finding should govern coding. No safety-critical red flags identified; no fever, no pus, no systemic features, and flucloxacillin issued as a delayed prescription.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4938,
+        "output_tokens": 1416,
+        "total_tokens": 6354,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "ed97c502-d510-4bfa-a775-9626b7a1c437",
+        "date": "2024-08-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4c607cb6-c7c7-4135-9866-e019427d0866",
+    "patient_id": "4246627143",
+    "date": "2024-10-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "breast lump",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "HRT was explicitly stopped due to a breast lump \u2014 a safety-critical red-flag finding per NG12 criteria that must be coded and investigated; absence from the coded list is a significant clinical risk.",
+          "snomed_search": "breast lump",
+          "snomed_concept_id": "89164003",
+          "preferred_term": "Breast lump (finding)",
+          "sentence": "has tried HRT patches but didn't help much - had to stop this due to issues with breast lump",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "palpitations",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Palpitations are documented as an active intermittent symptom contributing to the clinical presentation and are not subsumed by the anxiety disorder code.",
+          "snomed_search": "palpitations",
+          "snomed_concept_id": "80313002",
+          "preferred_term": "Palpitations (finding)",
+          "sentence": "palpitations on & off",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "fatigue",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Persistent fatigue and hypersomnia are explicitly documented as active presenting symptoms driving an extensive blood test workup including TFTs, FBC, ferritin, B12, folate and Vitamin D.",
+          "snomed_search": "fatigue",
+          "snomed_concept_id": "84229001",
+          "preferred_term": "Fatigue (finding)",
+          "sentence": "feels fatigued all the time & sleeping more",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The four existing codes are clinically appropriate and well-evidenced; however, a breast lump (the reason HRT was stopped) is a critical safety gap \u2014 this red-flag finding must be coded and followed up per NG12 guidance. Additionally, the explicit suicide/self-harm risk screen, active palpitations, and persistent fatigue driving the investigation workup are all uncoded. Note: concept 198435007 (perimenopause) returned an unreliable lookup result (Extension Namespace placeholder with wrong semantic tag), but the SNOMED search server maps 'perimenopause' to the same ID \u2014 this should be verified against the local terminology release.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8122,
+        "output_tokens": 2280,
+        "total_tokens": 10402,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "4c607cb6-c7c7-4135-9866-e019427d0866",
+        "date": "2024-10-01",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f627eeb0-4961-470b-9448-2582a4a8b510",
+    "patient_id": "4246627143",
+    "date": "2024-10-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "panic attacks",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note documents prior nocturnal panic attacks that have now resolved ('had no further panic attacks at night time'), confirming a historical episode that should be coded.",
+          "snomed_search": "panic attack",
+          "snomed_concept_id": "225624000",
+          "preferred_term": "Panic attack (finding)",
+          "sentence": "sleeping better, had no further panic attacks at night time",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary GAD code (21897009) is correct \u2014 lookup_concept returned an unreliable result but search_snomed confirms the concept is valid. Two gaps identified: historical panic attacks are evidenced by the note and should be coded, and the explicit denial of suicidal/self-harm ideation is a safety-critical finding requiring an absent-assertion code. Note: lookup_concept server returned an erroneous preferred term for 21897009 ('Strain M 6906, qualifier value') \u2014 this is a known server reliability issue and does not affect the coding verdict.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5114,
+        "output_tokens": 1364,
+        "total_tokens": 6478,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "f627eeb0-4961-470b-9448-2582a4a8b510",
+        "date": "2024-10-23",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7137c9c7-b967-42fb-bfa5-7eb1cb2c11ce",
+    "patient_id": "4246627143",
+    "date": "2024-12-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Peri-menopausal",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient as peri-menopausal and this is a clinically relevant finding that should be coded to support ongoing clinical management and screening context.",
+          "snomed_search": "perimenopausal state",
+          "snomed_concept_id": "161541000119104",
+          "preferred_term": "Perimenopausal state (finding)",
+          "sentence": "Peri-menopausal, regular cycles, a little shorter and heavier than previously.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Nabothian follicles on cervix",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Nabothian follicles are explicitly documented as a cervical finding on speculum examination and recorded in the structured template; this incidental finding should be coded.",
+          "snomed_search": "nabothian cyst cervix",
+          "snomed_concept_id": "767356009",
+          "preferred_term": "Mucous retention cyst of cervix uteri (disorder)",
+          "sentence": "Cervix findings: Nabothian follicles on cervix (X407U)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The three existing codes (negative smear result, liquid-based cytology, HPV screening) are all clinically appropriate and confirmed via search despite unreliable direct lookups on this terminology server. Two findings documented in the structured template are absent from the coded list: perimenopausal state (clear SNOMED match 161541000119104) and nabothian follicles on cervix (best available SNOMED match 767356009, though the lookup was unreliable \u2014 human review of the nabothian follicles concept ID is advised). Note that the Read code X407U used in the template maps to nabothian follicles specifically, which is slightly more specific than the SNOMED 'mucous retention cyst' equivalent.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9207,
+        "output_tokens": 1567,
+        "total_tokens": 10774,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "7137c9c7-b967-42fb-bfa5-7eb1cb2c11ce",
+        "date": "2024-12-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4da9c7c7-6108-4745-b9ef-601c0ccf578d",
+    "patient_id": "4246627143",
+    "date": "2025-01-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "panic attacks",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note states 'Not having panic attacks anymore', implying the patient previously experienced panic attacks that have now resolved \u2014 this historical finding should be coded.",
+          "snomed_search": "panic attack",
+          "snomed_concept_id": "225624000",
+          "preferred_term": "Panic attack (finding)",
+          "sentence": "Not having panic attacks anymore",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "21897009",
+          "name": "Generalized anxiety disorder (disorder)",
+          "severity": "low",
+          "reason": "lookup_concept returned an unreliable result (wrong semantic tag 'qualifier value') for this concept ID; however, search_snomed confirms 21897009 is the correct SNOMED concept for Generalized anxiety disorder (disorder) \u2014 no change needed, flagged for awareness only."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis of generalised anxiety disorder is correctly coded as present (21897009 confirmed via search_snomed despite an unreliable lookup_concept response). One historical finding \u2014 panic attacks, now resolved on sertraline \u2014 is missing and should be added with a historical assertion. All absent findings (no chest pain, no SOB, no suicidal ideation) are correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4325,
+        "output_tokens": 1216,
+        "total_tokens": 5541,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "4da9c7c7-6108-4745-b9ef-601c0ccf578d",
+        "date": "2025-01-29",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0808fa3b-1c4e-4269-a63b-4447692024a0",
+    "patient_id": "4246627143",
+    "date": "2025-05-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Perimenopausal",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Perimenopausal status is explicitly documented in the history and is clinically relevant to the breast presentation; it is not on the problem list.",
+          "snomed_search": "perimenopausal state",
+          "snomed_concept_id": "161541000119104",
+          "preferred_term": "Perimenopausal state (finding)",
+          "sentence": "Perimenopausal",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "cyclical right breast cysts",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Cyclical breast cysts are documented as an active background condition directly relevant to the presenting complaint and are not on the problem list.",
+          "snomed_search": "cyst of breast",
+          "snomed_concept_id": "399294002",
+          "preferred_term": "Cyst of breast (disorder)",
+          "sentence": "Has cyclical right breast cysts.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "254837009",
+          "name": "Malignant neoplasm of breast (disorder)",
+          "severity": "critical",
+          "reason": "The note documents '?breast cyst/malignancy' \u2014 a suspected, not confirmed, diagnosis; coding a confirmed malignant neoplasm is clinically incorrect and could cause serious harm to the patient record.",
+          "replace_with_concept_id": "134405005",
+          "replace_with_preferred_term": "Malignant neoplasm of breast suspected (situation)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The most critical error is coding confirmed breast malignancy (254837009) when the clinician explicitly documents '?breast cyst/malignancy' \u2014 this must be replaced with the suspected/possible concept (134405005) to avoid a false cancer diagnosis on the patient record. The 2WW referral code (276341000000100) is correct and well-evidenced. Two additional findings \u2014 perimenopausal state and cyclical breast cysts \u2014 are explicitly documented and should be added.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8515,
+        "output_tokens": 1574,
+        "total_tokens": 10089,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "0808fa3b-1c4e-4269-a63b-4447692024a0",
+        "date": "2025-05-15",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bb909523-14d4-449d-ae0c-56ef1ae0a245",
+    "patient_id": "4246627143",
+    "date": "2025-05-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only administrative and workflow text: a medical secretary access-role entry, fast-track referral routing lines, choice-and-booking administration entries, and appointment-status tracking updates \u2014 there is no clinical narrative, examination, diagnosis, or prescriber decision-making present. The two standing coded concepts (fast-track breast cancer referral procedure and patient appointment finding) are problem-list/standing codes that must not be removed on the basis of an admin-only note; both lookup_concept calls returned unreliable/wrong semantic tags and cannot be acted upon. No coding changes are warranted from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1647,
+        "output_tokens": 644,
+        "total_tokens": 2291,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "bb909523-14d4-449d-ae0c-56ef1ae0a245",
+        "date": "2025-05-15",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "94ee67d6-9e7e-4448-86ee-6be416234284",
+    "patient_id": "4246627143",
+    "date": "2025-05-15",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All four coded concepts are confirmed correct via search_snomed (lookup_concept returned unreliable/mismatched data for all four IDs, which is a terminology server index issue rather than a coding error \u2014 search independently resolves each ID to the expected preferred term and semantic tag). The encounter captures the full 2WW breast cancer pathway: suspected breast cancer (situation), fast-track referral (procedure), unexplained breast lump (finding), and cancer safety netting (regime/therapy). The Read-code item 'Information given to patient at time of referral' (Y0fd9) has no resolvable SNOMED equivalent within scope and is appropriately omitted. No gaps or errors identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7149,
+        "output_tokens": 1100,
+        "total_tokens": 8249,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246627143",
+        "encounter_id": "94ee67d6-9e7e-4448-86ee-6be416234284",
+        "date": "2025-05-15",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "977bba2d-359a-4f8b-b880-6103280a0843",
+    "patient_id": "4246627143",
+    "date": "2025-06-11",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

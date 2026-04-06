@@ -322,13 +322,17 @@ class TerminologyClient:
                         return _parse_results(data.get("results", {}))
                 except Exception as exc:
                     if attempt < max_retries:
-                        logger.warning(
-                            "Terminology resolve batch failed on attempt %d/%d for %d term(s); retrying. Error: %s",
+                        backoff = min(2.0 * float(attempt + 1), 20.0)
+                        logger.info(
+                            "Terminology resolve batch failed on attempt %d/%d for %d term(s); "
+                            "sleeping %.1fs then retrying. Error: %s",
                             attempt + 1,
                             total_initial_attempts,
                             len(terms),
+                            backoff,
                             exc,
                         )
+                        time.sleep(backoff)
                         continue
                     logger.warning(
                         "Terminology resolve batch timed out or failed after %d attempt(s) for %d term(s); pausing workflow for %.0fs before final check.",
@@ -431,8 +435,12 @@ class TerminologyClient:
         candidates = results.get(text, [])
         return candidates[0] if candidates else None
 
-    def get_related(self, concept_id: str) -> list[dict[str, Any]]:
-        """Retrieve related SNOMED concepts for a given concept ID."""
+    def get_related(self, concept_id: str) -> dict[str, Any]:
+        """Retrieve SNOMED ontology family for a concept (INTERPRETS, HAS_COMPONENT,
+        HAS_ASSOCIATED_FINDING relationships).
+
+        Returns the full RelatedConceptsResult dict, or an empty dict on failure.
+        """
         import httpx
 
         try:
@@ -441,24 +449,47 @@ class TerminologyClient:
                     f"{self._base_url}/terminology/concepts/{concept_id}/related",
                 )
                 resp.raise_for_status()
-                return resp.json().get("related", [])
+                return resp.json()
         except Exception:
             logger.warning("get_related(%s) failed", concept_id, exc_info=True)
-            return []
+            return {}
 
-    def get_hierarchy(self, concept_id: str) -> list[dict[str, Any]]:
-        """Retrieve the hierarchy path for a given concept ID."""
+    def get_descendants(
+        self,
+        concept_id: str,
+        depth: int = 3,
+        limit: int = 50,
+        semantic_tag: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return active SNOMED descendants via IS_A relationships.
+
+        Args:
+            concept_id: SNOMED concept ID to traverse from.
+            depth: IS_A traversal depth (1-5, default 3).
+            limit: Maximum results (1-500, default 50).
+            semantic_tag: Optional filter by semantic tag (e.g. 'disorder').
+
+        Returns:
+            List of dicts with keys: snomed_concept_id, term, semantic_tag.
+            Empty list on failure or no descendants.
+        """
         import httpx
 
+        params: dict[str, Any] = {"depth": depth, "limit": limit}
+        if semantic_tag:
+            params["semantic_tag"] = semantic_tag
         try:
             with httpx.Client(timeout=self._timeout) as client:
                 resp = client.get(
-                    f"{self._base_url}/terminology/concepts/{concept_id}/hierarchy",
+                    f"{self._base_url}/terminology/concepts/{concept_id}/descendants",
+                    params=params,
                 )
                 resp.raise_for_status()
-                return resp.json().get("path", [])
+                return resp.json()
         except Exception:
-            logger.warning("get_hierarchy(%s) failed", concept_id, exc_info=True)
+            logger.warning(
+                "get_descendants(%s) failed", concept_id, exc_info=True
+            )
             return []
 
 
@@ -507,13 +538,17 @@ class AsyncTerminologyClient:
                     return data.get("results", {})
             except Exception as exc:
                 if attempt < max_retries:
-                    logger.warning(
-                        "Async terminology resolve batch failed on attempt %d/%d for %d term(s); retrying. Error: %s",
+                    backoff = min(2.0 * float(attempt + 1), 20.0)
+                    logger.info(
+                        "Async terminology resolve batch failed on attempt %d/%d for %d term(s); "
+                        "sleeping %.1fs then retrying. Error: %s",
                         attempt + 1,
                         total_initial_attempts,
                         len(terms),
+                        backoff,
                         exc,
                     )
+                    await asyncio.sleep(backoff)
                     continue
                 logger.warning(
                     "Async terminology resolve batch timed out or failed after %d attempt(s) for %d term(s); pausing workflow for %.0fs before final check.",

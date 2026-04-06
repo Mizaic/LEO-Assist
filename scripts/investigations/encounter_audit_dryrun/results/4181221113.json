@@ -1,0 +1,46 @@
+[
+  {
+    "encounter_id": "408d2d15-5b59-4fac-a6a0-4338ea421aec",
+    "patient_id": "4181221113",
+    "date": "2025-12-03",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter consists entirely of administrative entries: receptionist access role, encounter type classification (telephone), contact trigger, and a blank 'Other note: N/A'. No clinical content is present \u2014 no symptoms, diagnoses, findings, procedures, or medications documented. No SNOMED coding required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 1,
+        "input_tokens": 442,
+        "output_tokens": 333,
+        "total_tokens": 775,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4181221113",
+        "encounter_id": "408d2d15-5b59-4fac-a6a0-4338ea421aec",
+        "date": "2025-12-03",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fe3b7d2a-f29d-41ba-8936-95ebf5608ed0",
+    "patient_id": "4181221113",
+    "date": "2025-12-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

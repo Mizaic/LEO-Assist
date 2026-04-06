@@ -1,13 +1,20 @@
 """MedSpaCy ConText engine for clinical assertion detection.
 
 Replaces the custom character-window regex detector with the ConText
-graph algorithm, extended with UK primary care rules and two custom
+graph algorithm, extended with UK primary care rules and custom
 categories:
 
   DECLINED    -- patient declined or refused (custom)
   CANCELLED   -- patient cancelled / did not attend / DNA (custom)
   REFUTED     -- initial impression overridden by investigation (custom)
-  HYPOTHETICAL -- planned / awaiting, not yet completed (medspaCy built-in)
+  PLANNED     -- booked, awaiting, scheduled, referred for (custom; not done yet)
+  HYPOTHETICAL -- conditional / speculative future (medspaCy built-in)
+
+The distinction between PLANNED and HYPOTHETICAL:
+  - PLANNED:     definitively arranged but not yet completed
+                 ("booked for colonoscopy", "awaiting MRI", "referred for physio")
+  - HYPOTHETICAL: conditional or speculative
+                 ("if symptoms worsen consider CT", "may need surgery")
 
 The spaCy pipeline is initialised once at module level and reused across
 all encounters.
@@ -43,6 +50,7 @@ _SPAN_ATTRS: dict = {
     "DECLINED":           {"is_declined": True},
     "CANCELLED":          {"is_cancelled": True},
     "REFUTED":            {"is_refuted": True},
+    "PLANNED":            {"is_planned": True},
 }
 
 # Module-level singleton -- lazy-initialised on first call.
@@ -58,6 +66,8 @@ def _register_extensions() -> None:
         Span.set_extension("is_cancelled", default=False)
     if not Span.has_extension("is_refuted"):
         Span.set_extension("is_refuted", default=False)
+    if not Span.has_extension("is_planned"):
+        Span.set_extension("is_planned", default=False)
 
 
 from spacy.symbols import ORTH
@@ -204,7 +214,12 @@ def reload_nlp() -> None:
 def _span_to_assertion(span: Span) -> str:
     """Map ConText span boolean flags to a priority-ordered assertion string.
 
-    Priority: family > absent > refuted > declined > cancelled > historical > hypothetical > possible.
+    Priority: family > absent > refuted > declined > cancelled > planned >
+              historical > hypothetical > possible.
+
+    PLANNED (definitively booked/awaiting/scheduled) takes priority over
+    HYPOTHETICAL (conditional/speculative) because a confirmed booking is
+    more specific than a speculative future event.
     """
     if span._.is_family:
         return "family"
@@ -216,6 +231,8 @@ def _span_to_assertion(span: Span) -> str:
         return "declined"
     if span._.is_cancelled:
         return "cancelled"
+    if span._.is_planned:
+        return "planned"
     if span._.is_historical:
         return "historical"
     if span._.is_hypothetical:

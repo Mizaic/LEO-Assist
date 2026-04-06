@@ -10,6 +10,11 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import InputLabel from "@mui/material/InputLabel";
+import FormControl from "@mui/material/FormControl";
+import FormHelperText from "@mui/material/FormHelperText";
 import Autocomplete from "@mui/material/Autocomplete";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -31,8 +36,11 @@ import SearchIcon from "@mui/icons-material/Search";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import DownloadIcon from "@mui/icons-material/Download";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import {
   fetchDomain,
+  updateDomain,
   createSubdomain,
   fetchSubdomain,
   updateSubdomain,
@@ -44,6 +52,26 @@ import {
   type SubdomainDetail,
 } from "@/lib/analyticsApi";
 import { searchTerms, fetchSemanticTags, fetchDescendants } from "@/lib/api";
+
+const MILESTONE_OPTIONS = [
+  "referral",
+  "diagnosis",
+  "treatment_start",
+  "specialist_visit",
+] as const;
+
+const ASSERTION_OPTIONS = [
+  "present",
+  "absent",
+  "refuted",
+  "possible",
+  "historical",
+  "planned",
+  "hypothetical",
+  "family",
+  "declined",
+  "cancelled",
+] as const;
 
 export default function DomainDetailPage() {
   const params = useParams();
@@ -214,6 +242,7 @@ export default function DomainDetailPage() {
     milestone_type?: string;
     time_window_months?: number;
     semantic_tags?: string[];
+    assertion_filter?: string[];
   }) => {
     if (!configSub) return;
     setConfigSubmitting(true);
@@ -334,9 +363,39 @@ export default function DomainDetailPage() {
         </Typography>
       </Box>
       {domain?.description && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           {domain.description}
         </Typography>
+      )}
+
+      {domain && (
+        <Box sx={{ mb: 3 }}>
+          <Tooltip title="When on, this domain's subdomains are used by the episode detector to identify cancer pathway milestones.">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={domain.episode_detector ?? false}
+                  onChange={async (e) => {
+                    const val = e.target.checked;
+                    setDomain((d) => d ? { ...d, episode_detector: val } : d);
+                    try {
+                      await updateDomain(domainId, { episode_detector: val });
+                    } catch {
+                      setDomain((d) => d ? { ...d, episode_detector: !val } : d);
+                      setError("Could not update episode detector setting.");
+                    }
+                  }}
+                  size="small"
+                />
+              }
+              label={
+                <Typography variant="body2" color="text.secondary">
+                  Episode detector config
+                </Typography>
+              }
+            />
+          </Tooltip>
+        </Box>
       )}
 
       {error && (
@@ -413,6 +472,16 @@ export default function DomainDetailPage() {
                           label={`${sub.concept_count} concept${sub.concept_count !== 1 ? "s" : ""}`}
                           size="small"
                         />
+                        {(sub.descendant_count ?? 0) > 0 && (
+                          <Tooltip title="Additional codes matched automatically via IS_A hierarchy">
+                            <Chip
+                              label={`+${sub.descendant_count} variants`}
+                              size="small"
+                              color="info"
+                              variant="outlined"
+                            />
+                          </Tooltip>
+                        )}
                         {sub.milestone_type && (
                           <Chip
                             label={sub.milestone_type}
@@ -529,28 +598,24 @@ export default function DomainDetailPage() {
                   placeholder="Subdomain description"
                 />
                 <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                  <TextField
-                    size="small"
-                    label="Milestone type"
-                    value={configSub.milestone_type ?? ""}
-                    onChange={(e) =>
-                      setConfigSub((p) =>
-                        p
-                          ? {
-                              ...p,
-                              milestone_type: e.target.value || undefined,
-                            }
-                          : null,
-                      )
-                    }
-                    onBlur={() =>
-                      handleUpdateSubdomain({
-                        milestone_type: configSub.milestone_type,
-                      })
-                    }
-                    placeholder="e.g. referral"
-                    sx={{ minWidth: 140 }}
-                  />
+                  <FormControl size="small" sx={{ minWidth: 180 }}>
+                    <InputLabel id="milestone-type-label">Milestone type</InputLabel>
+                    <Select
+                      labelId="milestone-type-label"
+                      label="Milestone type"
+                      value={configSub.milestone_type ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value || undefined;
+                        setConfigSub((p) => p ? { ...p, milestone_type: val } : null);
+                        handleUpdateSubdomain({ milestone_type: val });
+                      }}
+                    >
+                      <MenuItem value=""><em>None</em></MenuItem>
+                      {MILESTONE_OPTIONS.map((opt) => (
+                        <MenuItem key={opt} value={opt}>{opt.replace(/_/g, " ")}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                   <TextField
                     size="small"
                     type="number"
@@ -602,6 +667,27 @@ export default function DomainDetailPage() {
                           ? "Select tags to filter concepts"
                           : ""
                       }
+                    />
+                  )}
+                />
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={[...ASSERTION_OPTIONS]}
+                  value={(configSub as { assertion_filter?: string[] }).assertion_filter ?? []}
+                  onChange={(_, v) => {
+                    const filter = v.filter((t): t is string => typeof t === "string");
+                    setConfigSub((p) =>
+                      p ? { ...(p as object), assertion_filter: filter } as typeof p : null,
+                    );
+                    handleUpdateSubdomain({ assertion_filter: filter } as Parameters<typeof handleUpdateSubdomain>[0]);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Assertion filter"
+                      placeholder="Leave blank to accept any assertion"
+                      helperText="e.g. set to 'hypothetical' to only count suspected findings"
                     />
                   )}
                 />

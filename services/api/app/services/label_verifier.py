@@ -903,7 +903,7 @@ def _check_terminology_coding(
     This allows semantic-tag cross-validation: if the top candidate's SNOMED
     tag disagrees with the extracted entity label, the mismatch is flagged.
     """
-    _AUTO_CODE_BLOCKED = {"absent", "refuted", "declined", "cancelled", "hypothetical", "possible", "historical", "family"}
+    _AUTO_CODE_BLOCKED = {"absent", "refuted", "declined", "cancelled", "planned", "hypothetical", "possible", "historical", "family"}
     codeable = [
         (i, e) for i, e in enumerate(entities)
         if str(e.get("label", "")) in _CODEABLE_LABELS
@@ -995,40 +995,6 @@ def _check_terminology_coding(
     return reviews
 
 
-_ASSERTION_QUEUE_SET = {"possible", "historical", "family", "declined", "cancelled", "refuted"}
-
-
-def _build_assertion_review_items(
-    label_id: str,
-    entities: list[dict[str, Any]],
-    ignore_texts: frozenset[str],
-) -> list[dict[str, Any]]:
-    """Build CodingReview queue entries for assertion-gated entities.
-
-    Entities with possible/historical/family assertions are not auto-coded
-    but still need a review card so a clinician can confirm or recode them.
-    """
-    items: list[dict[str, Any]] = []
-    for idx, ent in enumerate(entities):
-        if str(ent.get("label", "")) not in _CODEABLE_LABELS:
-            continue
-        assertion = str(ent.get("assertion") or "present").strip().lower()
-        if assertion not in _ASSERTION_QUEUE_SET:
-            continue
-        entity_text = str(ent.get("text", "")).strip()
-        if not entity_text:
-            continue
-        normalized = re.sub(r"\s+", " ", entity_text.lower())
-        if normalized in ignore_texts:
-            continue
-        items.append(
-            _build_review_item(
-                label_id, idx, entity_text,
-                str(ent.get("label", "")),
-                False, {}, None, assertion,
-            )
-        )
-    return items
 
 
 # ---------------------------------------------------------------------------
@@ -1246,8 +1212,7 @@ def _process_label(
         )
 
         coding_reviews = _check_terminology_coding(label_id, updated_entities, ignore_texts)
-        assertion_reviews = _build_assertion_review_items(label_id, updated_entities, ignore_texts)
-        result.coding_reviews = coding_reviews + assertion_reviews
+        result.coding_reviews = coding_reviews
 
         total_entities = max(len(entities), 1)
         result.updated_entities = updated_entities
@@ -1370,7 +1335,7 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
             continue
 
         assertion = str(row.get("assertion", "present")).strip().lower()
-        if assertion not in {"present", "absent", "refuted", "possible", "historical", "hypothetical", "family", "declined", "cancelled"}:
+        if assertion not in {"present", "absent", "refuted", "possible", "historical", "planned", "hypothetical", "family", "declined", "cancelled"}:
             assertion = "present"
 
         tag = str(row.get("semantic_tag", "finding")).strip().lower()

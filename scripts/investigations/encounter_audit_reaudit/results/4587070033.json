@@ -1,0 +1,1784 @@
+[
+  {
+    "encounter_id": "867330ea-17f0-429d-a287-138a4e896083",
+    "patient_id": "4587070033",
+    "date": "2024-04-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "onward referral (haematuria 2WW)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly states 'appt with me within 2 weeks for onward referral' in the context of frank haematuria (urine blood +++), meeting NG12 red-flag criteria; a urology haematuria referral must be coded.",
+          "snomed_search": "referral urology service haematuria",
+          "snomed_concept_id": "396104000",
+          "preferred_term": "Referral to urology service for hematuria (procedure)",
+          "sentence": "Plan: Send MSU, bloods + CXR in the next 5-6d and appt with me within 2 weeks for onward referral.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "MSU sent for MC&S",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "MSU sent for microscopy, culture and sensitivities is explicitly documented in both the plan and the urinalysis template and should be coded as a procedure.",
+          "snomed_search": "microscopy culture sensitivities",
+          "snomed_concept_id": "168132005",
+          "preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "sentence": "MSU sent for MC & S: Yes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Concept ID 702231000000104 resolves to a substance (DRB1*09012) on the terminology server \u2014 it is not a valid haematuria finding code; the correct SNOMED concept for blood in urine is 34436003.",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Critical issue: the haematuria concept ID 702231000000104 is incorrect (maps to a substance, not a finding) and must be replaced with 34436003 'Blood in urine (finding)'. Two missing codes: a urology haematuria referral (NG12 red-flag \u2014 safety-critical) and the MSU MC&S procedure. The LUTS (307541003) and CXR (399208008) codes are confirmed correct; note that the LUTS evidence text ('LUTs over past 2y, poor stream, frequency, nocturia x2') does not appear in the visible encounter note and may derive from a prior consultation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6957,
+        "output_tokens": 1841,
+        "total_tokens": 8798,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "867330ea-17f0-429d-a287-138a4e896083",
+        "date": "2024-04-25",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0ba3b27f-16a6-4c2f-8b5e-9868f3a0ae7c",
+    "patient_id": "4587070033",
+    "date": "2024-04-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Benign prostatic hyperplasia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "BPH is the stated problem header and the primary reason for this consultation, but it is absent from the coded concept list.",
+          "snomed_search": "benign prostatic hyperplasia",
+          "snomed_concept_id": "266569009",
+          "preferred_term": "Benign prostatic hyperplasia (disorder)",
+          "sentence": "Problem: Benign prostatic hyperplasia (XE0e6)",
+          "char_start": 68,
+          "char_end": 103
+        },
+        {
+          "term": "Spigelian hernia",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note documents a strangulated Spigelian hernia requiring laparotomy in June 2023 \u2014 a significant past surgical diagnosis that should be coded historically.",
+          "snomed_search": "Spigelian hernia",
+          "snomed_concept_id": "290187002",
+          "preferred_term": "Spigelian hernia (disorder)",
+          "sentence": "Seemed to worsen after laparotomy for strangulated Spigellian Jun '23.",
+          "char_start": 310,
+          "char_end": 378
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "52653008",
+          "name": "Respiratory sounds (observable entity)",
+          "severity": "medium",
+          "reason": "Concept 52653008 is an 'organism' per the terminology server (unreliable lookup) and search_snomed confirms it does not map to the clinical finding of reduced air entry at the bases; the correct concept for this examination finding is Decreased breath sounds [58840004].",
+          "replace_with_concept_id": "58840004",
+          "replace_with_preferred_term": "Decreased breath sounds (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary diagnosis (BPH) and a significant past surgical diagnosis (strangulated Spigelian hernia) are missing from the coded list; the respiratory examination finding is mapped to a wrong/unreliable concept (52653008) and should be replaced with Decreased breath sounds [58840004]. The safety-critical finding of frank haematuria is correctly coded [197941005] and the plan appropriately flags urology referral if PSA is raised. Note: a future USS renal tract and possible urology referral are planned but not yet actioned \u2014 these should be coded once completed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11259,
+        "output_tokens": 1968,
+        "total_tokens": 13227,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "0ba3b27f-16a6-4c2f-8b5e-9868f3a0ae7c",
+        "date": "2024-04-25",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a6a8b9c2-0e94-41a2-9f51-4f7693b2f199",
+    "patient_id": "4587070033",
+    "date": "2024-04-25",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f8730f9f-4fe0-457d-8547-be3d8d578464",
+    "patient_id": "4587070033",
+    "date": "2024-04-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "?lung cancer",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The clinical details explicitly state '?lung cancer' as the primary clinical suspicion driving the CXR request; this is a safety-critical red-flag finding that must be coded as a suspected diagnosis.",
+          "snomed_search": "lung cancer suspected",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "Clinical Details : ?lung cancer, ?signs COPD",
+          "char_start": 370,
+          "char_end": 400
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "13645005",
+          "name": "Chronic obstructive pulmonary disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note states '?signs COPD' \u2014 a query/suspicion only; no formal COPD diagnosis is confirmed in this encounter, so assertion should be 'possible' not 'present'."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "Two significant issues found: (1) Critical omission \u2014 suspected lung cancer (162573006) is explicitly documented as the primary clinical question driving the CXR but is entirely uncoded; (2) COPD is coded as confirmed/present when the note only records '?signs COPD', requiring a 'possible' assertion. The pleural thickening code (73725006) and remaining codes are appropriate; lookup_concept returned unreliable results for 13645005 and 73725006 but search_snomed independently confirmed both concept IDs are correct SNOMED disorder codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5533,
+        "output_tokens": 1316,
+        "total_tokens": 6849,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "f8730f9f-4fe0-457d-8547-be3d8d578464",
+        "date": "2024-04-26",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8845c67d-c747-41d9-9408-0b99931d356c",
+    "patient_id": "4587070033",
+    "date": "2024-05-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "episode of haematuria",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Haematuria is a NG12 red-flag symptom requiring correct SNOMED coding; the currently coded concept 702231000000104 resolves to a substance (DRB1 gene) and is clinically invalid \u2014 the correct finding concept 34436003 must replace it.",
+          "snomed_search": "haematuria",
+          "snomed_concept_id": "34436003",
+          "preferred_term": "Blood in urine (finding)",
+          "sentence": "Reasons for Request: LUTs; episode of haematuria.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "DRB1*09012 (substance) \u2014 coded as Hematuria NOS",
+          "severity": "critical",
+          "reason": "Concept 702231000000104 resolves on the terminology server to a substance (DRB1 gene), not a haematuria finding; it is the wrong concept ID for this clinical finding and must be replaced.",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The two other coded concepts (307541003 Lower urinary tract symptoms; 714628002 Prediabetes) are correct and well-evidenced by the note, despite unreliable server lookups \u2014 both were confirmed by direct SNOMED search. The critical issue is concept 702231000000104, which is an invalid code for haematuria (it maps to a genetic substance on the terminology server); it must be replaced with 34436003 'Blood in urine (finding)'. Haematuria is a NG12 red-flag symptom and correct coding is safety-critical. Note: the HbA1c test result is auto-filed structured data and does not require additional procedure coding from this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5427,
+        "output_tokens": 1411,
+        "total_tokens": 6838,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "8845c67d-c747-41d9-9408-0b99931d356c",
+        "date": "2024-05-01",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bf8b4e5b-1b1a-4025-91b3-44c9962a411e",
+    "patient_id": "4587070033",
+    "date": "2024-05-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two coding concerns: (1) Concept 702231000000104 coded as \"Hematuria NOS (finding)\" returns a substance semantic tag (DRB1*09012) from the terminology server \u2014 this is almost certainly a wrong concept ID for haematuria; the correct SNOMED concept is 34436003 \"Blood in urine (finding)\" (finding), which is safety-critical given haematuria is an NG12 red-flag symptom. (2) Concept 307541003 coded as \"LUTS - lower urinary tract symptoms\" returns an Extension Namespace placeholder and is unreliable \u2014 the standard SNOMED concept for lower urinary tract symptoms is 249274008 or equivalent and should be verified. Both codes require human review to confirm or replace with verified concept IDs; raw FBC values outside reference range are not flagged as the report was marked \"No Further Action\" by the reviewing clinician.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4340,
+        "output_tokens": 1180,
+        "total_tokens": 5520,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "bf8b4e5b-1b1a-4025-91b3-44c9962a411e",
+        "date": "2024-05-01",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3205b5b9-cd48-4560-960d-bc36d6bc240f",
+    "patient_id": "4587070033",
+    "date": "2024-05-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "DRB1*09012 (substance) \u2014 coded as 'Hematuria NOS'",
+          "severity": "critical",
+          "reason": "Concept ID 702231000000104 resolves to a substance (DRB1*09012), not a haematuria finding; the correct SNOMED concept for haematuria is 34436003 'Blood in urine (finding)', and haematuria is a safety-critical red-flag symptom (NG12) requiring accurate coding.",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two of the three coded concepts (307541003 LUTS and 714628002 Prediabetes) are clinically correct and confirmed by SNOMED search despite unreliable lookup responses. The haematuria code (702231000000104) is critically wrong \u2014 it resolves to a substance concept (DRB1*09012) rather than a clinical finding; it must be replaced with 34436003 'Blood in urine (finding)'. Haematuria is a NG12 red-flag symptom and accurate coding is safety-critical; a clinical review should confirm whether a 2WW urology referral has been considered.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4985,
+        "output_tokens": 1279,
+        "total_tokens": 6264,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "3205b5b9-cd48-4560-960d-bc36d6bc240f",
+        "date": "2024-05-01",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a129c3ba-422f-4141-bbf6-d97f1eaedddb",
+    "patient_id": "4587070033",
+    "date": "2024-05-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most serious issue is concept [702231000000104] coded for haematuria, which resolves to an HLA allele substance \u2014 a critically wrong concept ID for a safety-relevant red-flag symptom; it must be replaced with 34436003 (Blood in urine). Concept [307541003] for LUTS and [75183008] for abnormal liver function both returned unreliable lookups but are confirmed as clinically plausible via search_snomed; per policy they are not flagged as overcoded on unreliability alone. The observable entity codes for ALT and bilirubin are appropriate pipeline-generated codes and are not in scope for audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4547,
+        "output_tokens": 1493,
+        "total_tokens": 6040,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "a129c3ba-422f-4141-bbf6-d97f1eaedddb",
+        "date": "2024-05-01",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c720449e-3b2e-42bc-bc88-ea5ad1452c63",
+    "patient_id": "4587070033",
+    "date": "2024-05-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "borderline PSA",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly flags the PSA result as 'Borderline' and instructs repeat testing; this interpretive finding should be coded as PSA outside/borderline reference range, not merely as the observable entity level.",
+          "snomed_search": "prostate specific antigen outside reference range",
+          "snomed_concept_id": "166160000",
+          "preferred_term": "Prostate specific antigen outside reference range (finding)",
+          "sentence": "Prostate-specific antigen level Report, Borderline, Need to repeat test: has fu with Dr noble on 14th may.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two definite coding issues: (1) CRITICAL \u2014 the haematuria code 702231000000104 resolves to a genetic substance concept (DRB1*09012), not a haematuria finding; it must be replaced with 34436003 'Blood in urine (finding)' \u2014 haematuria is a NG12 red-flag symptom requiring correct coding for safety-netting and audit. (2) The PSA interpretive result is flagged 'Borderline' by the lab and should be coded as 166160000 'Prostate specific antigen outside reference range (finding)' in addition to the observable entity level; the PSA observable entity (1030791000000100) is also duplicated in the coded list. The UTI reference in the note is advisory/template text from the lab report and does not confirm a UTI diagnosis for this patient. A future repeat PSA and potential 2WW referral are planned but have not yet occurred and should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6511,
+        "output_tokens": 1646,
+        "total_tokens": 8157,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "c720449e-3b2e-42bc-bc88-ea5ad1452c63",
+        "date": "2024-05-01",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2c1b15d0-647e-4920-a808-09f4d9a8f0b5",
+    "patient_id": "4587070033",
+    "date": "2024-05-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "166832000",
+          "name": "Serum high density lipoprotein cholesterol measurement (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an unreliable result (semantic_tag: substance, HLA allele); the code was applied as a procedure to represent a low HDL finding, which is semantically incorrect \u2014 a procedure code does not capture the abnormal result interpretation, and no valid HDL-below-reference-range finding concept was confirmable via search.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "No confirmed SNOMED finding concept for HDL below reference range available from search \u2014 requires manual review to assign correct finding code"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant coding errors identified: concept ID 702231000000104 (coded as haematuria) resolves to an HLA allele substance rather than a clinical finding \u2014 the correct code is 34436003 Blood in urine (finding), and this is safety-critical given haematuria is an NG12 red-flag symptom. Additionally, 166832000 (coded as an HDL procedure) is unreliable per terminology server and is semantically inappropriate for capturing a low HDL result interpretation; a valid HDL-below-reference-range finding code should be sought. Hypertriglyceridaemia (302870006) and LUTS (307541003) are correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7788,
+        "output_tokens": 1561,
+        "total_tokens": 9349,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "2c1b15d0-647e-4920-a808-09f4d9a8f0b5",
+        "date": "2024-05-01",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4aa83398-aad9-4b7b-8174-880ef01c13cf",
+    "patient_id": "4587070033",
+    "date": "2024-05-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "critical",
+          "reason": "lookup_concept returned semantic_tag 'substance' (DRB1*09012), confirming this is a wrong concept ID for haematuria \u2014 it must be replaced with the correct SNOMED finding code for blood in urine.",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Critical coding error: concept 702231000000104 resolves to a substance (DRB1*09012) on the terminology server, not a haematuria finding \u2014 this must be replaced with 34436003 (Blood in urine) immediately, as haematuria is an NG12 red-flag symptom requiring correct coding for safety-netting and audit. Concept 307541003 (Lower urinary tract symptoms) is confirmed correct. CKD is referenced only in auto-filed guidance text and eGFR numeric values; if not already on the problem list it should be reviewed separately, but no explicit new CKD diagnosis is made in this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4201,
+        "output_tokens": 1249,
+        "total_tokens": 5450,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "4aa83398-aad9-4b7b-8174-880ef01c13cf",
+        "date": "2024-05-01",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4906f342-2c3b-44f6-b343-995b81ba4b9d",
+    "patient_id": "4587070033",
+    "date": "2024-05-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "NHS Diabetes Prevention Programme invitation",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly records an NDPP invitation (coded locally as Xaglb) which is a clinically significant procedure and should be captured in SNOMED.",
+          "snomed_search": "NHS Diabetes Prevention Programme invitation",
+          "snomed_concept_id": "1090701000000104",
+          "preferred_term": "National Health Service Diabetes Prevention Programme invitation (procedure)",
+          "sentence": "NDPP: NHS Diabetes Prevention Programme invitation (Xaglb)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "high",
+          "reason": "Pre-diabetes / Non-Diabetic Hyperglycaemia is NOT diabetes mellitus; coding a history of diabetes mellitus is clinically incorrect and misleading \u2014 the patient has never been diagnosed with diabetes.",
+          "replace_with_concept_id": "700449008",
+          "replace_with_preferred_term": "Non-diabetic hyperglycemia (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "849171000000106",
+          "name": "Impaired glucose regulation (disorder)",
+          "severity": "medium",
+          "reason": "The note specifically documents Non-Diabetic Hyperglycaemia (NDH) / Pre-Diabetes; the more specific concept 700449008 Non-diabetic hyperglycemia (disorder) should be used in place of the broader Impaired glucose regulation, and it already replaces 161445009 above \u2014 retaining both would be a duplicate.",
+          "replace_with_concept_id": "700449008",
+          "replace_with_preferred_term": "Non-diabetic hyperglycemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The most serious error is the use of 161445009 'History of diabetes mellitus (situation)' \u2014 the patient has pre-diabetes/NDH, not diabetes, and coding a history of diabetes is clinically dangerous and factually wrong. Both existing disorder codes should be replaced by the single, specific concept 700449008 Non-diabetic hyperglycemia (disorder), and the NDPP invitation procedure (1090701000000104) should be added to reflect the intervention documented in the encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5897,
+        "output_tokens": 1473,
+        "total_tokens": 7370,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "4906f342-2c3b-44f6-b343-995b81ba4b9d",
+        "date": "2024-05-10",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7a21f85b-a20c-4838-8f1e-09692d1dc273",
+    "patient_id": "4587070033",
+    "date": "2024-05-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "medium",
+          "reason": "The more specific 'Frank hematuria (disorder)' [197941005] is already coded for this encounter; the generic Haematuria NOS is redundant and should be removed to avoid duplicate coding at different levels of specificity.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.96,
+      "notes": "One critical coding error: the 2WW referral is coded as suspected breast cancer (276341000000100) when the note clearly documents a urology 2WW referral for visible haematuria \u2014 this must be corrected to 'Fast track referral for suspected urological cancer' (276431000000102) immediately, as it will misdirect cancer tracking and audit. Additionally, the generic 'Haematuria NOS' code is redundant alongside the more specific 'Frank hematuria' code already present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3976,
+        "output_tokens": 1273,
+        "total_tokens": 5249,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "7a21f85b-a20c-4838-8f1e-09692d1dc273",
+        "date": "2024-05-21",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d8e1cd1c-4e11-41b8-a7c0-d2e246e18572",
+    "patient_id": "4587070033",
+    "date": "2024-05-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding) [coded]",
+          "severity": "high",
+          "reason": "lookup_concept returned semantic_tag='substance' (DRB1*09012), confirming this concept ID is wrong for haematuria; the correct SNOMED concept is 34436003 Blood in urine (finding).",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (procedure) [coded]",
+          "severity": "high",
+          "reason": "lookup_concept returned semantic_tag='qualifier value', confirming this concept ID is wrong for the documented 'US urinary tract'; the correct concept is 303917008 Ultrasound of urinary tract (procedure), which precisely matches the note.",
+          "replace_with_concept_id": "303917008",
+          "replace_with_preferred_term": "Ultrasound of urinary tract (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "142505009",
+          "name": "Cystoscopy (procedure)",
+          "severity": "medium",
+          "reason": "The note explicitly documents 'Flexible cystoscopy'; the coded concept 142505009 is the generic parent, whereas 301301002 Flexible cystoscopy (procedure) is the specific child concept that matches the note text.",
+          "replace_with_concept_id": "301301002",
+          "replace_with_preferred_term": "Flexible cystoscopy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Three of the five coded concepts carry incorrect or insufficiently specific SNOMED IDs: haematuria and US urinary tract are mapped to wrong concept IDs (substance and qualifier value respectively, confirmed by lookup), and flexible cystoscopy is coded to the generic parent rather than the specific child. Large prostate (249607009) and Multiple renal cysts (253883006) are correctly coded and confirmed by search.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4540,
+        "output_tokens": 1603,
+        "total_tokens": 6143,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "d8e1cd1c-4e11-41b8-a7c0-d2e246e18572",
+        "date": "2024-05-24",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6550a394-5d63-4274-8ba0-0a931e74ec0f",
+    "patient_id": "4587070033",
+    "date": "2024-06-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "723542006",
+          "term": "Indwelling urethral urinary catheter in situ (finding)",
+          "assertion": "present",
+          "status": "correct"
+        },
+        {
+          "conceptId": "130951007",
+          "term": "Urinary bladder retention of urine (observable entity)",
+          "assertion": "present",
+          "status": "wrong_concept"
+        }
+      ],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "130951007",
+          "name": "Urinary bladder retention of urine (observable entity)",
+          "severity": "medium",
+          "reason": "This is an observable entity concept, not a disorder; the note documents urinary retention as the clinical diagnosis (reason for catheter insertion), which should be coded with the disorder concept 267064002 (Retention of urine).",
+          "replace_with_concept_id": "267064002",
+          "replace_with_preferred_term": "Retention of urine (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "notes": "Concept 723542006 (Indwelling urethral urinary catheter in situ) is confirmed valid by search_snomed and correctly coded as present. Concept 130951007 is an observable entity (Urinary bladder retention of urine) being used as a disorder code \u2014 the correct SNOMED disorder for urinary retention is 267064002 (Retention of urine, disorder), which should replace it; the assertion (present) is otherwise appropriate given the note explicitly states the catheter was inserted for retention.",
+      "confidence": 0.9,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6214,
+        "output_tokens": 1218,
+        "total_tokens": 7432,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "6550a394-5d63-4274-8ba0-0a931e74ec0f",
+        "date": "2024-06-28",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2f52ba40-03d1-456b-a5e4-c2ea16d7eb26",
+    "patient_id": "4587070033",
+    "date": "2024-06-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (qualifier value / An 7705)",
+          "severity": "medium",
+          "reason": "Concept 16310003 resolves to a qualifier value ('An 7705'), not a procedure; the note specifies 'Ultrasonography of urinary bladder for post-void residual volume' which maps precisely to the procedure concept 700387001.",
+          "replace_with_concept_id": "700387001",
+          "replace_with_preferred_term": "Ultrasonography of urinary bladder for post-void residual volume (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "410254003",
+          "name": "Urinary catheter insertion assessment (procedure)",
+          "severity": "medium",
+          "reason": "The note documents 'Insertion of catheter' \u2014 an actual catheterisation procedure \u2014 not an assessment of catheter insertion; the correct concept is 410024004 'Catheterization of urinary bladder'.",
+          "replace_with_concept_id": "410024004",
+          "replace_with_preferred_term": "Catheterization of urinary bladder (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two procedure codes require replacement: 16310003 resolves to a qualifier value rather than a procedure and must be replaced with the specific post-void residual bladder ultrasound concept (700387001); 410254003 codes an 'assessment' activity rather than the catheter insertion procedure itself (410024004). TURBT (386792000) and Failed TWOC (860371000000105) are clinically appropriate despite unreliable terminology server lookups \u2014 both are confirmed by search results and clinical context respectively.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7274,
+        "output_tokens": 1635,
+        "total_tokens": 8909,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "2f52ba40-03d1-456b-a5e4-c2ea16d7eb26",
+        "date": "2024-06-28",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4c1fa693-e027-4c5e-9c70-3d5d4e89a90e",
+    "patient_id": "4587070033",
+    "date": "2024-07-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "entities": [],
+      "notes": "The single coded concept \u2014 Urinary catheter in situ (439053001) \u2014 is confirmed correct and appropriate; search_snomed returns it as the top match despite the lookup_concept server artefact. The planned TWOC at urology is a future procedure (not yet performed) and must not be coded as present. NEWS2 and Waterlow scores are structured pipeline observables and are out of scope. All other documented findings are negative/normal and correctly excluded from coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 8403,
+        "output_tokens": 995,
+        "total_tokens": 9398,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "4c1fa693-e027-4c5e-9c70-3d5d4e89a90e",
+        "date": "2024-07-21",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "53758cee-f732-4a50-9ace-5706171eb1ce",
+    "patient_id": "4587070033",
+    "date": "2024-07-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "atherosclerosis of aorta",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'diffuse atheromatous disease of aorta' from CT findings and is listed as a named problem; the currently coded concept Xa9I5 is a CTV3/Read code not a valid SNOMED CT concept ID and should be replaced with the correct SNOMED disorder.",
+          "snomed_search": "atherosclerosis aorta",
+          "snomed_concept_id": "81817003",
+          "preferred_term": "Atherosclerosis of aorta (disorder)",
+          "sentence": "Problem: Atheroma (Xa9I5) - Aorta (from CT) / History: See CT - atheroma of aorta. QRisk 37%",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "Xa9I5",
+          "name": "Atheroma (Xa9I5)",
+          "severity": "medium",
+          "reason": "Xa9I5 is a CTV3/Read code, not a valid SNOMED CT concept ID; the correct SNOMED concept for 'atherosclerosis of aorta' as documented in the CT report is 81817003.",
+          "replace_with_concept_id": "81817003",
+          "replace_with_preferred_term": "Atherosclerosis of aorta (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'following referral for haematuria' \u2014 the haematuria was the presenting symptom that triggered the referral which has now concluded in a diagnosis of bladder tumour and prostate cancer; it is a historical symptom in this context, not an active current finding."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The main coding issue is the use of a CTV3/Read code (Xa9I5) for aortic atherosclerosis instead of the correct SNOMED CT concept 81817003; this should be replaced. Haematuria is coded as present but is contextually historical (the referral and workup are complete). TWOC is mentioned as a planned/imminent procedure ('prior to TWOC') and should not be coded as present at this encounter. The terminology server returned unreliable results for several existing concept IDs (399068003, 93689003, 363693003, 702231000000104/105) due to apparent index corruption, but clinical context supports these codes as clinically appropriate and they are not flagged for deletion on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 13687,
+        "output_tokens": 2156,
+        "total_tokens": 15843,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "53758cee-f732-4a50-9ace-5706171eb1ce",
+        "date": "2024-07-22",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6c92a3ba-e374-439a-9fad-98145b49d85b",
+    "patient_id": "4587070033",
+    "date": "2024-07-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "46997427-d9c1-4de3-adfa-6e7d9330bae8",
+    "patient_id": "4587070033",
+    "date": "2024-07-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bladder scan",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A bladder scan was explicitly performed during this encounter (showing 300ml residual) and should be coded as a procedure.",
+          "snomed_search": "ultrasonography urinary bladder",
+          "snomed_concept_id": "169251004",
+          "preferred_term": "Ultrasonography of urinary bladder (procedure)",
+          "sentence": "Bladder scan showed 300ml.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "insertion of urinary catheter",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A new long-term size 14 Foley catheter was inserted as a clinical procedure; this should be coded as a procedure, not as a physical object (see overcoded entry for 23973005).",
+          "snomed_search": "catheterization urinary bladder",
+          "snomed_concept_id": "410024004",
+          "preferred_term": "Catheterization of urinary bladder (procedure)",
+          "sentence": "Vesica pack (lot: 432240123c3) used to insert a long term size 14 foley catheter (lot: 40E24c4004 exp:02/29) Instilagel (lot:164351 exp:10/28). Easy insertion using ANTT, drained approx 300ml clear urine, leg bag attached with leg straps.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "23973005",
+          "name": "Indwelling urinary catheter, device (physical object)",
+          "severity": "medium",
+          "reason": "Concept ID 23973005 is unreliable (terminology server returns it as an 'organism'); furthermore, a physical object code is out of scope for this audit \u2014 the clinical act of catheter insertion should be coded as a procedure instead (see missing entry above).",
+          "replace_with_concept_id": "410024004",
+          "replace_with_preferred_term": "Catheterization of urinary bladder (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is largely well-coded but has two issues: (1) the bladder scan (ultrasonography of urinary bladder, 169251004) performed during the visit is not coded; (2) the catheter insertion is coded with an unreliable physical-object concept (23973005) rather than a valid procedure code \u2014 this should be replaced with Catheterization of urinary bladder (410024004). The PSMA PET scan entry appears to be a new referral episode logged administratively and has not yet occurred, so it is noted but not flagged as a missing present procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6940,
+        "output_tokens": 1560,
+        "total_tokens": 8500,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "46997427-d9c1-4de3-adfa-6e7d9330bae8",
+        "date": "2024-07-30",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3c61e062-6647-4654-9964-b622413568ac",
+    "patient_id": "4587070033",
+    "date": "2024-08-21",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8793d4b9-033e-4a83-8780-27f19495906e",
+    "patient_id": "4587070033",
+    "date": "2024-09-16",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter consists entirely of administrative content: a receptionist access role log, repeat prescription/device requests (atorvastatin, urinary drainage bags), ETP2 FP10 printing status lines, and a Summary Care Record preference override note. No clinical narrative, symptoms, examination, diagnosis, or clinical decision-making is present. No SNOMED coding is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 576,
+        "output_tokens": 309,
+        "total_tokens": 885,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "8793d4b9-033e-4a83-8780-27f19495906e",
+        "date": "2024-09-16",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b775e2bc-1b97-4b8b-980d-925348debfeb",
+    "patient_id": "4587070033",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "catheter coming out",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The referral explicitly states the catheter is coming out \u2014 this is an active catheter complication (displacement/malfunction) that is the primary clinical reason for the urgent nursing referral and should be coded as a disorder.",
+          "snomed_search": "complication of urinary catheter",
+          "snomed_concept_id": "427793007",
+          "preferred_term": "Complication of urinary catheter (disorder)",
+          "sentence": "Reason for referral: patients catheter coming out and in a lot of pain,not much urine draining into the bag",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "20568009",
+          "name": "Urinary catheter, device (physical object)",
+          "severity": "low",
+          "reason": "Physical object concepts fall outside the permitted SNOMED coding scope for this encounter (disorder/finding/procedure/situation/observable entity/substance/qualifier value); the catheter's presence is already captured by 723542006 (Indwelling urethral urinary catheter in situ)."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a clerical SPA routing referral with structured clinical content captured via template. Two of the three coded concepts are valid and well-evidenced (723542006 catheter in situ; 182524008 attention to catheter); the physical object code 20568009 is out of scope and redundant. The active catheter complication (displacement/coming out) driving the urgent referral is not coded and should be added as 427793007. Lookup_concept returned unreliable results for all three concepts but search_snomed confirmed the two procedure/finding codes as legitimate; the physical object code remains out of scope regardless.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7622,
+        "output_tokens": 1550,
+        "total_tokens": 9172,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "b775e2bc-1b97-4b8b-980d-925348debfeb",
+        "date": "2024-10-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ad2ebc16-3eed-47b8-9c3c-f2da4f094553",
+    "patient_id": "4587070033",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "catheter balloon displaced into urethra",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes the catheter balloon sitting in the urethra for over 24 hours \u2014 this is the primary clinical problem driving the entire encounter and should be coded as the root cause.",
+          "snomed_search": "catheter balloon urethra displacement",
+          "snomed_concept_id": "767225004",
+          "preferred_term": "Displacement of indwelling urinary catheter balloon into urethra due to and following insertion of urethral catheter (disorder)",
+          "sentence": "discussed with the patient that he should have called out as soon as it had happened as the balloon would be in the urethra and cauld cause trauma.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "urethral trauma / injury of male urethra",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The nurse explicitly states the bright red haematuria was 'probably trauma from the balloon being in the urethra for over 24 hours' \u2014 urethral injury is a distinct active clinical finding that should be coded alongside the haematuria.",
+          "snomed_search": "injury male urethra",
+          "snomed_concept_id": "262912004",
+          "preferred_term": "Injury of male urethra (disorder)",
+          "sentence": "explained this was probabily trauma from the balloon being in the urethra for over 24 hours and i would need to send him to hospital through A&E as urolgy is closed.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "failed catheter insertion",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The new catheter could not be passed beyond the prostate \u2014 this is a failed insertion of a urethral catheter and should be coded as a situation rather than a successful insertion procedure.",
+          "snomed_search": "failed insertion urethral catheter",
+          "snomed_concept_id": "700429004",
+          "preferred_term": "Failed insertion of urethral catheter (situation)",
+          "sentence": "New catheter attempted, but could not get it in past the prostate and when removed bright red blood in the catheter.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "34759008",
+          "name": "Urethral catheter, device (physical object)",
+          "severity": "medium",
+          "reason": "This concept is a physical object (device), which is outside the SNOMED clinical coding scope for encounters; the terminology server also returns it as unreliable. The clinically relevant concept is the catheter balloon displacement into the urethra (767225004), which should be coded instead.",
+          "replace_with_concept_id": "767225004",
+          "replace_with_preferred_term": "Displacement of indwelling urinary catheter balloon into urethra due to and following insertion of urethral catheter (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "410021007",
+          "name": "Insertion of urethral catheter (procedure)",
+          "severity": "medium",
+          "reason": "The catheter insertion was explicitly unsuccessful \u2014 the note states it could not be passed beyond the prostate. Coding a successful insertion procedure is clinically inaccurate; the correct code is 'Failed insertion of urethral catheter' (700429004).",
+          "replace_with_concept_id": "700429004",
+          "replace_with_preferred_term": "Failed insertion of urethral catheter (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The encounter has two significant overcoding errors: a physical object code (34759008, also terminologically unreliable) used in place of the specific catheter balloon displacement disorder, and a successful catheter insertion procedure coded when the attempt explicitly failed. Three clinically important concepts are missing: the catheter balloon displacement into the urethra (the root cause), urethral injury (explicitly stated as the cause of haematuria), and failed urethral catheter insertion. The haematuria, catheter removal, home visit, and A&E referral codes are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6780,
+        "output_tokens": 1910,
+        "total_tokens": 8690,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "ad2ebc16-3eed-47b8-9c3c-f2da4f094553",
+        "date": "2024-10-18",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f0799e95-c855-45fc-aeb5-07f59055d49e",
+    "patient_id": "4587070033",
+    "date": "2024-10-28",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "944063d5-a93a-4ba3-9b33-04e168df2322",
+    "patient_id": "4587070033",
+    "date": "2025-06-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "prostate - managing well at the moment, under oncology/urology",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Decapeptyl (triptorelin) injections every 3 months under oncology/urology follow-up is a hormone therapy regimen used for prostate cancer; this active diagnosis should be coded.",
+          "snomed_search": "malignant neoplasm prostate",
+          "snomed_concept_id": "399068003",
+          "preferred_term": "Malignant neoplasm of prostate (disorder)",
+          "sentence": "-having decapepty inj every 3 month and also taking tamsulosin for prostate - managing well at the moment, under oncology/urology",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "low",
+          "reason": "Lookup returned unreliable (semantic_tag='organism'), and the note documents a Cockcroft-Gault creatinine clearance calculation rather than an eGFR by laboratory; the coded concept ID cannot be verified and may be mismatched \u2014 consider replacing with a verified creatinine clearance procedure/observable concept.",
+          "replace_with_concept_id": "784580008",
+          "replace_with_preferred_term": "Estimation of creatinine clearance (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The most significant gap is the absence of a prostate cancer code: Decapeptyl (triptorelin) GnRH agonist injections every 3 months under oncology/urology follow-up is a clear marker of active prostate cancer management, not BPH alone. The eGFR observable entity concept (1107411000000104) returned as unreliable by the terminology server and does not match the Cockcroft-Gault creatinine clearance documented in the note; human review of this concept ID is recommended. Patient demographics could not be retrieved to confirm age/sex plausibility, but the clinical picture (prostate cancer, tamsulosin, catheter history) is internally consistent for an older male.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5625,
+        "output_tokens": 1435,
+        "total_tokens": 7060,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "944063d5-a93a-4ba3-9b33-04e168df2322",
+        "date": "2025-06-03",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ce4d57d5-ead5-42ac-ae3a-443e2d848b3c",
+    "patient_id": "4587070033",
+    "date": "2025-06-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are confirmed correct by SNOMED search: 865211000000104 (Intramuscular injection of gonadorelin analogue, procedure) and 395915003 (Triptorelin, substance) \u2014 lookup_concept returned unreliable results for both but search_snomed confirmed the IDs and semantic tags are accurate. The injection site (left buttock), batch number, and next-due date are administrative/procedural attributes, not separately codeable clinical findings; no indication diagnosis is documented within this encounter text and would reside on the problem list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6200,
+        "output_tokens": 966,
+        "total_tokens": 7166,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "ce4d57d5-ead5-42ac-ae3a-443e2d848b3c",
+        "date": "2025-06-24",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dc0eabea-3f67-434b-8a45-aae31eaf66d6",
+    "patient_id": "4587070033",
+    "date": "2025-09-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "395915003",
+          "name": "Triptorelin (substance)",
+          "severity": "low",
+          "reason": "Substance codes represent individual drug names and belong in the medication record, not the encounter-level SNOMED coding; the PSD authorises drug administration but no specific triptorelin IM injection procedure concept was resolvable to replace it.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The prostate cancer disorder code (399068003) is correct and well-evidenced by the PSD text. The triptorelin substance code (395915003) is out of scope for encounter-level SNOMED coding \u2014 individual drug substances belong in the medication record; a specific triptorelin IM injection procedure concept could not be resolved from search to serve as a replacement. The lookup server returned unreliable results for both concept IDs, but search independently confirmed 399068003 as a valid disorder.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3817,
+        "output_tokens": 974,
+        "total_tokens": 4791,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "dc0eabea-3f67-434b-8a45-aae31eaf66d6",
+        "date": "2025-09-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d4390b3a-b205-408d-b378-d77ee8f7a8bb",
+    "patient_id": "4587070033",
+    "date": "2025-10-20",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Both coded concepts are correct and well-evidenced: the HbA1c observable entity (1003671000000109) is appropriately written by the structured lab pipeline, and Prediabetes (714628002) is directly supported by the explicit clinical statement 'Known pre diabetes (Patient Informed)'. No additional codeable clinical content is present in this auto-filed result encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3046,
+        "output_tokens": 857,
+        "total_tokens": 3903,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "d4390b3a-b205-408d-b378-d77ee8f7a8bb",
+        "date": "2025-10-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "53182ec3-037d-45d3-b9c2-6a59cb9ad7bc",
+    "patient_id": "4587070033",
+    "date": "2025-10-20",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Both coded concepts are confirmed correct: 1003671000000109 (Haemoglobin A1c level, observable entity) is appropriate for the structured lab result, and 714628002 (Prediabetes, finding, assertion=present) accurately captures the clinician's documented interpretation of 'Known pre diabetes'. No coding gaps or errors identified; lookup_concept returned unreliable results for both IDs but search_snomed confirmed both concept IDs are valid and correctly matched.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2902,
+        "output_tokens": 739,
+        "total_tokens": 3641,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "53182ec3-037d-45d3-b9c2-6a59cb9ad7bc",
+        "date": "2025-10-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1d0bfc5d-e960-4d36-a5e2-23b3e9dc44ce",
+    "patient_id": "4587070033",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Abnormal urine albumin/creatinine ratio (33.2 mg/mmol, reference 0\u20132.5)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly flags the ACR result as 'Abnormal' at 33.2 mg/mmol (reference 0\u20132.5), consistent with albuminuria; the finding itself should be coded in addition to the procedure that measured it.",
+          "snomed_search": "albuminuria",
+          "snomed_concept_id": "274769005",
+          "preferred_term": "Albuminuria (finding)",
+          "sentence": "Urine albumin/creatinine ratio (XE2n3) 33.2 mg/mmol [0 - 2.5] Outside reference range",
+          "char_start": 51,
+          "char_end": 120
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The procedure code 271075006 (Urine albumin/creatinine ratio measurement) is correctly applied; lookup_concept returned an unreliable/corrupted result but search_snomed confirms the concept is valid. The clinically significant abnormal finding \u2014 albuminuria (ACR 33.2 mg/mmol, markedly above the 0\u20132.5 reference range) \u2014 is not coded and should be added as 274769005 Albuminuria (finding). The diabetic context mentioned in the lab comment note is background and should not be newly coded from this encounter alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3233,
+        "output_tokens": 1159,
+        "total_tokens": 4392,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "1d0bfc5d-e960-4d36-a5e2-23b3e9dc44ce",
+        "date": "2025-12-17",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e4b0bada-9bd9-4a2f-ba9e-7ec852ca1eef",
+    "patient_id": "4587070033",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The single coded concept 29738008 (Proteinuria, finding, present) is correct and well-evidenced by the urine protein result of 1 g/L against a reference range of 0.01\u20130.14 g/L. The lookup_concept server return was unreliable (organism tag artefact) but search_snomed confirmed the concept ID is valid. The instruction for urgent repeat bloods within 1\u20132 weeks is a future planned action and does not require a procedure code at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2648,
+        "output_tokens": 715,
+        "total_tokens": 3363,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "e4b0bada-9bd9-4a2f-ba9e-7ec852ca1eef",
+        "date": "2025-12-17",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7f0d247d-5099-45e6-aa2a-3eb6d40cf4a3",
+    "patient_id": "4587070033",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The existing code 274769005 (Albuminuria) is clinically appropriate for this auto-filed lab result showing urine albumin 176.2 mg/L. A more specific Grade A2 albuminuria descendant (735623008) exists in the hierarchy but the terminology server returned unreliable results for that concept ID, so no replacement can be safely proposed; a human reviewer may wish to confirm whether upgrading to Grade A2 specificity is warranted. The planned repeat bloods are a future procedure and are correctly not coded. No other codeable clinical content is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3204,
+        "output_tokens": 1005,
+        "total_tokens": 4209,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "7f0d247d-5099-45e6-aa2a-3eb6d40cf4a3",
+        "date": "2025-12-17",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ff82ee9b-6ad2-41a2-8257-fec3f36823d3",
+    "patient_id": "4587070033",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are correct and well-evidenced: proteinuria (29738008) accurately captures the significantly elevated urine PCR of 188.7 mg/mmol, and blood test requested (413672003) correctly reflects the clinician's urgent follow-up instruction. No additional codeable clinical content is present in this auto-filed lab review note. Note: lookup_concept returned unreliable results for both IDs due to a terminology server index issue, but search_snomed confirmed both concept IDs and semantic tags are valid.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2783,
+        "output_tokens": 737,
+        "total_tokens": 3520,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "ff82ee9b-6ad2-41a2-8257-fec3f36823d3",
+        "date": "2025-12-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "65285244-9a67-43e5-9fb0-88fa54c2f2e1",
+    "patient_id": "4587070033",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is an auto-filed urine culture result reviewed by Dr Patel; the existing code 1023711000000100 (Urine culture, observable entity) is appropriate for a structured lab pipeline filing. lookup_concept returned an unreliable/corrupted result for this concept ID, but search_snomed confirms it is the correct SNOMED observable entity term. No explicit UTI diagnosis is documented \u2014 the lab itself states therapy is not indicated unless the patient is systemically unwell, the count is borderline (10\u2074\u201310\u2075 organisms/ml), and the reviewer noted the result as 'abnormal but expected'; bacteriuria as a separate finding is not warranted without an explicit clinical interpretation in the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3685,
+        "output_tokens": 1078,
+        "total_tokens": 4763,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "65285244-9a67-43e5-9fb0-88fa54c2f2e1",
+        "date": "2025-12-17",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e1347fb4-cad6-4caa-8534-3e2526cd1dc2",
+    "patient_id": "4587070033",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "msu sent",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly documents 'msu sent', indicating a midstream urine specimen was collected and sent for culture \u2014 a clinically significant procedure that should be coded in this encounter.",
+          "snomed_search": "midstream urine examination",
+          "snomed_concept_id": "430823004",
+          "preferred_term": "Examination of midstream urine specimen (procedure)",
+          "sentence": "msu sent.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "395915003",
+          "name": "Triptorelin (substance)",
+          "severity": "low",
+          "reason": "Individual drug substances (triptorelin/Decapeptyl) belong in the medication record, not as a coded clinical encounter concept; the androgen deprivation therapy procedure code already captures the clinical activity.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "notes": "The primary coding is clinically sound \u2014 prostate cancer (399068003 confirmed correct), suspected UTI (314940005 confirmed correct), and LUTS are all appropriate. However, the androgen deprivation therapy concept ID 802921000000105 is unverifiable and does not match the confirmed SNOMED concept 707266006 (Androgen deprivation therapy (procedure)) \u2014 the system should replace it; the MSU procedure is undocumented in the coded list despite being explicitly actioned in the plan; and triptorelin as a substance code is redundant and out of scope for encounter coding. The TURP planned for next month should not be coded as a present procedure.",
+      "confidence": 0.82,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10504,
+        "output_tokens": 1877,
+        "total_tokens": 12381,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "e1347fb4-cad6-4caa-8534-3e2526cd1dc2",
+        "date": "2025-12-17",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bc44648d-f525-42a4-b0dd-2c1a749716c4",
+    "patient_id": "4587070033",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "slight pain urinating",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dysuria is explicitly documented in the handwritten note and is a codeable symptom finding independent of the UTI diagnosis.",
+          "snomed_search": "dysuria",
+          "snomed_concept_id": "49650001",
+          "preferred_term": "Dysuria (finding)",
+          "sentence": "Hand written note stating patient has a catheter and is struggling to pu, feels unwell, slight pain urinating.",
+          "char_start": 130,
+          "char_end": 230
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "700372006",
+          "name": "Urinary tract infection associated with catheter (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "This is a nurse triage encounter with symptoms only (odorous urine, dysuria, malaise) and a CSU sent awaiting culture; no clinician has confirmed the diagnosis \u2014 the note explicitly states 'added to duty' for GP review, so the assertion should be 'possible' until culture results confirm infection."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The catheter-in-situ finding is correctly coded with the right assertion. The CAUTI code is clinically reasonable but premature as 'present' \u2014 culture is pending and the encounter is a nurse triage handoff awaiting GP review; 'possible' is the appropriate assertion at this stage. Dysuria is explicitly documented and should be added as a separate finding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5415,
+        "output_tokens": 1330,
+        "total_tokens": 6745,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "bc44648d-f525-42a4-b0dd-2c1a749716c4",
+        "date": "2025-12-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "90e7a662-97c7-41ac-918f-5b04adb9ecac",
+    "patient_id": "4587070033",
+    "date": "2025-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "313500004",
+          "name": "Urine protein/creatinine ratio measurement (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an Extension Namespace placeholder (unreliable); the correct SNOMED concept for urine PCR is the observable entity 1028731000000100 'Urine protein/creatinine ratio', not a procedure code \u2014 and the terminology server cannot confirm 313500004 is a valid procedure in this context.",
+          "replace_with_concept_id": "1028731000000100",
+          "replace_with_preferred_term": "Urine protein/creatinine ratio (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "109989006",
+          "name": "Multiple myeloma (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The note states '?myeloma' as a reason for investigation \u2014 this is an unconfirmed diagnostic query, not a confirmed active diagnosis; coding it as present implies a confirmed malignancy which is clinically unsafe and misleading."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "The most significant issue is the multiple myeloma code being asserted as 'present' when the note clearly documents only '?myeloma' (a diagnostic query) \u2014 this must be changed to 'possible' to avoid a false confirmed malignancy on the patient record. Additionally, the urine PCR code (313500004) returned as an unreliable Extension Namespace placeholder and should be replaced with the confirmed observable entity 1028731000000100. All other observable entity codes are consistent with structured lab pipeline output and are not flagged. The eGFR code (963621000000102) also returned unreliable on lookup but is a lab pipeline code and is excluded from overcoding per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6312,
+        "output_tokens": 1268,
+        "total_tokens": 7580,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "90e7a662-97c7-41ac-918f-5b04adb9ecac",
+        "date": "2025-12-23",
+        "coded_count": 20
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "acde9270-f979-4cc1-91dc-2e00ceffe306",
+    "patient_id": "4587070033",
+    "date": "2025-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "?myeloma",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The clinical information explicitly documents '?myeloma' as the reason for requesting serum free light chains; this is an active suspected haematological malignancy under investigation and must be coded as a possible diagnosis.",
+          "snomed_search": "multiple myeloma",
+          "snomed_concept_id": "109989006",
+          "preferred_term": "Multiple myeloma (disorder)",
+          "sentence": "Clinical Information: Reasons for Request:      raised PCR 186. ACR 33. ?myeloma.Yes.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 19 existing codes are all structured lab pipeline observable entities and are appropriate. The critical gap is the absence of a coded possible diagnosis of multiple myeloma (109989006, assertion=possible): the clinical request explicitly states '?myeloma' as the indication, and although the free light chain ratio is within range and the report concludes 'No Further Action', the suspected diagnosis driving the investigation must be recorded. The elevated PCR (186 mg/mmol) and ACR (33 mg/mmol) are raw numeric values and are not independently codeable per audit rules, but the clinician should consider whether proteinuria/albuminuria warrants a separate coded finding given the renal context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7877,
+        "output_tokens": 1262,
+        "total_tokens": 9139,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "acde9270-f979-4cc1-91dc-2e00ceffe306",
+        "date": "2025-12-23",
+        "coded_count": 19
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f58d850f-3a86-48d7-ab16-895f4dc9b4c1",
+    "patient_id": "4587070033",
+    "date": "2025-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "raised IgG 17.6 g/L (above reference range 6\u201316)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "IgG is explicitly documented as outside reference range (17.6 g/L vs 6\u201316 g/L) in the context of a ?myeloma workup; this abnormal finding should be coded and replaces the incorrectly mapped concept [45293001].",
+          "snomed_search": "immunoglobulin above reference range",
+          "snomed_concept_id": "131136006",
+          "preferred_term": "Immunoglobulin above reference range (finding)",
+          "sentence": "Immunoglobulin G level (XE259) 17.6 g/L [6 - 16] - Outside reference range",
+          "char_start": 22,
+          "char_end": 75
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "45293001",
+          "name": "Immunoglobulin G measurement (procedure) [as coded] \u2014 actual preferred term: Strain M 6906 (qualifier value)",
+          "severity": "high",
+          "reason": "Concept ID 45293001 resolves to 'Strain M 6906 (qualifier value)', not an IgG measurement procedure; this is a completely erroneous concept mapping that must be replaced with the correct finding code for raised IgG [131136006].",
+          "replace_with_concept_id": "131136006",
+          "replace_with_preferred_term": "Immunoglobulin above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most critical error is concept [45293001], which resolves to 'Strain M 6906 (qualifier value)' \u2014 a completely wrong mapping for IgG measurement; it must be replaced with the raised IgG finding [131136006]. Additionally, the explicitly negative paraprotein result should be coded as absent [415520000] given its direct relevance to the ?myeloma investigation. The '?myeloma' clinical question in the request text could not be mapped to a SNOMED situation concept from available search results and should be reviewed manually for a 'suspected multiple myeloma' situation code if available in the local extension.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 12170,
+        "output_tokens": 1825,
+        "total_tokens": 13995,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "f58d850f-3a86-48d7-ab16-895f4dc9b4c1",
+        "date": "2025-12-23",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9192f70e-4772-4419-a9da-ce29ac033002",
+    "patient_id": "4587070033",
+    "date": "2025-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "microalbuminuria",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "ACR of 33 mg/mmol is explicitly interpreted as microalbuminuria/moderately increased albuminuria in the coded evidence; the clinical finding should be coded in addition to the procedure.",
+          "snomed_search": "microalbuminuria",
+          "snomed_concept_id": "312975006",
+          "preferred_term": "Microalbuminuria (finding)",
+          "sentence": "raised PCR 186. ACR 33. ?myeloma.",
+          "char_start": 95,
+          "char_end": 104
+        },
+        {
+          "term": "proteinuria",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "PCR of 186 mg/mmol represents clinically significant proteinuria; the finding should be coded alongside the already-coded PCR procedure.",
+          "snomed_search": "proteinuria",
+          "snomed_concept_id": "29738008",
+          "preferred_term": "Proteinuria (finding)",
+          "sentence": "raised PCR 186. ACR 33. ?myeloma.",
+          "char_start": 83,
+          "char_end": 94
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "CRITICAL ERROR: Concept 363495004 is coded as 'Malignant neoplasm of muscle (disorder)' with assertion=present \u2014 this is doubly wrong. Lookup confirms the concept ID is unreliable/mismatched (returns 'organism' semantic tag), and the search confirms 363495004 is not a myeloma concept. The note states '?myeloma' (possible/suspected), so the correct coding is Multiple myeloma (109989006) with assertion=possible; this must be corrected urgently as a safety-critical issue. Additionally, the clinical findings of microalbuminuria and proteinuria are missing from the coded list despite the procedures being present.",
+      "confidence": 0.95,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6789,
+        "output_tokens": 1594,
+        "total_tokens": 8383,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "9192f70e-4772-4419-a9da-ce29ac033002",
+        "date": "2025-12-23",
+        "coded_count": 20
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5bce9549-4da8-4984-b9d8-c4b1d7a79cd8",
+    "patient_id": "4587070033",
+    "date": "2025-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "1162576007",
+          "name": "Plasma cell myeloma (morphologic abnormality)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The note documents '?myeloma' as a differential/reason-for-request only; the serum total protein result is normal with 'No Further Action', so myeloma is unconfirmed and must not be coded as present. Additionally, concept 1162576007 is a morphologic abnormality (not a disorder) \u2014 the correct clinical code is 109989006 Multiple myeloma (disorder) with assertion=possible."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "The most significant issue is that '?myeloma' (a reason-for-request differential) has been coded as present using a morphologic abnormality concept (1162576007); it should be coded as possible using the disorder concept 109989006 Multiple myeloma (disorder), especially as the result is normal with no further action. The remaining 18 codes are lab observable/procedure codes written by the structured pipeline and are appropriate; lookup_concept returned unreliable results for two concept IDs (270992008, 1028731000000100) but search_snomed confirmed both are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5614,
+        "output_tokens": 1370,
+        "total_tokens": 6984,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587070033",
+        "encounter_id": "5bce9549-4da8-4984-b9d8-c4b1d7a79cd8",
+        "date": "2025-12-23",
+        "coded_count": 19
+      }
+    },
+    "status": "done"
+  }
+]

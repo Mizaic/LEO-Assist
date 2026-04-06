@@ -1,0 +1,96 @@
+# -- DO-LEO-AI-081 -- Unified Encounter Coding Agent Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-081"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-083"]
+    user_needs: ["UN-LEO-AI-051"]
+    risks_addressed: ["R-LEO-AI-057"]
+    verification_tests: ["VT-LEO-AI-083"]
+
+  specification:
+    title: "Unified Encounter Coding Agent"
+    description: |
+      A LangGraph StateGraph implementing a clinical coding/audit agent with
+      SNOMED terminology tools. Three nodes:
+        load_encounter  -- formats state, sets mode/tier/token budget
+        coder           -- cyclic LLM + tool dispatch loop
+        post_process    -- validates verdict, adds metadata, extracts NER offsets
+
+      Seven Bedrock toolSpec tools are provided: search_snomed, lookup_concept,
+      resolve_evidence, get_patient_demographics, get_patient_problems,
+      read_context, submit_verdict (terminal). The graph loops between coder
+      and the tool dispatch inside coder until submit_verdict is called, max
+      iterations is hit, or the token budget is exhausted. The post_process
+      node adds the metadata block and validates character offsets.
+
+      In audit mode the verdict matches the legacy format (missing, overcoded,
+      wrong_assertion) for backward compatibility with the audit pipeline. In
+      code mode the verdict contains an entities list with action=add for all
+      extracted concepts. Both modes include sentence+offset for NER data.
+
+    acceptance_criteria:
+      - criterion: "Tool loop enforced"
+        type: "functional"
+        measurement: "Test"
+        target: "tool_iterations <= MAX_ITERATIONS env var; exceeding yields needs_review"
+      - criterion: "Backward-compatible audit verdict"
+        type: "functional"
+        measurement: "Test"
+        target: "Audit mode verdict has missing/overcoded/wrong_assertion keys"
+      - criterion: "Post-processing parity"
+        type: "safety"
+        measurement: "Test"
+        target: "post_process node calls run_post_processing() on entity lists"
+      - criterion: "NER offset presence"
+        type: "functional"
+        measurement: "Test"
+        target: "Each missing entity has sentence, char_start, char_end fields"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/prompts/coding_agent_v1.py"
+        description: "AUDIT_SYSTEM_PROMPT, CODE_SYSTEM_PROMPT, build_system_prompt(), PROMPT_VERSION"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/encounter_coding_agent.py"
+        description: "CodingAgentState, load_encounter, coder, post_process, build_encounter_coding_agent_subgraph"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/registry.py"
+        description: "encounter_coding_agent registered in _register_defaults"
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/extractor_registry.py"
+        description: "AgentExtractorProvider class, wired into build_extractor as agent backend"
+      - artifact_type: "source_code"
+        location: "scripts/investigations/audit_encounter_coding.py"
+        description: "_audit_one updated to invoke encounter_coding_agent subgraph"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 450
+      key_functions:
+        - "build_encounter_coding_agent_subgraph"
+        - "load_encounter"
+        - "coder"
+        - "post_process"
+        - "build_system_prompt"
+        - "AgentExtractorProvider.extract_batch"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "post_process: calls run_post_processing() before any write-back decision"
+      - "coder: enforces tool iteration and token budget limits"
+      - "AgentExtractorProvider: always invokes with apply=False"
+    risk_control_measures:
+      - "9-layer post-processing stack applied to all agent entities before tier classification"
+      - "Runtime path apply=False -- existing pipeline controls all persistence"
+      - "CODING_AGENT_ENABLED kill switch falls back to LLMExtractor without redeployment"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

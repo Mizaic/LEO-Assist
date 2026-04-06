@@ -1,0 +1,212 @@
+- id: "VT-LEO-AI-084"
+  version: "1.1"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-084"]
+    risks: ["R-LEO-AI-058"]
+
+  metadata:
+    title: "Domain-Driven Episode Detector verification"
+    description: >
+      Verifies that the anchor detector applies assertion filters correctly,
+      that the DomainRegistry fails fast when the KG is empty, that
+      EpisodeOfCare nodes carry domain_id, and that the episode_detector and
+      assertion_filter fields round-trip correctly through the API. Also
+      verifies that 'Seen in fast track' encounters are not dropped by the
+      sentence splitter or encounter classifier, and that the IS_A expansion
+      enriches concept buckets before anchor detection.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_anchor_detector.py"
+      - "tests/test_episode_builder.py"
+      - "tests/test_domain_episode_config.py"
+      - "tests/test_fast_track_pipeline_fix.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "pytest and pytest-asyncio installed"
+      - "No live Neo4j connection required (all clients mocked)"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-084-TC-001"
+      case_name: "Assertion filter excludes non-matching assertion"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Configure mock registry with cancer_types subdomain assertion_filter=['hypothetical']"
+          expected_result: "MilestoneBucket has non-empty assertion_filter frozenset"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call detect_anchors() with a row where concept_id is in cancer_types but assertion='present'"
+          expected_result: "Row is not placed in diagnosis_anchors"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result.diagnosis_anchors == []"
+
+    - case_id: "VT-084-TC-002"
+      case_name: "Assertion filter accepts matching assertion"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Configure mock registry with cancer_types assertion_filter=['hypothetical']"
+          expected_result: "MilestoneBucket assertion_filter = frozenset({'hypothetical'})"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call detect_anchors() with row where concept_id in cancer_types and assertion='hypothetical'"
+          expected_result: "Row is placed in diagnosis_anchors"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "len(result.diagnosis_anchors) == 1"
+
+    - case_id: "VT-084-TC-003"
+      case_name: "Empty assertion_filter accepts all assertions"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Configure mock registry with assertion_filter=[] on all subdomains"
+          expected_result: "MilestoneBucket.assertion_filter is empty frozenset"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call detect_anchors() with rows having assertions: present, historical, hypothetical"
+          expected_result: "All three rows appear in appropriate buckets"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Total anchor count == 3 (one per assertion type, assuming concept_ids match)"
+
+    - case_id: "VT-084-TC-004"
+      case_name: "DomainRegistry fails fast when no ValueSet nodes found"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _load_registry() with a mock KG client that returns empty rows"
+          expected_result: "RuntimeError raised with descriptive message"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "RuntimeError is raised"
+        - "Error message contains 'no ValueSet nodes found'"
+
+    - case_id: "VT-084-TC-005"
+      case_name: "domain_id is set on EpisodeOfCare MERGE"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call build_episodes() with domain_id='cancer_audit' and mock patient_client"
+          expected_result: "patient_client.run() called with domain_id='cancer_audit' in kwargs"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "mock_client.run call_args includes domain_id='cancer_audit'"
+
+    - case_id: "VT-084-TC-006"
+      case_name: "episode_detector flag round-trips through API"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST /analytics/domains with episode_detector=true in body"
+          expected_result: "Response contains episode_detector=true"
+          verification_method: "automated"
+        - step_number: 2
+          action: "GET /analytics/domains/{id}"
+          expected_result: "Response contains episode_detector=true"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "GET response episode_detector matches value set on creation"
+
+    - case_id: "VT-084-TC-007"
+      case_name: "assertion_filter round-trips through subdomain API"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "PUT /analytics/domains/{id}/subdomains/{name} with assertion_filter=['hypothetical']"
+          expected_result: "Response assertion_filter == ['hypothetical']"
+          verification_method: "automated"
+        - step_number: 2
+          action: "GET /analytics/domains/{id}/subdomains/{name}"
+          expected_result: "assertion_filter == ['hypothetical']"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "GET assertion_filter matches value set via PUT"
+
+    - case_id: "VT-084-TC-008"
+      case_name: "sentence_splitter preserves 'Seen in fast track' lines"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build a SentenceChunk whose text matches a header pattern AND contains 'seen in fast track'"
+          expected_result: "filter_header_sentences returns the chunk (allowlist wins)"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Build a SentenceChunk with a header pattern and no fast-track text"
+          expected_result: "filter_header_sentences removes the chunk"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Fast-track chunk is retained after filtering"
+        - "Pure header chunk is removed after filtering"
+
+    - case_id: "VT-084-TC-009"
+      case_name: "encounter_classifier promotes 'Seen in fast track' encounter to clinical"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_text() with a short note that would normally be admin_only but contains 'seen in fast track suspected breast cancer clinic'"
+          expected_result: "Result is 'clinical' due to clinical_override rule"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "classify_text() returns 'clinical', not 'admin_only'"
+
+    - case_id: "VT-084-TC-010"
+      case_name: "IS_A expansion enriches ValueSet concept buckets"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _expand_valuesets_with_isa() with a mock KG that returns 3 child concept IDs for 1 parent"
+          expected_result: "Returned valuesets contain the 3 children in the compose.include[0].concept list"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Build anchor buckets from the expanded registry and check that a child concept_id is matched"
+          expected_result: "Child concept is classified into the correct milestone bucket"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Child concept IDs are present in the expanded ValueSet's concept list"
+        - "Anchor detection classifies a child concept into its parent's milestone bucket"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-084/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_date: "2026-04-06"
+      executor: "CI / cursor-agent"
+      environment: "development"
+      result: "pass"
+      notes: >
+        39 tests green across 3 test files. TC-001/002/003 (assertion filter)
+        in test_anchor_detector.py (13 tests). TC-004 (registry fail-fast) and
+        TC-006/007 (model round-trips) in test_domain_episode_config.py (15 tests).
+        TC-005 (domain_id in MERGE) in test_episode_builder.py (11 tests). All
+        TC assertions verified without a live Neo4j connection.
+    - run_date: "2026-04-06"
+      executor: "CI / cursor-agent"
+      environment: "development"
+      result: "pass"
+      notes: >
+        Version 1.1 -- 8 additional tests green in test_fast_track_pipeline_fix.py.
+        TC-008 (sentence_splitter allowlist preserves fast-track lines, 3 cases).
+        TC-009 (encounter_classifier clinical_override promotes fast-track
+        encounters, 3 cases). TC-010 (IS_A expansion enriches ValueSet concept
+        buckets and child concepts are matched in anchor buckets, 2 cases).
+        Total: 47 tests pass across 4 test files.

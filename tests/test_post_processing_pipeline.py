@@ -157,7 +157,8 @@ def test_disorder_gate_suppresses_informational() -> None:
 
 # ── Scope Guard (Layer 3) ──
 
-def test_scope_guard_reclassifies_safety_netting() -> None:
+def test_scope_guard_suppresses_safety_netting() -> None:
+    """Safety-netting entities are REMOVED, not reclassified to hypothetical."""
     entities = [
         {
             "text": "chest pain",
@@ -172,6 +173,26 @@ def test_scope_guard_reclassifies_safety_netting() -> None:
     with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
         result = run_post_processing(encounter, entities)
 
+    assert result == [], "Safety-netting entity must be suppressed (removed)"
+
+
+def test_scope_guard_keeps_recommendation_as_hypothetical() -> None:
+    """Conditional clinical plans stay in the pipeline as hypothetical."""
+    entities = [
+        {
+            "text": "metformin",
+            "label": "substance",
+            "start": 17,
+            "end": 26,
+            "assertion": "present",
+        },
+    ]
+    encounter = "Consider starting metformin if HbA1c remains elevated"
+
+    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
+        result = run_post_processing(encounter, entities)
+
+    assert len(result) == 1
     assert result[0]["assertion"] == "hypothetical"
 
 

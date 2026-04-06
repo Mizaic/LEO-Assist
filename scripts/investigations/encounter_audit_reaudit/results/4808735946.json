@@ -1,0 +1,2343 @@
+[
+  {
+    "encounter_id": "1a40bf86-16f9-47a7-bba0-5c38b340ff65",
+    "patient_id": "4808735946",
+    "date": "2024-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "htn",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The request reason explicitly states 'htn / predm review', indicating hypertension is an active condition being monitored in this encounter; it is absent from the coded list for this encounter.",
+          "snomed_search": "hypertension",
+          "snomed_concept_id": "38341003",
+          "preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: htn / predm review.",
+          "char_start": 120,
+          "char_end": 160
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "714628002 (Prediabetes) is correctly coded and confirmed by search \u2014 the lookup_concept server result was unreliable (returned 'organism' tag) but search_snomed confirms the concept ID is valid. Hypertension ('htn') is explicitly named as a review reason alongside prediabetes but is not coded in this encounter; it should be present on the problem list, but if not already a standing code it is a genuine gap. Urine albumin result is normal \u2014 no additional finding code required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2373,
+        "output_tokens": 1002,
+        "total_tokens": 3375,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "1a40bf86-16f9-47a7-bba0-5c38b340ff65",
+        "date": "2024-01-16",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b25f9499-7349-4989-ab9f-a1197a96c28a",
+    "patient_id": "4808735946",
+    "date": "2024-01-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "Essential hypertension is documented as an active, ongoing problem with multiple antihypertensives on repeat; the historical situation code is redundant and misleading given that 59621000 Essential hypertension (disorder) is already correctly coded as present in the same encounter.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three of the four coded concepts are correct and well-evidenced: active essential hypertension (59621000), hypercholesterolaemia (13644009), and acquired hypothyroidism (111566002) are all appropriately coded as present. The only issue is that 161501007 'History of hypertension (situation)' is redundant and contradictory alongside the active disorder code 59621000 \u2014 retaining both implies the condition is simultaneously active and historical; the situation code should be removed. All four lookup_concept calls returned unreliable results (wrong semantic tags), but search_snomed confirmed all concept IDs are valid and correctly mapped.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5679,
+        "output_tokens": 1524,
+        "total_tokens": 7203,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "b25f9499-7349-4989-ab9f-a1197a96c28a",
+        "date": "2024-01-23",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1132149d-5088-46b3-a669-88edb8d59f95",
+    "patient_id": "4808735946",
+    "date": "2024-02-29",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is entirely administrative \u2014 a receptionist-processed repeat prescription request with no GP clinical review, no symptoms, no examination, and no diagnostic narrative. The three existing coded concepts were derived solely from medication names, which is explicitly out of scope for this audit; they are not challenged here as standing problem-list codes cannot be removed on the basis of an admin-only note.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 787,
+        "output_tokens": 495,
+        "total_tokens": 1282,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "1132149d-5088-46b3-a669-88edb8d59f95",
+        "date": "2024-02-29",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6a9b8c5d-ab25-4983-9875-4f4a9b55e1bb",
+    "patient_id": "4808735946",
+    "date": "2024-04-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "panic disorder",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient has 'struggled with panic for years', has seen a psychologist/counsellor, and diazepam is being trialled for panic/stress \u2014 this is a specific diagnosable condition that should be coded rather than the vague 'Mental disorder'.",
+          "snomed_search": "panic disorder",
+          "snomed_concept_id": "371631005",
+          "preferred_term": "Panic disorder (disorder)",
+          "sentence": "Struggled with panic for years - has seen psychologist/ counsellor",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "carer of person with dementia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient is identified as the main carer for his mother and his partner has developed dementia \u2014 this is a clinically relevant social circumstance affecting his mental health presentation and should be coded.",
+          "snomed_search": "carer for person with dementia",
+          "snomed_concept_id": "824401000000105",
+          "preferred_term": "Carer of person with dementia (finding)",
+          "sentence": "Main carer for Mum also",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The concept lookup returned unreliable results (organism tag), and active Essential hypertension (59621000) is already coded \u2014 the 'history of' situation code is superseded by the active disorder code and should be removed to avoid duplication.",
+          "replace_with_concept_id": "59621000",
+          "replace_with_preferred_term": "Essential hypertension (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "Coded twice (duplicate) and too non-specific \u2014 the note clearly supports a diagnosis of Panic disorder (371631005); both instances of this vague code should be replaced by the more specific concept."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter has two significant coding issues: (1) 'Mental disorder' (74732009) is coded twice and should be replaced by the specific 'Panic disorder' (371631005) which is clearly supported by the clinical narrative; (2) 'History of hypertension' (161501007) is redundant given that active 'Essential hypertension' (59621000) is already coded. Additionally, the patient's role as carer for a person with dementia is clinically relevant to the mental health presentation and is missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9836,
+        "output_tokens": 2004,
+        "total_tokens": 11840,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "6a9b8c5d-ab25-4983-9875-4f4a9b55e1bb",
+        "date": "2024-04-22",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0c169606-e295-448a-8ead-16ad6330f063",
+    "patient_id": "4808735946",
+    "date": "2024-05-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TFTs out of range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'TFTs out of range' \u2014 this is an active clinical finding that drove the dose change and repeat bloods request, and should be coded as an abnormal finding rather than a procedure.",
+          "snomed_search": "thyroid function test abnormal",
+          "snomed_concept_id": "312399001",
+          "preferred_term": "Thyroid function tests abnormal (finding)",
+          "sentence": "TFTs out of range.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Thyroid Stimulating Hormone (Requested)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A TSH blood test has been explicitly requested in this encounter and should be coded as a procedure in its own right, separate from any abnormal finding.",
+          "snomed_search": "thyroid stimulating hormone measurement",
+          "snomed_concept_id": "61167004",
+          "preferred_term": "Thyroid stimulating hormone measurement (procedure)",
+          "sentence": "Pathology Request (Complete): Thyroid Stimulating Hormone (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lost about 2st in weight intentionally through diet change",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Intentional weight loss of approximately 2 stone is explicitly documented as a current finding and is clinically relevant in the context of hypothyroidism management.",
+          "snomed_search": "intentional weight loss",
+          "snomed_concept_id": "416528001",
+          "preferred_term": "Intentional weight loss (finding)",
+          "sentence": "has lost about 2st in weight intentionally through diet change.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "35650009",
+          "name": "Thyroid panel (procedure)",
+          "severity": "medium",
+          "reason": "The clinical evidence cited for this code is 'TFTs out of range' \u2014 an abnormal finding, not a thyroid panel procedure; the correct code for this evidence is 312399001 Thyroid function tests abnormal (finding), and the TSH request should be coded separately as 61167004.",
+          "replace_with_concept_id": "312399001",
+          "replace_with_preferred_term": "Thyroid function tests abnormal (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The telephone consultation and acquired hypothyroidism are correctly coded (concept IDs confirmed via search despite unreliable direct lookups). The main issue is that the abnormal TFT result has been miscoded as a procedure (Thyroid panel) rather than the finding 'Thyroid function tests abnormal'; additionally, the explicitly requested TSH test and the documented intentional weight loss (~2 stone via diet) are both uncoded. Note: the levothyroxine dose reduction is a medication change and is out of SNOMED scope here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6790,
+        "output_tokens": 1951,
+        "total_tokens": 8741,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "0c169606-e295-448a-8ead-16ad6330f063",
+        "date": "2024-05-24",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fdeabdea-75a0-4313-872f-d712beddf019",
+    "patient_id": "4808735946",
+    "date": "2024-06-18",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-issued repeat medication request, ETP printing status lines, and a Summary Care Record preference update \u2014 there is no clinical narrative, prescriber review, examination, or diagnosis documented. The two standing problem-list codes (hypothyroidism, postoperative hypertension) were inferred from the medication list rather than from explicit clinical text in this encounter, which is not permitted; however, as they are standing problem-list codes and nothing in the note contradicts them, they must not be removed on the basis of this administrative encounter alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2197,
+        "output_tokens": 658,
+        "total_tokens": 2855,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "fdeabdea-75a0-4313-872f-d712beddf019",
+        "date": "2024-06-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "154a47ce-3e57-44b8-b21d-23099ce78715",
+    "patient_id": "4808735946",
+    "date": "2024-06-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "402798004",
+          "name": "Neonatal fungal infection of skin (disorder)",
+          "severity": "high",
+          "reason": "This concept is clinically inappropriate \u2014 'neonatal' fungal skin infection does not apply to this adult patient presenting with a possible ankle rash; lookup_concept also returned this ID as unreliable (organism semantic tag). The correct concept for a possible tinea/fungal skin infection on the ankle in an adult is Tinea corporis (84849002), coded with a 'possible' assertion to reflect the '?' in the diagnosis.",
+          "replace_with_concept_id": "84849002",
+          "replace_with_preferred_term": "Tinea corporis (disorder)",
+          "replace_with_assertion": "possible"
+        },
+        {
+          "conceptId": "373450007",
+          "name": "Terbinafine (substance)",
+          "severity": "low",
+          "reason": "Substance codes for individual drug names are out of scope for clinical encounter coding \u2014 medications are recorded in the medication record, not as SNOMED substance concepts on the encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis code [402798004] is a significant error: 'Neonatal fungal infection of skin' is clinically inapplicable to this adult and the concept ID is flagged as unreliable by the terminology server; it should be replaced with Tinea corporis (84849002) with a 'possible' assertion to reflect the uncertain '?' diagnosis. The Terbinafine substance code is also out of scope for encounter-level clinical coding. The encounter type code [185202000] is correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5628,
+        "output_tokens": 1313,
+        "total_tokens": 6941,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "154a47ce-3e57-44b8-b21d-23099ce78715",
+        "date": "2024-06-25",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1cf1db38-6e84-46c0-ae57-dc66af2e8df7",
+    "patient_id": "4808735946",
+    "date": "2024-08-14",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter is purely administrative \u2014 a receptionist-processed repeat prescription request with no clinical narrative, examination, diagnosis, or prescriber review text. All 4 coded concepts appear to be standing problem-list codes inferred from medication names rather than from any clinical content in this encounter; per audit rules, problem-list codes must not be added or removed on the basis of admin-only encounters. Note: the terminology server returned unreliable/corrupted results for all 4 concept IDs (semantic tags returned as 'organism' or 'namespace concept'), which should be investigated separately by the terminology team, but this does not affect the admin-only classification of this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4022,
+        "output_tokens": 914,
+        "total_tokens": 4936,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "1cf1db38-6e84-46c0-ae57-dc66af2e8df7",
+        "date": "2024-08-14",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f348d950-b1a3-44bd-b6ea-75a77eb69bd7",
+    "patient_id": "4808735946",
+    "date": "2024-09-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FH of psoriasis",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly documents a family history of psoriasis ('FH of psoriasis'), which is clinically relevant as it supports the diagnosis and should be coded as a family history situation.",
+          "snomed_search": "family history psoriasis",
+          "snomed_concept_id": "160408009",
+          "preferred_term": "Family history: Psoriasis (situation)",
+          "sentence": "FH of psoriasis, looks typical of this.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1336081003",
+          "name": "Situational crisis (finding)",
+          "severity": "medium",
+          "reason": "The note describes mild situational/travel anxiety (PRN diazepam for flights and unfamiliar environments abroad, not used day-to-day), which does not constitute a 'situational crisis'; the correct concept is Anxiety (finding).",
+          "replace_with_concept_id": "48694002",
+          "replace_with_preferred_term": "Anxiety (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Psoriasis is correctly coded as the primary problem. However, the anxiety indication for diazepam has been overcoded as 'Situational crisis' \u2014 the note clearly describes mild, intermittent travel/flight anxiety (PRN, not used day-to-day), better captured as Anxiety (finding) [48694002]. The explicitly documented family history of psoriasis is missing and should be added with a family assertion. Note: lookup_concept returned unreliable/corrupted results for both coded concept IDs, but search_snomed confirmed both are valid SNOMED concepts in the correct semantic tags.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6891,
+        "output_tokens": 1515,
+        "total_tokens": 8406,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "f348d950-b1a3-44bd-b6ea-75a77eb69bd7",
+        "date": "2024-09-04",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6baf721b-c721-4a34-998e-677813f3e911",
+    "patient_id": "4808735946",
+    "date": "2024-09-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of a repeat prescription issue list, ETP print status lines, and a Summary Care Record preference note \u2014 there is no clinical narrative, examination, diagnosis, or management plan from which SNOMED concepts can be derived. The two standing coded concepts (Hypothyroidism 40930008; Postoperative hypertension 5501000119106) were inferred from medication names rather than explicit encounter text and must not be audited against this admin-only note; however, it is worth a human review of whether 'Postoperative hypertension' is the correct standing code for this patient's hypertension, as it is an unusually specific post-surgical subtype that may not reflect the true underlying diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3983,
+        "output_tokens": 952,
+        "total_tokens": 4935,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "6baf721b-c721-4a34-998e-677813f3e911",
+        "date": "2024-09-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0aef7a50-840b-47b2-9638-cef88a8eb6c1",
+    "patient_id": "4808735946",
+    "date": "2024-09-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of a receptionist access-role log recording repeat medication requests by the patient \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text present. The three coded concepts appear to have been inferred from medication names rather than from any clinical documentation in this encounter; per audit rules, medication-inferred diagnoses must not be coded from the encounter note, and standing problem-list codes must not be flagged on admin-only encounters. No coding action is warranted from this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1975,
+        "output_tokens": 538,
+        "total_tokens": 2513,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "0aef7a50-840b-47b2-9638-cef88a8eb6c1",
+        "date": "2024-09-23",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ba709bb7-0c16-4b63-99c0-165dd97f96db",
+    "patient_id": "4808735946",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Consent given for seasonal influenza vaccination",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Consent given for seasonal influenza vaccination (XaZ0l)' twice; this is a clinically and medico-legally relevant finding that should be coded alongside the vaccination procedure.",
+          "snomed_search": "consent given seasonal influenza vaccination",
+          "snomed_concept_id": "822991000000104",
+          "preferred_term": "Consent given for seasonal influenza vaccination (finding)",
+          "sentence": "Consent given for seasonal influenza vaccination (XaZ0l)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The influenza vaccination procedure (86198006) is correctly coded \u2014 the lookup returned unreliable/organism but a direct search confirms this is a valid procedure concept. The explicit consent finding (822991000000104) is documented twice in the note but has not been coded; this should be added to support medico-legal records and immunisation audit trails. All other content (COVID eligibility advice, SCR preference override) is administrative and not codeable in scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5762,
+        "output_tokens": 991,
+        "total_tokens": 6753,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "ba709bb7-0c16-4b63-99c0-165dd97f96db",
+        "date": "2024-10-18",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2fa189e1-cdf3-4e9c-b357-b7e13a714c76",
+    "patient_id": "4808735946",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "427970008",
+          "name": "Subclinical hyperthyroidism (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly uses '? over treated hypothyroidism' \u2014 a query, not a confirmed diagnosis \u2014 and the patient is on thyroxine, making 237509009 'Thyrotoxicosis on thyroxine therapy' a more specific and clinically accurate concept; the current code at assertion=present overstates certainty.",
+          "replace_with_concept_id": "237509009",
+          "replace_with_preferred_term": "Thyrotoxicosis on thyroxine therapy (disorder)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "427970008",
+          "name": "Subclinical hyperthyroidism (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinical note uses '?' throughout ('? over treated hypothyroidism') and advises to 'correlate with symptoms / consider dose reduction', indicating this is a query rather than a confirmed active diagnosis; assertion should be possible, not present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The encounter is an auto-filed TFT result with GP review. The 17 observable entity codes from the structured lab pipeline are appropriate and should not be disturbed. The primary coding issue is [427970008] Subclinical hyperthyroidism coded as assertion=present: the note explicitly queries over-treatment ('? over treated hypothyroidism') and the patient is on exogenous thyroxine, making 237509009 'Thyrotoxicosis on thyroxine therapy (disorder)' with assertion=possible the more accurate representation. [700449008] Non-diabetic hyperglycemia is defensible as a standing problem-list code given 'predm review' in the request reason, and [161501007] History of hypertension is correctly coded from 'htn' in the request reason.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9316,
+        "output_tokens": 1823,
+        "total_tokens": 11139,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "2fa189e1-cdf3-4e9c-b357-b7e13a714c76",
+        "date": "2024-11-01",
+        "coded_count": 17
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1ff118f2-96aa-4b50-83e4-48861bb70890",
+    "patient_id": "4808735946",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "predm",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Prediabetes is explicitly listed as a reason for this review ('htn / predm review') and the HbA1c of 37 mmol/mol is consistent with this clinical interpretation, but no prediabetes concept has been coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Reasons for Request: htn / predm review.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The note documents an active 'htn review', indicating hypertension is a current active condition under management, not merely a historical situation; a disorder-level active hypertension code is more appropriate.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a blood test review for hypertension and prediabetes: prediabetes is explicitly named as a reason for review but has not been coded, and hypertension is coded as a historical situation rather than an active disorder. The 14 observable entity lab codes are pipeline-generated and are appropriate. 'On thyroxine' is noted but per coding rules a hypothyroidism diagnosis cannot be inferred from medication reference alone without explicit diagnostic text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8261,
+        "output_tokens": 1600,
+        "total_tokens": 9861,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "1ff118f2-96aa-4b50-83e4-48861bb70890",
+        "date": "2024-11-01",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "eb6344f2-77d5-49c0-a7e8-1a5785fedbf3",
+    "patient_id": "4808735946",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm review",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The reason for request explicitly states 'htn / predm review', indicating prediabetes is an active clinical condition under review and should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: On thyroxine. Reasons for Request: htn / predm review.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Coding is largely correct: hypertriglyceridaemia (302870006) and history of hypertension (161501007) are both confirmed valid concepts. The only gap is prediabetes (714628002), which is explicitly named as a reason for the review ('predm review') and should be coded as present. Observable entity lab codes are pipeline-generated and not audited here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7837,
+        "output_tokens": 1392,
+        "total_tokens": 9229,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "eb6344f2-77d5-49c0-a7e8-1a5785fedbf3",
+        "date": "2024-11-01",
+        "coded_count": 17
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5f49ff97-0670-4f02-9d80-3fe360566cff",
+    "patient_id": "4808735946",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm review",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly states 'predm review' (prediabetes review) as a reason for the request, making prediabetes an active coded finding for this patient.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: On thyroxine. Reasons for Request: htn / predm review.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coding is largely appropriate for an auto-filed FBC result encounter. The main gap is prediabetes (714628002), explicitly named as a clinical reason for the review ('predm review') and not captured in the coded list. The basophil count outside reference range (165528007) is correctly coded despite the overall FBC report being marked 'Normal, No Further Action' \u2014 the individual result is genuinely outside range and was reviewed. Observable entity codes are pipeline-generated and not audited. History of hypertension (161501007) lookup returned unreliable server results but is clinically plausible given 'htn' in the request; not flagged as overcoded per policy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6124,
+        "output_tokens": 1263,
+        "total_tokens": 7387,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "5f49ff97-0670-4f02-9d80-3fe360566cff",
+        "date": "2024-11-01",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d7b5f8dd-bd3e-453f-8cc4-a80027881439",
+    "patient_id": "4808735946",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm review / pre-diabetes",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The reason for request explicitly states 'htn / predm review' indicating an active pre-diabetes review is being conducted, and HbA1c has been requested as part of this LTC workup \u2014 pre-diabetes should be coded as an active finding.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Reasons for Request: htn / predm review.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "high",
+          "reason": "This is an active LTC hypertension review with BP monitoring (131/90 mmHg), hypertension monitoring coded, and ongoing pathology requests \u2014 the condition is active and being managed, not merely historical; the active disorder code should be used instead.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The main coding issue is the use of 'History of hypertension (situation)' for what is clearly an active, monitored LTC condition \u2014 this should be replaced with the active hypertensive disorder code 38341003. Additionally, pre-diabetes is referenced as the explicit reason for this LTC review and should be coded as an active finding (714628002); the AUDIT-C score of 11 and hazardous alcohol use are correctly coded, and all observable entity lab codes appear to have been written by the structured pipeline and are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 16644,
+        "output_tokens": 1927,
+        "total_tokens": 18571,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "d7b5f8dd-bd3e-453f-8cc4-a80027881439",
+        "date": "2024-11-01",
+        "coded_count": 22
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "aa0503de-841a-4e44-80a9-93d27f36ef8b",
+    "patient_id": "4808735946",
+    "date": "2024-11-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Mood low",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Low mood is explicitly documented as a current finding and is clinically relevant alongside the anxiety presentation.",
+          "snomed_search": "low mood",
+          "snomed_concept_id": "366979004",
+          "preferred_term": "Depressed mood (finding)",
+          "sentence": "Mood low.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "40930008",
+          "name": "Hypothyroidism (disorder)",
+          "severity": "high",
+          "reason": "The note explicitly states 'Hypothyroidism over treated' with a suppressed TSH of 0.18; the active clinical problem is iatrogenic thyrotoxicosis (excess levothyroxine), not hypothyroidism itself \u2014 a more specific and clinically accurate code should replace this.",
+          "replace_with_concept_id": "237508001",
+          "replace_with_preferred_term": "Iatrogenic thyrotoxicosis (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary diagnosis of over-treated hypothyroidism is coded too broadly \u2014 the clinical picture (suppressed TSH, dose reduction, explicit 'over treated' language) maps to Iatrogenic thyrotoxicosis (237508001) rather than plain Hypothyroidism. Additionally, the explicitly documented 'Mood low' finding is absent from the coded list. The GAD and thyroid lab observable entity codes are appropriate. Note: lookup_concept returned unreliable/wrong results for both disorder codes; concept identity was confirmed via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7188,
+        "output_tokens": 1588,
+        "total_tokens": 8776,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "aa0503de-841a-4e44-80a9-93d27f36ef8b",
+        "date": "2024-11-11",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "af2fe637-ff8a-41a5-907b-1d03d3ef1fe4",
+    "patient_id": "4808735946",
+    "date": "2024-11-25",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is entirely administrative \u2014 a receptionist-processed repeat prescription request with no GP clinical narrative, examination, diagnosis, or investigation interpretation. The 3 existing codes appear to be standing problem-list entries and must not be removed on the basis of an admin-only encounter; no coding action is required from this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 885,
+        "output_tokens": 411,
+        "total_tokens": 1296,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "af2fe637-ff8a-41a5-907b-1d03d3ef1fe4",
+        "date": "2024-11-25",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "65b36d7a-4c89-46be-aa5b-16c7035a98c0",
+    "patient_id": "4808735946",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Snoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Snoring is explicitly documented as an active symptom and is clinically relevant in the context of the patient's daytime somnolence and sleep complaints.",
+          "snomed_search": "snoring",
+          "snomed_concept_id": "72863001",
+          "preferred_term": "Snoring (finding)",
+          "sentence": "Snorer - lost a lot of weight previously and this improved.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Early morning waking",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Early morning waking (~5am) is explicitly documented as a distinct sleep symptom separate from fatigue and should be coded in its own right.",
+          "snomed_search": "early morning waking",
+          "snomed_concept_id": "401236004",
+          "preferred_term": "Early morning waking (finding)",
+          "sentence": "Wakes early ~5am.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Thyroid stimulating hormone measurement",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A TSH blood test was explicitly requested in the pathology section as part of thyroid monitoring; the procedure should be coded from this encounter.",
+          "snomed_search": "thyroid stimulating hormone measurement",
+          "snomed_concept_id": "61167004",
+          "preferred_term": "Thyroid stimulating hormone measurement (procedure)",
+          "sentence": "Thyroid Stimulating Hormone (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "288856003",
+          "name": "Does not drink (finding)",
+          "severity": "low",
+          "reason": "Concept ID 288856003 is unverifiable (terminology server returns an Extension Namespace placeholder); the correct SNOMED concept for current non-drinking status is 105542008 'Current non-drinker of alcohol (finding)'.",
+          "replace_with_concept_id": "105542008",
+          "replace_with_preferred_term": "Current non-drinker of alcohol (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Three genuine gaps identified: snoring and early morning waking are explicitly documented sleep-related findings that complement the coded fatigue but are not captured; the TSH procedure request is missing entirely. The 'does not drink' concept ID (288856003) should be replaced with the standard 105542008. The 'Anxiety resolved' coding with assertion=present is correct. The chronic anxiety problem-list code (E2004) should be reviewed separately for reassertion to historical given the documented resolution, but this is a problem-list maintenance task rather than an encounter coding error.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 9647,
+        "output_tokens": 2381,
+        "total_tokens": 12028,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "65b36d7a-4c89-46be-aa5b-16c7035a98c0",
+        "date": "2024-12-02",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "93e12fd7-0e6d-4114-ae52-c8d106f8a22e",
+    "patient_id": "4808735946",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The 'History of hypertension' situation code (161501007) is inappropriate here \u2014 the note explicitly documents an active HTN/prediabetes review, so the active hypertension disorder code (38341003) should be used instead. All three concept lookups returned unreliable results from the terminology server (organism tag), so overcoding cannot be confirmed on that basis; the prediabetes (714628002) and blood pressure observable (75367002) codes are clinically plausible and consistent with the encounter context. The normal urine ACR result requires no additional coding per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3226,
+        "output_tokens": 1158,
+        "total_tokens": 4384,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "93e12fd7-0e6d-4114-ae52-c8d106f8a22e",
+        "date": "2024-12-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ada46e09-f7c0-4a20-8d4e-54daee75915b",
+    "patient_id": "4808735946",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The note documents an active 'htn / predm review', indicating hypertension is a current condition under active management, not a historical one; a situation code implying past history is inappropriate here.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The prediabetes code (714628002) and BP observable entity (75367002) are appropriate. However, coding active hypertension under review as 'History of hypertension (situation)' is incorrect \u2014 the encounter explicitly documents an active HTN review and the disorder code 38341003 should be used instead. The urine creatinine result is normal with no further action and does not require additional coding beyond the structured pipeline entry.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5001,
+        "output_tokens": 1269,
+        "total_tokens": 6270,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "ada46e09-f7c0-4a20-8d4e-54daee75915b",
+        "date": "2024-12-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b9d287aa-e9ea-48ea-8dc6-a1ca0df0a015",
+    "patient_id": "4808735946",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "high",
+          "reason": "The encounter is an active hypertension review with a current BP reading (128/90) documented; hypertension is an ongoing managed condition, not a historical one \u2014 a 'history of' situation code is inappropriate here.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The key issue is the use of 'History of hypertension (situation)' for what is clearly an active, managed condition under review with a current BP measurement \u2014 this should be replaced with the active hypertension disorder code 38341003. Prediabetes (714628002) is correctly coded as present given the explicit 'predm review' reason; the normal urine albumin result requires no additional coding per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5913,
+        "output_tokens": 1350,
+        "total_tokens": 7263,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "b9d287aa-e9ea-48ea-8dc6-a1ca0df0a015",
+        "date": "2024-12-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d791cbaa-abd2-4023-8744-6acb66eb1b38",
+    "patient_id": "4808735946",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The encounter is an active HTN review with a current BP reading (128/90), indicating hypertension is an ongoing active condition, not a historical one; the 'History of' situation code is inappropriate here.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The prediabetes and blood pressure observable codes are appropriate. However, the hypertension is coded as a historical situation (161501007) when the encounter is explicitly an active HTN review with a current BP measurement \u2014 this should be replaced with the active hypertensive disorder (38341003). The urine protein result is normal with no further action and does not require additional coding. Note: lookup_concept returned unreliable results for both 161501007 and 714628002; concept IDs were verified via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4996,
+        "output_tokens": 1248,
+        "total_tokens": 6244,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "d791cbaa-abd2-4023-8744-6acb66eb1b38",
+        "date": "2024-12-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "23123757-c10a-40c4-98c7-ca72c04c33a0",
+    "patient_id": "4808735946",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "high",
+          "reason": "The note documents 'htn / predm review' indicating active hypertension under management, not a historical condition; a 'history of' situation code is inappropriate when the disorder is actively being reviewed.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The principal coding issue is the use of 'History of hypertension' (161501007) when the encounter explicitly documents an active 'htn review', indicating hypertension is a current managed condition; this should be replaced with the active hypertensive disorder code (38341003). Prediabetes and the blood pressure observable entity codes are correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5436,
+        "output_tokens": 1632,
+        "total_tokens": 7068,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "23123757-c10a-40c4-98c7-ca72c04c33a0",
+        "date": "2024-12-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6ce61175-360c-48a3-b13d-89e996192d95",
+    "patient_id": "4808735946",
+    "date": "2025-01-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "under-treated hypothyroidism",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The report explicitly documents 'under-treated hypothyroidism' with TSH 7 mIU/L above range in a patient on levothyroxine \u2014 this active disorder must be coded; no specific SNOMED child for 'under-treated hypothyroidism' exists so the parent disorder is the correct level.",
+          "snomed_search": "hypothyroidism",
+          "snomed_concept_id": "40930008",
+          "preferred_term": "Hypothyroidism (disorder)",
+          "sentence": "Thyroid function test Report, Abnormal, Need to speak to doctor: under-treated hypothyroidism (Patient Informed). Review done by HORNE, Jonathan (Dr) - 07 Jan 2025 08:26",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "710809001",
+          "name": "Levothyroxine (substance) [unverified \u2014 Extension Namespace placeholder]",
+          "severity": "high",
+          "reason": "lookup_concept returned an Extension Namespace placeholder (unreliable); the evidence field confirms this was intended to represent 'under-treated hypothyroidism' \u2014 a substance code is semantically wrong for an active clinical disorder finding and must be replaced with the correct disorder concept.",
+          "replace_with_concept_id": "40930008",
+          "replace_with_preferred_term": "Hypothyroidism (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The two structured lab observable entity codes (TSH, free T4) are appropriate. However, concept 710809001 is an unverifiable Extension Namespace placeholder coded as a substance (Levothyroxine) that was incorrectly used to represent the active clinical finding of under-treated hypothyroidism; it should be replaced with 40930008 Hypothyroidism (disorder) with assertion=present to reflect the explicitly documented active, above-range TSH and clinical review conclusion.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5522,
+        "output_tokens": 1368,
+        "total_tokens": 6890,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "6ce61175-360c-48a3-b13d-89e996192d95",
+        "date": "2025-01-03",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b750fc9b-1028-4436-8174-da1db92e3c5a",
+    "patient_id": "4808735946",
+    "date": "2025-01-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hypothyroidism",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "TSH of 7 (elevated) with low-normal T4 and a levothyroxine dose increase clearly document active under-replaced hypothyroidism; the underlying disorder should be coded.",
+          "snomed_search": "hypothyroidism",
+          "snomed_concept_id": "40930008",
+          "preferred_term": "Hypothyroidism (disorder)",
+          "sentence": "Increase levo to 175mcg. rpt TFT in 8w",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "levothyroxine therapy",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a levothyroxine dose increase to 175mcg, which is a clinically significant therapeutic procedure action that should be coded.",
+          "snomed_search": "levothyroxine therapy",
+          "snomed_concept_id": "788427000",
+          "preferred_term": "Levothyroxine therapy (procedure)",
+          "sentence": "Increase levo to 175mcg. rpt TFT in 8w",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two observable entity codes (TSH, free T4) are appropriate structured lab pipeline codes. However, the underlying hypothyroidism disorder is not coded despite clear biochemical and therapeutic evidence (TSH 7, dose escalation), and the levothyroxine therapy procedure is absent. A planned repeat TFT in 8 weeks is a future procedure and should not be coded as present at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4469,
+        "output_tokens": 1433,
+        "total_tokens": 5902,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "b750fc9b-1028-4436-8174-da1db92e3c5a",
+        "date": "2025-01-15",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6e02faaf-eaad-420b-ad13-f3e3b42e9bbd",
+    "patient_id": "4808735946",
+    "date": "2025-01-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "main carer for mum",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient is the main carer for her mother, which is a clinically relevant social situation affecting her mental health and should be coded.",
+          "snomed_search": "cares for sick family member",
+          "snomed_concept_id": "151921000119105",
+          "preferred_term": "Cares for sick or handicapped family member (finding)",
+          "sentence": "Looking after mum, main carer, recently had a fall",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "nightmares",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The patient reports having nightmares, which is a positive symptom explicitly documented and distinct from the other coded findings.",
+          "snomed_search": "nightmare disorder",
+          "snomed_concept_id": "111487009",
+          "preferred_term": "Nightmare disorder (disorder)",
+          "sentence": "Having some nightmares but otherwise no significant concerns",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Core clinical coding is good \u2014 acquired hypothyroidism, depressed mood, and fatigue are all correctly captured. Three additions are recommended: the patient's carer role (clinically relevant psychosocial stressor driving low mood), explicit absent coding of suicidal ideation (important MH safety documentation given the safety-netting plan), and nightmares as a positive symptom. Note: lookup_concept returned unreliable results for concepts 366979004 and 272060000, but search_snomed confirmed both are valid SNOMED concepts with correct semantic tags.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9156,
+        "output_tokens": 1821,
+        "total_tokens": 10977,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "6e02faaf-eaad-420b-ad13-f3e3b42e9bbd",
+        "date": "2025-01-15",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2b9b757b-441d-4696-badb-bb306bfa7fca",
+    "patient_id": "4808735946",
+    "date": "2025-02-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Advice on drugs of addiction",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The nurse explicitly documented and completed a structured addiction/tolerance/withdrawal advice discussion (XE1TQ in the encounter template), which maps to a SNOMED procedure code and is absent from the coded list.",
+          "snomed_search": "drugs of addiction education",
+          "snomed_concept_id": "171047005",
+          "preferred_term": "Drugs of addiction education (procedure)",
+          "sentence": "Advice on addiction, tolerance, interaction & withdrawal: Yes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Benzodiazepine therapy / Z-drug monitoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A structured 'Benzodiazepine + Z-Drug Monitoring' template was completed during this encounter, representing an active monitoring procedure that should be coded.",
+          "snomed_search": "benzodiazepine therapy",
+          "snomed_concept_id": "770571009",
+          "preferred_term": "Benzodiazepine therapy (procedure)",
+          "sentence": "Benzodiazepine + Z-Drug Monitoring",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The core anxiety finding (48694002) is clinically appropriate for this encounter, though the terminology server returned an unreliable result for this concept ID \u2014 this is likely a server index issue and the code should be retained. Two procedure codes are missing: the explicitly documented drugs-of-addiction education discussion (171047005) and the completed benzodiazepine monitoring template (770571009), both of which are substantive clinical activities recorded in the structured template.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6388,
+        "output_tokens": 1398,
+        "total_tokens": 7786,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "2b9b757b-441d-4696-badb-bb306bfa7fca",
+        "date": "2025-02-26",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "717edeca-21ec-4c36-9d4c-88b07a1bb3c2",
+    "patient_id": "4808735946",
+    "date": "2025-03-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Thyroid Stimulating Hormone (Requested)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A pathology request for TSH was explicitly sent during this encounter to monitor levothyroxine dose adequacy and should be coded as a procedure.",
+          "snomed_search": "thyroid function test",
+          "snomed_concept_id": "1016851000000107",
+          "preferred_term": "Thyroid function test (observable entity)",
+          "sentence": "Pathology Request (Request Sent): Thyroid Stimulating Hormone (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The four existing codes are all clinically appropriate and correctly asserted for this pharmacist-led annual medication review. The only gap is the TSH pathology request, which was explicitly sent during the encounter and warrants coding; note that lookup_concept returned unreliable results for three of the four disorder codes, but all three were confirmed via search_snomed as correct concept IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4799,
+        "output_tokens": 1222,
+        "total_tokens": 6021,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "717edeca-21ec-4c36-9d4c-88b07a1bb3c2",
+        "date": "2025-03-03",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fd000eba-0af2-47a2-9786-2011d461a4dc",
+    "patient_id": "4808735946",
+    "date": "2025-03-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "Concept [1153577007] coded as 'Serum thyroid stimulating hormone below reference range (finding)' returned unreliable=true from the terminology server with a clearly incorrect semantic tag ('organism'), meaning this concept ID cannot be verified as a legitimate SNOMED finding; human review is required to confirm or replace it with a valid concept (e.g. a confirmed 'TSH below reference range' finding code). The two observable entity codes for TSH and free T4 are appropriate lab pipeline entries. The clinical interpretation of thyroxine over-replacement is clinically significant and should be captured with a verified finding or disorder code once the correct concept ID is confirmed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7663,
+        "output_tokens": 1170,
+        "total_tokens": 8833,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "fd000eba-0af2-47a2-9786-2011d461a4dc",
+        "date": "2025-03-25",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "49a36fbc-49a2-4b26-9f49-81ca9a131faa",
+    "patient_id": "4808735946",
+    "date": "2025-04-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Vomited x 1 Wednesday evening",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vomiting is explicitly documented as part of the acute illness presentation and is not captured by the existing codes.",
+          "snomed_search": "vomiting symptom",
+          "snomed_concept_id": "249497008",
+          "preferred_term": "Vomiting symptom (finding)",
+          "sentence": "Vomited x 1 Wednesday evening. Undigested food. No blood.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "scattered diverticular seen",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Diverticular disease was identified at colonoscopy on 30/1/23 and is documented in the history; it should be coded as a historical finding.",
+          "snomed_search": "diverticular disease colon",
+          "snomed_concept_id": "398050005",
+          "preferred_term": "Diverticular disease of colon (disorder)",
+          "sentence": "30/1/23 Colonoscopy. Benign polyps removed. scattered diverticular seen.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Benign polyps removed",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Benign colonic polyps were removed at colonoscopy on 30/1/23 and represent a clinically relevant historical finding that should be coded.",
+          "snomed_search": "benign polyp colon",
+          "snomed_concept_id": "698019000",
+          "preferred_term": "Benign polyp of colon (disorder)",
+          "sentence": "30/1/23 Colonoscopy. Benign polyps removed. scattered diverticular seen.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Previous history of IBS",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "IBS is explicitly documented as a previous history and should be coded as a historical disorder.",
+          "snomed_search": "irritable bowel syndrome",
+          "snomed_concept_id": "10743008",
+          "preferred_term": "Irritable bowel syndrome (disorder)",
+          "sentence": "Previous history of IBS",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "73761001",
+          "name": "Colonoscopy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The colonoscopy is explicitly dated 30/1/23 \u2014 it is a past procedure and should be asserted as historical, not present."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "The core acute presentation (food poisoning, acute diarrhoea, abdominal pain, fever, tachycardia) is well coded, but four clinically relevant findings from the history are missing: vomiting, diverticular disease of colon, benign colonic polyps, and IBS. The colonoscopy is also incorrectly asserted as present rather than historical. No safety-critical gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9908,
+        "output_tokens": 2026,
+        "total_tokens": 11934,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "49a36fbc-49a2-4b26-9f49-81ca9a131faa",
+        "date": "2025-04-04",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bdad20f7-aa0d-4214-a527-449bf5a5f89e",
+    "patient_id": "4808735946",
+    "date": "2025-04-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss of 7.5 lbs in one week in the context of gastrointestinal illness and a FIT test ordered for history of polyps is unintentional and clinically significant; the currently coded concept 416528001 resolves to a substance (DRB1*08021) on the terminology server \u2014 a completely wrong concept ID \u2014 and must be replaced with the correct finding.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Weight loss of 7.5 pounds over the past week",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "provision of faecal immunochemical test kit",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A FIT test was formally requested as a pathology investigation (documented in Pathology Request section); the currently coded procedure 401212003 is unreliable (Extension Namespace placeholder) and does not specifically represent a FIT test \u2014 a dedicated FIT procedure code should be used.",
+          "snomed_search": "faecal immunochemical test procedure",
+          "snomed_concept_id": "149421000000109",
+          "preferred_term": "Provision of faecal immunochemical test kit (procedure)",
+          "sentence": "Pathology Request (Complete): Faecal Immunochemical Test (FIT) (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves on the terminology server to 'DRB1*08021 (substance)' \u2014 a completely wrong concept entirely unrelated to weight loss; this code must be removed and replaced with 448765001 Unintentional weight loss (finding).",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "401212003",
+          "name": "Fecal screening procedure (procedure) [as coded]",
+          "severity": "medium",
+          "reason": "Concept ID 401212003 is flagged as unreliable (Extension Namespace placeholder) by the terminology server and is too generic to represent the specifically requested FIT test; replace with 149421000000109 Provision of faecal immunochemical test kit (procedure).",
+          "replace_with_concept_id": "149421000000109",
+          "replace_with_preferred_term": "Provision of faecal immunochemical test kit (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "18081009",
+          "name": "Enteric campylobacteriosis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The clinician explicitly documents 'suspected campy infection' as a differential diagnosis \u2014 this is an unconfirmed working diagnosis pending stool culture results and must be coded as possible, not present."
+        },
+        {
+          "conceptId": "68496003",
+          "name": "Polyp of colon (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note references 'history of polyps' as the reason for ordering the FIT test, indicating a past finding rather than an active current disorder."
+        },
+        {
+          "conceptId": "386661006",
+          "name": "Fever (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "low",
+          "reason": "The note states the fever of ~39\u00b0C was present for the first four days but 'has now settled', and the examination temperature is 36.1\u00b0C \u2014 the fever is resolved at the time of this encounter."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "This encounter has several significant coding errors: concept ID 416528001 is a completely wrong code (resolves to a genetic substance, not a weight loss finding) and must be urgently replaced with 448765001 Unintentional weight loss; concept ID 18081009 is correctly identified as campylobacteriosis but is asserted as present when the clinician only suspects it (pending culture), requiring a possible assertion; the polyp of colon and fever assertions are also incorrect (historical and resolved respectively). The FIT procedure code is unreliable and should be replaced with the specific FIT kit provision code. Vomiting is documented as initial/resolving and is adequately captured within the gastroenteritis context; back pain is noted but lacks further clinical elaboration in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15547,
+        "output_tokens": 2572,
+        "total_tokens": 18119,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "bdad20f7-aa0d-4214-a527-449bf5a5f89e",
+        "date": "2025-04-07",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e1d34b66-09e2-4582-bd6f-4259d124ac1e",
+    "patient_id": "4808735946",
+    "date": "2025-04-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "loose stool",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented presenting symptom ('1/52 loose stool post meal out') contributing to the 2WW referral decision and not coded.",
+          "snomed_search": "loose stools",
+          "snomed_concept_id": "398032003",
+          "preferred_term": "Loose stool (finding)",
+          "sentence": "1/52 loose stool post meal out. no blood.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three existing codes have significant problems: (1) [1085401000119108] is unreliable on the terminology server and clinically wrong \u2014 'hx of polyps' is a history, not an active complication; replace with 428283002 'History of polyp of colon (situation)' assertion=historical. (2) [255342004] is a qualifier value (not a clinical finding) and is semantically inappropriate for the symptom 'some fullness right lower abdo' \u2014 a finding-class concept should be used; no precise SNOMED finding for right lower quadrant fullness was returned by search, so human review is needed for this substitution. (3) [59614000] is the wrong concept (terminology server returned an unrelated qualifier value); replace with 71711000112103 'Occult blood detected in feces by immunoassay (finding)' which correctly represents a positive FIT result. Additionally, the presenting symptom of loose stool (398032003) is undocumented in the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8485,
+        "output_tokens": 1749,
+        "total_tokens": 10234,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "e1d34b66-09e2-4582-bd6f-4259d124ac1e",
+        "date": "2025-04-07",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "46734eb0-fa0f-4f3f-b8e6-30d32ea08a13",
+    "patient_id": "4808735946",
+    "date": "2025-04-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TSH 0.17 \u2014 below reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents TSH 0.17 and states the patient is 'currently over-treated'; the clinical interpretation of a suppressed/low TSH is a codeable finding distinct from the observable entity already coded.",
+          "snomed_search": "serum thyroid stimulating hormone below reference range",
+          "snomed_concept_id": "1153577007",
+          "preferred_term": "Serum thyroid stimulating hormone below reference range (finding)",
+          "sentence": "Currently over-treated. TSH 0.17.",
+          "char_start": 107,
+          "char_end": 140
+        },
+        {
+          "term": "Thyroid disease treatment changed \u2014 levothyroxine reduced",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents a specific dose reduction of levothyroxine for thyroid disease; 'Thyroid disease treatment changed' is the appropriate situation code for this clinical context and is more specific than the generic 'Change of medication' procedure already coded.",
+          "snomed_search": "thyroid disease treatment changed",
+          "snomed_concept_id": "170789003",
+          "preferred_term": "Thyroid disease treatment changed (situation)",
+          "sentence": "Plan: Reduce levothyroxine to 162.5mcg OD.",
+          "char_start": 248,
+          "char_end": 290
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing codes are plausible but incomplete: the TSH observable entity is present but the clinical interpretation (TSH below reference range) is missing, and the generic 'Change of medication' procedure should be supplemented or replaced by the more specific 'Thyroid disease treatment changed (situation)' which directly reflects the clinical context. Both existing concept IDs returned unreliable results from the terminology server but are confirmed via search; they have not been flagged as overcoded on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10699,
+        "output_tokens": 1722,
+        "total_tokens": 12421,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "46734eb0-fa0f-4f3f-b8e6-30d32ea08a13",
+        "date": "2025-04-14",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "adad7d1c-b7fc-4910-9fe0-4f6afdde9bb4",
+    "patient_id": "4808735946",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "IBS symptoms",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Did have some IBS symptoms leading up to the flare in diarrhoea' \u2014 this is a clinically documented active finding that should be coded.",
+          "snomed_search": "irritable bowel syndrome",
+          "snomed_concept_id": "10743008",
+          "preferred_term": "Irritable bowel syndrome (disorder)",
+          "sentence": "Did have some IBS symptoms leading up to the flare in diarrhoea.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "diverticulae",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Diverticulae were found at the January 2023 colonoscopy and are documented in the note as relevant background history informing the current clinical picture.",
+          "snomed_search": "diverticulosis large intestine",
+          "snomed_concept_id": "724538004",
+          "preferred_term": "Diverticulosis of large intestine (finding)",
+          "sentence": "Colonoscopy in Jan '23 following +ve screening FIT showed 8 benign sessile polyps scattered through the large bowel and diverticulae.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "1230009008",
+          "name": "Sessile serrated polyp of colon (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The polyps were found at colonoscopy in January 2023 and should carry a historical assertion; additionally the note describes 'benign sessile polyps' without histological confirmation of the 'serrated' subtype, so 698019000 'Benign polyp of colon (disorder)' with assertion=historical is more appropriate."
+        },
+        {
+          "conceptId": "73761001",
+          "name": "Colonoscopy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The colonoscopy was performed in January 2023 and is referenced as past history; the assertion should be historical, not present."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "One safety-critical error: 'Intentional weight loss' (416528001) is the wrong concept \u2014 the weight loss is a red-flag symptom of illness driving the 2WW colorectal referral and must be recoded as 'Unintentional weight loss' (448765001). Two historical procedures/findings are incorrectly asserted as present (colonoscopy, polyps), IBS and diverticulosis documented in the note are uncoded, and the polyp concept is over-specific given the available histological evidence.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8642,
+        "output_tokens": 2402,
+        "total_tokens": 11044,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "adad7d1c-b7fc-4910-9fe0-4f6afdde9bb4",
+        "date": "2025-04-15",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5d5eab29-c84d-4f03-ac24-1c513a5c9ce4",
+    "patient_id": "4808735946",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e587d756-3378-48ea-a77d-577e095c4135",
+    "patient_id": "4808735946",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Diarrhoea",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Diarrhoea is explicitly documented as the presenting problem for this encounter and should be coded as an active finding.",
+          "snomed_search": "diarrhoea",
+          "snomed_concept_id": "62315008",
+          "preferred_term": "Diarrhea (finding)",
+          "sentence": "Problem: Diarrhoea (19F2.)",
+          "char_start": 96,
+          "char_end": 116
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "315332003",
+          "name": "Suspected malignant neoplasm (situation)",
+          "severity": "critical",
+          "reason": "lookup_concept returned an Extension Namespace placeholder for this ID, indicating it is not a valid/confirmed concept; the correct SNOMED concept for suspected lower GI malignancy is 315274008 'Malignant neoplasm of lower gastrointestinal tract suspected (situation)', which precisely matches the clinical context of a fast-track colorectal referral.",
+          "replace_with_concept_id": "315274008",
+          "replace_with_preferred_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four existing codes are well-evidenced and correctly asserted; however, the suspected malignancy situation code (315332003) could not be confirmed by the terminology server and should be replaced with the more specific and verifiable 315274008 'Malignant neoplasm of lower gastrointestinal tract suspected'. Additionally, the presenting complaint of diarrhoea \u2014 the explicit reason for the encounter \u2014 is missing from the coded list and should be added as 62315008. The DRE procedure, enlarged prostate finding, and colorectal referral are all correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3437,
+        "output_tokens": 1325,
+        "total_tokens": 4762,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "e587d756-3378-48ea-a77d-577e095c4135",
+        "date": "2025-04-15",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "46ee6a93-707a-4c51-aa2b-b5c1587901ab",
+    "patient_id": "4808735946",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "330ada21-cf88-4076-8e59-13bb328a1e7c",
+    "patient_id": "4808735946",
+    "date": "2025-05-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f89f77b4-00fc-4bae-aad8-87b829c03e5f",
+    "patient_id": "4808735946",
+    "date": "2025-09-16",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The single coded concept 191708009 (Chronic anxiety) is well-supported by the encounter text; lookup_concept returned an unreliable result (wrong semantic tag: 'substance') but search_snomed confirms the concept as 'Chronic anxiety (finding)' \u2014 no action warranted. The encounter is a nurse prescriber repeat-supply visit with no new diagnoses explicitly documented; medication-implied conditions (hypothyroidism, hypertension, etc.) cannot be coded without explicit textual confirmation per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4233,
+        "output_tokens": 1056,
+        "total_tokens": 5289,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "f89f77b4-00fc-4bae-aad8-87b829c03e5f",
+        "date": "2025-09-16",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "76ad4345-a29b-4205-86a1-3179cc26970b",
+    "patient_id": "4808735946",
+    "date": "2025-11-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Carer of person with dementia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient's partner has dementia and he is the carer \u2014 a clinically significant social stressor directly contributing to the presenting anxiety.",
+          "snomed_search": "carer person dementia",
+          "snomed_concept_id": "824401000000105",
+          "preferred_term": "Carer of person with dementia (finding)",
+          "sentence": "Cares for Mum and also his partner has dementia",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Thyroid function test requested",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "A thyroid function test (TSH) was explicitly requested in the pathology request section as part of the clinical investigation plan for this encounter.",
+          "snomed_search": "thyroid function test",
+          "snomed_concept_id": "35650009",
+          "preferred_term": "Thyroid panel (procedure)",
+          "sentence": "Thyroid Stimulating Hormone (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The concept 74732009 'Mental disorder (disorder)' is a broad parent concept used here to represent possible alcohol dependence \u2014 this is doubly wrong: (1) the concept is far too non-specific; it should be replaced with 66590003 'Alcohol dependence (disorder)' with assertion=possible, as the clinician explicitly raised dependence as a concern ('talked about dependence') without confirming a diagnosis."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The two confirmed codes (chronic anxiety, harmful use of alcohol) are appropriate, but the third code \u2014 'Mental disorder (disorder)' (74732009) \u2014 is a critically non-specific parent concept used to represent a possible alcohol dependence concern; it must be replaced with 66590003 'Alcohol dependence (disorder)' with assertion=possible. Additionally, the patient's role as carer for a partner with dementia is an important coded finding that is missing, and the thyroid function test request should be captured as a procedure. Note: all three lookup_concept calls returned unreliable/wrong semantic tags; concept identity was confirmed via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7011,
+        "output_tokens": 2054,
+        "total_tokens": 9065,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "76ad4345-a29b-4205-86a1-3179cc26970b",
+        "date": "2025-11-10",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4fe05794-a4b0-4e49-804e-af403cc23d67",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "needs_review",
+      "entities": [],
+      "missing": [
+        {
+          "term": "anxiety symptoms increased",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as the clinical reason for the blood test request and should be coded as a finding.",
+          "snomed_search": "anxiety symptoms",
+          "snomed_concept_id": "197480006",
+          "preferred_term": "Anxiety disorder (disorder)",
+          "sentence": "Clinical Information: Clinical Details: On thyroxine. Reasons for Request: anxiety symptoms increased.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum TSH 37 miu/L \u2014 critically elevated in patient on thyroxine",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "TSH of 37 mIU/L is grossly abnormal (normal 0.4\u20134.0 mIU/L) in a patient on thyroxine therapy; the underlying hypothyroidism disorder is not coded anywhere on the problem list, and the reviewing clinician's 'No Further Action' note appears to apply only to the serum total protein result \u2014 this requires human review to confirm the TSH abnormality was not missed.",
+          "snomed_search": "hypothyroidism",
+          "snomed_concept_id": "40930008",
+          "preferred_term": "Hypothyroidism (disorder)",
+          "sentence": "Serum TSH 37 miu/L (implied from coded evidence=Serum TSH 37 miu/L); Clinical Details: On thyroxine.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "All 9 coded concepts are structured-pipeline observable entity lab codes and are appropriate. However, a TSH of 37 mIU/L is critically abnormal in a patient on thyroxine with no hypothyroidism disorder coded on the problem list, and the clinician's 'Normal / No Further Action' comment appears to refer only to the serum total protein \u2014 human review is required to confirm the TSH result was not overlooked. Additionally, 'anxiety symptoms increased' is explicitly documented as the clinical reason for the request and should be coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 9944,
+        "output_tokens": 2093,
+        "total_tokens": 12037,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "4fe05794-a4b0-4e49-804e-af403cc23d67",
+        "date": "2025-12-05",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7826a244-ad08-4012-b24a-215f4b1e086c",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is an auto-filed U&E lab result review with a \"Satisfactory, No Further Action\" outcome; all nine coded concepts are observable entity lab codes written by the structured lab pipeline and are not subject to encounter-level audit. The clinical details (\"on thyroxine\", \"anxiety symptoms increased\") appear only as background context in the lab request form, not as new diagnoses or findings assessed in this encounter, so no additional SNOMED coding is warranted from the narrative.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4501,
+        "output_tokens": 932,
+        "total_tokens": 5433,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "7826a244-ad08-4012-b24a-215f4b1e086c",
+        "date": "2025-12-05",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c2bf1100-b196-4d4e-85f7-46ff81b24ed4",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hypertriglyceridaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Serum triglycerides are 6.57 mmol/L \u2014 nearly four times the upper reference limit of 1.7 mmol/L \u2014 and the report is explicitly flagged as 'Abnormal, Need to repeat test'; the clinical disorder interpretation should be coded, not just the observable entity.",
+          "snomed_search": "hypertriglyceridaemia",
+          "snomed_concept_id": "302870006",
+          "preferred_term": "Hypertriglyceridemia (disorder)",
+          "sentence": "Serum triglyceride levels (XE2q9) 6.57 mmol/L [0 - 1.7] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant gap is the absence of a disorder code for hypertriglyceridaemia (302870006): the triglyceride result is grossly elevated at 6.57 mmol/L (ref 0\u20131.7) and the report is explicitly marked abnormal with a repeat requested. All observable entity codes appear appropriate for the structured lab pipeline. The anxiety finding (48694002) is correctly coded as present given the explicit clinical reason for request; the lookup_concept result for this ID was unreliable due to a server index issue but search_snomed confirms it as the correct concept. The patient's hypothyroidism (implied by thyroxine use and TSH/T4 results) is not coded in this encounter but is expected to be on the standing problem list and is not flagged here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4245,
+        "output_tokens": 1392,
+        "total_tokens": 5637,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "c2bf1100-b196-4d4e-85f7-46ff81b24ed4",
+        "date": "2025-12-05",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e375b329-68eb-4ea7-9311-bcf9dd7572e0",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "This encounter contains only administrative phlebotomy service workflow text (receptionist access log, consent fields, sample collection flags) with no clinical narrative, symptoms, diagnoses, or examination findings. The 8 coded observable entity concepts are all structured lab pipeline codes and are correctly excluded from audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 887,
+        "output_tokens": 414,
+        "total_tokens": 1301,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "e375b329-68eb-4ea7-9311-bcf9dd7572e0",
+        "date": "2025-12-05",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b0c8930f-d066-4d3e-b5ea-3e1ba8fb129e",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TSH above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "TSH is 37 mIU/L against a reference range of 0.55\u20134.78, explicitly flagged 'Outside reference range' in the result \u2014 the interpretive finding should be coded, not just the observable entity.",
+          "snomed_search": "TSH above reference range",
+          "snomed_concept_id": "309080005",
+          "preferred_term": "Thyroid stimulating hormone level above reference range (finding)",
+          "sentence": "Serum TSH level (XaELV) 37 miu/L [0.55 - 4.78] - Outside reference range; Results suggest under-replaced",
+          "char_start": 175,
+          "char_end": 270
+        },
+        {
+          "term": "under-replaced hypothyroidism",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The reviewing clinician explicitly documents 'Results suggest under-replaced' in the context of a patient on thyroxine with a markedly elevated TSH \u2014 this is a clinical diagnosis of under-treated hypothyroidism that warrants coding.",
+          "snomed_search": "hypothyroidism",
+          "snomed_concept_id": "40930008",
+          "preferred_term": "Hypothyroidism (disorder)",
+          "sentence": "Serum TSH level (XaELV) 37 miu/L [0.55 - 4.78] - Outside reference range; Results suggest under-replaced",
+          "char_start": 175,
+          "char_end": 270
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing observable entity codes correctly capture the structured lab measurements. However, the clinically significant interpretive finding \u2014 TSH markedly above reference range \u2014 and the explicit clinical conclusion of under-replacement on thyroxine are both missing. The hypothyroidism code should be reviewed against the problem list; if already present as a standing code, only the TSH above reference range finding needs adding for this encounter. Note: the existing concept IDs returned unreliable results from the terminology server (organism tag) but are not flagged as overcoded per audit rules, as they are consistent with structured lab pipeline codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4963,
+        "output_tokens": 1430,
+        "total_tokens": 6393,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "b0c8930f-d066-4d3e-b5ea-3e1ba8fb129e",
+        "date": "2025-12-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5a26a4d5-1cc5-451c-931c-5d719cb71161",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TSH above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "TSH of 37 mIU/L is grossly elevated (normal 0.4\u20134.0 mIU/L) in a patient on thyroxine, representing a clinically significant abnormal result that requires explicit coding as a finding.",
+          "snomed_search": "thyroid stimulating hormone above reference range",
+          "snomed_concept_id": "309080005",
+          "preferred_term": "Thyroid stimulating hormone level above reference range (finding)",
+          "sentence": "Clinical Information: Clinical Details: On thyroxine. Reasons for Request: anxiety symptoms increased.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hypothyroidism",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A TSH of 37 mIU/L in a patient established on thyroxine therapy is strongly indicative of under-treated hypothyroidism and warrants coding of the underlying disorder.",
+          "snomed_search": "hypothyroidism",
+          "snomed_concept_id": "40930008",
+          "preferred_term": "Hypothyroidism (disorder)",
+          "sentence": "Clinical Information: Clinical Details: On thyroxine. Reasons for Request: anxiety symptoms increased.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "48694002",
+          "name": "Anxiety (finding)",
+          "severity": "medium",
+          "reason": "The note references 'anxiety symptoms increased' only as the stated reason for the blood test request, not as a new diagnosis or active finding assessed in this encounter; additionally, lookup_concept returned unreliable=true with an incorrect organism semantic tag for this concept ID, casting doubt on its validity."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The most significant coding gap is the grossly elevated TSH (37 mIU/L) in a patient on thyroxine \u2014 both the abnormal TSH finding (309080005) and the underlying hypothyroidism disorder (40930008) should be coded. The anxiety code (48694002) is questionable: the concept ID returned unreliable on lookup, and clinically the note only cites anxiety as the reason for requesting bloods rather than a new diagnosis made at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5707,
+        "output_tokens": 1552,
+        "total_tokens": 7259,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "5a26a4d5-1cc5-451c-931c-5d719cb71161",
+        "date": "2025-12-05",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2d51f7b5-18dd-4f36-b749-9848b8ee2bf9",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "TSH 37 miu/L \u2014 above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "TSH of 37 miu/L is grossly elevated (normal ~0.4\u20134.0 miu/L) in a patient already on thyroxine, indicating significantly undertreated hypothyroidism; the abnormal interpretation should be coded as a finding, not just the observable entity.",
+          "snomed_search": "raised thyroid stimulating hormone",
+          "snomed_concept_id": "309080005",
+          "preferred_term": "Thyroid stimulating hormone level above reference range (finding)",
+          "sentence": "Serum thyroid stimulating hormone level (observable entity) evidence=Serum TSH 37 miu/L assertion=present",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "anxiety symptoms increased",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Increased anxiety symptoms are explicitly documented as the clinical reason for the investigation request and represent a codeable clinical finding from this encounter.",
+          "snomed_search": "anxiety symptoms",
+          "snomed_concept_id": "21897009",
+          "preferred_term": "Generalized anxiety disorder (disorder)",
+          "sentence": "Clinical Information: Clinical Details: On thyroxine. Reasons for Request: anxiety symptoms increased.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The 8 coded observable entity concepts are appropriate lab pipeline codes and are not in scope for overcoding review. Two significant gaps exist: (1) the markedly elevated TSH (37 miu/L) in a patient on thyroxine should have a finding-level interpretation code, not just the observable entity; (2) 'anxiety symptoms increased' is explicitly documented as the clinical reason for the request and warrants a finding code \u2014 note that 'anxiety symptoms' did not resolve to a specific finding via search, so the suggested concept (Generalised anxiety disorder) should be reviewed by a coder before applying, as the note describes symptoms rather than a confirmed diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5121,
+        "output_tokens": 1452,
+        "total_tokens": 6573,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "2d51f7b5-18dd-4f36-b749-9848b8ee2bf9",
+        "date": "2025-12-05",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ed0f0196-5e6b-44af-bcd7-7396aacea314",
+    "patient_id": "4808735946",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ALT outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly flags serum ALT 63 iu/L as 'Outside reference range' [10-49]; the abnormal result interpretation should be coded as a finding, not just the observable entity.",
+          "snomed_search": "alanine aminotransferase above reference range",
+          "snomed_concept_id": "409673008",
+          "preferred_term": "Alanine aminotransferase above reference range (finding)",
+          "sentence": "Serum alanine aminotransferase level (XaLJx) 63 iu/L [10 - 49] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "consistent with alcohol use",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The reviewing clinician explicitly documented the LFT abnormality as 'consistent with alcohol use', representing a clinical diagnosis of alcoholic liver damage that should be coded.",
+          "snomed_search": "alcoholic liver damage",
+          "snomed_concept_id": "41309000",
+          "preferred_term": "Alcoholic liver damage (disorder)",
+          "sentence": "Liver function tests Report, Abnormal, but expected, No Further Action: consistent with alcohol use. Review done by BRIDGES, Kirstie (Dr)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "TSH 37 mIU/L on thyroxine",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "TSH of 37 mIU/L is grossly elevated (normal 0.4\u20134.0 mIU/L) in a patient already on thyroxine, indicating severely undertreated hypothyroidism \u2014 a safety-critical finding that requires clinical coding and action.",
+          "snomed_search": "hypothyroidism",
+          "snomed_concept_id": "40930008",
+          "preferred_term": "Hypothyroidism (disorder)",
+          "sentence": "Serum thyroid stimulating hormone level (XaLJx) TSH 37 mIU/L \u2014 patient on thyroxine per clinical information.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three significant coding gaps identified: (1) the ALT abnormal result interpretation is missing despite being explicitly flagged outside reference range; (2) the reviewing clinician's clinical conclusion of 'consistent with alcohol use' for the LFT abnormality has not been coded as alcoholic liver damage; (3) critically, a TSH of 37 mIU/L in a patient on thyroxine represents severely undertreated hypothyroidism \u2014 a safety-critical finding requiring urgent clinical attention and coding. All 12 existing codes are observable entity lab pipeline codes and are correctly retained.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7778,
+        "output_tokens": 1806,
+        "total_tokens": 9584,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4808735946",
+        "encounter_id": "ed0f0196-5e6b-44af-bcd7-7396aacea314",
+        "date": "2025-12-05",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  }
+]

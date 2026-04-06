@@ -1,0 +1,33 @@
+# -- UN-LEO-AI-051 -- Unified LangGraph Coding Agent
+# IEC 62304 User Need
+
+- id: "UN-LEO-AI-051"
+  title: "Unified LangGraph-based clinical coding and audit agent"
+  description: >
+    Clinical coders and quality managers need a single, self-verifying AI agent
+    that can both extract SNOMED CT codes from encounter text (coding mode) and
+    audit existing codes for accuracy (audit mode). The agent must use SNOMED
+    terminology tools to verify concepts before proposing or flagging them,
+    provide its source sentence and character offsets for every entity (enabling
+    NER training data generation), and be operable at two model tiers so that
+    Sonnet-quality gold data can train a cheaper Haiku runtime path.
+  stakeholder: "clinical_coder"
+  priority: "high"
+  rationale: >
+    The current pipeline has separate LLM-based coding and audit paths with
+    different prompts, different quality levels, and no shared verification
+    tooling. This causes inconsistencies between coding decisions at intake and
+    audit corrections later. A unified agent with SNOMED tool access eliminates
+    round-trips for concept verification, produces first-class NER training data
+    from production encounters, and reduces LLM costs by training cheaper models
+    on Sonnet-verified gold data.
+  acceptance_criteria:
+    - "Agent correctly codes >= 85% of entities on a held-out human-labelled set (F1)"
+    - "Agent uses search_snomed before proposing any new concept ID"
+    - "Every entity in the verdict includes a source sentence and character offsets"
+    - "Haiku-tier agent agrees with Sonnet-tier on >= 80% of entity-level decisions"
+    - "Agent operates safely behind existing tier classifier and HITL review gates"
+  metadata:
+    created_date: "2026-04-05"
+    status: "draft"
+  design_inputs: ["DI-LEO-AI-083"]

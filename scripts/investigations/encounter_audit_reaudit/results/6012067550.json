@@ -1,0 +1,236 @@
+[
+  {
+    "encounter_id": "2351c1e6-dad4-4bfb-b3e4-06726311f0d1",
+    "patient_id": "6012067550",
+    "date": "2024-07-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Cervical smear - negative",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter header explicitly documents a negative cervical smear result, which is the primary clinical outcome of this screening episode and must be coded.",
+          "snomed_search": "cervical smear",
+          "snomed_concept_id": "269958004",
+          "preferred_term": "Not detected by smear of cervix (finding)",
+          "sentence": "Cervical Screening: Cervical smear - negative (XE278) - Had a baby 10 months ago has not restarted chc since.",
+          "char_start": 55,
+          "char_end": 83
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "363354003",
+          "name": "Malignant neoplasm of cervix uteri (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly documents 'Appearance of cervix suspicious of cervical cancer: No' \u2014 this is a negative/absent finding; coding a cervical malignancy as assertion=present on the basis of a documented absence is a serious and potentially harmful clinical coding error. Furthermore, lookup_concept returned an unreliable result for this concept ID (Extension Namespace placeholder), casting further doubt on the code's validity. This concept should be removed or, at minimum, corrected to assertion=absent."
+        }
+      ],
+      "confidence": 0.95,
+      "notes": "Critical error: concept 363354003 has been coded as assertion=present for a cervical malignancy when the note explicitly states the cervix was NOT suspicious for cancer \u2014 this must be corrected immediately to avoid patient harm (e.g. erroneous cancer flag on the problem list). Additionally, the negative smear result (the primary outcome of the encounter) is missing from the coded list. The lookup for concept 363354003 also returned an unreliable Extension Namespace placeholder, suggesting the concept ID itself may be incorrect.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5566,
+        "output_tokens": 1233,
+        "total_tokens": 6799,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6012067550",
+        "encounter_id": "2351c1e6-dad4-4bfb-b3e4-06726311f0d1",
+        "date": "2024-07-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ca13f46f-ae81-4b0d-b04d-323df5365f6a",
+    "patient_id": "6012067550",
+    "date": "2025-06-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1064311000000109",
+          "name": "Child protection plan (record artifact)",
+          "severity": "medium",
+          "reason": "The strategy meeting outcome was explicitly a Section 17 Child in Need plan, not a Section 47 Child Protection Plan; a formal CPP was not initiated and is only mentioned as a future contingency if the safety plan is not followed.",
+          "replace_with_concept_id": "326071000000101",
+          "replace_with_preferred_term": "Child in need plan (record artifact)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Four of the five coded concepts are appropriate and well-evidenced by the encounter text. However, coding a Child Protection Plan (1064311000000109) is incorrect: the multi-agency outcome was explicitly a Section 17 Child in Need plan (already correctly coded as 326071000000101), with Section 47 only flagged as a future escalation option \u2014 the Child in Need plan code already covers the safety plan outcome and the Child Protection Plan code should be removed to avoid misrepresenting the safeguarding status. Note: lookup_concept returned corrupted/unreliable results for several concept IDs; verification was achieved via search_snomed cross-referencing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 12388,
+        "output_tokens": 1474,
+        "total_tokens": 13862,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6012067550",
+        "encounter_id": "ca13f46f-ae81-4b0d-b04d-323df5365f6a",
+        "date": "2025-06-05",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0f4c50e9-cc10-4caa-8152-65a76f241493",
+    "patient_id": "6012067550",
+    "date": "2025-07-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "mild dull ache on and off for last week",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Mastalgia is explicitly documented as part of the presenting triad (lump + discharge + pain) and should be coded as an active finding.",
+          "snomed_search": "breast pain",
+          "snomed_concept_id": "53430007",
+          "preferred_term": "Pain of breast (finding)",
+          "sentence": "same side now noted lump and leaking with mild dull ache on and off for last week",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "cyst / glandular lobule (2016, 2018, 2019)",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Recurrent right breast cyst/glandular lobule seen in breast clinic across three prior episodes is clinically relevant history that contextualises the current presentation and should be coded as historical.",
+          "snomed_search": "breast cyst",
+          "snomed_concept_id": "399294002",
+          "preferred_term": "Cyst of breast (disorder)",
+          "sentence": "has had a lump on R side in 2016, 2018 and 2019 - was seen in breast clinic - thought to have a cyst/ glandular lobule",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes (breast lump + nipple discharge) are correct and clinically appropriate for this NG12 red-flag presentation; lookup_concept returned unreliable metadata for both IDs but search_snomed confirmed the concept IDs are valid. Two gaps identified: mastalgia (explicitly documented as part of the presenting complaint) and historical breast cyst (three prior episodes in breast clinic, directly relevant to differential diagnosis). The plan documents face-to-face review only \u2014 if a 2WW referral is subsequently made, it should be coded at that encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5450,
+        "output_tokens": 1510,
+        "total_tokens": 6960,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6012067550",
+        "encounter_id": "0f4c50e9-cc10-4caa-8152-65a76f241493",
+        "date": "2025-07-11",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "57ddd330-aa7a-4c56-9c9d-00fcf530b54c",
+    "patient_id": "6012067550",
+    "date": "2025-07-11",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of receptionist access-role entries and administrative 2WW referral routing lines (booking codes, PRISM routing, OPD waiting status); there is no clinical narrative, examination, or GP assessment present. No coding additions or deletions are warranted from this administrative record alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 532,
+        "output_tokens": 493,
+        "total_tokens": 1025,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6012067550",
+        "encounter_id": "57ddd330-aa7a-4c56-9c9d-00fcf530b54c",
+        "date": "2025-07-11",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8437db68-efc5-4c2e-9ff6-a72ff4388a31",
+    "patient_id": "6012067550",
+    "date": "2025-07-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "previous known cyst that comes and goes in outer quadrant",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a previously known recurrent breast cyst in the outer quadrant; this is a distinct, named clinical entity separate from the new lumps and should be coded as a historical/recurrent finding to complete the clinical picture.",
+          "snomed_search": "recurrent cyst breast",
+          "snomed_concept_id": "315247007",
+          "preferred_term": "Recurrent cyst of breast (disorder)",
+          "sentence": "previous known cyst that comes and goes in outer quadrant",
+          "char_start": 120,
+          "char_end": 175
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The three existing codes are all confirmed correct and clinically appropriate \u2014 the 2WW referral, breast lump, and nipple discharge are well evidenced by the note. The one gap is the explicitly documented previous recurrent breast cyst, which should be coded as a historical disorder (315247007); note that lookup_concept returned unreliable results for all three coded concepts but search_snomed confirmed their validity. The safety-critical 2WW referral is correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6463,
+        "output_tokens": 1262,
+        "total_tokens": 7725,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6012067550",
+        "encounter_id": "8437db68-efc5-4c2e-9ff6-a72ff4388a31",
+        "date": "2025-07-11",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "55fe00d1-87d6-481c-9321-db50a8367d7d",
+    "patient_id": "6012067550",
+    "date": "2025-08-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

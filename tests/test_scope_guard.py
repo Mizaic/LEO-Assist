@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from libs.ner.scope_guard import (
+    SUPPRESSED,
     has_hedged_diagnosis,
     has_recommendation_language,
     is_safety_netting_sentence,
@@ -147,13 +148,21 @@ class TestHedgedDiagnosis:
 
 
 class TestReclassifyAssertion:
-    def test_safety_netting_reclassifies_to_hypothetical(self) -> None:
+    def test_safety_netting_returns_suppressed(self) -> None:
         result = reclassify_assertion(
             entity_semantic_tag="disorder",
             entity_assertion="present",
             sentence_text="If you develop chest pain, call 999",
         )
-        assert result == "hypothetical"
+        assert result == SUPPRESSED
+
+    def test_safety_netting_suppressed_not_hypothetical(self) -> None:
+        result = reclassify_assertion(
+            entity_semantic_tag="disorder",
+            entity_assertion="present",
+            sentence_text="If you develop chest pain, call 999",
+        )
+        assert result != "hypothetical"
 
     def test_recommendation_reclassifies_to_hypothetical(self) -> None:
         result = reclassify_assertion(
@@ -228,14 +237,14 @@ class TestReclassifyAssertion:
         )
         assert result == "hypothetical"
 
-    def test_safety_netting_affects_all_tags(self) -> None:
+    def test_safety_netting_suppresses_all_tags(self) -> None:
         for tag in ("disorder", "substance", "procedure", "finding"):
             result = reclassify_assertion(
                 entity_semantic_tag=tag,
                 entity_assertion="present",
                 sentence_text="Call 999 if you experience severe chest pain",
             )
-            assert result == "hypothetical", f"Failed for tag {tag}"
+            assert result == SUPPRESSED, f"Expected SUPPRESSED for tag {tag}, got {result!r}"
 
     def test_raises_suspicion_reclassifies_disorder(self) -> None:
         result = reclassify_assertion(

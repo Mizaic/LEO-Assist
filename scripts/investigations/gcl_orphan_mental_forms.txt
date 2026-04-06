@@ -1,0 +1,570 @@
+ADHD
+ARBD
+ARFID
+ASPD
+Acute confusion
+Acute confusional state
+Acute psychiatric unit
+Acute psychosis
+Acute stress disorder
+Acute stress reaction
+Acutely confused
+Addict
+Addicted
+Addiction
+Admitted to psych ward
+Affective disorder
+Agoraphobia
+Agoraphobic
+Alcohol abuse
+Alcohol addiction
+Alcohol dependence
+Alcohol misuse
+Alcohol use disorder
+Alcohol withdrawal
+Alcohol-related brain damage
+Alcohol-related dementia
+Alcoholic
+Alcoholism
+Alzheimers
+Amnesia
+Amnestic disorder
+Amphetamine use
+Anankastic personality disorder
+Anorexia nervosa
+Anorexic
+Antenatal depression
+Antisocial personality disorder
+Anxiety neurosis
+Anxiety state
+Anxiety symptoms
+Anxious
+Anxious depression
+Anxious personality disorder
+Asperger syndrome
+Asperger's
+Aspergers
+At risk of suicide
+Attempted suicide
+Attention deficit disorder
+Attention deficit hyperactivity disorder
+Atypical anorexia
+Atypical autism
+Atypical bulimia
+Atypical depression
+Auditory hallucinations
+Autism
+Autism spectrum disorder
+Autistic
+Autistic spectrum
+Avoidance
+Avoidant personality disorder
+Avoidant restrictive food intake disorder
+BMI critically low
+BPAD
+Background of mental illness
+Bad nerves
+Benzo dependence
+Benzodiazepine dependence
+Binge drinking
+Binge eating
+Binge eating disorder
+Binge-purge type
+Bingeing
+Bipolar
+Bipolar 1
+Bipolar 2
+Bipolar I
+Bipolar II
+Bipolar affective disorder
+Bipolar disorder
+Bipolar type 1
+Bipolar type 2
+Body dysmorphia
+Body dysmorphic disorder
+Borderline
+Borderline personality disorder
+Borderline traits
+Brief psychotic disorder
+Brief reactive psychosis
+Bulimia
+Bulimia nervosa
+Bulimic
+C-PTSD
+CA - Secondary cancer
+CMHT
+CRHTT
+Cannabis dependence
+Cannabis psychosis
+Cannabis use disorder
+Catatonic schizophrenia
+Checking behaviour
+Checking compulsions
+Chronic anxiety
+Chronic depression
+Chronic mental illness
+Chronic psychosis
+Chronic suicidality
+Claustrophobia
+Cleaning compulsions
+Clinical depression
+Cluster A
+Cluster B
+Cluster C
+Co-occurring disorders
+Cocaine abuse
+Cocaine use
+Cognitive behavioural therapy
+Combat PTSD
+Combat stress
+Combined type ADHD
+Command hallucinations
+Community mental health team
+Community psychiatric nurse
+Complex PTSD
+Complex trauma
+Compulsions
+Compulsive behavior
+Compulsive behaviour
+Contamination OCD
+Counselling
+Crack cocaine
+Crisis team
+Cutaneous lymphoma
+Cutting
+Cyclothymia
+Cyclothymic disorder
+Death wish
+Deliberate overdose
+Deliberate self-harm
+Deliberate self-poisoning
+Delirious
+Delirium
+Delirium tremens
+Delusional
+Delusional disorder
+Delusions
+Dependent personality disorder
+Depersonalisation
+Depersonalization
+Depot injection
+Depressed
+Depressed mood
+Depression with psychosis
+Depressive disorder
+Depressive episode
+Depressive illness
+Derealisation
+Derealization
+Dermatillomania
+Detained
+Developmental coordination disorder
+Developmental delay
+Developmental disorder
+Developmental trauma
+Disordered eating
+Disordered personality
+Dissocial personality disorder
+Dissociation
+Dissociative
+Dissociative disorder
+Dissociative identity disorder
+Dissociative symptoms
+Drug abuse
+Drug addiction
+Drug dependence
+Drug misuse
+Drug use
+Drug user
+Drug-induced psychosis
+Dual diagnosis
+Dyscalculia
+Dyslexia
+Dyslexic
+Dysmorphophobia
+Dyspraxia
+Dysthymia
+Dysthymic disorder
+EDNOS
+EUPD
+Early intervention psychosis
+Eating disorder
+Eating disorder NOS
+Electroconvulsive therapy
+Emotional numbing
+Emotionally unstable personality disorder
+Encephalopathy
+Enduring mental illness
+EtOH
+Ex-addict
+Exaggerated startle
+Excoriation disorder
+Feeling depressed
+Fibroepithelioma of Pinkus
+First episode psychosis
+Flashbacks
+Flat mood
+Follicular atrophoderma and basal cell epitheliomata
+Food restriction
+Forgetful
+Forgetfulness
+Formal thought disorder
+Free-floating anxiety
+Frontotemporal dementia
+Global developmental delay
+Had ECT
+Hair pulling
+Hallucinations
+Hallucinatory
+Harm OCD
+Health anxiety
+Hearing voices
+Heavy cannabis use
+Hebephrenic schizophrenia
+Heroin addiction
+Heroin use
+High suicide risk
+High-functioning autism
+History of substance abuse
+History of trauma
+Histrionic
+Histrionic personality disorder
+Hoarding
+Hoarding disorder
+Home treatment team
+Hx mental illness
+Hx suicide attempt
+Hyperactive
+Hyperactivity
+Hypertensive encephalopathy
+Hypervigilance
+Hypervigilant
+Hypochondria
+Hypochondriasis
+Hypomania
+Hypomanic
+Hypomanic episode
+IAPT
+IV drug user
+IVDU
+Ideas of reference
+Illness anxiety disorder
+In recovery
+In therapy
+Inattention
+Inattentive
+Informal admission
+Injecting drug use
+Intellectual disability
+Intellectual impairment
+Intentional overdose
+Intravenous drug user
+Intrusive thoughts
+Known to psychiatry
+Korsakoff
+Korsakoff syndrome
+Late-onset psychosis
+Laxative abuse
+Learning difficulties
+Learning disability
+Learning disorder
+Lewy body dementia
+Long-acting injectable
+Long-standing mental illness
+Longstanding mental illness
+Low in mood
+Lowered mood
+MADD
+MH history
+MH issues
+MH problems
+MHx psych
+Major depression
+Major depressive disorder
+Malignant neoplasm of skin
+Malignant neoplasm of skin (disorder)
+Malignant tumour of dermis
+Malignant tumour of epidermal appendage
+Malignant tumour of skin
+Malignant tumour of surface epithelium
+Mania
+Manic
+Manic depression
+Manic depressive
+Manic depressive disorder
+Manic depressive illness
+Manic depressive psychosis
+Manic episode
+Melancholic depression
+Melanoma
+Memory impairment
+Mental Health Act
+Mental disease
+Mental disorder
+Mental disorder (disorder)
+Mental health condition
+Mental health disorder
+Mental health issues
+Mental health problem
+Mental illness
+Metabolic encephalopathy
+Metastases
+Metastatic
+Metastatic cancer
+Metastatic malignant disease
+Metastatic malignant neoplasm
+Metastatic malignant neoplasm (disorder)
+Metastatic neoplasm
+Mild cognitive impairment
+Mild depression
+Mixed affective state
+Mixed anxiety and depression
+Mixed dementia
+Mixed episode
+Mixed personality disorder
+Moderate depression
+Mood disorder
+Multiple personality disorder
+Multiple suicide attempts
+NSSI
+Naevoid basal cell carcinoma syndrome
+Narcissistic
+Narcissistic personality disorder
+Narcissistic traits
+Nerves
+Nervous
+Nervous disorder
+Nervousness
+Neurodevelopmental disorder
+Non-suicidal self-injury
+OCPD
+OSFED
+Obsessional disorder
+Obsessional neurosis
+Obsessional thoughts
+Obsessions
+Obsessive-compulsive disorder
+Obsessive-compulsive personality disorder
+On antidepressants
+On antipsychotics
+On anxiolytics
+On buprenorphine
+On depot
+On methadone
+On mood stabilisers
+On mood stabilizers
+On psychiatric medication
+On subutex
+On the spectrum
+Opiate dependence
+Opioid dependence
+Opioid substitution
+Opioid use disorder
+Organic brain syndrome
+Organic mental disorder
+Organic psychiatric disorder
+Orthorexia
+Overdose
+PDD-NOS
+PICU
+PMH mental health
+PMHx psych
+PTSD
+PWID
+Panic
+Panic attacks
+Panic disorder
+Paranoia
+Paranoid
+Paranoid disorder
+Paranoid ideation
+Paranoid personality disorder
+Paranoid schizophrenia
+Paraphrenia
+Parasuicide
+Pathological hoarding
+Performance anxiety
+Perinatal depression
+Persecutory delusions
+Persistent depressive disorder
+Personality difficulties
+Personality disorder
+Personality traits
+Pervasive developmental disorder
+Phobia
+Phobic anxiety
+Phobic disorder
+Pica
+Picks disease
+Plan to end life
+Plantar verrucous carcinoma
+Polydrug use
+Polysubstance use
+Poor mood
+Post-natal depression
+Post-traumatic stress disorder
+Postnatal depression
+Postpartum depression
+Postpartum psychosis
+Posttraumatic stress disorder
+Prescription drug misuse
+Previous ECT
+Previous suicide attempt
+Problem drinking
+Psych OPD
+Psych admission
+Psych history
+Psych meds
+Psych problems
+Psychiatric admission
+Psychiatric condition
+Psychiatric disease
+Psychiatric disorder
+Psychiatric history
+Psychiatric illness
+Psychiatric inpatient
+Psychiatric intensive care
+Psychiatric outpatient
+Psychiatric problems
+Psychological disorder
+Psychological illness
+Psychological problems
+Psychological trauma
+Psychopathic
+Psychopathy
+Psychosis
+Psychot
+Psychotherapy
+Psychotic
+Psychotic depression
+Psychotic disorder
+Psychotic episode
+Psychotic illness
+Puerperal psychosis
+Pure O
+Purging
+Rapid cycling
+Re-experiencing
+Recovering addict
+Recurrent depression
+Recurrent depressive disorder
+Recurrent panic attacks
+Residual schizophrenia
+Restricting type
+Risk to self
+Ritualistic behaviour
+Rituals
+Rumination disorder
+SEMI
+Sarcoma of skin
+Schizoaffective
+Schizoaffective disorder
+Schizoid personality disorder
+Schizophrenia
+Schizophrenic
+Schizophreniform disorder
+Schizotypal personality disorder
+Seasonal affective disorder
+Secondaries
+Secondary cancer
+Secondary malignant deposit
+Secondary malignant neoplastic disease
+Secondary tumor
+Secondary tumour
+Section 2
+Section 3
+Sectioned
+Seeing psychiatrist
+Self harm
+Self injury
+Self-cutting
+Self-induced vomiting
+Self-poisoning
+Separation anxiety
+Serious mental illness
+Severe and enduring mental illness
+Severe anxiety
+Severe depression
+Severe mental illness
+Severely underweight
+Shell shock
+Simple phobia
+Simple schizophrenia
+Situational depression
+Skin picking
+Social anxiety
+Social anxiety disorder
+Social phobia
+Sociopathic
+Sociopathy
+Specific learning disorder
+Specific phobia
+Startle response
+Stimulant psychosis
+Stimulant use disorder
+Stress
+Stress disorder
+Stressed
+Substance abuse
+Substance dependence
+Substance misuse
+Substance use disorder
+Substance-induced psychosis
+Suicidal
+Suicidal intent
+Suicide attempt
+Suicide risk
+Taking aripiprazole
+Taking citalopram
+Taking clozapine
+Taking duloxetine
+Taking fluoxetine
+Taking lamotrigine
+Taking lithium
+Taking mirtazapine
+Taking olanzapine
+Taking quetiapine
+Taking risperidone
+Taking sertraline
+Taking sodium valproate
+Taking venlafaxine
+Talking therapy
+Thought broadcast
+Thought disorder
+Thought insertion
+Thought withdrawal
+Tic disorder
+Tics
+Tourette syndrome
+Tourettes
+Toxic encephalopathy
+Trauma
+Trauma history
+Traumatised
+Traumatized
+Treatment resistant depression
+Trichotillomania
+Tumor metastasis
+Tumour metastasis
+Under CMHT
+Under mental health team
+Under psychiatrist
+Under psychiatry
+Undifferentiated schizophrenia
+Uraemic encephalopathy
+Uremic encephalopathy
+Visual hallucinations
+Voices
+Voluntary admission
+Wants to die
+War neurosis
+Wernicke
+Wernicke-Korsakoff
+Winter depression
+cPTSD
+carcinoma of scrotum
+carcinoma of skin
+metastasis to skin
+skin tumour
+squamous cell carcinoma
+tumour of skin

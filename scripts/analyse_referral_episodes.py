@@ -112,9 +112,10 @@ SPECIALIST_SITE: dict[str, str] = {
 # Outcome concepts that mean cancer was EXCLUDED
 # (from referral_outcomes_mapping.json + ncda_concept_sets.py)
 EXCLUSION_CONCEPT_IDS: frozenset[str] = frozenset([
-    "395100000",       # No evidence of cancer found (situation)
-    "414861001",       # No evidence of recurrence of cancer
-    "415068001",       # No malignancy found on biopsy
+    "395100000",         # No evidence of cancer found (situation)
+    "414861001",         # No evidence of recurrence of cancer
+    # 415068001 REMOVED: this is "Exposure to ultraviolet radiation (event)" in SNOMED,
+    #   not a cancer exclusion concept. Confirmed via patient graph 2026-04-06.
     "1090791000000103",  # No evidence of malignancy (UK extension)
     "281900007",         # No abnormality detected (NAD)
     "165324008",         # Biopsy result normal

@@ -1,0 +1,409 @@
+[
+  {
+    "encounter_id": "905dd37b-4217-4b2e-b854-8029731c40ee",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "892201000000106",
+          "name": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "severity": "critical",
+          "reason": "The 2WW referral documented in the note is for suspected squamous cell carcinoma of skin (SCC pathway), not lower gastrointestinal cancer; this is the wrong referral pathway code and could cause a serious cancer tracking failure.",
+          "replace_with_concept_id": "276281000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "The most significant error is a critically wrong 2WW referral code: the encounter documents a derm 2WW SCC (skin) pathway but concept 892201000000106 maps to lower gastrointestinal cancer, which would misdirect cancer tracking. All other codes (never smoker, dyspnoea, CXR, keratoacanthoma, scalp folliculitis) are clinically appropriate for this encounter. The 'no unintentional weight loss' and 'no chest pain' are correctly absent from the coded list per absent-finding rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6333,
+        "output_tokens": 1127,
+        "total_tokens": 7460,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "905dd37b-4217-4b2e-b854-8029731c40ee",
+        "date": "2024-06-26",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "635fdf74-5cf4-4672-bb96-9ddd807f5509",
+    "patient_id": "4802235577",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "nasal congestion",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports nasal congestion 'for years now' as a contributing symptom; nasal steroid trial agreed \u2014 this is an active, clinically relevant finding driving the management plan.",
+          "snomed_search": "nasal congestion",
+          "snomed_concept_id": "68235000",
+          "preferred_term": "Nasal congestion (finding)",
+          "sentence": "feels this may stem from nasal congestion in part - for years now  - no pain / discharge",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "back of chest symptom following trauma",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary reason for consultation is posterior chest wall discomfort since a fall/impact ('slipped off high stool and hit foot rail with back of chest \u2014 thought to have cracked'); this is the presenting complaint driving the CXR and ongoing review, and is not yet coded.",
+          "snomed_search": "chest pain",
+          "snomed_concept_id": "29857009",
+          "preferred_term": "Chest pain (finding)",
+          "sentence": "breathing \"not too bad - back of chest feels something there still\"  started pre covid   - noted in takeaway shop  - slipped off high stool and hit foot rail with back of chest - this symptom has only come since then - thought to have cracked",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most critical issue is the 2WW referral code: 892201000000106 resolves as an unreliable substance concept and, even if accepted as a procedure, maps to lower GI cancer \u2014 contradicted by the respiratory/chest presentation; the correct code is Fast track referral for suspected lung cancer (276491000000101). Additionally, the presenting complaint (posterior chest wall symptom post-trauma) and active nasal congestion driving the management plan are both uncoded. Absent findings (no haemoptysis, no weight loss) are correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7657,
+        "output_tokens": 1957,
+        "total_tokens": 9614,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "635fdf74-5cf4-4672-bb96-9ddd807f5509",
+        "date": "2024-07-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "13c86108-e7ce-4fab-82fb-043bdeb26856",
+    "patient_id": "4802235577",
+    "date": "2024-09-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "254651007",
+          "name": "Squamous cell carcinoma of skin (disorder)",
+          "severity": "high",
+          "reason": "The note explicitly documents the anatomical site as 'right temple'; a more specific SNOMED concept exists that captures both the histological type and the precise site.",
+          "replace_with_concept_id": "425148008",
+          "replace_with_preferred_term": "Squamous cell carcinoma of temple (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The procedure code [35646002] is a valid parent concept for excision of skin lesion and is acceptable at primary care level. The disorder code [254651007] 'Squamous cell carcinoma of skin' should be replaced with the site-specific concept 425148008 'Squamous cell carcinoma of temple (disorder)', which precisely matches the documented histology and anatomical location. The 'well differentiated' grade is a histological attribute of the tumour and is not separately codeable as a standalone SNOMED finding in primary care.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7670,
+        "output_tokens": 1433,
+        "total_tokens": 9103,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "13c86108-e7ce-4fab-82fb-043bdeb26856",
+        "date": "2024-09-03",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1d67778f-45dd-499f-8323-7147a91f359e",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "overweight",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI of 27.56 kg/m\u00b2 is explicitly documented and falls within the 25\u201329 overweight range; the clinical interpretation should be coded as a finding, not just the raw observable.",
+          "snomed_search": "overweight body mass index",
+          "snomed_concept_id": "162863004",
+          "preferred_term": "Body mass index 25-29 - overweight (finding)",
+          "sentence": "Body mass index - observation (22K..) 27.56 Kg/m\u00b2",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hazardous alcohol use",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "AUDIT-C score of 9 with 10+ units on a typical drinking day and weekly heavy episodic drinking (\u22658 units) clearly indicates hazardous alcohol use, not moderate drinking as currently coded.",
+          "snomed_search": "hazardous alcohol use",
+          "snomed_concept_id": "198421000000108",
+          "preferred_term": "Hazardous alcohol use (finding)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 9 - How many units of alcohol do you drink on a typical day when you are drinking?: 10+; How often have you had 6 or more units if female, or 8 or more if male, on a single occassion in the last year?: Weekly",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "43783005",
+          "name": "Moderate drinker (finding)",
+          "severity": "high",
+          "reason": "The AUDIT-C score of 9, with 10+ units on a typical drinking day and weekly heavy episodic drinking, is inconsistent with moderate drinking; this code misrepresents the patient's alcohol risk and should be replaced with hazardous alcohol use.",
+          "replace_with_concept_id": "198421000000108",
+          "replace_with_preferred_term": "Hazardous alcohol use (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The most significant issue is the miscoding of alcohol status as 'Moderate drinker' when the AUDIT-C score of 9, with 10+ units on a typical drinking day and weekly heavy episodic drinking, clearly indicates hazardous alcohol use. Additionally, the clinical interpretation of BMI 27.56 as overweight is not coded despite being derivable from the documented measurement. All laboratory observable entity codes are appropriate for a structured pipeline and have not been flagged. The NHS Health Check programme procedure code (XaR6f in the note) appears to be captured via the template system and is not flagged as missing from this audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 9270,
+        "output_tokens": 1888,
+        "total_tokens": 11158,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "1d67778f-45dd-499f-8323-7147a91f359e",
+        "date": "2025-01-24",
+        "coded_count": 17
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "58c639a5-e8ac-4995-be86-c1e33fad269e",
+    "patient_id": "4802235577",
+    "date": "2025-02-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Hernia operation 20 years ago \u2014 left inguinal hernia",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The patient explicitly reports a left inguinal hernia repair approximately 20 years ago; this surgical history is clinically relevant to the current abdominal pain presentation and should be coded.",
+          "snomed_search": "history inguinal hernia repair",
+          "snomed_concept_id": "428077006",
+          "preferred_term": "History of repair of inguinal hernia (situation)",
+          "sentence": "Hernia operation 20 ys ago. This was left inguinla hernia.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "feels more flatulent",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Increased flatulence is explicitly documented as a current symptom and is a distinct gastrointestinal finding separate from the abdominal distension already coded.",
+          "snomed_search": "flatulence",
+          "snomed_concept_id": "249504006",
+          "preferred_term": "Passing flatus (finding)",
+          "sentence": "No acid reflux, feels more fatulent.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "183561008",
+          "name": "Referral to general practitioner (procedure)",
+          "severity": "medium",
+          "reason": "The note documents an urgent referral driven by red-flag bowel and urinary symptoms; 'Urgent referral (procedure)' is a more accurate representation of the clinical decision than a generic GP referral code.",
+          "replace_with_concept_id": "134403003",
+          "replace_with_preferred_term": "Urgent referral (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "249288007",
+          "name": "Incomplete emptying of urinary bladder (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician documented '?incomplete voiding' with an explicit question mark, indicating clinical uncertainty; the assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The encounter is largely well-coded with appropriate red-flag symptoms captured. Key issues are: (1) the historical left inguinal hernia repair is missing and clinically relevant to the abdominal pain presentation; (2) incomplete bladder emptying is coded as 'present' despite the clinician's explicit '?' qualifier \u2014 should be 'possible'; (3) the referral code should be upgraded to 'Urgent referral' to reflect the documented clinical urgency; (4) lookup_concept returned unreliable/corrupted results for concepts 12063002, 183561008, and 249288007, but search_snomed confirmed these concept IDs are legitimate \u2014 no deletion warranted on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9916,
+        "output_tokens": 2273,
+        "total_tokens": 12189,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "58c639a5-e8ac-4995-be86-c1e33fad269e",
+        "date": "2025-02-27",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8deaa57c-d475-4eb5-8913-1efcb86cad39",
+    "patient_id": "4802235577",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All six coded concepts are clinically appropriate and evidenced: the quantitative FIT observable entity (1049361000000101) is confirmed by search_snomed despite an unreliable direct lookup, hematochezia (405729008) correctly captures the 'few eps PRB' in the clinical information, and abdominal pain and distension are already coded. The FIT result is negative (< 4 \u00b5g/g, low CRC risk) so no positive-result finding code is warranted; the remaining standing codes (BP, LUTS) are problem-list entries not contradicted by this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4460,
+        "output_tokens": 1198,
+        "total_tokens": 5658,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "8deaa57c-d475-4eb5-8913-1efcb86cad39",
+        "date": "2025-03-14",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0c0b3fb5-e3b3-4166-b928-0af97c87e056",
+    "patient_id": "4802235577",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "enlarged prostate",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "DRE explicitly documents 'smooth, symmetrical, enlarged' prostate \u2014 a clinically significant finding that prompted PSA request and should be coded.",
+          "snomed_search": "large prostate",
+          "snomed_concept_id": "249607009",
+          "preferred_term": "Large prostate (finding)",
+          "sentence": "Prostate  smooth, symmetrical, enlarged, sulcus preserved.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "chaperone declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note records 'Chaperone declined' during DRE \u2014 this is a clinically and medico-legally relevant situation that should be coded to document patient choice.",
+          "snomed_search": "chaperone",
+          "snomed_concept_id": "",
+          "preferred_term": "",
+          "sentence": "DRE with consent. Chaperone declined.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two coding gaps identified: (1) the DRE finding of an enlarged prostate (249607009) is clinically significant and missing \u2014 it directly drove the PSA request; (2) the patient's declination of a chaperone for DRE should be documented as a situation code for medico-legal completeness. The rectal haemorrhage code (12063002) returned an unreliable lookup result but search_snomed confirms it is a valid disorder code and is clinically appropriate. BP 160/86 is a single in-surgery reading with a plan for home BP monitoring \u2014 hypertension is not yet confirmed and should not be coded at this stage. Note: a colonoscopy or further investigation may be planned pending FIT result \u2014 no procedure code needed yet.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6967,
+        "output_tokens": 1616,
+        "total_tokens": 8583,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0c0b3fb5-e3b3-4166-b928-0af97c87e056",
+        "date": "2025-03-14",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2c31df74-1971-4f7b-8e26-ad98415a765e",
+    "patient_id": "4802235577",
+    "date": "2025-05-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "high",
+          "reason": "lookup_concept returned this ID as 'DRB1*08032 (substance)' \u2014 a gene allele, not a clinical situation \u2014 indicating the concept ID is incorrect for the coded evidence 'Hx of BCC (basal cell carcinoma) last year'.",
+          "replace_with_concept_id": "254701007",
+          "replace_with_preferred_term": "Basal cell carcinoma of skin (disorder)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "403194002",
+          "name": "Solar erythema (disorder)",
+          "severity": "medium",
+          "reason": "The note documents a deroofed blister on the ear (blistering = second-degree sunburn), which is more severe than solar erythema (first-degree/redness only); a more specific code is warranted.",
+          "replace_with_concept_id": "200834004",
+          "replace_with_preferred_term": "Sunburn of second degree (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two coding issues identified: (1) concept 266987004 resolves to a gene allele substance rather than a history-of-malignancy situation \u2014 the BCC history should be coded as 254701007 'Basal cell carcinoma of skin' with assertion=historical; (2) the sunburn code 403194002 (solar erythema) understates severity given the documented deroofed blister, which is consistent with second-degree sunburn (200834004). The remaining three codes \u2014 scalp folliculitis, tinea corporis, and blood pressure observable \u2014 are appropriate and well-evidenced by the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7053,
+        "output_tokens": 1288,
+        "total_tokens": 8341,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "2c31df74-1971-4f7b-8e26-ad98415a765e",
+        "date": "2025-05-21",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  }
+]

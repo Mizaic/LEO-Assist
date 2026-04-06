@@ -1,0 +1,1829 @@
+[
+  {
+    "encounter_id": "1d1962bb-f4b2-4d39-b49f-2a57c628d95c",
+    "patient_id": "4587069337",
+    "date": "2024-01-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plain X-ray (procedure)",
+          "severity": "low",
+          "reason": "The note documents a left knee X-ray specifically; a more precise concept 'Plain X-ray of left knee region' (1290408007) is available and should replace this generic procedure code.",
+          "replace_with_concept_id": "1290408007",
+          "replace_with_preferred_term": "Plain X-ray of left knee region (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "408574004",
+          "name": "Abnormal imaging (Clinical finding)",
+          "severity": "low",
+          "reason": "This generic 'Abnormal imaging' finding is entirely subsumed by the specific disorder already coded (Osteoarthritis of left patellofemoral joint + Loose body in knee); retaining it adds no clinical information and creates redundancy."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two clinically substantive findings (left patellofemoral osteoarthritis and loose body in knee) are correctly coded with appropriate specificity. Two procedural/generic codes should be improved: the X-ray procedure should be replaced with the laterality-specific left knee concept (1290408007), and the redundant 'Abnormal imaging' finding should be removed as it is fully captured by the specific disorder codes. The stable ossific fragment over the medial tibial spine is an unchanged incidental finding with no in-scope SNOMED match and does not require coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8828,
+        "output_tokens": 1513,
+        "total_tokens": 10341,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "1d1962bb-f4b2-4d39-b49f-2a57c628d95c",
+        "date": "2024-01-03",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1eaa98a6-a6da-4ab6-a70b-60ed0ec71771",
+    "patient_id": "4587069337",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is an auto-filed HbA1c lab result reviewed by the GP as 'Satisfactory, No Further Action' in the context of an existing htn/dm review; the HbA1c observable entity code is appropriate for the structured lab pipeline and no new explicit clinical diagnosis (e.g. prediabetes) is documented by the clinician in this encounter text. Concept ID 408591000 returned as unreliable from the terminology server (organism tag), but per audit rules observable entity lab codes set by the structured pipeline must not be flagged overcoded on this basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3049,
+        "output_tokens": 944,
+        "total_tokens": 3993,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "1eaa98a6-a6da-4ab6-a70b-60ed0ec71771",
+        "date": "2024-04-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e08e1263-c6ee-44cc-b0f1-0606abe8255c",
+    "patient_id": "4587069337",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Haemoglobin A1c above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "HbA1c of 44 mmol/mol is explicitly flagged as outside the reference range (20\u201341) in the auto-filed lab result; this is the correct SNOMED finding for an elevated HbA1c result.",
+          "snomed_search": "haemoglobin A1c above reference range",
+          "snomed_concept_id": "444751005",
+          "preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "sentence": "Haemoglobin A1c level - IFCC standardised (XaPbt) 44 mmol/mol [20 - 41] - Outside reference range",
+          "char_start": 46,
+          "char_end": 120
+        },
+        {
+          "term": "Prediabetes",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "HbA1c of 44 mmol/mol falls within the NICE-defined prediabetes/at-risk range (42\u201347 mmol/mol); the request context of 'htn / dm review' supports coding this clinically significant finding.",
+          "snomed_search": "prediabetes finding",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Haemoglobin A1c level - IFCC standardised (XaPbt) 44 mmol/mol [20 - 41] - Outside reference range",
+          "char_start": 46,
+          "char_end": 120
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "131034007",
+          "name": "Epinephrine level above reference range (finding)",
+          "severity": "high",
+          "reason": "The terminology server confirms this concept ID is an unreliable Extension Namespace placeholder; the preferred term 'Epinephrine level above reference range' is clinically incorrect for an HbA1c result \u2014 it should be replaced with 444751005 Hemoglobin A1c above reference range (finding).",
+          "replace_with_concept_id": "444751005",
+          "replace_with_preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The single coded concept (131034007) is wrong \u2014 the terminology server returns it as an unreliable Extension Namespace placeholder mapping to 'Epinephrine level above reference range', which is clinically nonsensical for an HbA1c result. It must be replaced with 444751005 (Hemoglobin A1c above reference range). Additionally, an HbA1c of 44 mmol/mol falls in the NICE prediabetes range (42\u201347 mmol/mol) and should be coded as 714628002 Prediabetes (finding), consistent with the 'htn / dm review' clinical context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3949,
+        "output_tokens": 1423,
+        "total_tokens": 5372,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "e08e1263-c6ee-44cc-b0f1-0606abe8255c",
+        "date": "2024-04-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c4680283-4507-4008-847b-3add01f98715",
+    "patient_id": "4587069337",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Serum lipid levels",
+          "snomed_concept_id": "16254007",
+          "preferred_term": "Lipid panel",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "A full serum lipid panel was performed and auto-filed; the procedure should be coded.",
+          "sentence": "Serum lipid levels (XE2q7)",
+          "char_start": 22,
+          "char_end": 40
+        },
+        {
+          "text": "Serum triglyceride levels 2.15 mmol/L - Outside reference range",
+          "snomed_concept_id": "302870006",
+          "preferred_term": "Hypertriglyceridemia (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Triglycerides 2.15 mmol/L are explicitly flagged as outside reference range (>2.0 mmol/L), indicating hypertriglyceridaemia. This is a clinically significant finding that should be coded as a disorder.",
+          "sentence": "Serum triglyceride levels (XE2q9) 2.15 mmol/L [< 2] - Outside reference range",
+          "char_start": 95,
+          "char_end": 173
+        },
+        {
+          "text": "Serum cholesterol level 6.1 mmol/L",
+          "snomed_concept_id": "55822004",
+          "preferred_term": "Hyperlipidemia (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Total cholesterol 6.1 mmol/L, LDL 4.1 mmol/L, and TC:HDL ratio 6.2 are all elevated, consistent with hyperlipidaemia. This should be coded as a disorder, especially in the context of an HTN/DM review where cardiovascular risk management is relevant.",
+          "sentence": "Serum cholesterol level (XE2eD) 6.1 mmol/L",
+          "char_start": 43,
+          "char_end": 86
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Auto-filed lipid panel with clinician review (Dr Amin, 08 Apr 2024). Triglycerides 2.15 mmol/L are explicitly flagged outside reference range (ref <2.0), indicating hypertriglyceridaemia \u2014 not coded. Total cholesterol 6.1 mmol/L, LDL 4.1 mmol/L, and TC:HDL ratio 6.2 are all elevated, consistent with hyperlipidaemia \u2014 not coded. The clinical context (HTN/DM review, not on thyroid treatment) makes cardiovascular risk coding particularly important. The lipid panel procedure itself is also uncoded. The 'No Further Action' review note refers to no immediate clinical action, but the abnormal results still warrant diagnostic coding for longitudinal record accuracy and QOF/CVD risk purposes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7455,
+        "output_tokens": 1951,
+        "total_tokens": 9406,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "c4680283-4507-4008-847b-3add01f98715",
+        "date": "2024-04-04",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9d13f78d-78d6-43be-978f-c433afc54c1c",
+    "patient_id": "4587069337",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dm review",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical details state 'htn / dm review', indicating the patient has diabetes mellitus as an active condition under review \u2014 this should be coded as the patient's own disorder, not as a family history.",
+          "snomed_search": "diabetes mellitus type 2",
+          "snomed_concept_id": "44054006",
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: htn / dm review.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "CKD / eGFR 69",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "An eGFR of 69 mL/min/1.73m\u00b2 combined with explicit CKD-specific clinical guidance (annual ACR, KFRE for CKD stages 3a\u20135) strongly implies an established CKD diagnosis warranting a disorder code; CKD stage 3a is the most specific match for this eGFR value.",
+          "snomed_search": "chronic kidney disease stage 3a",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "sentence": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 69 mL/min \u2014 Urine ACR should be checked on at least an annual basis for all individuals with CKD. NICE recommends the Kidney failure Risk Equation www.kfre.co.uk to predict the risk of endstage kidney disease in CKD stages 3a to 5.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "160303001",
+          "name": "Family history of diabetes mellitus (situation)",
+          "severity": "high",
+          "reason": "The note documents 'htn / dm review' as the reason for the blood test request, indicating the patient's own active diabetes \u2014 not a family history of diabetes; this concept is therefore clinically incorrect for this encounter.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant error is coding 160303001 'Family history of diabetes mellitus' when the note clearly documents the patient's own DM under active review \u2014 this should be replaced with Diabetes mellitus type 2 (44054006) with assertion=present. Additionally, CKD stage 3a (700378005) is missing given the eGFR of 69 and the CKD-specific clinical guidance embedded in the lab report; note that the type of diabetes (T2 vs T1) is inferred from clinical context and should be confirmed against the full problem list before finalising.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9290,
+        "output_tokens": 2153,
+        "total_tokens": 11443,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "9d13f78d-78d6-43be-978f-c433afc54c1c",
+        "date": "2024-04-04",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6088c728-7ff9-457d-b228-eb39cabf7e44",
+    "patient_id": "4587069337",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Diabetic foot care education",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Education on diabetic foot care: Yes' and the CTV3 code XabZd is listed in the encounter text, confirming this procedure was performed and should be coded.",
+          "snomed_search": "diabetic foot care education",
+          "snomed_concept_id": "923361000000106",
+          "preferred_term": "Diabetic foot care education (procedure)",
+          "sentence": "Education on diabetic foot care: Yes no concerns re feet",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a structured LTC wellbeing and diabetes review; core diagnoses (T2DM, hypertension, obesity) and most clinical findings are correctly coded. Two issues identified: (1) the GPPAQ 'inactive' result is coded as a generic observable entity (859981000000107, which the terminology server cannot verify) rather than the specific GPPAQ inactive finding 366121000000108; (2) the diabetic foot care education procedure (923361000000106), explicitly documented and CTV3-coded in the note, is absent from the coded list. Lab observable entity codes are correctly attributed to the structured pipeline and have not been flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 13580,
+        "output_tokens": 1884,
+        "total_tokens": 15464,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "6088c728-7ff9-457d-b228-eb39cabf7e44",
+        "date": "2024-04-04",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b8d74a17-fce4-41b1-a890-ca6692cb096c",
+    "patient_id": "4587069337",
+    "date": "2024-05-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Metastasis to lymph node - Ipsilateral axillary",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Active malignant metastasis to ipsilateral axillary lymph node is explicitly documented as a major finding and is entirely uncoded; this is safety-critical for cancer pathway and oncology management tracking.",
+          "snomed_search": "metastasis axillary lymph node",
+          "snomed_concept_id": "94398002",
+          "preferred_term": "Metastatic malignant neoplasm to lymph nodes of upper limb (disorder)",
+          "sentence": "Major: Metastasis to lymph node (Xa980) - Ipsilateral axillary (New Episode)",
+          "char_start": 130,
+          "char_end": 196
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "68171009",
+          "name": "Axillary lymph node structure (body structure)",
+          "severity": "critical",
+          "reason": "Concept ID 68171009 resolves on the terminology server to 'Latamoxef disodium (substance)' \u2014 a completely incorrect concept; a body structure code is also outside the codeable SNOMED scope for this encounter, and the metastasis disorder must be coded instead.",
+          "replace_with_concept_id": "94398002",
+          "replace_with_preferred_term": "Metastatic malignant neoplasm to lymph nodes of upper limb (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "702556008",
+          "name": "Biopsy of lymph node using ultrasound guidance (procedure)",
+          "severity": "medium",
+          "reason": "The note specifies the biopsy site as axillary lymph nodes; a more specific concept exists and should be used in place of this generic parent code.",
+          "replace_with_concept_id": "1354795003",
+          "replace_with_preferred_term": "Biopsy of lymph node of axilla using ultrasonographic guidance (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Both existing codes require correction: concept 68171009 is critically wrong (resolves to an antibiotic substance, not a body structure or disorder) and must be replaced with the axillary lymph node metastasis disorder; the procedure code should be upgraded to the axilla-specific biopsy concept 1354795003. The malignant metastasis finding \u2014 the clinically dominant and safety-critical entry in this encounter \u2014 is entirely absent from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4764,
+        "output_tokens": 1480,
+        "total_tokens": 6244,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "b8d74a17-fce4-41b1-a890-ca6692cb096c",
+        "date": "2024-05-31",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7f197706-6a5b-405f-8009-222c8e5fb505",
+    "patient_id": "4587069337",
+    "date": "2024-07-29",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All four coded concepts are clinically justified and confirmed via search_snomed (lookup_concept returned unreliable results for three IDs due to server index issues, but search confirmed correct concept IDs and preferred terms). The raised BP finding (24184005) is appropriately coded as present given the explicit note text; the medication review situation (314530002) is correctly captured; and the two problem-list situation codes (161501007, 161445009) reflect the patient's standing conditions. No clinically significant gaps identified \u2014 home BP monitoring and follow-up are future plans, not codeable procedures from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4774,
+        "output_tokens": 1377,
+        "total_tokens": 6151,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "7f197706-6a5b-405f-8009-222c8e5fb505",
+        "date": "2024-07-29",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1b4906a2-9eaf-47f0-8969-02b2ea614930",
+    "patient_id": "4587069337",
+    "date": "2024-09-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "echocardiogram",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'had echo yday' \u2014 an echocardiogram was performed the day before this encounter as part of pre-chemotherapy cardiac assessment and should be coded as a procedure.",
+          "snomed_search": "echocardiography",
+          "snomed_concept_id": "40701008",
+          "preferred_term": "Echocardiography (procedure)",
+          "sentence": "waiting for chemo, hoping to start 3 cycles for breast ca soon, had echo yday, on ice, overall looks okay.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "12241031000119108",
+          "name": "Metastatic malignant neoplasm to left breast (disorder)",
+          "severity": "high",
+          "reason": "The left breast is the PRIMARY tumour site; the documented metastasis is to the ipsilateral axillary lymph nodes \u2014 coding metastasis TO the left breast directly contradicts the clinical narrative.",
+          "replace_with_concept_id": "94398002",
+          "replace_with_preferred_term": "Metastatic malignant neoplasm to lymph nodes of upper limb (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "notes": "Several specificity and accuracy issues identified: (1) The metastasis-to-left-breast concept (12241031000119108) is clinically incorrect \u2014 the breast is the primary site and the metastasis is to the ipsilateral axillary nodes; this should be replaced with a lymph node metastasis concept. (2) The breast cancer code (254837009) and axillary lymphadenectomy code (79544006) lack laterality \u2014 more specific concepts exist (1306292009 'Primary malignant neoplasm of left breast' and 739022005 'Complete excision of lymph node group of left axilla') and should be considered for replacement to reflect the explicitly documented left-sided disease. (3) The WLE code (237371007) should be reviewed against 392021009 'Lumpectomy of breast' as the preferred SNOMED procedure concept. (4) A pre-chemotherapy echocardiogram performed the previous day is missing from the coded list.",
+      "confidence": 0.87,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 12245,
+        "output_tokens": 2194,
+        "total_tokens": 14439,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "1b4906a2-9eaf-47f0-8969-02b2ea614930",
+        "date": "2024-09-20",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ca7a17cf-5f9f-4361-afaa-3b408ec39c74",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "persistent cough",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'persistent cough' as the reason for the lab request; the existing cough code [289114008] is unreliable (terminology server returns it as an organism concept) and must be replaced with the correct finding.",
+          "snomed_search": "persistent cough",
+          "snomed_concept_id": "284523002",
+          "preferred_term": "Persistent cough (finding)",
+          "sentence": "Clinical Information: Reasons for Request: on chemo - persistent cough.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Ca Left breast",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The patient is actively on chemotherapy for left breast cancer; this is an active malignancy, not a historical one \u2014 the specific lateralised disorder code should replace the generic 'history of malignant neoplasm' situation code.",
+          "snomed_search": "primary malignant neoplasm left breast",
+          "snomed_concept_id": "1306292009",
+          "preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: on chemo - persistent cough.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "on chemo",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is currently on chemotherapy; this active procedure should be coded, and the existing code [385651009] is an organism/qualifier value concept with no clinical meaning in this context.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Clinical Information: Reasons for Request: on chemo - persistent cough.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "high",
+          "reason": "Terminology server returns this concept ID as an organism (unreliable/wrong concept); the note documents 'persistent cough' which should be coded as [284523002] Persistent cough (finding) instead.",
+          "replace_with_concept_id": "284523002",
+          "replace_with_preferred_term": "Persistent cough (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "high",
+          "reason": "The patient has an active left breast cancer currently being treated with chemotherapy; a 'history of' situation code is clinically incorrect \u2014 the active, lateralised disorder code [1306292009] should be used instead.",
+          "replace_with_concept_id": "1306292009",
+          "replace_with_preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "high",
+          "reason": "Terminology server confirms this concept ID is unreliable (returns as organism); a standalone qualifier value code is not appropriate here \u2014 the active chemotherapy should be coded as [367336001] Chemotherapy (procedure).",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three of the four coded concepts are either unreliable/wrong concept IDs or use an incorrect assertion: the cough code [289114008] and qualifier code [385651009] both resolve to non-clinical organism concepts on the terminology server and must be replaced; the 'history of malignant neoplasm' code is clinically incorrect for a patient actively receiving chemotherapy for left breast cancer, which should be coded as the specific active disorder [1306292009]. The serum total protein observable entity code is correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6548,
+        "output_tokens": 2202,
+        "total_tokens": 8750,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "ca7a17cf-5f9f-4361-afaa-3b408ec39c74",
+        "date": "2024-10-17",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cf21c485-9922-4cc9-9dad-b46228fa338d",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "61425002",
+          "name": "C reactive protein (substance)",
+          "severity": "high",
+          "reason": "Concept ID is unreliable (terminology server returns organism semantic tag); a substance code is outside the finding/disorder scope and does not capture the clinically documented raised/borderline CRP result; should be replaced with the specific above-reference-range finding.",
+          "replace_with_concept_id": "119971000119104",
+          "replace_with_preferred_term": "C-reactive protein above reference range (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "high",
+          "reason": "Concept ID is unreliable (terminology server returns organism semantic tag); a qualifier value is not an appropriate code for an active procedure \u2014 the note explicitly states the patient is currently on chemotherapy, which should be coded as a procedure.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "high",
+          "reason": "Concept ID is unreliable (terminology server returns substance semantic tag); furthermore the note documents an active left breast cancer currently under chemotherapy \u2014 this is not a historical situation but an active disorder, and the laterality is specified, warranting a more specific active disorder code.",
+          "replace_with_concept_id": "1306292009",
+          "replace_with_preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three of the six coded concepts have significant errors: two have unreliable/corrupt concept IDs with wrong semantic tags (organism returned for substance and qualifier value codes), and the malignancy is coded as a historical situation when the note clearly documents active left breast cancer currently being treated with chemotherapy. The CRP raised finding and active chemotherapy procedure are both missing appropriate codes. The observable entity for CRP measurement (1001371000000100), cough (289114008), and dyspnoea (267036007) appear correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7500,
+        "output_tokens": 1803,
+        "total_tokens": 9303,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "cf21c485-9922-4cc9-9dad-b46228fa338d",
+        "date": "2024-10-17",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "231acfb0-e193-4105-9c25-03a472c41e06",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "on chemo",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is actively on chemotherapy (started end of Sept 2024); this is a current procedure that must be coded.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Ca Left breast - on chemo (chemo started end of Sept 24)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Ca Left breast",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Active breast cancer currently under chemotherapy treatment should be coded as the active disorder, not merely as a historical situation; the existing 'History of malignant neoplasm' code is both the wrong concept and wrong assertion.",
+          "snomed_search": "malignant neoplasm left breast",
+          "snomed_concept_id": "1306292009",
+          "preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "sentence": "Ca Left breast - on chemo (chemo started end of Sept 24)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "high",
+          "reason": "The patient has active breast cancer currently being treated with chemotherapy; a 'history of' situation code is clinically incorrect and should be replaced with the active disorder code.",
+          "replace_with_concept_id": "1306292009",
+          "replace_with_preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "267036007",
+          "name": "Dyspnea",
+          "severity": "high",
+          "reason": "The encounter text contains no mention of shortness of breath or dyspnoea; the evidence text 'feeling a little SOB' does not appear anywhere in the note and appears to have been fabricated."
+        },
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "medium",
+          "reason": "This is a qualifier value, not a clinical finding or procedure; the evidence text is clearly auto-generated reasoning rather than text from the encounter note, and this concept has no valid clinical coding role here."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Significant coding quality issues found: active breast cancer is miscoded as a historical situation rather than the active disorder; dyspnoea and a qualifier value concept appear to have been added without any supporting text in the encounter note. The cough concept ID is unreliable and should be replaced with 284523002. Active chemotherapy is undercoded and must be added as a procedure. AKI staging result of 0 (No AKI) correctly requires no disorder code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6426,
+        "output_tokens": 2322,
+        "total_tokens": 8748,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "231acfb0-e193-4105-9c25-03a472c41e06",
+        "date": "2024-10-17",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2b12ebc9-3b43-4a51-ae0d-52f6e049a7de",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chemotherapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly states the patient is 'on chemo' \u2014 an active chemotherapy procedure should be coded as a procedure concept, not a qualifier value.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Clinical Information: Reasons for Request: on chemo - persistent cough.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "low",
+          "reason": "Redundant with the already-coded 284523002 'Persistent cough (finding)' which is more specific; lookup also returned unreliable (organism semantic tag), suggesting the concept ID is incorrect.",
+          "replace_with_concept_id": "284523002",
+          "replace_with_preferred_term": "Persistent cough (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "medium",
+          "reason": "A qualifier value concept is clinically inappropriate to represent active chemotherapy; lookup returned unreliable (organism semantic tag), and the correct representation is a procedure code (367336001 Chemotherapy) with assertion=present.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "medium",
+          "reason": "The patient is actively receiving chemotherapy for breast cancer (Ca Left breast), making this an active disorder rather than a historical situation; a more specific active disorder code for primary malignant neoplasm of left breast is appropriate.",
+          "replace_with_concept_id": "1306292009",
+          "replace_with_preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three coding issues identified: (1) 'Does cough' (289114008) is redundant and less specific than the already-coded 'Persistent cough' (284523002) and has an unreliable concept ID; (2) the qualifier value 385651009 ('In progress') is an inappropriate semantic type to represent active chemotherapy and should be replaced with the procedure concept 367336001; (3) 'History of malignant neoplasm' (266987004) understates the clinical picture \u2014 the patient is actively on chemotherapy for left breast cancer and should be coded with the active, site-specific disorder. The U&E observable entity codes are appropriate structured-pipeline entries and are not flagged. Note: eGFR of 66 mL/min/1.73m\u00b2 does not meet the threshold for a CKD diagnosis in this note alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9143,
+        "output_tokens": 2081,
+        "total_tokens": 11224,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "2b12ebc9-3b43-4a51-ae0d-52f6e049a7de",
+        "date": "2024-10-17",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b5d31120-ad26-4a65-a9ab-9cecc6364574",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "Two coded concepts return as unreliable from the terminology server with an 'organism' semantic tag, indicating corrupt or invalid concept IDs. Concept 869771000000100 (coded as 'Procedure in progress') is unreliable and should be replaced with 722480002 'Chemotherapy started (situation)', which directly reflects the note's 'on chemo' clinical information. Concept 289114008 (coded as 'Does cough finding') is also unreliable; a valid cough finding code should be substituted \u2014 recommend human review to confirm the correct replacement SNOMED concept for persistent cough in this context. All lab observable entity codes are appropriate structured pipeline entries and should be retained.",
+      "confidence": 0.78,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6240,
+        "output_tokens": 1061,
+        "total_tokens": 7301,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "b5d31120-ad26-4a65-a9ab-9cecc6364574",
+        "date": "2024-10-17",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bfa5c939-3ea8-492c-a4f2-e7ab11c87cfc",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Ca Left breast - active, on chemotherapy",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The patient has active left breast cancer currently undergoing chemotherapy (started Sept 2024); this must be coded as an active primary malignant neoplasm, not merely a 'history of' \u2014 the active diagnosis is clinically critical especially in this immunocompromised context.",
+          "snomed_search": "primary malignant neoplasm left breast",
+          "snomed_concept_id": "1306292009",
+          "preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "sentence": "Ca Left breast - chemo started end of Sept 24",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "critical",
+          "reason": "The patient has active breast cancer currently on chemotherapy (started Sept 2024) \u2014 this is not a historical malignancy; the 'history of' situation code is clinically incorrect and should be replaced with the active primary malignant neoplasm of left breast.",
+          "replace_with_concept_id": "1306292009",
+          "replace_with_preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The most significant issue is the use of 'History of malignant neoplasm' (266987004) for a patient actively receiving chemotherapy for left breast cancer \u2014 this must be replaced with the specific active disorder code 1306292009. The remaining three codes (URTI, herpes labialis, aphthous ulceration) are all confirmed correct by SNOMED search despite unreliable lookup_concept server responses; a more specific aphthous ulcer code (e.g. 426965005 Aphthous ulcer of mouth) could optionally be considered but is not flagged as a definite error given the coded concept is clinically valid.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 10317,
+        "output_tokens": 1835,
+        "total_tokens": 12152,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "bfa5c939-3ea8-492c-a4f2-e7ab11c87cfc",
+        "date": "2024-10-17",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "17d82c3f-8530-4338-bfb7-edf19959f8db",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "cold / upper respiratory infection",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a 2.5-week cold with dry cough and clear phlegm in an immunocompromised chemotherapy patient \u2014 an active URTI should be coded as it drives the clinical decision-making and low-threshold oncology review plan.",
+          "snomed_search": "upper respiratory tract infection",
+          "snomed_concept_id": "54150009",
+          "preferred_term": "Upper respiratory infection (disorder)",
+          "sentence": "going thru chemo - had cold for nearly 2.5 weeks, cold sore in nose also, unable to shift it, developed dry cough",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "immunocompromised (on chemotherapy)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient is actively receiving chemotherapy for breast cancer and is therefore immunocompromised; this is a clinically critical safety flag that affects management thresholds and should be explicitly coded.",
+          "snomed_search": "patient immunocompromised",
+          "snomed_concept_id": "370388006",
+          "preferred_term": "Patient immunocompromised (finding)",
+          "sentence": "under Dr Kancherla - chemo started end of Sept 24 - Ca Left breast",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "medium",
+          "reason": "385651009 is a qualifier value semantic tag, not a clinical situation or procedure code; the ongoing chemotherapy should be represented by a situation concept.",
+          "replace_with_concept_id": "722480002",
+          "replace_with_preferred_term": "Chemotherapy started (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Coding is partially correct but has three issues: (1) the breast cancer code lacks laterality \u2014 the note clearly states left breast and a more specific code exists; (2) the qualifier value 385651009 'In progress' is semantically incorrect for representing ongoing chemotherapy \u2014 722480002 'Chemotherapy started' is the appropriate situation code; (3) the active URTI (2.5-week cold with cough in an immunocompromised patient) and the immunocompromised status itself are both clinically significant and missing from the coded list. Herpes labialis, dyspnoea, and cough are appropriately coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5932,
+        "output_tokens": 1921,
+        "total_tokens": 7853,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "17d82c3f-8530-4338-bfb7-edf19959f8db",
+        "date": "2024-10-17",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "25d9cc69-2b7c-4a28-8d91-702f46d66304",
+    "patient_id": "4587069337",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "haematocrit outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The haematocrit result (0.364) is explicitly flagged 'Outside reference range' in the auto-filed report; the clinical interpretation finding should be coded, not just the observable entity.",
+          "snomed_search": "hematocrit below reference range",
+          "snomed_concept_id": "165414004",
+          "preferred_term": "Hematocrit below reference range (finding)",
+          "sentence": "Haematocrit (X76tb) 0.364  [0.37 - 0.47] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "on chemo / chemotherapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is currently on chemotherapy ('on chemo - persistent cough'; 'chemo started end of Sept 24'); this active procedure should be coded as Chemotherapy (procedure), not as a qualifier value.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Clinical Information: Reasons for Request: on chemo - persistent cough.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Ca Left breast",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents active left breast cancer currently being treated with chemotherapy; this should be coded as an active disorder (Primary malignant neoplasm of left breast), not as a historical situation.",
+          "snomed_search": "primary malignant neoplasm left breast",
+          "snomed_concept_id": "1306292009",
+          "preferred_term": "Primary malignant neoplasm of left breast (disorder)",
+          "sentence": "Ca Left breast - chemo started end of Sept 24",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "medium",
+          "reason": "385651009 is a qualifier value (confirmed unreliable by terminology server, returning as 'organism') and is not a valid standalone clinical code for an encounter; the active chemotherapy procedure should replace it.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant issues are: (1) active left breast cancer is miscoded as a historical situation rather than an active disorder; (2) concept 385651009 ('In progress', qualifier value) is an invalid standalone clinical code and should be replaced by Chemotherapy (procedure) [367336001]; (3) the explicitly flagged below-range haematocrit result interpretation is missing. The auto-filed lab observable entity codes are appropriate for the structured pipeline and have been left untouched.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9710,
+        "output_tokens": 2111,
+        "total_tokens": 11821,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "25d9cc69-2b7c-4a28-8d91-702f46d66304",
+        "date": "2024-10-17",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f1f1784b-8a54-47cd-af68-c3d0f7568d2c",
+    "patient_id": "4587069337",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "cold sore",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Cold sore (herpes labialis) is explicitly documented as an active symptom in this encounter and should be coded as a distinct finding.",
+          "snomed_search": "cold sore herpes labialis",
+          "snomed_concept_id": "1475003",
+          "preferred_term": "Herpes labialis (disorder)",
+          "sentence": "Having ongoing rhinorrhoea and cold sore.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Raised CRP",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'Raised CRP' in the diagnosis section (CRP 41 mg/L); the clinical interpretation finding should be coded in addition to the observable entity.",
+          "snomed_search": "C-reactive protein above reference range",
+          "snomed_concept_id": "119971000119104",
+          "preferred_term": "C-reactive protein above reference range (finding)",
+          "sentence": "Raised CRP.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "rhinorrhoea",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an ongoing symptom and is a distinct finding from the URTI diagnosis.",
+          "snomed_search": "rhinorrhoea nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Having ongoing rhinorrhoea and cold sore.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "chemotherapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The patient is actively receiving chemotherapy (last infusion 5th October, next due 26th October), which directly drove the clinical decision to prescribe antibiotics; this should be coded as a procedure rather than a standalone qualifier value.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Last chemo infusion was 5th october. Next due on 26th October.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "385651009",
+          "name": "In progress (qualifier value)",
+          "severity": "medium",
+          "reason": "A bare qualifier value 'In progress' is not a valid standalone clinical code for representing active chemotherapy; it has no clinical meaning without a parent concept and should be replaced with the chemotherapy procedure code.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is largely coded but has notable gaps: cold sore (herpes labialis), raised CRP interpretation finding, rhinorrhoea, and active chemotherapy are all undercoded or miscoded. The use of qualifier value 'In progress' (385651009) as a standalone code for chemotherapy is semantically incorrect and should be replaced with the Chemotherapy procedure code (367336001). The cough and viral URTI codes appear correct; the CRP observable entity code is acceptable as a lab pipeline entry but the explicit clinical interpretation 'Raised CRP' warrants an additional finding code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8174,
+        "output_tokens": 2237,
+        "total_tokens": 10411,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "f1f1784b-8a54-47cd-af68-c3d0f7568d2c",
+        "date": "2024-10-18",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ea605c4d-7613-4f98-bd8b-4f64ef7662cb",
+    "patient_id": "4587069337",
+    "date": "2024-12-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Plasma C-reactive protein level outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The CRP result of 16 mg/L is explicitly flagged as 'Outside reference range' in the encounter text; the abnormal interpretation should be coded as a finding, not just the procedure.",
+          "snomed_search": "C-reactive protein raised",
+          "snomed_concept_id": "119971000119104",
+          "preferred_term": "C-reactive protein above reference range (finding)",
+          "sentence": "Plasma C-reactive protein level (XE2dy) 16 mg/L [< 10] - Outside reference range",
+          "char_start": 42,
+          "char_end": 107
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "270980008",
+          "name": "Plasma C-reactive protein measurement (procedure)",
+          "severity": "medium",
+          "reason": "Concept 270980008 is unreliable \u2014 the terminology server resolves it as 'CoAr 1071 virus (organism)', not a CRP procedure; the correct observable entity for a plasma CRP result is 999651000000107 (Plasma C reactive protein).",
+          "replace_with_concept_id": "999651000000107",
+          "replace_with_preferred_term": "Plasma C reactive protein (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The CRP procedure code (270980008) resolves to an organism concept on the terminology server and must be replaced with the correct plasma CRP observable entity (999651000000107); additionally, the explicitly documented abnormal result ('Outside reference range') warrants a separate finding code (119971000119104). All other lab observable entity codes are appropriate structured-pipeline entries and require no changes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5123,
+        "output_tokens": 1006,
+        "total_tokens": 6129,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "ea605c4d-7613-4f98-bd8b-4f64ef7662cb",
+        "date": "2024-12-16",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "da8aca53-dccc-48e3-9631-1c97b15982ac",
+    "patient_id": "4587069337",
+    "date": "2024-12-16",
+    "result": {
+      "encounter_assessment": "no_codeable_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is an auto-filed laboratory result encounter containing only structured FBC and biochemistry values, reviewed as 'No Further Action' by the clinical practitioner. All 14 coded concepts are observable entity codes written by the structured lab pipeline and are correct per the encounter evidence; the three concepts flagged as unreliable by lookup_concept (1022441000000101, 1022551000000104, 1022581000000105) are confirmed as legitimate SNOMED observable entity codes via search_snomed. The encounter text contains no explicit disorder, finding, or situation narrative beyond the lab values themselves, so no additional SNOMED scope codes are warranted from this note alone \u2014 the underlying chemotherapy diagnosis belongs to the problem list, not this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6424,
+        "output_tokens": 1257,
+        "total_tokens": 7681,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "da8aca53-dccc-48e3-9631-1c97b15982ac",
+        "date": "2024-12-16",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6ef3d9b9-ec5d-4c02-bc06-69d2a4b9e0c7",
+    "patient_id": "4587069337",
+    "date": "2024-12-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "mouth ulcers",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Mouth ulcers are explicitly documented on examination ('Has had some mouth ulcers') and are clinically significant in an immunocompromised chemotherapy patient due to mucositis risk.",
+          "snomed_search": "ulcer of mouth",
+          "snomed_concept_id": "26284000",
+          "preferred_term": "Ulcer of mouth (disorder)",
+          "sentence": "Has had some mouth ulcers.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "tongue inflamed at tip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Examination finding of tongue inflammation is explicitly documented and should be coded, particularly relevant in the context of chemotherapy-related mucositis.",
+          "snomed_search": "glossitis tongue inflammation",
+          "snomed_concept_id": "45534005",
+          "preferred_term": "Glossitis (disorder)",
+          "sentence": "Tongue looks inflammed at tip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1255904006",
+          "name": "Administration of palliative antineoplastic agent (procedure)",
+          "severity": "medium",
+          "reason": "The note states chemotherapy has been actively delayed ('decided to delay chemotherapy until well') and no chemotherapy was administered at this encounter; additionally 'palliative' intent is not evidenced \u2014 the patient is undergoing active treatment for breast cancer.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "233604007",
+          "name": "Pneumonia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The pneumonia admission was on 24/11/24 (over a month prior to this encounter); it is a past event referenced as background history, not an active current condition."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Overall coding is clinically aware but has three issues: mouth ulcers and glossitis (both examination findings with particular significance in a chemotherapy patient) are uncoded; the pneumonia assertion should be historical not present; and the chemotherapy procedure code uses an unsupported 'palliative' qualifier and records a procedure that was explicitly delayed rather than performed at this encounter. The breast cancer code [254837009] is confirmed correct via search despite the unreliable lookup response.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9945,
+        "output_tokens": 1919,
+        "total_tokens": 11864,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "6ef3d9b9-ec5d-4c02-bc06-69d2a4b9e0c7",
+        "date": "2024-12-27",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "eeaf77ac-eff1-4efd-8f45-ff685b173669",
+    "patient_id": "4587069337",
+    "date": "2025-06-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "All three coded concepts are correct and well-evidenced: the encounter type (185202000), infective conjunctivitis (299699004 \u2014 bilateral sticky/bloodshot eyes with pus, treated with chloramphenicol), and nasal vestibulitis (23714000 \u2014 scabby left nostril sore treated with Naseptin). Lookup_concept returned unreliable results for the two clinical codes, but search_snomed confirmed both IDs are valid SNOMED disorder concepts. No clinically codeable findings have been omitted; absent findings (no pain, no vision change, no known allergies) are correctly excluded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3651,
+        "output_tokens": 835,
+        "total_tokens": 4486,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "eeaf77ac-eff1-4efd-8f45-ff685b173669",
+        "date": "2025-06-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "86c40cda-15c8-4b8f-9f22-5cbc34a18e95",
+    "patient_id": "4587069337",
+    "date": "2025-06-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Yellow/green discharge",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Purulent conjunctival discharge is explicitly documented as a presenting symptom and is a clinically distinct finding from dry eyes that warrants its own code.",
+          "snomed_search": "conjunctival discharge",
+          "snomed_concept_id": "425317008",
+          "preferred_term": "Conjunctival discharge (finding)",
+          "sentence": "Yellow/green discharge at times - esp in mornings",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Swab taken",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "An eye swab was explicitly performed during this encounter to rule out infection and should be coded as a procedure.",
+          "snomed_search": "eye swab procedure",
+          "snomed_concept_id": "1359755003",
+          "preferred_term": "Taking eye swab (procedure)",
+          "sentence": "Swab taken to r/o infection but suspect dry eyes secondary to chemo",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The two existing codes (Tear film insufficiency; History of malignant neoplasm) are appropriate and correctly asserted. Two gaps identified: the purulent conjunctival discharge is a distinct documented finding requiring its own code, and the eye swab performed in-consultation is an uncoded procedure. Note: the cancer type is not explicitly stated in this encounter (Letrozole suggests breast cancer but this cannot be confirmed from the note alone), so the generic 'History of malignant neoplasm' situation code is acceptable here; a more specific code could be applied if the underlying diagnosis is confirmed on the problem list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4860,
+        "output_tokens": 1275,
+        "total_tokens": 6135,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "86c40cda-15c8-4b8f-9f22-5cbc34a18e95",
+        "date": "2025-06-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5405c81f-0c58-4d43-872d-845689620034",
+    "patient_id": "4587069337",
+    "date": "2025-07-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept 46152009 (Tear film insufficiency) is confirmed valid via search_snomed despite an unreliable lookup_concept response; it accurately reflects the active ocular complaint managed with lubricant drops and ointment. The oncology/chemotherapy background is not newly diagnosed in this encounter and the ophthalmology referral is only a contingency plan \u2014 neither warrants additional coding from this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2975,
+        "output_tokens": 778,
+        "total_tokens": 3753,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "5405c81f-0c58-4d43-872d-845689620034",
+        "date": "2025-07-21",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ff78d1a9-40d8-48f6-bfdc-29d76b3c6beb",
+    "patient_id": "4587069337",
+    "date": "2025-08-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dry skin to arms and legs",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dry skin is explicitly examined, documented as a distinct clinical finding, and directly treated with Epimax cream \u2014 it requires its own disorder code separate from the petechial rash.",
+          "snomed_search": "xeroderma dry skin",
+          "snomed_concept_id": "52475004",
+          "preferred_term": "Xeroderma (disorder)",
+          "sentence": "Skin to arms and legs feel very dry.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "238997007",
+          "name": "Drug-induced ichthyosiform reaction (disorder)",
+          "severity": "medium",
+          "reason": "The note describes petechiae (pinpoint haemorrhagic spots), not an ichthyosiform (scaly/fish-skin) reaction; this specific disorder code does not match the clinical presentation documented.",
+          "replace_with_concept_id": "423716004",
+          "replace_with_preferred_term": "Petechiae of skin (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "50091001",
+          "name": "Petechia (morphologic abnormality)",
+          "severity": "low",
+          "reason": "A morphologic abnormality tag is a histopathological descriptor; the clinical finding on examination is better represented by the disorder concept 'Petechiae of skin (disorder)' (423716004), which is already proposed as the replacement for 238997007 above."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary coding error is the use of 'Drug-induced ichthyosiform reaction' (238997007) for what is clinically a petechial rash \u2014 ichthyosiform specifically denotes a scaly skin pattern and does not match the documented petechiae; the correct disorder code is 'Petechiae of skin' (423716004). Additionally, the morphologic abnormality code for petechia (50091001) should be retired in favour of the disorder-level replacement. Dry skin (xeroderma) is a separately examined and treated finding that is missing from the coded list. The abemaciclib substance code (761851004) is clinically justified as the suspected causative agent and can be retained; lookup_concept returned unreliable results for all three non-observable concepts due to a terminology server index issue, so hierarchy verification was performed via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5995,
+        "output_tokens": 1657,
+        "total_tokens": 7652,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "ff78d1a9-40d8-48f6-bfdc-29d76b3c6beb",
+        "date": "2025-08-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "50584a65-4f83-4ff9-9630-74e4cb6c4f2e",
+    "patient_id": "4587069337",
+    "date": "2025-08-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "watery eyes ? due to chemotherapy",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "The structured DX section explicitly records 'watery eyes ? due to chemotherapy' as part of the previous/current medical history, warranting a possible-assertion finding code.",
+          "snomed_search": "watery eye",
+          "snomed_concept_id": "420103007",
+          "preferred_term": "Watery eye (finding)",
+          "sentence": "Previous/Current medical history: watery eyes ? due to chemotherapy",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "medium",
+          "reason": "The note specifies breast cancer history; the generic 'History of malignant neoplasm' should be replaced by the breast-specific situation code to improve clinical precision.",
+          "replace_with_concept_id": "429087003",
+          "replace_with_preferred_term": "History of malignant neoplasm of breast (situation)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1255831008",
+          "name": "Chemotherapy for malignant neoplastic disease using targeted agent (procedure)",
+          "severity": "medium",
+          "reason": "The note records only 'chemo/radiotherapy' with no specification of targeted agent therapy; coding a targeted-agent-specific procedure is not supported by the encounter text and should be replaced with the generic chemotherapy procedure code.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "254837009",
+          "name": "Malignant neoplasm of breast (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The patient explicitly stated she is 'currently cancer free' and treatment finished November 2024; the breast cancer is in remission/historical and should not be asserted as currently active."
+        },
+        {
+          "conceptId": "79544006",
+          "name": "Complete axillary lymphadenectomy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The axillary node clearance was performed in July 2024 and is a past procedure; assertion should be historical rather than present. Additionally, the more specific left-sided code 739022005 (Complete excision of lymph node group of left axilla) better reflects the documented laterality."
+        },
+        {
+          "conceptId": "237371007",
+          "name": "WLE (wide local excision) of breast lesion (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "Wide local excision was performed in July 2024 and is a completed past procedure; assertion should be historical rather than present."
+        },
+        {
+          "conceptId": "428923005",
+          "name": "Radiotherapy to breast (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "Radiotherapy was completed in November 2024 and is a past procedure; assertion should be historical rather than present."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The core lymphoedema diagnosis (520231000000107) and swelling findings are well captured, but several completed procedures and the breast cancer diagnosis are incorrectly asserted as 'present' rather than 'historical'. The generic history-of-malignancy situation code should be replaced with the breast-specific equivalent, the targeted-agent chemotherapy code is unsupported by the note text, and a possible 'watery eye' finding from the structured DX section is missing. Terminology server returned unreliable results for most concept IDs; concept correctness has been verified via independent search_snomed calls.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 27529,
+        "output_tokens": 3220,
+        "total_tokens": 30749,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "50584a65-4f83-4ff9-9630-74e4cb6c4f2e",
+        "date": "2025-08-21",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "580f8867-9daa-482e-911d-2d72cbed7147",
+    "patient_id": "4587069337",
+    "date": "2025-09-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only phlebotomy workflow administration (consent logging, sample collection, referral source) with no clinical narrative; the 7 coded concepts are all observable entity lab values written by the structured laboratory pipeline and are explicitly out of scope for encounter-note audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 871,
+        "output_tokens": 380,
+        "total_tokens": 1251,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "580f8867-9daa-482e-911d-2d72cbed7147",
+        "date": "2025-09-02",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bc62aa81-6e04-4fe4-b4b6-d989aa068c1c",
+    "patient_id": "4587069337",
+    "date": "2025-09-02",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The five coded concepts are appropriate: the four lipid observable entity codes are correctly auto-filed by the structured lab pipeline and must not be disturbed, and 302870006 (Hypertriglyceridemia) is the correct SNOMED disorder code for the flagged out-of-range triglyceride result (4.24 mmol/L), confirmed by search_snomed despite an unreliable lookup_concept response. No additional clinical diagnoses are explicitly documented in this encounter that would require coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6350,
+        "output_tokens": 1291,
+        "total_tokens": 7641,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "bc62aa81-6e04-4fe4-b4b6-d989aa068c1c",
+        "date": "2025-09-02",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "520721dc-8eaa-43c1-aff6-8ff5ca753616",
+    "patient_id": "4587069337",
+    "date": "2025-09-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "medium",
+          "reason": "Concept ID 289114008 is unreliable \u2014 the terminology server returns semantic_tag 'organism', indicating a corrupted or mismatched index entry; the note describes a residual cough and the correct SNOMED concept is 49727002 'Cough (finding)'.",
+          "replace_with_concept_id": "49727002",
+          "replace_with_preferred_term": "Cough (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "272060000",
+          "name": "Fatigue - symptom (finding)",
+          "severity": "low",
+          "reason": "Concept ID 272060000 is unreliable \u2014 the terminology server returns an Extension Namespace placeholder; the note documents tiredness and the correct SNOMED concept is 84229001 'Fatigue (finding)'.",
+          "replace_with_concept_id": "84229001",
+          "replace_with_preferred_term": "Fatigue (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The core clinical coding (viral URTI, acute diarrhoea, nausea/vomiting) is clinically appropriate and the concept IDs for these are confirmed correct by SNOMED search despite unreliable direct lookups. Two concept IDs require replacement: 289114008 (cough) should be 49727002 'Cough (finding)', and 272060000 (fatigue) should be 84229001 'Fatigue (finding)', as both return corrupted/placeholder terms from the terminology server. The planned gallbladder surgery postponement is noted but should not be coded as a present procedure since it has not yet occurred.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8449,
+        "output_tokens": 1895,
+        "total_tokens": 10344,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "520721dc-8eaa-43c1-aff6-8ff5ca753616",
+        "date": "2025-09-16",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1e7af41b-8a24-4ac3-b207-c50f26466b08",
+    "patient_id": "4587069337",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "fitting of hosiery / application of elastic hosiery",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The nurse performed a face-to-face procedure fitting an arm sleeve and glove compression garment for lymphoedema; this clinical procedure should be coded as a procedure, not as a physical object.",
+          "snomed_search": "application elastic hosiery",
+          "snomed_concept_id": "448400008",
+          "preferred_term": "Application of elastic hosiery (procedure)",
+          "sentence": "Lymphoedema Face to face appointent for fitting of hosiery, Jane arrived with the armsleeve and glove via PatientChoice. I showed her how to apply the garments and Jane said that it felt a comfortable fit.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "education about use of compression hosiery",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The nurse explicitly demonstrated and educated the patient on how to apply the arm sleeve and glove garments, which constitutes a distinct education procedure.",
+          "snomed_search": "education elastic compression hosiery",
+          "snomed_concept_id": "911421000000104",
+          "preferred_term": "Education about use of elastic compression hosiery (procedure)",
+          "sentence": "I showed her how to apply the garments and Jane said that it felt a comfortable fit.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "408116002",
+          "name": "Venous ulcer compression hosiery (physical object)",
+          "severity": "medium",
+          "reason": "This is a physical object concept (outside SNOMED coding scope for encounters) and specifically refers to venous ulcer hosiery, whereas the garments fitted are lymphoedema arm sleeve and glove; the procedure 448400008 'Application of elastic hosiery' should replace this.",
+          "replace_with_concept_id": "448400008",
+          "replace_with_preferred_term": "Application of elastic hosiery (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The lymphoedema disorder (234097001) and arm swelling finding (449619004) are correctly coded. However, the hosiery code (408116002) is a physical object outside encounter coding scope and is clinically mismatched (venous ulcer hosiery vs. lymphoedema garments); it should be replaced with the procedure 'Application of elastic hosiery' (448400008). An additional education procedure (911421000000104) is evidenced by the nurse's instruction on garment application. All three lookup_concept calls returned unreliable results from the terminology server; concept validity was confirmed via search_snomed candidates.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5524,
+        "output_tokens": 1536,
+        "total_tokens": 7060,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "1e7af41b-8a24-4ac3-b207-c50f26466b08",
+        "date": "2025-09-30",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e0e11c66-9cac-4d9d-8f9d-48a6f3af5670",
+    "patient_id": "4587069337",
+    "date": "2025-10-16",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The single coded concept [234097001] Lymphedema (disorder) is correct and well-evidenced \u2014 search_snomed confirms the concept ID maps to \"Lymphedema (disorder)\" despite an unreliable lookup_concept server response. The transient hand tingling is a self-resolving symptom managed within the call (glove removal advised) and does not warrant a separate code; the mention of awaiting gallbladder surgery and associated nervousness are contextual background with no precise SNOMED situation match available and are low clinical priority for this lymphoedema follow-up encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5999,
+        "output_tokens": 1116,
+        "total_tokens": 7115,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "e0e11c66-9cac-4d9d-8f9d-48a6f3af5670",
+        "date": "2025-10-16",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4e545303-7f88-4f66-b3ea-e7b00f62943b",
+    "patient_id": "4587069337",
+    "date": "2025-10-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Comfort eating",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Comfort eating is explicitly documented in the encounter text with its own Read code (X767d) as a contributing factor to elevated cholesterol, and should be coded as a SNOMED finding.",
+          "snomed_search": "comfort eating",
+          "snomed_concept_id": "248126008",
+          "preferred_term": "Comfort eating (finding)",
+          "sentence": "Monitoring of all medication checked (XaJKU) eGFR 55 - Cholesterol 6.3 mmol/L - has been eating foods which can increase levels such as chocolate, Comfort eating (X767d)",
+          "char_start": 175,
+          "char_end": 340
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The six existing codes are all clinically justified and correctly asserted \u2014 lookup_concept returned unreliable results for three of them but search_snomed confirmed all three concept IDs are correct. One gap identified: comfort eating (248126008) is explicitly documented with its own legacy Read code (X767d) as a clinically relevant contributing factor to the elevated cholesterol, but has not been captured as a SNOMED finding. Letrozole/oncology context is noted but no explicit cancer diagnosis is stated in this encounter text, so no disorder code is proposed for that; the ongoing pain mention is too non-specific to code without further detail.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10234,
+        "output_tokens": 1496,
+        "total_tokens": 11730,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "4e545303-7f88-4f66-b3ea-e7b00f62943b",
+        "date": "2025-10-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d3485e17-bbe6-4079-8ff1-39d466e7b1ad",
+    "patient_id": "4587069337",
+    "date": "2025-10-30",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e4e93cb2-540a-4298-a065-71bbe8228a24",
+    "patient_id": "4587069337",
+    "date": "2025-12-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "depressive disorder",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical picture \u2014 persistent low mood, anhedonia, social withdrawal, low motivation, and initiation of mirtazapine \u2014 constitutes a depressive disorder, which should be coded at disorder level rather than symptom level only.",
+          "snomed_search": "depressive disorder",
+          "snomed_concept_id": "35489007",
+          "preferred_term": "Depressive disorder (disorder)",
+          "sentence": "She is looking forward to Christmas and being wtih all family but most of the rest of the time feels low, does not want to go out or be with people, low motivation etc",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "cholecystectomy",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient explicitly reports having had a cholecystectomy in her past medical history and this procedure is not currently coded.",
+          "snomed_search": "cholecystectomy",
+          "snomed_concept_id": "38102005",
+          "preferred_term": "Cholecystectomy (procedure)",
+          "sentence": "Been through a lot - breat cancer, chemo, cholecystectomy and now on letrozole",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an unreliable result (organism tag) and 'Mental disorder' is far too broad for this encounter; the clinical evidence supports a specific depressive disorder code (35489007) instead.",
+          "replace_with_concept_id": "35489007",
+          "replace_with_preferred_term": "Depressive disorder (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The most significant issue is that the active depressive presentation (persistent low mood, anhedonia, social withdrawal, low motivation, mirtazapine initiated) is coded only at symptom/finding level (depressed mood) and with an overly broad 'Mental disorder' concept whose concept ID returned unreliable terminology server results; this should be replaced with Depressive disorder (35489007). Additionally, the historically reported cholecystectomy is uncoded. The breast cancer (254837009), fatigue (272060000), and back pain (399079008) codes are appropriate and well-evidenced by the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4811,
+        "output_tokens": 1529,
+        "total_tokens": 6340,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587069337",
+        "encounter_id": "e4e93cb2-540a-4298-a065-71bbe8228a24",
+        "date": "2025-12-10",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  }
+]

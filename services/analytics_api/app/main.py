@@ -55,7 +55,11 @@ async def lifespan(_app: FastAPI):
         finally:
             kg.close()
     except Exception as exc:
-        logger.warning("DomainRegistry startup load skipped (graph unavailable?): %s", exc)
+        logger.error(
+            "DomainRegistry startup load FAILED -- analytics endpoints requiring "
+            "domain config will raise until KG is available: %s",
+            exc,
+        )
     yield
     logger.info("Analytics API shutting down")
 

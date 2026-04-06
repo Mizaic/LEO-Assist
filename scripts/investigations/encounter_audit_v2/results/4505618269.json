@@ -1,0 +1,374 @@
+[
+  {
+    "encounter_id": "be336c56-5046-4776-a841-5ed8b8e23697",
+    "patient_id": "4505618269",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter consists entirely of administrative/receptionist entries: access role, encounter type classification, contact trigger (walk-in/front desk), and a generic medication query reason for contact. No clinical narrative, diagnoses, symptoms, findings, procedures, or substances are documented. No SNOMED-codeable clinical content is present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 478,
+        "output_tokens": 352,
+        "total_tokens": 830,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "be336c56-5046-4776-a841-5ed8b8e23697",
+        "date": "2025-12-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a99d8e2d-eeaa-4f13-84b7-9a31300b4ac9",
+    "patient_id": "4505618269",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter consists entirely of an administrative access-role entry (Admin/Clinical Support Access Role) and a medication review invitation system code (Y3f83). No clinical narrative, diagnoses, findings, symptoms, or procedures are present. No SNOMED coding is required or appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 362,
+        "output_tokens": 268,
+        "total_tokens": 630,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "a99d8e2d-eeaa-4f13-84b7-9a31300b4ac9",
+        "date": "2025-12-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "829ec477-f087-4a66-b963-51ab91a3286c",
+    "patient_id": "4505618269",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter consists entirely of an appointment booking confirmation letter (patient name, date, time, location, and a closing salutation). There is no clinical narrative, diagnosis, finding, procedure, or any other SNOMED-codeable content present. No coding action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 369,
+        "output_tokens": 270,
+        "total_tokens": 639,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "829ec477-f087-4a66-b963-51ab91a3286c",
+        "date": "2025-12-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bff58b46-2f0d-44e2-874b-893d5393e5c5",
+    "patient_id": "4505618269",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter is a purely administrative medication review reminder letter addressed to the patient. It contains a URL link, an access code, and a request to complete a questionnaire. There is no clinical narrative, diagnosis, finding, procedure, or any other SNOMED-codeable content present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 409,
+        "output_tokens": 262,
+        "total_tokens": 671,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "bff58b46-2f0d-44e2-874b-893d5393e5c5",
+        "date": "2025-12-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ba3a460a-9ef7-4229-a049-4d02e082993f",
+    "patient_id": "4505618269",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of administrative/receptionist access-role entries. The record was created by a receptionist (Paula Edwardes) and contains only: encounter type (telephone), triage routing category (\"Chronic Symptoms\" as a call-routing label, not a clinical diagnosis), and a free-text field marked N/A. No clinician was involved, no clinical narrative is present, and no SNOMED-scope entities (disorder, finding, procedure, etc.) are documented. The Read codes present (Y41c9, 9N31., XaIgC) are administrative encounter-type codes, not clinical findings. No coding action is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 462,
+        "output_tokens": 476,
+        "total_tokens": 938,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "ba3a460a-9ef7-4229-a049-4d02e082993f",
+        "date": "2025-12-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e302b92e-2c7e-43bb-89bb-45e6022e0709",
+    "patient_id": "4505618269",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [
+        {
+          "concept_id": "141000119100",
+          "term": "Daytime somnolence (finding)",
+          "verdict": "correct",
+          "note": "Confirmed via search_snomed; active symptom explicitly documented."
+        },
+        {
+          "concept_id": "47545007",
+          "term": "Continuous positive airway pressure ventilation treatment (regime/therapy)",
+          "verdict": "correct",
+          "note": "Ongoing CPAP use since 2013 clearly documented; lookup unreliable due to server index corruption but concept is clinically appropriate."
+        },
+        {
+          "concept_id": "78275009",
+          "term": "Obstructive sleep apnea syndrome (disorder)",
+          "verdict": "correct",
+          "note": "Confirmed via search_snomed; active problem being reviewed."
+        },
+        {
+          "concept_id": "418043000",
+          "term": "Advice given (situation)",
+          "verdict": "correct",
+          "note": "Explicit DVLA-relevant driving safety advice documented twice; medicolegally significant. Lookup unreliable due to server index corruption but concept is appropriate."
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All four coded concepts are well-evidenced and correctly asserted. The Epworth Sleepiness Scale score (8, \"normal\") is documented but falls under 'assessment scale' semantic tag which is outside audit scope. The planned referral letter to the OSA clinic is a future/planned action and correctly not coded. No clinical gaps identified. Note: all four lookup_concept calls returned unreliable results due to apparent terminology server index corruption; concept validity was cross-checked via search_snomed and clinical context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 5,
+        "input_tokens": 9212,
+        "output_tokens": 1658,
+        "total_tokens": 10870,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "e302b92e-2c7e-43bb-89bb-45e6022e0709",
+        "date": "2025-12-08",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7de1028e-ebd5-4cc7-acd8-c49a5ea29ae8",
+    "patient_id": "4505618269",
+    "date": "2025-12-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "This is a pharmacist medication review containing only a medication list with no explicit clinical diagnoses, symptoms, or findings documented in the note text. The existing BPH code (266569009) is confirmed as a valid SNOMED disorder concept via search (lookup_concept returned an unreliable result but search_snomed confirmed the concept). No additional codeable clinical content is present in the encounter text; individual drug names are excluded per scope rules, and medication-inferred diagnoses (e.g. hypertension from Losartan, hyperlipidaemia from Atorvastatin, allergic rhinitis from Fluticasone/Azelastine) must not be coded without explicit textual confirmation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 3,
+        "input_tokens": 2400,
+        "output_tokens": 1060,
+        "total_tokens": 3460,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "7de1028e-ebd5-4cc7-acd8-c49a5ea29ae8",
+        "date": "2025-12-10",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "18666e26-13ec-47fb-a5aa-b05840f06acb",
+    "patient_id": "4505618269",
+    "date": "2025-12-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "161501007",
+          "term": "History of hypertension (situation)",
+          "assessment": "redundant alongside active disorder code 38341003; having both the 'history of' situation and the active disorder coded simultaneously is overcoded"
+        },
+        {
+          "concept_id": "38341003",
+          "term": "Hypertensive disorder, systemic arterial (disorder)",
+          "assessment": "correctly coded as the active hypertension disorder"
+        },
+        {
+          "concept_id": "314530002",
+          "term": "Medication review done (situation)",
+          "assessment": "correctly coded"
+        },
+        {
+          "concept_id": "86094006",
+          "term": "Chronic rhinitis (disorder)",
+          "assessment": "correctly coded, explicitly stated in note"
+        },
+        {
+          "concept_id": "386472008",
+          "term": "Telephone consultation (procedure)",
+          "assessment": "correctly coded"
+        }
+      ],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "low",
+          "reason": "The active disorder code 38341003 (Hypertensive disorder, systemic arterial) is already coded for this encounter; the 'history of hypertension' situation code is redundant and should not coexist with an active disorder code for the same condition."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely accurate for this clinical pharmacist medication review. The main issue is the redundant co-coding of 'History of hypertension (situation)' alongside the active 'Hypertensive disorder, systemic arterial (disorder)' \u2014 only the active disorder code is needed. Note: a cystoscopy is mentioned as planned for Tuesday (future event, not yet occurred) and should not be coded as a present procedure; BPH is implied by tamsulosin/dutasteride but is not explicitly named in the note text so cannot be added per coding rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 3,
+        "input_tokens": 6722,
+        "output_tokens": 1424,
+        "total_tokens": 8146,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "18666e26-13ec-47fb-a5aa-b05840f06acb",
+        "date": "2025-12-10",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8c1b02f7-0626-4a04-a5dc-24e7f8268879",
+    "patient_id": "4505618269",
+    "date": "2025-12-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Encounter consists entirely of an administrative medication management entry: a repeat prescription for Mometasone nasal spray was stopped and ended, attributed to a named clinician. No clinical narrative, diagnoses, symptoms, findings, or procedures are documented. The underlying indication for the medication is not stated and must not be inferred. No SNOMED-codeable content is present within scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 2,
+        "input_tokens": 1014,
+        "output_tokens": 473,
+        "total_tokens": 1487,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "8c1b02f7-0626-4a04-a5dc-24e7f8268879",
+        "date": "2025-12-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "24de7862-456a-45fa-92d6-d0f3e2fc07d0",
+    "patient_id": "4505618269",
+    "date": "2025-12-16",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d55fef7d-ce2a-4598-97b5-d036677eb8ac",
+    "patient_id": "4505618269",
+    "date": "2025-12-18",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter is purely an appointment booking confirmation letter (administrative routing/scheduling message). It contains the patient name, appointment date/time, and practice name only. There is no clinical narrative, diagnosis, finding, procedure, or any other SNOMED-codeable content present. No coding action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 369,
+        "output_tokens": 277,
+        "total_tokens": 646,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "d55fef7d-ce2a-4598-97b5-d036677eb8ac",
+        "date": "2025-12-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  }
+]

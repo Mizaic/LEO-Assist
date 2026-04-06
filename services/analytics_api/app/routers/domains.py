@@ -149,6 +149,74 @@ def _get_valueset_raw(vs_id: str) -> Optional[str]:
         client.close()
 
 
+_VALUESET_READ_QUERY = (
+    "MATCH (v:ValueSet {id: $id}) "
+    "RETURN v.name AS name, v.description AS description, "
+    "       v.milestoneType AS milestoneType, "
+    "       v.timeWindowMonths AS timeWindowMonths, "
+    "       v.semanticTags AS semanticTags, "
+    "       coalesce(v.assertionFilter, []) AS assertionFilter, "
+    "       v.rawJson AS rawJson"
+)
+
+
+def _parse_list_prop(val) -> List[str]:
+    """Coerce a Neo4j property (list or JSON string) to a Python list of strings."""
+    if not val:
+        return []
+    if isinstance(val, str):
+        try:
+            val = json.loads(val)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    return list(val) if isinstance(val, (list, tuple)) else []
+
+
+def _batch_child_counts(concept_ids: List[str], depth: int = 3) -> Dict[str, int]:
+    """Single round-trip IS_A descendant count for a list of SNOMED concept IDs."""
+    if not concept_ids:
+        return {}
+    cypher = (
+        f"MATCH (ancestor:Concept)<-[:IS_A*1..{depth}]-(d:Concept) "
+        "WHERE ancestor.id IN $ids AND d.active = true "
+        "RETURN ancestor.id AS concept_id, count(DISTINCT d) AS child_count"
+    )
+    kg = KnowledgeGraphClient()
+    try:
+        rows = kg.run(cypher, ids=concept_ids)
+        return {r["concept_id"]: r["child_count"] for r in (rows or [])}
+    finally:
+        kg.close()
+
+
+def _enrich_with_child_counts(concepts: List[Dict[str, Any]]) -> None:
+    """Add child_count in-place via a single batch IS_A query.
+
+    Concepts with no IS_A children get child_count=0 (leaf/specific concept).
+    """
+    if not concepts:
+        return
+    ids = [str(c["concept_id"]) for c in concepts if c.get("concept_id")]
+    counts = _batch_child_counts(ids)
+    for c in concepts:
+        c["child_count"] = counts.get(str(c["concept_id"]), 0)
+
+
+def _valueset_row_to_subdomain_detail(vr: Dict[str, Any], subdomain_name: str) -> SubdomainDetail:
+    concepts = _parse_concepts_from_raw(vr.get("rawJson"))
+    _enrich_with_child_counts(concepts)
+    return SubdomainDetail(
+        name=vr.get("name") or subdomain_name,
+        description=vr.get("description") or "",
+        milestone_type=vr.get("milestoneType"),
+        time_window_months=vr.get("timeWindowMonths"),
+        semantic_tags=_parse_list_prop(vr.get("semanticTags")),
+        assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
+        concepts=concepts,
+        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+    )
+
+
 def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
     """Write a ValueSet to the KG with flat properties + rawJson backup."""
     name = vs_dict.get("name", "")
@@ -159,6 +227,7 @@ def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
     milestone_type = vs_dict.get("milestoneType")
     time_window_months = vs_dict.get("timeWindowMonths")
     semantic_tags = vs_dict.get("semanticTags", [])
+    assertion_filter = vs_dict.get("assertionFilter", [])
 
     if milestone_type is None or time_window_months is None or not semantic_tags:
         for ext in vs_dict.get("extension") or []:
@@ -188,6 +257,7 @@ def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
             "    v.milestoneType = $mt, "
             "    v.timeWindowMonths = $twm, "
             "    v.semanticTags = $tags, "
+            "    v.assertionFilter = $af, "
             "    v.rawJson = $raw",
             id=vs_id,
             name=name,
@@ -197,6 +267,7 @@ def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
             mt=milestone_type,
             twm=time_window_months,
             tags=semantic_tags,
+            af=assertion_filter,
             raw=raw_json,
         )
     finally:
@@ -212,7 +283,9 @@ class SubdomainSummary(BaseModel):
     milestone_type: Optional[str] = None
     time_window_months: Optional[int] = None
     semantic_tags: List[str] = []
+    assertion_filter: List[str] = []
     concept_count: int = 0
+    descendant_count: int = 0
 
 
 class SubdomainDetail(SubdomainSummary):
@@ -225,6 +298,7 @@ class DomainSummary(BaseModel):
     description: str
     subdomain_count: int = 0
     source: str = "tenant"
+    episode_detector: bool = False
 
 
 class DomainDetail(DomainSummary):
@@ -234,11 +308,13 @@ class DomainDetail(DomainSummary):
 class DomainCreateRequest(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = ""
+    episode_detector: bool = False
 
 
 class DomainUpdateRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    episode_detector: Optional[bool] = None
 
 
 class SubdomainCreateRequest(BaseModel):
@@ -247,6 +323,7 @@ class SubdomainCreateRequest(BaseModel):
     milestone_type: Optional[str] = None
     time_window_months: Optional[int] = None
     semantic_tags: List[str] = []
+    assertion_filter: List[str] = []
 
 
 class SubdomainUpdateRequest(BaseModel):
@@ -254,6 +331,7 @@ class SubdomainUpdateRequest(BaseModel):
     milestone_type: Optional[str] = None
     time_window_months: Optional[int] = None
     semantic_tags: Optional[List[str]] = None
+    assertion_filter: Optional[List[str]] = None
 
 
 class AddConceptRequest(BaseModel):
@@ -285,6 +363,7 @@ def list_domains(source: Optional[str] = Query(default=None, description="Filter
                 "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
+                "coalesce(d.episodeDetector, false) AS episode_detector, "
                 "count(v) AS subdomain_count "
                 "ORDER BY d.name"
             )
@@ -295,6 +374,7 @@ def list_domains(source: Optional[str] = Query(default=None, description="Filter
                 "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
+                "coalesce(d.episodeDetector, false) AS episode_detector, "
                 "count(v) AS subdomain_count "
                 "ORDER BY d.name"
             )
@@ -305,6 +385,7 @@ def list_domains(source: Optional[str] = Query(default=None, description="Filter
                 description=r.get("description") or "",
                 subdomain_count=r.get("subdomain_count", 0),
                 source=r.get("source", "tenant"),
+                episode_detector=bool(r.get("episode_detector", False)),
             )
             for r in rows
         ]
@@ -324,10 +405,12 @@ def create_domain(body: DomainCreateRequest):
         if existing:
             raise HTTPException(400, f"Domain '{body.name}' already exists")
         client.run(
-            "CREATE (d:AuditDomain {id: $id, name: $name, description: $desc, source: 'tenant', createdAt: datetime()})",
+            "CREATE (d:AuditDomain {id: $id, name: $name, description: $desc, "
+            "source: 'tenant', episodeDetector: $ep_det, createdAt: datetime()})",
             id=domain_id,
             name=body.name,
             desc=body.description,
+            ep_det=body.episode_detector,
         )
         return DomainSummary(
             id=domain_id,
@@ -335,6 +418,7 @@ def create_domain(body: DomainCreateRequest):
             description=body.description,
             subdomain_count=0,
             source="tenant",
+            episode_detector=body.episode_detector,
         )
     finally:
         client.close()
@@ -349,7 +433,8 @@ def get_domain(domain_id: str):
         rows = client.run(
             "MATCH (d:AuditDomain {id: $id}) "
             "RETURN d.id AS id, d.name AS name, d.description AS description, "
-            "coalesce(d.source, 'tenant') AS source",
+            "coalesce(d.source, 'tenant') AS source, "
+            "coalesce(d.episodeDetector, false) AS episode_detector",
             id=domain_id,
         )
         if not rows:
@@ -363,28 +448,35 @@ def get_domain(domain_id: str):
             "       v.milestoneType AS milestoneType, "
             "       v.timeWindowMonths AS timeWindowMonths, "
             "       v.semanticTags AS semanticTags, "
+            "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       v.rawJson AS rawJson "
             "ORDER BY v.name",
             id=domain_id,
         )
 
-        subdomains: List[SubdomainSummary] = []
+        # Parse concepts per subdomain so we can batch-query IS_A counts.
+        parsed: List[tuple] = []
         for vr in vs_rows:
             subdomain_name = vr.get("name") or _valueset_id_to_subdomain(vr["vid"])
-            tags = vr.get("semanticTags") or []
-            if isinstance(tags, str):
-                try:
-                    tags = json.loads(tags)
-                except (json.JSONDecodeError, TypeError):
-                    tags = []
+            concepts = _parse_concepts_from_raw(vr.get("rawJson"))
+            concept_ids = [str(c["concept_id"]) for c in concepts if c.get("concept_id")]
+            parsed.append((vr, subdomain_name, concept_ids))
 
+        all_ids = [cid for _, _, ids in parsed for cid in ids]
+        child_counts = _batch_child_counts(all_ids)
+
+        subdomains: List[SubdomainSummary] = []
+        for vr, subdomain_name, concept_ids in parsed:
+            desc_count = sum(child_counts.get(cid, 0) for cid in concept_ids)
             subdomains.append(SubdomainSummary(
                 name=subdomain_name,
                 description=vr.get("description") or "",
                 milestone_type=vr.get("milestoneType"),
                 time_window_months=vr.get("timeWindowMonths"),
-                semantic_tags=tags,
-                concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+                semantic_tags=_parse_list_prop(vr.get("semanticTags")),
+                assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
+                concept_count=len(concept_ids),
+                descendant_count=desc_count,
             ))
 
         return DomainDetail(
@@ -394,6 +486,7 @@ def get_domain(domain_id: str):
             subdomain_count=len(subdomains),
             subdomains=subdomains,
             source=d.get("source", "tenant"),
+            episode_detector=bool(d.get("episode_detector", False)),
         )
     finally:
         client.close()
@@ -418,6 +511,9 @@ def update_domain(domain_id: str, body: DomainUpdateRequest):
         if body.description is not None:
             sets.append("d.description = $desc")
             params["desc"] = body.description
+        if body.episode_detector is not None:
+            sets.append("d.episodeDetector = $ep_det")
+            params["ep_det"] = body.episode_detector
 
         if sets:
             client.run(
@@ -428,6 +524,7 @@ def update_domain(domain_id: str, body: DomainUpdateRequest):
             "MATCH (d:AuditDomain {id: $id}) "
             "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
             "RETURN d.id AS id, d.name AS name, d.description AS description, "
+            "coalesce(d.episodeDetector, false) AS episode_detector, "
             "count(v) AS subdomain_count",
             id=domain_id,
         )
@@ -437,6 +534,7 @@ def update_domain(domain_id: str, body: DomainUpdateRequest):
             name=r["name"] or r["id"],
             description=r.get("description") or "",
             subdomain_count=r.get("subdomain_count", 0),
+            episode_detector=bool(r.get("episode_detector", False)),
         )
     finally:
         client.close()
@@ -509,8 +607,9 @@ def create_subdomain(domain_id: str, body: SubdomainCreateRequest):
         "title": body.description or body.name,
         "description": body.description,
         "milestoneType": body.milestone_type,
-        "timeWindowMonths": body.time_window_months,
-        "semanticTags": body.semantic_tags,
+            "timeWindowMonths": body.time_window_months,
+            "semanticTags": body.semantic_tags,
+            "assertionFilter": body.assertion_filter,
         "compose": {"include": [{"system": SNOMED_SYSTEM, "concept": []}]},
     }
     _upsert_valueset_flat(vs_id, resource)
@@ -534,6 +633,7 @@ def create_subdomain(domain_id: str, body: SubdomainCreateRequest):
         milestone_type=body.milestone_type,
         time_window_months=body.time_window_months,
         semantic_tags=body.semantic_tags,
+        assertion_filter=body.assertion_filter,
         concept_count=0,
     )
 
@@ -555,6 +655,7 @@ def get_subdomain(domain_id: str, subdomain_name: str):
             "       v.milestoneType AS milestoneType, "
             "       v.timeWindowMonths AS timeWindowMonths, "
             "       v.semanticTags AS semanticTags, "
+            "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )
@@ -563,23 +664,7 @@ def get_subdomain(domain_id: str, subdomain_name: str):
     finally:
         client.close()
 
-    vr = rows[0]
-    tags = vr.get("semanticTags") or []
-    if isinstance(tags, str):
-        try:
-            tags = json.loads(tags)
-        except (json.JSONDecodeError, TypeError):
-            tags = []
-
-    return SubdomainDetail(
-        name=vr.get("name") or subdomain_name,
-        description=vr.get("description") or "",
-        milestone_type=vr.get("milestoneType"),
-        time_window_months=vr.get("timeWindowMonths"),
-        semantic_tags=tags,
-        concepts=_parse_concepts_from_raw(vr.get("rawJson")),
-        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
-    )
+    return _valueset_row_to_subdomain_detail(rows[0], subdomain_name)
 
 
 @router.put(
@@ -609,6 +694,9 @@ def update_subdomain(
     if body.semantic_tags is not None:
         sets.append("v.semanticTags = $tags")
         params["tags"] = body.semantic_tags
+    if body.assertion_filter is not None:
+        sets.append("v.assertionFilter = $af")
+        params["af"] = body.assertion_filter
 
     client = KnowledgeGraphClient()
     try:
@@ -623,6 +711,7 @@ def update_subdomain(
             "       v.milestoneType AS milestoneType, "
             "       v.timeWindowMonths AS timeWindowMonths, "
             "       v.semanticTags AS semanticTags, "
+            "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )
@@ -638,6 +727,12 @@ def update_subdomain(
             tags = json.loads(tags)
         except (json.JSONDecodeError, TypeError):
             tags = []
+    af = vr.get("assertionFilter") or []
+    if isinstance(af, str):
+        try:
+            af = json.loads(af)
+        except (json.JSONDecodeError, TypeError):
+            af = []
 
     DomainRegistry.reset_instance()
 
@@ -647,6 +742,7 @@ def update_subdomain(
         milestone_type=vr.get("milestoneType"),
         time_window_months=vr.get("timeWindowMonths"),
         semantic_tags=tags,
+        assertion_filter=af,
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
     )
 
@@ -705,35 +801,11 @@ def add_concept(
 
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(
-            "MATCH (v:ValueSet {id: $id}) "
-            "RETURN v.name AS name, v.description AS description, "
-            "       v.milestoneType AS milestoneType, "
-            "       v.timeWindowMonths AS timeWindowMonths, "
-            "       v.semanticTags AS semanticTags, "
-            "       v.rawJson AS rawJson",
-            id=vs_id,
-        )
+        rows = client.run(_VALUESET_READ_QUERY, id=vs_id)
     finally:
         client.close()
 
-    vr = rows[0]
-    tags = vr.get("semanticTags") or []
-    if isinstance(tags, str):
-        try:
-            tags = json.loads(tags)
-        except (json.JSONDecodeError, TypeError):
-            tags = []
-
-    return SubdomainDetail(
-        name=vr.get("name") or subdomain_name,
-        description=vr.get("description") or "",
-        milestone_type=vr.get("milestoneType"),
-        time_window_months=vr.get("timeWindowMonths"),
-        semantic_tags=tags,
-        concepts=_parse_concepts_from_raw(vr.get("rawJson")),
-        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
-    )
+    return _valueset_row_to_subdomain_detail(rows[0], subdomain_name)
 
 
 class BatchConceptItem(BaseModel):
@@ -790,35 +862,11 @@ def add_concepts_batch(
 
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(
-            "MATCH (v:ValueSet {id: $id}) "
-            "RETURN v.name AS name, v.description AS description, "
-            "       v.milestoneType AS milestoneType, "
-            "       v.timeWindowMonths AS timeWindowMonths, "
-            "       v.semanticTags AS semanticTags, "
-            "       v.rawJson AS rawJson",
-            id=vs_id,
-        )
+        rows = client.run(_VALUESET_READ_QUERY, id=vs_id)
     finally:
         client.close()
 
-    vr = rows[0]
-    tags = vr.get("semanticTags") or []
-    if isinstance(tags, str):
-        try:
-            tags = json.loads(tags)
-        except (json.JSONDecodeError, TypeError):
-            tags = []
-
-    return SubdomainDetail(
-        name=vr.get("name") or subdomain_name,
-        description=vr.get("description") or "",
-        milestone_type=vr.get("milestoneType"),
-        time_window_months=vr.get("timeWindowMonths"),
-        semantic_tags=tags,
-        concepts=_parse_concepts_from_raw(vr.get("rawJson")),
-        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
-    )
+    return _valueset_row_to_subdomain_detail(rows[0], subdomain_name)
 
 
 @router.delete(
@@ -852,35 +900,11 @@ def remove_concept(domain_id: str, subdomain_name: str, concept_id: str):
 
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(
-            "MATCH (v:ValueSet {id: $id}) "
-            "RETURN v.name AS name, v.description AS description, "
-            "       v.milestoneType AS milestoneType, "
-            "       v.timeWindowMonths AS timeWindowMonths, "
-            "       v.semanticTags AS semanticTags, "
-            "       v.rawJson AS rawJson",
-            id=vs_id,
-        )
+        rows = client.run(_VALUESET_READ_QUERY, id=vs_id)
     finally:
         client.close()
 
-    vr = rows[0]
-    tags = vr.get("semanticTags") or []
-    if isinstance(tags, str):
-        try:
-            tags = json.loads(tags)
-        except (json.JSONDecodeError, TypeError):
-            tags = []
-
-    return SubdomainDetail(
-        name=vr.get("name") or subdomain_name,
-        description=vr.get("description") or "",
-        milestone_type=vr.get("milestoneType"),
-        time_window_months=vr.get("timeWindowMonths"),
-        semantic_tags=tags,
-        concepts=_parse_concepts_from_raw(vr.get("rawJson")),
-        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
-    )
+    return _valueset_row_to_subdomain_detail(rows[0], subdomain_name)
 
 
 # ── Export endpoint ──────────────────────────────────────────────────────

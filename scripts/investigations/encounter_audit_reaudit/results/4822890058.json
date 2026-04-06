@@ -1,0 +1,909 @@
+[
+  {
+    "encounter_id": "a87f8cca-5071-4ba7-932f-f7e3673808d7",
+    "patient_id": "4822890058",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Consent given for seasonal influenza vaccination",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Consent given for seasonal influenza vaccination (XaZ0l)' twice in the template entries; this finding is within SNOMED scope and is absent from the coded list.",
+          "snomed_search": "consent given seasonal influenza vaccination",
+          "snomed_concept_id": "822991000000104",
+          "preferred_term": "Consent given for seasonal influenza vaccination (finding)",
+          "sentence": "Consent given for seasonal influenza vaccination (XaZ0l)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Administration of medication under patient group direction",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Administration of medication under patient group direction (XaQA7)' twice, indicating the vaccine was given under a PGD \u2014 this procedure is within SNOMED scope and is absent from the coded list.",
+          "snomed_search": "administration medication patient group direction",
+          "snomed_concept_id": "492811000000103",
+          "preferred_term": "Administration of medication under patient group direction (procedure)",
+          "sentence": "Administration of medication under patient group direction (XaQA7)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two procedure/finding codes explicitly documented in the template entries are missing from the coded list: consent for seasonal flu vaccination (822991000000104) and administration under PGD (492811000000103). Both existing codes appear clinically appropriate despite unreliable terminology server lookups \u2014 search_snomed confirms 86198006 is a valid influenza vaccination procedure. Note also records that the patient was informed of eligibility for PPV23 and shingles vaccines and advised to book \u2014 these have not yet been administered so should not be coded as present procedures at this time.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6885,
+        "output_tokens": 1533,
+        "total_tokens": 8418,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "a87f8cca-5071-4ba7-932f-f7e3673808d7",
+        "date": "2024-10-15",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "52542886-53c7-4b68-af6c-2dadc9dfe64d",
+    "patient_id": "4822890058",
+    "date": "2024-11-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Administration of first dose of Shingrix for shingles",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents Shingrix 1st dose for shingles in an immunosuppressed patient; a dose-specific shingles procedure code is more precise than the generic varicella-zoster antigen code currently used, and supports the recall for the 2nd dose.",
+          "snomed_search": "first dose zoster vaccine shingles",
+          "snomed_concept_id": "1326101000000105",
+          "preferred_term": "Administration of first dose of vaccine product containing only Human alphaherpesvirus 3 antigen for shingles (procedure)",
+          "sentence": "Shingrix 1 0.5ml ... Recall: Injection (11 May 2025) 2nd shingrix vaccine",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1801000221105",
+          "name": "Vaccine product containing only Streptococcus pneumoniae capsular polysaccharide antigen conjugated (medicinal product)",
+          "severity": "medium",
+          "reason": "This is a medicinal product concept, not a procedure; the correct SNOMED procedure code for pneumococcal vaccination is 12866006 (Administration of vaccine product containing only Streptococcus pneumoniae antigen).",
+          "replace_with_concept_id": "12866006",
+          "replace_with_preferred_term": "Administration of vaccine product containing only Streptococcus pneumoniae antigen (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "767634004",
+          "name": "Administration of vaccine product containing only Human alphaherpesvirus 3 antigen (procedure)",
+          "severity": "low",
+          "reason": "The generic varicella-zoster antigen procedure code is less specific than required; the note documents a first-dose shingles vaccination (Shingrix), for which the dose- and indication-specific code 1326101000000105 is available and preferred.",
+          "replace_with_concept_id": "1326101000000105",
+          "replace_with_preferred_term": "Administration of first dose of vaccine product containing only Human alphaherpesvirus 3 antigen for shingles (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two procedure codes need correction: the pneumococcal vaccination is coded with a medicinal product concept (1801000221105) rather than the correct procedure code (12866006); the shingles vaccination should use the dose- and indication-specific first-dose shingles procedure code (1326101000000105) rather than the generic varicella-zoster antigen code. The immunosuppressed finding (370391006) is correctly coded. Note: the 2nd Shingrix dose is recalled for 11 May 2025 and should be coded when administered.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5071,
+        "output_tokens": 1565,
+        "total_tokens": 6636,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "52542886-53c7-4b68-af6c-2dadc9dfe64d",
+        "date": "2024-11-11",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dddaa751-c49e-4761-a744-78ad70d39db2",
+    "patient_id": "4822890058",
+    "date": "2025-01-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine culture performed",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Urine culture performed' as a completed procedure and it is not represented in the coded list.",
+          "snomed_search": "urine culture",
+          "snomed_concept_id": "117010004",
+          "preferred_term": "Urine culture (procedure)",
+          "sentence": "Urine culture performed. Further report to follow.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "52501007",
+          "name": "Leukocyte (cell)",
+          "severity": "medium",
+          "reason": "52501007 is a cell-type concept (Leukocyte), not a clinical finding; the note documents elevated urine WBC on microscopy which maps to Pyuria (finding), not a cell entity.",
+          "replace_with_concept_id": "4800001",
+          "replace_with_preferred_term": "Pyuria (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three of the four coded concepts are correct (microscopic haematuria, LUTS, urine microscopy procedure \u2014 lookup unreliability was a terminology server artefact, confirmed by search). The elevated urine WBC is miscoded as a cell entity (52501007 Leukocyte) rather than the clinical finding Pyuria (4800001); this should be replaced. Additionally, the explicitly documented urine culture procedure (117010004) is missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5793,
+        "output_tokens": 1426,
+        "total_tokens": 7219,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "dddaa751-c49e-4761-a744-78ad70d39db2",
+        "date": "2025-01-03",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1227e71a-dd1d-42b1-8251-8f84a631d167",
+    "patient_id": "4822890058",
+    "date": "2025-01-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "LUTS",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Lower urinary tract symptoms are explicitly documented as the clinical reason for the MSU request and represent a separately codeable active finding.",
+          "snomed_search": "lower urinary tract symptoms",
+          "snomed_concept_id": "307541003",
+          "preferred_term": "Lower urinary tract symptoms (finding)",
+          "sentence": "Clinical Information: Reasons for Request: LUTS - micro haem on urine dip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing code 197940006 (Microscopic hematuria) is correctly applied \u2014 lookup_concept returned an unreliable qualifier-value result but search_snomed confirms the concept is a valid disorder and the coding is evidenced by explicit documentation of micro haem on urine dip. LUTS is additionally documented as the presenting clinical reason and should be coded as 307541003. The urine culture no-growth result does not require additional coding beyond the structured lab pipeline.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2805,
+        "output_tokens": 942,
+        "total_tokens": 3747,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "1227e71a-dd1d-42b1-8251-8f84a631d167",
+        "date": "2025-01-03",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6a9206da-9e54-4b37-9f81-6ea9020a6d17",
+    "patient_id": "4822890058",
+    "date": "2025-01-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ex smoker - stopped 27yo",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Smoking status is explicitly documented as ex-smoker and is clinically relevant to cardiovascular risk assessment, QOF, and the NHS Health Check being arranged.",
+          "snomed_search": "ex-smoker",
+          "snomed_concept_id": "8517006",
+          "preferred_term": "Ex-smoker (finding)",
+          "sentence": "ex smoker  -  stopped 27yo",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The four existing codes are clinically appropriate for this encounter (suspected UTI, blood on dipstick, BP reading, MC&S request), though three of the four concept IDs returned unreliable results from the terminology server and should be verified against the local SNOMED release \u2014 particularly 163033001 which returned an unexpected 'qualifier value' semantic tag rather than a finding or observable entity. The sole confirmed gap is the ex-smoker status (8517006), which is explicitly documented and relevant to the NHS Health Check and cardiovascular risk context. The NHS Health Check appointment release and multiple pathology requests are future/planned actions and should not be coded as present procedures from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4934,
+        "output_tokens": 1429,
+        "total_tokens": 6363,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "6a9206da-9e54-4b37-9f81-6ea9020a6d17",
+        "date": "2025-01-03",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6de52939-4304-4d54-97d6-c32c91895004",
+    "patient_id": "4822890058",
+    "date": "2025-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "LUTS",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "LUTS (lower urinary tract symptoms) is explicitly documented in the clinical information as the reason for the urine dipstick request and is a clinically significant active finding warranting coding.",
+          "snomed_search": "lower urinary tract symptoms",
+          "snomed_concept_id": "307541003",
+          "preferred_term": "Lower urinary tract symptoms (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: LUTS - micro haem on urine dip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The three existing codes are clinically appropriate and well-evidenced: microscopic haematuria (197940006) and T3 thyrotoxicosis (22350004) are confirmed correct SNOMED disorder concepts; the referral code (306118006) returned an unreliable Extension Namespace lookup but is clinically justified by the note text and should be retained. The key gap is LUTS (307541003), explicitly stated as the clinical reason for the urine dipstick request, which has not been coded. Note: a thyroid function test procedure is documented but is likely auto-filed by the structured lab pipeline and does not require manual coding here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4187,
+        "output_tokens": 1046,
+        "total_tokens": 5233,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "6de52939-4304-4d54-97d6-c32c91895004",
+        "date": "2025-01-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8723d7f9-0d39-445c-8928-7155411ec2a9",
+    "patient_id": "4822890058",
+    "date": "2025-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "102739008",
+          "name": "Low density lipoprotein cholesterol (substance)",
+          "severity": "medium",
+          "reason": "This is a substance concept, not a clinical finding; the note explicitly flags LDL > 3 as abnormal, so the correct code is the finding 'Low density lipoprotein cholesterol above reference range'.",
+          "replace_with_concept_id": "445445006",
+          "replace_with_preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four coded concepts are correct (microscopic haematuria as disorder, LUTS as finding, serum cholesterol above reference range as finding). The LDL concept 102739008 is miscoded as a substance rather than a clinical finding \u2014 it should be replaced with 445445006 'Low density lipoprotein cholesterol above reference range (finding)', which directly reflects the clinician's documented interpretation that LDL > 3 is abnormal and requires action. No additional missing codes identified: haematuria is already coded as a red-flag finding and no explicit disorder-level diagnosis (e.g. hypercholesterolaemia) is made in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5243,
+        "output_tokens": 1302,
+        "total_tokens": 6545,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "8723d7f9-0d39-445c-8928-7155411ec2a9",
+        "date": "2025-01-16",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c2ba675b-27f3-4ee8-8e53-c1455eebab22",
+    "patient_id": "4822890058",
+    "date": "2025-01-16",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All three coded concepts are confirmed correct by SNOMED search: microscopic haematuria (197940006), lower urinary tract symptoms (307541003), and serum creatinine below reference range (166715006). The CKD advisory text in the report is boilerplate template language \u2014 no CKD diagnosis is made for this patient (eGFR >90, review marked 'Normal, No Further Action'). The 'not on Thyroid Tx' note is a negative/contextual statement with no codeable disorder stated. Coding is complete and appropriate for this auto-filed lab encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4073,
+        "output_tokens": 1009,
+        "total_tokens": 5082,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "c2ba675b-27f3-4ee8-8e53-c1455eebab22",
+        "date": "2025-01-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "44b0d0b9-8233-4894-b931-5494a6701a9c",
+    "patient_id": "4822890058",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "loose stools",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports stools looser than normal for the past few weeks \u2014 a clinically relevant symptom of hyperthyroidism that should be coded as an active finding.",
+          "snomed_search": "loose stool",
+          "snomed_concept_id": "398032003",
+          "preferred_term": "Loose stool (finding)",
+          "sentence": "Stools have been looser than normal past few weeks.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "T4 19.8",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Free T4 is documented as part of the abnormal TFT panel that triggered this encounter; T3 is already coded but the T4 observable is absent from the coded list.",
+          "snomed_search": "free thyroxine level",
+          "snomed_concept_id": "1030801000000101",
+          "preferred_term": "Free thyroxine level (observable entity)",
+          "sentence": "Lab called with TSH <0.05, T4 19.8, T3 9.1.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "patient not keen on medication",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "Patient explicitly declined propranolol/carbimazole when discussed \u2014 this is a clinically significant situation that should be coded to document informed refusal of treatment.",
+          "snomed_search": "drug declined by patient",
+          "snomed_concept_id": "182895007",
+          "preferred_term": "Drug declined by patient (situation)",
+          "sentence": "Discussed medication such as propanolol/carbimazole, patient not keen at present.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Core coding is clinically sound \u2014 hyperthyroidism diagnosis, abnormal TSH, referral, palpitations and tremor are all correctly captured. Three gaps identified: loose stools (documented GI symptom of thyrotoxicosis), free T4 observable (T3 is coded but T4 from the same panel is not), and drug declined by patient (propranolol/carbimazole explicitly declined). Note: thyroid storm safety-netting was discussed but this is a future contingency, not a current diagnosis, so no additional code is required. The lookup_concept server returned unreliable results for several concept IDs but hierarchy traversal confirmed the hyperthyroidism parent code (34486009) is clinically appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6119,
+        "output_tokens": 1657,
+        "total_tokens": 7776,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "44b0d0b9-8233-4894-b931-5494a6701a9c",
+        "date": "2025-01-21",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "75ddd992-4974-4dbb-a948-3ba5114c5f14",
+    "patient_id": "4822890058",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TSH < 0.05 miu/L",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The suppressed TSH result is a clinically significant finding that warrants coding; the best available SNOMED concept is 'Serum thyroid stimulating hormone level outside reference range' as no specific below-range TSH concept was returned by the server.",
+          "snomed_search": "serum TSH outside reference range",
+          "snomed_concept_id": "166337002",
+          "preferred_term": "Serum thyroid stimulating hormone level outside reference range (finding)",
+          "sentence": "Serum TSH level (XaELV) < 0.05 miu/L",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1153477009",
+          "name": "Serum albumin below reference range (finding)",
+          "severity": "high",
+          "reason": "Concept ID 1153477009 resolves to an Extension Namespace placeholder (unreliable/unverifiable); the coded label 'Serum albumin below reference range' is clinically incorrect \u2014 no albumin result is present in this encounter, and the evidence note itself references TSH, not albumin. This code must be replaced.",
+          "replace_with_concept_id": "166337002",
+          "replace_with_preferred_term": "Serum thyroid stimulating hormone level outside reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept is doubly wrong: the concept ID is an unverifiable Extension Namespace placeholder, and the coded label 'Serum albumin below reference range' bears no relation to the encounter content (thyroid function tests). It should be replaced with 166337002 (Serum TSH level outside reference range) to reflect the suppressed TSH < 0.05 mIU/L. Raw T3 and free T4 numeric values are not flagged as no explicit clinical interpretation (e.g. elevated/low) is documented in the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3761,
+        "output_tokens": 1238,
+        "total_tokens": 4999,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "75ddd992-4974-4dbb-a948-3ba5114c5f14",
+        "date": "2025-01-21",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "432150e2-9a79-4c9a-b8d3-38852c7417f1",
+    "patient_id": "4822890058",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Patient advised about low cholesterol diet",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents dietary advice given to the patient about a low cholesterol diet, which is a codeable procedure evidenced by both the free text and the legacy Read code 8CA47 already present in the encounter header.",
+          "snomed_search": "low cholesterol diet education",
+          "snomed_concept_id": "183062005",
+          "preferred_term": "Low cholesterol diet education (procedure)",
+          "sentence": "Patient advised about low cholesterol diet (8CA47)",
+          "char_start": 57,
+          "char_end": 101
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The hypercholesterolaemia disorder code (13644009) is correctly applied and confirmed by search_snomed despite an unreliable lookup_concept response. The dietary advice procedure (183062005 \u2014 Low cholesterol diet education) is missing despite being explicitly documented in the encounter header with its own legacy Read code (8CA47), and should be added.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2643,
+        "output_tokens": 878,
+        "total_tokens": 3521,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "432150e2-9a79-4c9a-b8d3-38852c7417f1",
+        "date": "2025-01-21",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a21eb1d3-4366-407b-9124-0bfde83dad27",
+    "patient_id": "4822890058",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coded LDL cholesterol measurement procedure (113079009) is confirmed as the correct SNOMED concept despite a terminology server artefact returning an erroneous 'organism' tag \u2014 search_snomed independently validates it. No explicit disorder diagnosis (e.g. hypercholesterolaemia) is documented in this encounter; the pharmacist characterises the overall picture as 'low QRISK' and the encounter is a task-driven lifestyle advice and monitoring review, so no additional disorder or finding codes are warranted from this note alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3677,
+        "output_tokens": 989,
+        "total_tokens": 4666,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "a21eb1d3-4366-407b-9124-0bfde83dad27",
+        "date": "2025-01-21",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "176bd9af-8bb7-41b0-9379-3b0b0637d853",
+    "patient_id": "4822890058",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of medical secretary administrative text \u2014 referral routing lines, choice-and-booking administration entries, and OPD appointment status updates \u2014 with no clinical narrative, examination, diagnosis, or prescriber review present. No coding additions, deletions, or assertion changes are warranted from this note; the standing 2WW fast-track referral procedure code is appropriately held on the problem/procedure list and does not require re-evaluation here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1548,
+        "output_tokens": 656,
+        "total_tokens": 2204,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "176bd9af-8bb7-41b0-9379-3b0b0637d853",
+        "date": "2025-01-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "48c95918-92aa-4137-b501-ca4a1d25c003",
+    "patient_id": "4822890058",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hyperthyroid",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Hyperthyroidism is explicitly stated in the history as the background condition and is directly relevant to the thyroid nodule and 2WW referral; it must be coded as an active problem.",
+          "snomed_search": "hyperthyroidism",
+          "snomed_concept_id": "34486009",
+          "preferred_term": "Hyperthyroidism (disorder)",
+          "sentence": "History: see above - hyperthyroid",
+          "char_start": 62,
+          "char_end": 96
+        },
+        {
+          "term": "Tiredness symptom",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Tiredness is explicitly entered as a coded symptom in the encounter note (XE0qj) and should be represented in the SNOMED coded list as an active finding.",
+          "snomed_search": "fatigue finding",
+          "snomed_concept_id": "84229001",
+          "preferred_term": "Fatigue (finding)",
+          "sentence": "Tiredness symptom (XE0qj)",
+          "char_start": 195,
+          "char_end": 220
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "403829002",
+          "name": "Familial hypercholesterolemia due to heterozygous low density lipoprotein receptor mutation (disorder)",
+          "severity": "high",
+          "reason": "The note documents only a raised LDL of 3.5 with no clinical or genetic criteria for familial hypercholesterolaemia; this specific hereditary diagnosis is not supported by the encounter text and the concept ID is unverifiable on the terminology server.",
+          "replace_with_concept_id": "13644009",
+          "replace_with_preferred_term": "Hypercholesterolemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "237495005",
+          "name": "Thyroid nodule (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician documented '? nodule' indicating clinical uncertainty; the assertion should be 'possible' pending the 2WW investigation outcome rather than confirmed present."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Three substantive issues found: (1) Familial hypercholesterolaemia (403829002) is overcoded \u2014 the note supports only non-specific hypercholesterolaemia (13644009), and the concept ID is unverifiable; (2) Thyroid nodule assertion should be 'possible' given the clinician's documented uncertainty ('? nodule'); (3) Hyperthyroidism and Tiredness are missing from the coded list despite being explicitly documented in the encounter. The 2WW referral and dysphagia codes are correctly applied and the fast-track referral procedure code is appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9372,
+        "output_tokens": 1992,
+        "total_tokens": 11364,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "48c95918-92aa-4137-b501-ca4a1d25c003",
+        "date": "2025-01-22",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "18221a2b-52a9-49f3-abaf-32e3f0f06e58",
+    "patient_id": "4822890058",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists entirely of administrative and workflow content: an admin/clinical support access role entry, an NHS Health Check programme claim completion flag, a patient letter notification, and a recall/blood test reminder. There is no clinical narrative, examination findings, diagnoses, or management decisions documented in this encounter text that would require SNOMED coding beyond what is already handled by the structured pipeline. The existing QRISK2 observable entity code is appropriate and was written by the structured pipeline; no additions or removals are warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 544,
+        "output_tokens": 256,
+        "total_tokens": 800,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "18221a2b-52a9-49f3-abaf-32e3f0f06e58",
+        "date": "2025-01-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8a23b11d-a557-4574-80ae-499355598d6d",
+    "patient_id": "4822890058",
+    "date": "2025-02-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "carbimazole",
+          "snomed_concept_id": "34486009",
+          "preferred_term": "Hyperthyroidism (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Carbimazole is an antithyroid drug used exclusively for hyperthyroidism. The encounter references a Diabetes and Endocrine specialist letter and initiates carbimazole 20mg daily. Hyperthyroidism is not on the patient's problem list and should be coded. The specific subtype is not documented in this note so the parent concept is used.",
+          "sentence": "Letter noted, to commence on 20mg carbimazole.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "This encounter is primarily a duty admin prescription issue, but it carries a clinically significant implied diagnosis. Carbimazole is an antithyroid drug used exclusively for hyperthyroidism; the Diabetes and Endocrine specialist letter referenced strongly supports this. The patient's problem list is empty and hyperthyroidism is not coded. The specific subtype (e.g. Graves' disease, toxic nodular goitre) cannot be determined from this note alone \u2014 the specialist letter should be reviewed to code at the most specific level. Confidence is slightly reduced (0.78) because the diagnosis is inferred from the medication rather than explicitly stated in this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2243,
+        "output_tokens": 1214,
+        "total_tokens": 3457,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "8a23b11d-a557-4574-80ae-499355598d6d",
+        "date": "2025-02-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8877d3a9-17a6-4138-91be-31423bf3b110",
+    "patient_id": "4822890058",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Thyroid function test",
+          "snomed_concept_id": "35650009",
+          "preferred_term": "Thyroid panel (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Thyroid function test was performed and results reviewed by a clinician; the procedure should be coded.",
+          "sentence": "Thyroid function test (X77Wg)",
+          "char_start": 28,
+          "char_end": 49
+        },
+        {
+          "text": "Serum TSH level - <0.05",
+          "snomed_concept_id": "166337002",
+          "preferred_term": "Serum thyroid stimulating hormone level outside reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "TSH <0.05 is markedly suppressed and below the reference range. This is a clinically significant abnormal finding indicating possible hyperthyroidism or over-replacement, and should be coded even though the report states 'No Further Action' following Endocrinology review.",
+          "sentence": "Serum TSH level (XaELV) - <0.05",
+          "char_start": 220,
+          "char_end": 252
+        },
+        {
+          "text": "Serum free T4 level 10 pmol/L",
+          "snomed_concept_id": "166330000",
+          "preferred_term": "Serum thyroxine level within reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Free T4 10 pmol/L is within the method-specific reference range [9.7\u201324.7]; normal result should be coded to document the full TFT profile.",
+          "sentence": "Serum free T4 level (XaERr) 10 pmol/L [9.7 - 24.7]",
+          "char_start": 55,
+          "char_end": 106
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Auto-filed TFT result reviewed by Dr Horne on 17 Mar 2025. Key abnormality: TSH <0.05 (suppressed, below reference range) \u2014 this is a high-severity finding requiring coding even though the clinical review concluded 'No Further Action' (likely in context of known thyroid disease or treatment). Free T4 (10 pmol/L) and free T3 (4.1 pmol/L) are both within their respective reference ranges. The procedure (thyroid panel) and the abnormal TSH finding are missing from the coded record. Note: the SNOMED concept ID for 'TSH outside reference range' (166337002) was flagged as unreliable by the terminology server \u2014 the preferred term and concept ID should be verified against the local SNOMED release before coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7596,
+        "output_tokens": 1938,
+        "total_tokens": 9534,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "8877d3a9-17a6-4138-91be-31423bf3b110",
+        "date": "2025-03-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b69a0fb5-aacf-409c-be9f-42b536f3fd2f",
+    "patient_id": "4822890058",
+    "date": "2025-05-13",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [
+        {
+          "text": "Serum lipid levels",
+          "snomed_concept_id": "271244005",
+          "preferred_term": "Measurement of serum lipid level (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Serum lipid panel was performed and auto-filed; the procedure should be coded.",
+          "sentence": "Serum lipid levels (XE2q7)",
+          "char_start": 24,
+          "char_end": 42
+        },
+        {
+          "text": "Serum cholesterol within reference range",
+          "snomed_concept_id": "166828006",
+          "preferred_term": "Serum cholesterol within reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Cholesterol 4.6 mmol/L is within acceptable range; report marked Normal. This finding should be coded to reflect the result interpretation.",
+          "sentence": "Serum cholesterol level (XE2eD) 4.6 mmol/L",
+          "char_start": 43,
+          "char_end": 86
+        },
+        {
+          "text": "atorvastatin start",
+          "snomed_concept_id": "764968003",
+          "preferred_term": "Lipid-lowering therapy started (situation)",
+          "semantic_tag": "situation",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Clinical information explicitly states 'atorvastatin start' as the reason for the lipid request. Initiation of lipid-lowering therapy is a clinically significant event that should be coded.",
+          "sentence": "Clinical Information: Clinical Details: On Carbimazole Reasons for Request: atorvastatin start.",
+          "char_start": 530,
+          "char_end": 548
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Auto-filed lipid panel with clinician review (Dr Patel, 16 May 2025). All lipid values are within acceptable ranges; report marked Normal/No Further Action. Three codeable items identified: (1) the lipid measurement procedure, (2) serum cholesterol within reference range as the result interpretation finding, and (3) lipid-lowering therapy started (atorvastatin) \u2014 explicitly stated as the reason for the request. Carbimazole is noted as background medication context only and does not represent a new clinical event in this encounter. Confidence slightly reduced as the legacy Read codes (XE2q7, XE2eD etc.) in the auto-filed text may already map to structured coded entries in the clinical system \u2014 a human reviewer should confirm whether the lipid observables are already captured via the structured results pipeline before adding duplicate codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4522,
+        "output_tokens": 1540,
+        "total_tokens": 6062,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "b69a0fb5-aacf-409c-be9f-42b536f3fd2f",
+        "date": "2025-05-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e757cc69-c39b-4dab-946b-8fc8502f5da6",
+    "patient_id": "4822890058",
+    "date": "2025-07-18",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is a pharmacist-led telephone medication review encounter. All clinical content is captured via pre-structured Read/SNOMED template codes already embedded in the note (medication review process codes: Y20a8, XaJCO, XaJKn, XaJHr, XaJKW, XaJKN, XaJKO, etc.). No new diagnoses, symptoms, or clinical findings are documented in this encounter text. Medications listed (Risedronate, Carbimazole, TheiCal-D3, Atorvastatin) imply standing conditions (osteoporosis, hyperthyroidism, dyslipidaemia) that belong on the problem list, not as new encounter-level codes. No ADRs, no side effects, no red flags. Nothing new to code from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2824,
+        "output_tokens": 858,
+        "total_tokens": 3682,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4822890058",
+        "encounter_id": "e757cc69-c39b-4dab-946b-8fc8502f5da6",
+        "date": "2025-07-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  }
+]

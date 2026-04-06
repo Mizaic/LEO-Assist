@@ -1,0 +1,1934 @@
+[
+  {
+    "form": "AAA",
+    "normalized": "aaa",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Abdominal aortic aneurysm",
+    "normalized": "abdominal aortic aneurysm",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Abdominal aortic aneurysm (disorder)",
+    "normalized": "abdominal aortic aneurysm disorder",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Alzheimer's",
+    "normalized": "alzheimer s",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Alzheimer's disease (disorder)",
+    "normalized": "alzheimer s disease disorder",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Asthma (disorder)",
+    "normalized": "asthma disorder",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "B/L lower limb paralysis",
+    "normalized": "b l lower limb paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Bil LL weakness",
+    "normalized": "bil ll weakness",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Bowel cancer screening declined (situation)",
+    "normalized": "bowel cancer screening declined situation",
+    "concept_id": "294201000000109",
+    "concept_fsn": "Bowel cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Breast cancer screening declined",
+    "normalized": "breast cancer screening declined",
+    "concept_id": "12275351000119103",
+    "concept_fsn": "Breast cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Breast cancer screening declined (situation)",
+    "normalized": "breast cancer screening declined situation",
+    "concept_id": "12275351000119103",
+    "concept_fsn": "Breast cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "C-spine injury with paralysis",
+    "normalized": "c spine injury with paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "CVA with hemiplegia",
+    "normalized": "cva with hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Ca diag discussed with patient",
+    "normalized": "ca diag discussed with patient",
+    "concept_id": "395672005",
+    "concept_fsn": "Cancer diagnosis discussed with patient (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cancer diagnosis discussed with patient",
+    "normalized": "cancer diagnosis discussed with patient",
+    "concept_id": "395672005",
+    "concept_fsn": "Cancer diagnosis discussed with patient (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cancer diagnosis discussed with patient (procedure)",
+    "normalized": "cancer diagnosis discussed with patient procedure",
+    "concept_id": "395672005",
+    "concept_fsn": "Cancer diagnosis discussed with patient (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cancer diagnosis discussed with patient (situation)",
+    "normalized": "cancer diagnosis discussed with patient situation",
+    "concept_id": "395672005",
+    "concept_fsn": "Cancer diagnosis discussed with patient (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cancer excluded",
+    "normalized": "cancer excluded",
+    "concept_id": "395100000",
+    "concept_fsn": "No evidence of cancer found (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cancer history",
+    "normalized": "cancer history",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cancer ruled out",
+    "normalized": "cancer ruled out",
+    "concept_id": "395100000",
+    "concept_fsn": "No evidence of cancer found (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cauda equina syndrome",
+    "normalized": "cauda equina syndrome",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cerebrovascular accident",
+    "normalized": "cerebrovascular accident",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cerebrovascular accident (disorder)",
+    "normalized": "cerebrovascular accident disorder",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cervical cancer screening done",
+    "normalized": "cervical cancer screening done",
+    "concept_id": "1148678002",
+    "concept_fsn": "Screening for malignant neoplasm of cervix done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cervical cancer screening offered",
+    "normalized": "cervical cancer screening offered",
+    "concept_id": "1104621000000103",
+    "concept_fsn": "Cervical cancer screening offered (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cervical cancer screening offered (situation)",
+    "normalized": "cervical cancer screening offered situation",
+    "concept_id": "1104621000000103",
+    "concept_fsn": "Cervical cancer screening offered (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chemotherapy declined (situation)",
+    "normalized": "chemotherapy declined situation",
+    "concept_id": "16634021000119105",
+    "concept_fsn": "Chemotherapy declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic bronchitis",
+    "normalized": "chronic bronchitis",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic hepatitis",
+    "normalized": "chronic hepatitis",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic kidney disease (disorder)",
+    "normalized": "chronic kidney disease disorder",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic kidney disease stage 3 (disorder)",
+    "normalized": "chronic kidney disease stage 3 disorder",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic kidney disease stage 4 (disorder)",
+    "normalized": "chronic kidney disease stage 4 disorder",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic kidney disease stage 5 (disorder)",
+    "normalized": "chronic kidney disease stage 5 disorder",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic obstructive lung disease",
+    "normalized": "chronic obstructive lung disease",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Chronic obstructive lung disease (disorder)",
+    "normalized": "chronic obstructive lung disease disorder",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Colon cancer screening declined",
+    "normalized": "colon cancer screening declined",
+    "concept_id": "31001000119109",
+    "concept_fsn": "Colon cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Colon cancer screening declined (situation)",
+    "normalized": "colon cancer screening declined situation",
+    "concept_id": "31001000119109",
+    "concept_fsn": "Colon cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Complete SCI",
+    "normalized": "complete sci",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Cord compression with paralysis",
+    "normalized": "cord compression with paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "DM",
+    "normalized": "dm",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Dementia (disorder)",
+    "normalized": "dementia disorder",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Dense hemiplegia",
+    "normalized": "dense hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Diabetes mellitus type 1",
+    "normalized": "diabetes mellitus type 1",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Diabetes mellitus type 1 (disorder)",
+    "normalized": "diabetes mellitus type 1 disorder",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Diabetes mellitus type 2",
+    "normalized": "diabetes mellitus type 2",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Diabetes mellitus type 2 (disorder)",
+    "normalized": "diabetes mellitus type 2 disorder",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Dialysis",
+    "normalized": "dialysis",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Diplegia",
+    "normalized": "diplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Diplegic",
+    "normalized": "diplegic",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Donor renal transplantation",
+    "normalized": "donor renal transplantation",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Donor renal transplantation (procedure)",
+    "normalized": "donor renal transplantation procedure",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Duodenal ulcer",
+    "normalized": "duodenal ulcer",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Duodenal ulcer (disorder)",
+    "normalized": "duodenal ulcer disorder",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "ESRD",
+    "normalized": "esrd",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Emphysema",
+    "normalized": "emphysema",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "End stage renal disease",
+    "normalized": "end stage renal disease",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "End stage renal disease (disorder)",
+    "normalized": "end stage renal disease disorder",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Exposure to occupational risk factor",
+    "normalized": "exposure to occupational risk factor",
+    "concept_id": "525831000000103",
+    "concept_fsn": "Exposure to occupational risk factor (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Exposure to occupational risk factor (situation)",
+    "normalized": "exposure to occupational risk factor situation",
+    "concept_id": "525831000000103",
+    "concept_fsn": "Exposure to occupational risk factor (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "FH: Bronchus cancer",
+    "normalized": "fh bronchus cancer",
+    "concept_id": "275110002",
+    "concept_fsn": "Family history: Bronchus cancer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Findings not suggestive of malignancy",
+    "normalized": "findings not suggestive of malignancy",
+    "concept_id": "395100000",
+    "concept_fsn": "No evidence of cancer found (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Flaccid hemiplegia",
+    "normalized": "flaccid hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Gastric ulcer",
+    "normalized": "gastric ulcer",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Gastric ulcer (disorder)",
+    "normalized": "gastric ulcer disorder",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: COPD",
+    "normalized": "h o copd",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: CVA",
+    "normalized": "h o cva",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: MI",
+    "normalized": "h o mi",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: PVD",
+    "normalized": "h o pvd",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: brain disorder",
+    "normalized": "h o brain disorder",
+    "concept_id": "275540007",
+    "concept_fsn": "History of brain disorder (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: cancer",
+    "normalized": "h o cancer",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: cardiovascular disease",
+    "normalized": "h o cardiovascular disease",
+    "concept_id": "266995000",
+    "concept_fsn": "History of cardiovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: cerebrovascular disease",
+    "normalized": "h o cerebrovascular disease",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: chronic obstructive airways disease",
+    "normalized": "h o chronic obstructive airways disease",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: connective tissue disorder",
+    "normalized": "h o connective tissue disorder",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: dementia",
+    "normalized": "h o dementia",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: diabetes",
+    "normalized": "h o diabetes",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: diabetes mellitus",
+    "normalized": "h o diabetes mellitus",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: heart attack",
+    "normalized": "h o heart attack",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: hypertension",
+    "normalized": "h o hypertension",
+    "concept_id": "161501007",
+    "concept_fsn": "History of hypertension (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: liver disorder",
+    "normalized": "h o liver disorder",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: malignant neoplasm",
+    "normalized": "h o malignant neoplasm",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: musculoskeletal disease",
+    "normalized": "h o musculoskeletal disease",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: myocardial infarction",
+    "normalized": "h o myocardial infarction",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: peptic ulcer",
+    "normalized": "h o peptic ulcer",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: peripheral vascular disease",
+    "normalized": "h o peripheral vascular disease",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: renal disease",
+    "normalized": "h o renal disease",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: respiratory disease",
+    "normalized": "h o respiratory disease",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "H/O: stroke",
+    "normalized": "h o stroke",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Healed coronary",
+    "normalized": "healed coronary",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Healed myocardial infarction",
+    "normalized": "healed myocardial infarction",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Hemiparesis",
+    "normalized": "hemiparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Hemiparetic",
+    "normalized": "hemiparetic",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Hemiplegic",
+    "normalized": "hemiplegic",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Hepatitis B",
+    "normalized": "hepatitis b",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Hepatitis C",
+    "normalized": "hepatitis c",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Incomplete SCI",
+    "normalized": "incomplete sci",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Intermittent claudication",
+    "normalized": "intermittent claudication",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Intermittent claudication (finding)",
+    "normalized": "intermittent claudication finding",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Kidney transplant",
+    "normalized": "kidney transplant",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "L) hemiparesis",
+    "normalized": "l hemiparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "L) hemiplegia",
+    "normalized": "l hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "LMN paralysis",
+    "normalized": "lmn paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Left hemiplegia",
+    "normalized": "left hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Left-sided weakness",
+    "normalized": "left sided weakness",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Lower limb paralysis",
+    "normalized": "lower limb paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Lower motor neuron lesion",
+    "normalized": "lower motor neuron lesion",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Lung cancer screening declined",
+    "normalized": "lung cancer screening declined",
+    "concept_id": "13015001000119105",
+    "concept_fsn": "Lung cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Lung cancer screening declined (situation)",
+    "normalized": "lung cancer screening declined situation",
+    "concept_id": "13015001000119105",
+    "concept_fsn": "Lung cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Lupus",
+    "normalized": "lupus",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "MRC 0/5",
+    "normalized": "mrc 0 5",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "MRC 1/5",
+    "normalized": "mrc 1 5",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "MRC 2/5",
+    "normalized": "mrc 2 5",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Malignant neoplasm",
+    "normalized": "malignant neoplasm",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Malignant neoplastic disease",
+    "normalized": "malignant neoplastic disease",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Malignant neoplastic disease suspected (situation)",
+    "normalized": "malignant neoplastic disease suspected situation",
+    "concept_id": "162572001",
+    "concept_fsn": "Malignant neoplastic disease suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Mini stroke",
+    "normalized": "mini stroke",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Monoparesis",
+    "normalized": "monoparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Monoplegia",
+    "normalized": "monoplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Monoplegic",
+    "normalized": "monoplegic",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Myocardial infarction (disorder)",
+    "normalized": "myocardial infarction disorder",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "NED (no evidence of disease)",
+    "normalized": "ned no evidence of disease",
+    "concept_id": "395100000",
+    "concept_fsn": "No evidence of cancer found (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Negative for malignancy",
+    "normalized": "negative for malignancy",
+    "concept_id": "395100000",
+    "concept_fsn": "No evidence of cancer found (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Nonalcoholic fatty liver disease",
+    "normalized": "nonalcoholic fatty liver disease",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Old myocardial infarction",
+    "normalized": "old myocardial infarction",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Old myocardial infarction (disorder)",
+    "normalized": "old myocardial infarction disorder",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "PMR",
+    "normalized": "pmr",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "PUD",
+    "normalized": "pud",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paralysed",
+    "normalized": "paralysed",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paralysed legs",
+    "normalized": "paralysed legs",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paralysis of all four limbs",
+    "normalized": "paralysis of all four limbs",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paralysis of legs",
+    "normalized": "paralysis of legs",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paralyzed",
+    "normalized": "paralyzed",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paralyzed from waist down",
+    "normalized": "paralyzed from waist down",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paraparesis",
+    "normalized": "paraparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Paraplegic",
+    "normalized": "paraplegic",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Parent has physical disability (situation)",
+    "normalized": "parent has physical disability situation",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past COPD",
+    "normalized": "past copd",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past CTD",
+    "normalized": "past ctd",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past MI",
+    "normalized": "past mi",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past PVD",
+    "normalized": "past pvd",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past cancer",
+    "normalized": "past cancer",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past cardiovascular disease",
+    "normalized": "past cardiovascular disease",
+    "concept_id": "266995000",
+    "concept_fsn": "History of cardiovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past dementia",
+    "normalized": "past dementia",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past diabetes",
+    "normalized": "past diabetes",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past history of hypertension",
+    "normalized": "past history of hypertension",
+    "concept_id": "161501007",
+    "concept_fsn": "History of hypertension (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past history of myocardial infarction",
+    "normalized": "past history of myocardial infarction",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past kidney disease",
+    "normalized": "past kidney disease",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past liver disease",
+    "normalized": "past liver disease",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past musculoskeletal disease",
+    "normalized": "past musculoskeletal disease",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past peptic ulcer",
+    "normalized": "past peptic ulcer",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Past stroke",
+    "normalized": "past stroke",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Peptic ulcer",
+    "normalized": "peptic ulcer",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Peptic ulcer (disorder)",
+    "normalized": "peptic ulcer disorder",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Peripheral vascular disease",
+    "normalized": "peripheral vascular disease",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Peripheral vascular disease (disorder)",
+    "normalized": "peripheral vascular disease disorder",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Polymyalgia rheumatica",
+    "normalized": "polymyalgia rheumatica",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Polymyalgia rheumatica (disorder)",
+    "normalized": "polymyalgia rheumatica disorder",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Polymyositis",
+    "normalized": "polymyositis",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Polymyositis (disorder)",
+    "normalized": "polymyositis disorder",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Post-stroke paralysis",
+    "normalized": "post stroke paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Pre-existing diabetes mellitus",
+    "normalized": "pre existing diabetes mellitus",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous CVD",
+    "normalized": "previous cvd",
+    "concept_id": "266995000",
+    "concept_fsn": "History of cardiovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous arthritis",
+    "normalized": "previous arthritis",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous cancer",
+    "normalized": "previous cancer",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous connective tissue disease",
+    "normalized": "previous connective tissue disease",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous dementia",
+    "normalized": "previous dementia",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous diabetes",
+    "normalized": "previous diabetes",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous hypertension",
+    "normalized": "previous hypertension",
+    "concept_id": "161501007",
+    "concept_fsn": "History of hypertension (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous liver disease",
+    "normalized": "previous liver disease",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous malignancy",
+    "normalized": "previous malignancy",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous myocardial infarction",
+    "normalized": "previous myocardial infarction",
+    "concept_id": "399211009",
+    "concept_fsn": "History of myocardial infarction (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous peripheral vascular disease",
+    "normalized": "previous peripheral vascular disease",
+    "concept_id": "473109007",
+    "concept_fsn": "History of peripheral vascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous renal disease",
+    "normalized": "previous renal disease",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous respiratory disease",
+    "normalized": "previous respiratory disease",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous stroke",
+    "normalized": "previous stroke",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Previous ulcer",
+    "normalized": "previous ulcer",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Prior cancer diagnosis",
+    "normalized": "prior cancer diagnosis",
+    "concept_id": "266987004",
+    "concept_fsn": "History of malignant neoplasm (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Procedure declined",
+    "normalized": "procedure declined",
+    "concept_id": "1296859006",
+    "concept_fsn": "Procedure declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Procedure declined (situation)",
+    "normalized": "procedure declined situation",
+    "concept_id": "1296859006",
+    "concept_fsn": "Procedure declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Procedure refused",
+    "normalized": "procedure refused",
+    "concept_id": "1296859006",
+    "concept_fsn": "Procedure declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Procedure rejected",
+    "normalized": "procedure rejected",
+    "concept_id": "1296859006",
+    "concept_fsn": "Procedure declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Prostate cancer screening declined",
+    "normalized": "prostate cancer screening declined",
+    "concept_id": "31011000119107",
+    "concept_fsn": "Prostate cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Prostate cancer screening declined (situation)",
+    "normalized": "prostate cancer screening declined situation",
+    "concept_id": "31011000119107",
+    "concept_fsn": "Prostate cancer screening declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Pulmonary emphysema",
+    "normalized": "pulmonary emphysema",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Pulmonary emphysema (disorder)",
+    "normalized": "pulmonary emphysema disorder",
+    "concept_id": "270473001",
+    "concept_fsn": "History of chronic obstructive airway disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Quadriparesis",
+    "normalized": "quadriparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Quadriplegic",
+    "normalized": "quadriplegic",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Query malignancy",
+    "normalized": "query malignancy",
+    "concept_id": "162572001",
+    "concept_fsn": "Malignant neoplastic disease suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "R) hemiparesis",
+    "normalized": "r hemiparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "R) hemiplegia",
+    "normalized": "r hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Radiotherapy declined by patient (situation)",
+    "normalized": "radiotherapy declined by patient situation",
+    "concept_id": "16633941000119101",
+    "concept_fsn": "Radiotherapy declined by patient (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Raloxifene therapy declined",
+    "normalized": "raloxifene therapy declined",
+    "concept_id": "703991004",
+    "concept_fsn": "Raloxifene therapy declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Raloxifene therapy declined (situation)",
+    "normalized": "raloxifene therapy declined situation",
+    "concept_id": "703991004",
+    "concept_fsn": "Raloxifene therapy declined (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Renal dialysis",
+    "normalized": "renal dialysis",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Renal dialysis (procedure)",
+    "normalized": "renal dialysis procedure",
+    "concept_id": "275552000",
+    "concept_fsn": "History of kidney disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Residual hemiparesis",
+    "normalized": "residual hemiparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Rheumatoid arthritis (disorder)",
+    "normalized": "rheumatoid arthritis disorder",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Right hemiplegia",
+    "normalized": "right hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Right-sided weakness",
+    "normalized": "right sided weakness",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "SCI",
+    "normalized": "sci",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "SCI C5",
+    "normalized": "sci c5",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "SCI T12",
+    "normalized": "sci t12",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "SLE",
+    "normalized": "sle",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Scleroderma",
+    "normalized": "scleroderma",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for cancer done",
+    "normalized": "screening for cancer done",
+    "concept_id": "1148677007",
+    "concept_fsn": "Screening for malignant neoplasm done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for malignant neoplasm done",
+    "normalized": "screening for malignant neoplasm done",
+    "concept_id": "1148677007",
+    "concept_fsn": "Screening for malignant neoplasm done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for malignant neoplasm done (situation)",
+    "normalized": "screening for malignant neoplasm done situation",
+    "concept_id": "1148677007",
+    "concept_fsn": "Screening for malignant neoplasm done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for malignant neoplasm of cervix done",
+    "normalized": "screening for malignant neoplasm of cervix done",
+    "concept_id": "1148678002",
+    "concept_fsn": "Screening for malignant neoplasm of cervix done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for malignant neoplasm of cervix done (situation)",
+    "normalized": "screening for malignant neoplasm of cervix done situation",
+    "concept_id": "1148678002",
+    "concept_fsn": "Screening for malignant neoplasm of cervix done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for malignant neoplasm of vagina done",
+    "normalized": "screening for malignant neoplasm of vagina done",
+    "concept_id": "146861000119102",
+    "concept_fsn": "Screening for malignant neoplasm of vagina done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for malignant neoplasm of vagina done (situation)",
+    "normalized": "screening for malignant neoplasm of vagina done situation",
+    "concept_id": "146861000119102",
+    "concept_fsn": "Screening for malignant neoplasm of vagina done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening for vaginal cancer done",
+    "normalized": "screening for vaginal cancer done",
+    "concept_id": "146861000119102",
+    "concept_fsn": "Screening for malignant neoplasm of vagina done (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening offered",
+    "normalized": "screening offered",
+    "concept_id": "1104631000000101",
+    "concept_fsn": "Screening offered (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Screening offered (situation)",
+    "normalized": "screening offered situation",
+    "concept_id": "1104631000000101",
+    "concept_fsn": "Screening offered (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Single limb paralysis",
+    "normalized": "single limb paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Spastic diplegia",
+    "normalized": "spastic diplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Spastic hemiplegia",
+    "normalized": "spastic hemiplegia",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Spinal cord injury",
+    "normalized": "spinal cord injury",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Steatosis of liver",
+    "normalized": "steatosis of liver",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Steatosis of liver (disorder)",
+    "normalized": "steatosis of liver disorder",
+    "concept_id": "161535005",
+    "concept_fsn": "History of liver disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Stomach ulcer",
+    "normalized": "stomach ulcer",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Stroke with hemiparesis",
+    "normalized": "stroke with hemiparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected benign pigmented skin lesion",
+    "normalized": "suspected benign pigmented skin lesion",
+    "concept_id": "734931005",
+    "concept_fsn": "Suspected benign pigmented skin lesion (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected benign pigmented skin lesion (situation)",
+    "normalized": "suspected benign pigmented skin lesion situation",
+    "concept_id": "734931005",
+    "concept_fsn": "Suspected benign pigmented skin lesion (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected cancer",
+    "normalized": "suspected cancer",
+    "concept_id": "162572001",
+    "concept_fsn": "Malignant neoplastic disease suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected malignant pigmented skin lesion",
+    "normalized": "suspected malignant pigmented skin lesion",
+    "concept_id": "734936000",
+    "concept_fsn": "Malignant pigmented skin lesion suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected malignant pigmented skin lesion (situation)",
+    "normalized": "suspected malignant pigmented skin lesion situation",
+    "concept_id": "734936000",
+    "concept_fsn": "Malignant pigmented skin lesion suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected skin cancer",
+    "normalized": "suspected skin cancer",
+    "concept_id": "315276005",
+    "concept_fsn": "Malignant neoplasm of skin suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected skin cancer (context-dependent category)",
+    "normalized": "suspected skin cancer context dependent category",
+    "concept_id": "315276005",
+    "concept_fsn": "Malignant neoplasm of skin suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspected skin cancer (situation)",
+    "normalized": "suspected skin cancer situation",
+    "concept_id": "315276005",
+    "concept_fsn": "Malignant neoplasm of skin suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspicious for malignancy",
+    "normalized": "suspicious for malignancy",
+    "concept_id": "162572001",
+    "concept_fsn": "Malignant neoplastic disease suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Suspicious of cancer",
+    "normalized": "suspicious of cancer",
+    "concept_id": "162572001",
+    "concept_fsn": "Malignant neoplastic disease suspected (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Systemic lupus erythematosus",
+    "normalized": "systemic lupus erythematosus",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Systemic lupus erythematosus (disorder)",
+    "normalized": "systemic lupus erythematosus disorder",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Systemic sclerosis",
+    "normalized": "systemic sclerosis",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Systemic sclerosis (disorder)",
+    "normalized": "systemic sclerosis disorder",
+    "concept_id": "472961001",
+    "concept_fsn": "History of disorder of connective tissue (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Tetraparesis",
+    "normalized": "tetraparesis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Tetraplegic",
+    "normalized": "tetraplegic",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine Rx stopped",
+    "normalized": "thyroxine rx stopped",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine Rx stopped (procedure)",
+    "normalized": "thyroxine rx stopped procedure",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine Rx stopped (regime/therapy)",
+    "normalized": "thyroxine rx stopped regime therapy",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine treament stopped",
+    "normalized": "thyroxine treament stopped",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine treament stopped (regime/therapy)",
+    "normalized": "thyroxine treament stopped regime therapy",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine treatment stopped",
+    "normalized": "thyroxine treatment stopped",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine treatment stopped (regime/therapy)",
+    "normalized": "thyroxine treatment stopped regime therapy",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Thyroxine treatment stopped (situation)",
+    "normalized": "thyroxine treatment stopped situation",
+    "concept_id": "309841001",
+    "concept_fsn": "Thyroxine treatment stopped (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Transient ischemic attack",
+    "normalized": "transient ischemic attack",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Transient ischemic attack (disorder)",
+    "normalized": "transient ischemic attack disorder",
+    "concept_id": "308064009",
+    "concept_fsn": "History of cerebrovascular disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Type 1 diabetes",
+    "normalized": "type 1 diabetes",
+    "concept_id": "161445009",
+    "concept_fsn": "History of diabetes mellitus (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "UMN weakness",
+    "normalized": "umn weakness",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Unilateral paralysis",
+    "normalized": "unilateral paralysis",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Unilateral weakness",
+    "normalized": "unilateral weakness",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Upper motor neuron lesion",
+    "normalized": "upper motor neuron lesion",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Vascular dementia",
+    "normalized": "vascular dementia",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "Vascular dementia (disorder)",
+    "normalized": "vascular dementia disorder",
+    "concept_id": "161465002",
+    "concept_fsn": "History of dementia (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "ankle",
+    "normalized": "ankle",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "arthritis",
+    "normalized": "arthritis",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "bone",
+    "normalized": "bone",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "brain disorder",
+    "normalized": "brain disorder",
+    "concept_id": "275540007",
+    "concept_fsn": "History of brain disorder (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "disability",
+    "normalized": "disability",
+    "concept_id": "415036007",
+    "concept_fsn": "Parent has physical disability (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "elbow",
+    "normalized": "elbow",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "esophageal",
+    "normalized": "esophageal",
+    "concept_id": "266998003",
+    "concept_fsn": "History of peptic ulcer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "finger",
+    "normalized": "finger",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "fracture",
+    "normalized": "fracture",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "joint",
+    "normalized": "joint",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "laryngospasm",
+    "normalized": "laryngospasm",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "ligament",
+    "normalized": "ligament",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "neurological disorder",
+    "normalized": "neurological disorder",
+    "concept_id": "275540007",
+    "concept_fsn": "History of brain disorder (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "osteoarthritis",
+    "normalized": "osteoarthritis",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "osteomyelitis",
+    "normalized": "osteomyelitis",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "recurrence of cancer",
+    "normalized": "recurrence of cancer",
+    "concept_id": "414861001",
+    "concept_fsn": "No evidence of recurrence of cancer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "recurrent cancer",
+    "normalized": "recurrent cancer",
+    "concept_id": "414861001",
+    "concept_fsn": "No evidence of recurrence of cancer (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "rhabdomyolysis due to statin",
+    "normalized": "rhabdomyolysis due to statin",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "shoulder",
+    "normalized": "shoulder",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "tendon",
+    "normalized": "tendon",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  },
+  {
+    "form": "wrist",
+    "normalized": "wrist",
+    "concept_id": "267004000",
+    "concept_fsn": "History of musculoskeletal disease (situation)",
+    "confidence": 1.0
+  }
+]

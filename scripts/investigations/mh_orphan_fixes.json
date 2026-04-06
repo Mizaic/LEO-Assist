@@ -1,0 +1,2270 @@
+{
+  "explicit": [
+    {
+      "form": "ADHD",
+      "concept_id": "406506008"
+    },
+    {
+      "form": "ARBD",
+      "concept_id": "281004"
+    },
+    {
+      "form": "ARFID",
+      "concept_id": "700213005"
+    },
+    {
+      "form": "ASPD",
+      "concept_id": "26665006"
+    },
+    {
+      "form": "Acute confusion",
+      "concept_id": "130987000"
+    },
+    {
+      "form": "Acute confusional state",
+      "concept_id": "2776000"
+    },
+    {
+      "form": "Acute psychosis",
+      "concept_id": "65971000052100"
+    },
+    {
+      "form": "Acute stress disorder",
+      "concept_id": "67195008"
+    },
+    {
+      "form": "Acute stress reaction",
+      "concept_id": "67195008"
+    },
+    {
+      "form": "Acutely confused",
+      "concept_id": "40917007"
+    },
+    {
+      "form": "Affective disorder",
+      "concept_id": "46206005"
+    },
+    {
+      "form": "Agoraphobia",
+      "concept_id": "70691001"
+    },
+    {
+      "form": "Alcohol abuse",
+      "concept_id": "15167005"
+    },
+    {
+      "form": "Alcohol dependence",
+      "concept_id": "66590003"
+    },
+    {
+      "form": "Alcohol misuse",
+      "concept_id": "15167005"
+    },
+    {
+      "form": "Alcohol use disorder",
+      "concept_id": "1336085007"
+    },
+    {
+      "form": "Alcohol withdrawal",
+      "concept_id": "191480000"
+    },
+    {
+      "form": "Alcoholism",
+      "concept_id": "7200002"
+    },
+    {
+      "form": "Alzheimers",
+      "concept_id": "26929004"
+    },
+    {
+      "form": "Anankastic personality disorder",
+      "concept_id": "1376001"
+    },
+    {
+      "form": "Anorexia nervosa",
+      "concept_id": "56882008"
+    },
+    {
+      "form": "Antenatal depression",
+      "concept_id": "788120007"
+    },
+    {
+      "form": "Antisocial personality disorder",
+      "concept_id": "26665006"
+    },
+    {
+      "form": "Anxiety neurosis",
+      "concept_id": "111475002"
+    },
+    {
+      "form": "Anxious",
+      "concept_id": "48694002"
+    },
+    {
+      "form": "Anxious depression",
+      "concept_id": "35489007"
+    },
+    {
+      "form": "Anxious personality disorder",
+      "concept_id": "231528008"
+    },
+    {
+      "form": "Asperger syndrome",
+      "concept_id": "23560001"
+    },
+    {
+      "form": "Asperger's",
+      "concept_id": "23560001"
+    },
+    {
+      "form": "Aspergers",
+      "concept_id": "23560001"
+    },
+    {
+      "form": "At risk of suicide",
+      "concept_id": "225444004"
+    },
+    {
+      "form": "Attention deficit disorder",
+      "concept_id": "35253001"
+    },
+    {
+      "form": "Attention deficit hyperactivity disorder",
+      "concept_id": "406506008"
+    },
+    {
+      "form": "Atypical anorexia",
+      "concept_id": "231522009"
+    },
+    {
+      "form": "Atypical autism",
+      "concept_id": "231536004"
+    },
+    {
+      "form": "Atypical bulimia",
+      "concept_id": "231523004"
+    },
+    {
+      "form": "Atypical depression",
+      "concept_id": "192084000"
+    },
+    {
+      "form": "Autism spectrum disorder",
+      "concept_id": "35919005"
+    },
+    {
+      "form": "Autistic",
+      "concept_id": "35919005"
+    },
+    {
+      "form": "Autistic spectrum",
+      "concept_id": "35919005"
+    },
+    {
+      "form": "Avoidant personality disorder",
+      "concept_id": "37746008"
+    },
+    {
+      "form": "Avoidant restrictive food intake disorder",
+      "concept_id": "700213005"
+    },
+    {
+      "form": "BPAD",
+      "concept_id": "13746004"
+    },
+    {
+      "form": "Benzodiazepine dependence",
+      "concept_id": "231473004"
+    },
+    {
+      "form": "Binge drinking",
+      "concept_id": "228326007"
+    },
+    {
+      "form": "Binge eating",
+      "concept_id": "1162387003"
+    },
+    {
+      "form": "Binge eating disorder",
+      "concept_id": "439960005"
+    },
+    {
+      "form": "Bipolar",
+      "concept_id": "13746004"
+    },
+    {
+      "form": "Bipolar 1",
+      "concept_id": "371596008"
+    },
+    {
+      "form": "Bipolar 2",
+      "concept_id": "83225003"
+    },
+    {
+      "form": "Bipolar I",
+      "concept_id": "371596008"
+    },
+    {
+      "form": "Bipolar II",
+      "concept_id": "83225003"
+    },
+    {
+      "form": "Bipolar affective disorder",
+      "concept_id": "13746004"
+    },
+    {
+      "form": "Bipolar disorder",
+      "concept_id": "13746004"
+    },
+    {
+      "form": "Bipolar type 1",
+      "concept_id": "371596008"
+    },
+    {
+      "form": "Bipolar type 2",
+      "concept_id": "83225003"
+    },
+    {
+      "form": "Borderline personality disorder",
+      "concept_id": "20010003"
+    },
+    {
+      "form": "Brief psychotic disorder",
+      "concept_id": "5464005"
+    },
+    {
+      "form": "Brief reactive psychosis",
+      "concept_id": "5464005"
+    },
+    {
+      "form": "Bulimia",
+      "concept_id": "78004001"
+    },
+    {
+      "form": "Bulimia nervosa",
+      "concept_id": "78004001"
+    },
+    {
+      "form": "C-PTSD",
+      "concept_id": "47505003"
+    },
+    {
+      "form": "Cannabis dependence",
+      "concept_id": "85005007"
+    },
+    {
+      "form": "Cannabis use disorder",
+      "concept_id": "1336200007"
+    },
+    {
+      "form": "Chronic depression",
+      "concept_id": "192080009"
+    },
+    {
+      "form": "Chronic mental illness",
+      "concept_id": "128293007"
+    },
+    {
+      "form": "Chronic suicidality",
+      "concept_id": "6471006"
+    },
+    {
+      "form": "Clinical depression",
+      "concept_id": "35489007"
+    },
+    {
+      "form": "Cocaine use",
+      "concept_id": "1336231000"
+    },
+    {
+      "form": "Combat PTSD",
+      "concept_id": "699241002"
+    },
+    {
+      "form": "Complex PTSD",
+      "concept_id": "47505003"
+    },
+    {
+      "form": "Delirium",
+      "concept_id": "2776000"
+    },
+    {
+      "form": "Delusions",
+      "concept_id": "2073000"
+    },
+    {
+      "form": "Depressed",
+      "concept_id": "35489007"
+    },
+    {
+      "form": "Drug dependence",
+      "concept_id": "66590003"
+    },
+    {
+      "form": "Dysthymia",
+      "concept_id": "38341003"
+    },
+    {
+      "form": "Dysthymic disorder",
+      "concept_id": "38341003"
+    },
+    {
+      "form": "EUPD",
+      "concept_id": "20010003"
+    },
+    {
+      "form": "Emotionally unstable personality disorder",
+      "concept_id": "20010003"
+    },
+    {
+      "form": "First episode psychosis",
+      "concept_id": "191526005"
+    },
+    {
+      "form": "Health anxiety",
+      "concept_id": "300255008"
+    },
+    {
+      "form": "Hyperactivity",
+      "concept_id": "44548000"
+    },
+    {
+      "form": "Hypochondria",
+      "concept_id": "300255008"
+    },
+    {
+      "form": "Major depression",
+      "concept_id": "370143000"
+    },
+    {
+      "form": "Mild cognitive impairment",
+      "concept_id": "386805003"
+    },
+    {
+      "form": "Mild depression",
+      "concept_id": "36923009"
+    },
+    {
+      "form": "Moderate depression",
+      "concept_id": "36474008"
+    },
+    {
+      "form": "Mood disorder",
+      "concept_id": "46206005"
+    },
+    {
+      "form": "Obsessive-compulsive disorder",
+      "concept_id": "191736004"
+    },
+    {
+      "form": "Orthorexia",
+      "concept_id": "56882008"
+    },
+    {
+      "form": "PTSD",
+      "concept_id": "47505003"
+    },
+    {
+      "form": "Panic attacks",
+      "concept_id": "225624000"
+    },
+    {
+      "form": "Panic disorder",
+      "concept_id": "371631005"
+    },
+    {
+      "form": "Paranoid",
+      "concept_id": "197480006"
+    },
+    {
+      "form": "Paranoid personality disorder",
+      "concept_id": "191567000"
+    },
+    {
+      "form": "Paranoid schizophrenia",
+      "concept_id": "191527001"
+    },
+    {
+      "form": "Perinatal depression",
+      "concept_id": "788120007"
+    },
+    {
+      "form": "Persistent depressive disorder",
+      "concept_id": "38341003"
+    },
+    {
+      "form": "Personality disorder",
+      "concept_id": "33449004"
+    },
+    {
+      "form": "Phobia",
+      "concept_id": "386810004"
+    },
+    {
+      "form": "Post-traumatic stress disorder",
+      "concept_id": "47505003"
+    },
+    {
+      "form": "Postnatal depression",
+      "concept_id": "58703003"
+    },
+    {
+      "form": "Postpartum depression",
+      "concept_id": "58703003"
+    },
+    {
+      "form": "Psychosis",
+      "concept_id": "69322001"
+    },
+    {
+      "form": "Psychotic",
+      "concept_id": "69322001"
+    },
+    {
+      "form": "Psychotic episode",
+      "concept_id": "69322001"
+    },
+    {
+      "form": "Recurrent depression",
+      "concept_id": "36474008"
+    },
+    {
+      "form": "Schizophrenia",
+      "concept_id": "58214004"
+    },
+    {
+      "form": "Schizophrenic",
+      "concept_id": "58214004"
+    },
+    {
+      "form": "Self harm",
+      "concept_id": "248062006"
+    },
+    {
+      "form": "Self injury",
+      "concept_id": "248062006"
+    },
+    {
+      "form": "Separation anxiety",
+      "concept_id": "439471002"
+    },
+    {
+      "form": "Severe depression",
+      "concept_id": "370143000"
+    },
+    {
+      "form": "Severe mental illness",
+      "concept_id": "75478009"
+    },
+    {
+      "form": "Social anxiety",
+      "concept_id": "247803002"
+    },
+    {
+      "form": "Specific phobia",
+      "concept_id": "386810004"
+    },
+    {
+      "form": "Stress",
+      "concept_id": "73595000"
+    },
+    {
+      "form": "Substance misuse",
+      "concept_id": "66590003"
+    },
+    {
+      "form": "Trauma",
+      "concept_id": "47505003"
+    },
+    {
+      "form": "Treatment resistant depression",
+      "concept_id": "310495003"
+    }
+  ],
+  "auto": [
+    {
+      "form": "Anxiety state",
+      "concept_id": "198288003",
+      "fsn": "Anxiety state (finding)",
+      "score": 8.87
+    },
+    {
+      "form": "Auditory hallucinations",
+      "concept_id": "45150006",
+      "fsn": "Auditory hallucinations (finding)",
+      "score": 9.47
+    },
+    {
+      "form": "Body dysmorphia",
+      "concept_id": "276720006",
+      "fsn": "Dysmorphism (disorder)",
+      "score": 9.48
+    },
+    {
+      "form": "Body dysmorphic disorder",
+      "concept_id": "83482000",
+      "fsn": "Body dysmorphic disorder (disorder)",
+      "score": 9.04
+    },
+    {
+      "form": "Cannabis psychosis",
+      "concept_id": "943081000000102",
+      "fsn": "Cannabis-induced psychosis (disorder)",
+      "score": 9.39
+    },
+    {
+      "form": "Catatonic schizophrenia",
+      "concept_id": "191542003",
+      "fsn": "Catatonic schizophrenia (disorder)",
+      "score": 11.21
+    },
+    {
+      "form": "Cocaine abuse",
+      "concept_id": "78267003",
+      "fsn": "Harmful pattern of use of cocaine (disorder)",
+      "score": 9.06
+    },
+    {
+      "form": "Community mental health team",
+      "concept_id": "135846003",
+      "fsn": "Has community mental health team key worker (finding)",
+      "score": 10.3
+    },
+    {
+      "form": "Community psychiatric nurse",
+      "concept_id": "305752008",
+      "fsn": "Seen by community psychiatric nurse (finding)",
+      "score": 10.22
+    },
+    {
+      "form": "Compulsive behavior",
+      "concept_id": "12479006",
+      "fsn": "Compulsive behavior (finding)",
+      "score": 9.34
+    },
+    {
+      "form": "Compulsive behaviour",
+      "concept_id": "12479006",
+      "fsn": "Compulsive behavior (finding)",
+      "score": 9.49
+    },
+    {
+      "form": "Crack cocaine",
+      "concept_id": "428493006",
+      "fsn": "Crack cocaine misuse (finding)",
+      "score": 9.6
+    },
+    {
+      "form": "Cyclothymic disorder",
+      "concept_id": "76105009",
+      "fsn": "Cyclothymia (disorder)",
+      "score": 8.82
+    },
+    {
+      "form": "Deliberate self-harm",
+      "concept_id": "248062006",
+      "fsn": "Self-injurious behavior (finding)",
+      "score": 12.67
+    },
+    {
+      "form": "Deliberate self-poisoning",
+      "concept_id": "410061008",
+      "fsn": "Intentional poisoning (disorder)",
+      "score": 8.7
+    },
+    {
+      "form": "Delirium tremens",
+      "concept_id": "8635005",
+      "fsn": "Alcohol withdrawal delirium (disorder)",
+      "score": 12.88
+    },
+    {
+      "form": "Depressed mood",
+      "concept_id": "366979004",
+      "fsn": "Depressed mood (finding)",
+      "score": 10.3
+    },
+    {
+      "form": "Depressive episode",
+      "concept_id": "871840004",
+      "fsn": "Episode of depression (finding)",
+      "score": 9.54
+    },
+    {
+      "form": "Depressive illness",
+      "concept_id": "35489007",
+      "fsn": "Depressive disorder (disorder)",
+      "score": 9.89
+    },
+    {
+      "form": "Derealisation",
+      "concept_id": "40806005",
+      "fsn": "Derealization (finding)",
+      "score": 8.59
+    },
+    {
+      "form": "Developmental coordination disorder",
+      "concept_id": "27544004",
+      "fsn": "Developmental coordination disorder (disorder)",
+      "score": 10.1
+    },
+    {
+      "form": "Developmental delay",
+      "concept_id": "248290002",
+      "fsn": "Developmental delay (disorder)",
+      "score": 9.12
+    },
+    {
+      "form": "Dissocial personality disorder",
+      "concept_id": "26665006",
+      "fsn": "Antisocial personality disorder (disorder)",
+      "score": 12.07
+    },
+    {
+      "form": "Dissociative identity disorder",
+      "concept_id": "31611000",
+      "fsn": "Multiple personality disorder (disorder)",
+      "score": 11.26
+    },
+    {
+      "form": "Drug-induced psychosis",
+      "concept_id": "191483003",
+      "fsn": "Psychotic disorder caused by drug (disorder)",
+      "score": 10.53
+    },
+    {
+      "form": "Ex-addict",
+      "concept_id": "44870007",
+      "fsn": "Misused drugs in past (finding)",
+      "score": 10.6
+    },
+    {
+      "form": "Feeling depressed",
+      "concept_id": "272022009",
+      "fsn": "Complaining of feeling depressed (finding)",
+      "score": 9.07
+    },
+    {
+      "form": "Free-floating anxiety",
+      "concept_id": "81350009",
+      "fsn": "Free-floating anxiety (finding)",
+      "score": 13.2
+    },
+    {
+      "form": "Global developmental delay",
+      "concept_id": "224958001",
+      "fsn": "Global developmental delay (disorder)",
+      "score": 12.96
+    },
+    {
+      "form": "Hair pulling",
+      "concept_id": "285131005",
+      "fsn": "Habitual pulling own hair (finding)",
+      "score": 8.69
+    },
+    {
+      "form": "Hearing voices",
+      "concept_id": "247730001",
+      "fsn": "Verbal auditory hallucinations (finding)",
+      "score": 11.75
+    },
+    {
+      "form": "Hebephrenic schizophrenia",
+      "concept_id": "35252006",
+      "fsn": "Disorganized schizophrenia (disorder)",
+      "score": 11.82
+    },
+    {
+      "form": "Heroin addiction",
+      "concept_id": "231477003",
+      "fsn": "Dependence on diamorphine (disorder)",
+      "score": 11.15
+    },
+    {
+      "form": "High suicide risk",
+      "concept_id": "394685004",
+      "fsn": "High suicide risk (finding)",
+      "score": 11.1
+    },
+    {
+      "form": "High-functioning autism",
+      "concept_id": "702732007",
+      "fsn": "High-functioning autism (disorder)",
+      "score": 13.45
+    },
+    {
+      "form": "Hoarding",
+      "concept_id": "248025009",
+      "fsn": "Hoarding (finding)",
+      "score": 8.73
+    },
+    {
+      "form": "Hypertensive encephalopathy",
+      "concept_id": "50490005",
+      "fsn": "Hypertensive encephalopathy (disorder)",
+      "score": 10.14
+    },
+    {
+      "form": "Hypochondriasis",
+      "concept_id": "18193002",
+      "fsn": "Hypochondriasis (disorder)",
+      "score": 8.73
+    },
+    {
+      "form": "IV drug user",
+      "concept_id": "228388006",
+      "fsn": "Intravenous drug user (finding)",
+      "score": 10.45
+    },
+    {
+      "form": "Ideas of reference",
+      "concept_id": "41189006",
+      "fsn": "Ideas of reference (finding)",
+      "score": 9.92
+    },
+    {
+      "form": "Illness anxiety disorder",
+      "concept_id": "16265701000119107",
+      "fsn": "Illness anxiety disorder (disorder)",
+      "score": 9.93
+    },
+    {
+      "form": "Intellectual disability",
+      "concept_id": "110359009",
+      "fsn": "Intellectual disability (disorder)",
+      "score": 8.7
+    },
+    {
+      "form": "Intravenous drug user",
+      "concept_id": "228388006",
+      "fsn": "Intravenous drug user (finding)",
+      "score": 11.43
+    },
+    {
+      "form": "Intrusive thoughts",
+      "concept_id": "225445003",
+      "fsn": "Intrusive thoughts (finding)",
+      "score": 12.89
+    },
+    {
+      "form": "Korsakoff syndrome",
+      "concept_id": "69482004",
+      "fsn": "Korsakoff's psychosis (disorder)",
+      "score": 9.74
+    },
+    {
+      "form": "Late-onset psychosis",
+      "concept_id": "1087461000000107",
+      "fsn": "Late onset substance-induced psychosis (disorder)",
+      "score": 10.26
+    },
+    {
+      "form": "Laxative abuse",
+      "concept_id": "280982009",
+      "fsn": "Harmful pattern of use of laxative (disorder)",
+      "score": 10.08
+    },
+    {
+      "form": "Learning difficulties",
+      "concept_id": "161129001",
+      "fsn": "Learning difficulties (finding)",
+      "score": 9.63
+    },
+    {
+      "form": "Learning disability",
+      "concept_id": "1855002",
+      "fsn": "Developmental academic disorder (disorder)",
+      "score": 8.8
+    },
+    {
+      "form": "Major depressive disorder",
+      "concept_id": "370143000",
+      "fsn": "Major depressive disorder (disorder)",
+      "score": 9.51
+    },
+    {
+      "form": "Manic depressive",
+      "concept_id": "191618007",
+      "fsn": "Bipolar affective disorder, current episode manic (disorder)",
+      "score": 9.71
+    },
+    {
+      "form": "Manic depressive disorder",
+      "concept_id": "191618007",
+      "fsn": "Bipolar affective disorder, current episode manic (disorder)",
+      "score": 9.71
+    },
+    {
+      "form": "Manic depressive illness",
+      "concept_id": "13746004",
+      "fsn": "Bipolar disorder (disorder)",
+      "score": 13.64
+    },
+    {
+      "form": "Manic depressive psychosis",
+      "concept_id": "13746004",
+      "fsn": "Bipolar disorder (disorder)",
+      "score": 13.54
+    },
+    {
+      "form": "Melancholic depression",
+      "concept_id": "320751009",
+      "fsn": "Major depression, melancholic type (disorder)",
+      "score": 9.48
+    },
+    {
+      "form": "Memory impairment",
+      "concept_id": "386807006",
+      "fsn": "Memory impairment (finding)",
+      "score": 9.0
+    },
+    {
+      "form": "Mental health problem",
+      "concept_id": "413307004",
+      "fsn": "Mental health problem (finding)",
+      "score": 9.69
+    },
+    {
+      "form": "Metabolic encephalopathy",
+      "concept_id": "50122000",
+      "fsn": "Metabolic encephalopathy (disorder)",
+      "score": 9.49
+    },
+    {
+      "form": "Mixed anxiety and depression",
+      "concept_id": "231504006",
+      "fsn": "Mixed anxiety and depressive disorder (disorder)",
+      "score": 8.77
+    },
+    {
+      "form": "Mixed dementia",
+      "concept_id": "79341000119107",
+      "fsn": "Mixed dementia (disorder)",
+      "score": 8.59
+    },
+    {
+      "form": "Multiple personality disorder",
+      "concept_id": "31611000",
+      "fsn": "Multiple personality disorder (disorder)",
+      "score": 8.88
+    },
+    {
+      "form": "Non-suicidal self-injury",
+      "concept_id": "735642007",
+      "fsn": "Non suicidal self inflicted injury (disorder)",
+      "score": 12.41
+    },
+    {
+      "form": "Obsessional thoughts",
+      "concept_id": "67698009",
+      "fsn": "Obsessional thoughts (finding)",
+      "score": 11.55
+    },
+    {
+      "form": "Obsessive-compulsive personality disorder",
+      "concept_id": "1376001",
+      "fsn": "Obsessive compulsive personality disorder (disorder)",
+      "score": 14.81
+    },
+    {
+      "form": "Opioid use disorder",
+      "concept_id": "1336192000",
+      "fsn": "Opioid use disorder (disorder)",
+      "score": 9.06
+    },
+    {
+      "form": "Organic brain syndrome",
+      "concept_id": "2776000",
+      "fsn": "Delirium (disorder)",
+      "score": 9.96
+    },
+    {
+      "form": "Organic mental disorder",
+      "concept_id": "111479008",
+      "fsn": "Organic mental disorder (disorder)",
+      "score": 8.65
+    },
+    {
+      "form": "Paranoid ideation",
+      "concept_id": "417233008",
+      "fsn": "Paranoid ideation (finding)",
+      "score": 12.51
+    },
+    {
+      "form": "Pathological hoarding",
+      "concept_id": "248025009",
+      "fsn": "Hoarding (finding)",
+      "score": 8.73
+    },
+    {
+      "form": "Performance anxiety",
+      "concept_id": "279622009",
+      "fsn": "Performance anxiety (finding)",
+      "score": 9.47
+    },
+    {
+      "form": "Personality traits",
+      "concept_id": "67331009",
+      "fsn": "Character trait finding (finding)",
+      "score": 12.11
+    },
+    {
+      "form": "Pervasive developmental disorder",
+      "concept_id": "35919005",
+      "fsn": "Pervasive developmental disorder (disorder)",
+      "score": 10.85
+    },
+    {
+      "form": "Phobic anxiety",
+      "concept_id": "386810004",
+      "fsn": "Phobic disorder (disorder)",
+      "score": 9.96
+    },
+    {
+      "form": "Plan to end life",
+      "concept_id": "713673000",
+      "fsn": "Has end of life care plan (finding)",
+      "score": 8.99
+    },
+    {
+      "form": "Postpartum psychosis",
+      "concept_id": "18260003",
+      "fsn": "Postpartum psychosis (disorder)",
+      "score": 9.6
+    },
+    {
+      "form": "Posttraumatic stress disorder",
+      "concept_id": "47505003",
+      "fsn": "Post-traumatic stress disorder (disorder)",
+      "score": 10.99
+    },
+    {
+      "form": "Psychiatric inpatient",
+      "concept_id": "405777008",
+      "fsn": "Psychiatric in-patient (finding)",
+      "score": 9.97
+    },
+    {
+      "form": "Psychotic depression",
+      "concept_id": "73867007",
+      "fsn": "Severe major depression with psychotic features (disorder)",
+      "score": 8.97
+    },
+    {
+      "form": "Rapid cycling",
+      "concept_id": "789061003",
+      "fsn": "Rapid cycling bipolar II disorder (disorder)",
+      "score": 8.76
+    },
+    {
+      "form": "Recurrent depressive disorder",
+      "concept_id": "66344007",
+      "fsn": "Recurrent major depression (disorder)",
+      "score": 8.56
+    },
+    {
+      "form": "Recurrent panic attacks",
+      "concept_id": "191722009",
+      "fsn": "Agoraphobia with panic attacks (disorder)",
+      "score": 9.31
+    },
+    {
+      "form": "Residual schizophrenia",
+      "concept_id": "26025008",
+      "fsn": "Residual schizophrenia (disorder)",
+      "score": 10.13
+    },
+    {
+      "form": "Ritualistic behaviour",
+      "concept_id": "67431008",
+      "fsn": "Compulsion expressed as ritual (finding)",
+      "score": 9.99
+    },
+    {
+      "form": "Schizoid personality disorder",
+      "concept_id": "52954000",
+      "fsn": "Schizoid personality disorder (disorder)",
+      "score": 11.9
+    },
+    {
+      "form": "Seasonal affective disorder",
+      "concept_id": "247803002",
+      "fsn": "Seasonal affective disorder (disorder)",
+      "score": 11.0
+    },
+    {
+      "form": "Self-induced vomiting",
+      "concept_id": "34923007",
+      "fsn": "Self-induced vomiting (disorder)",
+      "score": 11.32
+    },
+    {
+      "form": "Severe and enduring mental illness",
+      "concept_id": "391193001",
+      "fsn": "On severe mental illness register (finding)",
+      "score": 9.51
+    },
+    {
+      "form": "Shell shock",
+      "concept_id": "279611005",
+      "fsn": "Shell shock (disorder)",
+      "score": 10.78
+    },
+    {
+      "form": "Simple phobia",
+      "concept_id": "54587008",
+      "fsn": "Simple phobia (disorder)",
+      "score": 9.67
+    },
+    {
+      "form": "Simple schizophrenia",
+      "concept_id": "191527001",
+      "fsn": "Simple schizophrenia (disorder)",
+      "score": 9.18
+    },
+    {
+      "form": "Situational depression",
+      "concept_id": "87414006",
+      "fsn": "Reactive depression (situational) (disorder)",
+      "score": 9.73
+    },
+    {
+      "form": "Skin picking",
+      "concept_id": "284760000",
+      "fsn": "Picking own skin (finding)",
+      "score": 8.89
+    },
+    {
+      "form": "Startle response",
+      "concept_id": "300206004",
+      "fsn": "Startles in response to sound (finding)",
+      "score": 9.46
+    },
+    {
+      "form": "Stimulant use disorder",
+      "concept_id": "1336199009",
+      "fsn": "Stimulant use disorder (disorder)",
+      "score": 9.31
+    },
+    {
+      "form": "Substance-induced psychosis",
+      "concept_id": "943121000000104",
+      "fsn": "Psychoactive substance-induced psychosis (disorder)",
+      "score": 9.26
+    },
+    {
+      "form": "Suicidal intent",
+      "concept_id": "304594002",
+      "fsn": "Suicidal intent (finding)",
+      "score": 10.27
+    },
+    {
+      "form": "Thought broadcast",
+      "concept_id": "86917003",
+      "fsn": "Thought broadcast (finding)",
+      "score": 13.81
+    },
+    {
+      "form": "Thought insertion",
+      "concept_id": "50543005",
+      "fsn": "Thought insertion (finding)",
+      "score": 8.91
+    },
+    {
+      "form": "Thought withdrawal",
+      "concept_id": "87076008",
+      "fsn": "Thought withdrawal (finding)",
+      "score": 10.45
+    },
+    {
+      "form": "Toxic encephalopathy",
+      "concept_id": "28394000",
+      "fsn": "Toxic encephalopathy (disorder)",
+      "score": 9.01
+    },
+    {
+      "form": "Trichotillomania",
+      "concept_id": "17155009",
+      "fsn": "Trichotillomania (disorder)",
+      "score": 8.73
+    },
+    {
+      "form": "Under mental health team",
+      "concept_id": "401272006",
+      "fsn": "Under care of mental health team (finding)",
+      "score": 10.89
+    },
+    {
+      "form": "Undifferentiated schizophrenia",
+      "concept_id": "111484002",
+      "fsn": "Undifferentiated schizophrenia (disorder)",
+      "score": 10.34
+    },
+    {
+      "form": "Uraemic encephalopathy",
+      "concept_id": "35145002",
+      "fsn": "Uremic encephalopathy (disorder)",
+      "score": 11.09
+    },
+    {
+      "form": "Uremic encephalopathy",
+      "concept_id": "35145002",
+      "fsn": "Uremic encephalopathy (disorder)",
+      "score": 10.93
+    },
+    {
+      "form": "Visual hallucinations",
+      "concept_id": "64269007",
+      "fsn": "Visual hallucinations (finding)",
+      "score": 9.36
+    },
+    {
+      "form": "Wernicke-Korsakoff",
+      "concept_id": "69482004",
+      "fsn": "Korsakoff's psychosis (disorder)",
+      "score": 13.87
+    }
+  ],
+  "kept_for_manual_review": [
+    {
+      "form": "Acute psychiatric unit",
+      "best_auto": "Acute psychiatric in-patient (finding) (6.7)"
+    },
+    {
+      "form": "Addict",
+      "best_auto": "Notified addict (finding) (6.4)"
+    },
+    {
+      "form": "Addicted",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Addiction",
+      "best_auto": "Addiction (finding) (5.9)"
+    },
+    {
+      "form": "Admitted to psych ward",
+      "best_auto": "Admitted to a children's home (finding) (6.3)"
+    },
+    {
+      "form": "Agoraphobic",
+      "best_auto": "Panic disorder with agoraphobia, mild agoraphobic avoidance AND severe panic attacks (disorder) (3.3)"
+    },
+    {
+      "form": "Alcohol addiction",
+      "best_auto": "Addiction (finding) (5.9)"
+    },
+    {
+      "form": "Alcohol-related brain damage",
+      "best_auto": "Brain disorder resulting from a period of impaired oxygen delivery to the brain (disorder) (7.6)"
+    },
+    {
+      "form": "Alcohol-related dementia",
+      "best_auto": "Dementia associated with alcoholism (disorder) (7.0)"
+    },
+    {
+      "form": "Alcoholic",
+      "best_auto": "Problem drinker (finding) (5.7)"
+    },
+    {
+      "form": "Amnesia",
+      "best_auto": "Amnesia (finding) (6.5)"
+    },
+    {
+      "form": "Amnestic disorder",
+      "best_auto": "Amnestic disorder (disorder) (7.7)"
+    },
+    {
+      "form": "Amphetamine use",
+      "best_auto": "Harmful use of amphetamine (disorder) (7.0)"
+    },
+    {
+      "form": "Anorexic",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Anxiety symptoms",
+      "best_auto": "Anxiety (finding) (5.0)"
+    },
+    {
+      "form": "Avoidance",
+      "best_auto": "Avoidance behavior (finding) (5.7)"
+    },
+    {
+      "form": "BMI critically low",
+      "best_auto": "Body mass index less than 20 (finding) (5.2)"
+    },
+    {
+      "form": "Background of mental illness",
+      "best_auto": "Chronic mental disorder (disorder) (7.8)"
+    },
+    {
+      "form": "Bad nerves",
+      "best_auto": "Unpleasant dream (finding) (6.2)"
+    },
+    {
+      "form": "Benzo dependence",
+      "best_auto": "Polysubstance dependence (disorder) (4.5)"
+    },
+    {
+      "form": "Binge-purge type",
+      "best_auto": "Anorexia nervosa, binge-eating purging type (disorder) (6.6)"
+    },
+    {
+      "form": "Bingeing",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Borderline",
+      "best_auto": "Subclinical hypothyroidism (disorder) (4.8)"
+    },
+    {
+      "form": "Borderline traits",
+      "best_auto": "Character trait finding (finding) (7.3)"
+    },
+    {
+      "form": "Bulimic",
+      "best_auto": "no results"
+    },
+    {
+      "form": "CMHT",
+      "best_auto": "no results"
+    },
+    {
+      "form": "CRHTT",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Checking behaviour",
+      "best_auto": "Compulsive checking (finding) (5.5)"
+    },
+    {
+      "form": "Checking compulsions",
+      "best_auto": "Compulsive checking (finding) (5.5)"
+    },
+    {
+      "form": "Chronic anxiety",
+      "best_auto": "Chronic anxiety (finding) (7.7)"
+    },
+    {
+      "form": "Chronic psychosis",
+      "best_auto": "Chronic paranoid psychosis (disorder) (7.4)"
+    },
+    {
+      "form": "Claustrophobia",
+      "best_auto": "Claustrophobia (disorder) (8.4)"
+    },
+    {
+      "form": "Cleaning compulsions",
+      "best_auto": "Compulsive cleaning (finding) (5.2)"
+    },
+    {
+      "form": "Cluster A",
+      "best_auto": "Cluster A personality disorder (disorder) (6.7)"
+    },
+    {
+      "form": "Cluster B",
+      "best_auto": "Cluster B personality disorder (disorder) (7.0)"
+    },
+    {
+      "form": "Cluster C",
+      "best_auto": "Cluster C personality disorder (disorder) (7.3)"
+    },
+    {
+      "form": "Co-occurring disorders",
+      "best_auto": "Complication occurring during pregnancy (disorder) (5.0)"
+    },
+    {
+      "form": "Cognitive behavioural therapy",
+      "best_auto": "Behavioral disability (finding) (4.6)"
+    },
+    {
+      "form": "Combat stress",
+      "best_auto": "Acute post-traumatic stress disorder following military combat (disorder) (7.0)"
+    },
+    {
+      "form": "Combined type ADHD",
+      "best_auto": "Severe combined immunodeficiency due to deoxyribonucleic acid cross-link repair protein 1c deficiency (disorder) (5.3)"
+    },
+    {
+      "form": "Command hallucinations",
+      "best_auto": "Command hallucination (finding) (6.3)"
+    },
+    {
+      "form": "Complex trauma",
+      "best_auto": "Traumatic injury (disorder) (4.8)"
+    },
+    {
+      "form": "Compulsions",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Contamination OCD",
+      "best_auto": "Osteochondritis dissecans (disorder) (6.7)"
+    },
+    {
+      "form": "Counselling",
+      "best_auto": "Consent given for counseling (finding) (3.8)"
+    },
+    {
+      "form": "Crisis team",
+      "best_auto": "Crisis (finding) (5.6)"
+    },
+    {
+      "form": "Cutting",
+      "best_auto": "Cutting self (finding) (4.6)"
+    },
+    {
+      "form": "Cyclothymia",
+      "best_auto": "Cyclothymia (disorder) (8.1)"
+    },
+    {
+      "form": "Death wish",
+      "best_auto": "Does not wish to discuss prognosis (finding) (4.9)"
+    },
+    {
+      "form": "Deliberate overdose",
+      "best_auto": "Intentional overdose of prescription only medication (disorder) (7.2)"
+    },
+    {
+      "form": "Delirious",
+      "best_auto": "Delirious (finding) (8.4)"
+    },
+    {
+      "form": "Delusional",
+      "best_auto": "Delusional perception (finding) (5.8)"
+    },
+    {
+      "form": "Depersonalisation",
+      "best_auto": "Depersonalization (finding) (8.3)"
+    },
+    {
+      "form": "Depersonalization",
+      "best_auto": "Depersonalization (finding) (8.1)"
+    },
+    {
+      "form": "Depot injection",
+      "best_auto": "Uses depot contraception (finding) (5.4)"
+    },
+    {
+      "form": "Depression with psychosis",
+      "best_auto": "Alzheimer's disease with psychosis (disorder) (5.7)"
+    },
+    {
+      "form": "Depressive disorder",
+      "best_auto": "Depressive disorder (disorder) (6.3)"
+    },
+    {
+      "form": "Derealization",
+      "best_auto": "Derealization (finding) (8.4)"
+    },
+    {
+      "form": "Dermatillomania",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Detained",
+      "best_auto": "Detained in hospital under the Mental Health Act 1983 (England and Wales) (finding) (3.6)"
+    },
+    {
+      "form": "Developmental disorder",
+      "best_auto": "Developmental disorder (disorder) (5.6)"
+    },
+    {
+      "form": "Developmental trauma",
+      "best_auto": "Traumatic injury (disorder) (4.8)"
+    },
+    {
+      "form": "Disordered eating",
+      "best_auto": "Taste sense altered (finding) (6.4)"
+    },
+    {
+      "form": "Disordered personality",
+      "best_auto": "Taste sense altered (finding) (6.4)"
+    },
+    {
+      "form": "Dissociation",
+      "best_auto": "Atrioventricular dissociation (disorder) (6.3)"
+    },
+    {
+      "form": "Dissociative",
+      "best_auto": "Dissociative disorder (disorder) (5.5)"
+    },
+    {
+      "form": "Dissociative disorder",
+      "best_auto": "Dissociative disorder (disorder) (6.9)"
+    },
+    {
+      "form": "Dissociative symptoms",
+      "best_auto": "Mood disorder with depressive symptoms caused by dissociative drug (disorder) (6.0)"
+    },
+    {
+      "form": "Drug abuse",
+      "best_auto": "Finding relating to drug misuse behavior (finding) (6.4)"
+    },
+    {
+      "form": "Drug addiction",
+      "best_auto": "Glue sniffing dependence (disorder) (7.3)"
+    },
+    {
+      "form": "Drug misuse",
+      "best_auto": "Finding relating to drug misuse behavior (finding) (6.6)"
+    },
+    {
+      "form": "Drug use",
+      "best_auto": "Illicit drug use (finding) (5.6)"
+    },
+    {
+      "form": "Drug user",
+      "best_auto": "Intravenous drug user (finding) (7.5)"
+    },
+    {
+      "form": "Dyscalculia",
+      "best_auto": "Dyscalculia (finding) (8.5)"
+    },
+    {
+      "form": "Dyslexia",
+      "best_auto": "Dyslexia (finding) (7.0)"
+    },
+    {
+      "form": "Dyslexic",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Dysmorphophobia",
+      "best_auto": "Body dysmorphic disorder (disorder) (8.0)"
+    },
+    {
+      "form": "Dyspraxia",
+      "best_auto": "Dyspraxia (finding) (6.6)"
+    },
+    {
+      "form": "EDNOS",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Early intervention psychosis",
+      "best_auto": "Psychosis in early childhood (disorder) (8.4)"
+    },
+    {
+      "form": "Eating disorder",
+      "best_auto": "Eating disorder (disorder) (6.1)"
+    },
+    {
+      "form": "Eating disorder NOS",
+      "best_auto": "Eating disorder (disorder) (6.1)"
+    },
+    {
+      "form": "Electroconvulsive therapy",
+      "best_auto": "On oxygen therapy (finding) (2.7)"
+    },
+    {
+      "form": "Emotional numbing",
+      "best_auto": "Stress polycythemia (disorder) (4.8)"
+    },
+    {
+      "form": "Encephalopathy",
+      "best_auto": "Disorder of brain (disorder) (5.5)"
+    },
+    {
+      "form": "Enduring mental illness",
+      "best_auto": "Enduring personality change after psychiatric illness (finding) (8.3)"
+    },
+    {
+      "form": "EtOH",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Exaggerated startle",
+      "best_auto": "Startle epilepsy (disorder) (7.0)"
+    },
+    {
+      "form": "Excoriation disorder",
+      "best_auto": "Excoriation of pinna (disorder) (6.9)"
+    },
+    {
+      "form": "Flashbacks",
+      "best_auto": "Flashbacks have stopped (finding) (6.0)"
+    },
+    {
+      "form": "Flat mood",
+      "best_auto": "Pelvis plana (disorder) (5.2)"
+    },
+    {
+      "form": "Food restriction",
+      "best_auto": "Fetal growth retardation (disorder) (5.1)"
+    },
+    {
+      "form": "Forgetful",
+      "best_auto": "Forgetful (finding) (8.5)"
+    },
+    {
+      "form": "Forgetfulness",
+      "best_auto": "Age-associated memory impairment (disorder) (7.1)"
+    },
+    {
+      "form": "Formal thought disorder",
+      "best_auto": "No formal education (finding) (5.7)"
+    },
+    {
+      "form": "Had ECT",
+      "best_auto": "Never had cervical smear (finding) (4.9)"
+    },
+    {
+      "form": "Hallucinations",
+      "best_auto": "Hallucinations (finding) (6.0)"
+    },
+    {
+      "form": "Hallucinatory",
+      "best_auto": "Hallucinatory neuralgia (finding) (6.8)"
+    },
+    {
+      "form": "Harm OCD",
+      "best_auto": "Osteochondritis dissecans (disorder) (6.7)"
+    },
+    {
+      "form": "Heavy cannabis use",
+      "best_auto": "Cannabis use disorder (disorder) (8.0)"
+    },
+    {
+      "form": "Heroin use",
+      "best_auto": "Injury following heroin use (disorder) (7.7)"
+    },
+    {
+      "form": "History of substance abuse",
+      "best_auto": "Harmful pattern of substance use (disorder) (6.6)"
+    },
+    {
+      "form": "History of trauma",
+      "best_auto": "Traumatic injury (disorder) (4.8)"
+    },
+    {
+      "form": "Histrionic",
+      "best_auto": "Histrionic character (finding) (7.0)"
+    },
+    {
+      "form": "Home treatment team",
+      "best_auto": "Under care of mental health home treatment team (finding) (7.6)"
+    },
+    {
+      "form": "Hx mental illness",
+      "best_auto": "Chronic mental disorder (disorder) (7.8)"
+    },
+    {
+      "form": "Hx suicide attempt",
+      "best_auto": "Injury due to suicide attempt (disorder) (8.2)"
+    },
+    {
+      "form": "Hyperactive",
+      "best_auto": "Hyperactive tongue (finding) (6.2)"
+    },
+    {
+      "form": "Hypervigilance",
+      "best_auto": "On examination - hypervigilance (finding) (6.8)"
+    },
+    {
+      "form": "Hypervigilant",
+      "best_auto": "Hypervigilant behavior (finding) (8.0)"
+    },
+    {
+      "form": "Hypomanic",
+      "best_auto": "Hypomanic behavior (finding) (6.8)"
+    },
+    {
+      "form": "Hypomanic episode",
+      "best_auto": "Bipolar I disorder, current episode hypomanic (disorder) (8.1)"
+    },
+    {
+      "form": "IAPT",
+      "best_auto": "no results"
+    },
+    {
+      "form": "IVDU",
+      "best_auto": "Intravenous drug user (finding) (7.1)"
+    },
+    {
+      "form": "In recovery",
+      "best_auto": "Myocardial infarction in recovery phase (disorder) (5.5)"
+    },
+    {
+      "form": "In therapy",
+      "best_auto": "Shortage of beds in intensive therapy unit (finding) (3.2)"
+    },
+    {
+      "form": "Inattention",
+      "best_auto": "Inattention (finding) (6.7)"
+    },
+    {
+      "form": "Inattentive",
+      "best_auto": "Partner inattentive (finding) (6.9)"
+    },
+    {
+      "form": "Informal admission",
+      "best_auto": "Informal patient (finding) (5.6)"
+    },
+    {
+      "form": "Injecting drug use",
+      "best_auto": "Injecting drug user (finding) (8.5)"
+    },
+    {
+      "form": "Intellectual impairment",
+      "best_auto": "Intellectual development disorder with impairment of behaviour (disorder) (5.9)"
+    },
+    {
+      "form": "Intentional overdose",
+      "best_auto": "Intentional overdose (disorder) (7.4)"
+    },
+    {
+      "form": "Known to psychiatry",
+      "best_auto": "Known to carry weapon (finding) (5.8)"
+    },
+    {
+      "form": "Korsakoff",
+      "best_auto": "Korsakoff's psychosis (disorder) (8.0)"
+    },
+    {
+      "form": "Learning disorder",
+      "best_auto": "Developmental academic disorder (disorder) (6.1)"
+    },
+    {
+      "form": "Long-acting injectable",
+      "best_auto": "Started injectable phenothiazines (finding) (5.3)"
+    },
+    {
+      "form": "Long-standing mental illness",
+      "best_auto": "Stride long-standing (finding) (8.3)"
+    },
+    {
+      "form": "Longstanding mental illness",
+      "best_auto": "Chronic mental disorder (disorder) (7.8)"
+    },
+    {
+      "form": "Low in mood",
+      "best_auto": "Cheerful mood (finding) (6.1)"
+    },
+    {
+      "form": "Lowered mood",
+      "best_auto": "Decreased intraocular pressure (finding) (6.4)"
+    },
+    {
+      "form": "MADD",
+      "best_auto": "Glutaric aciduria, type 2 (disorder) (6.1)"
+    },
+    {
+      "form": "MH history",
+      "best_auto": "Malignant hyperthermia (disorder) (6.7)"
+    },
+    {
+      "form": "MH issues",
+      "best_auto": "Malignant hyperthermia (disorder) (6.7)"
+    },
+    {
+      "form": "MH problems",
+      "best_auto": "Malignant hyperthermia (disorder) (6.7)"
+    },
+    {
+      "form": "MHx psych",
+      "best_auto": "Under care of community psychiatric nurse (finding) (5.1)"
+    },
+    {
+      "form": "Manic depression",
+      "best_auto": "Manic-depression association member (finding) (7.8)"
+    },
+    {
+      "form": "Mental Health Act",
+      "best_auto": "Mental Health Act payment claim status (finding) (7.9)"
+    },
+    {
+      "form": "Mental disease",
+      "best_auto": "Chronic mental disorder (disorder) (5.7)"
+    },
+    {
+      "form": "Mental disorder",
+      "best_auto": "Developmental mental disorder (disorder) (4.5)"
+    },
+    {
+      "form": "Mental disorder (disorder)",
+      "best_auto": "Developmental mental disorder (disorder) (6.1)"
+    },
+    {
+      "form": "Mental health condition",
+      "best_auto": "Well in self (finding) (7.4)"
+    },
+    {
+      "form": "Mental health disorder",
+      "best_auto": "Mental health impairment (finding) (6.1)"
+    },
+    {
+      "form": "Mental health issues",
+      "best_auto": "Finding related to health insurance issues (finding) (6.5)"
+    },
+    {
+      "form": "Mental illness",
+      "best_auto": "Chronic mental disorder (disorder) (7.8)"
+    },
+    {
+      "form": "Mixed affective state",
+      "best_auto": "Mixed bipolar affective disorder (disorder) (7.8)"
+    },
+    {
+      "form": "Mixed episode",
+      "best_auto": "Bipolar affective disorder, current episode mixed (disorder) (6.3)"
+    },
+    {
+      "form": "Mixed personality disorder",
+      "best_auto": "Personality disorder (disorder) (6.3)"
+    },
+    {
+      "form": "Multiple suicide attempts",
+      "best_auto": "Attempts to crawl (finding) (6.3)"
+    },
+    {
+      "form": "NSSI",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Narcissistic",
+      "best_auto": "Narcissistic character (finding) (7.3)"
+    },
+    {
+      "form": "Narcissistic traits",
+      "best_auto": "Narcissistic character (finding) (7.3)"
+    },
+    {
+      "form": "Nerves",
+      "best_auto": "Corneal nerves thickened (finding) (4.3)"
+    },
+    {
+      "form": "Nervous",
+      "best_auto": "Irritable bowel syndrome (disorder) (3.9)"
+    },
+    {
+      "form": "Nervous disorder",
+      "best_auto": "Nervous diarrhea (disorder) (4.9)"
+    },
+    {
+      "form": "Nervousness",
+      "best_auto": "Feeling nervous (finding) (7.8)"
+    },
+    {
+      "form": "Neurodevelopmental disorder",
+      "best_auto": "Neurodevelopmental disorder (disorder) (7.5)"
+    },
+    {
+      "form": "OCPD",
+      "best_auto": "no results"
+    },
+    {
+      "form": "OSFED",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Obsessional disorder",
+      "best_auto": "Obsessional personality disorder (disorder) (6.8)"
+    },
+    {
+      "form": "Obsessional neurosis",
+      "best_auto": "Neurosis (disorder) (6.8)"
+    },
+    {
+      "form": "Obsessions",
+      "best_auto": "no results"
+    },
+    {
+      "form": "On antidepressants",
+      "best_auto": "Accidental poisoning caused by antidepressants (disorder) (5.5)"
+    },
+    {
+      "form": "On antipsychotics",
+      "best_auto": "On examination - exudate on tonsils (finding) (2.6)"
+    },
+    {
+      "form": "On anxiolytics",
+      "best_auto": "On examination - exudate on tonsils (finding) (2.6)"
+    },
+    {
+      "form": "On buprenorphine",
+      "best_auto": "Buprenorphine withdrawal syndrome (disorder) (5.4)"
+    },
+    {
+      "form": "On depot",
+      "best_auto": "Uses depot contraception (finding) (5.4)"
+    },
+    {
+      "form": "On methadone",
+      "best_auto": "Allergy to methadone (finding) (5.2)"
+    },
+    {
+      "form": "On mood stabilisers",
+      "best_auto": "On examination - fearful mood (finding) (6.0)"
+    },
+    {
+      "form": "On mood stabilizers",
+      "best_auto": "On examination - fearful mood (finding) (6.0)"
+    },
+    {
+      "form": "On psychiatric medication",
+      "best_auto": "On psychotropic medication (finding) (6.0)"
+    },
+    {
+      "form": "On subutex",
+      "best_auto": "On examination - exudate on tonsils (finding) (2.6)"
+    },
+    {
+      "form": "On the spectrum",
+      "best_auto": "Oculo-auriculo-vertebral spectrum (disorder) (5.1)"
+    },
+    {
+      "form": "Opiate dependence",
+      "best_auto": "Opiate misuse (finding) (5.5)"
+    },
+    {
+      "form": "Opioid substitution",
+      "best_auto": "Compensatory phonatory substitution (finding) (5.7)"
+    },
+    {
+      "form": "Organic psychiatric disorder",
+      "best_auto": "Organic mental disorder (disorder) (5.4)"
+    },
+    {
+      "form": "Overdose",
+      "best_auto": "Overdose (disorder) (4.0)"
+    },
+    {
+      "form": "PDD-NOS",
+      "best_auto": "no results"
+    },
+    {
+      "form": "PICU",
+      "best_auto": "no results"
+    },
+    {
+      "form": "PMH mental health",
+      "best_auto": "Progressive macular hypomelanosis (disorder) (6.7)"
+    },
+    {
+      "form": "PMHx psych",
+      "best_auto": "Under care of community psychiatric nurse (finding) (5.1)"
+    },
+    {
+      "form": "PWID",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Panic",
+      "best_auto": "Panic (finding) (6.1)"
+    },
+    {
+      "form": "Paranoid disorder",
+      "best_auto": "Paranoid disorder (disorder) (7.0)"
+    },
+    {
+      "form": "Paraphrenia",
+      "best_auto": "Paraphrenia (disorder) (7.9)"
+    },
+    {
+      "form": "Parasuicide",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Persecutory delusions",
+      "best_auto": "Delusion of persecution (finding) (7.8)"
+    },
+    {
+      "form": "Personality difficulties",
+      "best_auto": "Personality AND/OR personality trait (finding) (5.1)"
+    },
+    {
+      "form": "Phobic disorder",
+      "best_auto": "Phobic disorder (disorder) (7.9)"
+    },
+    {
+      "form": "Pica",
+      "best_auto": "Pica (disorder) (6.5)"
+    },
+    {
+      "form": "Picks disease",
+      "best_auto": "Dementia co-occurrent and due to Pick's disease (disorder) (7.9)"
+    },
+    {
+      "form": "Polydrug use",
+      "best_auto": "Tobacco user (finding) (3.4)"
+    },
+    {
+      "form": "Polysubstance use",
+      "best_auto": "Harmful pattern of use of multiple substances (disorder) (7.5)"
+    },
+    {
+      "form": "Poor mood",
+      "best_auto": "Non-delusional perplexed mood (finding) (4.8)"
+    },
+    {
+      "form": "Post-natal depression",
+      "best_auto": "Depression following menopause (disorder) (7.5)"
+    },
+    {
+      "form": "Prescription drug misuse",
+      "best_auto": "Misuse of prescription only drugs (finding) (7.0)"
+    },
+    {
+      "form": "Previous ECT",
+      "best_auto": "Previous pregnancies (finding) (4.6)"
+    },
+    {
+      "form": "Previous suicide attempt",
+      "best_auto": "Injury due to suicide attempt (disorder) (8.2)"
+    },
+    {
+      "form": "Problem drinking",
+      "best_auto": "Alcoholism (disorder) (8.2)"
+    },
+    {
+      "form": "Psych OPD",
+      "best_auto": "Otopalatodigital syndrome spectrum disorder (disorder) (6.3)"
+    },
+    {
+      "form": "Psych admission",
+      "best_auto": "Under care of community psychiatric nurse (finding) (5.1)"
+    },
+    {
+      "form": "Psych history",
+      "best_auto": "Under care of community psychiatric nurse (finding) (5.1)"
+    },
+    {
+      "form": "Psych meds",
+      "best_auto": "Under care of community psychiatric nurse (finding) (5.1)"
+    },
+    {
+      "form": "Psych problems",
+      "best_auto": "Under care of community psychiatric nurse (finding) (5.1)"
+    },
+    {
+      "form": "Psychiatric admission",
+      "best_auto": "Listed for Psychiatric admission (finding) (7.6)"
+    },
+    {
+      "form": "Psychiatric condition",
+      "best_auto": "Psychiatric symptom (finding) (5.0)"
+    },
+    {
+      "form": "Psychiatric disease",
+      "best_auto": "Psychiatric sign (finding) (5.0)"
+    },
+    {
+      "form": "Psychiatric disorder",
+      "best_auto": "Psychiatric disorder monitoring status (finding) (5.3)"
+    },
+    {
+      "form": "Psychiatric history",
+      "best_auto": "Psychiatric in-patient (finding) (5.0)"
+    },
+    {
+      "form": "Psychiatric illness",
+      "best_auto": "Enduring personality change after psychiatric illness (finding) (7.1)"
+    },
+    {
+      "form": "Psychiatric intensive care",
+      "best_auto": "Family intensive care syndrome (disorder) (6.6)"
+    },
+    {
+      "form": "Psychiatric outpatient",
+      "best_auto": "Psychiatric in-patient (finding) (5.0)"
+    },
+    {
+      "form": "Psychiatric problems",
+      "best_auto": "Psychiatric in-patient (finding) (5.0)"
+    },
+    {
+      "form": "Psychological disorder",
+      "best_auto": "Psychological disorder during pregnancy (disorder) (5.3)"
+    },
+    {
+      "form": "Psychological illness",
+      "best_auto": "Illness (finding) (5.6)"
+    },
+    {
+      "form": "Psychological problems",
+      "best_auto": "Psychological addiction (finding) (4.9)"
+    },
+    {
+      "form": "Psychological trauma",
+      "best_auto": "Victim of psychological trauma (finding) (7.6)"
+    },
+    {
+      "form": "Psychopathic",
+      "best_auto": "Antisocial personality disorder (disorder) (6.6)"
+    },
+    {
+      "form": "Psychopathy",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Psychot",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Psychotherapy",
+      "best_auto": "Convalescence after psychotherapy (finding) (4.7)"
+    },
+    {
+      "form": "Psychotic disorder",
+      "best_auto": "Psychotic disorder (disorder) (6.1)"
+    },
+    {
+      "form": "Psychotic illness",
+      "best_auto": "Illness (finding) (5.6)"
+    },
+    {
+      "form": "Puerperal psychosis",
+      "best_auto": "Psychotic disorder (disorder) (5.5)"
+    },
+    {
+      "form": "Pure O",
+      "best_auto": "Primordial dwarfism (disorder) (5.4)"
+    },
+    {
+      "form": "Purging",
+      "best_auto": "Self-induced purging (disorder) (6.1)"
+    },
+    {
+      "form": "Re-experiencing",
+      "best_auto": "Gene re-arrangement (finding) (4.4)"
+    },
+    {
+      "form": "Recovering addict",
+      "best_auto": "Notified addict (finding) (6.4)"
+    },
+    {
+      "form": "Restricting type",
+      "best_auto": "Anorexia nervosa, restricting type (disorder) (8.1)"
+    },
+    {
+      "form": "Risk to self",
+      "best_auto": "At increased risk for self-mutilation (finding) (6.5)"
+    },
+    {
+      "form": "Rituals",
+      "best_auto": "Disrupted spiritual rituals (finding) (6.1)"
+    },
+    {
+      "form": "Rumination disorder",
+      "best_auto": "Rumination disorder (disorder) (7.3)"
+    },
+    {
+      "form": "SEMI",
+      "best_auto": "Semi-retired (finding) (5.0)"
+    },
+    {
+      "form": "Schizoaffective",
+      "best_auto": "Schizoaffective schizophrenia (disorder) (6.3)"
+    },
+    {
+      "form": "Schizophreniform disorder",
+      "best_auto": "Schizophreniform disorder (disorder) (8.2)"
+    },
+    {
+      "form": "Section 2",
+      "best_auto": "GPCF1/2 - section 63 claim status (finding) (5.3)"
+    },
+    {
+      "form": "Section 3",
+      "best_auto": "Cesarean section following previous cesarean section (finding) (4.3)"
+    },
+    {
+      "form": "Sectioned",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Seeing psychiatrist",
+      "best_auto": "Abnormal vision (finding) (6.7)"
+    },
+    {
+      "form": "Self-cutting",
+      "best_auto": "Cutting self (finding) (8.1)"
+    },
+    {
+      "form": "Self-poisoning",
+      "best_auto": "Intentional self poisoning (disorder) (5.9)"
+    },
+    {
+      "form": "Serious mental illness",
+      "best_auto": "Chronic mental disorder (disorder) (7.8)"
+    },
+    {
+      "form": "Severe anxiety",
+      "best_auto": "Severe anxiety (panic) (finding) (7.6)"
+    },
+    {
+      "form": "Severely underweight",
+      "best_auto": "Underweight (finding) (7.4)"
+    },
+    {
+      "form": "Sociopathic",
+      "best_auto": "Dissocial character (finding) (7.0)"
+    },
+    {
+      "form": "Sociopathy",
+      "best_auto": "no results"
+    },
+    {
+      "form": "Specific learning disorder",
+      "best_auto": "Developmental academic disorder (disorder) (6.1)"
+    },
+    {
+      "form": "Stimulant psychosis",
+      "best_auto": "Psychostimulant overdose (disorder) (5.5)"
+    },
+    {
+      "form": "Stress disorder",
+      "best_auto": "Stress neutrophilia (disorder) (5.3)"
+    },
+    {
+      "form": "Stressed",
+      "best_auto": "Feeling stressed (finding) (7.4)"
+    },
+    {
+      "form": "Substance dependence",
+      "best_auto": "Substance dependence (disorder) (6.8)"
+    },
+    {
+      "form": "Suicidal",
+      "best_auto": "Suicidal (finding) (7.3)"
+    },
+    {
+      "form": "Suicide risk",
+      "best_auto": "At increased risk for suicide (finding) (8.5)"
+    },
+    {
+      "form": "Taking aripiprazole",
+      "best_auto": "Compulsive drug taking (finding) (4.4)"
+    },
+    {
+      "form": "Taking citalopram",
+      "best_auto": "Allergy to citalopram (finding) (6.2)"
+    },
+    {
+      "form": "Taking clozapine",
+      "best_auto": "Allergy to clozapine (finding) (6.0)"
+    },
+    {
+      "form": "Taking duloxetine",
+      "best_auto": "Compulsive drug taking (finding) (4.4)"
+    },
+    {
+      "form": "Taking fluoxetine",
+      "best_auto": "Allergy to fluoxetine (finding) (5.8)"
+    },
+    {
+      "form": "Taking lamotrigine",
+      "best_auto": "Allergy to lamotrigine (finding) (5.7)"
+    },
+    {
+      "form": "Taking lithium",
+      "best_auto": "On lithium (finding) (5.1)"
+    },
+    {
+      "form": "Taking mirtazapine",
+      "best_auto": "Adverse reaction caused by mirtazapine (disorder) (5.3)"
+    },
+    {
+      "form": "Taking olanzapine",
+      "best_auto": "Compulsive drug taking (finding) (4.4)"
+    },
+    {
+      "form": "Taking quetiapine",
+      "best_auto": "Compulsive drug taking (finding) (4.4)"
+    },
+    {
+      "form": "Taking risperidone",
+      "best_auto": "Allergy to risperidone (finding) (5.8)"
+    },
+    {
+      "form": "Taking sertraline",
+      "best_auto": "Allergy to sertraline (finding) (6.2)"
+    },
+    {
+      "form": "Taking sodium valproate",
+      "best_auto": "Finding of serum sodium valproate level (finding) (7.2)"
+    },
+    {
+      "form": "Taking venlafaxine",
+      "best_auto": "Allergy to venlafaxine (finding) (6.0)"
+    },
+    {
+      "form": "Talking therapy",
+      "best_auto": "Accepted by psychological talking therapy service (finding) (6.7)"
+    },
+    {
+      "form": "Thought disorder",
+      "best_auto": "Delusion (finding) (5.6)"
+    },
+    {
+      "form": "Tic disorder",
+      "best_auto": "Tic disorder (disorder) (7.2)"
+    },
+    {
+      "form": "Tics",
+      "best_auto": "Tic (finding) (7.8)"
+    },
+    {
+      "form": "Tourette syndrome",
+      "best_auto": "Gilles de la Tourette's syndrome (disorder) (7.9)"
+    },
+    {
+      "form": "Tourettes",
+      "best_auto": "Gilles de la Tourette's syndrome (disorder) (6.5)"
+    },
+    {
+      "form": "Trauma history",
+      "best_auto": "Traumatic injury (disorder) (4.8)"
+    },
+    {
+      "form": "Traumatised",
+      "best_auto": "Traumatized seborrheic keratosis (disorder) (7.7)"
+    },
+    {
+      "form": "Traumatized",
+      "best_auto": "Traumatized incisor (disorder) (7.8)"
+    },
+    {
+      "form": "Under CMHT",
+      "best_auto": "Under anesthesia (finding) (3.9)"
+    },
+    {
+      "form": "Under psychiatrist",
+      "best_auto": "Under care of psychiatrist (finding) (7.9)"
+    },
+    {
+      "form": "Under psychiatry",
+      "best_auto": "Psychiatry domiciliary visit done (finding) (5.0)"
+    },
+    {
+      "form": "Voices",
+      "best_auto": "Verbal auditory hallucinations (finding) (7.5)"
+    },
+    {
+      "form": "Voluntary admission",
+      "best_auto": "Voluntarily redundant (finding) (5.4)"
+    },
+    {
+      "form": "Wants to die",
+      "best_auto": "Wanting to die (finding) (7.6)"
+    },
+    {
+      "form": "War neurosis",
+      "best_auto": "Neurosis (disorder) (6.8)"
+    },
+    {
+      "form": "Wernicke",
+      "best_auto": "Wernicke's disease (disorder) (7.3)"
+    },
+    {
+      "form": "Winter depression",
+      "best_auto": "Keratolytic winter erythema (disorder) (6.7)"
+    },
+    {
+      "form": "cPTSD",
+      "best_auto": "no results"
+    }
+  ]
+}

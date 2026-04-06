@@ -37,6 +37,7 @@ import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Sequence
 
+from libs.terminology.surface_normalize import TOKEN_RE, normalize_surface
 from services.terminology_api.app.queries.terminology import (
     BATCH_EXACT_QUERY,
     BATCH_FULLTEXT_QUERY,
@@ -86,12 +87,42 @@ _TAG_BOOST = 1.3
 _TAG_COMPAT_BOOST = 1.1
 _TAG_PENALTY = 0.5
 
+# Minimum fused score to include a candidate in results.
+# Candidates below this are almost certainly spurious fulltext token matches.
+_MIN_SCORE = 0.15
+
+# Tags that are never clinically meaningful as a primary coding result.
+# These are hard-blocked when an expected clinical tag is provided,
+# and soft-excluded (score floor raised to 0.5) even without an expected tag.
+_NON_CLINICAL_TAGS: frozenset[str] = frozenset({
+    "qualifier value",
+    "attribute",
+    "staging scale",
+    "tumor staging",
+    "record artifact",
+    "geographic location",
+    "cell structure",
+    "environment",
+    "occupation",
+    "organism",
+    "physical object",
+    "event",
+    "namespace concept",
+    "inactive concept",
+    "special concept",
+})
+
+# Clinical tag groups -- when an expected tag is one of these groups,
+# hard-block any result whose tag is non-clinical.
+_CLINICAL_GROUPS: frozenset[str] = frozenset({
+    "clinical", "pharma", "procedure", "observable", "anatomy",
+})
+
+# Maximum number of tokens before we skip the raw (non-phrase) fulltext query.
+# Long phrases produce dangerous partial word matches (e.g. "see" -> Holy See).
+_MAX_TOKENS_FOR_RAW_QUERY = 5
+
 _LUCENE_SPECIAL = re.compile(r'([+\-!(){}[\]^"~*?:\\/])')
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
-
-
-def normalize_surface(text: str) -> str:
-    return " ".join(_TOKEN_RE.findall(text.lower()))
 
 
 def _escape_lucene(text: str) -> str:
@@ -103,14 +134,25 @@ def _build_fulltext_queries(mention: str) -> list[str]:
     if not cleaned:
         return []
     escaped = _escape_lucene(cleaned)
-    tokens = _TOKEN_RE.findall(cleaned.lower())
+    tokens = TOKEN_RE.findall(cleaned.lower())
     queries: list[str] = []
+
+    # Phrase query (quoted) -- always included when more than one token.
     if len(tokens) > 1:
         queries.append(f'"{escaped}"')
-    queries.append(escaped)
-    token_q = " AND ".join(tokens)
-    if token_q and token_q != escaped:
-        queries.append(token_q)
+
+    # Raw unquoted query -- safe only for short phrases.
+    # Long phrases contain common words ("see", "recent", "with", etc.) that
+    # produce dangerous partial matches against unrelated SNOMED concepts.
+    if len(tokens) <= _MAX_TOKENS_FOR_RAW_QUERY:
+        queries.append(escaped)
+
+    # AND-token query -- only useful for short phrases (same reason).
+    if len(tokens) <= _MAX_TOKENS_FOR_RAW_QUERY:
+        token_q = " AND ".join(tokens)
+        if token_q and token_q != escaped:
+            queries.append(token_q)
+
     return queries
 
 
@@ -535,7 +577,18 @@ class CodingResolver:
         expected_group = TAG_GROUPS.get(expected_tag, "") if expected_tag else ""
 
         scored: list[tuple[float, dict[str, Any]]] = []
+        expected_group = TAG_GROUPS.get(expected_tag, "") if expected_tag else ""
+        hard_block_non_clinical = bool(
+            expected_tag and _CLINICAL_GROUPS.intersection({expected_group})
+        )
+
         for c in merged.values():
+            candidate_tag = (c.get("semantic_tag") or "").lower()
+
+            # Hard-block non-clinical tags when the caller expects a clinical result.
+            if hard_block_non_clinical and candidate_tag in _NON_CLINICAL_TAGS:
+                continue
+
             lex_norm = c["lexical_raw"] / max_lex if max_lex else 0.0
             vec_norm = c["vector_raw"] / max_vec if max_vec else 0.0
             if max_vec_raw <= 0:
@@ -546,7 +599,6 @@ class CodingResolver:
                 fused = (self.w_lexical * lex_norm) + (self.w_vector * vec_norm)
 
             if expected_tag:
-                candidate_tag = (c.get("semantic_tag") or "").lower()
                 candidate_group = TAG_GROUPS.get(candidate_tag, "")
                 if candidate_tag == expected_tag:
                     fused *= _TAG_BOOST
@@ -554,6 +606,13 @@ class CodingResolver:
                     fused *= _TAG_COMPAT_BOOST
                 elif candidate_group and candidate_group != expected_group:
                     fused *= _TAG_PENALTY
+
+            # Apply a higher floor for non-clinical tags even without expected_tag.
+            if candidate_tag in _NON_CLINICAL_TAGS:
+                fused = min(fused, 0.4)
+
+            if fused < _MIN_SCORE:
+                continue
 
             scored.append((fused, c))
 

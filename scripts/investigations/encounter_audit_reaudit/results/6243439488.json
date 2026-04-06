@@ -1,0 +1,2473 @@
+[
+  {
+    "encounter_id": "f876fec1-2a43-4191-ad9f-2700751cd5a4",
+    "patient_id": "6243439488",
+    "date": "2024-01-17",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All nine coded concepts are well-evidenced: the six observable entity codes reflect structured lab pipeline values and are not subject to audit; the three finding codes (eosinophil count above reference range, microcytosis, hypochromic red cells) are confirmed as correct SNOMED concepts via search despite unreliable lookup_concept responses for those IDs. The reviewer's explicit 'No Further Action / hb stable' note means no further diagnostic coding (e.g. iron deficiency anaemia) is warranted from this encounter text alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6286,
+        "output_tokens": 1072,
+        "total_tokens": 7358,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "f876fec1-2a43-4191-ad9f-2700751cd5a4",
+        "date": "2024-01-17",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "849b61df-5ddd-44ad-becb-c4e193167023",
+    "patient_id": "6243439488",
+    "date": "2024-01-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Body mass index 20-24 - normal",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'Body mass index 20-24 - normal (XaJqk)' as a clinical finding but no corresponding SNOMED finding code is in the coded list (only the raw BMI observable entity is coded).",
+          "snomed_search": "body mass index",
+          "snomed_concept_id": "412768003",
+          "preferred_term": "Body mass index 20-24 - normal (finding)",
+          "sentence": "Body mass index 20-24 - normal (XaJqk)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "5501000119106",
+          "name": "Postoperative hypertension (disorder) [coded label]",
+          "severity": "high",
+          "reason": "lookup_concept returned an Extension Namespace placeholder (unreliable); the note documents a hypertension LTC review and hypertension monitoring, indicating primary/essential hypertension \u2014 not postoperative hypertension. The correct concept is 38341003 (Hypertensive disorder, systemic arterial).",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "859981000000107",
+          "name": "Level of physical activity (observable entity)",
+          "severity": "medium",
+          "reason": "The note documents a specific GPPAQ result of 'inactive'; the observable entity code captures only the measurement concept, not the clinical finding. The specific finding code 366121000000108 (GPPAQ physical activity index: inactive) should replace it.",
+          "replace_with_concept_id": "366121000000108",
+          "replace_with_preferred_term": "General practice physical activity questionnaire physical activity index: inactive (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two overcoding issues identified: the hypertension concept ID (5501000119106) is an unreliable Extension Namespace placeholder that should be replaced with the standard hypertensive disorder code (38341003); the GPPAQ observable entity should be replaced with the specific 'inactive' finding code. The BMI normal finding (412768003) is documented but not coded alongside the raw BMI observable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8394,
+        "output_tokens": 1612,
+        "total_tokens": 10006,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "849b61df-5ddd-44ad-becb-c4e193167023",
+        "date": "2024-01-17",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3777b358-83d9-4795-a3ac-b3514ce67d1a",
+    "patient_id": "6243439488",
+    "date": "2024-01-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "MRC Breathlessness Scale: grade 2",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "MRC Dyspnoea Scale grade 2 is explicitly recorded in the structured COPD review and is a mandatory QOF/clinical indicator for COPD severity stratification; it is absent from the coded list.",
+          "snomed_search": "MRC breathlessness scale grade 2",
+          "snomed_concept_id": "391123006",
+          "preferred_term": "Medical Research Council Dyspnoea scale grade 2 (finding)",
+          "sentence": "MRC: MRC Breathlessness Scale: grade 2 (XaIUl)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "COPD patient unsuitable for pulmonary rehabilitation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A clinical decision that the patient is unsuitable for pulmonary rehabilitation is explicitly documented in the review plan and should be coded as a finding to support QOF exception reporting and care planning.",
+          "snomed_search": "COPD unsuitable pulmonary rehabilitation",
+          "snomed_concept_id": "371611000000107",
+          "preferred_term": "Chronic obstructive pulmonary disease patient unsuitable for pulmonary rehabilitation (finding)",
+          "sentence": "Pulm rehab: COPD patient unsuitable for pulmonary rehabilitation (XaPZH)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The four existing codes are clinically correct \u2014 lookup_concept returned unreliable/wrong semantic tags for three of them, but search_snomed independently confirmed all four concept IDs and preferred terms are accurate. Two clinically significant findings are missing: the MRC Dyspnoea grade 2 (a key COPD severity indicator required for QOF) and the explicit clinical decision that the patient is unsuitable for pulmonary rehabilitation (relevant for QOF exception reporting). Structured numeric scores (CAT=7, ACT=17, O2 sats) are written by the structured data pipeline and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11280,
+        "output_tokens": 1725,
+        "total_tokens": 13005,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "3777b358-83d9-4795-a3ac-b3514ce67d1a",
+        "date": "2024-01-25",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9401c29c-fcc9-423a-b59b-9744909c78ea",
+    "patient_id": "6243439488",
+    "date": "2024-02-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "issue mobility aid",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly states a mobility aid was to be issued during this encounter, which is a codeable procedure not captured in the existing codes.",
+          "snomed_search": "provision mobility device",
+          "snomed_concept_id": "243751002",
+          "preferred_term": "Provision of mobility device (procedure)",
+          "sentence": "refer to physio for exercise and issue mobility aid",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "stabbing sensation from hip down to lateral shin",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The patient reported a resolved episode of left hip-to-shin stabbing pain 2-3 weeks prior; this presenting symptom should be coded as historical since it has now settled.",
+          "snomed_search": "pain left hip joint",
+          "snomed_concept_id": "316781000119100",
+          "preferred_term": "Pain of left hip joint (finding)",
+          "sentence": "2 or 3/52 ago felt a left side stabbing sensation from the hip down to the lateral aspect of the shin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "All 5 existing codes are clinically appropriate and confirmed as valid SNOMED concepts (terminology server lookup was unreliable for all five, but search_snomed confirmed correct IDs and preferred terms). Two additions are warranted: the provision of a mobility aid (explicitly stated in the plan) and the resolved left hip-to-shin pain episode (the presenting complaint, now settled). Note: the lateral shin radiation could suggest a radiculopathy or lateral cutaneous nerve irritation, but no diagnosis was made by the clinician so coding the symptom as historical is appropriate; if a specific diagnosis is later confirmed it should be updated.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12548,
+        "output_tokens": 1729,
+        "total_tokens": 14277,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "9401c29c-fcc9-423a-b59b-9744909c78ea",
+        "date": "2024-02-02",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "94408e72-b4f9-41cb-8c65-cfdf67b2a6a9",
+    "patient_id": "6243439488",
+    "date": "2024-04-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lower back pain radiating down L leg",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents left-sided lower back pain radiating down the left leg, which is a distinct and more specific finding than low back pain alone and should be coded separately.",
+          "snomed_search": "pain radiating left leg",
+          "snomed_concept_id": "426469008",
+          "preferred_term": "Pain radiating to left leg (finding)",
+          "sentence": "few days L sided lower back pain radiating down L leg",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "asthma",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Asthma is explicitly referenced as an active condition influencing prescribing (naproxen chosen over ibuprofen because 'ibuprofen doesn't affect asthma'), confirming it is a clinically relevant active problem for this patient.",
+          "snomed_search": "asthma",
+          "snomed_concept_id": "195967001",
+          "preferred_term": "Asthma (disorder)",
+          "sentence": "try short course naproxen with PPI cover (ibuprofen doesn't affect asthma), paracetamol 1g QDS",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing Low back pain code (279039007) is confirmed correct despite a terminology server lookup anomaly. Two significant gaps exist: the radiation of pain to the left leg is explicitly documented and warrants its own code (426469008), and asthma is referenced as an active condition directly influencing the prescribing decision (naproxen over ibuprofen) but has not been coded in this encounter. Cauda equina red-flag symptoms are correctly absent and have not been flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4470,
+        "output_tokens": 1403,
+        "total_tokens": 5873,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "94408e72-b4f9-41cb-8c65-cfdf67b2a6a9",
+        "date": "2024-04-24",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d784bd1c-7cef-44e8-9dd6-028c5385efb4",
+    "patient_id": "6243439488",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding)",
+          "severity": "medium",
+          "reason": "lookup_concept returned semantic_tag='organism' (unreliable); search_snomed confirms the correct SNOMED concept for back pain is 161891005 (Backache) or 279039007 (Low back pain) \u2014 this concept ID is not a valid clinical finding code and should be replaced.",
+          "replace_with_concept_id": "161891005",
+          "replace_with_preferred_term": "Backache (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "427653003",
+          "name": "Pain radiating to right leg (finding)",
+          "severity": "high",
+          "reason": "The note explicitly documents pain in the LEFT buttock radiating down the LEFT leg \u2014 coding 'Pain radiating to right leg' is a laterality error; the correct concept is 426469008 Pain radiating to left leg.",
+          "replace_with_concept_id": "426469008",
+          "replace_with_preferred_term": "Pain radiating to left leg (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two definite coding errors: (1) concept ID 399079008 is not a valid clinical finding code for back pain \u2014 replace with 161891005 Backache; (2) concept ID 427653003 'Pain radiating to right leg' is a critical laterality error \u2014 the note clearly states LEFT buttock pain radiating down the left leg, and must be replaced with 426469008 'Pain radiating to left leg'. The ankle pain code (202490009) is confirmed correct by search. The '? OA' query and bilateral knee OA are background/uncertain and do not require new coding from this encounter alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4098,
+        "output_tokens": 1314,
+        "total_tokens": 5412,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "d784bd1c-7cef-44e8-9dd6-028c5385efb4",
+        "date": "2024-05-23",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cebd91fa-5c2f-45b9-a82f-558c6036c1b9",
+    "patient_id": "6243439488",
+    "date": "2024-05-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Outbound referral for Suspected Parkinsons Disease PRISM pathway",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents an outbound referral via the PRISM Suspected Parkinson's Disease pathway; this should be coded as a referral procedure, not as the disorder itself.",
+          "snomed_search": "referral to Parkinson's service",
+          "snomed_concept_id": "862081000000106",
+          "preferred_term": "Referral to Parkinson's service (procedure)",
+          "sentence": "Suspected Parkinsons Disease PRISM * to Unknown",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "49049000",
+          "name": "Parkinson's disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note describes 'Suspected Parkinson's Disease' throughout \u2014 this is a referral for investigation of a suspected diagnosis, not a confirmed active condition; assertion should be 'possible' not 'present'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two issues identified: (1) Parkinson's disease is coded as 'present' but the entire encounter context is 'suspected' \u2014 assertion must be changed to 'possible'. (2) The PRISM outbound referral to the Parkinson's service is a distinct codeable procedure (862081000000106) that is missing; the existing Parkinson's disorder code was incorrectly used as a proxy for the referral. Note: concept 168537006 (Plan X-ray) returned an unreliable lookup but is plausible for the XR Lumbar spine request and has not been flagged for deletion on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3359,
+        "output_tokens": 1186,
+        "total_tokens": 4545,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "cebd91fa-5c2f-45b9-a82f-558c6036c1b9",
+        "date": "2024-05-24",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d1e8c67a-65e8-4362-8805-e5fc1675f028",
+    "patient_id": "6243439488",
+    "date": "2024-05-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plan X-ray (procedure)",
+          "severity": "medium",
+          "reason": "No X-ray is ordered or referenced in this encounter; 'backpian' appears only as the stated reason-for-request on the FIT lab form and does not constitute a GP X-ray order in this consultation.",
+          "replace_with_concept_id": null,
+          "replace_with_preferred_term": null
+        },
+        {
+          "conceptId": "315332003",
+          "name": "Suspected malignant neoplasm (situation)",
+          "severity": "high",
+          "reason": "The note explicitly documents a 2WW Lower GI pathway referral; the more specific concept 315274008 'Malignant neoplasm of lower gastrointestinal tract suspected' should be used rather than the generic 'Suspected malignant neoplasm'.",
+          "replace_with_concept_id": "315274008",
+          "replace_with_preferred_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two issues identified: (1) 'Plan X-ray' [168537006] is not evidenced by this encounter \u2014 'backpain' is only a field on the FIT request form, not a GP-ordered investigation in this consultation; (2) the broad 'Suspected malignant neoplasm' [315332003] should be replaced with the LGI-specific situation code 315274008. Note: lookup_concept returned unreliable results for concepts [1049361000000101], [168537006], [315332003], [71711000112103], and [892201000000106] \u2014 the FIT finding and 2WW referral procedure codes were confirmed via search_snomed and are clinically appropriate. The recommendation for digital rectal examination is not yet performed and should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8246,
+        "output_tokens": 2056,
+        "total_tokens": 10302,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "d1e8c67a-65e8-4362-8805-e5fc1675f028",
+        "date": "2024-05-24",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2e4fc313-597a-47ee-9b9d-6e19ffb4047f",
+    "patient_id": "6243439488",
+    "date": "2024-05-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bereavement",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly states he is sad having lost his daughter to brain cancer last week \u2014 bereavement is a clinically relevant psychosocial finding that should be coded.",
+          "snomed_search": "bereavement",
+          "snomed_concept_id": "74506000",
+          "preferred_term": "Bereavement (finding)",
+          "sentence": "just sad as lost his daughter to brain cancer last week,",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "250894006",
+          "name": "Masking level (observable entity)",
+          "severity": "medium",
+          "reason": "Lookup confirms concept 250894006 resolves to a substance (DRB1*08032), not a clinical finding; it is the wrong concept ID for facial masking/hypomimia, and no valid SNOMED replacement could be confirmed from search results \u2014 this code must be reviewed and corrected by a coder."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding) [as coded]",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "Concept 416528001 resolves on the terminology server to a substance (DRB1*08021), not a finding \u2014 this is the wrong concept ID entirely; furthermore the note states 'not sure if lost weight', so the correct code should be 448765001 Unintentional weight loss (finding) with assertion=possible, not intentional weight loss as present. In the context of a FIT request, serum free light chains and immunoglobulins, this is a safety-critical red-flag symptom requiring correct coding."
+        },
+        {
+          "conceptId": "32798002",
+          "name": "Parkinsonism (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The GP has documented examination findings (facial masking, cogwheel rigidity) and referred to parkinsonism services but has not confirmed a diagnosis \u2014 the assertion should be 'possible' to reflect a suspected rather than established diagnosis."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Two concept IDs are critically wrong: 416528001 resolves to a genetic substance (not a weight-loss finding) and 250894006 resolves to another substance (not facial masking) \u2014 both require urgent correction. The weight loss coding is also doubly wrong in assertion (patient was unsure; context of FIT/SFLC requests makes this a safety-critical red flag that must be coded as possible unintentional weight loss with concept 448765001). Parkinsonism should be asserted as possible pending specialist review. Bereavement (loss of daughter last week) is a clinically relevant finding that is missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 14703,
+        "output_tokens": 2057,
+        "total_tokens": 16760,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "2e4fc313-597a-47ee-9b9d-6e19ffb4047f",
+        "date": "2024-05-24",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f8ec566c-eaaf-444f-823d-4f9b3c535b18",
+    "patient_id": "6243439488",
+    "date": "2024-05-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plan X-ray (procedure)",
+          "severity": "medium",
+          "reason": "Concept ID 168537006 is unverifiable (returns Extension Namespace placeholder); the encounter documents a specific lumbar spine plain X-ray, which is precisely captured by the confirmed concept 840361000.",
+          "replace_with_concept_id": "840361000",
+          "replace_with_preferred_term": "Plain X-ray of lumbar vertebral column region (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "One significant laterality error: right-leg radiation coded instead of left (427653003 \u2192 426469008). The plain X-ray procedure code is unverifiable and should be replaced with the confirmed, site-specific concept 840361000. Lumbar spondylosis (239880009) and back pain (399079008) are correctly coded from the radiology report findings.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7492,
+        "output_tokens": 1476,
+        "total_tokens": 8968,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "f8ec566c-eaaf-444f-823d-4f9b3c535b18",
+        "date": "2024-05-28",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "641eecb0-e5ef-487a-ad6f-67b8a3c61078",
+    "patient_id": "6243439488",
+    "date": "2024-06-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Encounter consists entirely of a medication review administrative record (XaF8d) with repeat prescription re-authorisations for existing medications and a Summary Care Record update. No clinical narrative, new diagnoses, symptoms, examination findings, or investigation results are documented. Underlying conditions implied by the medications (e.g. hypertension, asthma, allergic rhinitis, eczema) would already be on the problem list and are not being newly coded in this encounter. No codeable clinical content is present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 959,
+        "output_tokens": 514,
+        "total_tokens": 1473,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "641eecb0-e5ef-487a-ad6f-67b8a3c61078",
+        "date": "2024-06-04",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f7139558-e777-4345-854d-1e75a493c192",
+    "patient_id": "6243439488",
+    "date": "2024-06-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Immunoglobulin G level above reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "IgG is documented at 18.3 g/L against a reference range of 6\u201316 g/L, explicitly flagged as outside reference range; this abnormal finding should be coded.",
+          "snomed_search": "immunoglobulin above reference range",
+          "snomed_concept_id": "131136006",
+          "preferred_term": "Immunoglobulin above reference range (finding)",
+          "sentence": "Immunoglobulin G level (XE259) 18.3 g/L [6 - 16] - Outside reference range",
+          "char_start": 22,
+          "char_end": 82
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "166689004",
+          "name": "Serum potassium level above reference range (finding)",
+          "severity": "high",
+          "reason": "Concept 166689004 resolves in the terminology server to 'DRB1*08032 (substance)' \u2014 a genetic allele substance, not a finding \u2014 and has no clinical relationship to this encounter; the evidence field incorrectly describes it as a serum potassium result when the note contains no potassium measurement whatsoever.",
+          "replace_with_concept_id": "131136006",
+          "replace_with_preferred_term": "Immunoglobulin above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The single coded concept is a serious error: concept 166689004 resolves to a genetic substance (DRB1*08032), not a serum potassium finding, and is entirely unsupported by the encounter text. The correct code for the documented elevated IgG (18.3 g/L, range 6\u201316) is 131136006 'Immunoglobulin above reference range (finding)'; no more specific IgG-only child concept exists in the current SNOMED hierarchy. IgA, IgM, and serum protein electrophoresis results are within range and require no abnormal finding codes; the 'no paraprotein detected' result is a normal/negative finding and is not flagged as missing per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3785,
+        "output_tokens": 1066,
+        "total_tokens": 4851,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "f7139558-e777-4345-854d-1e75a493c192",
+        "date": "2024-06-05",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c7881c8e-375c-4f10-a4f3-1d274e35303b",
+    "patient_id": "6243439488",
+    "date": "2024-06-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1000811000000109",
+          "name": "Serum total protein (observable entity)",
+          "severity": "medium",
+          "reason": "The evidence field cites 'Serum albumin 41 g/L' \u2014 albumin and total protein are distinct analytes; the correct observable for this result is Serum albumin level (1000821000000103), not serum total protein.",
+          "replace_with_concept_id": "1000821000000103",
+          "replace_with_preferred_term": "Serum albumin level (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two serum free light chain concepts (55611000237105, 783141000000107) return unreliable lookups but are confirmed as correct by search_snomed and are clinically appropriate given the borderline kappa result; the kappa/lambda ratio is within range and the lab guidance explicitly excludes a 2WW referral, so no additional disorder code is required. The only genuine error is the use of 'Serum total protein' (1000811000000109) where the evidence is clearly a serum albumin result \u2014 this should be replaced with Serum albumin level (1000821000000103).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10809,
+        "output_tokens": 1517,
+        "total_tokens": 12326,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "c7881c8e-375c-4f10-a4f3-1d274e35303b",
+        "date": "2024-06-05",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "df29c9e0-08e7-4ec0-afdd-6f7d71b5f08a",
+    "patient_id": "6243439488",
+    "date": "2024-06-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Mean cell haemoglobin level 22.5 pg - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MCH is explicitly flagged outside reference range at 22.5 pg (ref 27\u201332 pg); hypochromia alongside microcytosis is a clinically significant pattern (consistent with iron deficiency) and should be coded as a distinct finding.",
+          "snomed_search": "mean corpuscular haemoglobin below reference range",
+          "snomed_concept_id": "165439008",
+          "preferred_term": "Mean corpuscular hemoglobin below reference range (finding)",
+          "sentence": "Mean cell haemoglobin level (XE2pb) 22.5 pg [27 - 32] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes (386789004 eosinophilia, 165474009 microcytosis) are confirmed correct by SNOMED search despite unreliable direct lookups \u2014 the concept IDs are legitimate findings. The MCH is also flagged outside reference range (22.5 pg, ref 27\u201332) and should be coded as a separate finding; hypochromia combined with microcytosis strengthens the clinical picture of iron deficiency. Mild basophilia (0.12 vs upper limit 0.10) is borderline and of low clinical significance; the GP's 'No Further Action' review note covers the overall FBC. The reason-for-request ('backpain') is not a result finding and does not require coding from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5904,
+        "output_tokens": 1527,
+        "total_tokens": 7431,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "df29c9e0-08e7-4ec0-afdd-6f7d71b5f08a",
+        "date": "2024-06-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e5990033-b63a-4bb6-8b59-842e34af6fae",
+    "patient_id": "6243439488",
+    "date": "2024-06-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "eosinophilia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Eosinophil count 0.59 10^9/L is explicitly flagged as outside reference range with the note 'Note eosinophilia' in the lab report, making this a clinically documented abnormal finding requiring coding.",
+          "snomed_search": "eosinophil count above reference range",
+          "snomed_concept_id": "386789004",
+          "preferred_term": "Eosinophil count above reference range (finding)",
+          "sentence": "Eosinophil count - observation (42K..) 0.59 10^9/L [0.04 - 0.4] - Outside reference range; Note eosinophilia",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "mean cell haemoglobin low",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "MCH 22.5 pg is explicitly outside the reference range (27-32 pg), indicating hypochromia which is clinically significant alongside microcytosis in the context of a lower GI 2WW referral and should be coded.",
+          "snomed_search": "mean corpuscular hemoglobin below reference range",
+          "snomed_concept_id": "165439008",
+          "preferred_term": "Mean corpuscular hemoglobin below reference range (finding)",
+          "sentence": "Mean cell haemoglobin level (XE2pb) 22.5 pg [27 - 32] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two abnormal blood count findings are missing codes: eosinophilia (explicitly flagged in the lab report) and low MCH (22.5 pg, outside reference range), both clinically relevant in the context of a lower GI 2WW referral. The existing microcytosis code (165474009) returned unreliable on lookup but is confirmed as a legitimate finding concept by search_snomed and is clinically appropriate for MCV 70 fL; no change recommended. The 2WW referral and structured lab observable codes are correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6111,
+        "output_tokens": 1621,
+        "total_tokens": 7732,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "e5990033-b63a-4bb6-8b59-842e34af6fae",
+        "date": "2024-06-14",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "82fde5db-f0e0-4cbd-9d3d-e7f93a00792e",
+    "patient_id": "6243439488",
+    "date": "2024-06-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "history of haemorrhoids in the past",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a past history of haemorrhoids, which is clinically relevant context for the FIT-positive lower GI cancer workup and should be coded with a historical assertion.",
+          "snomed_search": "haemorrhoids",
+          "snomed_concept_id": "70153002",
+          "preferred_term": "Hemorrhoids (disorder)",
+          "sentence": "history of haemorrhoids in the past",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Daughter died recently of brain cancer",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Recent bereavement (daughter's death from brain cancer) is a clinically significant psychosocial finding documented in this encounter and should be coded to support holistic care and safeguarding awareness.",
+          "snomed_search": "bereavement",
+          "snomed_concept_id": "74506000",
+          "preferred_term": "Bereavement (finding)",
+          "sentence": "Daughter died recently of brain cancer",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "DRE / Rectal examination performed",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A digital rectal examination was performed and documented in detail in this encounter (with chaperone and consent) but is absent from the 15 coded concepts; it should be coded as a procedure.",
+          "snomed_search": "rectal examination",
+          "snomed_concept_id": "410007005",
+          "preferred_term": "Rectal examination (procedure)",
+          "sentence": "DRE: Procedure explained / Chaperone by Dr Gopee / no anal masses or rectal masses / no rectal mucosal tags felt / Prostate not enlarged / soft stool in rectum normal color",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1085031000000100",
+          "name": "Home blood pressure monitoring declined (situation) [as coded]",
+          "severity": "high",
+          "reason": "The terminology server returns this concept ID as unreliable (organism tag); furthermore the coded name implies HBPM was declined, whereas the note clearly states a 7-day HBPM programme was initiated \u2014 the assertion and concept are both wrong.",
+          "replace_with_concept_id": "413153004",
+          "replace_with_preferred_term": "Blood pressure recorded by patient at home (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "418633004",
+          "name": "Medication compliance (observable entity) [as coded]",
+          "severity": "medium",
+          "reason": "The terminology server returns this concept ID as unreliable (organism tag); the note documents partial non-compliance (irregular use, stopped during Ramadan) which is better captured as a finding rather than an observable entity.",
+          "replace_with_concept_id": "275928001",
+          "replace_with_preferred_term": "Drugs - partial non-compliance (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "375241000000109",
+          "name": "Bowel cancer screening programme faecal occult blood test abnormal (finding)",
+          "severity": "medium",
+          "reason": "The note documents a FIT (faecal immunochemical test) result, not the older guaiac-based FOB test; the more specific code 1101371000000105 'Bowel cancer screening programme liquid faecal immunochemical test abnormal' should be used.",
+          "replace_with_concept_id": "1101371000000105",
+          "replace_with_preferred_term": "Bowel cancer screening programme liquid faecal immunochemical test abnormal (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is a clinically rich 2WW lower GI cancer encounter with generally good coding of the primary diagnosis and referral; however three concepts have unreliable/wrong concept IDs (HBPM declined instead of initiated, medication compliance observable entity instead of non-compliance finding, and guaiac FOB code instead of FIT-specific code), and three clinically significant items are missing: historical haemorrhoids (relevant differential context), bereavement (daughter's recent death from brain cancer), and the rectal examination procedure performed in this encounter. The 2WW referral and suspected lower GI malignancy codes are confirmed correct. Note: a future blood test request (FBC, ferritin) has been initiated but the results are not yet available \u2014 no additional coding required for those at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 6,
+        "input_tokens": 24577,
+        "output_tokens": 3318,
+        "total_tokens": 27895,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "82fde5db-f0e0-4cbd-9d3d-e7f93a00792e",
+        "date": "2024-06-14",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0d1f774e-30b2-41e7-a78c-a8d3ac2a6ac2",
+    "patient_id": "6243439488",
+    "date": "2024-06-24",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2ef514cd-e601-488f-8eed-14706403a25f",
+    "patient_id": "6243439488",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter is entirely administrative: a receptionist access role entry listing four repeat prescription items (Epimax cream, Ramipril, Bendroflumethiazide, Dermol lotion) with an ETP2 FP10 print status and a Summary Care Record Update flag. No clinical narrative, examination, diagnosis, or prescriber review text is present. No SNOMED coding is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 492,
+        "output_tokens": 303,
+        "total_tokens": 795,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "2ef514cd-e601-488f-8eed-14706403a25f",
+        "date": "2024-07-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "60e837ad-6c87-4919-962d-c855caea05d9",
+    "patient_id": "6243439488",
+    "date": "2024-07-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "77477000",
+          "name": "Computed tomography (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an unreliable result (semantic_tag='organism'), indicating this concept ID is incorrect; the note specifies 'CT of chest, abdomen and pelvis' which maps precisely to concept 418023006.",
+          "replace_with_concept_id": "418023006",
+          "replace_with_preferred_term": "Computed tomography of chest, abdomen and pelvis (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The lung nodule concept (786838002) is correctly identified and confirmed by SNOMED search, but its evidence field contains fabricated justification text rather than a verbatim quote from the note \u2014 this should be corrected to 'Nodule of lung (Y3f52)'. The CT procedure is coded with an unreliable/incorrect concept ID (77477000); it should be replaced with the specific 'CT of chest, abdomen and pelvis' concept (418023006). Clinicians should ensure the lung nodule is reviewed against 2WW/Fleischner criteria given its potential cancer-pathway significance.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3433,
+        "output_tokens": 1150,
+        "total_tokens": 4583,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "60e837ad-6c87-4919-962d-c855caea05d9",
+        "date": "2024-07-09",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "29c38644-3f8b-44bb-9204-ff31f70ae1b1",
+    "patient_id": "6243439488",
+    "date": "2024-07-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "medium",
+          "reason": "The lookup for this concept ID returned an unreliable result (substance semantic tag), and the more anatomically specific concept 363408006 'Malignant neoplasm of transverse colon' is already coded from the same encounter \u2014 the broader intestine code is redundant and should be removed in favour of the specific transverse colon code.",
+          "replace_with_concept_id": "363408006",
+          "replace_with_preferred_term": "Malignant neoplasm of transverse colon (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The specific transverse colon malignancy code (363408006) correctly captures the tumour site documented in the note; the broader 'malignant neoplasm of intestine' (363508008) is redundant and its concept ID returned an unreliable lookup result. All other codes \u2014 fatigue, anaemia, colonoscopy, CT \u2014 are clinically supported by the encounter text. Iron deficiency is not explicitly stated so the generic anaemia code (271737000) is appropriate rather than the more specific iron deficiency anaemia concept.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7080,
+        "output_tokens": 1717,
+        "total_tokens": 8797,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "29c38644-3f8b-44bb-9204-ff31f70ae1b1",
+        "date": "2024-07-15",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "07217a60-c20d-433c-aa9f-12cd84b256d1",
+    "patient_id": "6243439488",
+    "date": "2024-08-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b2e37c06-3975-4220-8b33-e779b09e4145",
+    "patient_id": "6243439488",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a clinical pharmacist medication reconciliation encounter consisting entirely of prescription issuance and titration scheduling for co-careldopa (Sinemet). Although Sinemet strongly implies Parkinson's disease, no diagnosis, symptom, examination finding, or investigation result is documented in this encounter text \u2014 the clinical decision was made externally (\"as per letter\"). There is no codeable clinical content within the scope of this encounter. Note: if Parkinson's disease is not already on the patient's problem list, it should be added via a separate clinical coding review of the originating letter/consultation, not from this administrative prescription record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1781,
+        "output_tokens": 604,
+        "total_tokens": 2385,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "b2e37c06-3975-4220-8b33-e779b09e4145",
+        "date": "2024-08-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f4025b49-c6b2-42d0-9fb6-a5c376a3fb13",
+    "patient_id": "6243439488",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "be0542a6-e386-4573-9fcb-0c82460be89d",
+    "patient_id": "6243439488",
+    "date": "2024-08-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "This is a pharmacist teleconsult to add co-careldopa (Sinemet) to the repeat prescription following a neurology letter; the only clinical concept in scope is Parkinson's disease (49049000), which is correctly coded as present. lookup_concept returned an unreliable semantic tag for 49049000, but search_snomed confirms it is the correct 'Parkinson's disease (disorder)' concept \u2014 no action needed. Medication management is out of SNOMED coding scope for this audit.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3196,
+        "output_tokens": 705,
+        "total_tokens": 3901,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "be0542a6-e386-4573-9fcb-0c82460be89d",
+        "date": "2024-08-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "41bbc432-b644-415c-a5fe-01260eed7481",
+    "patient_id": "6243439488",
+    "date": "2024-08-28",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of an online repeat medication request submitted by the patient \u2014 there is no clinical narrative, examination, diagnosis, or management decision present. The three coded concepts (history of hypertension, brain disorder, COPD) appear to have been inferred from the requested medications rather than from any clinical content in this encounter; however, all three lookup_concept calls returned unreliable results (wrong semantic tags / Extension Namespace placeholders), so they cannot be confirmed or refuted from this server alone \u2014 they should not be deleted on the basis of this admin-only encounter regardless. No coding additions or removals are warranted from this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1621,
+        "output_tokens": 542,
+        "total_tokens": 2163,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "41bbc432-b644-415c-a5fe-01260eed7481",
+        "date": "2024-08-28",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e09f785e-6025-4854-ba49-aea54a614dde",
+    "patient_id": "6243439488",
+    "date": "2024-09-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bereavement",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient has been deemed malnourished 'due to recent bereavement', making this a clinically relevant psychosocial finding that should be coded.",
+          "snomed_search": "bereavement",
+          "snomed_concept_id": "74506000",
+          "preferred_term": "Bereavement (finding)",
+          "sentence": "can see recent letter form the colorectal has been deemed malnurished due to recent bereavement",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "108961000",
+          "name": "Nutritional supplement (product)",
+          "severity": "medium",
+          "reason": "Concept 108961000 has semantic tag 'product', which is outside the auditable SNOMED scope and is the wrong category for documenting a prescribing/recommendation act; the encounter documents the prescribing of an oral nutritional supplement, which is better represented as a procedure.",
+          "replace_with_concept_id": "911711000000102",
+          "replace_with_preferred_term": "Recommendation to take oral nutritional supplements (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The malnutrition disorder code (272588001) is correctly applied and well-evidenced by the colorectal letter referenced in the note. Two issues identified: (1) bereavement is explicitly documented as the cause of malnutrition and should be coded as an active finding; (2) the nutritional supplement code uses a 'product' semantic tag outside audit scope and should be replaced with the procedure code for recommendation to take oral nutritional supplements. A possible future dietitian referral is conditional and should not be coded at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6298,
+        "output_tokens": 1570,
+        "total_tokens": 7868,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "e09f785e-6025-4854-ba49-aea54a614dde",
+        "date": "2024-09-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c423b99f-2674-47ff-bfcc-cb413da14b63",
+    "patient_id": "6243439488",
+    "date": "2024-09-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bereavement (daughter died)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient's daughter died secondary to brain cancer, making bereavement a clinically active and relevant finding that should be coded.",
+          "snomed_search": "bereavement",
+          "snomed_concept_id": "74506000",
+          "preferred_term": "Bereavement (finding)",
+          "sentence": "daughter died secondary to brain cancer.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "depressed mood / felt down",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The GP documents the patient 'appears to be down' and 'felt down' during the review of mood \u2014 this is an active clinical finding warranting a code.",
+          "snomed_search": "depressed mood",
+          "snomed_concept_id": "366979004",
+          "preferred_term": "Depressed mood (finding)",
+          "sentence": "here to rv his mood, see recent colorectal letter, during the appt when receiving bad news, appears to be down.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder) [coded as \u2014 lookup returned DRB1*08032 substance, wrong concept]",
+          "severity": "high",
+          "reason": "Concept ID 363508008 resolves to a substance (DRB1*08032) on the terminology server, not a colorectal malignancy disorder; the note references a colorectal letter and bowel cancer diagnosis requiring the correct disorder concept.",
+          "replace_with_concept_id": "363406005",
+          "replace_with_preferred_term": "Malignant neoplasm of colon (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "275540007",
+          "name": "History of brain disorder (situation) [coded against evidence 'diagnosed with parkinsons']",
+          "severity": "medium",
+          "reason": "This concept ID is unverifiable (Extension Namespace placeholder) and the evidence it was coded against ('diagnosed with parkinsons') is already correctly and specifically captured by the co-coded Parkinson's disease concept [49049000]; this generic/redundant code should be removed."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Significant coding quality issues: the bowel cancer concept ID (363508008) resolves to a substance on the terminology server and must be replaced with the correct colorectal malignancy disorder (363406005); the 'History of brain disorder' code (275540007) is both unverifiable and redundant given the specific Parkinson's disease code. Two clinically important findings \u2014 bereavement following the death of the patient's daughter and active depressed mood \u2014 are absent from the coded list and should be added. Parkinson's disease [49049000] is correctly coded despite the unreliable lookup, confirmed by direct SNOMED search.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9130,
+        "output_tokens": 1884,
+        "total_tokens": 11014,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "c423b99f-2674-47ff-bfcc-cb413da14b63",
+        "date": "2024-09-20",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fd86fa10-828e-4347-83de-a9969d978d81",
+    "patient_id": "6243439488",
+    "date": "2024-10-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "previously anaemic",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly states 'was previously anaemic', indicating a historical diagnosis of anaemia that should be coded with a historical assertion.",
+          "snomed_search": "anaemia",
+          "snomed_concept_id": "271737000",
+          "preferred_term": "Anemia (disorder)",
+          "sentence": "discussed the pts dietary needs still having tds, was previoulsy anaemic.",
+          "char_start": 130,
+          "char_end": 160
+        },
+        {
+          "term": "nutritional assessment",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist explicitly conducted a nutritional assessment during this teleconsult, reviewing dietary intake, weight status, malnutrition risk, and need for oral nutritional supplements (Fortisip/ONS).",
+          "snomed_search": "nutritional assessment",
+          "snomed_concept_id": "310243009",
+          "preferred_term": "Nutritional assessment (procedure)",
+          "sentence": "discussed his normal diet whihc he is eating 2-3 times daily, no clear dietitian, no clear lamnurishment, eating highly nutritional foods like veg fruit and alos fish.",
+          "char_start": 195,
+          "char_end": 365
+        },
+        {
+          "term": "gaining weight",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents weight gain ('not losing any wt gaining wt'), a clinically relevant positive finding in the context of oncology nutritional monitoring.",
+          "snomed_search": "weight gain finding",
+          "snomed_concept_id": "262286000",
+          "preferred_term": "Weight increased (finding)",
+          "sentence": "not losing any wt gaining wt.",
+          "char_start": 366,
+          "char_end": 395
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing code 363406005 (Malignant neoplasm of colon, present) is correct and well-evidenced \u2014 the lookup_concept unreliability was a terminology server namespace issue only, not a genuine coding error. Three additions are recommended: historical anaemia, a nutritional assessment procedure (the core clinical activity of this pharmacist teleconsult), and documented weight gain as a positive nutritional finding in an oncology context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5844,
+        "output_tokens": 1789,
+        "total_tokens": 7633,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "fd86fa10-828e-4347-83de-a9969d978d81",
+        "date": "2024-10-03",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c4ddbfe7-73d5-41ca-a671-e6d277cb0964",
+    "patient_id": "6243439488",
+    "date": "2024-10-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a3730d0a-a819-4cf8-a87a-ab1208dce691",
+    "patient_id": "6243439488",
+    "date": "2024-10-17",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter is a receptionist-generated repeat prescription issue (Bendroflumethiazide, Ramipril, Fostair NEXThaler, Dermol 500) with an ETP2 FP10 print status and a Summary Care Record Update flag. There is no prescriber review text, no clinical narrative, no symptoms, examination, diagnosis, or plan documented. This is purely administrative \u2014 no codeable clinical content is present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 533,
+        "output_tokens": 309,
+        "total_tokens": 842,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "a3730d0a-a819-4cf8-a87a-ab1208dce691",
+        "date": "2024-10-17",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b9f963c2-8fe0-45d2-8b7c-dd2cf95d1526",
+    "patient_id": "6243439488",
+    "date": "2024-10-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "High risk of cardiovascular disease",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "QRISK2 score of 34.55% is explicitly documented and interpreted as driving statin indication discussion; the clinical finding of high cardiovascular risk should be coded alongside the observable entity score.",
+          "snomed_search": "high cardiovascular risk",
+          "snomed_concept_id": "837461000000101",
+          "preferred_term": "High risk of cardiovascular disease (finding)",
+          "sentence": "q risk 34%",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter documents active hypertension with elevated readings and a management plan \u2014 coding as 'History of hypertension' (situation) understates the active clinical picture and should be replaced with the active disorder code 38341003. The QRISK2 finding (837461000000101) should complement the already-coded observable entity score. Planned neurology/spinal ortho referral and repeat MRI are future procedures and correctly omitted from coding. No statin has been started or declined; a review appointment is being offered.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5319,
+        "output_tokens": 1326,
+        "total_tokens": 6645,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "b9f963c2-8fe0-45d2-8b7c-dd2cf95d1526",
+        "date": "2024-10-24",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2080708b-a2ce-49c5-989a-c29b6351cbf2",
+    "patient_id": "6243439488",
+    "date": "2024-10-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "constipation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly requests CosmoCol laxative because it 'helps him go to the loo', directly evidencing active constipation \u2014 a recognised non-motor symptom of Parkinson's disease that warrants its own code.",
+          "snomed_search": "constipation",
+          "snomed_concept_id": "14760008",
+          "preferred_term": "Constipation (finding)",
+          "sentence": "wanted cosmocol on his rpt as helps him go to the loo.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Parkinson's disease is correctly coded as present. The only substantive clinical finding in the narrative beyond the stated problem is constipation, evidenced by the patient's explicit request for a macrogol laxative; this should be coded as a present finding (14760008). The remainder of the encounter is medication re-authorisation and is not in scope for SNOMED coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5077,
+        "output_tokens": 774,
+        "total_tokens": 5851,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "2080708b-a2ce-49c5-989a-c29b6351cbf2",
+        "date": "2024-10-31",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "df3200c0-75f3-48d0-82f3-38e57b070503",
+    "patient_id": "6243439488",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter consists entirely of receptionist access role lines, four repeat prescription items (Salamol inhaler, Elocon ointment, CosmoCol sachets, Mometasone nasal spray), an ETP2 FP10 print status note, and a Summary Care Record Update flag. No clinical narrative, examination, diagnosis, plan, or investigation interpretation is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 565,
+        "output_tokens": 293,
+        "total_tokens": 858,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "df3200c0-75f3-48d0-82f3-38e57b070503",
+        "date": "2024-12-02",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3483cd45-10ed-4bf3-9761-c6514a15999d",
+    "patient_id": "6243439488",
+    "date": "2024-12-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of a receptionist repeat prescription request with four medication lines and an ETP2 administrative entry \u2014 there is no clinical narrative, GP review, or codeable clinical content present. The existing Parkinson's disease code [49049000] is a standing problem-list code inferred from co-careldopa and must not be evaluated against this admin-only note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 603,
+        "output_tokens": 358,
+        "total_tokens": 961,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "3483cd45-10ed-4bf3-9761-c6514a15999d",
+        "date": "2024-12-10",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ed8b99bc-2bde-4ad6-b3ff-8ba6f265bc89",
+    "patient_id": "6243439488",
+    "date": "2025-01-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is a structured ICE lab results import logged under a receptionist access role with no GP clinical narrative, diagnosis, or management plan. The five observable entity codes are correctly written by the structured lab pipeline and are not subject to audit. Although serum sodium of 130 mmol/L is below the normal range, no explicit clinical interpretation (e.g. 'hyponatraemia') is documented in this encounter text, so no disorder or finding code can be derived from this note alone.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1961,
+        "output_tokens": 675,
+        "total_tokens": 2636,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "ed8b99bc-2bde-4ad6-b3ff-8ba6f265bc89",
+        "date": "2025-01-07",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "829ede64-0850-42d1-b734-259b6ae0b3aa",
+    "patient_id": "6243439488",
+    "date": "2025-01-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Waterlow pressure sore risk score 19",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The Waterlow assessment tool was formally completed with a score of 19 (very high risk), which is the primary clinical assessment of this encounter and should be coded as an observable entity.",
+          "snomed_search": "Waterlow pressure sore risk score",
+          "snomed_concept_id": "201221000000101",
+          "preferred_term": "Observation of Waterlow pressure sore risk score (observable entity)",
+          "sentence": "Waterlow pressure sore risk score (Xa0t1) 19",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Pressure ulcer prevention assessment",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter's stated primary activity is a CHS Pressure Ulcer Prevention & Nutritional Screening Review, including SSKIN assessment \u2014 this procedure is not coded.",
+          "snomed_search": "pressure ulcer prevention assessment",
+          "snomed_concept_id": "278897004",
+          "preferred_term": "Waterlow Scale (assessment scale)",
+          "sentence": "CHS - Pressure Ulcer Prevention & Nutritional Screening Review completed on 10 Jan 2025",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "OA (osteoarthritis)",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Osteoarthritis is explicitly listed in the past medical history section and is not currently coded anywhere in the encounter.",
+          "snomed_search": "osteoarthritis",
+          "snomed_concept_id": "396275006",
+          "preferred_term": "Osteoarthritis (disorder)",
+          "sentence": "Past medical history: Ca colon, Parkinson's disease, OA, Eczema, COPD, HTN",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Eczema",
+          "severity": "low",
+          "suggested_assertion": "historical",
+          "reason": "Eczema is explicitly listed in the past medical history section and is not currently coded anywhere in the encounter.",
+          "snomed_search": "eczema",
+          "snomed_concept_id": "43116000",
+          "preferred_term": "Eczema (disorder)",
+          "sentence": "Past medical history: Ca colon, Parkinson's disease, OA, Eczema, COPD, HTN",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "372562003",
+          "name": "Enoxaparin (substance)",
+          "severity": "medium",
+          "reason": "A substance code is outside the valid SNOMED scope for this encounter; the note documents active daily administration of Inhixa by community nurses (a procedure), and the concept ID itself is unreliable on this server. The clinical act should be coded as a procedure.",
+          "replace_with_concept_id": "18629005",
+          "replace_with_preferred_term": "Administration of drug or medicament (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "notes": "Two existing coded concepts have unreliable/wrong concept IDs: 363508008 (returns as a substance on the terminology server, not a colon cancer disorder \u2014 replace with 363406005 'Malignant neoplasm of colon') and 363693003 (returns as an organism, not a finding \u2014 replace with 14760008 'Constipation'). The enoxaparin substance code should be replaced with a procedure code. The Waterlow score of 19 and the pressure ulcer prevention assessment \u2014 the primary clinical activities of this visit \u2014 are both uncoded. OA and Eczema from the PMH are also absent from the coded list.",
+      "confidence": 0.87,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 19226,
+        "output_tokens": 2235,
+        "total_tokens": 21461,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "829ede64-0850-42d1-b734-259b6ae0b3aa",
+        "date": "2025-01-10",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "33eb1e18-c2ac-4fb1-985e-2db80521b791",
+    "patient_id": "6243439488",
+    "date": "2025-01-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Enoxaparin 40mg subcutaneous injection administered",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter documents a clinical procedure (LMWH/enoxaparin 40mg SC injection performed by a health professional); this must be coded as a procedure, not a substance.",
+          "snomed_search": "subcutaneous injection heparin",
+          "snomed_concept_id": "312613008",
+          "preferred_term": "Subcutaneous injection of heparin (procedure)",
+          "sentence": "CHS - Low Molecular Weight Heparin Injection (Inhixa Band 4 Whole Prefilled Syringes Only) ... Enoxaparing 40mg administered @ 13:00 into RSA",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "372562003",
+          "name": "Enoxaparin (substance)",
+          "severity": "medium",
+          "reason": "The concept ID 372562003 is unreliable (terminology server returns an Extension Namespace placeholder, not a confirmed enoxaparin substance concept), and in any case a substance code is the wrong semantic type for documenting a clinical administration procedure \u2014 the procedure code should be used instead.",
+          "replace_with_concept_id": "312613008",
+          "replace_with_preferred_term": "Subcutaneous injection of heparin (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter documents a nurse-administered enoxaparin (Inhixa) 40mg subcutaneous injection \u2014 a clinical procedure that should be coded as such. The existing code 372562003 is both semantically incorrect (substance rather than procedure) and unverifiable on this terminology server (Extension Namespace placeholder); it should be replaced with 312613008 'Subcutaneous injection of heparin (procedure)'. No other codeable clinical findings are present in this note beyond the procedure itself.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4488,
+        "output_tokens": 1147,
+        "total_tokens": 5635,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "33eb1e18-c2ac-4fb1-985e-2db80521b791",
+        "date": "2025-01-11",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1450d5ad-cbdb-499f-9651-da077a2863a3",
+    "patient_id": "6243439488",
+    "date": "2025-01-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "enoxaparin injection administered",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A LMWH (enoxaparin/Inhixa) injection was administered by the health professional at a home visit and should be coded as a procedure, not a substance.",
+          "snomed_search": "low molecular weight heparin injection",
+          "snomed_concept_id": "443464003",
+          "preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "sentence": "enoxaparine injection administerd ad prescribed",
+          "char_start": 107,
+          "char_end": 145
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "372562003",
+          "name": "Enoxaparin (substance)",
+          "severity": "medium",
+          "reason": "The terminology server returned this as an unreliable Extension Namespace placeholder with semantic tag 'namespace concept', not a valid substance or procedure code; the clinical event is an administered procedure and should be coded as such.",
+          "replace_with_concept_id": "443464003",
+          "replace_with_preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing code 372562003 is an unreliable Extension Namespace concept and is semantically wrong (substance/namespace rather than procedure); the clinical event \u2014 a community nurse administering an enoxaparin subcutaneous injection at a home visit \u2014 should be coded as 'Low molecular weight heparin therapy (procedure)' [443464003]. No specific enoxaparin-named procedure concept was found on this terminology server, so 443464003 is the best available match; a human coder should confirm whether a more specific local extension concept exists.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4083,
+        "output_tokens": 1038,
+        "total_tokens": 5121,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "1450d5ad-cbdb-499f-9651-da077a2863a3",
+        "date": "2025-01-12",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f4ec23b4-acfc-4ba4-85ae-8f8d9d92f994",
+    "patient_id": "6243439488",
+    "date": "2025-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "372562003",
+          "name": "Enoxaparin (substance)",
+          "severity": "medium",
+          "reason": "A substance code has been applied where a procedure code is required; the encounter documents administration of an enoxaparin injection, not the substance itself, and the concept ID is unverifiable (Extension Namespace placeholder on this server).",
+          "replace_with_concept_id": "443464003",
+          "replace_with_preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter documents a community nursing home visit for a planned subcutaneous enoxaparin (Inhixa) injection, which was administered. The coded substance concept 372562003 is both semantically incorrect (substance rather than procedure) and unverifiable on this server; it should be replaced with 443464003 'Low molecular weight heparin therapy (procedure)'. No other codeable clinical findings are present in the note beyond the procedure itself.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4166,
+        "output_tokens": 807,
+        "total_tokens": 4973,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "f4ec23b4-acfc-4ba4-85ae-8f8d9d92f994",
+        "date": "2025-01-16",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bc476a05-e872-4b92-a5d6-d5b528aa0f44",
+    "patient_id": "6243439488",
+    "date": "2025-01-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CHS - Pressure Ulcer Prevention & Nutritional Screening",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A structured SSKIN pressure ulcer prevention assessment with repositioning education and ASSKING leaflet provision was explicitly performed and documented as a clinical intervention; this procedure is not coded.",
+          "snomed_search": "pressure ulcer prevention",
+          "snomed_concept_id": "225996006",
+          "preferred_term": "Prevention of pressure injury (procedure)",
+          "sentence": "Activity: Clinical Intervention - CHS - Pressure Ulcer Prevention & Nutritional Screening (Care Plan) (10 minutes) Face to face with Patient",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "373294004",
+          "name": "Low molecular weight heparin (substance)",
+          "severity": "medium",
+          "reason": "The encounter documents administration of a LMWH injection as a clinical procedure; a substance code is the wrong semantic category \u2014 the procedure 'Low molecular weight heparin therapy' should be used instead.",
+          "replace_with_concept_id": "443464003",
+          "replace_with_preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The LMWH substance code (373294004) should be replaced with a procedure code (443464003) as the encounter documents an injection being administered, not merely a substance. The SSKIN/pressure ulcer prevention clinical intervention is performed and documented but not coded. The BMI observable entity code (60621009) is confirmed correct by search despite an unreliable lookup response \u2014 it is also a structured pipeline code and should not be disturbed. The Waterlow Scale assessment (score 8, mild neurological deficit noted) returned only an 'assessment scale' semantic tag which is outside audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7245,
+        "output_tokens": 1523,
+        "total_tokens": 8768,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "bc476a05-e872-4b92-a5d6-d5b528aa0f44",
+        "date": "2025-01-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "39822998-1d53-4759-9314-ad4df6ab70f8",
+    "patient_id": "6243439488",
+    "date": "2025-01-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Low Molecular Weight Heparin Injection (Inhixa)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter documents a completed LMWH (enoxaparin/Inhixa) injection procedure performed by the health professional; this should be coded as a procedure, not a substance.",
+          "snomed_search": "low molecular weight heparin therapy",
+          "snomed_concept_id": "443464003",
+          "preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "sentence": "CHS - Low Molecular Weight Heparin Injection (Inhixa Band 4 Whole Prefilled Syringes Only) ASSKING leaflet provided to patient on 11/01/25 fully performed",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "372562003",
+          "name": "Enoxaparin (substance)",
+          "severity": "medium",
+          "reason": "A substance code is not appropriate here; the encounter documents a completed clinical procedure (LMWH injection administered), which should be coded as a procedure. Individual drug/substance codes belong in the medication record, not the encounter coding.",
+          "replace_with_concept_id": "443464003",
+          "replace_with_preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter records a completed community nursing LMWH (enoxaparin/Inhixa) injection with documented consent; the existing code uses a substance semantic tag which is incorrect for an encounter-level code \u2014 a procedure code (443464003 Low molecular weight heparin therapy) is more appropriate. Note: lookup_concept returned unreliable for 372562003, but the substance semantic tag is confirmed by the coded list label and is clearly wrong for this context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4051,
+        "output_tokens": 891,
+        "total_tokens": 4942,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "39822998-1d53-4759-9314-ad4df6ab70f8",
+        "date": "2025-01-18",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "67f9dd8e-05bc-461d-baca-982bb15f4fd9",
+    "patient_id": "6243439488",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "472c57b7-1d8d-40d9-8a45-406b45a1fab8",
+    "patient_id": "6243439488",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Essential hypertension",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Essential hypertension is the named problem being actively managed in this encounter (BP checked, ramipril dose adjusted) and must be coded.",
+          "snomed_search": "essential hypertension",
+          "snomed_concept_id": "59621000",
+          "preferred_term": "Essential hypertension (disorder)",
+          "sentence": "Problem: Essential hypertension (XE0Uc)",
+          "char_start": 55,
+          "char_end": 95
+        },
+        {
+          "term": "Atopic eczema/dermatitis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Atopic dermatitis is the named problem being actively assessed and treated in this encounter (examination, antifungal cream, emollient plan) and must be coded.",
+          "snomed_search": "atopic eczema",
+          "snomed_concept_id": "24079001",
+          "preferred_term": "Atopic dermatitis (disorder)",
+          "sentence": "Problem: Atopic eczema/dermatitis NOS (XE1C6) - Atopic dermatitis/eczema Eczemas, Hospital Outpatient",
+          "char_start": 310,
+          "char_end": 410
+        },
+        {
+          "term": "lichenification",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Lichenification was explicitly documented on examination of the perianal/anal cleft area and is a clinically relevant skin finding.",
+          "snomed_search": "lichenification skin",
+          "snomed_concept_id": "279002006",
+          "preferred_term": "Lichenification of skin (finding)",
+          "sentence": "lichenification ?fungal rash.",
+          "char_start": 620,
+          "char_end": 648
+        },
+        {
+          "term": "?fungal rash",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "A possible fungal rash was documented on examination and antifungal cream was prescribed, making this a clinically relevant uncertain diagnosis requiring coding.",
+          "snomed_search": "fungal skin infection",
+          "snomed_concept_id": "3218000",
+          "preferred_term": "Mycosis (disorder)",
+          "sentence": "lichenification ?fungal rash.",
+          "char_start": 620,
+          "char_end": 648
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder) [as coded]",
+          "severity": "medium",
+          "reason": "Lookup confirms concept 363508008 resolves to a substance (DRB1*08032), not a disorder; the correct colon malignancy is already separately coded as 363406005 \u2014 this concept ID is erroneous and duplicative.",
+          "replace_with_concept_id": "363406005",
+          "replace_with_preferred_term": "Malignant neoplasm of colon (disorder)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "363406005",
+          "name": "Malignant neoplasm of colon (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The note states the patient 'recently was in hospital for hemicolectomy due to malignant tumour of colon' \u2014 the tumour has been surgically excised and should be coded as historical, not active/present."
+        },
+        {
+          "conceptId": "82619000",
+          "name": "Left colectomy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The hemicolectomy was performed during a recent prior hospital admission and is a completed past procedure; assertion should be historical, not present."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The encounter has several significant coding issues: the two primary problems (essential hypertension and atopic dermatitis) are referenced only by legacy Read codes in the problem header and are absent from the SNOMED coded list; examination findings of lichenification and possible fungal rash are uncoded; concept 363508008 resolves to a substance rather than a disorder and is duplicative of 363406005; and both the colon malignancy and hemicolectomy are incorrectly asserted as 'present' when the note clearly describes a recently completed past event. Note: the note does not specify which side of the colon was resected \u2014 'left colectomy' (82619000) may not be accurate; a generic hemicolectomy code may be preferable if side is unconfirmed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10502,
+        "output_tokens": 2959,
+        "total_tokens": 13461,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "472c57b7-1d8d-40d9-8a45-406b45a1fab8",
+        "date": "2025-01-22",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d091c617-9470-437d-bc05-61ed341588be",
+    "patient_id": "6243439488",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Low molecular weight heparin injection administered",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents administration of Inhixa (enoxaparin) subcutaneous injection as a completed clinical intervention; the procedure should be coded, not merely the substance.",
+          "snomed_search": "low molecular weight heparin therapy",
+          "snomed_concept_id": "443464003",
+          "preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "sentence": "Activity: Clinical Intervention - CHS - Low Molecular Weight Heparin Injection (Inhixa Band 4 Whole Prefilled Syringes Only)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Pressure ulcer prevention assessment fully performed",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note records 'CHS - Pressure Ulcer Prevention & Nutritional Screening fully performed' as a completed clinical intervention; this procedure should be coded.",
+          "snomed_search": "pressure ulcer prevention assessment",
+          "snomed_concept_id": "443284003",
+          "preferred_term": "Assessment of pressure ulcer risk (procedure)",
+          "sentence": "CHS - Pressure Ulcer Prevention & Nutritional Screening fully performed",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "eating poorly / lack of appetite",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The Waterlow tool explicitly records 'Patient Eating Poorly or Lack of Appetite: Yes', which is a clinically significant nutritional finding that should be coded.",
+          "snomed_search": "poor appetite",
+          "snomed_concept_id": "79890006",
+          "preferred_term": "Loss of appetite (finding)",
+          "sentence": "Weight C - Patient Eating Poorly or Lack of Appetite: Yes and unsure of recent weight loss",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "373294004",
+          "name": "Low molecular weight heparin (substance)",
+          "severity": "medium",
+          "reason": "The encounter documents a completed injection procedure; coding only the substance without the procedure misrepresents the clinical activity \u2014 the substance code should be replaced by the administration procedure.",
+          "replace_with_concept_id": "443464003",
+          "replace_with_preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary coding error is that the LMWH administration is coded as a substance (373294004) rather than a procedure; this should be replaced with 443464003 (Low molecular weight heparin therapy). Two additional procedures/findings are missing: the pressure ulcer prevention assessment and the documented poor appetite/eating poorly finding from the Waterlow tool. The BMI and Waterlow Scale codes are confirmed correct by search_snomed despite unreliable lookup_concept responses.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6409,
+        "output_tokens": 1671,
+        "total_tokens": 8080,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "d091c617-9470-437d-bc05-61ed341588be",
+        "date": "2025-01-24",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ecd64715-9dda-44ec-9d49-2fa069cfe1f1",
+    "patient_id": "6243439488",
+    "date": "2025-01-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CHS - Low Molecular Weight Heparin Injection (Inhixa)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A subcutaneous LMWH (Inhixa/enoxaparin) injection was administered and should be coded as a procedure, not a substance.",
+          "snomed_search": "low molecular weight heparin therapy",
+          "snomed_concept_id": "443464003",
+          "preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "sentence": "CHS - Low Molecular Weight Heparin Injection (Inhixa Band 4 Whole Prefilled Syringes Only) ... performed (5 out of 7)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "373294004",
+          "name": "DRB1*08032 (substance)",
+          "severity": "high",
+          "reason": "Concept 373294004 resolves to a HLA allele (DRB1*08032), not a heparin substance or procedure \u2014 it is entirely wrong for this encounter and must be replaced with the LMWH therapy procedure code.",
+          "replace_with_concept_id": "443464003",
+          "replace_with_preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The single coded concept (373294004) is critically wrong \u2014 it resolves to a HLA genetic allele (DRB1*08032), not a heparin-related concept at all. The encounter documents a community nursing visit for a subcutaneous LMWH (Inhixa) injection, which should be coded as procedure 443464003 'Low molecular weight heparin therapy (procedure)'; this is the 5th of 7 planned injections per the care plan.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1928,
+        "output_tokens": 868,
+        "total_tokens": 2796,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "ecd64715-9dda-44ec-9d49-2fa069cfe1f1",
+        "date": "2025-01-25",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "739c745c-16b7-40d5-9fc3-1b83419dbde4",
+    "patient_id": "6243439488",
+    "date": "2025-01-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Low Molecular Weight Heparin Injection (Inhixa) - fully performed",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter documents a completed clinical intervention \u2014 administration of a LMWH (enoxaparin/Inhixa) injection \u2014 which must be coded as a procedure, not merely as a substance.",
+          "snomed_search": "low molecular weight heparin therapy",
+          "snomed_concept_id": "443464003",
+          "preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "sentence": "CHS - Low Molecular Weight Heparin Injection (Inhixa Band 4 Whole Prefilled Syringes Only) ASSKING leaflet provided to patient on 11/01/25 fully performed",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "372562003",
+          "name": "Enoxaparin (substance)",
+          "severity": "medium",
+          "reason": "A substance code is not appropriate here \u2014 the clinical event is a completed injection procedure; the substance concept does not capture the act of administration and is outside the expected coding scope for a performed intervention.",
+          "replace_with_concept_id": "443464003",
+          "replace_with_preferred_term": "Low molecular weight heparin therapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter records a completed community nursing visit for enoxaparin (Inhixa) subcutaneous injection administration; the existing code uses a substance concept (372562003) which is semantically incorrect \u2014 the act of administration should be coded as a procedure. 'Low molecular weight heparin therapy' (443464003) is the best available SNOMED procedure match, though a more specific 'subcutaneous injection of enoxaparin' concept may exist in a UK extension namespace if available locally.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4039,
+        "output_tokens": 894,
+        "total_tokens": 4933,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "739c745c-16b7-40d5-9fc3-1b83419dbde4",
+        "date": "2025-01-27",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a7e3cca8-19fa-4865-ae1f-8e012cd44d4b",
+    "patient_id": "6243439488",
+    "date": "2025-01-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "308064009",
+          "name": "History of cerebrovascular disease (situation)",
+          "severity": "medium",
+          "reason": "The note explicitly documents small vessel cerebrovascular disease as a new active episode; the active disorder code 443929000 is already correctly coded, making this 'History of' situation code redundant and contradictory to the present assertion.",
+          "replace_with_concept_id": "443929000",
+          "replace_with_preferred_term": "Small vessel cerebrovascular disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter is largely well-coded with appropriate active disorder codes for all three new episodes. The sole issue is a duplicate/conflicting 'History of cerebrovascular disease' situation code (308064009) sitting alongside the correctly coded active disorder 443929000 \u2014 the 'History of' situation should be removed as the condition is documented as a new active episode, not a historical one. The lookup server returned unreliable results for 308064009, 443929000, and 202664003, but all three were confirmed via search_snomed as valid SNOMED disorder/situation concepts.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6006,
+        "output_tokens": 1302,
+        "total_tokens": 7308,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "a7e3cca8-19fa-4865-ae1f-8e012cd44d4b",
+        "date": "2025-01-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d79c2b40-55c4-4bab-b123-f58c911f6de9",
+    "patient_id": "6243439488",
+    "date": "2025-02-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "atopic eczema/dermatitis - perianal skin changes",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary clinical problem being managed in this encounter is atopic dermatitis/eczema affecting the perianal region; the disorder itself has not been coded despite being the explicit reason for the consultation and the focus of examination and treatment plan.",
+          "snomed_search": "atopic dermatitis",
+          "snomed_concept_id": "24079001",
+          "preferred_term": "Atopic dermatitis (disorder)",
+          "sentence": "Problem: Atopic eczema/dermatitis NOS (XE1C6) - Atopic dermatitis/eczema Eczemas, Hospital Outpatient",
+          "char_start": 72,
+          "char_end": 155
+        },
+        {
+          "term": "erythematous area with small dry scabs at top of anal cleft",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Examination documents a specific finding of erythema with dry scabs at the anal cleft, which is a clinically relevant examination finding supporting the diagnosis and management plan.",
+          "snomed_search": "irritation perianal skin",
+          "snomed_concept_id": "897286005",
+          "preferred_term": "Irritation of skin of perianal area (finding)",
+          "sentence": "however top of anal cleft - skin changes, slightly erythematous area with small dry scabs.",
+          "char_start": 390,
+          "char_end": 480
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is substantively under-coded: only the consultation type has been recorded, but the primary disorder (atopic dermatitis/perianal eczema) and the examination finding (erythematous perianal skin with dry scabs) are both absent from the coded list. A more specific perianal dermatitis concept (275448003) was returned by search but could not be confirmed by the terminology server (Extension Namespace placeholder); atopic dermatitis (24079001) is used as the confirmed parent concept. The use of Daktarin (miconazole) BD suggests a possible fungal/candidal component, but no explicit fungal diagnosis is stated in the text so this should not be coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7858,
+        "output_tokens": 1577,
+        "total_tokens": 9435,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "d79c2b40-55c4-4bab-b123-f58c911f6de9",
+        "date": "2025-02-05",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4b3fd3f0-d500-4d5e-9c08-1f0f87c86d71",
+    "patient_id": "6243439488",
+    "date": "2025-02-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "atopic eczema",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Atopic eczema/dermatitis is the primary reason for this encounter (follow-up of perianal rash, examination findings, and treatment plan all relate to it) but it is absent from the 4 coded encounter concepts.",
+          "snomed_search": "atopic eczema",
+          "snomed_concept_id": "24079001",
+          "preferred_term": "Atopic dermatitis (disorder)",
+          "sentence": "Problem: Atopic eczema/dermatitis NOS (XE1C6) - Atopic dermatitis/eczema Eczemas, Hospital Outpatient",
+          "char_start": 55,
+          "char_end": 120
+        },
+        {
+          "term": "memory concern",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly documents memory as 'a slight concern' in the history, making it a codeable finding relevant to medication compliance and ongoing care.",
+          "snomed_search": "memory impairment",
+          "snomed_concept_id": "386807006",
+          "preferred_term": "Memory impairment (finding)",
+          "sentence": "memory seems to be a slight concern here and says he's got too many medications to take - also been preoccupied with colorectal surgeon appts etc due to the cancer,",
+          "char_start": 430,
+          "char_end": 594
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "30037006",
+          "name": "Anal fissure (disorder)",
+          "severity": "medium",
+          "reason": "The note describes 'a small split in skin bottom of the rash' \u2014 a superficial perianal skin fissure within the eczema patch, not a true anal fissure (mucosal tear of the anal canal); coding as anal fissure overstates the finding.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most critical issue is the use of 'History of malignant neoplasm (situation)' for what is clearly an active colorectal cancer with ongoing specialist follow-up \u2014 this should be replaced with an active malignancy disorder code. Additionally, the primary encounter diagnosis (atopic dermatitis) is missing from the coded concepts, a superficial perianal skin split has been overcoded as a true anal fissure, and a documented memory concern has not been captured.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12344,
+        "output_tokens": 2592,
+        "total_tokens": 14936,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "4b3fd3f0-d500-4d5e-9c08-1f0f87c86d71",
+        "date": "2025-02-19",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3cbf12e4-b649-4f83-aa5d-6779270f07fc",
+    "patient_id": "6243439488",
+    "date": "2025-04-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "high",
+          "reason": "The note explicitly states 'colorectal ca'; the generic history-of-malignancy situation code is too broad and should be replaced with the site-specific colorectal equivalent.",
+          "replace_with_concept_id": "1286880003",
+          "replace_with_preferred_term": "History of malignant neoplasm of cecum and/or colon and/or rectum (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three of the four coded concepts are correct and clinically appropriate \u2014 rectal haemorrhage, haemorrhoids, and chemotherapy declined are all well-evidenced by the note. The only issue is that the history-of-malignancy situation code (266987004) is insufficiently specific: the note clearly documents colorectal cancer and a more precise SNOMED concept (1286880003 \u2014 History of malignant neoplasm of cecum and/or colon and/or rectum) should be used instead. Note: lookup_concept returned corrupted/unreliable data for all four concept IDs; correctness was confirmed via search_snomed which returned the expected preferred terms and semantic tags.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7419,
+        "output_tokens": 1733,
+        "total_tokens": 9152,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "3cbf12e4-b649-4f83-aa5d-6779270f07fc",
+        "date": "2025-04-09",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bc87f279-9e03-4ed1-b14d-3ede82d425c9",
+    "patient_id": "6243439488",
+    "date": "2025-09-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "drowsiness from Co-careldopa",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Drowsiness is explicitly documented as a side effect of Co-careldopa and is a codeable clinical finding distinct from the ADR disorder code.",
+          "snomed_search": "drowsiness",
+          "snomed_concept_id": "271782001",
+          "preferred_term": "Drowsy (finding)",
+          "sentence": "Has shown side effects from medication (XaIuW) drowsiness from Co-careldopa - advsied will need to speak with Specialist for alternative",
+          "char_start": 310,
+          "char_end": 430
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "775053005",
+          "name": "Co-careldopa (product) [as coded \u2014 lookup returned DRB5*0201 (substance)]",
+          "severity": "medium",
+          "reason": "Concept ID 775053005 resolves to 'DRB5*0201 (substance)' \u2014 a genetic allele substance \u2014 not Co-careldopa; the intended clinical concept is the adverse reaction to carbidopa/levodopa (Co-careldopa), which should be coded as a disorder.",
+          "replace_with_concept_id": "876800006",
+          "replace_with_preferred_term": "Adverse reaction to carbidopa and/or levodopa (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The telephone consultation code (386472008) is confirmed correct despite an unreliable lookup. The ADR code (775053005) is critically wrong \u2014 it resolves to a genetic substance concept rather than any Co-careldopa/levodopa adverse reaction; it should be replaced with 876800006 'Adverse reaction to carbidopa and/or levodopa (disorder)'. The explicit symptom of drowsiness (271782001) is also missing as a coded finding. Drug names and medication-only inferences (e.g. constipation from macrogol) are correctly excluded per scope rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7253,
+        "output_tokens": 1393,
+        "total_tokens": 8646,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "bc87f279-9e03-4ed1-b14d-3ede82d425c9",
+        "date": "2025-09-24",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a02f7f82-5251-4193-b06e-dd0d09ecd08f",
+    "patient_id": "6243439488",
+    "date": "2025-09-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dry eye",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Dry eye is explicitly documented as a current finding from a recent eye test ('dry eye only') and is a distinct clinical condition that should be coded.",
+          "snomed_search": "dry eye",
+          "snomed_concept_id": "46152009",
+          "preferred_term": "Tear film insufficiency (disorder)",
+          "sentence": "been to eye test and all okay, dry eye only, unlikely causing this.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "right sided headache",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note specifies 'right sided headaches' \u2014 a more specific SNOMED concept exists (unilateral headache on right side of head) that better captures the documented laterality than the generic Headache code currently used.",
+          "snomed_search": "right sided headache",
+          "snomed_concept_id": "1119295002",
+          "preferred_term": "Unilateral headache on right side of head (finding)",
+          "sentence": "also been having infrequency right sided headaches, on and off, no triggers, no pattern, not worse in certain positions, no nausea or vomiting, no visual issues",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Both core coded concepts (Dermal mycosis, Headache) are confirmed correct SNOMED concepts; lookup_concept returned unreliable results for both but search_snomed confirmed their validity. Two improvements are suggested: (1) dry eye is explicitly documented as a current finding from a recent eye test and is uncoded; (2) the headache is specifically described as right-sided, for which a more precise SNOMED concept exists \u2014 though replacing the generic Headache code is low priority. No safety-critical gaps identified: the brain tumour concern is a contextual anxiety/reassurance narrative rather than a red-flag referral, and the GP has documented appropriate safety-netting advice.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4805,
+        "output_tokens": 1442,
+        "total_tokens": 6247,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "a02f7f82-5251-4193-b06e-dd0d09ecd08f",
+        "date": "2025-09-26",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "80b8fa8e-887c-46c9-be2c-9f85ee06a109",
+    "patient_id": "6243439488",
+    "date": "2025-11-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "37895003",
+          "name": "Osteoarthrosis of the carpometacarpal joint of the thumb (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician uses explicitly uncertain language ('maybe some oa'), indicating this is a working hypothesis rather than a confirmed diagnosis; assertion should be 'possible' not 'present'."
+        }
+      ],
+      "confidence": 0.9,
+      "notes": "The concept ID 37895003 is correct for OA of the thumb CMC joint (confirmed via search_snomed; lookup_concept returned an unreliable organism tag due to server index corruption). The sole issue is the assertion: the note says 'maybe some oa', which is speculative language requiring assertion=possible rather than present. The resolved right arm skin lesion is mentioned but no specific prior diagnosis is documented, so no codeable disorder can be reliably assigned from this text alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4515,
+        "output_tokens": 1040,
+        "total_tokens": 5555,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6243439488",
+        "encounter_id": "80b8fa8e-887c-46c9-be2c-9f85ee06a109",
+        "date": "2025-11-27",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  }
+]

@@ -1,0 +1,10 @@
+SEVERITY SUMMARY
+========================================
+  encounters_clean               367
+  encounters_with_issues         2930
+  missing_critical               283
+  missing_high                   1596
+  missing_low                    164
+  missing_medium                 2116
+  overcoded                      2454
+  wrong_assertion                690

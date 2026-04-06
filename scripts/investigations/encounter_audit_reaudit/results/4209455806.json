@@ -1,0 +1,2282 @@
+[
+  {
+    "encounter_id": "7218fc60-1a92-424f-b931-4c71c7da76fb",
+    "patient_id": "4209455806",
+    "date": "2024-02-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "HPrEF",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a history of HFrEF ('hx of HPrEF') which is clinically relevant background for this chest pain presentation and is absent from the problem list.",
+          "snomed_search": "heart failure reduced ejection fraction",
+          "snomed_concept_id": "703272007",
+          "preferred_term": "Heart failure with reduced ejection fraction (disorder)",
+          "sentence": "hx of HPrEF. was in the cardio clinic in 2019, discharged.",
+          "char_start": 290,
+          "char_end": 340
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "319385001",
+          "name": "Product containing precisely glyceryl trinitrate 500 microgram/1 each conventional release sublingual tablet (clinical drug)",
+          "severity": "medium",
+          "reason": "The prescribed product is a 400 microgram/dose sublingual spray (GTN 400micrograms/dose pump sublingual spray), not a 500 microgram sublingual tablet; the coded concept is the wrong formulation and dose.",
+          "replace_with_concept_id": "425176000",
+          "replace_with_preferred_term": "Product containing precisely glyceryl trinitrate 400 microgram/1 actuation conventional release sublingual spray (clinical drug)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "194828000",
+          "name": "Angina (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The clinician documents '?angina' \u2014 a working/uncertain diagnosis \u2014 which should be coded as possible, not present, to accurately reflect diagnostic uncertainty at this encounter."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Three coding issues found: (1) Angina is coded as present but the note clearly states '?angina' \u2014 assertion must be changed to possible. (2) The GTN product is coded as a 500mcg sublingual tablet (319385001) but the prescription is for a 400mcg/dose sublingual spray \u2014 replace with 425176000. (3) The patient's documented history of HFrEF ('hx of HPrEF') is missing from the coded list and should be added with a historical assertion. Note: lookup_concept returned unreliable/wrong semantic tags for 194828000 and 319385001 \u2014 search_snomed was used to verify both concepts independently.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5649,
+        "output_tokens": 1600,
+        "total_tokens": 7249,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "7218fc60-1a92-424f-b931-4c71c7da76fb",
+        "date": "2024-02-05",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ac8570aa-2cb4-46cf-a7fd-f1881422c84b",
+    "patient_id": "4209455806",
+    "date": "2024-03-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "orthostatic hypotension",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes dizziness on standing with BP 78/49 \u2014 a positional pattern consistent with orthostatic hypotension, which is more specific than the currently coded generic 'Low blood pressure'; the clinician attributes this to medication (monomil) and acts on it by stopping the drug.",
+          "snomed_search": "orthostatic hypotension",
+          "snomed_concept_id": "28651003",
+          "preferred_term": "Orthostatic hypotension (disorder)",
+          "sentence": "episode this morning, BP low, feeling dizzy when standing.   tried putting some washing out and when looking up getting dizzy. 78/49 was the lowest reading.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "dizziness on standing",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports dizziness when standing and on neck extension (looking up), a distinct positional symptom that is not captured by any existing code.",
+          "snomed_search": "dizziness on standing",
+          "snomed_concept_id": "407645004",
+          "preferred_term": "Dizziness on standing up (finding)",
+          "sentence": "feeling dizzy when standing.   tried putting some washing out and when looking up getting dizzy.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "seen at RACPC",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note records that the patient has been seen at the Rapid Access Chest Pain Clinic (RACPC), a clinically significant attendance that should be coded.",
+          "snomed_search": "seen rapid access chest pain clinic",
+          "snomed_concept_id": "315014005",
+          "preferred_term": "Seen in rapid access chest pain clinic (finding)",
+          "sentence": "seen at racpc.  thinks maybe monomil.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "45007003",
+          "name": "Low blood pressure (disorder)",
+          "severity": "medium",
+          "reason": "The clinical picture (dizziness specifically on standing, BP 78/49, attributed to medication) describes orthostatic hypotension (28651003), which is a more specific child concept; the generic 'Low blood pressure' code should be replaced with the positional-specific disorder.",
+          "replace_with_concept_id": "28651003",
+          "replace_with_preferred_term": "Orthostatic hypotension (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is clinically well-documented but has a specificity gap: 'Low blood pressure' should be replaced by 'Orthostatic hypotension' given the clear positional symptom pattern and medication attribution. Two additional codes are missing: dizziness on standing (a distinct documented symptom) and the RACPC attendance. All three existing concept IDs returned unreliable lookups from the terminology server but are accepted as plausible given the clinical context and search confirmation; no deletion is proposed on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4531,
+        "output_tokens": 1678,
+        "total_tokens": 6209,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "ac8570aa-2cb4-46cf-a7fd-f1881422c84b",
+        "date": "2024-03-08",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3e397785-30c0-4a60-8c16-de35a18ba64c",
+    "patient_id": "4209455806",
+    "date": "2024-03-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "adverse reaction to ranolazine",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents that the patient is not tolerating ranolazine with fatigue and leg numbness attributed to it since starting 3 days ago \u2014 this constitutes an active adverse drug reaction requiring coding as a disorder, not merely a product code.",
+          "snomed_search": "adverse reaction caused by drug",
+          "snomed_concept_id": "62014003",
+          "preferred_term": "Adverse reaction caused by drug (disorder)",
+          "sentence": "Finding ranolazine isn't suiting him since he started it 3/7 ago. Describes episodes of severe fatigue and numbness around lower legs.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The note documents a 2WW dermatology referral for a suspicious pigmented skin lesion, not a breast cancer referral; this concept maps to the wrong cancer pathway and would misdirect cancer tracking.",
+          "replace_with_concept_id": "276281000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "777399003",
+          "name": "Ranolazine (product)",
+          "severity": "medium",
+          "reason": "A drug product code is outside the SNOMED coding scope for this encounter (disorders/findings/procedures); the clinically relevant concept is the adverse drug reaction disorder, which should replace this entry."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Critical error: the 2WW referral is coded to 'Fast track referral for suspected breast cancer' (276341000000100) when the note clearly documents a dermatology 2WW for a suspicious pigmented lesion \u2014 this must be corrected to 276281000000104 (Fast track referral for suspected skin cancer) immediately as it will misdirect the cancer pathway. Additionally, the ranolazine product code should be replaced with an adverse drug reaction disorder code (62014003), and the product code removed from scope. The fatigue, numbness, and suspected malignant pigmented lesion codes are clinically appropriate for the encounter content, though their concept IDs could not be fully verified by the terminology server.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 12113,
+        "output_tokens": 1850,
+        "total_tokens": 13963,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "3e397785-30c0-4a60-8c16-de35a18ba64c",
+        "date": "2024-03-14",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dfe2ea45-7167-42bb-8446-59a0383cfe0b",
+    "patient_id": "4209455806",
+    "date": "2024-03-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "45007003",
+          "name": "Low blood pressure (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly attributes hypotension to Monomil and Ranolazine; the more specific concept 'Drug-induced hypotension' (234171009) better represents the documented clinical picture than the generic 'Low blood pressure'.",
+          "replace_with_concept_id": "234171009",
+          "replace_with_preferred_term": "Drug-induced hypotension (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The chest pain code (29857009) is confirmed correct. The hypotension code (45007003) should be replaced with the more specific drug-induced hypotension concept (234171009) as the note explicitly and repeatedly attributes the low BP to Monomil and Ranolazine. The planned CT angiogram is a future/scheduled procedure and should not be coded as present. No other codeable clinical findings are missing from scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3672,
+        "output_tokens": 980,
+        "total_tokens": 4652,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "dfe2ea45-7167-42bb-8446-59a0383cfe0b",
+        "date": "2024-03-25",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3c1a9f79-cc97-4c74-985d-15a23b231f53",
+    "patient_id": "4209455806",
+    "date": "2024-04-03",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All five codes are appropriate: the four observable entity codes are correctly written by the structured lab pipeline, and hyponatraemia (89627008) is correctly coded as present given the sodium of 130 mmol/L below the reference range. The eGFR of 57 and the boilerplate CKD advisory do not constitute a clinician-confirmed CKD diagnosis from a single reading, and the reviewing clinician signed off 'Satisfactory, No Further Action'; CKD should not be added without a confirmed persistent finding. The 'Not on Thyroid Tx' clinical detail is request context only and is not codeable. lookup_concept returned unreliable for 89627008 but search_snomed independently confirms it as the correct Hyponatremia (finding) concept.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4050,
+        "output_tokens": 1053,
+        "total_tokens": 5103,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "3c1a9f79-cc97-4c74-985d-15a23b231f53",
+        "date": "2024-04-03",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c4cb4cee-30f6-440b-a017-e7d636f07d35",
+    "patient_id": "4209455806",
+    "date": "2024-04-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Diverticular disease",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Diverticular disease is explicitly listed as an active condition in the history section of this medication review encounter and is absent from the coded concepts.",
+          "snomed_search": "diverticular disease colon",
+          "snomed_concept_id": "398050005",
+          "preferred_term": "Diverticular disease of colon (disorder)",
+          "sentence": "Diverticular disease, left ventricular dysfunction, ectopic beats",
+          "char_start": 95,
+          "char_end": 115
+        },
+        {
+          "term": "Ectopic beats",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Ectopic beats is explicitly listed as an active condition in the history section of this medication review encounter and is absent from the coded concepts.",
+          "snomed_search": "ectopic beats",
+          "snomed_concept_id": "29717002",
+          "preferred_term": "Premature beats (disorder)",
+          "sentence": "Diverticular disease, left ventricular dysfunction, ectopic beats",
+          "char_start": 117,
+          "char_end": 130
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "777399003",
+          "name": "Ranolazine (product) [coded as adverse reaction evidence]",
+          "severity": "medium",
+          "reason": "Concept ID 777399003 is unreliable (terminology server returns it as an 'organism'); a product/substance code is also outside the SNOMED disorder/finding scope for this encounter \u2014 the adverse drug reaction (lethargy) is partially captured by the existing fatigue code [272060000], but a specific drug-adverse-reaction disorder code should replace this if a valid concept is identified.",
+          "replace_with_concept_id": "281647001",
+          "replace_with_preferred_term": "Adverse reaction (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "472775000",
+          "name": "Fetal left ventricular dysfunction (disorder)",
+          "severity": "high",
+          "reason": "Concept 472775000 is a fetal/obstetric disorder and is clinically inappropriate for this adult patient; the note documents adult left ventricular dysfunction and should be coded with the correct adult concept.",
+          "replace_with_concept_id": "429589006",
+          "replace_with_preferred_term": "Left ventricular cardiac dysfunction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant overcoding errors are present: the left ventricular dysfunction concept is coded with a fetal disorder code (472775000) which is clinically inappropriate for this adult patient and must be replaced with an adult LV dysfunction concept; the ranolazine product code (777399003) is unreliable and outside disorder/finding scope. Additionally, two active conditions explicitly listed in the history \u2014 diverticular disease and ectopic beats \u2014 are missing from the coded concepts entirely.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11056,
+        "output_tokens": 1914,
+        "total_tokens": 12970,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "c4cb4cee-30f6-440b-a017-e7d636f07d35",
+        "date": "2024-04-05",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2d1562bb-9dec-4e88-a29e-5077bc53ad3e",
+    "patient_id": "4209455806",
+    "date": "2024-05-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "increased HR",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states Ranolazine causes 'at times increased HR', which is a clinically documented symptom requiring coding as tachycardia.",
+          "snomed_search": "tachycardia",
+          "snomed_concept_id": "3424008",
+          "preferred_term": "Tachycardia (finding)",
+          "sentence": "Ranolazine continues to cause fatigue constipation and at times increased HR",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "adverse drug reaction to Ranolazine",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Fatigue, constipation and increased HR are all explicitly attributed to Ranolazine; an adverse drug reaction disorder should be coded to capture the causal drug-symptom relationship, rather than coding the drug product itself.",
+          "snomed_search": "adverse reaction caused by drug",
+          "snomed_concept_id": "62014003",
+          "preferred_term": "Adverse reaction caused by drug (disorder)",
+          "sentence": "Ranolazine continues to cause fatigue constipation and at times increased HR",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "777399003",
+          "name": "Ranolazine (product)",
+          "severity": "medium",
+          "reason": "Drug product codes belong in the medication record, not the encounter problem/finding list; the adverse drug reaction disorder (62014003) should be coded instead to represent the clinical event documented in this note.",
+          "replace_with_concept_id": "62014003",
+          "replace_with_preferred_term": "Adverse reaction caused by drug (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two existing concept IDs (272060000 for fatigue, 363693003 for constipation) are unreliable and should be replaced with verified SNOMED codes 84229001 and 14760008 respectively. The drug product code 777399003 (Ranolazine) is out of scope for the problem/finding list and should be replaced by an adverse drug reaction disorder code (62014003); additionally, the explicitly documented tachycardia ('increased HR') is missing from the coded list. Note: the patient is on a waiting list for an ECG \u2014 this is a future/planned procedure and should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5576,
+        "output_tokens": 1907,
+        "total_tokens": 7483,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "2d1562bb-9dec-4e88-a29e-5077bc53ad3e",
+        "date": "2024-05-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0a0d966d-e4b6-4d15-a12e-63a62d7803e9",
+    "patient_id": "4209455806",
+    "date": "2024-06-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hard wax in right ear",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Examination finding of hard wax in the right ear canal is explicitly documented and represents a codeable clinical finding distinct from the presenting complaint.",
+          "snomed_search": "wax in ear canal",
+          "snomed_concept_id": "271739002",
+          "preferred_term": "Wax in ear canal (finding)",
+          "sentence": "R ear - hard wax+ but canal seen looks ok",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two existing codes are clinically appropriate \u2014 27355003 (Toothache) is confirmed correct by search_snomed despite an unreliable lookup_concept response, and 185202000 is a system-set encounter-type code. The only gap is the incidental examination finding of hard wax in the right ear canal (271739002), which was documented during the ear check performed to exclude referred pain; this is low severity as it was not the presenting complaint and no treatment was initiated for it.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4007,
+        "output_tokens": 1150,
+        "total_tokens": 5157,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "0a0d966d-e4b6-4d15-a12e-63a62d7803e9",
+        "date": "2024-06-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cc32943e-4726-4d96-8713-21fa51ec5ea6",
+    "patient_id": "4209455806",
+    "date": "2024-06-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "735548000",
+          "name": "Dissociative neurological symptom disorder co-occurrent with dizziness (disorder)",
+          "severity": "high",
+          "reason": "The note documents simple dizziness as a symptom of the hypotensive episode; coding a dissociative neurological disorder is clinically unjustified and grossly over-specific \u2014 the correct concept is Dizziness (finding).",
+          "replace_with_concept_id": "404640003",
+          "replace_with_preferred_term": "Dizziness (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "240091000000105",
+          "name": "Blurred vision (disorder)",
+          "severity": "medium",
+          "reason": "Lookup returns an unreliable organism concept for this ID; the correct SNOMED concept for the documented symptom ('everything was slightly blurry') is the finding Blurring of visual image, not a disorder.",
+          "replace_with_concept_id": "111516008",
+          "replace_with_preferred_term": "Blurring of visual image (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two overcoding errors identified: (1) dizziness has been coded with a dissociative neurological disorder concept (735548000) which is clinically inappropriate \u2014 should be simple Dizziness (finding) 404640003; (2) blurred vision concept 240091000000105 resolves unreliably (organism tag) and should be replaced with 111516008 Blurring of visual image (finding). Core concepts for orthostatic hypotension (28651003), dyspnoea (267036007), and fatigue (272060000) are correctly coded and well-evidenced. Note: medication hold (losartan/bisoprolol) and UCC/Tuesday face-to-face appointment are plan items, not codeable clinical findings.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8269,
+        "output_tokens": 1613,
+        "total_tokens": 9882,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "cc32943e-4726-4d96-8713-21fa51ec5ea6",
+        "date": "2024-06-21",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4fd6c80d-6211-4286-97e2-65d099ea9752",
+    "patient_id": "4209455806",
+    "date": "2024-06-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "sweating / diaphoresis",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'sweating, diaphoresis' as a symptom during the acute episode; this is a clinically relevant finding supporting the cardiac differential and should be coded.",
+          "snomed_search": "sweating finding",
+          "snomed_concept_id": "415690000",
+          "preferred_term": "Sweating (finding)",
+          "sentence": "There was also sweating , diaphoresis,",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "HbA1c measurement",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The GP explicitly orders 'HBA1c' as part of the investigation plan; this is a procedure that should be coded from the encounter.",
+          "snomed_search": "HbA1c measurement",
+          "snomed_concept_id": "43396009",
+          "preferred_term": "Hemoglobin A1c measurement (procedure)",
+          "sentence": "Rule out Heart6 failure- will do BNP , HBA1ac and ECHo",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "414798009",
+          "name": "N-terminal pro-B-type natriuretic peptide (substance)",
+          "severity": "medium",
+          "reason": "The note orders a BNP blood test (a procedure/measurement), not the substance itself; the correct SNOMED concept is the measurement procedure 414799001.",
+          "replace_with_concept_id": "414799001",
+          "replace_with_preferred_term": "N-terminal pro-brain natriuretic peptide measurement (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "84114007",
+          "name": "Heart failure (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The GP explicitly states 'Rule out Heart failure' and orders investigations (BNP, echo); heart failure has not been confirmed and must be coded as possible, not present, to avoid a false active diagnosis."
+        },
+        {
+          "conceptId": "233843008",
+          "name": "Silent myocardial infarction (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The GP documents 'Rule out silent MI' and sends for troponins and ECG; coding this as present (active confirmed diagnosis) is clinically dangerous \u2014 it must be coded as possible pending investigation results."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Two serious assertion errors exist: heart failure and silent MI are coded as 'present' (confirmed) when the GP explicitly frames both as differentials under investigation ('Rule out') \u2014 silent MI in particular is safety-critical and must be 'possible'. The BNP substance code (414798009) should be replaced with the measurement procedure (414799001). Diaphoresis and the planned HbA1c are missing. Note: lookup_concept returned unreliable results for several concept IDs (84114007, 233843008, 105000003, 414798009) due to terminology server index issues; clinical judgement applied based on note text and search results.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10691,
+        "output_tokens": 1862,
+        "total_tokens": 12553,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "4fd6c80d-6211-4286-97e2-65d099ea9752",
+        "date": "2024-06-25",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ee27abed-4f30-4e14-94ec-92fd10c78a6b",
+    "patient_id": "4209455806",
+    "date": "2024-06-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "194828000",
+          "name": "Angina (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note documents '? Angina' as a working diagnosis under investigation \u2014 the question mark explicitly indicates uncertainty, so assertion should be possible, not present."
+        },
+        {
+          "conceptId": "698247007",
+          "name": "Cardiac arrhythmia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note documents '? arrythmia' as a possible diagnosis with a 24-hour tape being considered \u2014 the question mark indicates uncertainty and it has not been confirmed."
+        },
+        {
+          "conceptId": "45007003",
+          "name": "Low blood pressure (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The severe hypotension (BP 59/37) occurred on 21/6/24 (a past date); today's presentation is chest tightness, and BP is not documented as low at this encounter \u2014 the episode is historical."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Several assertion errors are present: both '? Angina' and '? arrythmia' are coded as present when they are explicitly uncertain (possible); the hypotension episode is historical (21/6/24), not current; and the ramipril allergy is coded as 'non-allergic hypersensitivity' when the note clearly states 'Allergy' \u2014 a patient safety concern. The T wave inversion code (704999008 Anterior) is anatomically mismatched to the documented aVL finding; 59931005 'Inverted T wave' is more appropriate. Lookup_concept returned unreliable/corrupted results for several concept IDs (609545008, 704999008, 698247007) but search_snomed confirmed the correct preferred terms, so these are retained with corrections noted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9660,
+        "output_tokens": 2262,
+        "total_tokens": 11922,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "ee27abed-4f30-4e14-94ec-92fd10c78a6b",
+        "date": "2024-06-25",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "00383859-ae87-4027-903c-b636c8ded37c",
+    "patient_id": "4209455806",
+    "date": "2024-06-25",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter record contains only a staff/location header, a raw BP vital sign (149/80, already handled by the structured pipeline), and a medication reference (Losartan) used to infer hypertension history \u2014 there is no clinical narrative, presenting complaint, examination, diagnosis, or management plan documented. Both existing coded concepts are either structured-pipeline vital signs or standing problem-list codes that cannot be challenged on the basis of this thin record; no coding additions or corrections are warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1389,
+        "output_tokens": 789,
+        "total_tokens": 2178,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "00383859-ae87-4027-903c-b636c8ded37c",
+        "date": "2024-06-25",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cbd71809-a21c-4393-a8f3-c5e1f3e13d02",
+    "patient_id": "4209455806",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All seven coded concepts are clinically appropriate and well-evidenced by the encounter text: the four U&E observable entities plus eGFR are correctly coded by the structured lab pipeline; hyponatraemia (89627008) is correctly coded as present given a sodium of 129 mmol/L flagged as abnormal; and dizziness on standing up (407645004) is the correct specific finding for the documented clinical indication. The CKD advisory text in the report is a boilerplate NICE guidance footer and does not constitute a new CKD diagnosis for this encounter; the possible medication-related cause (?lansoprazole) is a speculative comment without a confirmed diagnosis and does not require a separate code. Lookup_concept returned unreliable results for both clinical finding codes, but search_snomed confirmed both concept IDs are valid SNOMED findings with score 1.3.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4895,
+        "output_tokens": 815,
+        "total_tokens": 5710,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "cbd71809-a21c-4393-a8f3-c5e1f3e13d02",
+        "date": "2024-06-26",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "78d101c4-76db-4e85-b18b-7aa1aa863452",
+    "patient_id": "4209455806",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All 8 coded concepts are appropriate: the structured lab pipeline correctly captures the observable entity codes, the MCH above-reference-range finding (165440005, confirmed by SNOMED search) is correctly coded alongside the MCH observable, and the clinical indication 'dizziness on standing up' (407645004, confirmed) is correctly coded. The FBC was reported as satisfactory with no further action; all other CBC components are within reference range and do not require additional finding codes. Lookup_concept returned unreliable results for two concept IDs but SNOMED search confirmed both are valid findings in the correct hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5578,
+        "output_tokens": 1005,
+        "total_tokens": 6583,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "78d101c4-76db-4e85-b18b-7aa1aa863452",
+        "date": "2024-06-26",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c984859c-c742-432c-b755-b1f5206b5d52",
+    "patient_id": "4209455806",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "borderline eGFR / CKD stage 3a",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "eGFR of 53 mL/min/1.73m\u00b2 places the patient in CKD stage 3A (45\u201359); the clinician explicitly references KFRE guidance for CKD stages 3a\u20135 and plans a repeat U&E in 3 months 'given borderline eGFR reading', confirming an active CKD diagnosis requiring coding as a disorder, not merely an observable entity.",
+          "snomed_search": "chronic kidney disease stage 3A",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "sentence": "rpt U+E in 3 months given borderline egfr reading. (Patient Informed). Review done by PATEL, Krishan (Dr) - 08 Jul 2024 08:03",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "sodium 129",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The original test request was triggered by a sodium of 129 mmol/L (hyponatraemia); the current result shows sodium now normal at 135 mmol/L, making this a recently resolved hyponatraemia that should be coded as historical.",
+          "snomed_search": "hyponatraemia",
+          "snomed_concept_id": "89627008",
+          "preferred_term": "Hyponatremia (finding)",
+          "sentence": "Clinical Information: Reasons for Request:      sodium 129.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The five existing codes correctly capture the lab observables via the structured pipeline, but two clinical interpretations are missing: (1) CKD stage 3A as a disorder \u2014 the clinician's review explicitly invokes CKD-stage-specific guidance and plans follow-up, confirming an active diagnosis; (2) recently resolved hyponatraemia (sodium 129) coded as historical, as this was the stated clinical reason for the original test request. ACR check is recommended but not yet performed so should not be coded as a procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4953,
+        "output_tokens": 1478,
+        "total_tokens": 6431,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "c984859c-c742-432c-b755-b1f5206b5d52",
+        "date": "2024-07-05",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cf7ed56d-01b9-410d-a7a0-7b6c6316c07e",
+    "patient_id": "4209455806",
+    "date": "2024-07-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "atrial premature beats",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The 48-hour tape report explicitly documents very rare atrial premature beats including a non-conducted P-on-T ectopy with resultant brief pause and one couplet; this is a clinically distinct arrhythmia finding from the ventricular ectopics already coded and warrants its own code.",
+          "snomed_search": "premature atrial contraction",
+          "snomed_concept_id": "284470004",
+          "preferred_term": "Premature atrial contraction (disorder)",
+          "sentence": "VERY RARE ATRIAL PREMATURE BEATS INCLUDING VERY RARE NON CONDUCTED P ON T ECTOPY WITH RESULTANT BRIEF PAUSE AND ONE COUPLET, BURDEN <1%",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "dizzy spells",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The GP referral reason is explicitly stated as 'GP REFERRAL - DIZZY SPELLS', making dizziness an active presenting symptom that prompted this cardiac investigation and should be coded.",
+          "snomed_search": "dizziness",
+          "snomed_concept_id": "404640003",
+          "preferred_term": "Dizziness (finding)",
+          "sentence": "GP REFERRAL- DIZZY SPELLS",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The three existing codes (first degree AV block, ventricular premature complex, dyspnoea) are all correctly coded and well-evidenced by the tape report. Two clinically significant findings are missing: atrial premature beats (a distinct arrhythmia documented in the tape findings) and dizziness (the explicit GP referral indication). A planned CT coronary angiogram post-RACPC referral is noted but has not yet occurred and should not be coded as a procedure at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7564,
+        "output_tokens": 1841,
+        "total_tokens": 9405,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "cf7ed56d-01b9-410d-a7a0-7b6c6316c07e",
+        "date": "2024-07-17",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "84874f97-0e57-4582-b463-39a0a06d72e2",
+    "patient_id": "4209455806",
+    "date": "2024-07-18",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are confirmed valid: 45007003 (Low blood pressure/hypotension) and 270492004 (First degree atrioventricular block) are correctly coded with present assertion. The lookup_concept tool returned unreliable results for both IDs but search_snomed confirmed both as legitimate disorder codes. Raw BP numeric values are not codeable; the Losartan dose change belongs in the medication record. No additional SNOMED-scope concepts are missing from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2726,
+        "output_tokens": 765,
+        "total_tokens": 3491,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "84874f97-0e57-4582-b463-39a0a06d72e2",
+        "date": "2024-07-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a28518ea-c20d-4394-9b6f-5cff76fea4ac",
+    "patient_id": "4209455806",
+    "date": "2024-07-24",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e16c9217-43cb-483a-9611-aeb1e2d4ead4",
+    "patient_id": "4209455806",
+    "date": "2024-10-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "14140009",
+          "name": "Hyperkalemia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The report explicitly states 'Repeat bloods tomorrow to rule out Hyperkalemia' \u2014 the diagnosis is under investigation and not yet confirmed, so assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "The five observable entity codes are correctly written by the structured lab pipeline and should not be altered. Hyponatraemia (89627008) is correctly coded as present given sodium of 131 mmol/L. However, hyperkalaemia (14140009) is overclaimed as 'present' \u2014 the clinician explicitly requested a repeat test to rule it out, making 'possible' the correct assertion; the potassium of 5.4 mmol/L is only marginally above the upper reference limit (5.3) and the clinical text treats it as unconfirmed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4393,
+        "output_tokens": 985,
+        "total_tokens": 5378,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "e16c9217-43cb-483a-9611-aeb1e2d4ead4",
+        "date": "2024-10-22",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b0fcc010-d9b1-4678-a4fe-04338f3b721e",
+    "patient_id": "4209455806",
+    "date": "2024-10-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d9fdb1fc-9910-48c2-bc66-8c86073e05af",
+    "patient_id": "4209455806",
+    "date": "2024-10-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urea & electrolytes (Requested)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A pathology request for U&E was explicitly placed during this encounter and should be coded as a procedure.",
+          "snomed_search": "urea and electrolytes blood test",
+          "snomed_concept_id": "252167001",
+          "preferred_term": "Measurement of urea and electrolytes (procedure)",
+          "sentence": "Pathology Request (Complete): Urea & electrolytes (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "14140009",
+          "name": "Hyperkalemia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The plan explicitly states 'repeat bloods tomorrow to rule out Hyperkalemia' \u2014 this is a suspected/under-investigation finding, not a confirmed active diagnosis; K+ 5.4 is borderline and not definitively diagnostic."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The two core clinical codes (hyponatraemia 89627008 and hyperkalaemia 14140009) are confirmed correct concept IDs via search despite unreliable lookup_concept responses. The main issues are: (1) hyperkalaemia is coded as 'present' when the clinician explicitly states it is being ruled out \u2014 assertion should be 'possible'; (2) the U&E pathology request placed during the encounter is not coded. Absent symptoms (no chest pain, no palpitations, no dizziness) are correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6366,
+        "output_tokens": 1369,
+        "total_tokens": 7735,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "d9fdb1fc-9910-48c2-bc66-8c86073e05af",
+        "date": "2024-10-23",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6f2b44ac-f5e2-4297-93fb-fffc1b01d988",
+    "patient_id": "4209455806",
+    "date": "2024-10-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.88,
+      "notes": "All six codes are appropriate: the five observable entity codes are correctly written by the structured lab pipeline, and hyponatraemia (89627008) is correctly coded as present given the sodium of 129 mmol/L and explicit clinical naming in the report. The CKD guidance text is boilerplate auto-appended to eGFR results and does not constitute a confirmed CKD diagnosis for this patient; drug-induced hyponatraemia (237844003) would be a valid refinement if the lansoprazole causation is confirmed, but the current note only implies it as a working hypothesis driving a medication switch. Lookup_concept returned unreliable for 89627008 due to a known server index issue; search_snomed independently confirms it is the correct SNOMED concept.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4623,
+        "output_tokens": 1215,
+        "total_tokens": 5838,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "6f2b44ac-f5e2-4297-93fb-fffc1b01d988",
+        "date": "2024-10-24",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "00ddf403-ad9d-447b-84b9-5b455a269a7c",
+    "patient_id": "4209455806",
+    "date": "2024-10-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All six codes are appropriate: the five observable entity codes are structured lab pipeline entries and correctly retained; [89627008] Hyponatremia (finding) is well-evidenced by the explicit clinical label 'mild hyponatremia' and sodium of 129 mmol/L, with assertion=present correct. lookup_concept returned an unreliable/corrupted result for 89627008 but search_snomed independently confirms it is the correct SNOMED concept. No AKI is explicitly excluded in the note and correctly not coded; raw K+ 5.4 and eGFR 67 values lack explicit clinical interpretations (e.g. hyperkalaemia, CKD) in this encounter text and are not codeable as disorders.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2101,
+        "output_tokens": 1071,
+        "total_tokens": 3172,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "00ddf403-ad9d-447b-84b9-5b455a269a7c",
+        "date": "2024-10-24",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e0474355-25ff-4e3e-b49d-1d5d8ca10fdf",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "persistent mild hyponatraemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The reviewing clinician explicitly documents 'persistent mild hyponatraemia' as a clinical finding requiring action (consider BP med / PPI change), and the coded serum sodium of 131 mmol/L confirms it; this active diagnosis must be coded.",
+          "snomed_search": "hyponatraemia",
+          "snomed_concept_id": "89627008",
+          "preferred_term": "Hyponatremia (finding)",
+          "sentence": "Serum lipid levels Report, Borderline, Need to speak to doctor: persistent mild hyponatraemia.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "predm.",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical details field records 'predm.' (pre-diabetes) as the clinical reason for the lipid request, and HbA1c 5.9% is consistent with this; it is an active clinical finding not on the problem list and not coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: predm.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two clinically significant findings are uncoded: (1) 'persistent mild hyponatraemia' is explicitly named by the reviewing clinician and corroborated by serum sodium 131 mmol/L, warranting a disorder/finding code and clinical action; (2) 'predm.' (pre-diabetes) is documented as the reason for the lipid screen and is consistent with HbA1c 5.9%, but is absent from the problem list. All 11 existing codes are structured lab pipeline observable entities and are correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5595,
+        "output_tokens": 1307,
+        "total_tokens": 6902,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "e0474355-25ff-4e3e-b49d-1d5d8ca10fdf",
+        "date": "2025-02-06",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d1cbfcff-7ec6-4ef3-ae16-9f59180fd5c1",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Body mass index index 25-29 - overweight",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Body mass index index 25-29 - overweight' as a finding; the already-coded BMI observable entity captures the numeric value only, not the clinical interpretation.",
+          "snomed_search": "overweight BMI 25-29",
+          "snomed_concept_id": "162863004",
+          "preferred_term": "Body mass index 25-29 - overweight (finding)",
+          "sentence": "Body mass index index 25-29 - overweight (22K4.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lower risk drinking",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Lower risk drinking' as a coded entry (XaXjf); this clinical finding is absent from the coded concept list.",
+          "snomed_search": "lower risk alcohol drinking",
+          "snomed_concept_id": "777671000000105",
+          "preferred_term": "Lower risk alcohol drinking (finding)",
+          "sentence": "Lower risk drinking (XaXjf)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "GPPAQ physical activity index: inactive",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The coded concept 859981000000107 is the 'Level of physical activity' observable entity; the specific GPPAQ result finding 'inactive' (366121000000108) is not coded and represents the clinical interpretation of that measurement.",
+          "snomed_search": "physical activity inactive GPPAQ",
+          "snomed_concept_id": "366121000000108",
+          "preferred_term": "General practice physical activity questionnaire physical activity index: inactive (finding)",
+          "sentence": "GPPAQ physical activity index: inactive (XaPP8)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Chronic disease management annual review completed",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Chronic disease management annual review completed' and 'Annual LTC review: Yes'; this procedure completion is not represented in the coded list.",
+          "snomed_search": "chronic disease management annual review",
+          "snomed_concept_id": "887821000000102",
+          "preferred_term": "Chronic disease management annual review invitation (procedure)",
+          "sentence": "Chronic disease management annual review completed (Xaagy)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This LTC wellbeing review is largely well coded for observable entities (BP, weight, BMI value, HbA1c, TSH, renal panel, smoking status) but is missing three clinically meaningful findings documented in the note: the overweight BMI interpretation, lower risk drinking status, and the specific GPPAQ 'inactive' result finding. The annual review completion procedure is also unrecorded. Note: the best SNOMED match for the annual review completion returned an 'invitation' procedure (887821000000102) rather than a completion \u2014 human review is recommended to confirm the correct procedure code for that entry.\"",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 9032,
+        "output_tokens": 1734,
+        "total_tokens": 10766,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "d1cbfcff-7ec6-4ef3-ae16-9f59180fd5c1",
+        "date": "2025-02-06",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b6861fbb-38e7-4c2d-99ab-e678d68ebda7",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm.",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical details field lists 'predm.' (prediabetes) as the reason for the blood test request, indicating this is an active clinical diagnosis that should be coded; the HbA1c of 5.9% already coded is consistent with this.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      predm.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely correct \u2014 all LFT/biochemistry observables are appropriately captured by the structured pipeline, and hyponatraemia (89627008) is correctly coded as an active finding with clinical review documented. The one gap is prediabetes (714628002), which is explicitly listed as the clinical indication for the blood tests ('predm.') and should be coded as present. Note: the reviewer's suggestion to 'Consider BP med / PPI change' is a management action rather than a new diagnosis and does not require additional coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5055,
+        "output_tokens": 926,
+        "total_tokens": 5981,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "b6861fbb-38e7-4c2d-99ab-e678d68ebda7",
+        "date": "2025-02-06",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "35b63359-ab31-4a94-ab9b-a91b7fe8a142",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm.",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical details field explicitly lists 'predm.' (prediabetes) as the reason for the HbA1c request; this is an active clinical finding that should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      predm.",
+          "char_start": 113,
+          "char_end": 200
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Hyponatraemia [89627008] is correctly coded and confirmed by SNOMED search (lookup_concept returned unreliable but search confirms the concept ID is valid). The abbreviation 'predm.' in the clinical details field represents prediabetes \u2014 an active finding driving the HbA1c request \u2014 and should be coded as 714628002 Prediabetes (finding). All observable entity lab codes are pipeline-generated and appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3577,
+        "output_tokens": 948,
+        "total_tokens": 4525,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "35b63359-ab31-4a94-ab9b-a91b7fe8a142",
+        "date": "2025-02-06",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "59465565-1ece-4916-8985-da4c2a8114db",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm.",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The reason for TSH request is documented as 'predm.' (prediabetes), and HbA1c of 41 mmol/mol is consistent with the prediabetes range; this active clinical finding should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: predm.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Hyponatraemia [89627008] is correctly coded and confirmed by search_snomed (lookup_concept returned unreliable due to a server index issue, not a genuine coding error). The key gap is prediabetes (714628002), explicitly documented as the clinical reason for the TSH request and supported by the HbA1c value of 41 mmol/mol. TSH 3.3 mIU/L is within the reference range so no thyroid disorder code is warranted; the suggestion to review BP/PPI medication is a management note rather than a new diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5462,
+        "output_tokens": 1218,
+        "total_tokens": 6680,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "59465565-1ece-4916-8985-da4c2a8114db",
+        "date": "2025-02-06",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6bea0b10-9b39-423a-b3c7-f3ed4db8e97a",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CKD / chronic kidney disease",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "eGFR of 62 mL/min/1.73m\u00b2 is explicitly reported with NICE CKD guidance and KFRE risk tool reference embedded in the lab report, indicating established CKD stage 3a; this active diagnosis is not coded.",
+          "snomed_search": "chronic kidney disease stage 3a",
+          "snomed_concept_id": "433144002",
+          "preferred_term": "Chronic kidney disease stage 3a (disorder)",
+          "sentence": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 62 mL/min ... NICE recommends the Kidney failure Risk Equation www.kfre.co.uk to predict the risk of endstage kidney disease in CKD stages 3a to 5.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "predm. (prediabetes)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly states 'predm.' as the reason for request, indicating prediabetes is an active clinical condition driving investigation; it is not currently coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: predm.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Hyponatraemia (89627008) is correctly coded and confirmed valid despite an unreliable terminology server lookup. Two clinically significant gaps identified: CKD stage 3a is strongly implied by the eGFR of 62 mL/min with embedded NICE CKD/KFRE guidance, and prediabetes is explicitly documented as the reason for the U&E request. The suggestion to review BP medication and/or PPI in the context of hyponatraemia is a management note only and does not require additional diagnostic coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5790,
+        "output_tokens": 1420,
+        "total_tokens": 7210,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "6bea0b10-9b39-423a-b3c7-f3ed4db8e97a",
+        "date": "2025-02-06",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ac690265-5aa1-4af8-b940-1c10b40b7e9e",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm.",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly states 'predm.' (prediabetes) as the reason for the FBC request, indicating an active clinical diagnosis that should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      predm.",
+          "char_start": 1063,
+          "char_end": 1130
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two key clinical findings \u2014 eosinophilia (386789004) and hyponatraemia (89627008) \u2014 are correctly coded; lookup_concept returned unreliable/corrupted results for both but search_snomed confirms these are the correct concept IDs. The observable entity codes are appropriate structured-pipeline outputs and should not be disturbed. One genuine gap: 'predm.' (prediabetes) is explicitly documented as the clinical reason for the FBC request and is absent from the coded list \u2014 714628002 Prediabetes (finding) should be added. The note also references 'Not on Thyroid Tx' but this is a negative/contextual qualifier rather than a codeable finding in its own right.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5616,
+        "output_tokens": 981,
+        "total_tokens": 6597,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "ac690265-5aa1-4af8-b940-1c10b40b7e9e",
+        "date": "2025-02-06",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "453bf808-0175-4b98-ab8c-3518c218929d",
+    "patient_id": "4209455806",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm.",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Prediabetes is explicitly cited as a clinical reason for the HbA1c request in this encounter and is not coded or on the problem list; HbA1c of 5.9% (41 mmol/mol) is consistent with the prediabetes range.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: predm.",
+          "char_start": 72,
+          "char_end": 78
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The six observable entity lab codes and the hyponatraemia finding (89627008 confirmed correct via search despite an unreliable lookup_concept response) are all appropriate. The abbreviation 'predm.' in the reasons-for-request field is an explicit clinical reference to prediabetes that should be coded; the supporting HbA1c of 5.9% is consistent. AKI staging 0 / No AKI is correctly absent from the coded list. 'Not on Thyroid Tx' is background context and does not require a new code in this encounter without further detail.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6426,
+        "output_tokens": 1383,
+        "total_tokens": 7809,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "453bf808-0175-4b98-ab8c-3518c218929d",
+        "date": "2025-02-06",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e114dbab-2880-49e2-9c7a-cf9019181550",
+    "patient_id": "4209455806",
+    "date": "2025-03-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "7 point check",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly documents performing a 7-point checklist assessment of the skin lesion; this clinical procedure should be coded.",
+          "snomed_search": "skin lesion assessment",
+          "snomed_concept_id": "225396002",
+          "preferred_term": "Skin lesion assessment (procedure)",
+          "sentence": "no other issues on 7 point check - doesnt need 2ww - has been streamed by GP reception - needs review with own GP if wants referral letter",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "itchy naevi",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Pruritus of the melanocytic naevi is the presenting symptom documented in this encounter and is the clinical trigger for the 7-point check; it should be coded as a finding.",
+          "snomed_search": "pruritus skin lesion",
+          "snomed_concept_id": "418290006",
+          "preferred_term": "Itching (finding)",
+          "sentence": "has been itchy recently - is meant to moisturise and has started to do this",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The core diagnosis code (400096001 Melanocytic nevus) is correctly applied and confirmed via search despite an unreliable lookup_concept response. Two gaps identified: the 7-point checklist procedure performed by the nurse is uncoded, and the presenting symptom of pruritus of the naevi \u2014 which drove the clinical assessment \u2014 is not captured. No 2WW or safety-critical flags are outstanding; the clinician explicitly documented no 2WW criteria met.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4976,
+        "output_tokens": 1344,
+        "total_tokens": 6320,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "e114dbab-2880-49e2-9c7a-cf9019181550",
+        "date": "2025-03-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2b58e71d-0849-4bf8-80c7-a5eec40d6120",
+    "patient_id": "4209455806",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "198b3c28-0da3-46ee-bdbe-213164674b84",
+    "patient_id": "4209455806",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chronic low sodium",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as 'chronic low sodium' \u2014 a clinically significant electrolyte disorder that should be coded in its own right.",
+          "snomed_search": "chronic hyponatraemia",
+          "snomed_concept_id": "50327002",
+          "preferred_term": "Chronic hyponatremia (disorder)",
+          "sentence": "recent bloods done, chronic low sodium, feels fine, some mild leg oedema, ongoing for years known HFpEF with ventricular ectopics",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "ventricular ectopics",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Documented as a known active condition alongside HFpEF; ventricular ectopics are clinically significant and should be coded separately from the heart failure.",
+          "snomed_search": "ventricular premature complex",
+          "snomed_concept_id": "251175005",
+          "preferred_term": "Ventricular premature complex (disorder)",
+          "sentence": "ongoing for years known HFpEF with ventricular ectopics, recent cardio input last oct, satisafcatory angio, secondary prevention meds stopped.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "mild leg oedema",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Documented as an ongoing finding present for years, attributed to mild fluid overload in the context of HFpEF; clinically relevant and should be coded.",
+          "snomed_search": "peripheral oedema",
+          "snomed_concept_id": "271809000",
+          "preferred_term": "Peripheral edema (disorder)",
+          "sentence": "some mild leg oedema, ongoing for years known HFpEF with ventricular ectopics",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161505005",
+          "name": "History of heart failure (situation)",
+          "severity": "medium",
+          "reason": "Concept ID 161505005 is unreliable (terminology server returns an organism tag); the correct 'History of heart failure' situation is 161505003. Furthermore, the note documents an active, ongoing diagnosis of HFpEF \u2014 the more appropriate and specific code is Heart failure with normal ejection fraction (446221000) with assertion=present.",
+          "replace_with_concept_id": "446221000",
+          "replace_with_preferred_term": "Heart failure with normal ejection fraction (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "839141000000101",
+          "name": "Referral to community neurology clinic (procedure)",
+          "severity": "medium",
+          "reason": "Concept ID 839141000000101 is unreliable (terminology server returns a substance tag, not a procedure); the note documents referral to a TIA clinic, not a community neurology clinic. Best available verified concept is Referral to clinic (183851006).",
+          "replace_with_concept_id": "183851006",
+          "replace_with_preferred_term": "Referral to clinic (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "266257000",
+          "name": "Transient ischemic attack (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The note explicitly documents '?TIA' as a differential diagnosis \u2014 this is an unconfirmed working diagnosis pending specialist review at TIA clinic, and must be coded as possible rather than present to accurately reflect clinical uncertainty."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The encounter has several coding issues: the TIA assertion is critically wrong (present vs possible/?TIA), two concept IDs are unreliable/incorrect (161505005 for HFpEF should be the specific active disorder 446221000; 839141000000101 for the referral returns as a substance and should be replaced). Three clinically documented conditions are missing: chronic hyponatraemia, ventricular ectopics, and peripheral oedema. The amaurosis fugax code (88032003) is appropriate and well-evidenced by the transient monocular visual loss episode.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 14546,
+        "output_tokens": 2984,
+        "total_tokens": 17530,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "198b3c28-0da3-46ee-bdbe-213164674b84",
+        "date": "2025-03-21",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "63fbd129-ffe6-4cd3-b84e-92b9d359401a",
+    "patient_id": "4209455806",
+    "date": "2025-04-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TIA",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly references a 'TIA letter 16/4/25' and stroke team review on 22/03/25, making TIA the specific diagnosis rather than the broader 'history of cerebrovascular disease' already coded.",
+          "snomed_search": "transient ischaemic attack",
+          "snomed_concept_id": "266257000",
+          "preferred_term": "Transient ischemic attack (disorder)",
+          "sentence": "Pt seen by stroke team 22/03/25 - see letter / Ended 25 Apr 2025 Clinical grounds (TIA letter 16/4/25) by HORNE, Jonathan (Dr)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "skin itching",
+          "severity": "low",
+          "suggested_assertion": "historical",
+          "reason": "Patient had skin itching for 2 years which has now resolved following stopping lansoprazole; this is a clinically relevant finding (possible drug-related pruritus) that warrants coding as historical.",
+          "snomed_search": "itching of skin",
+          "snomed_concept_id": "418363000",
+          "preferred_term": "Itching of skin (finding)",
+          "sentence": "Diarrhoea has since resolved, and pt has noticed skin itching which he has had for 2 years also resolved",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "409966000",
+          "name": "Acute diarrhea (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note explicitly states 'Diarrhoea has since resolved' \u2014 the episode is over and should be coded as historical, not present."
+        },
+        {
+          "conceptId": "308064009",
+          "name": "History of cerebrovascular disease (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "reason": "The coded concept is a 'history of' situation which by definition should carry a historical assertion; additionally the more specific TIA diagnosis (266257000) is evidenced by the explicit TIA letter reference and should replace or supplement this broader code.",
+          "severity": "medium"
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The encounter has two assertion errors (diarrhoea coded as present when resolved; cerebrovascular history coded as present) and a specificity gap \u2014 the TIA diagnosis is explicitly named in the letter reference and should be coded specifically as 266257000 rather than the broad cerebrovascular history concept. The 2-year skin itching that resolved on stopping lansoprazole (possible drug-induced pruritus) is also uncoded. Lookup_concept returned unreliable results for both existing coded concepts, but search_snomed confirmed 409966000 is the correct acute diarrhoea concept; 308064009 could not be confirmed and should be reviewed for replacement with the specific TIA code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6382,
+        "output_tokens": 1665,
+        "total_tokens": 8047,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "63fbd129-ffe6-4cd3-b84e-92b9d359401a",
+        "date": "2025-04-01",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e4705104-6512-47c0-ba78-eeadb798abc5",
+    "patient_id": "4209455806",
+    "date": "2025-04-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Amaurosis fugax",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The active presenting problem documented in the encounter header is Amaurosis fugax (transient monocular blindness); this specific diagnosis should be coded directly rather than replaced by the broader and assertion-incorrect 'History of cerebrovascular disease'.",
+          "snomed_search": "amaurosis fugax",
+          "snomed_concept_id": "88032003",
+          "preferred_term": "Amaurosis fugax (disorder)",
+          "sentence": "Problem: Amaurosis fugax (F4236) - transient monocular blindness",
+          "char_start": 82,
+          "char_end": 140
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "308064009",
+          "name": "History of cerebrovascular disease (situation)",
+          "severity": "high",
+          "reason": "The note documents Amaurosis fugax as the active presenting problem, not a historical cerebrovascular disease; this concept is both too broad and carries the wrong clinical meaning \u2014 amaurosis fugax is a retinal/ophthalmic vascular event, not cerebrovascular disease, and it is active not historical.",
+          "replace_with_concept_id": "88032003",
+          "replace_with_preferred_term": "Amaurosis fugax (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four coded concepts are correct and well-evidenced (atorvastatin adverse reaction, myalgia, nausea/vomiting). The fourth concept \u2014 History of cerebrovascular disease [308064009] \u2014 is both the wrong code and the wrong assertion: the active problem is Amaurosis fugax (disorder) [88032003], which is a retinal vascular event distinct from cerebrovascular disease and is currently active, not historical. This should be replaced with the specific Amaurosis fugax code with assertion=present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4574,
+        "output_tokens": 1646,
+        "total_tokens": 6220,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "e4705104-6512-47c0-ba78-eeadb798abc5",
+        "date": "2025-04-16",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9f7f2399-1ad2-4571-95ef-a8b50c060efb",
+    "patient_id": "4209455806",
+    "date": "2025-04-25",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is entirely administrative: a duty-admin medication swap (atorvastatin to ezetimibe per secondary care TIA letter), ETP prescription lines, and postponed pathology requests \u2014 no clinical narrative, examination, or diagnosis is documented in this encounter. The standing problem-list code [308064009] History of cerebrovascular disease is appropriate and must not be disturbed on the basis of an admin-only note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 558,
+        "output_tokens": 553,
+        "total_tokens": 1111,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "9f7f2399-1ad2-4571-95ef-a8b50c060efb",
+        "date": "2025-04-25",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ff4f635f-e1d4-4ee5-ac85-1cb2f74ef724",
+    "patient_id": "4209455806",
+    "date": "2025-07-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Fast track referral for suspected head and neck cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The encounter documents an urgent 2WW Head and Neck cancer referral to Leicester Royal Infirmary; the coded procedure concept 276341000000100 resolves to a genetic allele substance (DRB1*09012), not a referral procedure \u2014 the correct SNOMED concept for this referral is 280521000000108.",
+          "snomed_search": "fast track referral head neck cancer",
+          "snomed_concept_id": "280521000000108",
+          "preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "sentence": "Urgent 2-week wait referral to Head and Neck clinic at Leicester Royal Infirmary for further investigation",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "ex-smoker",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient reports past smoking history ('smoked as a student many years ago'), which is clinically relevant in the context of a 2WW head and neck cancer referral and CXR request.",
+          "snomed_search": "ex-smoker",
+          "snomed_concept_id": "8517006",
+          "preferred_term": "Ex-smoker (finding)",
+          "sentence": "Smoked as a student many years ago.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "DRB1*09012 (substance) \u2014 coded as 'Fast track referral for suspected breast cancer'",
+          "severity": "medium",
+          "reason": "Concept 276341000000100 resolves to a genetic allele substance (DRB1*09012), not a cancer referral procedure; furthermore the note documents a Head and Neck 2WW referral, not a breast cancer referral \u2014 this code is both semantically wrong and clinically incorrect.",
+          "replace_with_concept_id": "280521000000108",
+          "replace_with_preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "699373005",
+          "name": "Exposure to asbestos (event)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "low",
+          "reason": "The note explicitly describes this as historical occupational exposure ('many years ago whilst working in a lab'), not a current or ongoing exposure; assertion should be historical."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "Critical error: the 2WW referral is coded with concept 276341000000100 which resolves to a genetic allele substance (DRB1*09012) rather than a referral procedure \u2014 this must be replaced with 280521000000108 'Fast track referral for suspected head and neck cancer'. The remaining codes (hoarseness, pharyngeal dysphagia, unintentional weight loss, hiatus hernia, suspected malignant neoplasm) are appropriate and well-evidenced; ex-smoker history and correction of the asbestos assertion to historical are recommended additions.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 14188,
+        "output_tokens": 2019,
+        "total_tokens": 16207,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "ff4f635f-e1d4-4ee5-ac85-1cb2f74ef724",
+        "date": "2025-07-04",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "becc30fa-7e65-4d4d-b43f-74bc7e4d08fc",
+    "patient_id": "4209455806",
+    "date": "2025-07-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The clinical details state 'weight loss/hoarse voice' as reasons for the bone profile request; in this context (no intentional weight loss qualifier, bone profile ordered, not on thyroid treatment) this is a red-flag symptom that must be coded as unintentional weight loss per NG12 safety-netting criteria.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: weight loss/hoarse voice.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "CRITICAL ERROR: Concept 416528001 coded as 'Intentional weight loss (finding)' resolves via the terminology server to 'DRB1*08021 (substance)' \u2014 a completely incorrect substance concept with no clinical relevance. The note documents 'weight loss/hoarse voice' as red-flag reasons for the bone profile request; the correct code is 448765001 Unintentional weight loss (finding) with assertion=present. This is a safety-critical miscoding: unintentional weight loss alongside hoarseness are NG12 red-flag symptoms requiring correct SNOMED capture for clinical safety-netting and audit. The existing concept 416528001 should be replaced with 448765001. All nine lab observable entity codes are appropriate structured-pipeline entries and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 3185,
+        "output_tokens": 1137,
+        "total_tokens": 4322,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "becc30fa-7e65-4d4d-b43f-74bc7e4d08fc",
+        "date": "2025-07-04",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b6a9e3f7-b678-4c84-9750-97b84e9eae6c",
+    "patient_id": "4209455806",
+    "date": "2025-07-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss is documented as a reason for investigation request alongside hoarse voice \u2014 this is an unintentional weight loss red-flag presentation (NG12 criteria); the currently coded concept [416528001] is wrong (terminology server confirms it resolves to a substance, not a finding) and must be replaced with the correct unintentional weight loss concept.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Reasons for Request: weight loss/hoarse voice.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves on the terminology server to a substance (DRB1*08021), not a weight loss finding; furthermore the clinical context (investigation request for unexplained weight loss with hoarse voice) indicates unintentional weight loss, making this code clinically incorrect in both identity and assertion.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The critical error is the weight loss code [416528001]: the terminology server confirms this concept ID does not resolve to any weight loss finding (it returns a substance), and the clinical context \u2014 unexplained weight loss with hoarse voice as reasons for investigation \u2014 mandates coding as unintentional weight loss [448765001], a red-flag symptom pair under NG12. The hyponatraemia code [89627008] is confirmed correct by search despite an unreliable lookup response. All five lab observable entity codes are pipeline-generated and are not flagged. The boilerplate CKD/KFRE advisory text in the report is a template and does not constitute a diagnosis for this patient.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4540,
+        "output_tokens": 1361,
+        "total_tokens": 5901,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "b6a9e3f7-b678-4c84-9750-97b84e9eae6c",
+        "date": "2025-07-04",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "663acb2c-6bc8-431c-8202-5d760ad98adb",
+    "patient_id": "4209455806",
+    "date": "2025-07-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss is listed as a reason for investigation alongside hoarse voice in a patient not on thyroid treatment \u2014 the clinical context strongly implies unintentional/unexplained weight loss, a NG12 red-flag symptom; coding it as 'intentional' is clinically unsafe.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: weight loss/hoarse voice.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The most significant issue is a safety-critical wrong concept: weight loss coded as 'Intentional weight loss' (416528001) when the clinical context \u2014 unexplained weight loss plus hoarse voice prompting FBC investigation in a patient not on thyroid treatment \u2014 clearly indicates unintentional/unexplained weight loss, a NG12 red-flag combination. This must be corrected to 448765001 (Unintentional weight loss). The lab observable entity codes are appropriately auto-filed by the structured pipeline and are not in scope for this audit. The hoarseness code (50219008) is clinically appropriate despite the terminology server returning an unreliable lookup.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5258,
+        "output_tokens": 1336,
+        "total_tokens": 6594,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "663acb2c-6bc8-431c-8202-5d760ad98adb",
+        "date": "2025-07-04",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0c84d469-5727-4c9c-88e4-767d83e54eef",
+    "patient_id": "4209455806",
+    "date": "2025-07-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "416528001",
+          "term": "weight loss",
+          "assertion": "present",
+          "severity": "critical",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "reason": "Coded concept 416528001 resolves to a substance (DRB1*08021), not a clinical finding; in a 2WW head and neck cancer context, weight loss should be coded as unintentional weight loss (448765001)"
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Critical coding error: concept 416528001 resolves to a substance (DRB1*08021), not a finding \u2014 it must be replaced with 448765001 Unintentional weight loss (finding), which is clinically appropriate given the 2WW head and neck cancer context (hoarse voice + weight loss). The note does not support 'intentional' weight loss. The fast-track referral concept (280521000000108) returned an unreliable lookup (organism tag) but is clinically plausible and has not been flagged for deletion per policy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3332,
+        "output_tokens": 1114,
+        "total_tokens": 4446,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "0c84d469-5727-4c9c-88e4-767d83e54eef",
+        "date": "2025-07-04",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "47b7a00e-c34d-45e1-afbc-df54a4e4078d",
+    "patient_id": "4209455806",
+    "date": "2025-07-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "biapical benign pleural thickening",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The radiology report explicitly documents biapical benign pleural thickening as a positive finding and it has not been coded.",
+          "snomed_search": "pleural thickening",
+          "snomed_concept_id": "73725006",
+          "preferred_term": "Thickening of pleura (disorder)",
+          "sentence": "Biapical benign pleural thickening.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves to 'DRB1*08021 (substance)' \u2014 a completely incorrect concept; furthermore the clinical context (2WW red-flag referral) indicates unintentional weight loss, not intentional. Must be replaced with 448765001.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure) [as coded]",
+          "severity": "critical",
+          "reason": "Concept ID 276341000000100 resolves to 'DRB1*09012 (substance)' \u2014 a completely incorrect concept; the note explicitly states this is a 2WW head and neck pathway, not a breast cancer referral. Must be replaced with 280521000000108.",
+          "replace_with_concept_id": "280521000000108",
+          "replace_with_preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "315332003",
+          "name": "Suspected malignant neoplasm (situation) [as coded]",
+          "severity": "high",
+          "reason": "Concept ID 315332003 is unreliable (terminology server returns an Extension Namespace placeholder); the note specifies a head and neck 2WW pathway, so the more specific and verifiable concept 315277001 'Malignant neoplasm of head and/or neck suspected' should be used instead.",
+          "replace_with_concept_id": "315277001",
+          "replace_with_preferred_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Two concept IDs (416528001, 276341000000100) resolve to HLA allele substance codes \u2014 entirely wrong concepts, both safety-critical in a 2WW cancer pathway context. The weight loss must be recoded as unintentional (448765001) and the referral as head and neck fast-track (280521000000108). The suspected neoplasm code (315332003) is unreliable and should be replaced with the specific head/neck situation code (315277001). Biapical pleural thickening from the radiology report is also uncoded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8417,
+        "output_tokens": 2153,
+        "total_tokens": 10570,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "47b7a00e-c34d-45e1-afbc-df54a4e4078d",
+        "date": "2025-07-07",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a2d31136-ef3f-4e71-882e-8d7fbc24d7db",
+    "patient_id": "4209455806",
+    "date": "2025-10-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "productive cough",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a productive cough with purulent yellow-green sputum; this is more specific than the coded 'Does cough' and is clinically significant in the context of a lower respiratory tract infection.",
+          "snomed_search": "productive cough",
+          "snomed_concept_id": "28743005",
+          "preferred_term": "Productive cough (finding)",
+          "sentence": "History: 9 days of coughing productive but improving bringing up phlegm originally clear for past 3 days feels deep from chest and yellow green",
+          "char_start": 120,
+          "char_end": 240
+        },
+        {
+          "term": "runny nose",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Runny nose is explicitly documented as a current symptom and contributes to the clinical picture of a respiratory tract infection.",
+          "snomed_search": "nasal discharge runny nose",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "mentions took otc streptsils some soreness of throat, runny nose",
+          "char_start": 370,
+          "char_end": 433
+        },
+        {
+          "term": "sore throat",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Throat soreness is explicitly documented (patient took OTC Strepsils for it) and is a current symptom in this respiratory illness presentation.",
+          "snomed_search": "sore throat",
+          "snomed_concept_id": "267102003",
+          "preferred_term": "Sore throat (finding)",
+          "sentence": "mentions took otc streptsils some soreness of throat, runny nose",
+          "char_start": 370,
+          "char_end": 433
+        },
+        {
+          "term": "achy joints",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Joint pain is explicitly documented as a current symptom and forms part of the systemic illness presentation.",
+          "snomed_search": "joint pain arthralgia",
+          "snomed_concept_id": "57676002",
+          "preferred_term": "Pain of joint (finding)",
+          "sentence": "Feels tired, achy joints, feels chesty which has not improved",
+          "char_start": 434,
+          "char_end": 494
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "48348007",
+          "name": "Normal breath sounds (finding) [as coded]",
+          "severity": "high",
+          "reason": "The note documents crepitations on the upper zone of the left lung \u2014 the opposite of normal breath sounds \u2014 and this finding directly drove the antibiotic prescribing decision; the coded concept ID also returned as unreliable (organism tag) confirming it is incorrect.",
+          "replace_with_concept_id": "48409008",
+          "replace_with_preferred_term": "Respiratory crackles (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "419502003",
+          "name": "Chest infection (disorder) [as coded]",
+          "severity": "high",
+          "reason": "Lookup returned this concept ID as unreliable (organism semantic tag); the documented diagnosis 'Infection of lower respiratory tract' maps correctly to the verified SNOMED concept 50417007 Lower respiratory tract infection (disorder).",
+          "replace_with_concept_id": "50417007",
+          "replace_with_preferred_term": "Lower respiratory tract infection (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two significant coding errors identified: concept 48348007 ('Normal breath sounds') is directly contradicted by the note which documents left upper zone crepitations \u2014 a safety-relevant finding that drove antibiotic prescribing \u2014 and should be replaced with Respiratory crackles (48409008); concept 419502003 is unreliable and should be replaced with the verified Lower respiratory tract infection code (50417007). Four additional symptoms documented in the history (productive cough specificity, nasal discharge, sore throat, joint pain) are uncoded. Note: the plan states 'Likely URTI' but the diagnosis field and clinical findings (creps, purulent sputum, worsening SOB) support LRTI coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10149,
+        "output_tokens": 2423,
+        "total_tokens": 12572,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "a2d31136-ef3f-4e71-882e-8d7fbc24d7db",
+        "date": "2025-10-30",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ab5a1652-4f4d-4e2c-899e-a03631bbd78d",
+    "patient_id": "4209455806",
+    "date": "2025-10-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "productive cough",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes a productive cough bringing up phlegm; the more specific concept should replace the generic 'Does cough' finding.",
+          "snomed_search": "productive cough",
+          "snomed_concept_id": "28743005",
+          "preferred_term": "Productive cough (finding)",
+          "sentence": "9 days of coughing productive but improving bringing up phlegm originally clear for past 3 days feels deep from chest and yellow green",
+          "char_start": 120,
+          "char_end": 240
+        },
+        {
+          "term": "achy joints",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports achy joints as part of the current illness presentation and this symptom is not captured in any existing code.",
+          "snomed_search": "pain of joint",
+          "snomed_concept_id": "57676002",
+          "preferred_term": "Pain of joint (finding)",
+          "sentence": "Feels tired, achy joints, feels chesty",
+          "char_start": 430,
+          "char_end": 468
+        },
+        {
+          "term": "runny nose",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as a current symptom and is not captured by any existing code.",
+          "snomed_search": "nasal discharge rhinorrhoea",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "mentions took otc streptsils some soreness of throat, runny nose",
+          "char_start": 360,
+          "char_end": 423
+        },
+        {
+          "term": "soreness of throat",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Sore throat is explicitly documented as a current symptom and is not captured by any existing code.",
+          "snomed_search": "sore throat",
+          "snomed_concept_id": "267102003",
+          "preferred_term": "Sore throat (finding)",
+          "sentence": "mentions took otc streptsils some soreness of throat, runny nose",
+          "char_start": 360,
+          "char_end": 423
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "79890006",
+          "name": "Loss of appetite (finding)",
+          "severity": "medium",
+          "reason": "Loss of appetite is not mentioned anywhere in the encounter text; the evidence field references 'loss of apetite' which does not appear in the note, suggesting this was coded in error."
+        },
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "medium",
+          "reason": "The note describes a specifically productive cough; the generic 'Does cough' concept should be replaced by the more specific 'Productive cough' (28743005) to accurately reflect the documented clinical finding.",
+          "replace_with_concept_id": "28743005",
+          "replace_with_preferred_term": "Productive cough (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding has two clear errors: 'Loss of appetite' (79890006) is not evidenced anywhere in the note and should be removed; 'Does cough' (289114008) should be replaced by the more specific 'Productive cough' (28743005). Three additional symptoms documented in the history \u2014 joint pain, nasal discharge, and sore throat \u2014 are missing from the coded list. Note: lookup_concept returned an unreliable substance tag for 79890006 but search_snomed confirms the correct preferred term; the overcode is justified by absence of the finding in the note text rather than the lookup discrepancy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4379,
+        "output_tokens": 1850,
+        "total_tokens": 6229,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4209455806",
+        "encounter_id": "ab5a1652-4f4d-4e2c-899e-a03631bbd78d",
+        "date": "2025-10-30",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  }
+]

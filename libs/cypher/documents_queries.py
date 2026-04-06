@@ -37,6 +37,24 @@ _LABEL_BY_TAG: dict[str, str] = {
     "other": "SnomedConcept",
 }
 
+# Semantic tags that must never be written as DOCUMENTS relationships on a
+# patient encounter. Body structures and organisms are not clinical events
+# -- they are anatomy/taxonomy reference nodes. Writing them as findings
+# produces noise that the audit agent then has to correct.
+_BLOCKED_SEMANTIC_TAGS: frozenset[str] = frozenset({
+    "bodystructure",
+    "body structure",
+    "organism",
+    "virus",
+    "bacterium",
+    "fungus",
+    "environment or geographical location",
+    "physical object",
+    "record artifact",
+    "namespace concept",
+    "special concept",
+})
+
 # Maps Neo4j node label → patient-level relationship type
 _REL_BY_LABEL: dict[str, str] = {
     "Clinical_finding": "HAS_FINDING",
@@ -101,8 +119,8 @@ FOREACH (_ IN CASE WHEN $assertion IN ['present', 'historical'] THEN [1] ELSE []
 
 
 _NON_PRESENT = {
-    "absent", "refuted", "possible", "historical", "hypothetical",
-    "family", "declined", "cancelled",
+    "absent", "refuted", "possible", "historical", "planned",
+    "hypothetical", "family", "declined", "cancelled",
 }
 
 
@@ -132,6 +150,7 @@ def _assertion_context(assertion: str | None) -> dict:
         "refuted":      a == "refuted",
         "uncertain":    a == "possible",
         "historical":   a == "historical",
+        "planned":      a == "planned",
         "hypothetical": a == "hypothetical",
         "family":       a == "family",
         "declined":     a == "declined",
@@ -172,6 +191,18 @@ def write_documents_from_sentences_payload(
 
     Returns the number of DOCUMENTS links written.
     """
+    # Pre-scan: collect active (present-assertion) disorder/finding terms so
+    # "History of X" situation codes can be suppressed when X is already active.
+    _active_terms: set[str] = set()
+    for _sent in sentences_payload:
+        for _term in _sent.get("terms", []):
+            _tag = (_term.get("semantic_tag") or "").lower()
+            _assertion = (_term.get("assertion") or "present").lower()
+            _coding = _term.get("coding") or {}
+            _pterm = (_coding.get("snomed_term") or "").strip().lower()
+            if _tag in {"disorder", "finding", "clinicalfinding"} and _assertion == "present" and _pterm:
+                _active_terms.add(_pterm)
+
     written = 0
     for sentence_index, sentence in enumerate(sentences_payload):
         sentence_text = sentence.get("text") or ""
@@ -182,6 +213,32 @@ def write_documents_from_sentences_payload(
                 continue
 
             semantic_tag = term.get("semantic_tag") or "other"
+            norm_tag = "".join(
+                ch for ch in semantic_tag.lower() if ch.isalnum() or ch == " "
+            ).strip()
+            if norm_tag in _BLOCKED_SEMANTIC_TAGS or semantic_tag.lower().replace(
+                " ", ""
+            ) in {t.replace(" ", "") for t in _BLOCKED_SEMANTIC_TAGS}:
+                logger.debug(
+                    "Skipping write for concept %s: blocked semantic tag '%s'",
+                    concept_id, semantic_tag,
+                )
+                continue
+            # Suppress "History of X (situation)" when active X is already
+            # being written in this payload -- avoids redundant co-coding.
+            snomed_term_lower = (coding.get("snomed_term") or "").strip().lower()
+            if (
+                semantic_tag.lower() == "situation"
+                and snomed_term_lower.startswith("history of ")
+            ):
+                underlying = snomed_term_lower.removeprefix("history of ").split("(")[0].strip()
+                if underlying and underlying in _active_terms:
+                    logger.debug(
+                        "Suppressing redundant 'History of %s' situation (active "
+                        "disorder already coded in this encounter)", underlying
+                    )
+                    continue
+
             label = _label_for_tag(semantic_tag)
             rel_type = _REL_BY_LABEL.get(label, "HAS_CONCEPT")
             query = _build_upsert_query(label, rel_type)

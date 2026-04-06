@@ -1,0 +1,357 @@
+[
+  {
+    "encounter_id": "bbb6f5c8-b4a9-4723-a52b-8fe7cf33b61f",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "6471006",
+          "term": "Suicidal thoughts (finding)",
+          "assessment": "correct"
+        },
+        {
+          "concept_id": "231504006",
+          "term": "Mixed anxiety and depressive disorder (disorder)",
+          "assessment": "correct"
+        },
+        {
+          "concept_id": "394687007",
+          "term": "At low risk for suicide (finding)",
+          "assessment": "correct"
+        },
+        {
+          "concept_id": "24921000000109",
+          "term": "Referral to community mental health team (procedure)",
+          "assessment": "correct"
+        },
+        {
+          "concept_id": "225826001",
+          "term": "Victim of sexual abuse (finding)",
+          "assessment": "wrong_assertion \u2014 should be historical; also consider more specific child code"
+        }
+      ],
+      "missing": [
+        {
+          "term": "son's disclosure of childhood rape \u2014 safeguarding concern",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The patient's son has disclosed he was raped as a child and has not yet named the perpetrator; this is an active safeguarding concern involving a child in the family that must be coded per mandatory safeguarding documentation requirements.",
+          "snomed_search": "child safeguarding concern sexual abuse",
+          "snomed_concept_id": "1874111000000101",
+          "preferred_term": "Safeguarding concern about sexual abuse (finding)",
+          "sentence": "son has opened up about abuse he suffered as a child and has accused Chrstina of being aware of it but she has no recollection of it at all",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "225826001",
+          "name": "Victim of sexual abuse (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The patient's own sexual abuse was perpetrated by her father in childhood ('her own abuse at hands of her father') \u2014 this is a historical finding, not a current/active one; additionally, the more specific concept 700229002 'Victim of child sexual abuse (finding)' better reflects the documented history."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Four of the five coded concepts are correct and well-evidenced. The critical gap is the absence of a safeguarding code: the son's disclosure of childhood rape is an active safeguarding concern about sexual abuse (1874111000000101) that must be documented. The patient's own childhood abuse (225826001) is coded with the wrong assertion (present vs historical) and a more specific concept \u2014 700229002 Victim of child sexual abuse \u2014 is available. Note: multiple lookup_concept calls returned corrupted/unreliable results from the terminology server; concept correctness was verified via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 5,
+        "input_tokens": 13691,
+        "output_tokens": 2117,
+        "total_tokens": 15808,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4483039911",
+        "encounter_id": "bbb6f5c8-b4a9-4723-a52b-8fe7cf33b61f",
+        "date": "2025-12-01",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "09197dd2-6f3b-4d52-a368-37968fd68bb4",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "326297fa-6073-45a7-9196-4d01897f2799",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter is purely administrative: a receptionist (non-clinical access role) processed a repeat medication request. Content consists entirely of prescription reissue lines, ETP2 FP10 print status entries, encounter-type markers (Administration), and a Summary Care Record update flag. No clinical narrative, diagnoses, examination findings, investigations, or procedures are documented. No SNOMED coding is required or appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 1000,
+        "output_tokens": 314,
+        "total_tokens": 1314,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4483039911",
+        "encounter_id": "326297fa-6073-45a7-9196-4d01897f2799",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a8702b4f-953d-4319-8181-ff08adc4527f",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only administrative text: a receptionist-processed repeat medication request for Leqvio (inclisiran), an FP10 print event, and a Summary Care Record update \u2014 no clinical narrative is present. The coded concept [74732009] 'Mental disorder / Suicidal thoughts' is a standing problem-list entry (assertion=present) and must not be removed on the basis of an administrative encounter; lookup_concept returned an unreliable result for this ID (semantic tag 'organism') but this does not justify deletion of a safety-critical standing problem. No coding additions or changes are warranted from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 3,
+        "input_tokens": 2637,
+        "output_tokens": 817,
+        "total_tokens": 3454,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4483039911",
+        "encounter_id": "a8702b4f-953d-4319-8181-ff08adc4527f",
+        "date": "2025-12-01",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f73f42d3-9a5b-4700-b77e-b96f0705153f",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter contains only administrative referral routing information: staff member allocation, referral dates, service/team names (Charnwood CMHT / LLR MHSOP), and acceptance status. No clinical narrative, diagnoses, symptoms, findings, procedures, or medications are present. No SNOMED coding is applicable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 456,
+        "output_tokens": 376,
+        "total_tokens": 832,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4483039911",
+        "encounter_id": "f73f42d3-9a5b-4700-b77e-b96f0705153f",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0fb88199-f1c2-4d05-8e9f-f93e9b7a0b9b",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of an administrative repeat medication stop entry (Citalopram 20mg ended on clinical grounds). There is no clinical narrative, examination, diagnosis, or procedure documented. The standing problem-list code [74732009] Mental disorder is correctly retained and must not be removed on the basis of this administrative entry alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 435,
+        "output_tokens": 453,
+        "total_tokens": 888,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4483039911",
+        "encounter_id": "0fb88199-f1c2-4d05-8e9f-f93e9b7a0b9b",
+        "date": "2025-12-01",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1a982d4b-141e-438c-bd88-ef925c755127",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c336967b-9f44-4d18-8295-71075ed30459",
+    "patient_id": "4483039911",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only administrative referral routing text (CMHT allocation, team assignment, start date, status). There is no clinical narrative, examination, or clinician-documented diagnosis. The existing code [74732009] Mental disorder was inferred from the service name in the routing header, not from clinical content; however, per policy, standing problem-list codes on administrative encounters must not be flagged for deletion. No coding additions are warranted from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 471,
+        "output_tokens": 492,
+        "total_tokens": 963,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4483039911",
+        "encounter_id": "c336967b-9f44-4d18-8295-71075ed30459",
+        "date": "2025-12-01",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "eaa600ce-70c0-4eb9-a822-b154855f4a90",
+    "patient_id": "4483039911",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only administrative text: a receptionist left a voicemail for a patient about a provisionally booked home visit assessment appointment, with no clinical narrative, findings, diagnoses, or procedures performed. The coded concept 386472008 (Telephone consultation) was looked up and returned as unreliable (server returned semantic tag 'organism'), but regardless, no clinical coding is warranted for this purely administrative scheduling entry.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 2,
+        "input_tokens": 1297,
+        "output_tokens": 590,
+        "total_tokens": 1887,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4483039911",
+        "encounter_id": "eaa600ce-70c0-4eb9-a822-b154855f4a90",
+        "date": "2025-12-02",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2d107a5a-94a8-4a80-a7d8-758bab6d3782",
+    "patient_id": "4483039911",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "45ac868a-ddda-493d-8b83-7e74ee63219e",
+    "patient_id": "4483039911",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9d313d26-d068-46a2-b8bb-947754b45a4d",
+    "patient_id": "4483039911",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bc4187ea-31b2-4034-87b3-041447a1355e",
+    "patient_id": "4483039911",
+    "date": "2025-12-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1df0604d-6e26-42f2-b1a5-b6a441abf838",
+    "patient_id": "4483039911",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

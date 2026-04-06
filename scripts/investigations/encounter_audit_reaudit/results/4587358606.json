@@ -1,0 +1,2726 @@
+[
+  {
+    "encounter_id": "d9a16961-956d-49b2-963f-0849f85c8ba3",
+    "patient_id": "4587358606",
+    "date": "2024-01-26",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of a receptionist-processed repeat prescription request, ETP2 FP10 signing entries, and a Summary Care Record preference update \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text present. The two already-coded concepts were inferred from medication names alone and are not evidenced by any clinical content in this note; they should not be added or removed on the basis of this administrative encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 775,
+        "output_tokens": 452,
+        "total_tokens": 1227,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "d9a16961-956d-49b2-963f-0849f85c8ba3",
+        "date": "2024-01-26",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "35f303bf-8002-4711-95f6-f8728a010223",
+    "patient_id": "4587358606",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-issued repeat prescription request and ETP2 printing status lines \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text. The two standing problem-list codes (essential hypertension, type 2 diabetes) are legitimately held on the problem list and must not be removed on the basis of an admin-only encounter; no coding action is required from this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 733,
+        "output_tokens": 485,
+        "total_tokens": 1218,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "35f303bf-8002-4711-95f6-f8728a010223",
+        "date": "2024-03-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "25213b8b-cde4-4f79-82ff-49786eada5bf",
+    "patient_id": "4587358606",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "HbA1c outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The result is explicitly flagged 'Outside reference range' at 68 mmol/mol; the abnormal finding should be coded to support QOF reporting, clinical decision support, and diabetes monitoring.",
+          "snomed_search": "haemoglobin A1c above reference range",
+          "snomed_concept_id": "444751005",
+          "preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "sentence": "Haemoglobin A1c level - IFCC standardised (XaPbt) 68 mmol/mol [20 - 41] - Outside reference range",
+          "char_start": 47,
+          "char_end": 130
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "446074002",
+          "name": "Hemoglobin A1c target value using IFCC standardized method (observable entity)",
+          "severity": "medium",
+          "reason": "This concept represents a target value observable, not a measured HbA1c level; the note records an actual measured result (68 mmol/mol), so the correct observable is 'Haemoglobin A1c level - IFCC standardised' (999791000000106). Additionally, lookup_concept returned an unreliable Extension Namespace placeholder for this ID, raising further doubt about its validity in this context.",
+          "replace_with_concept_id": "999791000000106",
+          "replace_with_preferred_term": "Haemoglobin A1c level - International Federation of Clinical Chemistry and Laboratory Medicine standardised (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coded observable entity (446074002) appears to represent a 'target value' rather than a measured HbA1c level, and the terminology server returned an unreliable placeholder for this ID \u2014 it should be replaced with the measured-level observable 999791000000106. More importantly, the explicitly flagged abnormal result (68 mmol/mol, outside reference range) is missing its corresponding finding code 444751005 'Hemoglobin A1c above reference range', which is required for QOF and diabetes monitoring workflows.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4412,
+        "output_tokens": 1358,
+        "total_tokens": 5770,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "25213b8b-cde4-4f79-82ff-49786eada5bf",
+        "date": "2024-03-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "01a87572-52ea-4f99-b0f5-89b6f3a9b84c",
+    "patient_id": "4587358606",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "diabetes mellitus",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly a diabetes mellitus review ('dm check') with an HbA1c result; the active diabetes diagnosis must be coded.",
+          "snomed_search": "type 2 diabetes mellitus",
+          "snomed_concept_id": "44054006",
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: dm check.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "HbA1c 8.4% outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The HbA1c result of 8.4% is explicitly flagged as outside the reference range; the correct finding code for borderline diabetic control (7\u201310%) should be recorded.",
+          "snomed_search": "haemoglobin A1c borderline diabetic control",
+          "snomed_concept_id": "165680008",
+          "preferred_term": "Hemoglobin A1c between 7 percent to 10 percent indicating borderline diabetic control (finding)",
+          "sentence": "Haemoglobin A1c level (X772q) 8.4 % [4 - 5.9] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "160303001",
+          "name": "Family history of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "There is no mention of family history anywhere in the encounter note; this appears to have been incorrectly inferred from the 'dm check' reason for request, which refers to the patient's own diabetes review.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "408591000",
+          "name": "Hemoglobin A1c target (observable entity) [UNRELIABLE \u2014 lookup returned organism semantic tag]",
+          "severity": "high",
+          "reason": "Concept 408591000 is unreliable (terminology server returned semantic_tag='organism'); the correct code for the documented elevated HbA1c finding is 444751005 (Hemoglobin A1c above reference range) or more specifically 165680008 for the 7\u201310% borderline control range.",
+          "replace_with_concept_id": "165680008",
+          "replace_with_preferred_term": "Hemoglobin A1c between 7 percent to 10 percent indicating borderline diabetic control (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Both coded concepts are incorrect: 160303001 (family history of DM) is not evidenced by the note and should be replaced with the active diabetes diagnosis; 408591000 is an unreliable/invalid concept ID that should be replaced with the specific HbA1c borderline control finding (165680008). The active diabetes mellitus diagnosis (44054006) is entirely absent from the coding despite this being a diabetes review encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6224,
+        "output_tokens": 1777,
+        "total_tokens": 8001,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "01a87572-52ea-4f99-b0f5-89b6f3a9b84c",
+        "date": "2024-03-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8a6965bc-b89f-4611-a0d5-b1799317e31c",
+    "patient_id": "4587358606",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-handled repeat prescription request and ETP2 FP10 status lines \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text. The two standing codes (essential hypertension, type 2 diabetes) are problem-list codes inferred from medications and must not be added or removed on the basis of this administrative-only encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 729,
+        "output_tokens": 479,
+        "total_tokens": 1208,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "8a6965bc-b89f-4611-a0d5-b1799317e31c",
+        "date": "2024-03-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7925ce07-9e3d-463f-b038-636d5a7c8d1a",
+    "patient_id": "4587358606",
+    "date": "2024-05-20",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-issued repeat prescription request, ETP2 FP10 printing status lines, and a Summary Care Record preference update \u2014 no clinical narrative, examination, diagnosis, or prescriber review text is present. The two standing codes (Essential hypertension, Type 2 diabetes mellitus) are problem-list codes inferred from medications and must not be added or removed on the basis of this administrative-only encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 782,
+        "output_tokens": 447,
+        "total_tokens": 1229,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "7925ce07-9e3d-463f-b038-636d5a7c8d1a",
+        "date": "2024-05-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d3f82546-c4c8-4d2e-a76d-4db70ed62337",
+    "patient_id": "4587358606",
+    "date": "2024-07-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Haemoglobin A1c above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The HbA1c result of 69 mmol/mol is explicitly documented as outside the reference range (20\u201341 mmol/mol) and in the diabetic range; the abnormal finding should be coded, not merely the observable target.",
+          "snomed_search": "haemoglobin A1c raised",
+          "snomed_concept_id": "444751005",
+          "preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "sentence": "Haemoglobin A1c level - IFCC standardised (XaPbt) 69 mmol/mol [20 - 41] - Outside reference range",
+          "char_start": 22,
+          "char_end": 100
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "408591000",
+          "name": "Hemoglobin A1c target (observable entity)",
+          "severity": "medium",
+          "reason": "This concept represents a treatment target value (observable entity), not an abnormal result finding; it is not evidenced by the encounter text and is the wrong semantic type for coding a lab result outcome.",
+          "replace_with_concept_id": "444751005",
+          "replace_with_preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing code (408591000 \u2014 HbA1c target, observable entity) is the wrong concept type for this encounter: it represents a treatment target, not a result finding. It should be replaced with 444751005 (Hemoglobin A1c above reference range, finding), which correctly captures the documented abnormal result of 69 mmol/mol. Note: lookup_concept returned an unreliable/corrupted result for 408591000, but the second search independently confirmed its preferred term as 'Hemoglobin A1c target (observable entity)', supporting the overcoded flag.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4583,
+        "output_tokens": 1305,
+        "total_tokens": 5888,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "d3f82546-c4c8-4d2e-a76d-4db70ed62337",
+        "date": "2024-07-12",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e3fc52cb-6e0c-4aaa-ba5d-da0f39e7642b",
+    "patient_id": "4587358606",
+    "date": "2024-07-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept 444751005 (Hemoglobin A1c above reference range) is confirmed as a valid SNOMED finding by the terminology search and is well-supported by the encounter text (HbA1c 8.5%, flagged outside reference range, marked abnormal). lookup_concept returned an unreliable/corrupted result for this ID, but search_snomed independently confirms the concept ID and preferred term are correct. The encounter is an auto-filed lab result review with no additional codeable clinical content beyond the HbA1c finding already captured.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2021,
+        "output_tokens": 409,
+        "total_tokens": 2430,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "e3fc52cb-6e0c-4aaa-ba5d-da0f39e7642b",
+        "date": "2024-07-12",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "77f96a59-b14b-4c50-858a-bcea29ecdc37",
+    "patient_id": "4587358606",
+    "date": "2024-07-16",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-processed repeat prescription request, ETP printing status lines, and a Summary Care Record preference note \u2014 there is no clinical narrative, GP review text, symptoms, examination, diagnosis, or investigation interpretation. The two existing coded concepts (Essential hypertension, Type 2 diabetes mellitus) were inferred solely from medication names, which is explicitly excluded from coding scope; however, as standing problem-list codes they must not be flagged for removal on the basis of an admin-only encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1958,
+        "output_tokens": 438,
+        "total_tokens": 2396,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "77f96a59-b14b-4c50-858a-bcea29ecdc37",
+        "date": "2024-07-16",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "62c3642f-6aac-4967-a454-0289cfe09599",
+    "patient_id": "4587358606",
+    "date": "2024-07-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Diabetic foot care education",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents diabetic foot care education being provided, including advice on hard skin and self-referral to the foot call centre \u2014 this is a distinct clinical procedure that should be coded.",
+          "snomed_search": "diabetic foot care education",
+          "snomed_concept_id": "923361000000106",
+          "preferred_term": "Diabetic foot care education (procedure)",
+          "sentence": "Education on diabetic foot care: Yes Has hard skin to both feet asking for foot call centre number to self refer - provided",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Libre sensor trial / intermittently scanned CGM provision",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A FreeStyle Libre sensor was physically provided from stock for a 2-week trial \u2014 this is a clinical procedure (provision of an interstitial glucose monitoring system) that should be coded.",
+          "snomed_search": "intermittently scanned glucose monitoring provision",
+          "snomed_concept_id": "1464551000000109",
+          "preferred_term": "Provision of intermittently scanned minimally-invasive interstitial fluid continuous glucose monitoring system (procedure)",
+          "sentence": "Libre trial using sensor from stock for 2 weeks then rev with readings - APPT BOOKED FOR 3 WEEKS",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lifestyle counselling",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note documents lifestyle advice covering diet, alcohol, smoking, exercise and weight \u2014 this is a lifestyle education/counselling procedure that should be coded; the current 'Healthy diet' code is wrong and does not capture the full scope of the advice given.",
+          "snomed_search": "lifestyle education",
+          "snomed_concept_id": "313204009",
+          "preferred_term": "Lifestyle education (procedure)",
+          "sentence": "Lifestyle advice on diet, alcohol, smoking, exercise & weight: Yes generally good",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "226234005",
+          "name": "Healthy diet (finding) [coded] \u2014 resolves to Ceftazidime (substance)",
+          "severity": "high",
+          "reason": "Concept ID 226234005 resolves on the terminology server to 'Ceftazidime (substance)' \u2014 an antibiotic substance \u2014 which is entirely wrong for this encounter; the intended concept (lifestyle/diet advice) should be replaced with a procedure code for lifestyle education.",
+          "replace_with_concept_id": "313204009",
+          "replace_with_preferred_term": "Lifestyle education (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three coding gaps identified: diabetic foot care education and Libre sensor provision are both explicitly documented procedures that are uncoded. The 'Healthy diet' code (226234005) is a critical mapping error \u2014 the concept ID resolves to Ceftazidime (substance) on the terminology server and must be replaced with a lifestyle education procedure code. The poor glycaemic control code (237622006) is confirmed correct by SNOMED search despite server unreliability. Future plans (swap to Mounjaro, possible Gliclazide addition) are not yet codeable as procedures.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6002,
+        "output_tokens": 1704,
+        "total_tokens": 7706,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "62c3642f-6aac-4967-a454-0289cfe09599",
+        "date": "2024-07-31",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "52be9e93-c8fc-4c79-b469-bd1f393f19b2",
+    "patient_id": "4587358606",
+    "date": "2024-08-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Diabetes medication review",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented in the encounter template as 'Diabetes medication review (XaIfM)' \u2014 a distinct clinical procedure that should be coded.",
+          "snomed_search": "diabetes medication review",
+          "snomed_concept_id": "394725008",
+          "preferred_term": "Diabetes medication review (procedure)",
+          "sentence": "Medication review: Diabetes medication review (XaIfM)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Libre / flash glucose monitoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note documents active use of the Libre intermittently scanned CGM system with recorded glucose data, which is a codeable procedure distinct from the diabetes diagnosis.",
+          "snomed_search": "flash glucose monitoring",
+          "snomed_concept_id": "1464551000000109",
+          "preferred_term": "Provision of intermittently scanned minimally-invasive interstitial fluid continuous glucose monitoring system (procedure)",
+          "sentence": "CGM/Flash - Recordings: Blood glucose dates: 7-21/8/24 ... Has found Libre useful - having spike after breakfast, and relatively stable during day.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lifestyle counselling",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as 'Lifestyle counselling (XaEFY)' with diet, alcohol, smoking, exercise and weight advice confirmed as given \u2014 a codeable procedure.",
+          "snomed_search": "lifestyle counselling",
+          "snomed_concept_id": "313204009",
+          "preferred_term": "Lifestyle education (procedure)",
+          "sentence": "Lifestyle advice on diet, alcohol, smoking, exercise & weight: Yes / Lifestyle counselling (XaEFY)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1287686004",
+          "name": "Calcineurin inhibitor therapy (procedure)",
+          "severity": "medium",
+          "reason": "Concept 1287686004 resolves to 'Calcineurin inhibitor therapy' (confirmed unreliable/organism by lookup), which is clinically unrelated to this encounter; it was coded as a proxy for SGLT2 inhibitor monitoring, but no valid SNOMED concept for SGLT2 inhibitor monitoring was returned by the terminology server \u2014 this code must be removed as it is factually incorrect.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "No valid SNOMED equivalent found for SGLT2 inhibitor monitoring via search"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a structured diabetes nurse review with CGM/Libre data, GLP-1/SGLT2 therapy, and lifestyle counselling \u2014 all well-documented. The most significant error is concept 1287686004 (Calcineurin inhibitor therapy), which is wholly incorrect as a proxy for SGLT2 inhibitor monitoring and must be removed; no valid SNOMED replacement exists on this server. Three additional procedures are missing: diabetes medication review (394725008), Libre/flash CGM provision (1464551000000109), and lifestyle education (313204009). The type 2 diabetes code (44054006) returned as unreliable from the server but is clinically appropriate given the encounter content. Note: planned change to Mounjaro and future HbA1c (October) are not yet codeable as procedures.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 17984,
+        "output_tokens": 2112,
+        "total_tokens": 20096,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "52be9e93-c8fc-4c79-b469-bd1f393f19b2",
+        "date": "2024-08-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "95ae0934-98e6-46fb-af82-e8784335335f",
+    "patient_id": "4587358606",
+    "date": "2024-09-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "diabetes mellitus",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes the patient's own diabetes: on diabetic medication, blood sugars around 8 mmol/L, and advised of increased ulceration risk due to high blood sugars \u2014 this is the patient's active condition, not a family history.",
+          "snomed_search": "type 2 diabetes mellitus",
+          "snomed_concept_id": "44054006",
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "sentence": "He says historically his blood sugars have been high as they have been trying to sort out diabetic medication and his weight fluctuated due to this. He has now lost the weight and his meds seem to be stable but blood sugars are still around 8.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hallux limitus bilaterally",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Hallux limitus and excessive pronation bi-laterally' as the diagnosis; a bilateral-specific SNOMED concept exists and is more precise than the broad 'Acquired deformity of joint of big toe'.",
+          "snomed_search": "acquired hallux limitus bilateral",
+          "snomed_concept_id": "15636171000119102",
+          "preferred_term": "Acquired hallux limitus of bilateral great toes (disorder)",
+          "sentence": "Hallux limitus and excessive pronation bi-laterally",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "foot pain (arch pain)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Arch pain is the primary presenting complaint driving this referral; the currently coded concept 9089003 is a body structure (out of scope) and unreliable \u2014 a finding-level code for foot pain is required.",
+          "snomed_search": "foot pain",
+          "snomed_concept_id": "47933007",
+          "preferred_term": "Foot pain (finding)",
+          "sentence": "Pain in arches worse when on feet all day but pain continues after resting.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "160303001",
+          "name": "Family history of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "The note describes the patient's own active diabetes (on diabetic medication, blood sugars ~8 mmol/L, ulceration risk counselling) \u2014 this is not a family history; the correct code is Diabetes mellitus type 2 [44054006] with assertion=present.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "9089003",
+          "name": "Structure of arch of foot (body structure)",
+          "severity": "medium",
+          "reason": "This is a body structure concept outside the codeable SNOMED scope for this encounter; the clinical finding of arch/foot pain should be coded as Foot pain [47933007] (finding) instead.",
+          "replace_with_concept_id": "47933007",
+          "replace_with_preferred_term": "Foot pain (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "240254005",
+          "name": "Acquired deformity of joint of big toe (disorder)",
+          "severity": "low",
+          "reason": "The note specifies bilateral hallux limitus; a more specific bilateral concept exists [15636171000119102] and should replace this overly broad parent code.",
+          "replace_with_concept_id": "15636171000119102",
+          "replace_with_preferred_term": "Acquired hallux limitus of bilateral great toes (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "247398009",
+          "name": "Neuropathic pain (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note explicitly states 'Possible neurological pains' as the diagnosis and the care plan frames it as a contingent hypothesis ('if no resolution possible cause could be neurological'), indicating uncertainty rather than a confirmed active finding."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The most critical error is coding the patient's own active type 2 diabetes as 'Family history of diabetes mellitus' \u2014 this must be corrected to Diabetes mellitus type 2 [44054006] with assertion=present, as the entire clinical management (ulceration risk, medication review, neurological concern) is predicated on the patient's own diabetic status. Additional issues include: a body structure code used in place of a finding for arch pain; an overly broad hallux deformity code where a bilateral-specific concept exists; and neuropathic pain coded as present when the note clearly marks it as possible/uncertain.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 16150,
+        "output_tokens": 2636,
+        "total_tokens": 18786,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "95ae0934-98e6-46fb-af82-e8784335335f",
+        "date": "2024-09-05",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "13d96030-3b38-4450-b05a-1ec646e7c16d",
+    "patient_id": "4587358606",
+    "date": "2024-09-09",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-initiated repeat prescription request, ETP2 signing status lines, and a Summary Care Record preference update \u2014 there is no clinical narrative, prescriber review text, or documented diagnosis in this encounter. The two standing codes (hypertension, type 2 diabetes) are problem-list codes inferred from medication names and must not be challenged or added to on the basis of this administrative-only note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 779,
+        "output_tokens": 466,
+        "total_tokens": 1245,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "13d96030-3b38-4450-b05a-1ec646e7c16d",
+        "date": "2024-09-09",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "262ec76e-b3b2-497b-9769-66ee888dbebf",
+    "patient_id": "4587358606",
+    "date": "2024-10-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "This is an auto-filed lab result encounter for a DM review; all observable entity codes are correctly written by the structured pipeline and are excluded from audit scope. The [161445009] 'History of diabetes mellitus (situation)' code is confirmed correct via search (lookup_concept returned unreliable due to a server index anomaly, not a real error). AKI Stage 0 / No AKI is an explicitly absent finding and correctly not coded. No new codeable disorders, findings, or procedures are documented in the encounter narrative.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3863,
+        "output_tokens": 954,
+        "total_tokens": 4817,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "262ec76e-b3b2-497b-9769-66ee888dbebf",
+        "date": "2024-10-25",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d57b6572-4c81-48ec-b8ad-a961f8442e6f",
+    "patient_id": "4587358606",
+    "date": "2024-10-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "microcytic anaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Low Hb (124 g/L), MCV (75 fL) and MCH (23.6 pg) all below reference range with report marked 'Abnormal, Need to speak to doctor' \u2014 the clinical interpretation is a microcytic anaemia pattern that should be coded as a disorder.",
+          "snomed_search": "microcytic anaemia",
+          "snomed_concept_id": "234349007",
+          "preferred_term": "Microcytic anemia (disorder)",
+          "sentence": "Haemoglobin concentration (Xa96v) 124 g/L [130 - 180] - Outside reference range; Mean cell volume (42A..) 75 fL [80 - 99] - Outside reference range; Mean cell haemoglobin level (XE2pb) 23.6 pg [27 - 32] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Full blood count outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The report is explicitly labelled 'Full blood count Report, Abnormal, Need to speak to doctor' \u2014 the overall FBC result interpretation should be coded in addition to individual parameter findings.",
+          "snomed_search": "abnormal full blood count",
+          "snomed_concept_id": "165408006",
+          "preferred_term": "Full blood count outside reference range (finding)",
+          "sentence": "Full blood count Report, Abnormal, Need to speak to doctor (Patient Informed). Review done by JOHAL, Jaspreet (Dr) - 28 Oct 2024 07:57",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "MCV below reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MCV 75 fL is flagged outside the reference range [80\u201399 fL]; the observable entity is coded but the abnormal finding interpretation is absent.",
+          "snomed_search": "mean cell volume below reference range",
+          "snomed_concept_id": "165455001",
+          "preferred_term": "Mean corpuscular volume below reference range (finding)",
+          "sentence": "Mean cell volume (42A..) 75 fL [80 - 99] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "MCH below reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MCH 23.6 pg is flagged outside the reference range [27\u201332 pg]; the observable entity is coded but the abnormal finding interpretation is absent.",
+          "snomed_search": "mean cell volume below reference range",
+          "snomed_concept_id": "165439008",
+          "preferred_term": "Mean corpuscular hemoglobin below reference range (finding)",
+          "sentence": "Mean cell haemoglobin level (XE2pb) 23.6 pg [27 - 32] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Haematocrit below reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Haematocrit 0.394 is flagged outside the reference range [0.4\u20130.54]; the observable entity is coded but the abnormal finding interpretation is absent.",
+          "snomed_search": "mean cell volume below reference range",
+          "snomed_concept_id": "165414004",
+          "preferred_term": "Hematocrit below reference range (finding)",
+          "sentence": "Haematocrit (X76tb) 0.394 [0.4 - 0.54] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter captures an auto-filed FBC result with multiple parameters outside reference range consistent with a microcytic, hypochromic anaemia pattern; the key clinical interpretation (microcytic anaemia disorder) and the overall abnormal FBC finding are not coded. The 'History of diabetes mellitus' situation code is questionable given that 'dm review' implies active disease management \u2014 an active diabetes disorder code should be present on the problem list. Patient demographics were unavailable (tool error), so sex-specific reference range interpretation (Hb 130\u2013180 g/L suggests male) could not be confirmed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8448,
+        "output_tokens": 2583,
+        "total_tokens": 11031,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "d57b6572-4c81-48ec-b8ad-a961f8442e6f",
+        "date": "2024-10-25",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "37c51e6f-07b6-499f-8c3a-3a9c45e77623",
+    "patient_id": "4587358606",
+    "date": "2024-10-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine protein/creatinine ratio",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The urine PCR result (25 mg/mmol) is the primary investigation reported in this encounter and should be coded as an observable entity alongside the other structured lab results already coded.",
+          "snomed_search": "urine protein creatinine ratio",
+          "snomed_concept_id": "1028731000000100",
+          "preferred_term": "Urine protein/creatinine ratio (observable entity)",
+          "sentence": "Urine protein/creatinine ratio (XaEMS) 25 mg/mmol [< 30]",
+          "char_start": 28,
+          "char_end": 72
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a DM complication screening review with a normal urine PCR result; the urine protein/creatinine ratio observable entity is the only substantive gap \u2014 all other structured lab values (eGFR, creatinine, electrolytes, urea, weight, BMI, BP) are already coded. Note: lookup of concept 161445009 ('History of diabetes mellitus') returned an unreliable result (organism semantic tag) from the terminology server \u2014 human review of that concept ID is advisable, though it is not flagged for deletion per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5465,
+        "output_tokens": 1337,
+        "total_tokens": 6802,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "37c51e6f-07b6-499f-8c3a-3a9c45e77623",
+        "date": "2024-10-25",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b1ea4534-b739-44da-833d-80fbc3a8824e",
+    "patient_id": "4587358606",
+    "date": "2024-10-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "HbA1c above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The HbA1c of 7.9% is explicitly documented as outside reference range and above target; this clinical finding should be coded as a finding, not as an observable entity target concept.",
+          "snomed_search": "haemoglobin A1c above reference range",
+          "snomed_concept_id": "444751005",
+          "preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "sentence": "Haemoglobin A1c level Report, Borderline, Make an appointment to see nurse, Communicate Patient, Other (improving but above target - appt WB or SR text to pt).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "408591000",
+          "name": "Hemoglobin A1c target (observable entity)",
+          "severity": "medium",
+          "reason": "This is an observable entity concept representing a target value, not a clinical finding; the evidence field contains fabricated reasoning text rather than actual note text, and the correct finding code for HbA1c outside reference range is 444751005.",
+          "replace_with_concept_id": "444751005",
+          "replace_with_preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is an auto-filed HbA1c result for an active DM review. The key coding error is the use of 408591000 (an observable entity 'target' concept with a fabricated evidence string) instead of the correct finding 444751005 'Hemoglobin A1c above reference range'. Additionally, coding active diabetes as 'History of diabetes mellitus (situation)' is semantically incorrect for a patient with an ongoing DM review; an active disorder code should be used. The four observable entity codes (HbA1c, Weight, BMI, BP) are appropriate structured pipeline codes and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5993,
+        "output_tokens": 1670,
+        "total_tokens": 7663,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "b1ea4534-b739-44da-833d-80fbc3a8824e",
+        "date": "2024-10-25",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0a9e0c6e-fe12-4ac9-9372-613591cac7cb",
+    "patient_id": "4587358606",
+    "date": "2024-10-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "HR 100 bpm",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Pulse rate of 100 bpm meets the threshold for tachycardia and is explicitly documented in the encounter; it is not captured by any existing code.",
+          "snomed_search": "on examination pulse rate tachycardia",
+          "snomed_concept_id": "162992001",
+          "preferred_term": "On examination - pulse rate tachycardia (finding)",
+          "sentence": "HR: 100 bpm",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "one fungal toenail",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "A fungal toenail is explicitly noted in a diabetic foot review; onychomycosis in a diabetic patient carries clinical relevance for foot care monitoring and should be coded.",
+          "snomed_search": "onychomycosis toenails",
+          "snomed_concept_id": "403059006",
+          "preferred_term": "Onychomycosis of toenails (disorder)",
+          "sentence": "toe nails ok - one fungal but been like this for years and no problems.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "The active disorder 'Diabetes mellitus type 2' (44054006) is already coded with assertion=present for this active LTC review; the 'History of' situation code is redundant and implies a past/resolved condition, which is clinically misleading alongside the active disorder code.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter is a well-documented Type 2 diabetes LTC review with diabetic foot screening. The main coding issue is the redundant 'History of diabetes mellitus' situation code (161445009) sitting alongside the correctly coded active disorder (44054006) \u2014 the situation code should be removed. A pulse rate of 100 bpm (tachycardia threshold) is documented but uncoded, and a longstanding fungal toenail noted during diabetic foot examination warrants coding given its clinical relevance in this context. Note: lookup_concept returned unreliable results for both 161445009 and 44054006, but search_snomed confirmed both concept IDs are correct in the SNOMED hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 9153,
+        "output_tokens": 1807,
+        "total_tokens": 10960,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "0a9e0c6e-fe12-4ac9-9372-613591cac7cb",
+        "date": "2024-10-25",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ff7aec20-58fe-4554-8dde-b30f02e0a45d",
+    "patient_id": "4587358606",
+    "date": "2024-10-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum non high density lipoprotein cholesterol level",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Non-HDL cholesterol is explicitly documented with a value (2.5 mmol/L, Read code XabE1) in the auto-filed lab result; all other lipid panel observables are coded but this one is absent from the coded list.",
+          "snomed_search": "serum non-HDL cholesterol level",
+          "snomed_concept_id": "1006191000000106",
+          "preferred_term": "Serum non high density lipoprotein cholesterol level (observable entity)",
+          "sentence": "Serum non high density lipoprotein cholesterol level (XabE1) 2.5 mmol/L",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The lipid panel is largely well coded by the structured auto-filing pipeline, but the serum non-HDL cholesterol result (XabE1, 2.5 mmol/L) is present in the encounter text and missing from the coded list while all other panel components are coded. The total cholesterol:HDL ratio (44PF., 2.8) is also documented but no reliable SNOMED observable entity match was returned; a human reviewer should confirm whether a local or extension concept covers this. The 'History of diabetes mellitus' situation code and the LDL procedure code are both confirmed correct via SNOMED search despite unreliable lookup_concept responses.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7901,
+        "output_tokens": 1756,
+        "total_tokens": 9657,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "ff7aec20-58fe-4554-8dde-b30f02e0a45d",
+        "date": "2024-10-25",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "45b324eb-655e-466e-87fc-356e01e0865b",
+    "patient_id": "4587358606",
+    "date": "2024-10-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "nocturia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Nocturia is explicitly documented as a positive finding ('nocturia - couple of times at night') during the systems review and should be coded as a current finding.",
+          "snomed_search": "nocturia",
+          "snomed_concept_id": "139394000",
+          "preferred_term": "Nocturia (finding)",
+          "sentence": "good stream - nocturia - couple of times at night - no recent changes.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "intentional weight loss",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient reports recent weight loss from 76-78 kg to 74-75 kg and explicitly attributes it to intentional effort ('has been trying to lose'), making intentional weight loss a codeable active finding.",
+          "snomed_search": "intentional weight loss",
+          "snomed_concept_id": "416528001",
+          "preferred_term": "Intentional weight loss (finding)",
+          "sentence": "weight stable - lost alittle recently from 76-78kg to 74-75kg - but has been trying to loose.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The microcytic anaemia code (234349007) is correctly applied \u2014 lookup_concept returned an unreliable substance result but search_snomed confirms this is a valid disorder concept. Two codeable findings are missing: nocturia (explicitly positive on systems review) and intentional weight loss (patient-attributed to deliberate effort). The repeat blood tests including PSA are future/planned procedures and should not be coded as present. The two observable entity codes (Hb, MCV) are appropriate structured lab pipeline entries and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8640,
+        "output_tokens": 1541,
+        "total_tokens": 10181,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "45b324eb-655e-466e-87fc-356e01e0865b",
+        "date": "2024-10-30",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "df967714-5f76-478c-93b0-25438e421e08",
+    "patient_id": "4587358606",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist access role entry, repeat medication request lines, ETP2 FP10 prescription signing records, and a Summary Care Record preference update \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text. The two standing problem-list codes (history of hypertension, history of diabetes mellitus) are derived from the medication record, not from any clinical content in this encounter, and must not be flagged on an admin-only note; both lookup_concept calls returned unreliable results (wrong semantic tag) and cannot be acted upon in any case.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1917,
+        "output_tokens": 635,
+        "total_tokens": 2552,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "df967714-5f76-478c-93b0-25438e421e08",
+        "date": "2024-11-01",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cca5be1f-a26a-41f9-ac1b-51d714ded97e",
+    "patient_id": "4587358606",
+    "date": "2024-11-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Podiatry Referral to Mr Ian Pepper",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a podiatry referral to a named clinician at Loughborough Hospital, which is a codeable procedure not captured in the existing codes.",
+          "snomed_search": "referral hospital podiatry service",
+          "snomed_concept_id": "306162002",
+          "preferred_term": "Referral to hospital-based podiatry service (procedure)",
+          "sentence": "Podiatry Referral to Mr Ian Pepper",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing code 437951006 (Provision of prefabricated foot orthosis) is correct and well-evidenced by the permanent template completion and lab prescription. A referral to a named podiatrist at Loughborough Hospital is documented but not coded; 306162002 (Referral to hospital-based podiatry service) is the best available SNOMED match. Note: lookup_concept returned an unreliable/corrupted result for 437951006, but search_snomed independently confirms it is a valid and appropriate procedure concept.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5186,
+        "output_tokens": 1066,
+        "total_tokens": 6252,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "cca5be1f-a26a-41f9-ac1b-51d714ded97e",
+        "date": "2024-11-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fc057dfa-1a44-4cbe-91fc-03fcb097243e",
+    "patient_id": "4587358606",
+    "date": "2024-11-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Diabetes medication review",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Diabetes medication review (XaIfM)' as a completed structured activity during this encounter and should be coded as a procedure.",
+          "snomed_search": "diabetes medication review",
+          "snomed_concept_id": "394725008",
+          "preferred_term": "Diabetes medication review (procedure)",
+          "sentence": "Medication review: Diabetes medication review (XaIfM)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Diabetes care plan agreed",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Diabetes care plan agreed (XaKSn)' indicating a self-management plan was agreed with the patient during this encounter.",
+          "snomed_search": "diabetes self-management plan agreed",
+          "snomed_concept_id": "811981000000102",
+          "preferred_term": "Diabetes self-management plan agreed (finding)",
+          "sentence": "Care Plan: Diabetes care plan agreed (XaKSn)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Education about ketoacidosis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Education about ketoacidosis (XaZcO)' as a completed patient education activity, clinically important given SGLT2 inhibitor and GLP-1 use.",
+          "snomed_search": "education about ketoacidosis",
+          "snomed_concept_id": "846651000000102",
+          "preferred_term": "Education about ketoacidosis (procedure)",
+          "sentence": "Education about ketoacidosis (XaZcO)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Provision of written information about acute kidney injury",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Provision of written information about acute kidney injury (Xabuj)' as a completed activity during the SGLT2 inhibitor monitoring section.",
+          "snomed_search": "acute kidney injury written information",
+          "snomed_concept_id": "939531000000109",
+          "preferred_term": "Provision of written information about acute kidney injury (procedure)",
+          "sentence": "Provision of written information about acute kidney injury (Xabuj)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lifestyle counselling",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note records 'Lifestyle counselling (XaEFY)' and confirms lifestyle advice on diet, alcohol, smoking, exercise and weight was given \u2014 a completed procedure.",
+          "snomed_search": "lifestyle counselling",
+          "snomed_concept_id": "313204009",
+          "preferred_term": "Lifestyle education (procedure)",
+          "sentence": "Lifestyle advice on diet, alcohol, smoking, exercise & weight: Yes / Lifestyle counselling (XaEFY)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Five clinically significant procedures and findings documented in the structured template are absent from the coded list: diabetes medication review, diabetes self-management plan agreed, education about ketoacidosis, provision of written information about AKI, and lifestyle counselling. Two additional items recorded in the note (sick day rules information \u2014 Y3767; education about Fournier's gangrene \u2014 Y407f) appear to be local/extension codes for which no verified SNOMED concept ID could be confirmed via search and are therefore omitted from the missing list per audit rules. The two existing codes (185202000 encounter type; 976341000000101 GLP-1/oral treatment status) are clinically appropriate and retained.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10449,
+        "output_tokens": 2311,
+        "total_tokens": 12760,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "fc057dfa-1a44-4cbe-91fc-03fcb097243e",
+        "date": "2024-11-19",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dd0e9274-91fa-4697-a3f3-c6621e3aac3d",
+    "patient_id": "4587358606",
+    "date": "2024-12-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter is an auto-filed lab result with a single normal serum total protein review and no clinical narrative, diagnosis, symptoms, or management plan. All 12 coded concepts are observable entity lab values written by the structured lab pipeline and are explicitly out of scope for overcoding review; no in-scope SNOMED concepts (disorder, finding, situation, procedure, etc.) are evidenced by the encounter text itself.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2229,
+        "output_tokens": 819,
+        "total_tokens": 3048,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "dd0e9274-91fa-4697-a3f3-c6621e3aac3d",
+        "date": "2024-12-06",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d8233dac-a62c-4e51-bc95-9d443b66e101",
+    "patient_id": "4587358606",
+    "date": "2024-12-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.95,
+      "notes": "This encounter is a phlebotomy service workflow entry (consent, sample taken, pathology requests sent) with no clinical narrative, diagnoses, symptoms, or documented interpretation of results. The 11 already-coded concepts are all observable entity lab values written by the structured lab pipeline and are out of scope for encounter-note audit; no additions or deletions are warranted from this note alone. Note: the combination of ferritin 5 ng/mL, MCV 76 fL, and MCH 24.6 pg is consistent with iron deficiency \u2014 if a clinician has explicitly interpreted these results elsewhere, that encounter should be audited for appropriate diagnostic coding (e.g. iron deficiency anaemia).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2321,
+        "output_tokens": 829,
+        "total_tokens": 3150,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "d8233dac-a62c-4e51-bc95-9d443b66e101",
+        "date": "2024-12-06",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0c52a12a-564d-42bc-9176-aeac4ad30386",
+    "patient_id": "4587358606",
+    "date": "2024-12-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "271737000",
+          "name": "Anemia (disorder)",
+          "severity": "medium",
+          "reason": "The FBC pattern (MCV 76 fL, MCH 24.6 pg, Hb 115 g/L, with ferritin coded) clearly indicates microcytic anaemia; the generic 'Anemia' code is insufficiently specific.",
+          "replace_with_concept_id": "234349007",
+          "replace_with_preferred_term": "Microcytic anemia (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "416125006",
+          "name": "Concentration of hemoglobin in erythrocyte (observable entity)",
+          "severity": "medium",
+          "reason": "This observable maps to mean corpuscular haemoglobin concentration (intracellular), not the whole-blood haemoglobin measurement of 115 g/L documented in the note; the correct observable is mass concentration of haemoglobin in blood.",
+          "replace_with_concept_id": "1107511000000100",
+          "replace_with_preferred_term": "Mass concentration of haemoglobin in blood (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two coding errors identified: (1) the anaemia disorder code is too broad given the clearly microcytic/hypochromic FBC pattern \u2014 should be replaced with Microcytic anemia (234349007); (2) the haemoglobin observable entity (416125006) maps to haemoglobin concentration in erythrocyte (i.e. MCHC), not the whole-blood Hb result of 115 g/L \u2014 the correct observable is 1107511000000100. Observable entity codes for WBC, platelets, haematocrit, MCV and MCH are accepted as structured lab pipeline outputs and have not been flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5571,
+        "output_tokens": 1643,
+        "total_tokens": 7214,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "0c52a12a-564d-42bc-9176-aeac4ad30386",
+        "date": "2024-12-06",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6bc49e11-725a-4290-b0e7-d9fc8080d308",
+    "patient_id": "4587358606",
+    "date": "2024-12-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Serum ferritin level Outside reference range",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The ferritin result is explicitly flagged as 'Outside reference range' (5 ng/ml vs 22\u2013322) and reviewed by the GP; the clinical interpretation of a below-range ferritin must be coded, not just the observable entity \u2014 unexplained iron deficiency is an NG12 red-flag requiring further investigation.",
+          "snomed_search": "low serum ferritin",
+          "snomed_concept_id": "126121000119104",
+          "preferred_term": "Serum ferritin level below reference range (finding)",
+          "sentence": "Serum ferritin level (XE24r) 5 ng/ml [22 - 322] - Outside reference range",
+          "char_start": 38,
+          "char_end": 100
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All 13 coded concepts are observable entity lab pipeline codes and are appropriate. However, the GP-reviewed abnormal ferritin result (5 ng/ml, well below the 22\u2013322 reference range) requires a clinical finding code \u2014 'Serum ferritin level below reference range' (126121000119104) \u2014 as the interpretive finding is absent from the coded list. Given the NG12 red-flag status of unexplained iron deficiency, this is rated critical severity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2397,
+        "output_tokens": 840,
+        "total_tokens": 3237,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "6bc49e11-725a-4290-b0e7-d9fc8080d308",
+        "date": "2024-12-06",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3c5eb477-2fe9-4b09-b3e6-943eb3b45044",
+    "patient_id": "4587358606",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "iron deficiency anaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A 3-month iron tablet prescription has been issued and ferritin is critically low at 5 \u00b5g/L with Hb 115 g/L, making iron deficiency anaemia the active working diagnosis \u2014 it must be coded.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "Would like a prescription for the iron tablets as 3 month course.",
+          "char_start": 175,
+          "char_end": 237
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The principal coding gap is the absence of Iron deficiency anaemia (87522002) \u2014 the clinical picture (Ferritin 5 \u00b5g/L, Hb 115 g/L, 3-month iron prescription) unambiguously supports this active diagnosis. All observable entity codes appear to have been written by the structured lab/vitals pipeline and are appropriate; the History of diabetes mellitus situation code (161445009) is confirmed correct despite an unreliable terminology server response on initial lookup.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3523,
+        "output_tokens": 1154,
+        "total_tokens": 4677,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "3c5eb477-2fe9-4b09-b3e6-943eb3b45044",
+        "date": "2024-12-23",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4640d618-b178-4080-bd10-0e6c7c03671a",
+    "patient_id": "4587358606",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FIT (faecal immunochemical test provision/request)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician has ordered a FIT as an active clinical decision in this encounter; the existing code 1049361000000101 is an observable entity (lab pipeline value), not the procedure of providing/requesting the test \u2014 the procedure of issuing the FIT kit should also be coded.",
+          "snomed_search": "faecal immunochemical test kit provision",
+          "snomed_concept_id": "149421000000109",
+          "preferred_term": "Provision of faecal immunochemical test kit (procedure)",
+          "sentence": "FIT. If positive then lower GI ref.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "unexplained / insidious cause iron deficiency anaemia under investigation",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The note explicitly states the need to 'rule out insidious causes' of recurrent IDA with FIT ordered \u2014 this meets the NICE NG12 safety-critical pattern for unexplained iron deficiency anaemia requiring cancer exclusion; a more specific code capturing the unexplained/under-investigation nature should be coded alongside the base IDA code.",
+          "snomed_search": "unexplained iron deficiency anaemia",
+          "snomed_concept_id": "49211000087106",
+          "preferred_term": "Unexplained iron deficiency anemia (disorder)",
+          "sentence": "Recurrent iron deficiency anaemia - possible dietry cause but need to rule out insidious causes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The core IDA diagnosis (87522002) and iron replacement procedure (182935008) are appropriately coded. Two issues identified: (1) the FIT is coded only as an observable entity (lab pipeline) but the clinical action of issuing/requesting the FIT kit warrants a procedure code (149421000000109); (2) the note's explicit intent to 'rule out insidious causes' of recurrent IDA \u2014 a NICE NG12 red-flag pattern \u2014 should be captured with the more specific 'Unexplained iron deficiency anemia' concept (49211000087106) coded as possible, reflecting active cancer exclusion workup. The conditional lower GI referral ('if positive then lower GI ref') has not yet occurred and should NOT be coded. Terminology server returned unreliable results for concept IDs 87522002 and 182935008 on direct lookup, but both were confirmed via search_snomed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8105,
+        "output_tokens": 2233,
+        "total_tokens": 10338,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "4640d618-b178-4080-bd10-0e6c7c03671a",
+        "date": "2024-12-23",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7ae52f95-cd3c-4ea1-89c3-8fc3d9151a94",
+    "patient_id": "4587358606",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c1b1381a-77b4-4ff9-b109-4036e5b666ff",
+    "patient_id": "4587358606",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Normal, No Further Action",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The FIT result is explicitly reported as normal (< 4 \u00b5g/g) with a 'Normal, No Further Action' outcome; the clinical interpretation of a negative/normal FIT result should be coded as a finding, not just the observable entity.",
+          "snomed_search": "occult blood not detected feces",
+          "snomed_concept_id": "167667006",
+          "preferred_term": "Occult blood not detected in feces (finding)",
+          "sentence": "Quantitative faecal immunochemical test Report, Normal, No Further Action. Review done by VADHER, Kishan (Dr) - 03 Jan 2025 10:55",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing observable entity code for the quantitative FIT test is appropriate, but the explicit clinical interpretation \u2014 a normal/negative result with 'No Further Action' \u2014 is not captured. The finding 'Occult blood not detected in feces' (167667006) should be added to represent the documented result outcome. Note: lookup_concept returned unreliable for the coded concept ID but search_snomed confirms it is the correct observable entity; no overcoding action taken on that basis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3650,
+        "output_tokens": 1166,
+        "total_tokens": 4816,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "c1b1381a-77b4-4ff9-b109-4036e5b666ff",
+        "date": "2024-12-23",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fc7b6a96-6843-48ea-80af-7cd3732cdd73",
+    "patient_id": "4587358606",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "iron deficiency anaemia",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Hb 115 g/L with Ferritin 5 (critically low) and ferrous sulfate prescribed constitutes iron deficiency anaemia \u2014 the primary active diagnosis driving this encounter \u2014 and must be explicitly coded.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "Ferrous sulfate 200mg tablets - 84 tablet - take one daily (for 3 months)",
+          "char_start": 73,
+          "char_end": 138
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1049361000000101",
+          "name": "Quantitative faecal immunochemical test (observable entity)",
+          "severity": "medium",
+          "reason": "The terminology server returned this concept ID as unreliable (semantic tag resolved as 'organism' rather than observable entity/procedure), indicating the concept ID may be incorrect; the FIT observable/procedure should be re-verified and re-coded with a confirmed valid concept ID."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant gap is the absence of a coded diagnosis of iron deficiency anaemia (87522002) \u2014 this is the primary active clinical problem evidenced by Hb 115 g/L, Ferritin 5, and ferrous sulfate prescription, and carries critical safety relevance given the concurrent FIT request to exclude GI blood loss. The FIT observable concept ID (1049361000000101) is flagged as unreliable by the terminology server and should be re-verified; the remaining coded observables (Hb, ferritin, BP, weight) and the diabetes history situation code are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3969,
+        "output_tokens": 1256,
+        "total_tokens": 5225,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "fc7b6a96-6843-48ea-80af-7cd3732cdd73",
+        "date": "2024-12-23",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "de890929-d23a-4470-b778-d997324e568b",
+    "patient_id": "4587358606",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter is an outbound SMS text message to the patient confirming pharmacy dispatch of medication and requesting a follow-up call in 3 months \u2014 it contains no clinical narrative, examination, diagnosis, or prescriber review text. All five existing codes appear to have been derived from background context or prior encounters rather than this administrative message; per audit rules, standing problem-list and lab pipeline codes must not be flagged as overcoded on the basis of an admin-only encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3704,
+        "output_tokens": 891,
+        "total_tokens": 4595,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "de890929-d23a-4470-b778-d997324e568b",
+        "date": "2024-12-23",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "01aaf3f8-fbad-48a6-ad74-f8a23bad3d2c",
+    "patient_id": "4587358606",
+    "date": "2024-12-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "high",
+          "reason": "The note describes active diabetes management ('eating less due to diabetes control') \u2014 this is a current active condition, not a historical one; a 'history of' situation code is clinically incorrect here.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis (iron deficiency anaemia) and plan (iron supplement therapy) are correctly coded. However, diabetes is coded as 'History of diabetes mellitus (situation)' when the note clearly describes an active condition being actively managed with dietary modification; this should be replaced with the active disorder code \u2014 likely Type 2 diabetes mellitus (44054006), though the GP should confirm the type if not already on the problem list. All red-flag symptoms (PR bleed, haematuria, weight loss, dysphagia, haemoptysis) are explicitly excluded in the note and correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 11461,
+        "output_tokens": 1516,
+        "total_tokens": 12977,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "01aaf3f8-fbad-48a6-ad74-f8a23bad3d2c",
+        "date": "2024-12-23",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0578a5ef-1199-4b57-ace7-963a0a30f639",
+    "patient_id": "4587358606",
+    "date": "2025-01-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "?lung lesion hx of smoking",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The plan explicitly documents 'CXR ?lung lesion hx of smoking' in an ex-heavy-smoker with unexplained iron deficiency anaemia \u2014 this is a safety-critical suspected lung malignancy that must be coded to ensure appropriate follow-up and audit trail.",
+          "snomed_search": "suspected lung cancer",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "1. CXR ?lung lesion hx of smoking",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "negative FIT test (<4)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The FIT observable entity is coded but the result finding (occult blood not detected in faeces) is not explicitly coded; coding the negative result finding provides a complete and auditable record of the investigation outcome that drove clinical decision-making.",
+          "snomed_search": "occult blood not detected faeces",
+          "snomed_concept_id": "167667006",
+          "preferred_term": "Occult blood not detected in feces (finding)",
+          "sentence": "H: RE: negative FIT test (<4) - discussed with Dr Bridges on 02/01/2025",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The five existing codes are all clinically appropriate and correctly asserted. The critical gap is the absence of a 'suspected lung malignancy' situation code \u2014 the plan explicitly documents '?lung lesion' in an ex-heavy-smoker with unexplained iron deficiency anaemia, which is a safety-critical finding requiring coded documentation to support follow-up governance. The negative FIT result finding is a secondary gap; the observable entity is coded but the result interpretation is not.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8506,
+        "output_tokens": 1576,
+        "total_tokens": 10082,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "0578a5ef-1199-4b57-ace7-963a0a30f639",
+        "date": "2025-01-03",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "efa9e54f-ef39-486b-ba5c-398d71abca51",
+    "patient_id": "4587358606",
+    "date": "2025-01-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is a pharmacist-led annual medication review teleconsult with no new clinical findings, symptoms, or diagnoses documented beyond Type 2 diabetes mellitus, which is already correctly coded as 44054006 (Diabetes mellitus type 2, disorder, present). No other SNOMED-scope concepts are explicitly evidenced in the encounter text; medication-implied diagnoses (e.g. hypertension, erectile dysfunction, dyslipidaemia) must not be inferred from drug names alone.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4569,
+        "output_tokens": 897,
+        "total_tokens": 5466,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "efa9e54f-ef39-486b-ba5c-398d71abca51",
+        "date": "2025-01-09",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2931558a-d3db-42f5-8290-d692fc3d332a",
+    "patient_id": "4587358606",
+    "date": "2025-02-11",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter is a phlebotomy service administrative log (consent, sample collection, HbA1c recall instruction) with no clinical narrative, examination, diagnosis, or prescriber review text; no codeable clinical content is present in this encounter note, and the five already-coded concepts are standing problem-list or structured lab pipeline entries that should not be disturbed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 779,
+        "output_tokens": 484,
+        "total_tokens": 1263,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "2931558a-d3db-42f5-8290-d692fc3d332a",
+        "date": "2025-02-11",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e4419648-9387-4887-b554-b17a56b6040d",
+    "patient_id": "4587358606",
+    "date": "2025-02-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "iron deficiency anaemia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Ferritin 7 ng/ml (very low), MCV 74 fL (microcytic) and MCH 24 pg (hypochromic) together constitute the classic triad of iron deficiency anaemia; the more specific disorder code should be used rather than the parent 'Iron deficiency (disorder)'.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "Serum ferritin level (XE24r) 7 ng/ml [22 - 322] - Outside reference range",
+          "char_start": 17,
+          "char_end": 68
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "182935008",
+          "name": "Administration of prophylactic iron (procedure)",
+          "severity": "medium",
+          "reason": "The patient has confirmed active iron deficiency and is on iron replacement therapy \u2014 this is therapeutic, not prophylactic; 'prophylactic iron' is given to prevent deficiency (e.g. in pregnancy) and does not accurately represent the clinical situation described. No confirmed SNOMED therapeutic iron administration procedure was found to replace it, so human review is recommended."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coded 'Iron deficiency (disorder)' [35240004] is confirmed correct by SNOMED search despite an unreliable lookup_concept response; however the combination of low ferritin, microcytic MCV and hypochromic MCH supports upgrading to the more specific 'Iron deficiency anemia (disorder)' [87522002]. The procedure code 182935008 'Administration of prophylactic iron' is clinically inappropriate for a patient with active iron deficiency on therapeutic replacement \u2014 a more accurate therapeutic iron administration procedure code should be sought or the code removed pending human review.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6526,
+        "output_tokens": 1925,
+        "total_tokens": 8451,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "e4419648-9387-4887-b554-b17a56b6040d",
+        "date": "2025-02-11",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c962742f-f9b5-428d-aaa7-8fce50983efc",
+    "patient_id": "4587358606",
+    "date": "2025-02-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "iron deficiency anaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "MCV 74 fL, MCH 24 pg, Hb 123 g/L and haematocrit 0.38 are all below reference range with a microcytic hypochromic pattern, and the clinical information explicitly states the FBC is 'to assess response to iron replacement', making iron deficiency anaemia the clear clinical interpretation requiring coding.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: For 3 months time to assess response to iron replacement.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "182935008",
+          "name": "Administration of prophylactic iron (procedure)",
+          "severity": "medium",
+          "reason": "The note states 'iron replacement' (therapeutic supplementation for deficiency), not prophylactic iron administration; 'prophylactic' implies prevention in a non-deficient patient, which is a clinically distinct and incorrect concept here.",
+          "replace_with_concept_id": "87522002",
+          "replace_with_preferred_term": "Iron deficiency anemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter is an auto-filed FBC result showing a microcytic hypochromic anaemia (low MCV, MCH, Hb, haematocrit) in a patient on iron replacement therapy \u2014 iron deficiency anaemia (87522002) is the key missing clinical interpretation. The coded procedure 'Administration of prophylactic iron' (182935008) is a mismatch: the note describes therapeutic iron replacement for deficiency, not prophylaxis; this code should be replaced or removed. Observable entity lab codes (ferritin, HbA1c) not present in this encounter text are assumed to be structured pipeline codes from a concurrent result set and have not been flagged per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5740,
+        "output_tokens": 1599,
+        "total_tokens": 7339,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "c962742f-f9b5-428d-aaa7-8fce50983efc",
+        "date": "2025-02-11",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "06d6f7da-1562-4dda-8107-4a23242686df",
+    "patient_id": "4587358606",
+    "date": "2025-02-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "high",
+          "reason": "The note describes an actively managed diabetic patient on triple therapy with an above-target HbA1c being reviewed by a diabetes nurse \u2014 a 'history of' situation code is clinically incorrect for an ongoing active condition; it should be replaced with the active disorder.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The 'History of diabetes mellitus (situation)' code is inappropriate for a patient actively managed on triple therapy with ongoing HbA1c monitoring; it should be replaced with 'Diabetes mellitus type 2 (disorder)' (44054006) with assertion=present. The 'Poor glycemic control' disorder code (237622006) is well-evidenced and correct. All observable entity lab codes are pipeline-written and are not in scope for this audit. Note: the specific diabetes type (T2DM) is strongly implied by the clinical context (triple oral therapy, DM nurse, 3-monthly HbA1c monitoring) but is not explicitly stated in this encounter text \u2014 the problem list should be reviewed to confirm type.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6296,
+        "output_tokens": 1388,
+        "total_tokens": 7684,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "06d6f7da-1562-4dda-8107-4a23242686df",
+        "date": "2025-02-11",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "79b5f9f6-5cb3-4fdd-814d-0e2f387339c9",
+    "patient_id": "4587358606",
+    "date": "2025-02-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "The note documents active, poorly controlled type 2 diabetes mellitus on triple therapy with HbA1c above target; a 'history of' situation code implies the condition is no longer active and is superseded by the correctly coded active disorder [443694000] Uncontrolled type 2 diabetes mellitus.",
+          "replace_with_concept_id": "443694000",
+          "replace_with_preferred_term": "Uncontrolled type 2 diabetes mellitus (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The active disorder code [443694000] Uncontrolled type 2 diabetes mellitus is correctly applied and well-evidenced by the HbA1c result and clinical commentary. However, the co-existing [161445009] History of diabetes mellitus (situation) is redundant and clinically misleading \u2014 it implies a resolved past condition rather than the current active disease, and should be removed in favour of the active disorder code already present. The multiple FBC/ferritin observable entity codes appear to originate from the structured lab pipeline and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3586,
+        "output_tokens": 1093,
+        "total_tokens": 4679,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "79b5f9f6-5cb3-4fdd-814d-0e2f387339c9",
+        "date": "2025-02-11",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "16d8be9c-394d-4578-9718-05df46b6a820",
+    "patient_id": "4587358606",
+    "date": "2025-03-09",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists exclusively of patient-initiated repeat medication request lines with no prescriber review, clinical narrative, examination, diagnosis, or management plan \u2014 it is administrative only. The three standing coded concepts (history of diabetes mellitus, history of hypertension, type 2 diabetes mellitus type 2) are problem-list codes and must not be added, removed, or modified on the basis of an admin-only note; additionally, all three were derived by inferring diagnoses from drug names, which is explicitly out of scope for encounter-level coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2891,
+        "output_tokens": 719,
+        "total_tokens": 3610,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "16d8be9c-394d-4578-9718-05df46b6a820",
+        "date": "2025-03-09",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5fda1a01-b882-455c-be88-9f9230886440",
+    "patient_id": "4587358606",
+    "date": "2025-03-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The safety-critical 2WW fast-track referral for non-site-specific cancer symptoms is correctly coded (confirmed by SNOMED search); all terminology server lookups returned unreliable results but search confirms concept IDs are valid. Standing problem-list codes for hypertension and diabetes are appropriately retained as they cannot be removed on the basis of a single encounter not mentioning them. Blood tests are only requested (not resulted) so no additional procedure codes are warranted at this stage.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7131,
+        "output_tokens": 1519,
+        "total_tokens": 8650,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "5fda1a01-b882-455c-be88-9f9230886440",
+        "date": "2025-03-10",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dc6d9627-c181-4eeb-ae0b-cf870a683b23",
+    "patient_id": "4587358606",
+    "date": "2025-03-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "PSA normal",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "PSA measurement is explicitly documented as performed and reported normal in the encounter text but has not been coded.",
+          "snomed_search": "prostate specific antigen measurement",
+          "snomed_concept_id": "63476009",
+          "preferred_term": "Prostate specific antigen measurement (procedure)",
+          "sentence": "PSA normal, FIT <4 normal, CXR normal, no red flags",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure) [as coded]",
+          "severity": "critical",
+          "reason": "Concept 276341000000100 resolves to 'DRB1*09012 (substance)' \u2014 an entirely wrong concept; the note documents a non-site-specific 2WW cancer referral, not a breast cancer referral, and the coded concept ID is clinically invalid for this encounter.",
+          "replace_with_concept_id": "1556551000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "191137004",
+          "name": "Iron deficiency anemia NOS (disorder) [as coded]",
+          "severity": "high",
+          "reason": "Concept 191137004 resolves to 'An 7705 (qualifier value)' \u2014 an unreliable/wrong concept ID; a valid and more specific SNOMED code exists for unexplained IDA which precisely matches the documented 'Borderline IDA ?cause'.",
+          "replace_with_concept_id": "49211000087106",
+          "replace_with_preferred_term": "Unexplained iron deficiency anemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two concept IDs in the coded list resolve to incorrect or unreliable SNOMED concepts (191137004 \u2192 qualifier value; 276341000000100 \u2192 substance), both requiring replacement; critically, the 2WW referral is coded as breast cancer rather than the correct non-site-specific cancer pathway. PSA measurement performed and documented is missing from the coded list. The non-site-specific 2WW referral for unexplained IDA is a safety-critical coding error that must be corrected urgently.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6106,
+        "output_tokens": 1600,
+        "total_tokens": 7706,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "dc6d9627-c181-4eeb-ae0b-cf870a683b23",
+        "date": "2025-03-10",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2e1574bf-05bb-40d7-8ba3-59ab542d3cc2",
+    "patient_id": "4587358606",
+    "date": "2025-03-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is entirely administrative \u2014 a receptionist-processed repeat prescription request with no clinical narrative, examination findings, investigation results, or diagnostic content. All 5 coded concepts are unsupported by this note: FIT result, Hb value, and CXR finding do not appear in the text; hypertension and diabetes have been inferred solely from drug names, which is explicitly out of scope. Per audit rules, standing problem-list codes must not be flagged as overcoded on the basis of an admin-only encounter, so no overcoded issues are raised; however, none of these concepts should have been coded from this encounter in the first place.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2192,
+        "output_tokens": 599,
+        "total_tokens": 2791,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "2e1574bf-05bb-40d7-8ba3-59ab542d3cc2",
+        "date": "2025-03-10",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6245f1c2-3aa9-4968-b827-852e0a02a1d4",
+    "patient_id": "4587358606",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "2ww nss referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a Two-Week Wait non-site-specific cancer referral ('2ww nss bloods', 'Awaiting NSS ref (Patient Informed)'); the currently coded concept [276341000000100] resolves to a substance (HLA allele), not this procedure, so the correct 2WW NSS procedure code is effectively absent from the record.",
+          "snomed_search": "fast track referral non-site-specific cancer",
+          "snomed_concept_id": "1556551000000104",
+          "preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "sentence": "Acute Kidney Injury Staging Report, Borderline, No Further Action: Awaiting NSS ref (Patient Informed).",
+          "char_start": 130,
+          "char_end": 220
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "DRB1*09012 (substance) \u2014 miscoded as Fast track referral for suspected breast cancer",
+          "severity": "critical",
+          "reason": "lookup_concept confirms concept ID 276341000000100 resolves to 'DRB1*09012 (substance)' \u2014 an HLA allele substance \u2014 not a 2WW breast cancer referral procedure, and there is no clinical evidence of a breast cancer referral in this note; the correct replacement is [1556551000000104] Fast track referral for suspected cancer due to non-site-specific symptoms.",
+          "replace_with_concept_id": "1556551000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "The encounter documents a 2WW non-site-specific (NSS) cancer referral with bloods, a known DM history, and a borderline AKI staging report (stage 0, no AKI). The 10 observable entity lab codes are appropriate structured-pipeline entries and are not flagged. However, concept [276341000000100] is critically miscoded: lookup_concept confirms it resolves to \"DRB1*09012 (substance)\" \u2014 an HLA allele substance \u2014 not a procedure. The note clearly describes a non-site-specific 2WW referral (\"2ww nss bloods\", \"Awaiting NSS ref\"), which should be coded as [1556551000000104] Fast track referral for suspected cancer due to non-site-specific symptoms (procedure). This is a critical safety-relevant error as the 2WW referral pathway code is absent from the record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2660,
+        "output_tokens": 1204,
+        "total_tokens": 3864,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "6245f1c2-3aa9-4968-b827-852e0a02a1d4",
+        "date": "2025-03-13",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7bbe999b-d39a-4142-955c-ebac5732b319",
+    "patient_id": "4587358606",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "microcytic anaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Multiple blood results are flagged outside reference range (Hb 124 g/L, haematocrit 0.39, MCV 77 fL, MCH 24.6 pg) forming a clear microcytic anaemia picture that has been clinically reviewed and documented; the disorder interpretation should be coded, not just the individual observable entities.",
+          "snomed_search": "microcytic anaemia",
+          "snomed_concept_id": "234349007",
+          "preferred_term": "Microcytic anemia (disorder)",
+          "sentence": "Haemoglobin concentration (Xa96v) 124 g/L [130 - 180] - Outside reference range; Haematocrit (X76tb) 0.39 [0.4 - 0.54] - Outside reference range; Mean cell volume (42A..) 77 fL [80 - 99] - Outside reference range; Mean cell haemoglobin level (XE2pb) 24.6 pg [27 - 32] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The most critical issue is that the 2WW NSS cancer referral is coded with an invalid/corrupted concept ID (872591000000109, which resolves as an 'organism') and must be replaced with 1556551000000104 'Fast track referral for suspected cancer due to non-site-specific symptoms'. Additionally, the clinically reviewed microcytic anaemia pattern (low Hb, haematocrit, MCV, MCH all outside reference range) lacks a disorder-level code; the individual observable entity codes are present but the clinical interpretation is absent.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7364,
+        "output_tokens": 1680,
+        "total_tokens": 9044,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "7bbe999b-d39a-4142-955c-ebac5732b319",
+        "date": "2025-03-13",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f2171acf-0475-4aff-aa93-46f8e5dbceb9",
+    "patient_id": "4587358606",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "high",
+          "reason": "The encounter text states only '2ww nss bloods' and 'Awaiting NSS ref' \u2014 no specific cancer type is mentioned; coding this as a breast cancer fast-track referral is not evidenced by the note.",
+          "replace_with_concept_id": "199251000000107",
+          "replace_with_preferred_term": "Fast track cancer referral (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The six observable entity codes and the diabetes history situation code are appropriate. The critical error is the 2WW referral being coded as 'Fast track referral for suspected breast cancer' \u2014 the note text ('2ww nss bloods', 'Awaiting NSS ref') does not specify breast cancer or any other specific cancer type; the non-specific 'Fast track cancer referral' (199251000000107) should be used instead. The diabetes history code (161445009) is confirmed correct by SNOMED search despite an unreliable lookup response, and is a standing problem-list entry. Note: 'Not on Thyroid Tx' in the clinical details is a request-form annotation and does not require coding from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8508,
+        "output_tokens": 1513,
+        "total_tokens": 10021,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "f2171acf-0475-4aff-aa93-46f8e5dbceb9",
+        "date": "2025-03-13",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d537966f-4c7d-4632-a481-869d2de316ba",
+    "patient_id": "4587358606",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "PSA Borderline / within reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The PSA result of 0.95 ng/mL is reported as 'Borderline, No Further Action' and falls within the stated reference range [0\u20134.5]; the clinical interpretation finding (PSA within reference range) should be coded alongside the observable entity.",
+          "snomed_search": "prostate specific antigen within reference range",
+          "snomed_concept_id": "166159005",
+          "preferred_term": "Prostate specific antigen within reference range (finding)",
+          "sentence": "Prostate-specific antigen level Report, Borderline, No Further Action: Awaiting NSS ref (Patient Informed).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The PSA observable entity is correctly coded but the clinical interpretation finding (PSA within reference range, 166159005) is absent \u2014 this should be added to reflect the 'Borderline, No Further Action' clinical decision. The pending 2WW NSS referral ('Awaiting NSS ref') has not yet occurred and should not be coded as a completed procedure; it should be coded once actioned. All other lab observable entity codes appear to have been written by the structured pipeline and are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4679,
+        "output_tokens": 1141,
+        "total_tokens": 5820,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "d537966f-4c7d-4632-a481-869d2de316ba",
+        "date": "2025-03-13",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fe0617ce-45a2-4350-83e1-6706bd547516",
+    "patient_id": "4587358606",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "276341000000100",
+          "term": "Fast track referral for suspected breast cancer",
+          "assertion": "present",
+          "severity": "critical",
+          "reason": "Coded as breast cancer fast-track but note explicitly states non-site-specific (NSS) 2WW pathway; replace with NSS-specific code"
+        }
+      ],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The encounter text states '2ww nss bloods' and 'Awaiting NSS ref', indicating a non-site-specific cancer pathway referral \u2014 not a breast cancer referral; this code is clinically incorrect and safety-critical.",
+          "replace_with_concept_id": "1556551000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "One critical error: the 2WW referral has been coded as 'Fast track referral for suspected breast cancer' (276341000000100) but the encounter text explicitly states 'nss' (non-site-specific) and 'Awaiting NSS ref' \u2014 the correct code is 1556551000000104 'Fast track referral for suspected cancer due to non-site-specific symptoms'. This is a safety-critical miscoding that could misdirect cancer pathway follow-up. The serum ferritin below reference range finding (126121000119104) and the observable entity code are appropriately coded; the DM history code is a standing problem-list entry and is not contradicted by this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4621,
+        "output_tokens": 1481,
+        "total_tokens": 6102,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "fe0617ce-45a2-4350-83e1-6706bd547516",
+        "date": "2025-03-13",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8e7f4ae0-26f8-4047-b01a-a947ed2a1677",
+    "patient_id": "4587358606",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "1003671000000109",
+          "term": "Haemoglobin A1c level",
+          "assertion": "present",
+          "status": "correct"
+        },
+        {
+          "conceptId": "161445009",
+          "term": "History of diabetes mellitus",
+          "assertion": "present",
+          "status": "correct"
+        },
+        {
+          "conceptId": "444751005",
+          "term": "Hemoglobin A1c above reference range",
+          "assertion": "present",
+          "status": "correct"
+        },
+        {
+          "conceptId": "276341000000100",
+          "term": "Fast track referral for suspected breast cancer",
+          "assertion": "present",
+          "status": "wrong_code"
+        }
+      ],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The note documents a '2ww nss' (non-site-specific) cancer pathway referral, not a breast cancer fast-track referral; coding this as breast cancer is clinically incorrect and potentially misleading for cancer tracking.",
+          "replace_with_concept_id": "1556551000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The 2WW referral is critically miscoded as breast cancer (276341000000100) when the note explicitly states 'nss' (non-site-specific); this must be replaced with the NSS-specific concept. The HbA1c above reference range finding (444751005) and history of diabetes (161445009) are correctly coded; the observable entity code is appropriate as a structured lab result.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6239,
+        "output_tokens": 1330,
+        "total_tokens": 7569,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "8e7f4ae0-26f8-4047-b01a-a947ed2a1677",
+        "date": "2025-03-13",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3af266be-2cd4-44cc-9953-f85e5254be3f",
+    "patient_id": "4587358606",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "2ww nss pathway / fast track referral for suspected cancer (non-site-specific)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly states bloods were requested as '2ww nss bloods' and the report confirms the patient is 'for 2ww pathway' with the patient informed \u2014 this is an active fast-track cancer referral on non-site-specific grounds and must be coded.",
+          "snomed_search": "fast track referral suspected cancer non-site-specific",
+          "snomed_concept_id": "1556551000000104",
+          "preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "sentence": "Reasons for Request: 2ww nss bloods. ... knwon DM - for 2ww pathway, has WB 1/4 (Patient Informed).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "A safety-critical 2WW non-site-specific cancer pathway referral is clearly documented ('2ww nss bloods', 'for 2ww pathway', 'Patient Informed') but has not been coded \u2014 this must be added as SNOMED 1556551000000104. Note: lookup_concept for [161445009] (History of diabetes mellitus) returned an unreliable result (organism tag); the code is retained as the note references 'known DM' and the concept ID is clinically appropriate, but the terminology server index may be corrupted for this ID.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5398,
+        "output_tokens": 1163,
+        "total_tokens": 6561,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "3af266be-2cd4-44cc-9953-f85e5254be3f",
+        "date": "2025-03-13",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2cc75f83-6f23-4629-a1e4-be52be96df25",
+    "patient_id": "4587358606",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "77477000",
+          "name": "Computed tomography (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned unreliable (semantic_tag='organism'); the note specifies CT of chest, abdomen and pelvis, which maps precisely to concept 418023006.",
+          "replace_with_concept_id": "418023006",
+          "replace_with_preferred_term": "Computed tomography of chest, abdomen and pelvis (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "161511008",
+          "name": "History of liver disorder (situation)",
+          "severity": "high",
+          "reason": "The note records 'Steatosis of liver (New Episode)' as an active current finding; coding it as a historical situation is clinically incorrect \u2014 it should be the active disorder 197321007.",
+          "replace_with_concept_id": "197321007",
+          "replace_with_preferred_term": "Steatosis of liver (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "161535005",
+          "name": "History of liver disease (situation)",
+          "severity": "high",
+          "reason": "lookup_concept returned wrong semantic_tag (qualifier value); this is a duplicate/redundant historical-situation code for the same active new-episode steatosis finding already addressed by replacing 161511008 with 197321007 \u2014 this code should be removed entirely."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All three coded concepts have issues: the CT procedure code (77477000) is unreliable and should be replaced with the specific 'CT chest, abdomen and pelvis' concept (418023006); both historical liver situation codes (161511008, 161535005) misrepresent an explicitly documented active new-episode finding \u2014 steatosis of liver should be coded as the active disorder 197321007. The duplicate historical liver disease code (161535005) also returned a wrong semantic tag from the terminology server and should be removed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3366,
+        "output_tokens": 1291,
+        "total_tokens": 4657,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "2cc75f83-6f23-4629-a1e4-be52be96df25",
+        "date": "2025-03-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "60373d5f-b5f1-47c6-925d-7dff1cefb940",
+    "patient_id": "4587358606",
+    "date": "2025-04-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "insulin declined",
+          "severity": "high",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly documents the patient declining insulin therapy due to holding a rally car competition licence \u2014 this is a clinically significant treatment decision that must be coded.",
+          "snomed_search": "insulin",
+          "snomed_concept_id": "720971004",
+          "preferred_term": "Insulin declined (situation)",
+          "sentence": "Discussed really needs insulin HOWEVER has Rally car competition licence and says will need to give up if starts insulin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74627003",
+          "name": "Complication due to diabetes mellitus (disorder)",
+          "severity": "low",
+          "reason": "The specific complication (nonproliferative diabetic retinopathy, 390834004) is already coded in this encounter, making the generic parent concept 74627003 redundant and overcoded.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The most significant issue is that 'Diabetic on insulin and oral treatment' (XaEgI, a Read-mapped concept) is coded but the note explicitly states the patient is NOT on insulin and is actively declining it \u2014 the correct SNOMED concept is 'Diabetic on oral treatment' (170746002). Additionally, the generic 'Complication due to diabetes mellitus' (74627003) is redundant given the specific 'Nonproliferative retinopathy due to diabetes mellitus' (390834004) is already coded. The patient's explicit refusal of insulin (due to rally car licence) must be captured as a declined situation (720971004). Note: lookup_concept returned unreliable semantic tags for 74627003 and 390834004, but both were confirmed as valid disorder concepts via search_snomed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11450,
+        "output_tokens": 1693,
+        "total_tokens": 13143,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "60373d5f-b5f1-47c6-925d-7dff1cefb940",
+        "date": "2025-04-01",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e46fe8a7-f971-48f5-8a5c-95f356bd6dfe",
+    "patient_id": "4587358606",
+    "date": "2025-04-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Diabetes",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly a diabetes review for a patient on oral antidiabetic treatment and GLP-1 therapy; the underlying diabetes disorder should be coded.",
+          "snomed_search": "type 2 diabetes mellitus",
+          "snomed_concept_id": "44054006",
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "sentence": "Medication: Diabetic on oral treatment and glucagon-like peptide 1 (XacsX) Mounjaro review",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Weight reduction 3%",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A 3% weight reduction is explicitly documented as a clinical outcome of treatment and is a codeable finding.",
+          "snomed_search": "weight loss",
+          "snomed_concept_id": "262285001",
+          "preferred_term": "Weight decreased (finding)",
+          "sentence": "Nice target after 6 months  11 mmol/mol drop in Hba1c, Weight reduction 3%",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "182836005",
+          "name": "Review of medication (procedure)",
+          "severity": "low",
+          "reason": "The note explicitly documents a diabetes medication review (SNOMED XaIfM), which maps to the more specific concept 394725008 'Diabetes medication review (procedure)' rather than the generic 'Review of medication'.",
+          "replace_with_concept_id": "394725008",
+          "replace_with_preferred_term": "Diabetes medication review (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a structured diabetes medication review with documented clinical outcomes (HbA1c reduction, weight loss) but the underlying diabetes disorder and weight decrease finding are not coded. The generic 'Review of medication' code should be replaced with the more specific 'Diabetes medication review' concept (394725008) which directly matches the Read code XaIfM documented in the note. Note: lookup_concept returned unreliable/corrupted results for both existing concept IDs, but search_snomed confirmed both are valid SNOMED concepts.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6096,
+        "output_tokens": 1759,
+        "total_tokens": 7855,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "e46fe8a7-f971-48f5-8a5c-95f356bd6dfe",
+        "date": "2025-04-16",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "138707ac-a207-465e-adc7-6887c979d99f",
+    "patient_id": "4587358606",
+    "date": "2025-05-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter consists solely of eight repeat medication requests logged by an unknown staff member with no prescriber review, clinical narrative, symptoms, examination, diagnosis, or management plan. This is administrative-only content; no SNOMED coding is required or appropriate for this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 518,
+        "output_tokens": 270,
+        "total_tokens": 788,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "138707ac-a207-465e-adc7-6887c979d99f",
+        "date": "2025-05-04",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fed55df3-e4c3-4276-9e12-97cbf835a00d",
+    "patient_id": "4587358606",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "degenerative bone disease",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Incidental finding of degenerative bone disease on CT thorax/abdomen/pelvis should be coded as a new finding for the patient record.",
+          "snomed_search": "degenerative disorder bone",
+          "snomed_concept_id": "363054006",
+          "preferred_term": "Degenerative disorder of bone (disorder)",
+          "sentence": "Incidental findings of hepatic steatosis and degenerative bone disease noted.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "non-specific cancer pathway investigation",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The patient was investigated via a non-specific (non-site-specific) suspected cancer pathway; this referral/pathway should be coded to document the clinical context of the CT investigation.",
+          "snomed_search": "fast track referral suspected cancer non-site-specific",
+          "snomed_concept_id": "1556551000000104",
+          "preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "sentence": "Recently underwent CT scan as part of non-specific cancer pathway investigation.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "Type 2 Diabetes Mellitus is actively managed in this encounter (medication recently adjusted, under diabetic nurse review); coding it as 'history of' conflicts with the correctly coded active disorder [44054006] and misrepresents the clinical status.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Core coding is largely sound \u2014 iron deficiency anaemia, T2DM, CT procedure, and incidental hepatic steatosis are all captured. The main issues are: (1) a redundant and misleading 'History of diabetes mellitus' situation code conflicts with the correctly coded active T2DM disorder and should be removed; (2) the non-specific cancer pathway referral (a clinically significant context for the CT) is uncoded; and (3) the incidental CT finding of degenerative bone disease is missing. The steatosis concept ID [1187537008] returned unreliable on lookup but the clinical note supports coding an incidental hepatic steatosis finding \u2014 human review of the specific concept ID is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7583,
+        "output_tokens": 1673,
+        "total_tokens": 9256,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "fed55df3-e4c3-4276-9e12-97cbf835a00d",
+        "date": "2025-05-09",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "497c0371-ddce-4f6c-a67f-a01017d30ac9",
+    "patient_id": "4587358606",
+    "date": "2025-08-14",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of repeat medication request lines with no clinical narrative, examination findings, diagnoses, or management decisions documented; no codeable clinical content is present in this encounter text. The two standing problem-list codes (history of diabetes mellitus, history of hypertension) are not evidenced by this encounter and must not be modified on the basis of an admin-only repeat prescription request.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 551,
+        "output_tokens": 361,
+        "total_tokens": 912,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "497c0371-ddce-4f6c-a67f-a01017d30ac9",
+        "date": "2025-08-14",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4d3a43be-ac48-483f-b6ca-43a76ecdb2ad",
+    "patient_id": "4587358606",
+    "date": "2025-10-14",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of repeat medication requests logged by an unknown staff member with no clinical narrative, examination findings, diagnosis, or prescriber review text. Per audit rules, no coding issues should be raised against an admin-only encounter; the three standing codes (hypertension history, diabetes history, type 2 diabetes) are problem-list codes that cannot be challenged on the basis of this administrative note alone. All three lookup_concept calls returned unreliable results (corrupted index), but this does not affect the verdict since the encounter contains no codeable clinical content.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1887,
+        "output_tokens": 530,
+        "total_tokens": 2417,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4587358606",
+        "encounter_id": "4d3a43be-ac48-483f-b6ca-43a76ecdb2ad",
+        "date": "2025-10-14",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  }
+]

@@ -1,0 +1,908 @@
+[
+  {
+    "encounter_id": "f5c4a1f6-d023-4d4f-a609-e6c4471e4eb3",
+    "patient_id": "6268086643",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "obesity",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "BMI is explicitly documented as 33.06 kg/m\u00b2, which meets the clinical threshold for obesity (\u226530); the BMI observable is coded but the clinical interpretation as a disorder is absent.",
+          "snomed_search": "obesity",
+          "snomed_concept_id": "414916001",
+          "preferred_term": "Obesity (disorder)",
+          "sentence": "Body mass index - observation 33.06 Kg/m2",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "transient ischaemic attack",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly references 'mini stroke last year' and the encounter reason is 'htn / tia review', confirming a historical TIA that warrants a specific code beyond the broad 'History of cerebrovascular disease' already coded.",
+          "snomed_search": "transient ischaemic attack",
+          "snomed_concept_id": "266257000",
+          "preferred_term": "Transient ischemic attack (disorder)",
+          "sentence": "alcohol has reduced significantly since mini stroke last year",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two coding gaps identified: (1) BMI 33.06 kg/m\u00b2 is documented but obesity as a disorder is not coded \u2014 the observable entity alone is insufficient; (2) the encounter reason and clinical narrative both confirm a historical TIA ('mini stroke last year'), which should be coded specifically as Transient ischemic attack (disorder) with a historical assertion, in addition to the existing broad 'History of cerebrovascular disease' situation code. All 15 existing codes are otherwise appropriate; the two situation codes (161501007, 308064009) were flagged as unreliable by the terminology server but confirmed correct via SNOMED search.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7055,
+        "output_tokens": 1552,
+        "total_tokens": 8607,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "f5c4a1f6-d023-4d4f-a609-e6c4471e4eb3",
+        "date": "2024-03-22",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7000bd03-f6dc-4a40-a1b7-cfb7e5a79934",
+    "patient_id": "6268086643",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "obesity",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI 33.06 kg/m\u00b2 is explicitly documented in the encounter, meeting the clinical threshold for obesity (BMI \u226530); the observable entity BMI is coded but the clinical disorder interpretation is absent.",
+          "snomed_search": "obesity",
+          "snomed_concept_id": "414916001",
+          "preferred_term": "Obesity (disorder)",
+          "sentence": "BMI 33.06 kg/m2",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely appropriate for a structured lab-results review encounter. The main gap is the absence of an Obesity disorder code (414916001) despite an explicitly documented BMI of 33.06 kg/m\u00b2; the BMI observable entity alone does not capture the clinical interpretation. Concept 308064009 (History of cerebrovascular disease) returned an unreliable lookup result but was confirmed as correct via search_snomed; the code is legitimate and appropriate given the documented 'mini stroke last year' and TIA review context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4966,
+        "output_tokens": 1265,
+        "total_tokens": 6231,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "7000bd03-f6dc-4a40-a1b7-cfb7e5a79934",
+        "date": "2024-03-22",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2ffafd43-1153-495f-bcc8-b4abb70f577e",
+    "patient_id": "6268086643",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "308064009",
+          "name": "History of cerebrovascular disease (situation)",
+          "severity": "medium",
+          "reason": "The note specifically documents 'htn / tia review' and 'mini stroke last year', indicating a transient ischaemic attack rather than the broader category of cerebrovascular disease; a more specific code should be used.",
+          "replace_with_concept_id": "161511000",
+          "replace_with_preferred_term": "History of transient ischemic attack (situation)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is an auto-filed HbA1c result review with a 'htn / tia review' reason for request. All observable entity codes are appropriate structured-pipeline outputs. The hypertension situation code (161501007) is confirmed correct. However, 308064009 'History of cerebrovascular disease' is too broad \u2014 the note explicitly references TIA ('mini stroke last year'), and the more specific SNOMED concept 161511000 'History of transient ischemic attack (situation)' should replace it. No other coding gaps identified; the normal HbA1c result with 'No Further Action' does not require an additional finding code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5063,
+        "output_tokens": 969,
+        "total_tokens": 6032,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "2ffafd43-1153-495f-bcc8-b4abb70f577e",
+        "date": "2024-03-22",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f88c85e2-f7df-4ba5-8755-ca7a18e0d7ac",
+    "patient_id": "6268086643",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "entities": [],
+      "notes": "All 21 coded concepts are appropriate: the 16 lab observable entities are correctly written by the structured pipeline; the two finding codes (elevated ALT, abnormal LFTs) are well-evidenced by the explicit 'Abnormal, Communicate Patient' flag and ALT of 187 iu/L; and the two situation codes (history of hypertension, history of cerebrovascular disease) are directly supported by the clinical request details and encounter evidence. Lookup_concept returned unreliable results for three concept IDs due to a server index issue, but search_snomed independently confirmed all three as legitimate SNOMED concepts in the correct hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9050,
+        "output_tokens": 1288,
+        "total_tokens": 10338,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "f88c85e2-f7df-4ba5-8755-ca7a18e0d7ac",
+        "date": "2024-03-22",
+        "coded_count": 21
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "18f3dd67-d645-482f-8849-874bd541c228",
+    "patient_id": "6268086643",
+    "date": "2024-03-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hazardous alcohol use",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "AUDIT-C score of 8 with 10+ units on a typical drinking day and monthly heavy sessions (\u22658 units) clearly indicates hazardous alcohol use, not lower risk drinking as currently coded.",
+          "snomed_search": "hazardous alcohol use",
+          "snomed_concept_id": "198421000000108",
+          "preferred_term": "Hazardous alcohol use (finding)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 8 - How many units of alcohol do you drink on a typical day drinking?: 10 or more",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "Lower risk drinking (finding)",
+          "severity": "high",
+          "reason": "The AUDIT-C score of 8, with 10+ units on a typical drinking day and monthly episodes of \u22658 units, is inconsistent with lower risk drinking; this code misrepresents the patient's alcohol risk level and should be replaced with hazardous alcohol use.",
+          "replace_with_concept_id": "198421000000108",
+          "replace_with_preferred_term": "Hazardous alcohol use (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "266257000",
+          "name": "Transient ischemic attack (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The note states 'mini stroke last year', indicating the TIA was a past event; assertion should be historical, not present."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Two significant issues identified: (1) TIA is coded as present but occurred 'last year' and should be historical; (2) 'Lower risk drinking' is clinically incorrect given an AUDIT-C score of 8 with 10+ units on a typical drinking day and monthly heavy sessions \u2014 hazardous alcohol use (198421000000108) should replace it. The History of cerebrovascular disease situation code (308064009) is retained as a legitimate standing problem-list code alongside the more specific TIA disorder code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9931,
+        "output_tokens": 1719,
+        "total_tokens": 11650,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "18f3dd67-d645-482f-8849-874bd541c228",
+        "date": "2024-03-22",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d32e8ba2-63c5-4708-b294-06ace85cb69a",
+    "patient_id": "6268086643",
+    "date": "2024-03-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "drug-induced liver disorder",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The pharmacist explicitly states the raised ALT 'could be due to recent start of atorvastatin 80mg', constituting a possible drug-induced hepatic disorder that should be coded in addition to the ALT finding.",
+          "snomed_search": "drug-induced disorder of liver",
+          "snomed_concept_id": "427399008",
+          "preferred_term": "Drug-induced disorder of liver (disorder)",
+          "sentence": "-rise in ALT could be due to recent start of atorvastatin 80mg due to TIA",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "308064009",
+          "name": "History of cerebrovascular disease (situation)",
+          "severity": "medium",
+          "reason": "The note specifies a TIA specifically; 'History of cerebrovascular disease' is a broad non-specific code superseded by the more precise TIA code (266257000) already coded in this encounter. Additionally, lookup_concept returned an unreliable result (semantic_tag 'organism') for this concept ID, suggesting a possible index error.",
+          "replace_with_concept_id": "266257000",
+          "replace_with_preferred_term": "Transient ischemic attack (disorder)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "446047003",
+          "name": "Change in insulin dose (procedure)",
+          "severity": "high",
+          "reason": "This is an insulin-specific dose-change code; the encounter documents a statin (atorvastatin) dose reduction, not an insulin change. The correct code is 'Prescription dose change' or 'Change of medication'.",
+          "replace_with_concept_id": "309633003",
+          "replace_with_preferred_term": "Prescription dose change (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "266257000",
+          "name": "Transient ischemic attack (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The TIA is referenced as a past event that prompted atorvastatin initiation ('due to TIA'), not as an active current presentation; assertion should be historical."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three definite coding issues: (1) 'Change in insulin dose' [446047003] is the wrong concept for a statin dose reduction \u2014 should be 'Prescription dose change' [309633003]; (2) TIA [266257000] is coded as present but is clearly a historical event; (3) the broad 'History of cerebrovascular disease' [308064009] is redundant given the specific TIA code and returned an unreliable lookup result. A possible drug-induced liver disorder [427399008] should also be added to reflect the pharmacist's clinical attribution of the raised ALT to atorvastatin.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6582,
+        "output_tokens": 1798,
+        "total_tokens": 8380,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "d32e8ba2-63c5-4708-b294-06ace85cb69a",
+        "date": "2024-03-27",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "35636bb3-f52b-4554-84e1-3cc208ae64bf",
+    "patient_id": "6268086643",
+    "date": "2024-04-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "23913003",
+          "term": "External hemorrhoids (disorder)",
+          "assertion": "present",
+          "source": "DRE - multiple external haemorrhoids noted"
+        },
+        {
+          "concept_id": "12063002",
+          "term": "Rectal hemorrhage (disorder)",
+          "assertion": "present",
+          "source": "Gets blood intermittently when she wipes"
+        }
+      ],
+      "missing": [
+        {
+          "term": "feeling of incomplete emptying of her bowels",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reports a sensation of incomplete bowel emptying, a clinically relevant symptom documented in the history that is distinct from the haemorrhoid diagnosis itself.",
+          "snomed_search": "sensation bowel still full",
+          "snomed_concept_id": "247338006",
+          "preferred_term": "Sensation as if bowel still full (finding)",
+          "sentence": "Gets feeling of incomplete emptying of her bowels",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "digital rectal examination",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A DRE was explicitly performed with consent and chaperone present and yielded clinically significant findings; the procedure itself should be coded.",
+          "snomed_search": "digital examination of rectum",
+          "snomed_concept_id": "410006001",
+          "preferred_term": "Digital examination of rectum (procedure)",
+          "sentence": "DRE - multiple external haemorrhoids noted, doesn't appear thrombosed, no active bleeding, tender to touch, could not tolerate a rectal exam hence had to stop",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (external haemorrhoids 23913003 and rectal haemorrhage 12063002) are clinically appropriate and confirmed by search_snomed despite the terminology server returning unreliable preferred terms on direct lookup. Two additions are warranted: the symptom of incomplete bowel emptying (247338006) is explicitly documented and clinically distinct from the primary diagnosis, and the DRE procedure (410006001) was formally performed with consent and chaperone and should be recorded. No safety-critical red flags (e.g. unintentional weight loss, change in bowel habit, blood in stool) were identified \u2014 the clinician appropriately safety-netted for worsening bleeding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6571,
+        "output_tokens": 1693,
+        "total_tokens": 8264,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "35636bb3-f52b-4554-84e1-3cc208ae64bf",
+        "date": "2024-04-01",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6c3f6867-f8fe-4b12-87e2-4391773ab8c3",
+    "patient_id": "6268086643",
+    "date": "2024-04-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "bulges to rectum",
+          "snomed_concept_id": "57773001",
+          "preferred_term": "Rectal prolapse (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "possible",
+          "severity": "high",
+          "action": "add",
+          "reason": "Presenting complaint of rectal bulging is consistent with rectal prolapse; no clinician diagnosis documented at triage so coded as possible. Prolapsed haemorrhoids (46276006) is an equally plausible differential \u2014 both should be flagged for clinician review.",
+          "sentence": "bulges to rectum",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "bulges to rectum",
+          "snomed_concept_id": "46276006",
+          "preferred_term": "Prolapsed hemorrhoids (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "possible",
+          "severity": "high",
+          "action": "add",
+          "reason": "Prolapsed haemorrhoids is a key differential for rectal bulging at triage; coded as possible pending clinician assessment.",
+          "sentence": "bulges to rectum",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "ulcerated",
+          "snomed_concept_id": "54609002",
+          "preferred_term": "Ulcer of rectum (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Ulceration is explicitly documented as part of the presenting complaint in the context of a rectal bulge; rectal ulceration is a clinically significant finding requiring coding.",
+          "sentence": "bulges to rectum \nulcerated\npainful",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "painful",
+          "snomed_concept_id": "77880009",
+          "preferred_term": "Rectal pain (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Pain is explicitly listed as part of the presenting complaint in the context of a rectal condition.",
+          "sentence": "bulges to rectum \nulcerated\npainful",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "HCSW triage entry at UTC. Three clinical findings documented in the presenting complaint \u2014 rectal bulging (possible rectal prolapse vs prolapsed haemorrhoids), ulceration, and pain \u2014 none of which have been coded. Vital signs and NEWS2 score are captured as structured numeric data and do not require additional SNOMED coding here. The differential between rectal prolapse and prolapsed haemorrhoids cannot be resolved from triage text alone; both are flagged as 'possible' pending clinician assessment. No red-flag cancer symptoms (e.g. rectal bleeding, weight loss) are documented in this encounter, though the combination of rectal ulceration and prolapse warrants clinical follow-up.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3541,
+        "output_tokens": 1814,
+        "total_tokens": 5355,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "6c3f6867-f8fe-4b12-87e2-4391773ab8c3",
+        "date": "2024-04-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c21e4c19-1455-42a3-a357-ebd819e1e20e",
+    "patient_id": "6268086643",
+    "date": "2024-04-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "liver impairment",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The Eclipse alert and clinical note explicitly document liver impairment (ALT >150) in the context of statin therapy; a disorder-level code for drug-induced liver disorder is warranted and is not currently coded.",
+          "snomed_search": "drug-induced disorder liver",
+          "snomed_concept_id": "427399008",
+          "preferred_term": "Drug-induced disorder of liver (disorder)",
+          "sentence": "Eclipse alert: Lipid Regulation: Caution: Statin detected with liver impairment (ALT >150).",
+          "char_start": 148,
+          "char_end": 222
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "166669000",
+          "name": "Aspartate aminotransferase serum level above reference range (finding)",
+          "severity": "high",
+          "reason": "The note documents elevated ALT (alanine aminotransferase), not AST (aspartate aminotransferase); concept 166669000 refers to AST and is therefore the wrong analyte.",
+          "replace_with_concept_id": "409673008",
+          "replace_with_preferred_term": "Alanine aminotransferase above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The key error is concept 166669000 (AST above range) being used where the note clearly documents elevated ALT \u2014 this should be replaced with 409673008 (ALT above reference range). Additionally, the clinically significant finding of statin-induced liver impairment (427399008) is missing as a disorder-level code. The TIA (266257000) and ALT observable entity (1018251000000107) are correctly coded; lookup server returned unreliable results for both but search_snomed confirmed the concept IDs are valid.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7482,
+        "output_tokens": 1653,
+        "total_tokens": 9135,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "c21e4c19-1455-42a3-a357-ebd819e1e20e",
+        "date": "2024-04-15",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "17184302-d54e-4980-b815-ac153028d279",
+    "patient_id": "6268086643",
+    "date": "2024-07-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "statin detected with liver impairment (ALT >150)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The system alert and clinical narrative explicitly document raised ALT >150 in the context of atorvastatin use, constituting a drug-induced liver disorder that warrants a disorder-level code beyond the observable entity alone.",
+          "snomed_search": "drug-induced disorder of liver",
+          "snomed_concept_id": "427399008",
+          "preferred_term": "Drug-induced disorder of liver (disorder)",
+          "sentence": "Eclipse: Lipid Regulation: Caution: Statin detected with liver impairment (ALT >150)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "266257000",
+          "name": "Transient ischemic attack (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note references TIA only in a historical context ('when pt was started on atorvastatin 80mg from TIA clinic'), indicating a past event; assertion should be historical rather than present."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The most significant gap is the absence of a drug-induced liver disorder code \u2014 the clinical pharmacist note and system alert clearly document statin-associated hepatotoxicity (ALT >150 on atorvastatin), which warrants 427399008 Drug-induced disorder of liver. The TIA assertion of 'present' is inconsistent with the note's historical framing; 'historical' is more appropriate. The observable entity code for serum ALT and the 'history of cerebrovascular disease' situation code are both defensible as standing problem-list entries. Note: lookup_concept returned unreliable results for all three coded concepts, but search_snomed confirmed the concept IDs are valid.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4129,
+        "output_tokens": 1696,
+        "total_tokens": 5825,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "17184302-d54e-4980-b815-ac153028d279",
+        "date": "2024-07-29",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c87c2399-2832-40fe-be3b-0d3fafcaa199",
+    "patient_id": "6268086643",
+    "date": "2024-08-07",
+    "result": {
+      "encounter_assessment": "no_codeable_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This is an auto-filed lipid panel result with a brief clinician review noting normal results and no further action; the two existing observable entity codes are written by the structured lab pipeline and are not subject to encounter-level audit. No disorders, findings, situations, or procedures are documented in the encounter text that would require additional SNOMED coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1927,
+        "output_tokens": 629,
+        "total_tokens": 2556,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "c87c2399-2832-40fe-be3b-0d3fafcaa199",
+        "date": "2024-08-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c808edc0-2035-4b74-a07d-e6819828cbc8",
+    "patient_id": "6268086643",
+    "date": "2024-10-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter is a patient-initiated online repeat medication request (clopidogrel, atorvastatin, ramipril, doxazosin) with no prescriber review, clinical narrative, examination, or diagnostic content. All 12 coded concepts are either structured-pipeline lab observables or standing problem-list situation codes \u2014 none are derived from this encounter text, and none should be added or removed on the basis of this administrative request alone. Lookup_concept returned unreliable results for the two situation codes (161501007, 308064009) due to a terminology server index issue, but per audit rules these are not flagged as overcoded on that basis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2256,
+        "output_tokens": 526,
+        "total_tokens": 2782,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "c808edc0-2035-4b74-a07d-e6819828cbc8",
+        "date": "2024-10-08",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "41de0549-f980-477c-9790-5772841ca056",
+    "patient_id": "6268086643",
+    "date": "2024-10-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "This is an auto-filed lab results encounter with a brief HbA1c review (normal result, no further action) and a request reason of 'htn / TIA review'. All 14 coded concepts are appropriate: the observable entity lab codes are pipeline-generated and correctly excluded from audit scope; History of hypertension (161501007) and History of TIA (161511000) are both confirmed valid situation codes and correctly coded from the request reason; the broader History of cerebrovascular disease (308064009) is a legitimate co-existing parent code and not overcoded. The normal HbA1c and the negative thyroid treatment note do not warrant additional coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4562,
+        "output_tokens": 984,
+        "total_tokens": 5546,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "41de0549-f980-477c-9790-5772841ca056",
+        "date": "2024-10-08",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8c40f9d4-8dae-4e5e-b8ba-037f8e2618c2",
+    "patient_id": "6268086643",
+    "date": "2024-10-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "All 16 coded concepts are confirmed correct: the three lookup_concept failures were due to a corrupted terminology server index, not genuine coding errors \u2014 search_snomed confirms concept IDs 161501007 (History of hypertension), 161511000 (History of TIA), and 1000821000000103 (Serum albumin level) are all valid and appropriate. The LFT results are all within normal range and the report is marked 'Normal, No Further Action'; no clinical interpretations (e.g. abnormal findings) require additional coding. The globulin commentary is a boilerplate reference range note and does not represent a coded finding for this patient. Observable entity codes for lab values are correctly written by the structured pipeline and are not overcoded.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5889,
+        "output_tokens": 780,
+        "total_tokens": 6669,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "8c40f9d4-8dae-4e5e-b8ba-037f8e2618c2",
+        "date": "2024-10-08",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fa91d3ca-7749-4b3e-b0f9-8dab841c2496",
+    "patient_id": "6268086643",
+    "date": "2024-10-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Referral to weight management service declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states twice 'Referral to weight management service declined' with the reason that the patient has a personal trainer and is making lifestyle changes, but this situation is absent from the 13 coded concepts.",
+          "snomed_search": "weight management referral",
+          "snomed_concept_id": "506171000000109",
+          "preferred_term": "Referral to weight management service declined (situation)",
+          "sentence": "Referral to weight management service declined (XaQUp) has a PT - lifestyle changes being made",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1085031000000100",
+          "name": "Home blood pressure monitoring declined (situation)",
+          "severity": "high",
+          "reason": "The concept ID is unreliable (terminology server returned an organism tag) and the label 'declined' directly contradicts the note, which shows home BP monitoring was actively requested and initiated ('Plan: acr needed and home bps'; 'Home Blood Pressure Readings to Ms Jane Harker / Recall: BP Monitoring - 7 days'); the correct code is 'Blood pressure recorded by patient at home'.",
+          "replace_with_concept_id": "413153004",
+          "replace_with_preferred_term": "Blood pressure recorded by patient at home (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "271075006",
+          "name": "Urine albumin/creatinine ratio measurement (procedure)",
+          "severity": "low",
+          "reason": "The note states 'acr needed' in the plan, indicating this is a future/requested procedure that has not yet been performed; coding a planned procedure as present is not supported by the encounter text."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The most significant issue is concept [1085031000000100] which is both an unreliable/corrupt concept ID and semantically wrong \u2014 the note clearly initiates home BP monitoring rather than declining it, and should be replaced with [413153004] 'Blood pressure recorded by patient at home'. The weight management service declination is explicitly documented twice in the note but missing from the coded list. The ACR measurement is coded as a completed procedure when the note only indicates it is planned ('acr needed'). The 'History of cerebrovascular disease' code [308064009] is confirmed as a valid SNOMED concept and is treated as a standing problem-list entry; 'TIA review' was not found in this encounter's text but the code is not flagged as overcoded per policy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 16561,
+        "output_tokens": 2452,
+        "total_tokens": 19013,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "fa91d3ca-7749-4b3e-b0f9-8dab841c2496",
+        "date": "2024-10-08",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3c727f4d-b092-40a6-b6fc-b3a38c772c7e",
+    "patient_id": "6268086643",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Small pinpoint firm lump left axilla",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The primary clinical finding driving the 2WW referral \u2014 a firm lump in the left axilla \u2014 is explicitly documented on examination and must be coded as it is the red-flag finding.",
+          "snomed_search": "lump axilla",
+          "snomed_concept_id": "300863000",
+          "preferred_term": "Mass of axilla (finding)",
+          "sentence": "Small pinpoint firm lump left axilla.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The two existing codes (2WW fast-track referral procedure and breast pain/mastodynia) are clinically appropriate and confirmed by SNOMED search \u2014 lookup_concept returned unreliable results for both IDs but search_snomed validates them. The critical gap is the absence of a code for the primary examination finding: a firm lump in the left axilla (300863000 Mass of axilla), which is the red-flag finding that directly triggered the 2WW breast referral and must be coded at critical severity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4616,
+        "output_tokens": 1104,
+        "total_tokens": 5720,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "3c727f4d-b092-40a6-b6fc-b3a38c772c7e",
+        "date": "2025-05-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3c4ac966-8c0f-4c56-b922-645b17093d1d",
+    "patient_id": "6268086643",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Both coded concepts \u2014 Mass of axilla (300863000) and Pain in axilla (300953009) \u2014 are confirmed valid SNOMED findings and correctly asserted as present; lookup_concept returned unreliable results for both IDs but search_snomed confirmed their legitimacy. The f2f review at 15:00 is a planned (future) procedure within this encounter and is correctly not coded. Clinicians should ensure the outcome of the same-day face-to-face review is coded in a subsequent encounter, particularly given the safety-critical nature of a deep, symptomatic, enlarging axillary lump (potential lymphadenopathy or malignancy requiring 2WW consideration).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4786,
+        "output_tokens": 1331,
+        "total_tokens": 6117,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "3c4ac966-8c0f-4c56-b922-645b17093d1d",
+        "date": "2025-05-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6417930d-3ad2-4650-a1df-7bbde4e2a2a8",
+    "patient_id": "6268086643",
+    "date": "2025-06-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a7b26430-63af-4179-8d81-d1094a9c6b37",
+    "patient_id": "6268086643",
+    "date": "2025-06-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "526b53b4-5d37-4abf-b82d-ee586987d594",
+    "patient_id": "6268086643",
+    "date": "2025-10-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "BMI 30.85 kg/m\u00b2",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI of 30.85 kg/m\u00b2 is explicitly documented and meets the threshold for obesity (BMI \u226530); the BMI observable entity is coded but the clinical interpretation as obesity finding is absent.",
+          "snomed_search": "BMI 30 obesity",
+          "snomed_concept_id": "162864005",
+          "preferred_term": "Body mass index 30+ - obesity (finding)",
+          "sentence": "Body mass index - observation (22K..) 30.85 Kg/m\u00b2",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely of good quality: hazardous alcohol use (AUDIT-C score 9), ex-smoker, hypertension history, and all structured lab observables are correctly coded. One gap identified: BMI 30.85 kg/m\u00b2 is documented but only the observable entity is coded \u2014 the clinical finding 'Body mass index 30+ - obesity' (162864005) should also be added. The 'History of hypertension' situation code (161501007) is acceptable UK primary care convention for an active managed condition and has not been flagged. The AUDIT-C observable (763256006) and hazardous alcohol use finding (198421000000108) are both confirmed correct despite unreliable lookup responses on one tool call.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11527,
+        "output_tokens": 1821,
+        "total_tokens": 13348,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "526b53b4-5d37-4abf-b82d-ee586987d594",
+        "date": "2025-10-10",
+        "coded_count": 19
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b0d9dc60-3549-4e9e-ae7b-72193cd462b1",
+    "patient_id": "6268086643",
+    "date": "2025-10-10",
+    "result": {
+      "encounter_assessment": "no_codeable_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is an auto-filed structured lipid panel result reviewed and signed off as 'Normal, No Further Action'; all 13 existing codes are observable entity lab values written by the structured pipeline and are excluded from audit scope. The HDL outside-reference-range flag is a raw numeric result with no explicit clinical interpretation documented beyond 'Normal', so no disorder/finding code is warranted. Concept [850981000000101] returned unreliable on lookup (organism tag) but is a pipeline-written lab observable and must not be flagged overcoded on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4879,
+        "output_tokens": 894,
+        "total_tokens": 5773,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6268086643",
+        "encounter_id": "b0d9dc60-3549-4e9e-ae7b-72193cd462b1",
+        "date": "2025-10-10",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  }
+]

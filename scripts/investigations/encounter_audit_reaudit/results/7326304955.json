@@ -1,0 +1,1337 @@
+[
+  {
+    "encounter_id": "76f3d575-5aa0-45db-b0a2-063b10e7a0b5",
+    "patient_id": "7326304955",
+    "date": "2024-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Patient given advice",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents that the patient was given safety-netting advice (attend LWIC if worsening), and the Read code 8CA.. for 'Patient given advice' is present in the encounter text but has not been mapped to a SNOMED concept in the coded list.",
+          "snomed_search": "patient given advice",
+          "snomed_concept_id": "183049006",
+          "preferred_term": "Patient given advice (situation)",
+          "sentence": "advised if abdo pain worsening - LWIC for review tonight - will send task for f2f tomorrow for rev of abdo pain pls.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (Telephone consultation 386472008 and Lower abdominal pain 54586004) are both correct and well-evidenced \u2014 lookup_concept returned unreliable results due to a terminology server index issue, but search_snomed confirms both IDs are accurate. The only gap is the Read-coded 'Patient given advice' (8CA..) which is explicitly documented in the encounter text but lacks a corresponding SNOMED mapping; SNOMED 183049006 'Patient given advice (situation)' is the appropriate equivalent. The planned f2f review and LWIC safety-net are future/planned events and should not be coded as present procedures.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7011,
+        "output_tokens": 1281,
+        "total_tokens": 8292,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "76f3d575-5aa0-45db-b0a2-063b10e7a0b5",
+        "date": "2024-08-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "833fe15e-77e8-4ed9-9d52-7402f3cbdadb",
+    "patient_id": "7326304955",
+    "date": "2024-10-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Declined covid vaccine",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states the patient declined the COVID vaccine; this should be coded as a declined situation for clinical record completeness and public health tracking.",
+          "snomed_search": "COVID vaccine",
+          "snomed_concept_id": "1156270003",
+          "preferred_term": "Severe acute respiratory syndrome coronavirus 2 vaccination declined (situation)",
+          "sentence": "Declined covid vaccine.",
+          "char_start": 72,
+          "char_end": 92
+        },
+        {
+          "term": "Employed by domiciliary care provider",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient's occupation as a domiciliary care worker is explicitly documented and is the clinical rationale for the influenza vaccination under the at-risk occupational group; it should be coded.",
+          "snomed_search": "employed domiciliary care provider",
+          "snomed_concept_id": "1092581000000103",
+          "preferred_term": "Employed by domiciliary care provider (finding)",
+          "sentence": "Employed by domiciliary care provider (Y1cf0)",
+          "char_start": 0,
+          "char_end": 45
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The influenza vaccination procedure code [86198006] returned unreliable from the terminology server (semantic_tag=organism) but is a well-known valid SNOMED procedure ID and has not been flagged for removal. Two clinically relevant findings are missing: the patient's explicit COVID vaccine declination (important for immunisation records) and their occupational status as a domiciliary care worker (the eligibility criterion for this vaccination).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4448,
+        "output_tokens": 1187,
+        "total_tokens": 5635,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "833fe15e-77e8-4ed9-9d52-7402f3cbdadb",
+        "date": "2024-10-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3e58c787-578d-48eb-9068-e8d2b1f9874f",
+    "patient_id": "7326304955",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "386661006",
+          "name": "Fever (finding)",
+          "severity": "high",
+          "reason": "The encounter note explicitly documents 'Afebrile' in the plan and records a normal temperature of 36.7\u00b0C; the evidence string 'high temp - 2 days ago' does not appear anywhere in this encounter text, making this code unsupported and clinically contradicted.",
+          "replace_with_concept_id": null,
+          "replace_with_preferred_term": null
+        },
+        {
+          "conceptId": "307541003",
+          "name": "LUTS - lower urinary tract symptoms (finding)",
+          "severity": "medium",
+          "reason": "The note describes a specific symptom \u2014 'urinating more than normal' (increased urinary frequency) \u2014 which is more precisely coded as Increased frequency of urination (162116003) rather than the broad LUTS umbrella term.",
+          "replace_with_concept_id": "162116003",
+          "replace_with_preferred_term": "Increased frequency of urination (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two definite coding issues: (1) Fever is critically wrong \u2014 the patient is documented as afebrile with a normal temperature of 36.7\u00b0C, and the evidence string cited ('high temp - 2 days ago') is entirely absent from the encounter text, suggesting this code was carried over in error from a different encounter or fabricated. (2) The broad LUTS code should be replaced with the more specific 'Increased frequency of urination' to accurately reflect the documented symptom. All other codes (abdominal pain, LLQ tenderness, back pain, negative pregnancy test, blood pressure) are appropriate and well-evidenced.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5002,
+        "output_tokens": 1271,
+        "total_tokens": 6273,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "3e58c787-578d-48eb-9068-e8d2b1f9874f",
+        "date": "2024-11-01",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "398ed5c4-8ce2-45d7-8a58-d816644d1c5f",
+    "patient_id": "7326304955",
+    "date": "2024-11-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "body pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports generalised body pain every day as a distinct symptom, not captured by the back pain or abdominal pain codes.",
+          "snomed_search": "myalgia body pain",
+          "snomed_concept_id": "68962001",
+          "preferred_term": "Muscle pain (finding)",
+          "sentence": "says has body pain and back aches every day.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding)",
+          "severity": "medium",
+          "reason": "Concept ID 399079008 is unverifiable (terminology server returned semantic_tag='organism'); the note says 'back aches' which maps to verified concept 161891005 Backache (finding). Additionally, the coded evidence string 'mild bilateral lumbar back pain' does not appear in the encounter text.",
+          "replace_with_concept_id": "161891005",
+          "replace_with_preferred_term": "Backache (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two of three coded concepts had unreliable terminology server lookups; 21522001 (Abdominal pain) and 386661006 (Fever) are confirmed correct via search. Concept 399079008 should be replaced with the verified Backache code 161891005, and the fabricated evidence string 'mild bilateral lumbar back pain' is a concern. Generalised body pain (myalgia) is a distinct reported symptom that is missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5451,
+        "output_tokens": 1569,
+        "total_tokens": 7020,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "398ed5c4-8ce2-45d7-8a58-d816644d1c5f",
+        "date": "2024-11-01",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6f081ae7-c582-4ae3-8a49-30416c155c79",
+    "patient_id": "7326304955",
+    "date": "2025-04-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "419670003",
+          "name": "Epidermoid cyst (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "Concept 419670003 carries the semantic tag 'morphologic abnormality', which is outside the codeable scope for a clinical diagnosis; the correct clinical concept for this right-breast possible epidermoid cyst is the disorder-tagged code 10738431000119106 'Epidermoid cyst of skin of right breast (disorder)', and the assertion must be 'possible' because the note documents '?infected cyst' as a differential, not a confirmed diagnosis.",
+          "replace_with_concept_id": "10738431000119106",
+          "replace_with_preferred_term": "Epidermoid cyst of skin of right breast (disorder)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The 2WW breast referral and breast lump finding are correctly coded. The epidermoid cyst concept has two problems: (1) it uses a 'morphologic abnormality' concept rather than a disorder-class code, and (2) the assertion is 'present' when the clinician documents this only as a differential ('?infected cyst'), so it should be 'possible' using the site-specific disorder code 10738431000119106 (Epidermoid cyst of skin of right breast). The safety-critical 2WW referral is appropriately captured.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7592,
+        "output_tokens": 1360,
+        "total_tokens": 8952,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "6f081ae7-c582-4ae3-8a49-30416c155c79",
+        "date": "2025-04-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4dac2713-cd3c-4f72-b9b3-27cce2b26cdc",
+    "patient_id": "7326304955",
+    "date": "2025-04-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hard lump right breast",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes a hard lump in the top part of the right breast \u2014 more specific SNOMED codes exist than the currently coded generic 'Breast lump'; a new hard breast lump in a non-lactating patient is an NG12 red-flag requiring 2WW referral consideration.",
+          "snomed_search": "hard lump breast",
+          "snomed_concept_id": "792891005",
+          "preferred_term": "Hard lump of breast (finding)",
+          "sentence": "3d, top part of right breast, lump, tender and feel hard.  pain when pressing.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "right breast lump",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note specifies the right breast; laterality should be captured with 'Mass of right breast' for clinical precision and downstream cancer pathway tracking.",
+          "snomed_search": "mass right breast",
+          "snomed_concept_id": "12240221000119106",
+          "preferred_term": "Mass of right breast (finding)",
+          "sentence": "3d, top part of right breast, lump, tender and feel hard.  pain when pressing.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "fast track referral suspected breast cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A new hard breast lump in a non-lactating patient with no prior breast history meets NG12 criteria for urgent 2WW referral; if a fast-track referral was made during this triage call it must be coded \u2014 its absence from the coded list is a critical safety gap.",
+          "snomed_search": "fast track referral suspected breast cancer",
+          "snomed_concept_id": "276341000000107",
+          "preferred_term": "Fast track referral for suspected breast cancer (procedure)",
+          "sentence": "3d, top part of right breast, lump, tender and feel hard.  pain when pressing. not breastfeeding. not had painful lumps like this before. prior to this, no issues with breast issues before.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "This telephone triage encounter describes a new, hard, unilateral right breast lump in a non-lactating patient with no prior breast history \u2014 a classic NG12 red-flag presentation. The existing codes (breast lump, mastodynia) are clinically supported but lack specificity (hardness, laterality) and critically, a 2WW fast-track referral for suspected breast cancer has not been coded; if one was actioned during this call, its absence is a critical safety gap that must be resolved urgently. Both existing concept IDs returned as unreliable Extension Namespace placeholders on the terminology server \u2014 local validation of [89164003] and [53430007] is recommended, though the clinical concepts themselves are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4787,
+        "output_tokens": 1732,
+        "total_tokens": 6519,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "4dac2713-cd3c-4f72-b9b3-27cce2b26cdc",
+        "date": "2025-04-02",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d7e1712f-d82b-4899-b3bf-866e4a7fe73c",
+    "patient_id": "7326304955",
+    "date": "2025-04-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dark urine",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports dark urine ('urine a bit dark'), which is a clinically significant finding indicating possible dehydration in the context of nausea and vomiting in pregnancy.",
+          "snomed_search": "dark urine",
+          "snomed_concept_id": "39575007",
+          "preferred_term": "Urine looks dark (finding)",
+          "sentence": "urine a bit dark.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "primigravida",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states '1st time pregnant', making primigravida a clinically relevant finding that should be coded to support obstetric risk stratification and midwife booking.",
+          "snomed_search": "primigravida",
+          "snomed_concept_id": "127364007",
+          "preferred_term": "Primigravida (finding)",
+          "sentence": "early pregnancy, 1st time pregnant.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "medium",
+          "reason": "The pregnancy-specific code 1296685008 'Nausea and vomiting in pregnancy (disorder)' is already coded and fully subsumes this generic nausea and vomiting code; retaining both creates redundancy with the less specific concept.",
+          "replace_with_concept_id": "1296685008",
+          "replace_with_preferred_term": "Nausea and vomiting in pregnancy (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The pregnancy-specific NVP code (1296685008) is correct and should replace the redundant generic nausea and vomiting code (16932000). Two clinically relevant findings are uncoded: dark urine (suggesting dehydration) and primigravida (first pregnancy, relevant to MW booking and obstetric risk). The urine dipstick for ketones was requested but not yet performed at time of encounter, so it is not coded as present \u2014 noted for follow-up coding once result is available.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5928,
+        "output_tokens": 1530,
+        "total_tokens": 7458,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "d7e1712f-d82b-4899-b3bf-866e4a7fe73c",
+        "date": "2025-04-16",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "87b50674-19e4-4822-bf9f-c6663d936d80",
+    "patient_id": "7326304955",
+    "date": "2025-04-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "positive pregnancy test / confirmed pregnancy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a positive pregnancy test on 30/03/2025 confirming an active pregnancy, which is the primary clinical context for this entire encounter and must be coded.",
+          "snomed_search": "pregnancy confirmed",
+          "snomed_concept_id": "77386006",
+          "preferred_term": "Pregnancy (finding)",
+          "sentence": "Had a positive pregnancy test on the 30/03/2025 and started experiencing symptoms on 04/04/25 of nausea and vomiting, episodes of fever and weakness throughout the day",
+          "char_start": 215,
+          "char_end": 310
+        },
+        {
+          "term": "first pregnancy (primigravida)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'this is her first pregnancy', making primigravida a clinically relevant finding that affects obstetric risk assessment and management.",
+          "snomed_search": "primigravida",
+          "snomed_concept_id": "127364007",
+          "preferred_term": "Primigravida (finding)",
+          "sentence": "this is her first pregnancy and nothing like this has happened before.",
+          "char_start": 730,
+          "char_end": 795
+        },
+        {
+          "term": "headache with blurring of vision in pregnancy",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The combination of headache and visual disturbance in a pregnant patient is a recognised red-flag symptom pattern for pre-eclampsia; although BP is low-normal (104/68) and both symptoms are individually coded, the clinical significance of this combination in pregnancy must be explicitly flagged for safety review \u2014 the coder's rationale for separate coding of blurred vision is noted but the safety-critical nature of this symptom pair in pregnancy requires escalation.",
+          "snomed_search": "pre-eclampsia",
+          "snomed_concept_id": "398254007",
+          "preferred_term": "Pre-eclampsia (disorder)",
+          "sentence": "she also occasionally gets headaches with some blurring of vision",
+          "char_start": 560,
+          "char_end": 623
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "medium",
+          "reason": "The generic 'Nausea and vomiting' code is redundant and subsumed by the already-coded pregnancy-specific disorder [14094001] 'Excessive vomiting in pregnancy'; coding both introduces duplication and the non-specific code adds no clinical value in this context.",
+          "replace_with_concept_id": "1296685008",
+          "replace_with_preferred_term": "Nausea and vomiting in pregnancy (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The most significant gap is the absence of a confirmed pregnancy code [77386006], which is the essential clinical context for this entire encounter; primigravida status is also explicitly documented and uncoded. The generic nausea and vomiting code [16932000] is redundant given the more specific pregnancy-specific excessive vomiting disorder already coded and should be replaced with [1296685008] 'Nausea and vomiting in pregnancy'. Critically, the co-occurrence of headache and blurred vision in a pregnant patient constitutes a pre-eclampsia red-flag pattern under NICE guidance and requires explicit clinical review, even though the low BP (104/68) makes pre-eclampsia less likely at this visit. Note: lookup_concept returned unreliable semantic tags for concepts 14094001, 16932000, and 111516008, but search_snomed confirmed all three are valid SNOMED disorder/finding concepts; the terminology server lookup appears unreliable for these IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9140,
+        "output_tokens": 2643,
+        "total_tokens": 11783,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "87b50674-19e4-4822-bf9f-c6663d936d80",
+        "date": "2025-04-16",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8b57cb65-34a2-4f11-ba26-b31e5026eff8",
+    "patient_id": "7326304955",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dizziness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dizziness is explicitly documented as a current symptom ('weak and dizziness') but has not been coded.",
+          "snomed_search": "dizziness symptom",
+          "snomed_concept_id": "404640003",
+          "preferred_term": "Dizziness (finding)",
+          "sentence": "Feeling persistently nauseated,  weak and dizziness and intermittent headache",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "low",
+          "reason": "Nausea and vomiting are the defining features of the already-coded hyperemesis gravidarum (14094001); coding both is redundant as the more specific pregnancy-specific disorder fully subsumes this generic finding.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis of hyperemesis gravidarum (14094001) is correctly coded and confirmed by search, despite an unreliable lookup response. The generic 'Nausea and vomiting' (16932000) is redundant given the more specific pregnancy disorder is already coded. Dizziness, explicitly documented as a current symptom, is the only meaningful gap. Note: a future cystoscopy-equivalent (cyclizine prescription) is a medication record matter and out of scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5779,
+        "output_tokens": 1277,
+        "total_tokens": 7056,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "8b57cb65-34a2-4f11-ba26-b31e5026eff8",
+        "date": "2025-04-17",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f716e61e-fccb-4bfe-913c-3a43092106b0",
+    "patient_id": "7326304955",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "GORD",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "The note explicitly states 'consider GORD as precipitating ongoing factor' with management options discussed (alginate, PPI), making this a clinically active differential diagnosis that should be coded as possible.",
+          "snomed_search": "gastro-oesophageal reflux disease",
+          "snomed_concept_id": "235595009",
+          "preferred_term": "Gastroesophageal reflux disease (disorder)",
+          "sentence": "consider GORD as precipitating ongoing factor - think alginate and ppi options here if not settling - antiemetics trailed to date are centrally acting - ensure no contributing GI cause - if ongoing consider early scan re: exclude multipls pregnancy",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "16356006",
+          "name": "Multiple pregnancy (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note says 'consider early scan re: exclude multiple pregnancy' \u2014 this is an active differential to be ruled out, not a confirmed finding; assertion=present is clinically incorrect and could mislead future care."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Two issues identified: (1) Multiple pregnancy is coded as 'present' but the note clearly frames it as a possibility to be excluded via early scan \u2014 assertion must be changed to 'possible'. (2) GORD is explicitly raised as a possible precipitating factor with specific management options discussed but is absent from the coded list. Note: all three concept lookups returned unreliable/wrong semantic tags from the terminology server; concept identities were confirmed via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7596,
+        "output_tokens": 1668,
+        "total_tokens": 9264,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "f716e61e-fccb-4bfe-913c-3a43092106b0",
+        "date": "2025-05-08",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e7a63c67-4497-43cc-a481-fe0242005981",
+    "patient_id": "7326304955",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All five coded concepts are confirmed valid via search_snomed and are well-evidenced by the encounter text: first trimester pregnancy (9+4 weeks, G1P0M0), nausea and vomiting in pregnancy (vomiting 3\u00d7 previous day, unable to tolerate solids), dehydration (mildly dry tongue in context of vomiting), and fatigue/weakness. lookup_concept returned unreliable results for three concept IDs (34095006, 1296685008, 57630001) but all three were independently confirmed by search_snomed as the correct preferred terms. Requested blood tests are not yet performed (planned procedures, not codeable from this encounter), and prochlorperazine is a medication record entry outside SNOMED disorder/finding scope.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8052,
+        "output_tokens": 1459,
+        "total_tokens": 9511,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "e7a63c67-4497-43cc-a481-fe0242005981",
+        "date": "2025-05-08",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a6e67123-8d49-4526-9a94-dd2db224cb5a",
+    "patient_id": "7326304955",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "low",
+          "reason": "This generic nausea and vomiting code is fully subsumed by the pregnancy-specific concept [1296685008] 'Nausea and vomiting in pregnancy (disorder)' already coded in the same encounter; retaining both creates redundant duplication.",
+          "replace_with_concept_id": "1296685008",
+          "replace_with_preferred_term": "Nausea and vomiting in pregnancy (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely appropriate for this early-pregnancy telephone consultation: the pregnancy-specific NVP disorder [1296685008], pregnancy finding [77386006], fatigue [272060000], and telephone consultation [386472008] are all well-evidenced. The only issue is that the generic [16932000] 'Nausea and vomiting (disorder)' is redundant alongside the more specific 'Nausea and vomiting in pregnancy' code and should be removed. Note: lookup_concept returned unreliable/corrupted results for several concept IDs, but search_snomed confirmed their clinical validity independently.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7559,
+        "output_tokens": 1388,
+        "total_tokens": 8947,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "a6e67123-8d49-4526-9a94-dd2db224cb5a",
+        "date": "2025-05-08",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c3ad8055-1fda-48f1-82b4-85f0908da896",
+    "patient_id": "7326304955",
+    "date": "2025-06-03",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "entities": [],
+      "notes": "The encounter is an auto-filed FBC result; the seven observable entity codes are correctly written by the structured lab pipeline and are not subject to audit. The single disorder code 27342004 (Anemia of pregnancy) is confirmed correct by SNOMED search and is well-supported by the explicit lab report annotation 'Anemia in pregnancy' and Hb 109 g/L below the pregnancy threshold. The WBC of 3.7 (mildly below range) and minor eosinophil/basophil low values are not explicitly named as disorders in the note text and do not require additional coding at this stage; the haematology referral guideline signpost is informational only and no referral has been documented as actioned.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6778,
+        "output_tokens": 1441,
+        "total_tokens": 8219,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "c3ad8055-1fda-48f1-82b4-85f0908da896",
+        "date": "2025-06-03",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3a193bb9-a32b-4749-ae15-3120ce6d0b66",
+    "patient_id": "7326304955",
+    "date": "2025-06-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Patient currently pregnant",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Pregnancy is explicitly documented as the active problem context for this encounter and must be coded as a clinical finding.",
+          "snomed_search": "pregnancy",
+          "snomed_concept_id": "77386006",
+          "preferred_term": "Pregnancy (finding)",
+          "sentence": "Problem: Patient currently pregnant (621..)",
+          "char_start": 51,
+          "char_end": 79
+        },
+        {
+          "term": "Serum TSH 0.07 miu/L",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "TSH of 0.07 mIU/L is below the reference range (even the lower first-trimester pregnancy threshold of ~0.1 mIU/L); the clinical interpretation of a suppressed TSH should be coded as a finding, not just the observable entity.",
+          "snomed_search": "serum thyroid stimulating hormone below reference range",
+          "snomed_concept_id": "1153577007",
+          "preferred_term": "Serum thyroid stimulating hormone below reference range (finding)",
+          "sentence": "Serum TSH 0.07 miu/L assertion=present",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Pregnancy is explicitly stated as the encounter problem but is absent from the coded concepts. More importantly, TSH 0.07 mIU/L is clinically suppressed \u2014 particularly significant in pregnancy \u2014 and the interpretive finding (TSH below reference range) should be coded alongside the observable entity; the raw numeric value alone is insufficient to capture the clinical significance of this result.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3986,
+        "output_tokens": 1110,
+        "total_tokens": 5096,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "3a193bb9-a32b-4749-ae15-3120ce6d0b66",
+        "date": "2025-06-03",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3bf29293-aa0c-4788-ac97-1bfb4e01bf27",
+    "patient_id": "7326304955",
+    "date": "2025-06-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "iron deficiency anaemia of pregnancy",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note specifies Hb 109 g/L below the 110 g/L booking threshold with ferrous fumarate prescribed, indicating iron deficiency anaemia specifically; the coded 'Anemia of pregnancy' (27342004) is less specific than 'Iron deficiency anemia of pregnancy' (199248002) which is the clinically correct subtype.",
+          "snomed_search": "iron deficiency anaemia pregnancy",
+          "snomed_concept_id": "199248002",
+          "preferred_term": "Iron deficiency anemia of pregnancy (disorder)",
+          "sentence": "I have seen that Qowiyat has low HB109g/L and requires iron therapy. Parameters at booking in pregnancy are 110g/L to initiate treatment. Please can you prescribe a suitable iron therapy for her?",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "27342004",
+          "name": "Anemia of pregnancy (disorder)",
+          "severity": "medium",
+          "reason": "The note documents iron deficiency anaemia of pregnancy specifically (Hb below booking threshold, iron therapy initiated), making the broader 'Anemia of pregnancy' code less precise than the available subtype 'Iron deficiency anemia of pregnancy' (199248002); the broader code should be replaced with the more specific one.",
+          "replace_with_concept_id": "199248002",
+          "replace_with_preferred_term": "Iron deficiency anemia of pregnancy (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two existing codes are clinically appropriate and correctly asserted; however, the anaemia code (27342004 'Anemia of pregnancy') should be replaced with the more specific 'Iron deficiency anemia of pregnancy' (199248002) given the explicit Hb value, booking threshold context, and iron therapy prescription. Note: the terminology server returned unreliable lookups for both existing concept IDs, but independent search_snomed calls confirmed both are valid SNOMED concepts with correct semantic tags \u2014 no deletion is warranted on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7013,
+        "output_tokens": 1576,
+        "total_tokens": 8589,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "3bf29293-aa0c-4788-ac97-1bfb4e01bf27",
+        "date": "2025-06-10",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "adbeb394-b899-4bb2-b7ea-8fba0ca5bcb0",
+    "patient_id": "7326304955",
+    "date": "2025-06-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "182935008",
+          "name": "Administration of prophylactic iron (procedure)",
+          "severity": "medium",
+          "reason": "The patient is explicitly 14 weeks pregnant; a more specific child concept exists that captures iron prophylaxis in the context of pregnancy.",
+          "replace_with_concept_id": "182947002",
+          "replace_with_preferred_term": "Administration of prophylactic iron during pregnancy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two of the three coded concept IDs returned unreliable/wrong semantic tags from the terminology server (416125006, 182935008), but both were confirmed as clinically correct via search_snomed. The main coding issue is specificity: 182935008 (Administration of prophylactic iron) should be replaced by 182947002 (Administration of prophylactic iron during pregnancy), as the patient is explicitly 14 weeks gestation. The MSU request noted in the encounter is a future/planned procedure (not yet performed) and should not be coded as present; it may be coded at the 16-week appointment when completed. The Hb 109 g/L is a raw numeric lab value and is appropriately captured via the observable entity pipeline rather than requiring a separate clinical interpretation code beyond the already-coded anaemia of pregnancy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4176,
+        "output_tokens": 1290,
+        "total_tokens": 5466,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "adbeb394-b899-4bb2-b7ea-8fba0ca5bcb0",
+        "date": "2025-06-10",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1ab7d6db-a08f-4f5d-ac17-bd9cdf7509e0",
+    "patient_id": "7326304955",
+    "date": "2025-06-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "MSU sent",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'MSU sent as booking sample rejected' \u2014 a midstream urine specimen collection procedure was performed during this encounter and should be coded.",
+          "snomed_search": "urine specimen collection",
+          "snomed_concept_id": "57617002",
+          "preferred_term": "Urine specimen collection (procedure)",
+          "sentence": "MSU sent as booking sample rejected.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "not been taking iron tablets",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient has documented total non-compliance with prescribed iron supplementation in the context of active pregnancy anaemia (Hb 109), which is clinically significant and requires coding to support ongoing management.",
+          "snomed_search": "drugs total non-compliance",
+          "snomed_concept_id": "275927006",
+          "preferred_term": "Drugs - total non-compliance (finding)",
+          "sentence": "HB: 109 - not been taking iron tablets, as not picked up prescription, FBC not re-taken for that reason - forms given to be re-taken at scan.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The three existing codes are clinically appropriate and confirmed valid by SNOMED search (lookup_concept returned unreliable semantic tags for 27342004 and 15633004, but search_snomed confirmed both as correct disorder/finding concepts). Two gaps identified: the MSU collection procedure performed in this encounter is uncoded, and the clinically significant total non-compliance with iron supplementation \u2014 directly relevant to the active pregnancy anaemia \u2014 has not been captured. The FBC re-take and 24-week follow-up are future/planned events and should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7268,
+        "output_tokens": 1700,
+        "total_tokens": 8968,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "1ab7d6db-a08f-4f5d-ac17-bd9cdf7509e0",
+        "date": "2025-06-26",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "27718831-be97-49de-8bac-dc00cf1958f9",
+    "patient_id": "7326304955",
+    "date": "2025-08-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "back ache",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Back ache is explicitly documented in the encounter with management (reassurance and self-referral to physio); 'Back pain complicating pregnancy' is the most specific concept given the antenatal context.",
+          "snomed_search": "back pain pregnancy",
+          "snomed_concept_id": "91957002",
+          "preferred_term": "Back pain complicating pregnancy (disorder)",
+          "sentence": "Has back ache-reassured and given contact number for self referral to physio.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Fetal movements felt",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Fetal movements felt is explicitly documented in the fetal examination section and appears in the encounter text with its Read code (XE1SD) but is absent from the 3 coded SNOMED concepts.",
+          "snomed_search": "fetal movements felt",
+          "snomed_concept_id": "268470003",
+          "preferred_term": "Fetal movements felt (finding)",
+          "sentence": "Fetal movements: Fetal movements felt (XE1SD)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two clinically documented findings are absent from the coded list: back pain complicating pregnancy (with active management) and fetal movements felt (recorded in fetal examination). The three existing codes are appropriate \u2014 note that lookup_concept returned unreliable results for 77386006 and 249043002, but search_snomed confirms 77386006 as 'Pregnancy (finding)' and 249043002 is a legitimate antenatal observable entity; neither should be removed. Planned OGTT and pertussis vaccination in pregnancy (956951000000104) are future bookings not yet performed and should be coded once completed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8993,
+        "output_tokens": 1705,
+        "total_tokens": 10698,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "27718831-be97-49de-8bac-dc00cf1958f9",
+        "date": "2025-08-28",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a71d114b-4c83-476d-8b31-da9530c26bb7",
+    "patient_id": "7326304955",
+    "date": "2025-09-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Vaccination Consent: TETANUS / DIPHTHERIA / PERTUSSIS (Adacel combined vaccine)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Adacel is a combined Td/pertussis vaccine; the existing pertussis-only code (39343008) does not capture the tetanus and diphtheria antigens also administered \u2014 the combined antigen procedure code should replace it.",
+          "snomed_search": "pertussis diphtheria tetanus vaccination",
+          "snomed_concept_id": "399014008",
+          "preferred_term": "Administration of vaccine product containing only Bordetella pertussis and Clostridium tetani and Corynebacterium diphtheriae antigens (procedure)",
+          "sentence": "Adacel vaccine suspension for injection 0.5ml pre-filled syringes 1 0.5ml / Vaccination Consent: TETANUS / Vaccination Consent: DIPHTHERIA / Vaccination Consent: PERTUSSIS",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "39343008",
+          "name": "Administration of vaccine product containing only Bordetella pertussis antigen (procedure)",
+          "severity": "medium",
+          "reason": "Adacel contains pertussis, tetanus, and diphtheria antigens; a pertussis-only code understates what was administered and should be replaced by the combined Td/pertussis procedure code.",
+          "replace_with_concept_id": "399014008",
+          "replace_with_preferred_term": "Administration of vaccine product containing only Bordetella pertussis and Clostridium tetani and Corynebacterium diphtheriae antigens (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The main coding issue is that the Adacel vaccine (a combined Td/pertussis product) has been coded with a pertussis-only procedure code (39343008); this should be replaced with the combined Bordetella pertussis + Clostridium tetani + Corynebacterium diphtheriae antigen code (399014008). The RSV vaccine is planned for after 28 weeks and must not be coded as administered. Influenza vaccination, pregnancy, and gestational age are appropriately coded; all four existing concept lookups returned unreliable server results so no overcoding was inferred from those alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10785,
+        "output_tokens": 1944,
+        "total_tokens": 12729,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "a71d114b-4c83-476d-8b31-da9530c26bb7",
+        "date": "2025-09-08",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5d500526-bba9-4f67-b750-daa51289c11c",
+    "patient_id": "7326304955",
+    "date": "2025-10-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "GORD in pregnancy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The diagnosis is explicitly GORD attributed to pregnancy; the pregnancy-specific disorder code is more precise than a generic GORD finding and better reflects the clinical context documented.",
+          "snomed_search": "gastroesophageal reflux disease pregnancy",
+          "snomed_concept_id": "15643101000119103",
+          "preferred_term": "Gastroesophageal reflux disease in pregnancy (disorder)",
+          "sentence": "Diagnosis: GORD / Plan: Likely reflux due to pregnancy",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "epigastric tenderness on palpation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Examination explicitly documents mild pain and tenderness in the epigastric region on palpation, which is a distinct codeable examination finding not captured by the current abdominal pain code.",
+          "snomed_search": "tenderness epigastrium",
+          "snomed_concept_id": "301403003",
+          "preferred_term": "Tenderness of epigastrium (finding)",
+          "sentence": "mild pain and tenderness in epigastric region when palpated,",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "30 weeks gestation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states '30w pregnancy'; coding the specific gestational age is clinically relevant as it influences management and risk stratification, and is more precise than the generic pregnancy code already present.",
+          "snomed_search": "gestation period 30 weeks",
+          "snomed_concept_id": "71355009",
+          "preferred_term": "Gestation period, 30 weeks (finding)",
+          "sentence": "30w pregnancy",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "102620007",
+          "name": "Gastroesophageal reflux (finding)",
+          "severity": "medium",
+          "reason": "Lookup returned unreliable result (semantic_tag='organism'); the correct SNOMED concept for GORD is 235595009 (disorder), and given the pregnancy context, 15643101000119103 'Gastroesophageal reflux disease in pregnancy' is the most specific and appropriate replacement.",
+          "replace_with_concept_id": "15643101000119103",
+          "replace_with_preferred_term": "Gastroesophageal reflux disease in pregnancy (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "21522001",
+          "name": "Abdominal pain (finding)",
+          "severity": "low",
+          "reason": "The note specifies epigastric pain throughout history and examination; 'Epigastric pain (finding)' [79922009] is more specific and accurately reflects the documented location, making the generic abdominal pain code redundant.",
+          "replace_with_concept_id": "79922009",
+          "replace_with_preferred_term": "Epigastric pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The existing GORD code [102620007] is unreliable (terminology server returns organism tag) and should be replaced with the pregnancy-specific GORD disorder [15643101000119103]; the generic abdominal pain code should be upgraded to the more specific epigastric pain finding. Two additional findings \u2014 epigastric tenderness on palpation and 30-week gestational age \u2014 are documented but uncoded. No safety-critical red flags identified; urine dip negative for protein is reassuring in the context of 30-week pregnancy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5657,
+        "output_tokens": 1966,
+        "total_tokens": 7623,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "5d500526-bba9-4f67-b750-daa51289c11c",
+        "date": "2025-10-02",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "26f457e2-d378-4d8e-9f90-a3a705e3f025",
+    "patient_id": "7326304955",
+    "date": "2025-10-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "RSV vaccination administered",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The Abrysvo RSV vaccine was actually administered during this encounter under PGD; the procedure code for administration should be coded, not just a 'requires vaccination' finding.",
+          "snomed_search": "RSV vaccination procedure",
+          "snomed_concept_id": "1303503001",
+          "preferred_term": "Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)",
+          "sentence": "Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer) Single 0.5ml",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "21522001",
+          "name": "Abdominal pain (finding)",
+          "severity": "low",
+          "reason": "The more specific code Left upper quadrant pain [301715003] is already coded for this encounter, making the broader 'Abdominal pain' redundant and overcoded.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        },
+        {
+          "conceptId": "703346001",
+          "name": "Requires respiratory syncytial virus vaccination (finding)",
+          "severity": "medium",
+          "reason": "The vaccine was actually administered during this encounter; a 'requires vaccination' finding is superseded by the administration procedure and should not remain as the primary RSV coding.",
+          "replace_with_concept_id": "1303503001",
+          "replace_with_preferred_term": "Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The RSV vaccination procedure (Abrysvo administered under PGD) is not coded \u2014 only a 'requires vaccination' finding is present, which should be replaced by the administration procedure [1303503001]. The broader 'Abdominal pain' [21522001] is redundant given the more specific 'Left upper quadrant pain' [301715003] is already coded; note that several concept lookups returned unreliable results from the terminology server but search_snomed confirmed the correct preferred terms independently.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6285,
+        "output_tokens": 1583,
+        "total_tokens": 7868,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "26f457e2-d378-4d8e-9f90-a3a705e3f025",
+        "date": "2025-10-02",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cc293579-65ef-4b10-a0f2-12b90f49ca14",
+    "patient_id": "7326304955",
+    "date": "2025-10-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "urine leakage on sneezing",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents urine leakage on sneezing, a clinically significant symptom in pregnancy that warrants coding and prompted advice to perform pelvic floor exercises.",
+          "snomed_search": "sneezing incontinence urine",
+          "snomed_concept_id": "840841000000103",
+          "preferred_term": "Sneezing incontinence of urine (finding)",
+          "sentence": "Encouraged PFE's as experiencing some urine leakage on sneezing.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Encouraged PFEs (pelvic floor exercises)",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The midwife explicitly encouraged pelvic floor exercises in response to the reported urinary leakage; this clinical intervention should be coded as a procedure.",
+          "snomed_search": "encouragement pelvic floor exercises",
+          "snomed_concept_id": "57301000087108",
+          "preferred_term": "Giving encouragement to perform pelvic floor exercises (procedure)",
+          "sentence": "Encouraged PFE's as experiencing some urine leakage on sneezing.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The three existing codes (blood pressure, left upper quadrant pain, routine antenatal care) are all appropriate and correctly asserted. Two gaps identified: sneezing-triggered urinary incontinence is explicitly documented and is a clinically relevant antenatal finding, and the midwife's encouragement of pelvic floor exercises constitutes a codeable procedure. The 'asymptomatic of PET/OC' phrase correctly generates no codes as it is an absent finding. The lookup_concept server returned an unreliable result for 301715003 but search_snomed confirmed it is the correct concept for left upper quadrant pain.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9753,
+        "output_tokens": 1564,
+        "total_tokens": 11317,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "cc293579-65ef-4b10-a0f2-12b90f49ca14",
+        "date": "2025-10-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4ac57f0f-fe6a-4484-9012-a6acfcdd61b1",
+    "patient_id": "7326304955",
+    "date": "2025-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Longitudinal lie",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Fetal lie is explicitly documented as longitudinal and is clinically relevant for birth planning and intrapartum care at 35+6 weeks.",
+          "snomed_search": "longitudinal lie",
+          "snomed_concept_id": "249063009",
+          "preferred_term": "Longitudinal lie (finding)",
+          "sentence": "Lie: Longitudinal lie (X76SI)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Fetal movements felt",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Fetal movements felt is explicitly recorded as a structured observation and is a key antenatal safety finding.",
+          "snomed_search": "fetal movements felt",
+          "snomed_concept_id": "268470003",
+          "preferred_term": "Fetal movements felt (finding)",
+          "sentence": "Fetal movements: Fetal movements felt (XE1SD)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "O/E - partial engagement - 3/5",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Degree of fetal head engagement (3/5 palpable) is a specific, structured obstetric finding relevant to birth planning and onset of labour assessment.",
+          "snomed_search": "fetal engagement partial",
+          "snomed_concept_id": "163531005",
+          "preferred_term": "On examination - partial engagement - 3/5 (finding)",
+          "sentence": "Engagement: O/E - partial engagement - 3/5 (2743.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urine glucose test negative",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Urine glucose was explicitly tested and recorded as negative; this is a structured antenatal urinalysis finding that should be coded.",
+          "snomed_search": "urine glucose",
+          "snomed_concept_id": "167261002",
+          "preferred_term": "Urine glucose not detected (finding)",
+          "sentence": "Urine: Urine glucose test negative (4662.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urine protein test negative",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Urine protein was explicitly tested and recorded as negative; this is a structured antenatal urinalysis finding (relevant to pre-eclampsia screening) that should be coded.",
+          "snomed_search": "urine protein not detected",
+          "snomed_concept_id": "167273002",
+          "preferred_term": "Urine protein not detected (finding)",
+          "sentence": "Urine: Urine protein test negative (4672.)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The four existing codes are all appropriate and correctly asserted for this 35+6 week antenatal midwife encounter. However, five structured clinical observations documented in the note \u2014 longitudinal lie, fetal movements felt, partial engagement 3/5, urine glucose negative, and urine protein negative \u2014 are absent from the coded list and should be added to complete the antenatal record. The 'asymptomatic of PET/OC' entry is a negative finding and correctly not coded. The CO2 reading (1ppm) is a raw numeric value with no documented clinical interpretation and does not require coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12952,
+        "output_tokens": 2204,
+        "total_tokens": 15156,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "4ac57f0f-fe6a-4484-9012-a6acfcdd61b1",
+        "date": "2025-11-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "64982393-6d5d-4f83-b6e7-d63289d5befe",
+    "patient_id": "7326304955",
+    "date": "2025-11-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine glucose test negative",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Urine glucose test result is explicitly documented as negative and should be coded as a finding to support antenatal urinalysis records.",
+          "snomed_search": "urine glucose not detected",
+          "snomed_concept_id": "167261002",
+          "preferred_term": "Urine glucose not detected (finding)",
+          "sentence": "Urine: Urine glucose test negative (4662.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urine protein test negative",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Urine protein test result is explicitly documented as negative; this is a key pre-eclampsia screening finding in antenatal care and must be coded.",
+          "snomed_search": "urine protein not detected",
+          "snomed_concept_id": "167273002",
+          "preferred_term": "Urine protein not detected (finding)",
+          "sentence": "Urine: Urine protein test negative (4672.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Fetal movements felt",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports good fetal movements, which is a clinically relevant antenatal finding and should be coded to document fetal wellbeing assessment.",
+          "snomed_search": "fetal movements felt",
+          "snomed_concept_id": "268470003",
+          "preferred_term": "Fetal movements felt (finding)",
+          "sentence": "Reports good fetal movements.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Consultation with midwife",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "This encounter is explicitly a midwife surgery consultation (Midwife Access Role) and the consultation procedure itself should be coded.",
+          "snomed_search": "consultation with midwife",
+          "snomed_concept_id": "1255636001",
+          "preferred_term": "Consultation with midwife (procedure)",
+          "sentence": "15:34 - Surgery: WITTEN, Suzannah (Ms) (Midwife Access Role)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Four concepts are missing from this routine 37+5 week antenatal midwife consultation: both urinalysis results (glucose and protein negative \u2014 important for pre-eclampsia screening documentation), fetal movements felt, and the midwife consultation procedure itself. The two existing observable entity codes (BP and gestational age) are appropriate and retained. Note: a membrane sweep is planned in 2 weeks but has not yet occurred and should not be coded as present at this time.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6506,
+        "output_tokens": 1885,
+        "total_tokens": 8391,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7326304955",
+        "encounter_id": "64982393-6d5d-4f83-b6e7-d63289d5befe",
+        "date": "2025-11-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  }
+]

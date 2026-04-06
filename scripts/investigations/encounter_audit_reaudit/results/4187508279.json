@@ -1,0 +1,1311 @@
+[
+  {
+    "encounter_id": "5c92733f-3db7-4ff1-b984-3b959b46fe9e",
+    "patient_id": "4187508279",
+    "date": "2024-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Never smoked tobacco",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented in the LTC Wellbeing Review section with Read code XE0oh; smoking status is a clinically relevant finding that should be coded.",
+          "snomed_search": "never smoked tobacco",
+          "snomed_concept_id": "266919005",
+          "preferred_term": "Never smoked tobacco (finding)",
+          "sentence": "Never smoked tobacco (XE0oh)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "GPPAQ physical activity index: active",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "GPPAQ Physical Activity Index result of 'active' is explicitly documented at the top of the encounter and is a clinically relevant finding for LTC review but is absent from the coded list.",
+          "snomed_search": "GPPAQ physical activity index",
+          "snomed_concept_id": "1086511000000107",
+          "preferred_term": "General Practice Physical Activity Questionnaire Physical Activity Index (observable entity)",
+          "sentence": "GPPAQ physical activity index: active (XaPPE)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Alcohol use disorder identification test consumption questionnaire score 7",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "AUDIT-C consumption questionnaire was completed with a score of 7 (with detailed responses recorded), indicating hazardous alcohol use; this should be coded as a clinical finding.",
+          "snomed_search": "AUDIT-C alcohol consumption score",
+          "snomed_concept_id": "763256006",
+          "preferred_term": "Alcohol Use Disorders Identification Test - Consumption score (observable entity)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 7",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant issue is the use of 'History of hypertension' (161501007) for what is documented as an active problem \u2014 this should be coded as Essential hypertension (disorder) 59621000. Additionally, three clinically documented findings are missing: smoking status (never smoked), GPPAQ activity index (active), and the AUDIT-C score of 7 which indicates potentially hazardous alcohol consumption and warrants coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9214,
+        "output_tokens": 1985,
+        "total_tokens": 11199,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "5c92733f-3db7-4ff1-b984-3b959b46fe9e",
+        "date": "2024-01-16",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8d8862df-7786-4ef8-aa8a-efcad3ebc507",
+    "patient_id": "4187508279",
+    "date": "2024-02-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "green sputum",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports intermittent production of green (purulent) sputum, a distinct clinical finding not captured by the generic 'Does cough' code.",
+          "snomed_search": "purulent sputum",
+          "snomed_concept_id": "42192008",
+          "preferred_term": "Purulent sputum (finding)",
+          "sentence": "Says intermittent cough since December , sometimes coughs up green sputum",
+          "char_start": 175,
+          "char_end": 240
+        },
+        {
+          "term": "sensation as if something in throat",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly describes a globus-type sensation ('as if something is there') in the throat, which is a distinct finding from dysphagia and should be coded separately.",
+          "snomed_search": "globus pharyngeus",
+          "snomed_concept_id": "267103008",
+          "preferred_term": "Feeling of lump in throat (finding)",
+          "sentence": "now past 4 weeks has \"sensation, restriction \" in throat when swallowing food, \"as if something is there\"",
+          "char_start": 255,
+          "char_end": 360
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "3716002",
+          "name": "Goiter (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note explicitly states 'Says PMH Goitre' \u2014 this is a past medical history item, not an active current condition; the nurse also found no palpable enlarged thyroid on examination."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three coding issues identified: (1) Goitre is coded as 'present' but the note clearly documents it as PMH and examination found no palpable thyroid enlargement \u2014 assertion should be 'historical'. (2) Green/purulent sputum is a clinically distinct finding from cough and should be separately coded. (3) The globus-type throat sensation ('as if something is there') is a distinct finding from pharyngeal dysphagia and warrants its own code. Note: the 4-week history of dysphagia with goitre background in a female patient has been appropriately safety-netted by the nurse with GP review and TFTs planned; no 2WW red-flag criteria are explicitly met per the note, but the GP review plan is clinically appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6689,
+        "output_tokens": 1992,
+        "total_tokens": 8681,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "8d8862df-7786-4ef8-aa8a-efcad3ebc507",
+        "date": "2024-02-10",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f4c7fabd-9e7e-4c08-9a8c-f4ad726ae559",
+    "patient_id": "4187508279",
+    "date": "2024-02-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "swallowing difficult",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly states the throat constriction 'can make swallowing difficult' \u2014 dysphagia is a documented symptom and an NG12 red-flag finding that must be coded and investigated; it is absent from the coded list.",
+          "snomed_search": "dysphagia",
+          "snomed_concept_id": "40739000",
+          "preferred_term": "Dysphagia (disorder)",
+          "sentence": "A constricted feeling in my neck/throat which can make swallowing difficult.",
+          "char_start": 248,
+          "char_end": 320
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "21897009",
+          "name": "Generalized anxiety disorder (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The patient is explicitly asking whether the cause is physical or anxiety-related; no clinician has confirmed a GAD diagnosis in this encounter \u2014 the assertion should be 'possible' pending clinical assessment."
+        }
+      ],
+      "overcoded": [],
+      "confidence": 0.92,
+      "notes": "Two coding issues identified: (1) Dysphagia (40739000) is explicitly documented and critically missing \u2014 it is an NG12 red-flag symptom requiring urgent clinical attention and must be coded; (2) Generalised anxiety disorder is coded as 'present' but the patient is only speculating about an anxiety cause and no clinician has confirmed this diagnosis, so the assertion should be downgraded to 'possible'. The globus sensation code (267103008) is appropriate and well-evidenced.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6096,
+        "output_tokens": 1359,
+        "total_tokens": 7455,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "f4c7fabd-9e7e-4c08-9a8c-f4ad726ae559",
+        "date": "2024-02-27",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b0e4af75-58c1-4498-beb0-759e56fbf3e5",
+    "patient_id": "4187508279",
+    "date": "2024-02-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "21897009",
+          "term": "Generalized anxiety disorder (disorder)",
+          "assertion": "present",
+          "verified": true
+        },
+        {
+          "concept_id": "38070000",
+          "term": "Cohabiting (finding)",
+          "assertion": "present",
+          "verified": true
+        },
+        {
+          "concept_id": "366979004",
+          "term": "Depressed mood (finding)",
+          "assertion": "present",
+          "verified": true,
+          "note": "lookup unreliable but clinically appropriate per note text"
+        },
+        {
+          "concept_id": "267103008",
+          "term": "Feeling of lump in throat (finding)",
+          "assertion": "present",
+          "verified": true,
+          "note": "lookup unreliable but clinically appropriate per note text"
+        },
+        {
+          "concept_id": "193462001",
+          "term": "Insomnia (disorder)",
+          "assertion": "present",
+          "verified": true,
+          "note": "lookup unreliable but confirmed by search_snomed"
+        }
+      ],
+      "missing": [
+        {
+          "term": "work related stress",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Work-related stress is explicitly and repeatedly documented as a primary contributing factor to the patient's anxiety presentation and is clinically relevant to the management plan.",
+          "snomed_search": "stress at work",
+          "snomed_concept_id": "276074009",
+          "preferred_term": "Stress at work (finding)",
+          "sentence": "admits to having a lot of work related stress since before xmas, working form home and feeling isolated and also pressure due to work.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The five existing codes are clinically appropriate and well-evidenced by the note text (note: three concept lookups returned unreliable/organism results from the terminology server, but all were confirmed via search_snomed or are well-established SNOMED codes). One gap identified: work-related stress is explicitly documented as a key precipitant and should be coded as 'Stress at work (finding)' [276074009]. The specific insomnia subtype 'Early morning waking' [401236004] could optionally supplement the Insomnia code but is not mandatory given Insomnia already covers the presentation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5881,
+        "output_tokens": 1808,
+        "total_tokens": 7689,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "b0e4af75-58c1-4498-beb0-759e56fbf3e5",
+        "date": "2024-02-28",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5c22d0b4-4090-4ed3-869f-a9a07acae82d",
+    "patient_id": "4187508279",
+    "date": "2024-10-16",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The single coded concept 4740000 (Herpes zoster disorder) is confirmed correct by search_snomed (score 1.3); lookup_concept returned an unreliable qualifier-value tag but this is a known server artefact \u2014 the concept is a legitimate disorder. The note text (photo-based diagnosis of shingles with prescription issued) fully supports an active present assertion; no other in-scope clinical concepts are present in the encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2338,
+        "output_tokens": 731,
+        "total_tokens": 3069,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "5c22d0b4-4090-4ed3-869f-a9a07acae82d",
+        "date": "2024-10-16",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "93a93018-0c56-4137-8b40-b9226d3ba481",
+    "patient_id": "4187508279",
+    "date": "2024-10-16",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The single coded concept 4740000 (Herpes zoster, disorder) is confirmed correct by SNOMED search despite an unreliable lookup_concept response; no more specific child concept is warranted given the note contains no detail of site or complication. No other codeable clinical content is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2591,
+        "output_tokens": 770,
+        "total_tokens": 3361,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "93a93018-0c56-4137-8b40-b9226d3ba481",
+        "date": "2024-10-16",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fa533205-ac2d-4cd9-87c5-ddba60a4f21f",
+    "patient_id": "4187508279",
+    "date": "2024-10-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Oral antiviral therapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The template explicitly records 'Oral antiviral therapy indicated: Yes' and the plan states a prescription will be issued, making this a clinically significant procedure that should be coded.",
+          "snomed_search": "antiviral therapy",
+          "snomed_concept_id": "427314002",
+          "preferred_term": "Antiviral therapy (procedure)",
+          "sentence": "Oral antiviral therapy indicated: Yes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The three existing codes (Herpes zoster [4740000], Headache [25064002], Fatigue [272060000]) are clinically appropriate for this encounter; however, lookup_concept returned unreliable/mismatched semantic tags for all three IDs and human verification of those concept IDs against the local terminology server is recommended. The primary gap is the absence of a procedure code for antiviral therapy, which is explicitly indicated and prescribed in the template and plan.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5009,
+        "output_tokens": 1285,
+        "total_tokens": 6294,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "fa533205-ac2d-4cd9-87c5-ddba60a4f21f",
+        "date": "2024-10-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "93ab4661-0f96-4a7f-ba89-d75a515853a3",
+    "patient_id": "4187508279",
+    "date": "2024-12-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Occasional flushing",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Flushing is explicitly documented as a current symptom in the context of possible perimenopausal presentation and warrants coding as an active finding.",
+          "snomed_search": "climacteric flushing",
+          "snomed_concept_id": "427368007",
+          "preferred_term": "Climacteric flushing (disorder)",
+          "sentence": "Periods regular. Occasional flushing.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "CBT self-referral",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A CBT self-referral is documented in the plan and constitutes a completed clinical action that should be coded as a procedure.",
+          "snomed_search": "referral cognitive behavioural therapy",
+          "snomed_concept_id": "519101000000109",
+          "preferred_term": "Referral for cognitive behavioural therapy (procedure)",
+          "sentence": "CBT self-referral.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "272060000",
+          "name": "Fatigue - symptom (finding)",
+          "severity": "low",
+          "reason": "Concept ID 272060000 returned as an Extension Namespace placeholder (unreliable); the correct SNOMED concept for fatigue as a finding is 84229001 'Fatigue (finding)'.",
+          "replace_with_concept_id": "84229001",
+          "replace_with_preferred_term": "Fatigue (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Core diagnoses (GAD 21897009, Insomnia 193462001) are correctly coded and confirmed by search. The fatigue concept ID 272060000 is an unreliable Extension Namespace placeholder and should be replaced with 84229001. Two clinically relevant items are missing: flushing (possible perimenopausal symptom explicitly documented) and the CBT self-referral documented in the plan. The note also mentions a review for perimenopausal symptoms but this is a future review trigger rather than a current diagnosis, so it is noted only here. Concentration difficulty was mentioned but no reliable SNOMED match was found via search.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 8577,
+        "output_tokens": 1976,
+        "total_tokens": 10553,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "93ab4661-0f96-4a7f-ba89-d75a515853a3",
+        "date": "2024-12-12",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dae39117-622d-42b7-9c58-af714ae2da38",
+    "patient_id": "4187508279",
+    "date": "2025-01-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tearful / struggling not to cry",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports feeling tearful and struggling not to cry at work \u2014 a distinct affective symptom that should be coded alongside the anxiety disorder.",
+          "snomed_search": "complaining of tearfulness",
+          "snomed_concept_id": "310480000",
+          "preferred_term": "Complaining of tearfulness (finding)",
+          "sentence": "I feel anxious and panicky and feel tearful.",
+          "char_start": 290,
+          "char_end": 340
+        },
+        {
+          "term": "very stressful time at work",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly attributes her presentation to occupational stress, which is a codeable psychosocial context (Z-equivalent situation) relevant to clinical management.",
+          "snomed_search": "work related stress",
+          "snomed_concept_id": "160903007",
+          "preferred_term": "Work-related stress (finding)",
+          "sentence": "I now realize I can't and need some help to get me through a very stressful time at work.",
+          "char_start": 530,
+          "char_end": 620
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two existing codes (Generalized anxiety disorder, Insomnia) are correctly applied and confirmed via SNOMED search despite unreliable lookup_concept responses. Two additional codeable findings are missing: tearfulness as an explicit affective symptom, and work-related stress as the documented psychosocial precipitant \u2014 both are clinically relevant to management and should be captured. Note: this is an eConsult triage record with no prescriber review documented; no medication or referral procedure codes are warranted from this encounter alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3854,
+        "output_tokens": 1439,
+        "total_tokens": 5293,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "dae39117-622d-42b7-9c58-af714ae2da38",
+        "date": "2025-01-06",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "91743820-9524-4ffd-b7f7-3858068b2b8e",
+    "patient_id": "4187508279",
+    "date": "2025-01-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "struggles with sleep",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents active sleep difficulties with significant functional impact on anxiety, and records that sleep hygiene measures have already been tried \u2014 this warrants a standalone insomnia code.",
+          "snomed_search": "insomnia",
+          "snomed_concept_id": "193462001",
+          "preferred_term": "Insomnia (disorder)",
+          "sentence": "Struggles especially with sleep, which has a significant effect on her anxiety.",
+          "char_start": 310,
+          "char_end": 381
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing GAD code (21897009) is correct and well-evidenced \u2014 lookup_concept returned an unreliable semantic tag but search_snomed confirms the concept is the top-scoring match for 'Generalized anxiety disorder (disorder)'. The main gap is insomnia (193462001): the note documents active, functionally significant sleep disturbance with a direct impact on the patient's anxiety, and records that sleep hygiene has already been attempted, making this a codeable active finding rather than a background symptom. The declined sick note could not be mapped to a valid in-scope SNOMED concept from available search results and has been omitted per tool rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4465,
+        "output_tokens": 1317,
+        "total_tokens": 5782,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "91743820-9524-4ffd-b7f7-3858068b2b8e",
+        "date": "2025-01-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c9d9a697-adf8-4e0b-9e72-a7db0646b97a",
+    "patient_id": "4187508279",
+    "date": "2025-01-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The single coded concept 21897009 (Generalized anxiety disorder) is confirmed correct via search_snomed despite an unreliable lookup_concept response. The encounter contains only a medication restart (sertraline \u2014 out of scope) and an administrative SCR update; no additional codeable clinical findings are present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2661,
+        "output_tokens": 676,
+        "total_tokens": 3337,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "c9d9a697-adf8-4e0b-9e72-a7db0646b97a",
+        "date": "2025-01-09",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "22b41a57-2f1d-4719-a82f-80d1ab8b52c4",
+    "patient_id": "4187508279",
+    "date": "2025-01-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both coded concepts (21897009 Generalised anxiety disorder, 73595000 Stress) are confirmed as correct and well-evidenced by the eConsultation narrative; lookup_concept returned unreliable results for both IDs but search_snomed confirmed their validity. The symptom of crying is subsumed by the anxiety/stress codes, and the patient's requests for medication and time off work are not independently codeable clinical events from this triage submission alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4911,
+        "output_tokens": 1171,
+        "total_tokens": 6082,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "22b41a57-2f1d-4719-a82f-80d1ab8b52c4",
+        "date": "2025-01-09",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "21f49c89-87f1-4f42-8c51-7ec69b5694b1",
+    "patient_id": "4187508279",
+    "date": "2025-01-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "sleeping difficulties for 1 year",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Insomnia is explicitly documented as a distinct, ongoing symptom lasting 1 year (worsened 2-3 months ago) and is clinically relevant to the management plan; it should be coded separately from the anxiety disorder.",
+          "snomed_search": "chronic insomnia",
+          "snomed_concept_id": "724748004",
+          "preferred_term": "Chronic insomnia (disorder)",
+          "sentence": "still has sleeping difficulties for 1 year worsened 2-3 months ago",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both primary coded concepts (GAD and occupation-related stress disorder) are correctly coded and well-supported by the encounter text. One gap identified: chronic insomnia (1-year duration, worsening) is explicitly documented as a distinct active finding but has not been coded. The lookup_concept server returned unreliable results for both existing concept IDs, but SNOMED search confirmed both are valid disorder-hierarchy concepts.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4076,
+        "output_tokens": 1143,
+        "total_tokens": 5219,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "21f49c89-87f1-4f42-8c51-7ec69b5694b1",
+        "date": "2025-01-15",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d847aad4-b520-4a31-9202-26e2993b0e9c",
+    "patient_id": "4187508279",
+    "date": "2025-01-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ac43b10d-4114-4800-b823-d6bddd4cb979",
+    "patient_id": "4187508279",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum lipid levels Report, Borderline",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The reviewing clinician explicitly documented a 'Borderline' lipid result interpretation; serum cholesterol 6.4 mmol/L is above the desirable range and this clinical interpretation should be coded as a finding, not just the raw observable entity.",
+          "snomed_search": "serum cholesterol raised",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Serum lipid levels Report, Borderline, Need to repeat test, Communicate Patient (Patient Informed). Review done by BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) - 22 Jan 2025 09:10",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The four existing observable entity codes are appropriate lab pipeline codes and should not be disturbed; all lookup_concept calls returned unreliable results (wrong semantic tags) so no overcoding can be inferred from those. The clinician's explicit 'Borderline' interpretation of the lipid panel (serum cholesterol 6.4 mmol/L) is a codeable finding missing from the coded list. The elevated HDL (2.74 mmol/L, above upper reference range) is a favourable cardioprotective finding and does not require a separate disorder/finding code beyond the already-coded observable entity.\"",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7801,
+        "output_tokens": 1551,
+        "total_tokens": 9352,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "ac43b10d-4114-4800-b823-d6bddd4cb979",
+        "date": "2025-01-21",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9caaaad1-3115-4b01-9552-0de32241026e",
+    "patient_id": "4187508279",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Body mass index 25-29 - overweight",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI 26.03 kg/m\u00b2 is explicitly interpreted as overweight (22K4.) in the note but this finding is absent from the coded list.",
+          "snomed_search": "overweight body mass index 25-29",
+          "snomed_concept_id": "162863004",
+          "preferred_term": "Body mass index 25-29 - overweight (finding)",
+          "sentence": "Body mass index index 25-29 - overweight (22K4.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Never smoked tobacco",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Smoking status is explicitly recorded as 'Never smoked tobacco' (XE0oh) in the LTC Wellbeing Review but is not in the coded list.",
+          "snomed_search": "never smoked tobacco",
+          "snomed_concept_id": "266919005",
+          "preferred_term": "Never smoked tobacco (finding)",
+          "sentence": "Never smoked tobacco (XE0oh)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lower risk alcohol drinking",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Alcohol risk level is explicitly documented as 'Lower risk drinking' (XaXjf) in the note but is absent from the coded list.",
+          "snomed_search": "lower risk drinking",
+          "snomed_concept_id": "777671000000105",
+          "preferred_term": "Lower risk alcohol drinking (finding)",
+          "sentence": "Lower risk drinking (XaXjf)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "AUDIT-C alcohol consumption questionnaire score 3",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The AUDIT-C questionnaire was completed with a score of 3, which is a clinically coded assessment result and should be captured as an observable entity.",
+          "snomed_search": "AUDIT-C alcohol screening score",
+          "snomed_concept_id": "763256006",
+          "preferred_term": "Alcohol Use Disorders Identification Test - Consumption score (observable entity)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 3",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Hypertension annual review",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records a hypertension monitoring/annual LTC review for a patient with hypertension; the specific procedure 'Hypertension annual review' should be coded rather than relying solely on the observable entity BP code.",
+          "snomed_search": "hypertension annual review",
+          "snomed_concept_id": "401118009",
+          "preferred_term": "Hypertension annual review (procedure)",
+          "sentence": "Hypertension monitoring (XM1YA) ... Annual LTC review: Yes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Five clinically relevant findings/procedures are missing from the coded list: the overweight BMI interpretation, smoking status, alcohol risk level, AUDIT-C score, and the hypertension annual review procedure. All existing codes are correctly asserted; the unreliable lookup_concept responses for 161501007 and 271000000 were confirmed as server artefacts \u2014 both concepts are valid and correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15499,
+        "output_tokens": 2478,
+        "total_tokens": 17977,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "9caaaad1-3115-4b01-9552-0de32241026e",
+        "date": "2025-01-21",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1e87158e-be78-44a1-93bd-2a93a7f65c0d",
+    "patient_id": "4187508279",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are confirmed valid by the terminology server (lookup_concept returned unreliable qualifier-value results but search_snomed confirmed correct semantic tags and IDs). The encounter is an auto-filed normal urine albumin result within an HTN review; the procedure is appropriately coded, the normal result requires no additional finding code, and hypertension is background context already expected on the problem list rather than a new diagnosis made in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2470,
+        "output_tokens": 864,
+        "total_tokens": 3334,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "1e87158e-be78-44a1-93bd-2a93a7f65c0d",
+        "date": "2025-01-21",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "765d2b2f-1773-4dff-9b51-82997ef69323",
+    "patient_id": "4187508279",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This encounter is an auto-filed U&E laboratory result with a brief clinician review annotation; all six coded concepts are observable entity lab pipeline codes and are not subject to audit. The encounter contains no clinical narrative, new diagnosis, procedure, or finding within SNOMED scope \u2014 the CKD advisory text is boilerplate laboratory commentary, and 'htn review' and 'Not on Thyroid Tx' are request metadata only, not diagnoses made in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2279,
+        "output_tokens": 727,
+        "total_tokens": 3006,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "765d2b2f-1773-4dff-9b51-82997ef69323",
+        "date": "2025-01-21",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3098a58d-5e5f-4988-98d3-cadb3329c1e2",
+    "patient_id": "4187508279",
+    "date": "2025-02-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "feels flat and unemotional",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reports emotional blunting/flat affect as a current side effect of sertraline, which is a clinically relevant finding warranting coding.",
+          "snomed_search": "blunted affect",
+          "snomed_concept_id": "6140007",
+          "preferred_term": "Blunted affect (finding)",
+          "sentence": "Finds sertraline has helped with anxiety but makes her feels flat and unemotional.",
+          "char_start": 185,
+          "char_end": 261
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coded concept 21897009 (Generalized anxiety disorder) is correct and well-supported by the encounter text \u2014 lookup_concept returned an unreliable result (wrong semantic tag) but search_snomed confirms the concept ID is valid. One missing finding: the patient's reported emotional blunting/flat affect as a sertraline side effect is explicitly documented and should be coded as Blunted affect (6140007).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3155,
+        "output_tokens": 890,
+        "total_tokens": 4045,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "3098a58d-5e5f-4988-98d3-cadb3329c1e2",
+        "date": "2025-02-03",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "831dfb86-bd7b-4f07-8fe0-48e53ad48f21",
+    "patient_id": "4187508279",
+    "date": "2025-02-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "197940006",
+          "name": "Microscopic hematuria (disorder)",
+          "severity": "medium",
+          "reason": "The encounter text contains only U&E results; 'Urine dip' appears solely as a reason-for-request annotation with no dipstick result documented in this auto-filed report, so there is no textual evidence to support coding microscopic haematuria from this encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The five U&E observable entity codes and the consultation setting code are appropriate for this auto-filed lab result encounter. However, microscopic haematuria (197940006) is overcoded: the note references 'Urine dip' only as a request reason, and no dipstick result is present in the filed report. Note also that lookup_concept returned an unreliable result for 197940006 (wrong semantic tag), but search_snomed confirms the concept ID is the correct SNOMED disorder code \u2014 the overcode flag is based solely on absence of supporting evidence in the encounter text, not on concept validity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3809,
+        "output_tokens": 891,
+        "total_tokens": 4700,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "831dfb86-bd7b-4f07-8fe0-48e53ad48f21",
+        "date": "2025-02-04",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "28f18043-a266-4d56-a419-9a5a1ede2857",
+    "patient_id": "4187508279",
+    "date": "2025-02-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "eMED3 (2010) new statement issued, may be fit for work",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'eMED3 (2010) new statement issued, may be fit for work (XaX1K)' with a valid date range \u2014 this is a clinically significant fit-note issuance that should be coded to capture the occupational health intervention.",
+          "snomed_search": "eMED3 new statement may be fit for work",
+          "snomed_concept_id": "751601000000107",
+          "preferred_term": "eMED3 (2010) new statement issued, may be fit for work (finding)",
+          "sentence": "eMED3 (2010) new statement issued, may be fit for work (XaX1K)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Both core diagnostic codes (Generalized anxiety disorder 21897009 and Occupation-related stress disorder 10586006) are correctly applied and well-evidenced by the note. The one gap is the eMED3 fit-note issuance (751601000000107), which is explicitly documented with a Read code (XaX1K) and a valid date range but is absent from the coded list; this represents a meaningful clinical and administrative record of the occupational health intervention.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4263,
+        "output_tokens": 1075,
+        "total_tokens": 5338,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "28f18043-a266-4d56-a419-9a5a1ede2857",
+        "date": "2025-02-11",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "45ffffb4-a12f-45ab-b498-ddcce3ed2d1b",
+    "patient_id": "4187508279",
+    "date": "2025-02-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Stress and anxiety",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes work-related stress and anxiety with functional impairment; a more specific disorder code should replace the overly broad 'Mental disorder'.",
+          "snomed_search": "stress adjustment reaction",
+          "snomed_concept_id": "271952001",
+          "preferred_term": "Stress and adjustment reaction (disorder)",
+          "sentence": "Briefly describe your illness or medical problem: Stress and anxiety. Sorry. I have contacted the surgery about this several times and have been unsure whether it's better for me to be at work to to be signed off.",
+          "char_start": 290,
+          "char_end": 390
+        },
+        {
+          "term": "can't sleep",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports ongoing inability to sleep ('I still can't sleep'), which is a clinically relevant symptom warranting its own code.",
+          "snomed_search": "insomnia",
+          "snomed_concept_id": "193462001",
+          "preferred_term": "Insomnia (disorder)",
+          "sentence": "I still can't sleep and despite being on sertraline I feel out of control and can't stop crying.",
+          "char_start": 570,
+          "char_end": 665
+        },
+        {
+          "term": "fit note issued",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The explicit purpose of this eConsult is a fit note request covering 12/02\u201328/02/2025; the procedure/finding of issuing a fitness for work statement should be coded.",
+          "snomed_search": "fitness for work statement issued",
+          "snomed_concept_id": "774741000000101",
+          "preferred_term": "Fitness for work statement issued (finding)",
+          "sentence": "eConsultation via online application (Y1f3b) - Patient request: Admin - Fit note",
+          "char_start": 820,
+          "char_end": 900
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "74732009 'Mental disorder' is an excessively broad parent concept; the note provides sufficient detail to code the specific disorder (stress and adjustment reaction) rather than the top-level category.",
+          "replace_with_concept_id": "271952001",
+          "replace_with_preferred_term": "Stress and adjustment reaction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing code (74732009 Mental disorder) is confirmed as a legitimate SNOMED concept but is far too broad given the clinical detail provided; it should be replaced with the more specific 'Stress and adjustment reaction (disorder)'. Additionally, insomnia (explicitly stated) and the fitness for work statement issued are both uncoded. Note: the lookup_concept tool returned an unreliable/corrupted result for 74732009, but cross-referencing via search_snomed confirmed the concept ID is valid in the disorder hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5317,
+        "output_tokens": 1673,
+        "total_tokens": 6990,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "45ffffb4-a12f-45ab-b498-ddcce3ed2d1b",
+        "date": "2025-02-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "07cf53a6-35a9-4b9f-b140-e09a6661e52b",
+    "patient_id": "4187508279",
+    "date": "2025-02-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "early morning waking",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports waking after only 3-4 hours of sleep and lying awake worrying \u2014 early morning waking is a distinct, documentable finding warranting its own code.",
+          "snomed_search": "early morning waking",
+          "snomed_concept_id": "401236004",
+          "preferred_term": "Early morning waking (finding)",
+          "sentence": "Only getting 3-4 hours of sleep per night - fine getting to sleep but waking up worrying",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "feels a bit blunted since starting sertraline",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Blunted affect is explicitly reported as a current symptom attributed to sertraline and is clinically relevant to ongoing medication management.",
+          "snomed_search": "emotional blunting",
+          "snomed_concept_id": "6140007",
+          "preferred_term": "Blunted affect (finding)",
+          "sentence": "Mood ok - feels a bit blunted since starting sertraline",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "feels unmotivated to do things",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Loss of motivation is explicitly documented as a current symptom and is a clinically relevant finding in the context of anxiety and possible emerging depression.",
+          "snomed_search": "loss of motivation",
+          "snomed_concept_id": "277521002",
+          "preferred_term": "Loss of motivation (finding)",
+          "sentence": "Appetite reduced, feels unmotivated to do things and reduced concentration",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "751621000000103",
+          "name": "eMED3 (2010) duplicate issued, not fit for work (finding)",
+          "severity": "medium",
+          "reason": "The note explicitly states 'eMED3 (2010) new statement issued, not fit for work' \u2014 this is a new certificate, not a duplicate; the wrong eMED3 variant has been coded.",
+          "replace_with_concept_id": "751481000000104",
+          "replace_with_preferred_term": "eMED3 (2010) new statement issued, not fit for work (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The core diagnoses (GAD, occupation-related stress disorder, loss of appetite) are correctly coded, but the eMED3 variant is wrong \u2014 a 'new statement' code (751481000000104) should replace the 'duplicate' code (751621000000103). Three explicitly documented symptoms \u2014 early morning waking, blunted affect, and loss of motivation \u2014 are absent from the coded list and should be added. Suicidal ideation is explicitly negated in the note and correctly not coded. A future counselling appointment is noted but not yet a completed procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9035,
+        "output_tokens": 1980,
+        "total_tokens": 11015,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "07cf53a6-35a9-4b9f-b140-e09a6661e52b",
+        "date": "2025-02-18",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ad2738b2-50b8-4b16-8848-55e564f23fd5",
+    "patient_id": "4187508279",
+    "date": "2025-03-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "23c6b2e1-dd1b-468c-a3c2-e7eec782d075",
+    "patient_id": "4187508279",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly states 'Generalised anxiety disorder' and the specific concept 21897009 is already coded; the non-specific parent 'Mental disorder' is redundant and should be removed in favour of the more precise child concept.",
+          "replace_with_concept_id": "21897009",
+          "replace_with_preferred_term": "Generalized anxiety disorder (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The breast malignancy (254837009) and GAD (21897009) are correctly coded as present; however, the non-specific parent 'Mental disorder' (74732009) is redundant given the specific GAD code is already present and should be removed. No other clinical concepts are missing from scope \u2014 sertraline is a medication record item, and the note contains no additional codeable disorders or findings beyond what is already captured.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3568,
+        "output_tokens": 1097,
+        "total_tokens": 4665,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "23c6b2e1-dd1b-468c-a3c2-e7eec782d075",
+        "date": "2025-04-15",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ee64a302-3b5c-463f-a970-8e15d689ef44",
+    "patient_id": "4187508279",
+    "date": "2025-06-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "LN +ve",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Lymph node positive status post-surgery indicates active regional malignancy and is a safety-critical oncological finding that must be coded; it is entirely absent from the coded list.",
+          "snomed_search": "lymph node metastasis",
+          "snomed_concept_id": "399374009",
+          "preferred_term": "Regional lymph node metastasis present (finding)",
+          "sentence": "Awaits discussion about chemo in July as LN +ve.",
+          "char_start": 131,
+          "char_end": 175
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The existing GAD code (21897009) is confirmed correct by SNOMED search despite lookup_concept returning an unreliable result. A critical gap exists: lymph node-positive status post-surgery (LN +ve, awaiting chemotherapy discussion) is entirely uncoded \u2014 this implies active malignancy with regional spread and is safety-critical. The underlying cancer type is not specified in this note and should be coded from the oncology record, but the LN+ finding must be captured here. Planned chemotherapy discussion in July is a future event and should not be coded as a present procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5001,
+        "output_tokens": 1238,
+        "total_tokens": 6239,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "ee64a302-3b5c-463f-a970-8e15d689ef44",
+        "date": "2025-06-09",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f9bf33d9-b09a-4bcd-884d-62eb9c349d34",
+    "patient_id": "4187508279",
+    "date": "2025-07-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chemotherapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note states the patient is starting chemotherapy on Saturday, indicating an active cancer treatment plan that should be coded; although the procedure is imminent/future, the clinical context of undergoing chemotherapy is clearly established and clinically significant.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "367336001",
+          "preferred_term": "Chemotherapy (procedure)",
+          "sentence": "Starts chemo on Saturday, feels ok about it.",
+          "char_start": 120,
+          "char_end": 152
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "21897009",
+          "name": "Generalized anxiety disorder (disorder)",
+          "severity": "low",
+          "reason": "lookup_concept returned an unreliable result (wrong preferred term 'Strain M 6906', semantic tag 'qualifier value') for this concept ID; however search_snomed confirms 21897009 is the correct SNOMED concept for Generalised anxiety disorder \u2014 the code is clinically correct and should be retained. No overcoding."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The GAD code (21897009) is confirmed correct by search_snomed despite an unreliable lookup_concept response. The most significant gap is the absence of a chemotherapy/cancer treatment code \u2014 the patient is imminently starting chemo, which is a high-severity clinical finding; note that the underlying cancer diagnosis is not explicitly named in this encounter and should be verified on the problem list. Medication names (mometasone, ramipril, sertraline) are not flagged per policy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2961,
+        "output_tokens": 1163,
+        "total_tokens": 4124,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "f9bf33d9-b09a-4bcd-884d-62eb9c349d34",
+        "date": "2025-07-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b26365b1-6465-45c7-934f-87f5633ae501",
+    "patient_id": "4187508279",
+    "date": "2025-10-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unable to sleep",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly states she is 'unable to sleep' as a current side effect of chemotherapy; insomnia should be coded as an active finding.",
+          "snomed_search": "insomnia",
+          "snomed_concept_id": "193462001",
+          "preferred_term": "Insomnia (disorder)",
+          "sentence": "I have worked up to this point but don't feel that I can anymore \u2014 the cumulative effects of 3 months of chemo has left me exhausted, stressed and unable to sleep.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1255904006",
+          "name": "Administration of palliative antineoplastic agent (procedure)",
+          "severity": "medium",
+          "reason": "The note states only that the patient is 'undergoing chemotherapy treatment' with no indication of palliative intent; coding as palliative antineoplastic administration is an unsupported assumption \u2014 the general chemotherapy procedure code should be used instead.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "notes": "The fatigue concept ID 272060000 returned as an Extension Namespace placeholder (unreliable); the correct SNOMED concept for 'Fatigue (finding)' is 84229001 and should be verified and corrected in the record. Additionally, insomnia is explicitly documented but uncoded, and the palliative qualifier on the chemotherapy procedure code is not supported by the encounter text \u2014 'Chemotherapy (procedure)' 367336001 is more appropriate unless palliative intent is confirmed elsewhere in the record.",
+      "confidence": 0.82,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7556,
+        "output_tokens": 1508,
+        "total_tokens": 9064,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4187508279",
+        "encounter_id": "b26365b1-6465-45c7-934f-87f5633ae501",
+        "date": "2025-10-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  }
+]

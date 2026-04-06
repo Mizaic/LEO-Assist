@@ -32,7 +32,7 @@ class ExtractionItem:
     span_start: int
     span_end: int
     semantic_tag: str
-    assertion: str          # present | absent | refuted | possible | historical | hypothetical | family | declined | cancelled
+    assertion: str          # present | absent | refuted | possible | historical | planned | hypothetical | family | declined | cancelled
     confidence: float
     normalized: str         # lookup term or normalised surface form
     source_meta: dict[str, Any] = field(default_factory=dict)

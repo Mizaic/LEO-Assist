@@ -1,0 +1,2361 @@
+[
+  {
+    "encounter_id": "105e0d0b-3e5e-4bb6-bc6b-b88666406af8",
+    "patient_id": "7330683205",
+    "date": "2025-06-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lost significant amount of weight",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Unintentional weight loss is a red-flag/2WW safety-critical symptom and is more clinically specific than the currently coded 'Low body weight'; it must be coded explicitly to trigger appropriate clinical follow-up.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "I am currently struggling with food and lost significant amount of weight, and I am struggling to sleep.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "struggling to sleep",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports difficulty sleeping, which is a clinically relevant finding in the context of trauma and food insecurity and should be coded.",
+          "snomed_search": "insomnia",
+          "snomed_concept_id": "193462001",
+          "preferred_term": "Insomnia (disorder)",
+          "sentence": "I am currently struggling with food and lost significant amount of weight, and I am struggling to sleep.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "struggling with food",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly states she is struggling with food, indicating food insecurity \u2014 a significant social determinant of health relevant to her care as a newly registered asylum seeker.",
+          "snomed_search": "food insecurity",
+          "snomed_concept_id": "733423003",
+          "preferred_term": "Food insecurity (finding)",
+          "sentence": "I am currently struggling with food and lost significant amount of weight, and I am struggling to sleep.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "10757711000119106",
+          "name": "Postpartum thyroid disease (disorder)",
+          "severity": "high",
+          "reason": "The note records only 'thyroid disease' in past medical history with no mention of postpartum context; this concept is also flagged as unreliable by the terminology server (returned as organism). The correct code is the generic disorder of thyroid gland.",
+          "replace_with_concept_id": "14304000",
+          "replace_with_preferred_term": "Disorder of thyroid gland (disorder)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "248342006",
+          "name": "Low body weight (finding)",
+          "severity": "critical",
+          "reason": "The note describes active unintentional weight loss ('lost significant amount of weight'), not a static low body weight finding; the more specific and safety-critical code 448765001 Unintentional weight loss should replace this.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "225824003",
+          "name": "Victim of physical abuse (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The patient describes physical abuse that occurred in her country of origin in the past ('I have been through physical abuse back in my country'); the assertion should be historical, not present, as it is not an active/ongoing situation in the UK."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Several significant coding issues identified: the thyroid disease code is both clinically wrong (postpartum specificity not supported by the text) and terminologically unreliable; unintentional weight loss \u2014 a safety-critical red-flag symptom \u2014 is undercoded as 'low body weight'; food insecurity and insomnia are documented but absent from the coded list; and the physical abuse finding should carry a historical assertion. The concept ID for physical abuse (225824003) was confirmed correct by search despite an unreliable lookup_concept response.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8255,
+        "output_tokens": 2178,
+        "total_tokens": 10433,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "105e0d0b-3e5e-4bb6-bc6b-b88666406af8",
+        "date": "2025-06-09",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1f6c3128-d975-4000-af94-3871c3f05fc1",
+    "patient_id": "7330683205",
+    "date": "2025-06-09",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only an administrative header (timestamp, staff entry, location) and a home address field \u2014 there is no clinical narrative, symptoms, examination, diagnosis, or plan. The two coded concepts (low body weight, cohabiting) are not evidenced by any text in this encounter and appear to have been incorrectly derived from administrative fields (hotel address, husband's name), but per audit rules, standing problem-list codes must not be flagged as overcoded on the basis of an admin-only note alone.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 450,
+        "output_tokens": 443,
+        "total_tokens": 893,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "1f6c3128-d975-4000-af94-3871c3f05fc1",
+        "date": "2025-06-09",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d1aa7d61-89c1-44ee-b3da-76dc777e4b88",
+    "patient_id": "7330683205",
+    "date": "2025-06-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note documents weight loss associated with thyroid disease (hypothyroidism/goitre) \u2014 this is unintentional weight loss, a red-flag symptom; the currently coded concept 416528001 is both the wrong concept ID (lookup returns a substance) and the wrong clinical concept (intentional vs unintentional).",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "reports the same symptoms when first diagnosed as hypothyroidism, says also made her lose weight that time too",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "vapes",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Active vaping is explicitly documented in the social history and is a clinically relevant finding not captured by any existing code.",
+          "snomed_search": "electronic cigarette user",
+          "snomed_concept_id": "722499006",
+          "preferred_term": "Electronic cigarette user (finding)",
+          "sentence": "SH - ex- smoker (quit 1 year ago), vapes, no ilicit drugs, no etoh",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "anxiety",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Anxiety is explicitly listed in the past medical history and should be coded as a historical finding if not already on the problem list.",
+          "snomed_search": "anxiety disorder",
+          "snomed_concept_id": "197480006",
+          "preferred_term": "Anxiety disorder (disorder)",
+          "sentence": "PMH - thyroid goitre and hypothyroidism, anxiety",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "21101000119105",
+          "name": "Pharyngeal dysphagia",
+          "severity": "high",
+          "reason": "Concept ID 21101000119105 resolves to 'DRB1*09011 (substance)' \u2014 a genomic substance concept \u2014 not a clinical dysphagia disorder; the correct concept for dysphagia as documented is 40739000.",
+          "replace_with_concept_id": "40739000",
+          "replace_with_preferred_term": "Dysphagia (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves to a substance (unreliable/wrong), and the clinical concept 'intentional weight loss' is clinically incorrect \u2014 the note describes thyroid-driven unintentional weight loss; replace with 448765001 Unintentional weight loss.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "418633004",
+          "name": "Medication compliance (observable entity)",
+          "severity": "medium",
+          "reason": "Concept ID 418633004 resolves to 'CoAr 1071 virus (organism)' \u2014 clearly wrong; the note documents total non-compliance with levothyroxine for 1 year, which should be coded as 275927006 Drugs - total non-compliance.",
+          "replace_with_concept_id": "275927006",
+          "replace_with_preferred_term": "Drugs - total non-compliance (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "1366717009",
+          "name": "Compression of trachea (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The diagnosis is explicitly documented as uncertain ('?extension of goitre causing compression symptoms') \u2014 the assertion must be 'possible', not 'present', to accurately reflect the clinical uncertainty at this encounter."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three coded concept IDs resolve to non-clinical SNOMED concepts (a substance and an organism), indicating data-entry or system errors that must be corrected; critically, 'intentional weight loss' is both the wrong concept ID and the wrong clinical concept \u2014 unintentional weight loss is a red-flag symptom requiring correct coding. Additionally, tracheal compression is coded as present when the clinician documented it only as a possible diagnosis, and active vaping and anxiety (PMH) are not captured.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 6,
+        "input_tokens": 20629,
+        "output_tokens": 1647,
+        "total_tokens": 22276,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "d1aa7d61-89c1-44ee-b3da-76dc777e4b88",
+        "date": "2025-06-10",
+        "coded_count": 19
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0162da22-3bf1-4f8c-95b2-ad8f5444559e",
+    "patient_id": "7330683205",
+    "date": "2025-06-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dizzy",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dizziness is explicitly documented as a presenting symptom but has not been coded.",
+          "snomed_search": "dizziness symptom",
+          "snomed_concept_id": "404640003",
+          "preferred_term": "Dizziness (finding)",
+          "sentence": "Vomitting after eating \nHeadache \ndizzy",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "high",
+          "reason": "Concept ID 416528001 resolves to 'DRB1*08021 (substance)' \u2014 a completely wrong SNOMED concept; furthermore the note documents unqualified 'weight loss' with no indication it is intentional, so the term is also clinically incorrect.",
+          "replace_with_concept_id": "262285001",
+          "replace_with_preferred_term": "Weight decreased (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "418633004",
+          "name": "Medication compliance (observable entity)",
+          "severity": "high",
+          "reason": "Concept ID 418633004 resolves to a virus/organism concept on the terminology server \u2014 a completely wrong SNOMED concept; the correct concept for 'not been taking thyroid medication for a year' is a non-compliance finding.",
+          "replace_with_concept_id": "275927006",
+          "replace_with_preferred_term": "Drugs - total non-compliance (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two coded concepts carry entirely wrong SNOMED concept IDs (a substance and an organism respectively) and must be replaced: weight loss should use 262285001 'Weight decreased' (not 'intentional'), and medication non-compliance should use 275927006 'Drugs - total non-compliance'. Dizziness is an uncoded presenting symptom. The planned ECG is a future procedure and should not be coded as present at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5776,
+        "output_tokens": 1434,
+        "total_tokens": 7210,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "0162da22-3bf1-4f8c-95b2-ad8f5444559e",
+        "date": "2025-06-10",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8c53ffa2-8d2f-45df-a8b1-b76bdcbd80a6",
+    "patient_id": "7330683205",
+    "date": "2025-06-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "40930008",
+          "name": "Hypothyroidism (disorder)",
+          "severity": "medium",
+          "reason": "The note does not explicitly state a diagnosis of hypothyroidism; it is inferred solely from a historical Levothyroxine prescription, which per coding rules is insufficient to code a disorder as present.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "102620007",
+          "name": "Gastroesophageal reflux (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "low",
+          "reason": "The note states the patient 'received a medication for Acid-Reflux' during a hospital stay \u2014 this is a background/historical context, not an active condition being managed in this encounter; additionally concept 102620007 is unreliable and should be replaced with 235595009 (Gastroesophageal reflux disease (disorder))."
+        },
+        {
+          "conceptId": "35650009",
+          "name": "Thyroid panel (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "declined",
+          "severity": "medium",
+          "reason": "The note says 'Requires a follow/up for TFTs' \u2014 this is a future/planned procedure that has not yet occurred; coding it as present (already performed) is incorrect. Note also that the patient has no access to ICE and results were requested via reception, so the test is pending, not completed."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Three coding issues identified: (1) Hypothyroidism (40930008) is overcoded as it is inferred from medication history alone with no explicit diagnostic statement in the note; (2) Gastro-oesophageal reflux concept 102620007 is unreliable/wrong \u2014 the correct concept is 235595009 and the assertion should be historical given the hospital-stay context; (3) Thyroid panel (35650009) is coded as present but the TFT is only requested/planned ('requires a follow-up for TFTs'), not yet performed. Loss of appetite (79890006) and Medication declined (406149000) are correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6636,
+        "output_tokens": 1963,
+        "total_tokens": 8599,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "8c53ffa2-8d2f-45df-a8b1-b76bdcbd80a6",
+        "date": "2025-06-18",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a5f8ee2d-fa0c-4f08-a969-58527944505f",
+    "patient_id": "7330683205",
+    "date": "2025-06-24",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [
+        {
+          "concept_id": "422868009",
+          "preferred_term": "Unexplained weight loss (finding)",
+          "assertion": "present",
+          "severity": "critical",
+          "note": "Confirmed via search_snomed; lookup_concept returned unreliable result (organism tag) but search confirms correct concept. Red-flag symptom appropriately coded."
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is a care navigation triage call with a single clinical finding \u2014 significant unexplained weight loss over 2 months, a recognised red-flag symptom. Concept 422868009 (Unexplained weight loss, finding) is confirmed correct via search_snomed despite an unreliable lookup_concept response; assertion=present is appropriate. No other codeable clinical content is present in this encounter. Coding is complete.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2673,
+        "output_tokens": 869,
+        "total_tokens": 3542,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "a5f8ee2d-fa0c-4f08-a969-58527944505f",
+        "date": "2025-06-24",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fd5bc148-cf10-4a51-9d4a-b66aff141206",
+    "patient_id": "7330683205",
+    "date": "2025-06-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "upper abdominal tenderness",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Positive examination finding ('upper abdo tenderness') is clinically significant in the context of unexplained weight loss and should be coded explicitly.",
+          "snomed_search": "abdominal tenderness",
+          "snomed_concept_id": "43478001",
+          "preferred_term": "Abdominal tenderness (finding)",
+          "sentence": "Abdo soft, upper abdo tenderness, no rebound/guarding.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "previously on thyroxine / hypothyroidism",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "Patient was taking thyroxine in Mauritius, indicating a prior diagnosis of hypothyroidism; this is clinically relevant to her current presentation (weight loss, appetite loss) and must be coded as a historical disorder to prompt TSH review.",
+          "snomed_search": "hypothyroidism",
+          "snomed_concept_id": "40930008",
+          "preferred_term": "Hypothyroidism (disorder)",
+          "sentence": "Was originally taking thyroxine in Mauritius not since being in UK.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "169564004",
+          "name": "Coded as 'Pregnant - on abdominal palpation' (evidence text: upper abdominal tenderness)",
+          "severity": "high",
+          "reason": "Concept ID 169564004 resolves to 'DRB1*1410 (substance)' \u2014 a substance/HLA allele \u2014 not a clinical finding; it was applied to upper abdominal tenderness which is entirely unrelated. Replace with Abdominal tenderness (finding).",
+          "replace_with_concept_id": "43478001",
+          "replace_with_preferred_term": "Abdominal tenderness (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician uses explicitly uncertain language ('I suspect her mental health is contributing') \u2014 this should be coded as possible/suspected, not as a confirmed present disorder; the preferred concept is 1357745005 'Mental disorder suspected (situation)'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three significant coding errors identified: (1) concept ID 169564004 is a substance/HLA allele (DRB1*1410) \u2014 a clear wrong-code error \u2014 applied to upper abdominal tenderness and must be replaced with 43478001; (2) mental disorder is coded as definitively present when the GP only suspects it, requiring a possible/suspected assertion; (3) prior thyroxine use in Mauritius indicates historical hypothyroidism which is missing and directly relevant to the clinical picture. The unintentional weight loss (448765001) and nutritional marasmus (29740003) codes are clinically appropriate and well-evidenced given 15 kg loss over 8 months with BMI 14.2. Note: TSH has been requested in the pathology panel, consistent with the hypothyroidism history.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10415,
+        "output_tokens": 1955,
+        "total_tokens": 12370,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "fd5bc148-cf10-4a51-9d4a-b66aff141206",
+        "date": "2025-06-26",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8023dc71-6092-4397-b7fe-686cd5fa0518",
+    "patient_id": "7330683205",
+    "date": "2025-07-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "One critical coding error: concept 416528001 coded as 'Intentional weight loss' is both terminologically invalid (server returns a substance, not a finding) and clinically incorrect \u2014 the note documents unexplained weight loss with poor appetite as symptoms under investigation, which is a NG12 red-flag pattern requiring the correct code for unintentional weight loss (448765001). All observable entity lab codes and the loss of appetite finding are appropriately coded. The HbA1c result is normal (5.6%, no further action), so no diabetes coding is warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5255,
+        "output_tokens": 1105,
+        "total_tokens": 6360,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "8023dc71-6092-4397-b7fe-686cd5fa0518",
+        "date": "2025-07-03",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d26db20f-8e15-4e1f-b503-c038492f4dca",
+    "patient_id": "7330683205",
+    "date": "2025-07-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum total protein outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly states the result is 'Outside reference range' (83 g/L vs 57-82 reference); the abnormal finding should be coded in addition to the observable entity.",
+          "snomed_search": "serum total protein outside reference range",
+          "snomed_concept_id": "166781007",
+          "preferred_term": "Serum total protein outside reference range (finding)",
+          "sentence": "Serum total protein level (XE2e9) 83 g/L [57 - 82] - Outside reference range",
+          "char_start": 22,
+          "char_end": 80
+        },
+        {
+          "term": "weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss is listed as a reason for investigation with no qualifier of 'intentional'; in the context of raised total protein and poor appetite (possible myeloma/malignancy), unintentional weight loss is the clinically correct and safety-critical code \u2014 the currently coded concept [416528001] resolves to a substance (HLA allele) and is entirely wrong.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Reasons for Request: Weight loss, poor appetite.",
+          "char_start": 130,
+          "char_end": 178
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves in SNOMED to 'DRB1*08021 (substance)' \u2014 an HLA allele substance \u2014 not a weight loss finding; furthermore the note gives no basis for 'intentional' weight loss, making this doubly incorrect.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Two significant coding errors: (1) concept [416528001] is a wrong SNOMED ID \u2014 it resolves to an HLA substance, not a weight loss finding, and should be replaced with 448765001 'Unintentional weight loss' which is clinically appropriate and safety-critical given the raised total protein and poor appetite (red-flag pattern for myeloma/malignancy); (2) the explicitly reported abnormal lab result 'Serum total protein outside reference range' (166781007) is missing \u2014 only the observable entity is coded, not the abnormal interpretation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2167,
+        "output_tokens": 1402,
+        "total_tokens": 3569,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "d26db20f-8e15-4e1f-b503-c038492f4dca",
+        "date": "2025-07-03",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "21294006-506d-4d07-9898-00e8ce6d21f9",
+    "patient_id": "7330683205",
+    "date": "2025-07-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept 416528001 resolves in the terminology server as 'DRB1*08021 (substance)' \u2014 a HLA allele, not a clinical finding \u2014 and is therefore a completely wrong code; furthermore, the note documents weight loss as a reason for investigation with no indication it is intentional, making 'Intentional weight loss' clinically incorrect in any case.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Critical coding error: concept 416528001 is a substance (HLA allele) not a finding, and 'intentional weight loss' is clinically unsupported \u2014 the note documents unexplained weight loss and poor appetite as reasons for investigation, which should be coded as 448765001 'Unintentional weight loss (finding)'; this is a red-flag symptom pair under NG12 criteria and must be correctly coded. All other codes (observable entity lab values, loss of appetite, seen in primary care) are appropriate for this auto-filed lab result encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2594,
+        "output_tokens": 891,
+        "total_tokens": 3485,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "21294006-506d-4d07-9898-00e8ce6d21f9",
+        "date": "2025-07-03",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "85713c4d-9ff8-4ba4-a89d-5d10fb74f098",
+    "patient_id": "7330683205",
+    "date": "2025-07-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The iron deficiency code (35240004) and loss of appetite code (79890006) are appropriate. However, weight loss is coded as 'Intentional weight loss' (416528001) when the clinical context \u2014 unexplained weight loss prompting blood tests, critically low ferritin, and poor appetite \u2014 strongly indicates this is unintentional; this should be recoded to 448765001 (Unintentional weight loss), a safety-critical NG12 red-flag that may warrant 2WW cancer referral consideration. Note: lookup_concept returned unreliable substance-tag results for both 416528001 and 35240004, but search_snomed confirmed their correct identities.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4878,
+        "output_tokens": 975,
+        "total_tokens": 5853,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "85713c4d-9ff8-4ba4-a89d-5d10fb74f098",
+        "date": "2025-07-03",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9afb4971-8973-456c-bffb-11e980309a62",
+    "patient_id": "7330683205",
+    "date": "2025-07-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "microcytic anaemia / iron deficiency anaemia",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "Hb 106 g/L, MCV 73 fL, MCH 22.2 pg form a classic microcytic hypochromic picture and the lab report explicitly recommends checking iron status; iron deficiency anaemia should be coded as possible pending iron studies.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "Full blood count (424..) - Suggest check iron status.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two significant coding issues found: (1) concept 416528001 is a wrong code \u2014 the terminology server confirms it resolves to a substance (DRB1*08021), not a weight loss finding; the clinically correct and safety-critical code is 448765001 'Unintentional weight loss (finding)' given the context of unexplained weight loss with an abnormal FBC; (2) the microcytic/hypochromic blood picture (Hb 106, MCV 73, MCH 22.2) with the lab's explicit recommendation to check iron status warrants a possible iron deficiency anaemia code (87522002) pending iron studies. Observable entity codes for the individual FBC parameters are appropriate and have been written by the structured lab pipeline.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5923,
+        "output_tokens": 1568,
+        "total_tokens": 7491,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "9afb4971-8973-456c-bffb-11e980309a62",
+        "date": "2025-07-03",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4b52c521-333a-4851-acb1-3cb4e1d88b5d",
+    "patient_id": "7330683205",
+    "date": "2025-07-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The most significant issue is concept [416528001] coded as 'Intentional weight loss': the terminology server confirms this ID resolves to a substance (DRB1*08021), not a clinical finding, and the clinical context (weight loss listed as a reason for investigation alongside poor appetite, with no thyroid treatment) clearly indicates unexplained rather than intentional weight loss \u2014 the correct code is 422868009 'Unexplained weight loss (finding)', a safety-critical NG12 red-flag symptom. The loss of appetite code [79890006] also returned an unreliable substance result on lookup but is consistent with the search index and is not flagged for deletion on that basis alone; human review of that concept ID is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6918,
+        "output_tokens": 1406,
+        "total_tokens": 8324,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "4b52c521-333a-4851-acb1-3cb4e1d88b5d",
+        "date": "2025-07-03",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "71a026ac-5e58-4085-81e5-09c8f758e508",
+    "patient_id": "7330683205",
+    "date": "2025-07-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "I cant do this anymore / on the verge of passing out / feel tortured and alone",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "Patient's language ('I cant do this anymore', 'I have nothing', 'on the verge of passing out every second', 'feel tortured') constitutes a possible suicidal ideation or acute mental health crisis signal that is safety-critical and must be coded and escalated for urgent clinical review.",
+          "snomed_search": "suicidal ideation",
+          "snomed_concept_id": "6471006",
+          "preferred_term": "Suicidal thoughts (finding)",
+          "sentence": "Im on the verge of passing out every second. I feel tortured and alone by being alone ! Pleaseee! Ive asked for this before and i haven't received it. Please can you help me. I cant do this anymore.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "severely depressed",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly self-reports being 'severely depressed' and 'mentally unstable'; a specific depressive disorder code is more appropriate than the broad 'Mental disorder' currently coded.",
+          "snomed_search": "depressive disorder",
+          "snomed_concept_id": "35489007",
+          "preferred_term": "Depressive disorder (disorder)",
+          "sentence": "Imdesperate and severely depressed . Im can stop crying.. my medical situation and heath is deteriorating rapidly.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "SAFETY-CRITICAL: This eConsultation contains strong language consistent with possible suicidal ideation or acute mental health crisis ('I cant do this anymore', 'feel tortured', 'on the verge of passing out') and requires urgent clinical triage \u2014 this must not be processed as a routine admin/letter request. Additionally, the patient explicitly states 'severely depressed' warranting a specific depressive disorder code (35489007) rather than only the broad Mental disorder concept; all five existing concept IDs returned unreliable results from the terminology server and should be verified against the local SNOMED release, but cannot be flagged as overcoded on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6223,
+        "output_tokens": 1589,
+        "total_tokens": 7812,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "71a026ac-5e58-4085-81e5-09c8f758e508",
+        "date": "2025-07-14",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7d832695-6b57-4fbb-8bfc-b5f240e13be4",
+    "patient_id": "7330683205",
+    "date": "2025-07-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "poor sleep",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports poor sleep as an active symptom in this encounter, which should be coded independently.",
+          "snomed_search": "poor sleep pattern",
+          "snomed_concept_id": "314938000",
+          "preferred_term": "Poor sleep pattern (finding)",
+          "sentence": "Feels anxious a lot, struggles to concentrate, poor sleep.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Referral to social prescribing service",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A referral to the social prescribing service is explicitly documented and actioned in this encounter and should be coded as a procedure.",
+          "snomed_search": "referral social prescribing",
+          "snomed_concept_id": "871731000000106",
+          "preferred_term": "Referral to social prescribing service (procedure)",
+          "sentence": "Referral to social prescribing service (XaaEC)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "191137004",
+          "name": "Iron deficiency anemia NOS (disorder)",
+          "severity": "high",
+          "reason": "Lookup returned an unreliable qualifier value result for this concept ID; the correct SNOMED disorder concept for iron deficiency anaemia is 87522002 (Iron deficiency anemia), which is directly confirmed by search and matches the clinical evidence (IDA, Hb 106, ferritin 2).",
+          "replace_with_concept_id": "87522002",
+          "replace_with_preferred_term": "Iron deficiency anemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The main coding error is the use of concept 191137004 for IDA, which resolves to an unreliable qualifier value rather than the correct disorder concept 87522002; this should be replaced. Two additional concepts are missing: poor sleep (explicitly stated symptom) and the social prescribing referral (explicitly actioned procedure). The MADD code 231504006 and loss of appetite code are correctly applied. Lab observable entity codes are pipeline-generated and not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10587,
+        "output_tokens": 1889,
+        "total_tokens": 12476,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "7d832695-6b57-4fbb-8bfc-b5f240e13be4",
+        "date": "2025-07-14",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d3609470-6d0c-461a-9587-a85acef4ca9a",
+    "patient_id": "7330683205",
+    "date": "2025-07-28",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter is a purely administrative medical secretary entry recording the dispatch and status update of a 2WW upper GI cancer fast-track referral; there is no clinical narrative, examination, or assessment text in this note. The standing problem-list codes (nausea/vomiting, low body weight, abdominal pain) have evidence strings drawn from other encounters and must not be flagged as overcoded or missing on this administrative record. The 2WW referral procedure code [276551000000108] is the only concept directly evidenced by this note and is correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3319,
+        "output_tokens": 807,
+        "total_tokens": 4126,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "d3609470-6d0c-461a-9587-a85acef4ca9a",
+        "date": "2025-07-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "58accd10-ad67-4a29-bbd3-397f92a31125",
+    "patient_id": "7330683205",
+    "date": "2025-07-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept 416528001 resolves to 'DRB1*08021 (substance)' \u2014 a completely wrong concept ID; furthermore the assertion 'intentional' directly contradicts the clinical note which documents ~15 kg of unintentional weight loss driving a 2WW referral.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "high",
+          "reason": "Concept 16932000 resolves to 'An 7705 (qualifier value)' \u2014 a wrong concept ID; the note specifically documents persistent vomiting and the more specific disorder code 196746003 'Persistent vomiting (disorder)' is available and appropriate.",
+          "replace_with_concept_id": "196746003",
+          "replace_with_preferred_term": "Persistent vomiting (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "248342006",
+          "name": "Low body weight (Clinical_finding)",
+          "severity": "medium",
+          "reason": "Concept 248342006 is flagged unreliable by the terminology server (returned semantic_tag 'organism'); cachexia (238108007) and unintentional weight loss (448765001) together adequately represent the clinical picture, making this redundant and potentially miscoded."
+        },
+        {
+          "conceptId": "21522001",
+          "name": "Abdominal pain (finding)",
+          "severity": "low",
+          "reason": "The note specifies 'upper abdo pains' \u2014 the more specific concept 83132003 'Upper abdominal pain (finding)' better represents the documented finding.",
+          "replace_with_concept_id": "83132003",
+          "replace_with_preferred_term": "Upper abdominal pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Two critical coding errors found: concept 416528001 maps to a substance (not a finding) AND asserts 'intentional' weight loss when the note clearly documents ~15 kg unintentional weight loss driving a 2WW upper GI cancer referral \u2014 this must be corrected to 448765001 with assertion=present as a matter of patient safety; concept 16932000 maps to a qualifier value rather than the intended vomiting disorder and should be replaced with 196746003 'Persistent vomiting (disorder)'. The 2WW fast-track referral and suspected malignancy codes are correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 10007,
+        "output_tokens": 1820,
+        "total_tokens": 11827,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "58accd10-ad67-4a29-bbd3-397f92a31125",
+        "date": "2025-07-28",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0ca95648-ec40-44ee-be91-b8ba563480dc",
+    "patient_id": "7330683205",
+    "date": "2025-08-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5cb432e6-7d72-4d86-89e8-d7452252158b",
+    "patient_id": "7330683205",
+    "date": "2025-08-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Refer dietician",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly states 'Refer dietician' \u2014 this is a procedure performed in this encounter and should be coded.",
+          "snomed_search": "referral to dietitian",
+          "snomed_concept_id": "103699006",
+          "preferred_term": "Referral to dietitian (procedure)",
+          "sentence": "Refer dietician.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is broadly of good quality \u2014 the key clinical findings (hiatus hernia, mixed anxiety/depression, sertraline adverse reaction, tremor, low body weight, vomiting, OGD) are all correctly coded with appropriate assertions. The one clear gap is the dietitian referral (103699006), which is explicitly documented in the plan and constitutes a procedure performed in this encounter. The two unreliable lookup_concept responses for 292303004 and 84089009 were cross-validated via search_snomed and confirmed as correct disorder codes; the server-side unreliability does not reflect a coding error. The coded concept 31430005 (Medication-induced postural tremor) is a reasonable clinical interpretation of sertraline-induced tremor even though the note does not specify 'postural'.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8487,
+        "output_tokens": 1806,
+        "total_tokens": 10293,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "5cb432e6-7d72-4d86-89e8-d7452252158b",
+        "date": "2025-08-04",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "215872e1-980c-4f1d-ba38-2feb169fc61c",
+    "patient_id": "7330683205",
+    "date": "2025-08-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "high",
+          "reason": "The evidence phrase 'still vomiting frequently after eating' does not appear anywhere in the encounter text; this concept appears to have been fabricated or carried over from a different encounter, and the concept ID resolves to a qualifier value rather than a disorder on the terminology server."
+        },
+        {
+          "conceptId": "274512008",
+          "name": "Drug therapy discontinued (situation)",
+          "severity": "medium",
+          "reason": "The evidence phrase about Sertraline being 'actively stopped on clinical grounds' is not present in the encounter narrative; the note contains only a medication record line 'Ended 04 Aug 2025 Clinical grounds by NOBLE, Ben (Dr)' which is a medication system entry, not a coded clinical event from this encounter text, and the concept ID returns an unreliable/organism result from the terminology server."
+        },
+        {
+          "conceptId": "859981000000107",
+          "name": "Level of physical activity (observable entity)",
+          "severity": "low",
+          "reason": "The evidence phrase 'Going for walks in the morning' does not appear anywhere in the encounter text; this concept has no textual basis in this note and the concept ID returns an unreliable result from the terminology server."
+        },
+        {
+          "conceptId": "248342006",
+          "name": "Low body weight (finding)",
+          "severity": "medium",
+          "reason": "The evidence phrase 'given that her BMI is low' does not appear in the encounter text; while a MUST score of 2 implies malnutrition risk, low body weight as a discrete finding is not explicitly documented in this encounter note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This encounter is a PRISM nutrition referral workflow note with medication and pathology requests; the MUST score of 2 and referral to dietetics are legitimately evidenced in the text, but four coded concepts have evidence phrases that are entirely absent from the encounter text, suggesting they were either hallucinated by an automated coding tool or imported from a different encounter. The concept ID for 'Nausea and vomiting' (16932000) also resolves to a qualifier value rather than a disorder, further undermining its validity here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4686,
+        "output_tokens": 1455,
+        "total_tokens": 6141,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "215872e1-980c-4f1d-ba38-2feb169fc61c",
+        "date": "2025-08-04",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "66adf960-b3e7-4509-bf18-099df372f980",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "This encounter contains only administrative content: a receptionist access-role entry, appointment arrival marking, and a Summary Care Record preference override. There is no clinical narrative, examination, diagnosis, or investigation interpretation to code. All 13 existing codes are structured-pipeline lab observables or a standard encounter-type finding and are not subject to audit from this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 1060,
+        "output_tokens": 391,
+        "total_tokens": 1451,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "66adf960-b3e7-4509-bf18-099df372f980",
+        "date": "2025-08-18",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0db1eafd-de3c-40fd-8eed-d519d2a06841",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Bone profile",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a Bone profile as the investigation performed; the procedure should be coded.",
+          "snomed_search": "bone profile",
+          "snomed_concept_id": "167036008",
+          "preferred_term": "Bone profile (procedure)",
+          "sentence": "Bone profile (44Z2.)",
+          "char_start": 22,
+          "char_end": 38
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The auto-filed lab note is largely well-coded with all observable entity values captured by the structured pipeline. Two issues: the Bone profile procedure (167036008) is missing, and the coded symptom 'Nausea and vomiting' (16932000) should be replaced by the more specific 'Persistent vomiting' (196746003) to match the documented clinical information exactly.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4775,
+        "output_tokens": 1127,
+        "total_tokens": 5902,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "0db1eafd-de3c-40fd-8eed-d519d2a06841",
+        "date": "2025-08-18",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "59376399-db30-44ed-8038-407f0f002278",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Haemoglobin concentration",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Haemoglobin concentration 105 g/L is explicitly reported in the encounter text as outside reference range and is the primary abnormal FBC result, but no haemoglobin concentration observable entity has been coded.",
+          "snomed_search": "haemoglobin concentration blood",
+          "snomed_concept_id": "1107511000000100",
+          "preferred_term": "Mass concentration of haemoglobin in blood (observable entity)",
+          "sentence": "Haemoglobin concentration (Xa96v) 105 g/L [115 - 165] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "668381000000100",
+          "name": "Anemia unspecified",
+          "severity": "medium",
+          "reason": "The terminology server returned an unreliable result (organism tag) for this concept ID, and the clinical content is already captured more specifically by the co-coded microcytic hypochromic anaemia (44666001); a non-specific anaemia code is redundant and potentially misleading alongside the more specific diagnosis.",
+          "replace_with_concept_id": "271737000",
+          "replace_with_preferred_term": "Anemia (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1022481000000109",
+          "name": "Mean corpuscular haemoglobin concentration (observable entity)",
+          "severity": "medium",
+          "reason": "No MCHC value is present anywhere in the encounter text; the coded evidence field contains fabricated narrative rather than a genuine source sentence, indicating this observable was incorrectly added \u2014 the encounter reports haemoglobin concentration (Xa96v), not MCHC."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The coding is largely appropriate for an auto-filed FBC result encounter: microcytic hypochromic anaemia (44666001) is correctly identified from the FBC pattern and confirmed by search_snomed. However, the haemoglobin concentration observable (105 g/L, the primary flagged abnormality) is absent from the coded list; the MCHC observable (1022481000000109) has been incorrectly added with a fabricated evidence string and no MCHC value in the text; and the non-specific anaemia code (668381000000100) carries an unreliable concept ID and is redundant given the more specific microcytic hypochromic anaemia already coded \u2014 if a generic anaemia code is retained, it should be replaced with the verified concept 271737000.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7278,
+        "output_tokens": 2094,
+        "total_tokens": 9372,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "59376399-db30-44ed-8038-407f0f002278",
+        "date": "2025-08-18",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5e8fd063-e66f-4ee0-a0f5-d83abae2c399",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum folate above reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The serum folate result of 7.3 ng/ml exceeds the stated normal upper threshold (>5.38 ug/L) and the lab report explicitly flags it as 'Abnormal'; the clinical interpretation finding should be coded alongside the observable entity already present.",
+          "snomed_search": "serum folate above reference range",
+          "snomed_concept_id": "1179812009",
+          "preferred_term": "Serum folate above reference range (finding)",
+          "sentence": "Serum folate level Report, Abnormal, but expected, Need to speak to doctor. Review done by HORNE, Jonathan (Dr) - 19 Aug 2025 11:31",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The 14 existing codes are broadly appropriate; the observable entity codes and encounter type are set by structured pipelines and are correct. The one gap is the clinical interpretation of the serum folate result: the lab explicitly flags it as 'Abnormal' (above reference range at 7.3 ng/ml vs normal >5.38 ug/L), and a GP review was triggered \u2014 the finding 'Serum folate above reference range' (1179812009) should be added. Note: lookup_concept for [16932000] returned an unreliable qualifier-value result, but search_snomed confirms the concept ID correctly maps to 'Nausea and vomiting (disorder)' and is valid.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5256,
+        "output_tokens": 1364,
+        "total_tokens": 6620,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "5e8fd063-e66f-4ee0-a0f5-d83abae2c399",
+        "date": "2025-08-18",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e39e2c97-c057-465b-be63-07a767b8a6e6",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All 15 coded concepts are appropriate: the serum magnesium level (1001091000000103) and nausea and vomiting (16932000) are correctly coded \u2014 lookup_concept returned unreliable results for both IDs but search_snomed confirmed both are valid SNOMED concepts in the correct hierarchy. The magnesium value of 0.91 mmol/L falls within the reference range [0.7\u20131.0], so no hypomagnesaemia disorder code (190855004) is warranted despite the \"Abnormal, but expected\" lab flag; the remaining observable entity codes are structured pipeline outputs and are not subject to encounter-level audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4717,
+        "output_tokens": 1120,
+        "total_tokens": 5837,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "e39e2c97-c057-465b-be63-07a767b8a6e6",
+        "date": "2025-08-18",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1291b89d-6dfe-4775-aa43-ce83a07a93c4",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Persistent vomiting",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as the clinical reason for the B12 blood test request and represents an active clinical finding requiring coding.",
+          "snomed_search": "persistent vomiting",
+          "snomed_concept_id": "196746003",
+          "preferred_term": "Persistent vomiting (disorder)",
+          "sentence": "Clinical Information: Reasons for Request:      Persistent vomiting.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "entities": [],
+      "notes": "The encounter is primarily an auto-filed lab result review; all structured lab observable entity codes are pipeline-generated and correct. The sole coding gap is 'Persistent vomiting' (196746003), which is explicitly stated as the clinical reason for the B12 request and has not been coded. The B12 result of 412 ng/L falls within the normal reference range so no abnormal finding code is warranted from the result itself.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2495,
+        "output_tokens": 824,
+        "total_tokens": 3319,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "1291b89d-6dfe-4775-aa43-ce83a07a93c4",
+        "date": "2025-08-18",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b1aed2a9-6915-46a2-b552-d59aadb67af0",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "668381000000100",
+          "name": "Anemia unspecified (disorder)",
+          "severity": "medium",
+          "reason": "Concept ID 668381000000100 is unreliable (terminology server returns semantic_tag='organism'), and the lab indices (MCV 72 fL, MCH 22.2 pg, Haematocrit 0.34) indicate a microcytic/hypochromic picture warranting a more specific code; replace with Microcytic anemia (disorder).",
+          "replace_with_concept_id": "234349007",
+          "replace_with_preferred_term": "Microcytic anemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The anaemia code 668381000000100 is an unreliable concept ID (terminology server returns it as an 'organism') and should be replaced with 234349007 Microcytic anemia (disorder), which is better supported by the microcytic/hypochromic indices (MCV 72 fL, MCH 22.2 pg). The AKI Staging 0 / No AKI result is explicitly negative and does not require a disorder code; all other codes including 16932000 Nausea and vomiting and the structured lab observables are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5124,
+        "output_tokens": 1389,
+        "total_tokens": 6513,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "b1aed2a9-6915-46a2-b552-d59aadb67af0",
+        "date": "2025-08-18",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cb74700c-0c16-476a-98df-c1e83da86883",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All 15 coded concepts are clinically appropriate and confirmed via SNOMED search: the terminology server returned unreliable results for concepts 16932000, 34713006, and 1031181000000107, but all three are verified as correct by direct search_snomed lookup. Observable entity codes are pipeline-generated and correctly excluded from audit scope. The low MCV/MCH values suggest a possible microcytic picture but no explicit clinical interpretation of anaemia appears in the note, so no additional disorder code is warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7761,
+        "output_tokens": 1358,
+        "total_tokens": 9119,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "cb74700c-0c16-476a-98df-c1e83da86883",
+        "date": "2025-08-18",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "816206f9-3aee-43e9-8034-b10c43c87f29",
+    "patient_id": "7330683205",
+    "date": "2025-08-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "16932000",
+          "name": "Nausea and vomiting (disorder)",
+          "severity": "medium",
+          "reason": "The encounter text is a phlebotomy-only administrative note; the phrase 'Persistent vomiting' cited as evidence does not appear anywhere in this encounter text (read_context returned phrase_not_found), so this clinical disorder has no textual basis in this encounter and should not have been coded here."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This encounter is a routine phlebotomy visit with no clinical narrative; all 13 observable entity lab codes and the encounter-type finding are pipeline/system-generated and correctly excluded from audit scope. The sole issue is 'Nausea and vomiting (disorder)' [16932000], which is asserted with evidence text ('Persistent vomiting') that does not exist in this encounter note \u2014 it appears to have been incorrectly attributed to this administrative blood-draw encounter rather than a separate clinical consultation. Note: lookup_concept returned unreliable semantic tags for both 16932000 and 185202000, but search_snomed confirms 16932000 is a legitimate disorder concept; the overcoded flag is based on absence of supporting text, not concept invalidity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4159,
+        "output_tokens": 1092,
+        "total_tokens": 5251,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "816206f9-3aee-43e9-8034-b10c43c87f29",
+        "date": "2025-08-18",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d68c8bde-7ce8-4ec0-b16d-2bb57d2a9192",
+    "patient_id": "7330683205",
+    "date": "2025-08-19",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "The single coded concept 34713006 (Vitamin D deficiency, disorder, present) is correct and fully supported by the encounter text. No other codeable clinical content is present; the vitamin D supplementation is a medication record item, not a separate SNOMED finding to code here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1500,
+        "output_tokens": 592,
+        "total_tokens": 2092,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "d68c8bde-7ce8-4ec0-b16d-2bb57d2a9192",
+        "date": "2025-08-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "89f1266b-a76e-47ab-bc96-e89e83e29d13",
+    "patient_id": "7330683205",
+    "date": "2025-08-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bed bug bites / infestation caused by bed bug",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary diagnosis is bed bug bites; the disorder concept 13557007 'Infestation caused by bed bug' is the correct SNOMED disorder-hierarchy code for this clinical presentation, replacing the currently coded event-tag concept.",
+          "snomed_search": "bed bug infestation",
+          "snomed_concept_id": "13557007",
+          "preferred_term": "Infestation caused by bed bug (disorder)",
+          "sentence": "Diagnosis: bed bug bites",
+          "char_start": 530,
+          "char_end": 553
+        },
+        {
+          "term": "itchy and uncomfortable",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Pruritus is explicitly documented as an active symptom driving the treatment plan (antihistamine prescribed for itch) and should be coded as a finding.",
+          "snomed_search": "itching of skin",
+          "snomed_concept_id": "418363000",
+          "preferred_term": "Itching of skin (finding)",
+          "sentence": "got multiple bites mainly over his back use calamine lotion - itchy and uncomfortable - feels lotion is not working fully",
+          "char_start": 370,
+          "char_end": 490
+        },
+        {
+          "term": "oral antihistamine as fexofenadine 120 mg od",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A new oral antihistamine treatment was initiated at this encounter and the administration procedure should be coded.",
+          "snomed_search": "administration of antihistamine",
+          "snomed_concept_id": "1371349009",
+          "preferred_term": "Administration of antihistamine (procedure)",
+          "sentence": "use oral antihistamine as fexofenadine 120 mg od to help with itch",
+          "char_start": 600,
+          "char_end": 665
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "242649000",
+          "name": "Bite of bed bug (event)",
+          "severity": "medium",
+          "reason": "Concept 242649000 has semantic tag 'event' which is outside the auditable SNOMED scope and the terminology server cannot confirm it; the correct disorder-hierarchy code for this diagnosis is 13557007 'Infestation caused by bed bug (disorder)'.",
+          "replace_with_concept_id": "13557007",
+          "replace_with_preferred_term": "Infestation caused by bed bug (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary diagnosis code uses an 'event' semantic tag concept (242649000) which is unverifiable and outside the disorder/finding scope; it should be replaced with the disorder concept 13557007. Two additional findings are missing: active pruritus (418363000) which is driving the treatment plan, and the newly initiated antihistamine administration procedure (1371349009). No safety-critical red flags are present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6340,
+        "output_tokens": 1605,
+        "total_tokens": 7945,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "89f1266b-a76e-47ab-bc96-e89e83e29d13",
+        "date": "2025-08-21",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e4e1e330-81c3-438f-bb36-51cfafe70dc4",
+    "patient_id": "7330683205",
+    "date": "2025-09-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "itching",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Ongoing itching is explicitly documented as an active finding requiring management (fexofenadine issued) and must be coded.",
+          "snomed_search": "itching of skin",
+          "snomed_concept_id": "418363000",
+          "preferred_term": "Itching of skin (finding)",
+          "sentence": "Ongoing itching secondary to ?bedbugs.",
+          "char_start": 148,
+          "char_end": 183
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "191137004",
+          "name": "Iron deficiency anemia NOS (disorder)",
+          "severity": "high",
+          "reason": "Lookup returned semantic_tag 'qualifier value' indicating an unreliable/incorrect concept ID; furthermore the note explicitly states IDA is due to diet, making the more specific concept 371315009 the correct code.",
+          "replace_with_concept_id": "371315009",
+          "replace_with_preferred_term": "Iron deficiency anemia secondary to inadequate dietary iron intake (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The IDA code (191137004) is unreliable \u2014 terminology lookup returned a qualifier value semantic tag \u2014 and should be replaced with the diet-specific IDA concept (371315009) which precisely matches the documented aetiology. Ongoing itching is an active, treated finding that is uncoded. The dietetics appointment is future/planned and correctly omitted; the ?bedbug cause of itching is uncertain and no specific SNOMED concept was resolvable, so only the symptom (itching of skin) is flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5484,
+        "output_tokens": 1396,
+        "total_tokens": 6880,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "e4e1e330-81c3-438f-bb36-51cfafe70dc4",
+        "date": "2025-09-01",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "788aa852-e944-4784-85f1-d288a6e627df",
+    "patient_id": "7330683205",
+    "date": "2025-09-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Feels nauseous",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Nausea is an active symptom reported by the patient in this encounter and is clinically relevant as a potential side-effect consideration for the newly prescribed mirtazapine.",
+          "snomed_search": "nausea",
+          "snomed_concept_id": "422587007",
+          "preferred_term": "Nausea (finding)",
+          "sentence": "Feels nauseous.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "severity": "critical",
+          "reason": "The note explicitly states 'No active thoughts DSH or suicide' \u2014 coding suicidal thoughts as present is a dangerous misrepresentation of the documented risk assessment; this should be replaced with the absent-assertion 'No suicidal thoughts' situation code.",
+          "replace_with_concept_id": "134420004",
+          "replace_with_preferred_term": "No suicidal thoughts (situation)",
+          "replace_with_assertion": "absent"
+        },
+        {
+          "conceptId": "1336200007",
+          "name": "Cannabis use disorder (disorder)",
+          "severity": "medium",
+          "reason": "The note describes recent restart of cannabis use after a period of abstinence ('Ex-marijuana use. Restarted again 2 weeks ago') \u2014 there is no explicit diagnosis of a cannabis use disorder; 'Harmful use of cannabis' better reflects the documented clinical picture.",
+          "replace_with_concept_id": "1094171000000104",
+          "replace_with_preferred_term": "Harmful use of cannabis (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The most serious issue is a safety-critical wrong assertion: suicidal thoughts are coded as 'present' when the note explicitly documents their absence following a risk assessment \u2014 this must be corrected immediately to avoid misrepresenting the patient's risk profile. Additionally, cannabis use disorder overstates the evidence (2-week restart, no formal disorder diagnosis), and nausea as an active symptom is uncoded. The codes for mixed anxiety and depressive disorder (231504006) and telephone consultation (386472008) are correct despite unreliable lookup responses, as SNOMED search confirms both concept IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12089,
+        "output_tokens": 2329,
+        "total_tokens": 14418,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "788aa852-e944-4784-85f1-d288a6e627df",
+        "date": "2025-09-25",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "334491d6-c930-4e35-a3ab-d347d20a5d65",
+    "patient_id": "7330683205",
+    "date": "2025-09-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "planning suicide with specific methods (medication overdose or self-immolation)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly confirmed active suicidal ideation with two specific methods in mind (medication in front of her; setting fire to herself) \u2014 this goes beyond suicidal thoughts and warrants the more specific 'Planning suicide' code alongside the existing suicidal thoughts code.",
+          "snomed_search": "planning suicide",
+          "snomed_concept_id": "247650009",
+          "preferred_term": "Planning suicide (finding)",
+          "sentence": "Asked her if she feels actively suicidal and she said yes and she keeps considering what is in front of her. I asked what she meant by this and she said 'the medication in front of me or setting fire to myself'.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "urgent GP appointment arranged for active suicidal ideation",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The social prescriber arranged an urgent same-day GP telephone appointment specifically in response to active suicidal ideation with a plan \u2014 this urgent safeguarding action should be coded as an urgent referral or emergency consultation.",
+          "snomed_search": "urgent referral mental health",
+          "snomed_concept_id": "306206005",
+          "preferred_term": "Referral to mental health service (procedure)",
+          "sentence": "I said that I felt she needed an urgent GP appt so would ask reception if they could book her in for a tel call today but also said I would send info on mental health support she can reach out to on a more urgent level.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "905241000000107",
+          "name": "Predicted inadequate dietary vitamin intake (finding)",
+          "severity": "medium",
+          "reason": "The note documents the patient not eating proper food for 4 months (poor nutritional intake / reduced food intake), not a predicted vitamin-specific deficiency; this code is not supported by the encounter text and is overly specific in the wrong direction.",
+          "replace_with_concept_id": "11833005",
+          "replace_with_preferred_term": "Decreased food intake (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "This is a safety-critical encounter: the patient disclosed active suicidal ideation with a specific plan (medication overdose or self-immolation) and an urgent same-day GP review was arranged \u2014 'Planning suicide' (247650009) must be added alongside the existing suicidal thoughts code. The dietary code (905241000000107 \u2014 predicted inadequate vitamin intake) is not evidenced by the note and should be replaced with a reduced food intake finding. The existing 'Suicidal thoughts' (6471006) and 'Mental disorder' (74732009) codes are confirmed as legitimate by SNOMED search despite unreliable lookup responses.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10627,
+        "output_tokens": 2086,
+        "total_tokens": 12713,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "334491d6-c930-4e35-a3ab-d347d20a5d65",
+        "date": "2025-09-26",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0301b7eb-abb0-4ec2-9111-18b03154e319",
+    "patient_id": "7330683205",
+    "date": "2025-09-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "I have tried to commit suicide before",
+          "severity": "critical",
+          "suggested_assertion": "historical",
+          "reason": "Patient explicitly states a prior suicide attempt \u2014 a major risk factor that must be coded historically for safety and risk stratification; currently miscoded as a duplicate Mental disorder (74732009).",
+          "snomed_search": "history attempted suicide",
+          "snomed_concept_id": "161474000",
+          "preferred_term": "History of attempted suicide (situation)",
+          "sentence": "\"I have tried to commit suicide before\"",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder) \u2014 second instance coded as historical for prior suicide attempt",
+          "severity": "critical",
+          "reason": "The second use of 74732009 was intended to capture the prior suicide attempt historically, but Mental disorder is the wrong concept entirely; the correct code is 161474000 History of attempted suicide (situation) with assertion=historical.",
+          "replace_with_concept_id": "161474000",
+          "replace_with_preferred_term": "History of attempted suicide (situation)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "1336200007",
+          "name": "Cannabis use disorder (disorder)",
+          "severity": "medium",
+          "reason": "The note documents a single contextual mention of smoking cannabis linked to suicidal feelings; there is no documented diagnosis of cannabis use disorder \u2014 at most harmful use of cannabis (1094171000000104) could be considered, but a full disorder diagnosis is not evidenced by the text."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "This is a high-risk encounter with active suicidal ideation, a disclosed prior suicide attempt, and urgent CRISIS referral \u2014 the critical gap is that the prior suicide attempt is miscoded as a duplicate 'Mental disorder' (74732009) rather than 'History of attempted suicide' (161474000, historical); this must be corrected immediately for accurate risk stratification. Additionally, Cannabis use disorder is overcoded from a single contextual mention, and the fatigue concept ID (272060000) is unverifiable and should be replaced with a confirmed code such as Asthenia (13791008).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 14307,
+        "output_tokens": 2117,
+        "total_tokens": 16424,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "0301b7eb-abb0-4ec2-9111-18b03154e319",
+        "date": "2025-09-26",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6594a3bc-f54f-49ae-9c39-4ba68e1c73fc",
+    "patient_id": "7330683205",
+    "date": "2025-09-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "suicidal ideation",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A crisis team referral is a strong indicator of acute suicidal risk; suicidal ideation should be coded as present if clinically confirmed in the GP's own encounter record (e.g. the 12:27 surgery consultation by Dr Okoye), and the evidence string attached to the Smoking code ('feeling suicidal after smoking weed') \u2014 though not found in this encounter text \u2014 further suggests this was the clinical driver for the referral.",
+          "snomed_search": "suicidal ideation",
+          "snomed_concept_id": "6471006",
+          "preferred_term": "Suicidal thoughts (finding)",
+          "sentence": "Patient has been referred to the crisis team today.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "medium",
+          "reason": "The evidence string 'feeling suicidal after smoking weed' does not appear anywhere in this encounter text; the concept appears to have been derived from outside this note, and the terminology server returned an unreliable/organism result for this concept ID \u2014 the code cannot be validated as correctly sourced from this encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is primarily a medical secretary routing note for a mental health crisis referral; the clinical narrative (including any suicidal ideation) belongs to the GP's own 12:27 consultation record (Dr Okoye) rather than this secretary entry. The most serious issue is that [77176002] Smoking is evidenced by a phrase ('feeling suicidal after smoking weed') that does not exist in this encounter text \u2014 this is a fabricated evidence string and the code should be removed from this encounter. Critically, suicidal ideation (SNOMED 6471006) should be coded as present on the GP's clinical encounter if confirmed there, given the crisis team referral; this is a safety-critical gap requiring human review of the 12:27 consultation record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3429,
+        "output_tokens": 1578,
+        "total_tokens": 5007,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "6594a3bc-f54f-49ae-9c39-4ba68e1c73fc",
+        "date": "2025-09-26",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0c9ee4c5-acd7-426f-b8e7-6542a2dcd28e",
+    "patient_id": "7330683205",
+    "date": "2025-09-26",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d6b79cfc-6cc9-4b2f-a396-132b14a710f5",
+    "patient_id": "7330683205",
+    "date": "2025-09-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "83373005",
+          "name": "Anton's syndrome (disorder)",
+          "severity": "high",
+          "reason": "Anton's syndrome is a specific anosognosia for cortical blindness and is not supported by the note; the patient reports seeing things after nightmares, which is perceptual disturbance or hallucination, not Anton's syndrome. The lookup server also returned an unreliable Extension Namespace placeholder for this ID.",
+          "replace_with_concept_id": "64269007",
+          "replace_with_preferred_term": "Visual hallucinations (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "The concept ID 416528001 resolves to 'DRB1*08021 (substance)' \u2014 a completely wrong concept \u2014 and the clinical assertion 'intentional' is also incorrect; the note describes unintentional weight loss of 15 kg in an asylum seeker with loss of appetite and food intolerance. The correct code is 448765001 Unintentional weight loss (finding).",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two significant coding errors identified: (1) Anton's syndrome [83373005] is clinically inappropriate for reported post-nightmare visual phenomena \u2014 Visual hallucinations [64269007] is the correct concept; (2) concept ID 416528001 maps to a substance (DRB1*08021), not a weight-loss finding, and the assertion 'intentional' contradicts the clinical picture \u2014 replace with Unintentional weight loss [448765001]. The critical safety finding of active suicidal ideation with specific methods [6471006] is correctly coded. Threatening behaviour [284614009], cannabis use disorder [1336200007], nightmare disorder [111487009], and dyssomnia [44186003] are all confirmed as correct SNOMED concepts despite lookup server unreliability on some IDs. The broader mental disorder code [74732009] is a reasonable placeholder pending formal psychiatric diagnosis; a trauma-related or PTSD-specific code should be considered once a formal diagnosis is established.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 13407,
+        "output_tokens": 2152,
+        "total_tokens": 15559,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "d6b79cfc-6cc9-4b2f-a396-132b14a710f5",
+        "date": "2025-09-26",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7455136d-2d2d-4d7e-8e0c-e67c5bb7b9b6",
+    "patient_id": "7330683205",
+    "date": "2025-09-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "162572001",
+          "name": "Malignant neoplastic disease suspected (situation)",
+          "severity": "medium",
+          "reason": "The note documents a completed investigation for Upper GI cancer 2 months ago that found hiatus hernia \u2014 there is no active or current suspicion of malignancy documented in this encounter; coding suspected cancer is clinically misleading and unsupported by the text.",
+          "replace_with_concept_id": null,
+          "replace_with_preferred_term": null
+        },
+        {
+          "conceptId": "103699006",
+          "name": "Referral to dietitian (procedure)",
+          "severity": "low",
+          "reason": "The note states the patient is 'awaiting dietitian review in October' \u2014 this is a future/planned appointment not yet occurred and should not be coded as a completed procedure with assertion=present; mention in notes only per coding rules."
+        },
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "low",
+          "reason": "The specific diagnosis Mixed anxiety and depressive disorder (231504006) is already coded in this encounter, making the generic parent concept Mental disorder redundant and adding no clinical value."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states the patient 'denies any thoughts of self-harm suicide at the moment' \u2014 coding this as present is a dangerous clinical error that falsely implies active suicidal ideation; the assertion must be absent, or the concept should be replaced with 134420004 'No suicidal thoughts (situation)' / 401228008 'No thoughts of deliberate self harm (situation)' with assertion=absent."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The most serious error is [6471006] Suicidal thoughts coded as assertion=present when the patient explicitly denied suicidal/self-harm ideation \u2014 this is a critical patient-safety risk that must be corrected immediately, ideally replaced with 134420004 'No suicidal thoughts' or 401228008 'No thoughts of deliberate self harm' with assertion=absent. Additionally, suspected malignancy (162572001) is overcoded as the investigation concluded 2 months ago with a benign finding (hiatus hernia), and the dietitian referral (103699006) should not be coded as a completed procedure since it is a future appointment; the generic Mental disorder parent (74732009) is redundant given the specific MADD code is present. BMI 14.83 with restricted intake supports the malnutrition and low body weight codes; GORD, hiatus hernia, nausea/vomiting, and MADD codes are all well-evidenced.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11641,
+        "output_tokens": 2192,
+        "total_tokens": 13833,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "7455136d-2d2d-4d7e-8e0c-e67c5bb7b9b6",
+        "date": "2025-09-29",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a2a13007-b432-4fb0-90af-144d56b85452",
+    "patient_id": "7330683205",
+    "date": "2025-10-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "history of previous suicide attempts",
+          "severity": "critical",
+          "suggested_assertion": "historical",
+          "reason": "Explicit documentation of previous suicide attempts is a critical safety-relevant finding that must be coded precisely; the current broad 'Mental disorder' code (74732009) is unreliable and far too non-specific.",
+          "snomed_search": "history attempted suicide",
+          "snomed_concept_id": "161474000",
+          "preferred_term": "History of attempted suicide (situation)",
+          "sentence": "See history referred to Crisis team by GP 26/09/25 by GP history of previous suicide attempts",
+          "char_start": 290,
+          "char_end": 390
+        },
+        {
+          "term": "referred to Crisis team by GP",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "GP referral to mental health crisis team on 26/09/25 is a clinically significant event explicitly documented and should be coded as a historical procedure.",
+          "snomed_search": "referral mental health crisis team",
+          "snomed_concept_id": "25551000000107",
+          "preferred_term": "Referral to mental health crisis team (procedure)",
+          "sentence": "See history referred to Crisis team by GP 26/09/25 by GP history of previous suicide attempts",
+          "char_start": 290,
+          "char_end": 360
+        },
+        {
+          "term": "Struggling to eat due to food that the hotel provides",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Active difficulty eating is explicitly documented as the patient's presenting concern and should be coded as a current finding.",
+          "snomed_search": "difficulty eating",
+          "snomed_concept_id": "110292000",
+          "preferred_term": "Difficulty eating (finding)",
+          "sentence": "Struggling to eat due to food that the hotel provides",
+          "char_start": 560,
+          "char_end": 613
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "Coded twice and the concept ID is unreliable (terminology server returns it as an 'organism'); it is also far too broad \u2014 the specific finding 'History of attempted suicide' (161474000) should replace both instances.",
+          "replace_with_concept_id": "161474000",
+          "replace_with_preferred_term": "History of attempted suicide (situation)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter contains a critical safety-relevant finding (history of suicide attempts) that is currently coded with an unreliable, duplicated, and far too broad concept (74732009 'Mental disorder'). This must be replaced with the specific 'History of attempted suicide' (161474000) coded as historical. Additionally, the GP referral to the crisis team and the patient's active difficulty eating are uncoded. The nurse's mental state examination findings are normal and do not require additional coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6153,
+        "output_tokens": 1523,
+        "total_tokens": 7676,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "a2a13007-b432-4fb0-90af-144d56b85452",
+        "date": "2025-10-03",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "42826c66-3cde-42f8-a575-7e5f22618301",
+    "patient_id": "7330683205",
+    "date": "2025-10-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "previous self harm",
+          "severity": "critical",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly states 'noted previous self harm and attempted suicide' \u2014 deliberate self-harm history is a safety-critical finding that should be coded separately from the attempted suicide situation code already present.",
+          "snomed_search": "history deliberate self harm",
+          "snomed_concept_id": "314550003",
+          "preferred_term": "History of deliberate self harm (situation)",
+          "sentence": "noted previous self harm and attempted suicide- have suggested CAP referral.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "poor sleep",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Poor sleep is explicitly reported as a current symptom affecting the patient and is not captured in any of the 20 coded concepts.",
+          "snomed_search": "sleep disturbance",
+          "snomed_concept_id": "301345002",
+          "preferred_term": "Sleep problem (finding)",
+          "sentence": "has struggled with a poor appetite, vomiting, anxiety, poor sleep and poor mental health.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "critical",
+          "reason": "Suicidal thoughts appear under 'Past medical history' in the note and the active safety concern is captured by the separately coded 161474000 (History of attempted suicide); coding as present implies active current ideation which is not explicitly stated in this encounter \u2014 the CAP referral relates to ongoing mental health support rather than confirmed active suicidal ideation at this contact."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The coding is largely thorough and safety-critical items (attempted suicide, self-harm, unintentional weight loss, dysuria) have been well captured. Key issues are: (1) suicidal thoughts coded as 'present' when the note places this in PMH \u2014 assertion should be 'historical' given 161474000 already covers the active safety-critical dimension; (2) 'previous self harm' (314550003) is a distinct safety-critical concept from attempted suicide and should be added as historical; (3) poor sleep is an uncoded active symptom. The lookup_concept server returned unreliable results for several concept IDs (29740003, 6471006, 161474000) but cross-validation via search_snomed confirmed all three are correctly identified concepts.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 19068,
+        "output_tokens": 2152,
+        "total_tokens": 21220,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "42826c66-3cde-42f8-a575-7e5f22618301",
+        "date": "2025-10-07",
+        "coded_count": 20
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7ed0604b-37f6-4020-85e2-cc9b49fb5925",
+    "patient_id": "7330683205",
+    "date": "2025-10-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "BMI 14.83 Kg/m\u00b2",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A BMI of 14.83 falls below 16.5 and should be coded with the specific banded finding 'Body mass index less than 16.5' rather than only the generic 'Underweight' code; this level of underweight has significant clinical management implications.",
+          "snomed_search": "body mass index less than 16.5",
+          "snomed_concept_id": "427090001",
+          "preferred_term": "Body mass index less than 16.5 (finding)",
+          "sentence": "Body mass index - observation (22K..) 14.83 Kg/m\u00b2",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is largely structured vitals with supporting clinical context (constipation, reflux, nutrition support, lab observables) coded appropriately. The principal gap is specificity: a BMI of 14.83 kg/m\u00b2 is below 16.5 and warrants the specific banded finding code 427090001 in addition to the generic 'Underweight' code already present. The lab profile (Hb 105 g/L, MCV 72, MCH 22.2) is consistent with microcytic anaemia but no explicit clinical interpretation of anaemia appears in the encounter text, so it has not been flagged as missing per coding rules; clinical review of whether an anaemia diagnosis should be recorded is recommended.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9136,
+        "output_tokens": 1652,
+        "total_tokens": 10788,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "7ed0604b-37f6-4020-85e2-cc9b49fb5925",
+        "date": "2025-10-07",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b58db815-b01a-46f5-89ef-7e440b7fd5ef",
+    "patient_id": "7330683205",
+    "date": "2025-10-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Decreased body mass index",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "BMI of 14.62 kg/m\u00b2 is objectively and severely decreased; the clinical interpretation (decreased/critically low BMI) should be coded as a finding, not only as an observable entity measurement.",
+          "snomed_search": "decreased body mass index",
+          "snomed_concept_id": "6497000",
+          "preferred_term": "Decreased body mass index (finding)",
+          "sentence": "Body mass index - observation (22K..) 14.62 Kg/m\u00b2",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "60621009",
+          "name": "Body mass index (observable entity) \u2014 second instance with fabricated evidence",
+          "severity": "medium",
+          "reason": "The second instance of 60621009 carries a fabricated evidence string asserting diagnostic criteria for severe undernutrition/anorexia nervosa; this text does not appear anywhere in the encounter note and represents a hallucinated clinical interpretation that should not be coded from this encounter alone.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter contains only structured vitals (weight, height, BMI 14.62 kg/m\u00b2) with no clinical narrative diagnosing a disorder; the second 60621009 entry has a fabricated evidence string implying anorexia/severe undernutrition criteria which is not present in the note text and must be removed. The critically low BMI (14.62) warrants coding of 'Decreased body mass index (finding)' as a clinical interpretation, but a disorder diagnosis (e.g. anorexia nervosa, undernutrition) cannot be coded without explicit clinician documentation in the note. Human review is recommended to determine whether a disorder code is clinically appropriate given the BMI value.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6510,
+        "output_tokens": 1511,
+        "total_tokens": 8021,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "b58db815-b01a-46f5-89ef-7e440b7fd5ef",
+        "date": "2025-10-20",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ea9e4b9f-a6e0-464a-9220-a321237bcb82",
+    "patient_id": "7330683205",
+    "date": "2025-10-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "severe acid reflux",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note repeatedly references 'severe acid reflux' and the dietetic plan is substantially directed at symptom control for GORD; the more specific disorder code 235595009 should replace the unreliable finding code 102620007.",
+          "snomed_search": "gastroesophageal reflux disease",
+          "snomed_concept_id": "235595009",
+          "preferred_term": "Gastroesophageal reflux disease (disorder)",
+          "sentence": "Aim for symptom control for acid reflux.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "ongoing weight loss / prevent further weight loss",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The dietetic aim is to 'prevent further weight loss and aim for weight gain', indicating active unintentional weight loss \u2014 the coded concept 416528001 (Intentional weight loss) is clinically incorrect; unintentional weight loss should be coded instead.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Prevent further weight loss and aim for weight gain.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "ONS recommendation / START Aymes supplements",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The dietitian formally recommended and initiated oral nutritional supplements (ONS request sent to GP); this clinical action should be coded as a procedure, not as a product code (108961000) which is outside the audit scope and does not represent the clinical act.",
+          "snomed_search": "oral nutritional supplement recommendation",
+          "snomed_concept_id": "911711000000102",
+          "preferred_term": "Recommendation to take oral nutritional supplements (procedure)",
+          "sentence": "START Aymes shake 2.0 OD in variety of flavours for 400kcals, 20g protein and Aymes Juice OD in variety of flavours for 300kcals, 10g protein.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "high",
+          "reason": "The note documents ongoing unintentional weight loss with a dietetic aim to prevent further loss and achieve weight gain \u2014 'intentional' weight loss is clinically contradicted by the encounter text.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "108961000",
+          "name": "Nutritional supplement (product)",
+          "severity": "medium",
+          "reason": "A product code is outside the SNOMED audit scope and does not represent the clinical act; the dietitian's recommendation and ONS request to GP should be coded as a procedure (911711000000102).",
+          "replace_with_concept_id": "911711000000102",
+          "replace_with_preferred_term": "Recommendation to take oral nutritional supplements (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "102620007",
+          "name": "Gastroesophageal reflux (finding)",
+          "severity": "high",
+          "reason": "Terminology server returns this concept ID as unreliable (semantic tag 'organism'); the correct and specific disorder code for the documented 'severe acid reflux' is 235595009 Gastroesophageal reflux disease (disorder).",
+          "replace_with_concept_id": "235595009",
+          "replace_with_preferred_term": "Gastroesophageal reflux disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three significant coding issues identified: (1) 'Intentional weight loss' is clinically wrong \u2014 the encounter clearly documents unintentional ongoing weight loss requiring dietetic intervention; (2) the GORD concept ID 102620007 is unreliable on the terminology server and should be replaced with the confirmed disorder code 235595009; (3) the nutritional supplement product code should be replaced with the procedure code for ONS recommendation, which better represents the clinical act documented. The dietetic consultation itself (278846007 Dietetic procedures) is not coded but may be set by the appointment system; no other clinical gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10597,
+        "output_tokens": 2364,
+        "total_tokens": 12961,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "ea9e4b9f-a6e0-464a-9220-a321237bcb82",
+        "date": "2025-10-20",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0a8fb080-30a6-48eb-bb40-f19d7370ce27",
+    "patient_id": "7330683205",
+    "date": "2025-11-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "miscarriage last year",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient explicitly reports having a miscarriage last year, which is clinically relevant to her mental health presentation and should be coded as a historical disorder.",
+          "snomed_search": "miscarriage",
+          "snomed_concept_id": "17369002",
+          "preferred_term": "Miscarriage (disorder)",
+          "sentence": "had miscarriage last year and childhood traumes mentions affecting MH",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "struggling with sleep",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports struggling with sleep, which is an active symptom relevant to her anxiety/depression management and mirtazapine review.",
+          "snomed_search": "insomnia",
+          "snomed_concept_id": "193462001",
+          "preferred_term": "Insomnia (disorder)",
+          "sentence": "struggling with sleep,",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "35425004",
+          "name": "Normal body mass index (finding) [unreliable concept ID]",
+          "severity": "critical",
+          "reason": "The concept ID 35425004 is unreliable (terminology server returned an Extension Namespace placeholder); furthermore the coded name 'Normal body mass index' is clinically contradicted by the documented BMI of 14.83 kg/m\u00b2 which is severely underweight \u2014 the correct code is Underweight (finding).",
+          "replace_with_concept_id": "248342006",
+          "replace_with_preferred_term": "Underweight (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "29303009",
+          "name": "Electrocardiographic procedure (procedure)",
+          "severity": "low",
+          "reason": "The ECG has not yet been performed \u2014 the note states 'will book for ECG to rule out cardiac source', making this a future/planned procedure; coding it as present implies it has already occurred."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states 'No SH or current suicide thoughts' \u2014 coding suicidal thoughts as present is a dangerous safety-critical error; the correct assertion is absent, and the preferred concept for this documented negative is 134420004 'No suicidal thoughts (situation)'."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Three significant coding errors require urgent correction: (1) suicidal thoughts coded as 'present' when the note explicitly denies them \u2014 a critical patient-safety error that could trigger inappropriate alerts or mask genuine risk; (2) BMI coded as 'Normal' using an unreliable concept ID when the documented BMI of 14.83 is severely underweight and clinically critical; (3) the ECG coded as a completed procedure when it is only planned. Two additional findings (historical miscarriage, insomnia) are missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11318,
+        "output_tokens": 2194,
+        "total_tokens": 13512,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "0a8fb080-30a6-48eb-bb40-f19d7370ce27",
+        "date": "2025-11-05",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4d4ec83e-cdc1-4789-bfdc-85bbbb5117b6",
+    "patient_id": "7330683205",
+    "date": "2025-11-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "self harm",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient spoke to JS regarding self harm \u2014 this is a distinct safety-critical finding that must be coded; the current [74732009] code is unreliable and does not represent self-harm.",
+          "snomed_search": "self-injurious behavior",
+          "snomed_concept_id": "248062006",
+          "preferred_term": "Self-injurious behavior (finding)",
+          "sentence": "Pt spoke to JS regarding self harm, suicidal thoughts, main issue was again out of her remit related to food at hotel.",
+          "char_start": 390,
+          "char_end": 450
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "high",
+          "reason": "lookup_concept returns this concept as unreliable (semantic_tag='organism'), and the coded evidence string indicates it was intended to represent self-harm \u2014 which should be coded as 248062006 Self-injurious behavior (finding) instead.",
+          "replace_with_concept_id": "248062006",
+          "replace_with_preferred_term": "Self-injurious behavior (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two safety-critical findings are present: suicidal thoughts (correctly coded as 6471006, confirmed by search_snomed despite a corrupted lookup_concept response) and self-harm (currently miscoded as 74732009 which is an unreliable/organism concept \u2014 should be replaced with 248062006 Self-injurious behavior). The MDT procedure code is appropriate. Vulnerability context (hotel, food insecurity, discharge from service) is noted but does not map to a specific SNOMED concept in scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4597,
+        "output_tokens": 1366,
+        "total_tokens": 5963,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7330683205",
+        "encounter_id": "4d4ec83e-cdc1-4789-bfdc-85bbbb5117b6",
+        "date": "2025-11-27",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  }
+]

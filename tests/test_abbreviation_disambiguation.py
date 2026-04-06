@@ -133,6 +133,12 @@ class TestFilterPolymorphism:
 # ---------------------------------------------------------------------------
 
 class TestExtractionPromptRules:
+    def test_admin_only_lines_do_not_extract_rule_present(self) -> None:
+        """Purely admin lines must not get invented clinical entities."""
+        assert "receptionist" in EXTRACTION_SYSTEM_V1.lower()
+        assert "repeat prescription" in EXTRACTION_SYSTEM_V1.lower()
+        assert "without codable terms" in EXTRACTION_SYSTEM_V1.lower()
+
     def test_nad_do_not_extract_rule_present(self) -> None:
         """NAD must appear in the DO NOT EXTRACT section."""
         assert '"NAD"' in EXTRACTION_SYSTEM_V1 or "'NAD'" in EXTRACTION_SYSTEM_V1

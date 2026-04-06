@@ -1,0 +1,802 @@
+[
+  {
+    "encounter_id": "93a92668-c5ed-4e7d-b55d-69d02cf91f70",
+    "patient_id": "7324271383",
+    "date": "2025-03-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "generally more tired in self",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reports generalised tiredness/fatigue, which is a distinct presenting symptom documented in the history and relevant to the blood test workup ordered.",
+          "snomed_search": "fatigue",
+          "snomed_concept_id": "84229001",
+          "preferred_term": "Fatigue (finding)",
+          "sentence": "generally more tired in self",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "735548000",
+          "name": "Dissociative neurological symptom disorder co-occurrent with dizziness (disorder)",
+          "severity": "high",
+          "reason": "The note documents dizziness as a symptom following caffeine intake with suspected reactive hypoglycaemia \u2014 there is no clinical basis in this encounter for diagnosing a dissociative neurological symptom disorder, which is a functional neurological disorder requiring specialist assessment; the correct code is plain Dizziness (finding).",
+          "replace_with_concept_id": "404640003",
+          "replace_with_preferred_term": "Dizziness (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant issue is the overcoding of a dissociative neurological symptom disorder \u2014 the note describes simple dizziness/pre-syncope after caffeine with suspected blood sugar fluctuation, with no clinical basis for a functional neurological disorder diagnosis; this should be replaced with Dizziness (finding) 404640003. Fatigue is explicitly documented as a presenting complaint and is missing from the coded list. The U&E procedure code (269858003) returned as unreliable from the terminology server but the concept ID is confirmed valid via search; the broader blood test panel ordered (FBC, LFT, TFTs, HbA1c, lipids) are not yet performed and are not flagged per rules on planned procedures.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7508,
+        "output_tokens": 1730,
+        "total_tokens": 9238,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "93a92668-c5ed-4e7d-b55d-69d02cf91f70",
+        "date": "2025-03-15",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c3762208-8041-42e3-a197-6b0226d850b9",
+    "patient_id": "7324271383",
+    "date": "2025-04-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "283534007",
+          "name": "Puncture wound of thigh (disorder)",
+          "severity": "medium",
+          "reason": "The wound mechanism is traumatic catching and lifting of a mole causing bleeding \u2014 consistent with a superficial laceration or avulsion, not a puncture wound; a puncture implies a sharp object penetrating tissue which is not described here.",
+          "replace_with_concept_id": "125659001",
+          "replace_with_preferred_term": "Open wound of thigh (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "One definite coding error: the wound has been coded as Puncture wound of thigh (283534007) but the mechanism described \u2014 the mole being caught and lifted causing it to bleed \u2014 is a traumatic superficial laceration/avulsion, not a puncture. Open wound of thigh (125659001) is a more accurate and defensible code; a more specific laceration-of-thigh concept should be sought if available in the local release. The melanocytic naevus code (400096001) is confirmed correct by terminology search despite the unreliable lookup response. No missing codes identified: wound dressing advice is a management instruction rather than a coded procedure, and the possible future referral for mole removal has not yet occurred so should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3877,
+        "output_tokens": 1152,
+        "total_tokens": 5029,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "c3762208-8041-42e3-a197-6b0226d850b9",
+        "date": "2025-04-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9a1a3f81-371d-4c06-8875-fe4712d8e797",
+    "patient_id": "7324271383",
+    "date": "2025-04-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1255354006",
+          "name": "Hemorrhagic lesion (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "Morphologic abnormality is outside the auditable SNOMED scope; the clinical finding of a bleeding skin lesion is better represented by a finding-tag concept. The note documents recurrent bleeding from the lesion, which is already implicit in the pigmented skin lesion disorder code and the referral context, but if coded independently should use a finding-tag concept.",
+          "replace_with_concept_id": "297968009",
+          "replace_with_preferred_term": "Bleeding skin (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two of the three coded concept IDs returned unreliable/wrong results from the terminology lookup server, but SNOMED search independently confirmed 183518005 (Referral to dermatology service) and 201340008 (Pigmented skin lesion) are correctly coded and in scope. The third code, 1255354006, carries a 'morphologic abnormality' semantic tag which is outside the auditable scope; it should be replaced with 297968009 Bleeding skin (finding) if the recurrent bleeding is to be coded as a standalone finding. No safety-critical red-flag gaps were identified \u2014 the PRISM dermatology referral is appropriately coded for this suspicious pigmented lesion with recurrent bleeding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4165,
+        "output_tokens": 1181,
+        "total_tokens": 5346,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "9a1a3f81-371d-4c06-8875-fe4712d8e797",
+        "date": "2025-04-08",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4da787b8-4c59-4384-85d4-d1658d3bbaab",
+    "patient_id": "7324271383",
+    "date": "2025-04-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All three coded concepts are clinically appropriate and evidenced by the encounter text: the fast-track 2WW referral procedure, the suspected malignant pigmented skin lesion situation (confirmed via search as concept 734936000), and the patient appointment/awaiting status. Lookup results for all three concepts were unreliable due to terminology server index issues, but independent search_snomed calls confirmed the concept IDs are valid; no overcoding or missing codes identified. The assertion of 'present' on the suspected situation code is standard UK primary care practice.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4859,
+        "output_tokens": 1334,
+        "total_tokens": 6193,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "4da787b8-4c59-4384-85d4-d1658d3bbaab",
+        "date": "2025-04-14",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8097beb6-7bbc-4e0b-ba2e-2d704937eae3",
+    "patient_id": "7324271383",
+    "date": "2025-04-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "recent viral urti",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a recent viral URTI as part of the history, which is a clinically relevant precipitating factor for the epistaxis and should be coded.",
+          "snomed_search": "viral upper respiratory tract infection",
+          "snomed_concept_id": "281794004",
+          "preferred_term": "Viral upper respiratory tract infection (disorder)",
+          "sentence": "recent viral urti. scr noted .IDCx3",
+          "char_start": 196,
+          "char_end": 213
+        },
+        {
+          "term": "?bacterial infection",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The clinician's documented diagnosis is '?bacterial infection', which is an uncertain/possible diagnosis that should be coded with a possible assertion to reflect the clinical impression driving treatment.",
+          "snomed_search": "bacterial infectious disease",
+          "snomed_concept_id": "87628006",
+          "preferred_term": "Bacterial infectious disease (disorder)",
+          "sentence": "Diagnosis: ?bacterial infection",
+          "char_start": 370,
+          "char_end": 400
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "775170000",
+          "name": "Neomycin + Chlorhexidine (product)",
+          "severity": "medium",
+          "reason": "A medication product code (semantic tag: product) falls outside the permitted SNOMED coding scope for this audit (disorder, finding, situation, observable entity, procedure, qualifier value, substance); the prescription is captured in the medication record and should not appear as a clinical concept code in the encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The epistaxis finding (249366005) is correctly coded as the primary presenting complaint, though the lookup returned an unreliable Extension Namespace result \u2014 the concept ID is confirmed correct via search_snomed. Two clinical concepts are missing: the recent viral URTI (precipitating history) and the possible bacterial infection (the clinician's stated diagnosis driving Naseptin treatment). The Neomycin+Chlorhexidine product code is out of scope for encounter-level SNOMED clinical coding and should be removed from the clinical concept list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4486,
+        "output_tokens": 1601,
+        "total_tokens": 6087,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "8097beb6-7bbc-4e0b-ba2e-2d704937eae3",
+        "date": "2025-04-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4b60a5f7-cad8-4ab7-aafc-ef27ad3fd7b7",
+    "patient_id": "7324271383",
+    "date": "2025-04-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "non-healing ulceration on right thigh mole",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a 1-month history of non-healing ulceration on a pigmented skin lesion, which is a clinically significant active finding warranting its own code alongside the diagnosis.",
+          "snomed_search": "non-healing pigmented skin lesion",
+          "snomed_concept_id": "315259006",
+          "preferred_term": "Non-healing pigmented skin lesion (disorder)",
+          "sentence": "1/12 history of non-healing ulceration on right thigh mole.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "281795003",
+          "name": "Inflamed tonsils (finding)",
+          "severity": "high",
+          "reason": "lookup_concept returned an unreliable result (semantic_tag='organism'), and the clinical term 'Inflamed tonsils' is entirely wrong for this encounter \u2014 the confirmed diagnosis is an irritated melanocytic naevus of the right thigh, not a tonsillar condition.",
+          "replace_with_concept_id": "1196831009",
+          "replace_with_preferred_term": "Irritated melanocytic nevus of skin (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "302400003",
+          "name": "Shave biopsy of skin lesion (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an unreliable Extension Namespace placeholder; the note describes a 'shaved deep ellipse' procedure, which maps more accurately to Shave excision of skin lesion (302390009) rather than a biopsy-only code.",
+          "replace_with_concept_id": "302390009",
+          "replace_with_preferred_term": "Shave excision of skin lesion (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant coding errors identified: the primary diagnosis code (281795003) resolves to a completely unrelated concept ('Inflamed tonsils' / organism) and must be replaced with the correct 'Irritated melanocytic nevus of skin' (1196831009); the procedure code (302400003) is an unverifiable Extension Namespace placeholder and should be replaced with 'Shave excision of skin lesion' (302390009). The planned future excision ('listed for excision') should NOT be coded as a present procedure as it has not yet occurred. The non-healing ulceration of the pigmented lesion is an active finding that warrants its own code. Fusidic acid substance code (387530003) is correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7919,
+        "output_tokens": 1770,
+        "total_tokens": 9689,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "4b60a5f7-cad8-4ab7-aafc-ef27ad3fd7b7",
+        "date": "2025-04-30",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "30df33d6-0eb8-437a-ac23-72837c808c20",
+    "patient_id": "7324271383",
+    "date": "2025-08-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only receptionist access-role and administrative booking/routing text for a 2WW skin cancer referral; there is no clinical narrative, examination, or prescriber-authored content to code from. The existing procedure code [276281000000104] is a standing code and must not be disturbed on the basis of this admin-only record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 522,
+        "output_tokens": 468,
+        "total_tokens": 990,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "30df33d6-0eb8-437a-ac23-72837c808c20",
+        "date": "2025-08-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "27a3f225-d4c1-4485-9a5e-d612dc864dc6",
+    "patient_id": "7324271383",
+    "date": "2025-08-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "302400003",
+          "name": "Shave biopsy of skin lesion (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The shave biopsy was performed at a private clinic prior to this encounter and is being reported as background history; it was not carried out at this GP consultation, so the assertion should be historical rather than present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two of the three coded concepts are correct and well-evidenced: malignant melanoma of skin (93655004, present) and fast track referral for suspected skin cancer (276281000000104, present) are both appropriate for this encounter. The shave biopsy (302400003) is correctly identified as a clinically significant procedure but was performed at a private clinic before this consultation and should carry a historical assertion. No missing codes were identified: absent findings (no weight loss, no bleeding) are correctly excluded, and the examination finding of a healing excision site on the right thigh does not require a separate SNOMED code beyond the confirmed melanoma diagnosis already coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8591,
+        "output_tokens": 1494,
+        "total_tokens": 10085,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "27a3f225-d4c1-4485-9a5e-d612dc864dc6",
+        "date": "2025-08-22",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3b15b67b-2ad0-4585-81ba-ad14babacebd",
+    "patient_id": "7324271383",
+    "date": "2025-08-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The 2WW referral is for suspected skin cancer (malignant melanoma on the thigh), not breast cancer \u2014 this is the wrong fast-track referral type and must be replaced.",
+          "replace_with_concept_id": "276281000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "372244006",
+          "name": "Malignant melanoma (disorder)",
+          "severity": "medium",
+          "reason": "The biopsy confirmed melanoma on the skin of the right anterior thigh; the more specific concept 'Malignant melanoma of skin' should be used in preference to the broad parent.",
+          "replace_with_concept_id": "93655004",
+          "replace_with_preferred_term": "Malignant melanoma of skin (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Critical miscoding: the 2WW referral is coded as 'suspected breast cancer' (276341000000100) when the clinical context is confirmed malignant melanoma of the skin requiring a fast-track skin cancer referral (276281000000104). The melanoma code should also be upgraded to the site-specific 'Malignant melanoma of skin' (93655004). The shave biopsy code (177346002) is acceptable, though 302400003 'Shave biopsy of skin lesion' would be marginally more specific.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4637,
+        "output_tokens": 1317,
+        "total_tokens": 5954,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "3b15b67b-2ad0-4585-81ba-ad14babacebd",
+        "date": "2025-08-26",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "70840eb0-33d7-44fd-9edf-0598ae4cf945",
+    "patient_id": "7324271383",
+    "date": "2025-08-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The terminology server resolves this concept ID as 'DRB1*09012 (substance)' \u2014 a substance, not a procedure \u2014 and the preferred term 'Fast track referral for suspected breast cancer' is clinically wrong for this male patient being re-referred under 2WW for biopsy-confirmed cutaneous melanoma; the correct code is the generic fast-track cancer referral procedure.",
+          "replace_with_concept_id": "199251000000107",
+          "replace_with_preferred_term": "Fast track cancer referral (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Critical coding error: the 2WW referral is coded to concept 276341000000100 which the terminology server resolves as a substance (DRB1*09012) and whose preferred term \u2014 'Fast track referral for suspected breast cancer' \u2014 is entirely wrong for a male patient with biopsy-confirmed melanoma; this must be replaced with 199251000000107 'Fast track cancer referral'. The melanoma diagnosis (93655004) and skin biopsy (450623005) are clinically appropriate codings, though both returned as unreliable on this server and could not be fully verified; no specific fast-track skin cancer 2WW referral concept was returned by search, making 199251000000107 the best available substitute.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4726,
+        "output_tokens": 1345,
+        "total_tokens": 6071,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "70840eb0-33d7-44fd-9edf-0598ae4cf945",
+        "date": "2025-08-27",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "48e5022e-cf15-4382-a4dd-d083ebcc4e0b",
+    "patient_id": "7324271383",
+    "date": "2025-08-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "BRAF positive",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The coded concept 912201000000104 resolves to 'DRB1*09012 (substance)' \u2014 entirely wrong; BRAF V600E-positive melanoma must be coded with the correct disorder concept 830150003 which captures both the melanoma subtype and the actionable mutation status for targeted therapy eligibility.",
+          "snomed_search": "BRAF mutation melanoma",
+          "snomed_concept_id": "830150003",
+          "preferred_term": "Malignant melanoma with B-Raf proto-oncogene, serine/threonine kinase V600E mutation (disorder)",
+          "sentence": "Braf POSITIVE",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "incompletely excised at peripheral and deep margin",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The coded concept 1303816007 is unreliable (server returns 'organism'); the pathology report explicitly states incomplete excision at both peripheral and deep margins, which must be coded as a finding to flag the need for further wide local excision.",
+          "snomed_search": "incomplete excision margin",
+          "snomed_concept_id": "248821000000101",
+          "preferred_term": "Excision - incomplete margin (finding)",
+          "sentence": "melanoma, incompletely excised at peripheral and deep margin",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "CT Head (Requested)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The coded concept 429867000 is unreliable (server returns an Extension Namespace placeholder); the correct SNOMED procedure for CT head is 303653007.",
+          "snomed_search": "computed tomography head",
+          "snomed_concept_id": "303653007",
+          "preferred_term": "Computed tomography of head (procedure)",
+          "sentence": "*CT Head (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "912201000000104",
+          "name": "Fibrillin 1 gene mutation positive (finding) [resolved as DRB1*09012 (substance)]",
+          "severity": "critical",
+          "reason": "Lookup confirms this concept ID resolves to 'DRB1*09012 (substance)' \u2014 a completely unrelated HLA allele substance \u2014 not a BRAF mutation finding; must be replaced with 830150003.",
+          "replace_with_concept_id": "830150003",
+          "replace_with_preferred_term": "Malignant melanoma with B-Raf proto-oncogene, serine/threonine kinase V600E mutation (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1303816007",
+          "name": "Excision of malignant melanoma of external ear (procedure) [unreliable \u2014 server returns organism]",
+          "severity": "high",
+          "reason": "Lookup returns an organism semantic tag (unreliable/wrong concept ID); the note documents incomplete excision of a right thigh melanoma, not the external ear; replace with the incomplete margin finding.",
+          "replace_with_concept_id": "248821000000101",
+          "replace_with_preferred_term": "Excision - incomplete margin (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "429867000",
+          "name": "Computed tomography of head for radiotherapy planning (procedure) [unreliable \u2014 Extension Namespace placeholder]",
+          "severity": "medium",
+          "reason": "Lookup returns an Extension Namespace placeholder; the note requests a staging CT head (not radiotherapy planning); replace with the standard CT head procedure code.",
+          "replace_with_concept_id": "303653007",
+          "replace_with_preferred_term": "Computed tomography of head (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Three concept IDs are critically wrong: the BRAF code resolves to an unrelated HLA substance, the excision procedure resolves to an organism (unreliable), and the CT head code is an Extension Namespace placeholder \u2014 all three must be replaced with the correct SNOMED concepts identified above. The remaining five codes (malignant melanoma of thigh, general melanoma disorder, CT neck/thorax/abdomen/pelvis, Breslow staging, pathologic TNM stage) are clinically appropriate and correctly asserted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10248,
+        "output_tokens": 2259,
+        "total_tokens": 12507,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "48e5022e-cf15-4382-a4dd-d083ebcc4e0b",
+        "date": "2025-08-29",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "61cc990d-fa08-4b54-b85e-43bea13f5793",
+    "patient_id": "7324271383",
+    "date": "2025-08-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "WHO performance status grade 0",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "WHO performance status grade 0 is explicitly documented in the structured template and should be coded as a finding for this encounter.",
+          "snomed_search": "WHO performance status grade 0",
+          "snomed_concept_id": "373803006",
+          "preferred_term": "World Health Organization performance status grade 0 (finding)",
+          "sentence": "WHO Performance Status: WHO performance status grade 0 (XaImB)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "pT3b melanoma staging",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The histological stage is explicitly documented as 'at least Stage pT3b melanoma' and the pathological T-stage qualifier should be coded to support oncology pathway management.",
+          "snomed_search": "UICC pT3b qualifier",
+          "snomed_concept_id": "1352534004",
+          "preferred_term": "Union for International Cancer Control pT3b (qualifier value)",
+          "sentence": "This has shown at least Stage pT3b melanoma.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "787439005",
+          "name": "Wide excision (procedure)",
+          "severity": "medium",
+          "reason": "The coded concept 787439005 'Wide excision' is too broad; the note describes a limited re-excision of a skin scar, and 405846001 'Wide re-excision of lesion of skin' is the most specific available SNOMED match. Additionally, this is a planned future procedure (patient is listed/booked) and per coding rules should not be coded as present.",
+          "replace_with_concept_id": "405846001",
+          "replace_with_preferred_term": "Wide re-excision of lesion of skin (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "302390009",
+          "name": "Shave excision of skin lesion (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The shave excision was performed prior to this encounter by a private provider in Loughborough; it is a historical procedure, not one occurring at this visit."
+        },
+        {
+          "conceptId": "396487001",
+          "name": "Sentinel lymph node biopsy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note states 'We talked about the possibility of sentinel lymph node biopsy' \u2014 this is a discussed possibility, not a confirmed or planned procedure, so assertion should be 'possible' rather than 'present'."
+        },
+        {
+          "conceptId": "932881000000103",
+          "name": "V-raf murine sarcoma viral oncogene homolog B targeted genetic test (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "low",
+          "reason": "BRAF mutation testing is described as a future need ('we will also need to identify whether you have a particular mutation called a BRAF mutation') and has not yet been performed; assertion of 'present' overstates its status at this encounter."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The primary diagnosis of malignant melanoma of the skin of the thigh (93649009) is correctly coded and clinically appropriate. Key issues include: two wrong assertions (shave excision should be historical; sentinel lymph node biopsy and BRAF test should be possible/future), an overcoded procedure concept that is too broad and should be replaced with the more specific 'Wide re-excision of lesion of skin', and two missing codes \u2014 WHO performance status grade 0 and the pT3b pathological staging qualifier which are both explicitly documented and clinically important for the oncology pathway. Terminology server returned unreliable results for most concept lookups; concept correctness was verified via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 21267,
+        "output_tokens": 2976,
+        "total_tokens": 24243,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "61cc990d-fa08-4b54-b85e-43bea13f5793",
+        "date": "2025-08-29",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "48e5fd48-d47f-420a-bf86-a198c9d397e1",
+    "patient_id": "7324271383",
+    "date": "2025-09-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "107892000",
+          "name": "Skin of trunk excision (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned unreliable for this ID and the concept as described ('Skin of trunk excision') is a redundant anatomical-site variant that duplicates the already-coded [35646002] Excision of lesion of skin; the body site S06.8 is a surgical coding field, not a standalone SNOMED procedure code, and no confirmed SNOMED concept supports this as a distinct codeable procedure in this encounter."
+        },
+        {
+          "conceptId": "67151002",
+          "name": "Histologic (qualifier value)",
+          "severity": "medium",
+          "reason": "lookup_concept returned semantic_tag='organism' making this concept ID unreliable; furthermore, 'Histo and MDT' in the note refers to a future follow-up review appointment (results pending in 2 weeks), not a completed histological examination \u2014 a qualifier value code alone is also inappropriate to represent a procedure, and the histology result has not yet been received in this encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The core procedure code [35646002] Excision of lesion of skin is confirmed correct and well-evidenced. However, [107892000] is an unreliable concept ID that appears to duplicate the procedure with an anatomical-site variant not supported as a distinct SNOMED code here, and [67151002] is an unreliable concept (server returns 'organism') used inappropriately as a qualifier value for a histology examination that has not yet taken place \u2014 'Histo and MDT' is a future follow-up plan, not a completed procedure in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4633,
+        "output_tokens": 1259,
+        "total_tokens": 5892,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "48e5fd48-d47f-420a-bf86-a198c9d397e1",
+        "date": "2025-09-05",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4960cd68-45d7-4015-8cb3-6c28747e7e5f",
+    "patient_id": "7324271383",
+    "date": "2025-09-05",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "60d51cc3-2492-4e75-8a05-47577e14414c",
+    "patient_id": "7324271383",
+    "date": "2025-11-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1303816007",
+          "name": "Excision of malignant melanoma of external ear (procedure)",
+          "severity": "high",
+          "reason": "The note documents excision of melanoma of the right thigh, not the external ear; this is a wrong-site procedure code.",
+          "replace_with_concept_id": "93649009",
+          "replace_with_preferred_term": "Malignant melanoma of skin of thigh (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "128462008",
+          "name": "Metastatic malignant neoplasm (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The staging CT on 2nd September 2025 confirmed NO metastatic disease; coding metastatic neoplasm as present is clinically dangerous and directly contradicted by the note text."
+        },
+        {
+          "conceptId": "412734009",
+          "name": "BRCA1 gene mutation detected (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "critical",
+          "reason": "The note documents BRAF positivity (a melanoma oncogene), not BRCA1; these are entirely different genes and the wrong code could misdirect oncology management \u2014 the correct concept is 830150003 (Malignant melanoma with B-Raf proto-oncogene V600E mutation)."
+        }
+      ],
+      "confidence": 0.97,
+      "notes": "Three serious coding errors are present: (1) metastatic neoplasm coded as 'present' when CT confirmed no metastatic disease \u2014 a critical patient-safety risk; (2) BRCA1 gene mutation coded instead of BRAF positivity \u2014 a different gene with entirely different therapeutic implications for melanoma; (3) excision procedure coded for 'external ear' when the primary site is the right thigh. The planned wide local excision and sentinel lymph node biopsy should NOT be coded as present procedures as they are scheduled future events. The 1 cm right groin lump (281398003) and primary melanoma of thigh (188069004) are appropriately coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9810,
+        "output_tokens": 1794,
+        "total_tokens": 11604,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "60d51cc3-2492-4e75-8a05-47577e14414c",
+        "date": "2025-11-26",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f6beb71a-8c28-499b-bb60-ea13911a6502",
+    "patient_id": "7324271383",
+    "date": "2025-12-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1303816007",
+          "name": "Excision of malignant melanoma of external ear (procedure)",
+          "severity": "high",
+          "reason": "The note documents excision of malignant melanoma from the thigh, not the external ear; lookup_concept returned semantic_tag='organism' confirming this concept ID is incorrect for this context.",
+          "replace_with_concept_id": "177281002",
+          "replace_with_preferred_term": "Excision of melanoma (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "10966161000119108",
+          "name": "Stab wound of right thigh (disorder)",
+          "severity": "high",
+          "reason": "The wound is a post-surgical wound following melanoma excision, not a stab wound; lookup_concept returned semantic_tag='substance' confirming this concept ID is invalid.",
+          "replace_with_concept_id": "945791000000103",
+          "replace_with_preferred_term": "Surgical wound (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "283579006",
+          "name": "Pellet wound of groin (disorder)",
+          "severity": "high",
+          "reason": "The groin wound is a post-surgical wound following lymph node biopsy, not a pellet wound; lookup_concept returned semantic_tag='substance' confirming this concept ID is invalid.",
+          "replace_with_concept_id": "945791000000103",
+          "replace_with_preferred_term": "Surgical wound (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Three of the five coded concepts are critically wrong: the melanoma excision procedure is coded to 'external ear' rather than thigh (concept ID also confirmed unreliable by terminology server), and both post-surgical wound codes resolve to 'substance' concepts (stab wound / pellet wound) rather than the correct 'Surgical wound (disorder)'. The two remaining codes \u2014 biopsy of lymph node and malignant melanoma of skin of thigh \u2014 are correct and well-evidenced. All three erroneous codes should be replaced as indicated.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5982,
+        "output_tokens": 1402,
+        "total_tokens": 7384,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7324271383",
+        "encounter_id": "f6beb71a-8c28-499b-bb60-ea13911a6502",
+        "date": "2025-12-04",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  }
+]

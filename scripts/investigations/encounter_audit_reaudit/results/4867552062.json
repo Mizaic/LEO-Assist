@@ -1,0 +1,1682 @@
+[
+  {
+    "encounter_id": "46c9afba-dcc7-4839-ba84-f838b9192086",
+    "patient_id": "4867552062",
+    "date": "2024-02-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FH dad died of stroke",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Family history of stroke is explicitly documented and is clinically relevant given the hypertensive headache presentation; it should be coded with a family assertion.",
+          "snomed_search": "family history stroke",
+          "snomed_concept_id": "275104002",
+          "preferred_term": "Family history of stroke (situation)",
+          "sentence": "FH dad died of stroke",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "tenderness on palpation of occipital area",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Occipital tenderness on examination is a positive clinical finding that supports a cervicogenic or musculoskeletal differential and should be coded separately from the headache diagnosis.",
+          "snomed_search": "occipital tenderness",
+          "snomed_concept_id": "330007",
+          "preferred_term": "Occipital headache (finding)",
+          "sentence": "Some pain on neck movement and tenderness on palpation of occipital area of head",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "25064002",
+          "name": "Headache (finding)",
+          "severity": "medium",
+          "reason": "The note specifically localises the headache to the occipital region ('back of the head', 'occipital area'); the more specific concept 330007 Occipital headache (finding) is directly evidenced and should replace the generic headache code.",
+          "replace_with_concept_id": "330007",
+          "replace_with_preferred_term": "Occipital headache (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "240091000000105",
+          "name": "Blurred vision (disorder)",
+          "severity": "medium",
+          "reason": "Terminology server returns this concept ID as unreliable (semantic_tag='organism'); the verified SNOMED concept for this finding is 111516008 'Blurring of visual image (finding)', which should be used instead.",
+          "replace_with_concept_id": "111516008",
+          "replace_with_preferred_term": "Blurring of visual image (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is clinically well-documented but has two concept-level issues: the generic headache code should be replaced by the more specific 'Occipital headache' (330007) which is directly evidenced by the note, and the blurred vision concept ID (240091000000105) is flagged as unreliable by the terminology server and should be replaced with the verified 111516008. Family history of stroke is missing and is clinically relevant in this hypertensive headache presentation. Note: the terminology server returned corrupted lookups for several concept IDs (returning organism/substance tags); the audit relies on search_snomed confirmations where available. No red-flag safety concerns identified beyond those already coded (elevated BP, visual disturbance).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 13642,
+        "output_tokens": 2477,
+        "total_tokens": 16119,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "46c9afba-dcc7-4839-ba84-f838b9192086",
+        "date": "2024-02-08",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ea1a2810-eeb7-4836-adc0-8f4720aa525c",
+    "patient_id": "4867552062",
+    "date": "2024-02-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists solely of a receptionist-logged home BP monitoring entry (142/91) with a structured numeric reading \u2014 no clinical narrative, diagnosis, plan, or prescriber review is present. The existing code 413153004 (Blood pressure recorded by patient at home \u2014 procedure) is correctly applied and confirmed by search_snomed; the lookup_concept unreliable result was a known server index issue and does not affect validity. The raw numeric BP value (142/91) is not independently codeable under audit scope rules; no additional SNOMED concepts are warranted from this note.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2207,
+        "output_tokens": 594,
+        "total_tokens": 2801,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "ea1a2810-eeb7-4836-adc0-8f4720aa525c",
+        "date": "2024-02-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1439ed61-b041-4f83-95ff-19e4b02e7865",
+    "patient_id": "4867552062",
+    "date": "2024-02-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FH of CVD - father has stroke and also had TIAs",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly documents a family history of cardiovascular disease (father with stroke, TIAs, angiogram, possible MI/angina); this should be coded as a family situation.",
+          "snomed_search": "family history cardiovascular disease",
+          "snomed_concept_id": "266894000",
+          "preferred_term": "Family history: Cardiovascular disease (situation)",
+          "sentence": "has FH of CVD - father has stroke and also had TIAs when he was younger in 50's - also had angiogram in mid 50's unsure if it was ater MI or due to angina.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "father has stroke",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Father's stroke is specifically documented and warrants a more specific family history of stroke code alongside the broader CVD family history.",
+          "snomed_search": "family history stroke",
+          "snomed_concept_id": "275104002",
+          "preferred_term": "Family history of stroke (situation)",
+          "sentence": "has FH of CVD - father has stroke and also had TIAs when he was younger in 50's",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "This is explicitly documented as a new diagnosis / new episode of essential hypertension; a 'history of' situation code is incorrect when the active disorder code 59621000 is already present and correctly asserted.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        },
+        {
+          "conceptId": "29303009",
+          "name": "Electrocardiogram (procedure)",
+          "severity": "medium",
+          "reason": "The note states 'needs bloods + ecg + urine albumin as well' \u2014 this is a planned future investigation, not a procedure already performed in this encounter; future procedures should not be coded as present."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "This new-episode hypertension diagnosis is well captured by the active disorder code (59621000), but the redundant 'history of hypertension' situation code should be removed. The ECG is planned, not yet performed, and should not be coded as present. Two family history situation codes (CVD and stroke specifically) are missing and are clinically relevant for QRISK2 and secondary prevention documentation. Note: lookup_concept returned unreliable results for several concept IDs; hierarchy traversal was used to confirm clinical validity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5619,
+        "output_tokens": 1670,
+        "total_tokens": 7289,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "1439ed61-b041-4f83-95ff-19e4b02e7865",
+        "date": "2024-02-27",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "00deb448-013d-4cbc-aa58-422c04bcfd70",
+    "patient_id": "4867552062",
+    "date": "2024-02-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Stage 1 hypertension",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary diagnosis of this encounter is explicitly stated as Stage 1 hypertension in both the diagnosis and plan sections, but no active hypertension disorder concept is correctly coded \u2014 258214002 is a spurious attribute code and 161501007 is a historical situation.",
+          "snomed_search": "essential hypertension",
+          "snomed_concept_id": "59621000",
+          "preferred_term": "Essential hypertension (disorder)",
+          "sentence": "Diagnosis: Stage 1 hypertension",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "palpitations",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports experiencing palpitations randomly \u2014 a clinically relevant symptom in the context of a new hypertension diagnosis that should be coded.",
+          "snomed_search": "palpitations",
+          "snomed_concept_id": "80313002",
+          "preferred_term": "Palpitations (finding)",
+          "sentence": "Experienced palpitations randomly",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Family history of lung cancer",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Mother and sister both died of lung cancer \u2014 a significant family history relevant to this patient's risk profile (especially given occupational exposure as a welder) that is not coded.",
+          "snomed_search": "family history lung cancer",
+          "snomed_concept_id": "429011007",
+          "preferred_term": "Family history of malignant neoplasm of lung (situation)",
+          "sentence": "Family history of cancer (XM1Y3)- Mother and sister died of lung cancer",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "258214002",
+          "name": "Stage (attribute)",
+          "severity": "high",
+          "reason": "258214002 is a SNOMED attribute concept ('Stage'), not a clinical disorder or finding \u2014 it has been incorrectly used as a proxy for Stage 1 hypertension; the correct disorder code (59621000 Essential hypertension) should be used instead.",
+          "replace_with_concept_id": "59621000",
+          "replace_with_preferred_term": "Essential hypertension (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "medium",
+          "reason": "The note states the patient quit smoking 8 years ago; the correct code is Ex-smoker (8517006), not the active 'Smoking (finding)' which implies current smoking.",
+          "replace_with_concept_id": "8517006",
+          "replace_with_preferred_term": "Ex-smoker (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This encounter has several significant coding issues: the primary diagnosis (Stage 1 hypertension) is not correctly coded \u2014 a spurious attribute code (258214002) and a historical situation code (161501007) are used instead of an active disorder code (59621000 Essential hypertension); smoking status is coded as active when the patient is an ex-smoker of 8 years; and two clinically relevant findings (palpitations, family history of lung cancer) are entirely absent. Note also that the patient works as a welder \u2014 occupational exposure to fumes is a relevant contextual factor given the family history of lung cancer, though not explicitly diagnosed here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8170,
+        "output_tokens": 2096,
+        "total_tokens": 10266,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "00deb448-013d-4cbc-aa58-422c04bcfd70",
+        "date": "2024-02-27",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c41649be-dfba-41c2-be34-6557e5aff442",
+    "patient_id": "4867552062",
+    "date": "2024-03-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is an auto-filed lipid panel result with a clinician review noting 'Normal, No Further Action'. All lab observable entity codes are correctly written by the structured pipeline; 161501007 (History of hypertension) is confirmed correct via search despite an unreliable lookup_concept response. 'premd review' in the request reason and HbA1c 6.1% do not constitute an explicit pre-diabetes diagnosis in this encounter text, so no additional disorder code is warranted here. 'Not on Thyroid Tx' is a clinical detail field notation without an explicit diagnosis statement in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4510,
+        "output_tokens": 1128,
+        "total_tokens": 5638,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "c41649be-dfba-41c2-be34-6557e5aff442",
+        "date": "2024-03-08",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d7e4d371-44f5-4f10-8d16-5f0a229d78b6",
+    "patient_id": "4867552062",
+    "date": "2024-03-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Weight increased",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is 'aware seems to be putting on weight', documenting an active finding of weight gain that should be coded.",
+          "snomed_search": "weight increased",
+          "snomed_concept_id": "262286000",
+          "preferred_term": "Weight increased (finding)",
+          "sentence": "aware seems to be putting on weight",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "AUDIT-C score 5",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The AUDIT-C consumption questionnaire score of 5 is explicitly documented and should be coded as an observable entity result.",
+          "snomed_search": "AUDIT-C alcohol screening score",
+          "snomed_concept_id": "763256006",
+          "preferred_term": "Alcohol Use Disorders Identification Test - Consumption score (observable entity)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 5",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lifestyle counselling",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Lifestyle counselling (XaEFY) is documented in the template as having been performed but is absent from the SNOMED coded list.",
+          "snomed_search": "lifestyle education",
+          "snomed_concept_id": "313204009",
+          "preferred_term": "Lifestyle education (procedure)",
+          "sentence": "Lifestyle counselling (XaEFY)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The main issue is concept ID 43783005 coded for 'Lower risk drinking' which the terminology server cannot verify and returns as an organism \u2014 it should be replaced with 777671000000105 'Lower risk alcohol drinking (finding)'. Additionally, the explicitly documented weight gain and AUDIT-C score of 5 are missing from the coded list. A future BP monitoring recall (7 days) is noted but not coded as the procedure has not yet occurred. Multiple lab observable entity codes in the existing list appear to originate from a structured pipeline with numeric evidence not present in this encounter text and have not been flagged per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7287,
+        "output_tokens": 1851,
+        "total_tokens": 9138,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "d7e4d371-44f5-4f10-8d16-5f0a229d78b6",
+        "date": "2024-03-08",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d9e8acfc-056e-4c9a-8e20-705ae0510e5f",
+    "patient_id": "4867552062",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "PREDM",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical request reason explicitly states 'HTN / PREDM REVIEW', indicating prediabetes is an active condition under review for this patient and should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: HTN / PREDM REVIEW.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "lookup_concept returned unreliable (semantic_tag='organism'), and the note context 'HTN / PREDM REVIEW' indicates active hypertension under clinical review, not a historical condition; the active hypertensive disorder code is more appropriate.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Prediabetes is explicitly named in the clinical request reason ('PREDM REVIEW') and must be coded; the existing hypertension code uses a 'history of' situation concept where the note implies active disease under review, and the concept ID itself returned an unreliable lookup (organism tag). The CKD-specific lab commentary (NICE CKD guidance, KFRE, annual ACR check) strongly implies the patient has CKD but no explicit clinician diagnosis is documented in this encounter \u2014 a human reviewer should confirm whether CKD is on the patient's problem list and code accordingly. The five observable entity lab codes are pipeline-generated and correctly present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4114,
+        "output_tokens": 1407,
+        "total_tokens": 5521,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "d9e8acfc-056e-4c9a-8e20-705ae0510e5f",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c2c38195-770a-4682-a5d2-7e6241ef13a8",
+    "patient_id": "4867552062",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Body mass index index 25-29 - overweight",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents BMI 26.74 kg/m\u00b2 and codes 'Body mass index index 25-29 - overweight (22K4.)' in the template, but the corresponding finding concept is absent from the 17 coded concepts.",
+          "snomed_search": "body mass index overweight",
+          "snomed_concept_id": "162863004",
+          "preferred_term": "Body mass index 25-29 - overweight (finding)",
+          "sentence": "Body mass index index 25-29 - overweight (22K4.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Ex-smoker",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Ex-smoker is explicitly recorded in the LTC Wellbeing Review template (Ub1na) and repeated in the encounter text, but is not present in the coded concept list.",
+          "snomed_search": "ex-smoker",
+          "snomed_concept_id": "8517006",
+          "preferred_term": "Ex-smoker (finding)",
+          "sentence": "Ex-smoker (Ub1na)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lower risk drinking",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Lower risk drinking is explicitly recorded in the template (XaXjf) and confirmed by AUDIT-C score of 4 with no binge episodes, but is absent from the coded concept list.",
+          "snomed_search": "lower risk drinking alcohol",
+          "snomed_concept_id": "777671000000105",
+          "preferred_term": "Lower risk alcohol drinking (finding)",
+          "sentence": "Lower risk drinking (XaXjf)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Prediabetes (PREDM REVIEW)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The phlebotomy request reason is explicitly documented as 'HTN / PREDM REVIEW', indicating prediabetes is an active condition under monitoring, yet no prediabetes or impaired glucose concept is coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Reasons for Request: HTN / PREDM REVIEW",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Alcohol Use Disorders Identification Test - Consumption score",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The AUDIT-C questionnaire was completed with a score of 4 and individual question responses documented; the score observable entity should be coded.",
+          "snomed_search": "AUDIT-C alcohol screening score",
+          "snomed_concept_id": "763256006",
+          "preferred_term": "Alcohol Use Disorders Identification Test - Consumption score (observable entity)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 4",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lifestyle counselling",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Lifestyle counselling is explicitly recorded in the template (XaEFY) and repeated in the encounter text, but is absent from the coded concept list.",
+          "snomed_search": "lifestyle counselling",
+          "snomed_concept_id": "313204009",
+          "preferred_term": "Lifestyle education (procedure)",
+          "sentence": "Lifestyle counselling (XaEFY)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "This LTC review encounter has several template-recorded findings (overweight BMI band, ex-smoker, lower risk drinking, lifestyle counselling, AUDIT-C score) that are documented in the note text but absent from the 17 coded concepts; the most clinically significant gap is the absence of a prediabetes code despite the encounter being explicitly titled 'HTN / PREDM REVIEW'. The wrong_assertion entry for 161501007 is informational only \u2014 the concept and assertion are correct despite the terminology server returning an unreliable lookup result.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 12818,
+        "output_tokens": 2374,
+        "total_tokens": 15192,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "c2c38195-770a-4682-a5d2-7e6241ef13a8",
+        "date": "2025-03-28",
+        "coded_count": 17
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fa704179-5417-476d-91ee-81056af24e42",
+    "patient_id": "4867552062",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Raised LDL and Qrisk",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review comment explicitly documents 'Raised LDL and Qrisk' as the clinical finding driving the review; LDL of 4 mmol/L with a raised total:HDL ratio of 4.4 should be coded as a finding.",
+          "snomed_search": "LDL cholesterol above reference range",
+          "snomed_concept_id": "445445006",
+          "preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "sentence": "Serum lipid levels Report, Abnormal, Other (Pharmacist review.): Raised LDL and Qrisk.. Review done by HORNE, Jonathan (Dr) - 31 Mar 2025 08:20",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum triglyceride levels outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Triglycerides are explicitly flagged as outside reference range (1.74 mmol/L vs upper limit 1.7 mmol/L) in the auto-filed lab report; this abnormal result should be coded.",
+          "snomed_search": "hypertriglyceridemia",
+          "snomed_concept_id": "302870006",
+          "preferred_term": "Hypertriglyceridemia (disorder)",
+          "sentence": "Serum triglyceride levels (XE2q9) 1.74 mmol/L [0 - 1.7] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "PREDM (prediabetes review)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical details field lists 'HTN / PREDM REVIEW' as the reason for request, indicating prediabetes is an active condition under review; if not already on the problem list it should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      HTN / PREDM REVIEW.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The auto-filed lipid panel has three clinically significant gaps: (1) raised LDL explicitly called out in the pharmacist review comment is uncoded; (2) triglycerides are flagged outside reference range but no hypertriglyceridaemia finding is coded; (3) prediabetes ('PREDM') is listed as a reason for the review and should be on the problem list if not already present. The existing cholesterol observable entity (850981000000101) covers the total cholesterol value but does not capture the specific abnormal sub-fractions. The 161501007 (History of hypertension) lookup returned an unreliable server result but is confirmed correct via search \u2014 no action needed on that code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8106,
+        "output_tokens": 1907,
+        "total_tokens": 10013,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "fa704179-5417-476d-91ee-81056af24e42",
+        "date": "2025-03-28",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b50bbe26-de4c-42e0-b40a-2ce74467e539",
+    "patient_id": "4867552062",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is broadly appropriate: the HbA1c result and prediabetes code (714628002) are well-supported by the borderline result (42 mmol/mol, ref 20\u201341) and the explicit 'PREDM REVIEW' request. The only concern is that 'History of hypertension (situation)' carries a historical semantic framing while the encounter is an active HTN review; replacing with Essential hypertension (disorder) would be more precise, though this is a low-risk, standing problem-list issue. All 12 observable entity codes are correctly attributed to the structured lab pipeline. 'Not on Thyroid Tx' is a negative clinical detail with no codeable diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7682,
+        "output_tokens": 1695,
+        "total_tokens": 9377,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "b50bbe26-de4c-42e0-b40a-2ce74467e539",
+        "date": "2025-03-28",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a515c112-8871-4f56-83ec-b1e8874bc241",
+    "patient_id": "4867552062",
+    "date": "2025-04-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "fh of strokes, in dad, 60s",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly documents a family history of strokes in the patient's father in his 60s, which is a clinically relevant cardiovascular risk factor contributing to the QRISK score and should be coded.",
+          "snomed_search": "family history stroke",
+          "snomed_concept_id": "275104002",
+          "preferred_term": "Family history of stroke (situation)",
+          "sentence": "fh of strokes, in dad, 60s.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Core coding is sound: hypercholesterolaemia (13644009) and history of hypertension (161501007) are correctly coded with confirmed concept IDs. The paternal family history of stroke (275104002, assertion=family) is documented explicitly and is clinically significant as a QRISK driver but has not been coded. The QRISK score of 20% and the fasting lipid/LFT requests are captured by the structured pathology pipeline and do not require additional SNOMED coding here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4990,
+        "output_tokens": 1009,
+        "total_tokens": 5999,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "a515c112-8871-4f56-83ec-b1e8874bc241",
+        "date": "2025-04-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4c190ee8-7af2-42bf-b01a-adaace4d723c",
+    "patient_id": "4867552062",
+    "date": "2025-04-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Chaperone declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states 'Chaperone declined' during DRE \u2014 this is a medicolegally significant situation that should be coded for safeguarding and consent audit purposes.",
+          "snomed_search": "chaperone",
+          "snomed_concept_id": "763380007",
+          "preferred_term": "Provision of chaperone declined (situation)",
+          "sentence": "DRE with consent. Chaperone declined.",
+          "char_start": 196,
+          "char_end": 232
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "This concept ID resolves on the terminology server as 'DRB1*09012 (substance)' \u2014 a genetic substance \u2014 and is clinically wrong for this encounter; the 2WW referral made was for suspected urological cancer, not breast cancer.",
+          "replace_with_concept_id": "276431000000102",
+          "replace_with_preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "266569009",
+          "name": "Benign prostatic hyperplasia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The clinician documents 'Likely BPH' and simultaneously makes a 2WW urology referral due to a hard prostate raising suspicion of malignancy \u2014 the diagnosis is explicitly uncertain and should be coded as possible/suspected, not confirmed present."
+        }
+      ],
+      "confidence": 0.95,
+      "notes": "One critical overcoding error: the 2WW referral is coded as 'Fast track referral for suspected breast cancer' (276341000000100) \u2014 a clinically nonsensical code for a male patient with urological symptoms; it must be replaced with 276431000000102 (Fast track referral for suspected urological cancer). Additionally, BPH is coded as confirmed-present when the note says 'likely BPH' alongside a 2WW cancer referral, so the assertion should be downgraded to possible. The chaperone-declined situation (763380007) is missing and carries medicolegal significance for a DRE encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9600,
+        "output_tokens": 1423,
+        "total_tokens": 11023,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "4c190ee8-7af2-42bf-b01a-adaace4d723c",
+        "date": "2025-04-11",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e4b2331f-fd33-4929-8bf0-1fe2ae37d20c",
+    "patient_id": "4867552062",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hard prostate",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly states 'Urology 2ww for hard prostate' \u2014 this is the red-flag examination finding that triggered the 2WW referral and must be coded as an active finding.",
+          "snomed_search": "hard prostate finding",
+          "snomed_concept_id": "276387009",
+          "preferred_term": "Hard prostate (finding)",
+          "sentence": "Clinical Information: Reasons for Request: Urology 2ww for hard prostate.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urology 2ww referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note documents an active 2-week-wait (fast track) referral for suspected urological cancer triggered by a hard prostate; this NG12-pathway referral must be coded as a procedure.",
+          "snomed_search": "fast track referral suspected urological cancer",
+          "snomed_concept_id": "276431000000102",
+          "preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "sentence": "Clinical Information: Reasons for Request: Urology 2ww for hard prostate.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Two critical codes are missing: the examination finding 'Hard prostate' (276387009) and the 2WW fast-track referral for suspected urological cancer (276431000000102), both directly evidenced by the clinical information field. The two existing observable entity codes (PSA level and FBC) are correctly applied; lookup returned unreliable organism tags for both but independent search confirms the concept IDs are correct for their respective observable entities.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6480,
+        "output_tokens": 1409,
+        "total_tokens": 7889,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "e4b2331f-fd33-4929-8bf0-1fe2ae37d20c",
+        "date": "2025-04-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d1f65245-eb65-404f-aacd-34cdde2e42c3",
+    "patient_id": "4867552062",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "PSA 6.5 ng/mL",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "PSA of 6.5 ng/mL is above the standard reference range (upper limit ~4.0 ng/mL); the clinical interpretation 'PSA above reference range' must be coded as it is a safety-critical finding triggering NG12 urology referral consideration.",
+          "snomed_search": "prostate specific antigen above reference range",
+          "snomed_concept_id": "396152005",
+          "preferred_term": "Prostate specific antigen above reference range (finding)",
+          "sentence": "PSA (prostate-specific antigen) level evidence=PSA 6.5 ng/mL assertion=present",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All 11 coded concepts are observable entity lab values written by the structured pipeline and are appropriate. However, a PSA result of 6.5 ng/mL is above the reference range and the clinical interpretation finding (396152005 \u2014 Prostate specific antigen above reference range) is missing; this is safety-critical as it should prompt urology referral consideration per NG12 guidance. Note: concept ID 1030791000000100 returned as unreliable by the terminology server but is not flagged for deletion as it is a pipeline-written observable entity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4320,
+        "output_tokens": 1158,
+        "total_tokens": 5478,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "d1f65245-eb65-404f-aacd-34cdde2e42c3",
+        "date": "2025-04-17",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1c93c6e7-bd60-4e91-a646-c20c09fe7a8e",
+    "patient_id": "4867552062",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hard prostate",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Urology 2ww for hard prostate' \u2014 this is the clinical finding driving the 2WW referral and must be coded as a safety-critical examination finding.",
+          "snomed_search": "hard prostate finding",
+          "snomed_concept_id": "276387009",
+          "preferred_term": "Hard prostate (finding)",
+          "sentence": "Clinical Information: Reasons for Request: Urology 2ww for hard prostate.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level",
+          "severity": "medium",
+          "reason": "No PSA value appears anywhere in the encounter text; the evidence field ('PSA 6.5 ng/ml') is fabricated and the concept ID itself is flagged as unreliable by the terminology server (returns 'organism' semantic tag). This code is not supported by the encounter note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Two critical errors: (1) the 2WW referral is coded with concept 276341000000100 which resolves to a substance (DRB1 allele), not a procedure \u2014 it must be replaced with 276431000000101 'Fast track referral for suspected urological cancer'; (2) a PSA observable entity code with fabricated evidence has been applied despite no PSA result appearing in the note. Additionally, 'Hard prostate (finding)' 276387009 is missing and is safety-critical as the clinical indication for the 2WW referral. The four U&E observable entity codes and eGFR code are correctly applied by the structured lab pipeline and require no changes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5579,
+        "output_tokens": 1552,
+        "total_tokens": 7131,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "1c93c6e7-bd60-4e91-a646-c20c09fe7a8e",
+        "date": "2025-04-17",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "186b0ecc-e5d7-4e2f-b76a-749d9a3e5891",
+    "patient_id": "4867552062",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The encounter text documents a Urology 2WW referral for a hard prostate \u2014 this is a suspected urological cancer pathway, not a breast cancer referral; the wrong site-specific 2WW code has been applied.",
+          "replace_with_concept_id": "276431000000102",
+          "replace_with_preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "One critical error: the 2WW referral is coded as 'Fast track referral for suspected breast cancer' (276341000000100) when the note clearly states a Urology 2WW for a hard prostate \u2014 this must be replaced with 'Fast track referral for suspected urological cancer' (276431000000102). All other codes are appropriate: the hard prostate finding (276387009) is confirmed correct by search_snomed despite an unreliable lookup_concept response; the serum total protein procedure and all lab observable entities are correctly coded by the structured pipeline.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5330,
+        "output_tokens": 822,
+        "total_tokens": 6152,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "186b0ecc-e5d7-4e2f-b76a-749d9a3e5891",
+        "date": "2025-04-17",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d3af9ca9-59da-4cc1-895d-54b8f2f3693d",
+    "patient_id": "4867552062",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hard prostate",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Hard prostate is the explicit clinical finding documented as the reason for the 2WW urology referral and must be coded as an active finding.",
+          "snomed_search": "hard prostate finding",
+          "snomed_concept_id": "276387009",
+          "preferred_term": "Hard prostate (finding)",
+          "sentence": "Clinical Information: Reasons for Request: Urology 2ww for hard prostate.",
+          "char_start": 175,
+          "char_end": 230
+        },
+        {
+          "term": "Urology 2ww referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A fast-track 2WW referral for suspected urological cancer (NG12 criteria) is explicitly documented and is a safety-critical procedure that must be coded.",
+          "snomed_search": "fast track referral suspected urological cancer",
+          "snomed_concept_id": "276431000000102",
+          "preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "sentence": "Clinical Information: Reasons for Request: Urology 2ww for hard prostate.",
+          "char_start": 175,
+          "char_end": 230
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (observable entity)",
+          "severity": "medium",
+          "reason": "No PSA test result or value appears anywhere in this encounter note; the only tests documented are LFTs (ALT and bilirubin), so this observable entity code is not evidenced by the encounter text."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two critical codes are missing: the clinical finding 'Hard prostate' (276387009) and the 2WW fast-track urological cancer referral (276431000000102), both of which are safety-critical under NG12 and must be captured. The PSA observable entity code appears to have been auto-filed in error as no PSA result is present in this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4812,
+        "output_tokens": 1212,
+        "total_tokens": 6024,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "d3af9ca9-59da-4cc1-895d-54b8f2f3693d",
+        "date": "2025-04-17",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ced62361-0693-4ab4-b1ce-6d31273ea6b3",
+    "patient_id": "4867552062",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "276341000000100",
+          "term": "Fast track referral for suspected breast cancer (procedure)",
+          "assertion": "present",
+          "severity": "critical",
+          "reason": "Correctly identified as a 2WW fast-track referral but coded to the wrong cancer site (breast); note explicitly states urology 2WW referral"
+        }
+      ],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The encounter documents a 2WW urology referral for suspected prostate cancer, not a breast cancer referral; this is the wrong cancer-site code and must be replaced.",
+          "replace_with_concept_id": "276431000000102",
+          "replace_with_preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Critical coding error: the 2WW referral has been coded as [276341000000100] 'Fast track referral for suspected breast cancer' when the encounter explicitly documents a urology 2WW referral for a hard prostate and elevated PSA \u2014 the correct code is [276431000000102] 'Fast track referral for suspected urological cancer (procedure)'. The remaining three concepts (PSA observable entity, PSA above reference range, hard prostate) are correctly coded and well-evidenced by the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4617,
+        "output_tokens": 1213,
+        "total_tokens": 5830,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "ced62361-0693-4ab4-b1ce-6d31273ea6b3",
+        "date": "2025-04-17",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bcf9c369-1e83-4931-823f-756ff346addd",
+    "patient_id": "4867552062",
+    "date": "2025-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "276341000000100",
+          "term": "Fast track referral for suspected breast cancer",
+          "assertion": "present",
+          "severity": "critical",
+          "reason": "Wrong cancer pathway coded \u2014 note documents urology 2WW for hard prostate (suspected prostate cancer), not breast cancer; must be replaced with urological cancer fast-track referral code",
+          "replace_with_concept_id": "276431000000102",
+          "replace_with_preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "One critical coding error identified: the 2WW referral has been coded as 'Fast track referral for suspected breast cancer' (276341000000100) when the encounter clearly documents a urology 2WW referral for a hard prostate (suspected prostate cancer); this must be replaced with 276431000000102 'Fast track referral for suspected urological cancer'. The hard prostate finding (276387009) and all lab observable entities are correctly coded. The AKI Stage 0 result (no AKI) does not require a disorder code. PSA 6.5 ng/mL is captured as an observable entity by the structured pipeline.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4923,
+        "output_tokens": 1122,
+        "total_tokens": 6045,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "bcf9c369-1e83-4931-823f-756ff346addd",
+        "date": "2025-04-17",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b2b0ab38-76cb-4a04-9731-ab7d6920cea5",
+    "patient_id": "4867552062",
+    "date": "2025-06-20",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "695b5c81-1f69-47ec-b5e2-539a9ff7083c",
+    "patient_id": "4867552062",
+    "date": "2025-07-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "catheter flushed with use of opti flow s, good return, successful flush",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A catheter flush (bladder irrigation) was performed as a clinical intervention during this visit and should be coded as a procedure, not as a physical object.",
+          "snomed_search": "bladder irrigation",
+          "snomed_concept_id": "78533007",
+          "preferred_term": "Irrigation of urinary bladder (procedure)",
+          "sentence": "With consent, catheter flushed with use of opti flow s, good return, successful flush.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "catheter inserted following prostate surgery",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly states the catheter was inserted following prostate surgery; this historical procedure is clinically relevant context for the catheter management and should be coded.",
+          "snomed_search": "prostatectomy",
+          "snomed_concept_id": "90470006",
+          "preferred_term": "Prostatectomy (procedure)",
+          "sentence": "Patient stated that he is going for a TWOC at the hospital in 2 weeks time, catheter inserted following prostate surgery.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "catheter in situ",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient has an indwelling urethral urinary catheter in situ which is the central clinical finding of this encounter and should be explicitly coded.",
+          "snomed_search": "indwelling urinary catheter in situ",
+          "snomed_concept_id": "723542006",
+          "preferred_term": "Indwelling urethral urinary catheter in situ (finding)",
+          "sentence": "Patients leg bag was kinked and therefore re-arranged and secured to leg.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "467281003",
+          "name": "Catheter flush syringe (physical object)",
+          "severity": "medium",
+          "reason": "This is a physical object concept outside the auditable SNOMED scope (disorder/finding/procedure etc.) and does not represent the clinical procedure performed; the irrigation procedure [78533007] should replace it.",
+          "replace_with_concept_id": "78533007",
+          "replace_with_preferred_term": "Irrigation of urinary bladder (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter has three issues: (1) the catheter flush is coded as a physical object (syringe) rather than the clinical procedure performed \u2014 Irrigation of urinary bladder [78533007] should replace it; (2) the indwelling urinary catheter in situ [723542006] is not coded despite being the central clinical finding; (3) the historical prostatectomy [90470006] is mentioned as the reason for catheterisation and warrants a historical code. Additionally, [420648005] Leakage from urinary catheter could be upgraded to the more specific [12197921000119109] Leakage from indwelling urinary catheter. The planned TWOC in 2 weeks is a future procedure and should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9522,
+        "output_tokens": 2238,
+        "total_tokens": 11760,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "695b5c81-1f69-47ec-b5e2-539a9ff7083c",
+        "date": "2025-07-29",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4d661729-6254-47ae-b7db-b7aed381085c",
+    "patient_id": "4867552062",
+    "date": "2025-07-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "20568009",
+          "name": "Urinary catheter, device (physical object)",
+          "severity": "medium",
+          "reason": "Concept 20568009 is confirmed unreliable by the terminology server (returns as 'CoAr 1071 virus (organism)'), is outside the permitted SNOMED scope (physical object, not a disorder/finding/procedure), and does not represent a clinical finding; the primary presenting problem \u2014 catheter leaking with discharge \u2014 is better captured by a specific disorder code.",
+          "replace_with_concept_id": "420648005",
+          "replace_with_preferred_term": "Leakage from urinary catheter (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three of the four coded concepts are appropriate and well-evidenced (abdominal distension, urinary catheter in situ, historical prostatectomy). The fourth code [20568009] is invalid \u2014 it resolves to an organism concept on the terminology server, falls outside the permitted semantic tag scope (physical object), and should be replaced with [420648005] Leakage from urinary catheter (disorder), which directly captures the primary presenting complaint of a leaking catheter with jelly-type discharge. No safety-critical gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5246,
+        "output_tokens": 1124,
+        "total_tokens": 6370,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "4d661729-6254-47ae-b7db-b7aed381085c",
+        "date": "2025-07-29",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a97ffcca-7d1e-4d7b-8403-d955534adcbc",
+    "patient_id": "4867552062",
+    "date": "2025-07-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tiny amount of blood in the urine in the morning",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Haematuria is explicitly documented in the referral clinical information and is a clinically relevant finding in the context of a newly inserted urethral catheter requiring same-day nursing review.",
+          "snomed_search": "haematuria",
+          "snomed_concept_id": "34436003",
+          "preferred_term": "Blood in urine (finding)",
+          "sentence": "Is there any blood in the urine: tiny amount in the morning",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "Concept 67502006 coded as 'Extravasation of urine (morphologic abnormality)' is clinically incorrect for catheter bypassing \u2014 extravasation denotes urine leaking into perivesical tissue, whereas bypassing describes urine leaking around the catheter; however, lookup_concept returned unreliable results for this ID and no specific SNOMED 'catheter bypassing' finding was returned by search, so this has been noted rather than flagged as overcoded to avoid a false positive. Haematuria (blood in urine) is explicitly documented in the referral template and should be coded; 723542006 (urethral catheter in situ) and 1090351000000102 (referral to community nursing) are both confirmed valid by search.",
+      "confidence": 0.82,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10990,
+        "output_tokens": 1647,
+        "total_tokens": 12637,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "a97ffcca-7d1e-4d7b-8403-d955534adcbc",
+        "date": "2025-07-29",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9ce69883-a3ce-4cda-ad8a-dffa596af79e",
+    "patient_id": "4867552062",
+    "date": "2025-07-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "urinary catheter bypassing",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The presenting clinical finding is urinary catheter bypassing/leakage; 787777003 is confirmed unreliable (returns as an organism) and must be replaced with the correct SNOMED disorder 'Leakage from urinary catheter' (420648005), which was the top disorder match from search_snomed.",
+          "snomed_search": "leakage urinary catheter",
+          "snomed_concept_id": "420648005",
+          "preferred_term": "Leakage from urinary catheter (disorder)",
+          "sentence": "Unscheduled visit to bypassing catheter.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "787777003",
+          "name": "Leaking Tenckhoff catheter (finding) [as coded]",
+          "severity": "high",
+          "reason": "Lookup confirms concept 787777003 is unreliable \u2014 the terminology server returns it as an organism (CoAr 1071 virus), not a clinical finding; it must be replaced with the correct urinary catheter leakage/bypassing concept.",
+          "replace_with_concept_id": "420648005",
+          "replace_with_preferred_term": "Leakage from urinary catheter (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The home visit (439708006) and bladder washout procedure (176193005) codes are clinically appropriate \u2014 search_snomed confirms 176193005 as the top match for 'Manual urinary bladder washout through catheter' despite an unreliable lookup_concept response. The critical error is concept 787777003, which the terminology server resolves to an organism rather than a clinical finding; it should be replaced with 420648005 'Leakage from urinary catheter (disorder)' to correctly represent the presenting problem of catheter bypassing. Note: 420648005 also returned as unreliable via lookup_concept (Extension Namespace placeholder), so human review of the replacement concept ID is recommended before committing the change.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4784,
+        "output_tokens": 1126,
+        "total_tokens": 5910,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "9ce69883-a3ce-4cda-ad8a-dffa596af79e",
+        "date": "2025-07-31",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dd04115f-aa64-49da-b119-d30bb46cc802",
+    "patient_id": "4867552062",
+    "date": "2025-07-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Bypassing urethral catheter",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The explicit clinical reason for this SPA referral is catheter bypassing (urine leaking around the catheter), which is an active disorder requiring nursing assessment and must be coded.",
+          "snomed_search": "leakage indwelling urinary catheter",
+          "snomed_concept_id": "12197921000119109",
+          "preferred_term": "Leakage from indwelling urinary catheter (disorder)",
+          "sentence": "Reason for referral: Bypassing urethral catheter",
+          "char_start": 148,
+          "char_end": 195
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "20568009",
+          "name": "Urinary catheter, device (physical object)",
+          "severity": "medium",
+          "reason": "Concept ID 20568009 resolves to 'CoAr 1071 virus (organism)' on the terminology server \u2014 clearly an incorrect concept ID; physical object codes are also outside the auditable SNOMED scope (disorder/finding/situation/procedure etc.). The catheter-in-situ finding (723542006) already captures the clinical situation adequately.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary clinical finding \u2014 catheter bypassing (leakage from indwelling urinary catheter, 12197921000119109) \u2014 is missing despite being the explicit reason for referral. The device code 20568009 is an invalid concept ID (resolves to a virus organism on the terminology server) and should be removed; the catheter-in-situ finding 723542006 is confirmed as correct and sufficient to represent the catheter status.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6430,
+        "output_tokens": 1346,
+        "total_tokens": 7776,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "dd04115f-aa64-49da-b119-d30bb46cc802",
+        "date": "2025-07-31",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fdb1b4de-2bd6-4461-afe1-6c624198f965",
+    "patient_id": "4867552062",
+    "date": "2025-08-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "catheter bypassing",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Catheter bypassing is the primary presenting clinical problem of this encounter and must be coded; 'Leakage from urinary catheter' is the correct SNOMED concept.",
+          "snomed_search": "urinary catheter leakage",
+          "snomed_concept_id": "420648005",
+          "preferred_term": "Leakage from urinary catheter (disorder)",
+          "sentence": "Catheter is bypassing on and off but still lots of urine in leg bag, no pain or discomfort.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "slight blood tinge in urine this morning",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Transient haematuria was noted this morning and has since resolved; it is a clinically relevant finding that should be coded as historical within this encounter.",
+          "snomed_search": "blood in urine",
+          "snomed_concept_id": "34436003",
+          "preferred_term": "Blood in urine (finding)",
+          "sentence": "Had slight blood tinge this morning but this has now cleared.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "20568009",
+          "name": "Urinary catheter, device (physical object)",
+          "severity": "medium",
+          "reason": "Concept 20568009 resolves to a physical object (or organism on this server \u2014 clearly unreliable), which is outside the auditable SNOMED scope categories (disorder/finding/situation/procedure etc.) and adds no clinical meaning beyond the already-coded 'Urinary catheter in situ' finding; the evidence cited (catheter bypassing) is better captured by the leakage disorder code."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary presenting problem \u2014 catheter bypassing/leakage \u2014 is not coded at all, and the device code (20568009) is outside audit scope and duplicates the in-situ finding. The 'Urinary catheter in situ' code (439053001) is correct and should be retained. The transient haematuria should also be captured as a historical finding within this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4851,
+        "output_tokens": 1405,
+        "total_tokens": 6256,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "fdb1b4de-2bd6-4461-afe1-6c624198f965",
+        "date": "2025-08-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5b23765d-9d87-4f24-896b-17bd3b97f192",
+    "patient_id": "4867552062",
+    "date": "2025-08-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "haematuria",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note clearly documents intermittent pink/blood-stained urine; the existing code 702231000000104 resolves to a substance concept (DRB1*09012) not a haematuria finding \u2014 the correct SNOMED finding concept must be used instead.",
+          "snomed_search": "blood in urine",
+          "snomed_concept_id": "34436003",
+          "preferred_term": "Blood in urine (finding)",
+          "sentence": "Since then noticed intermittent slight pink to urine, mostly mornings.",
+          "char_start": 148,
+          "char_end": 207
+        },
+        {
+          "term": "scalp lesion",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A discrete circular red scaly lesion on the right scalp is examined and treated with topical fusidin HC but has not been correctly coded; concept 275887009 resolves as an organism (unreliable/wrong ID) and must be replaced.",
+          "snomed_search": "scalp lesion",
+          "snomed_concept_id": "871000119100",
+          "preferred_term": "Lesion of scalp (disorder)",
+          "sentence": "Also has red sore spot right side scalp. Itchy at times. Wanted checking.",
+          "char_start": 490,
+          "char_end": 562
+        },
+        {
+          "term": "possible urinary tract infection",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "The note documents dysuria, frequency, haematuria, recent catheterisation, and 111 advice suggesting possible UTI; urine dip and MSU are requested \u2014 this warrants a possible UTI code pending results.",
+          "snomed_search": "urinary tract infection catheter",
+          "snomed_concept_id": "700372006",
+          "preferred_term": "Urinary tract infection associated with catheter (disorder)",
+          "sentence": "Called 111 and felt could be UTI.",
+          "char_start": 310,
+          "char_end": 342
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "722658006",
+          "name": "Meningitis following procedure (disorder) [as coded] / DRB1*08032 substance [as resolved]",
+          "severity": "high",
+          "reason": "This concept ID resolves to a substance (DRB1*08032) on the terminology server \u2014 it is not a valid clinical disorder code for this encounter; the stated rationale references post-procedural haematuria context, but no correct post-procedural haematuria disorder concept was returned by search, so this code must be removed without a direct replacement at this time.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        },
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding) [as coded] / DRB1*09012 substance [as resolved]",
+          "severity": "high",
+          "reason": "This concept ID resolves to a substance (DRB1*09012) not a haematuria finding; it must be replaced with the correct SNOMED concept 34436003 Blood in urine (finding).",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "275887009",
+          "name": "Scaly scalp (finding) [as coded] / CoAr 1071 virus organism [as resolved]",
+          "severity": "medium",
+          "reason": "This concept ID resolves as an organism (CoAr 1071 virus) \u2014 clearly a wrong or corrupt concept ID for the scalp lesion described; it must be replaced with a valid scalp lesion concept.",
+          "replace_with_concept_id": "871000119100",
+          "replace_with_preferred_term": "Lesion of scalp (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three of the five coded concept IDs are critically corrupt \u2014 they resolve to substances or organisms rather than clinical findings/disorders on the terminology server, indicating data-entry or system errors. The haematuria code must be replaced with 34436003, the scalp lesion code with 871000119100, and the meningitis/procedure code (722658006) removed entirely. The dysuria (16844001) and LUTS (307541003) codes returned unreliable lookups but are plausible given the note text and are not flagged for deletion on that basis alone. A possible catheter-associated UTI should be added pending MSU results. Note: a future cystoscopy or urology follow-up is implied but has not yet occurred \u2014 no procedure code required at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 11873,
+        "output_tokens": 2663,
+        "total_tokens": 14536,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "5b23765d-9d87-4f24-896b-17bd3b97f192",
+        "date": "2025-08-11",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d9b68993-0817-4332-b04d-1f4bcf435675",
+    "patient_id": "4867552062",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702224000",
+          "name": "Midstream urine specimen container (physical object)",
+          "severity": "medium",
+          "reason": "A physical object concept is outside the valid SNOMED semantic tag scope for clinical coding; the encounter documents collection and dispatch of an MSU specimen, which should be represented as a procedure, not a physical object.",
+          "replace_with_concept_id": "57617002",
+          "replace_with_preferred_term": "Urine specimen collection (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Four of the five coded concepts returned unreliable terminology server lookups; however, all are clinically well-supported by the encounter text and the concept IDs are plausible (including the UK SNOMED extension code 201271000000102 for trace nitrite). The one clear issue is 702224000, which resolves to a 'physical object' semantic tag \u2014 this should be replaced with the procedure code 57617002 (Urine specimen collection) to correctly represent the MSU collection documented in the note. The remaining four codes (culture sensitivity, chemical haematuria, urine dipstick test, trace nitrite finding) are appropriate for the clinical content.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7298,
+        "output_tokens": 1374,
+        "total_tokens": 8672,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "d9b68993-0817-4332-b04d-1f4bcf435675",
+        "date": "2025-08-12",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "02d0dff4-08ac-4e1b-90b8-d9b390656ece",
+    "patient_id": "4867552062",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "68566005",
+          "name": "Urinary tract infectious disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinical information explicitly states '?uti' (query UTI), the patient is not yet on antibiotics, and the lab report flags the need for a duty call to discuss symptoms and decide on treatment \u2014 the diagnosis is under investigation and not yet confirmed, so assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "confidence": 0.9,
+      "notes": "The UTI concept (68566005) is correctly identified but over-asserted as 'present' when the clinical context is a query diagnosis awaiting clinical review; the assertion should be 'possible'. No additional disorder or finding codes are warranted from this auto-filed lab result alone \u2014 the causative organisms (E. coli, KESC group) are microbiological identifications and do not independently require patient-level disorder coding without a confirmed clinical diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3155,
+        "output_tokens": 916,
+        "total_tokens": 4071,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "02d0dff4-08ac-4e1b-90b8-d9b390656ece",
+        "date": "2025-08-12",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "efb888e6-44cf-48d3-80e2-04ec56e33fae",
+    "patient_id": "4867552062",
+    "date": "2025-08-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urinary tract infection caused by Escherichia coli",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MSU explicitly confirmed E. coli (and coliform KESC group) as the causative organism; a more specific organism-attributed UTI disorder is available and should replace or supplement the generic LUTI code.",
+          "snomed_search": "Escherichia coli urinary tract infection",
+          "snomed_concept_id": "301011002",
+          "preferred_term": "Urinary tract infection caused by Escherichia coli (disorder)",
+          "sentence": "has come back positive for e.coli and coliform KESC group,",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "medium",
+          "reason": "Concept ID 702231000000104 is unreliable \u2014 the terminology server returns a 'substance' semantic tag, indicating this is not a valid SNOMED finding code; the correct concept for blood in urine is 34436003.",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary UTI disorder (4009004) and prostate cancer (399068003) are correctly coded and confirmed by search. The haematuria concept ID (702231000000104) is invalid \u2014 the terminology server returns a substance tag, and it should be replaced with the standard 'Blood in urine' finding (34436003). The MSU result explicitly names E. coli as the causative organism, warranting the more specific disorder code 301011002 in addition to or instead of the generic LUTI code. Note: the penile vacuum pump is a future/planned device supply being chased via urology and has not yet been prescribed by this GP, so no procedure code is required from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7095,
+        "output_tokens": 1703,
+        "total_tokens": 8798,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "efb888e6-44cf-48d3-80e2-04ec56e33fae",
+        "date": "2025-08-15",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "11328479-f44a-412b-a851-d2e2d6e35cb2",
+    "patient_id": "4867552062",
+    "date": "2025-11-25",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All three coded concepts are correct and well-supported by the referral text: urinary incontinence (primary presenting complaint), malignant neoplasm of prostate, and laparoscopic radical prostatectomy using robotic assistance (708919000 confirmed via search_snomed despite unreliable lookup_concept server response). The encounter is a clerical triage entry with no new clinical findings beyond the background history carried in from the referral form; no coding gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4132,
+        "output_tokens": 1040,
+        "total_tokens": 5172,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "11328479-f44a-412b-a851-d2e2d6e35cb2",
+        "date": "2025-11-25",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "05546745-02e7-405a-8d65-004335f85874",
+    "patient_id": "4867552062",
+    "date": "2025-11-25",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is a purely administrative clerical triage entry (entered by a Clerical Access Role, no patient/proxy present, activity = Record Keeping/Administration) that routes a referral to the continence service triage list; the medical history is verbatim copy-paste from an external referral letter and contains no clinical assessment, examination, diagnosis, or management decision made in this encounter. No coding additions, deletions, or assertion changes are warranted from this note; all four existing codes derive from the pasted referral history and should be evaluated against the source referral document, not this administrative routing entry.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3924,
+        "output_tokens": 925,
+        "total_tokens": 4849,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4867552062",
+        "encounter_id": "05546745-02e7-405a-8d65-004335f85874",
+        "date": "2025-11-25",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  }
+]

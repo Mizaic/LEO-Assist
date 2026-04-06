@@ -1,0 +1,22 @@
+[
+  {
+    "action_text": "PSA test",
+    "current_id": null,
+    "flag": "WRONG_TYPE",
+    "recommended_id": "63476009",
+    "recommended_term": "Prostate specific antigen measurement (procedure)",
+    "resolver_top_id": "396152005",
+    "resolver_top_term": "Prostate specific antigen above reference range (finding)",
+    "hierarchy_candidates": []
+  },
+  {
+    "action_text": "urgent ultrasound",
+    "current_id": null,
+    "flag": "WRONG_TYPE",
+    "recommended_id": "134403003",
+    "recommended_term": "Urgent referral (procedure)",
+    "resolver_top_id": "103391001",
+    "resolver_top_term": "Urgent (qualifier value)",
+    "hierarchy_candidates": []
+  }
+]

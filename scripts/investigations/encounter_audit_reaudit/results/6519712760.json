@@ -1,0 +1,1877 @@
+[
+  {
+    "encounter_id": "17ebad32-b1b3-497e-84e4-7dc9e560cbcf",
+    "patient_id": "6519712760",
+    "date": "2024-01-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "sexualised images sent to peers",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Anya sending sexualised images to peers is explicitly documented and is a recognised red-flag indicator of possible child sexual abuse or exploitation, requiring coding as a safeguarding-relevant clinical finding.",
+          "snomed_search": "overtly sexualised behaviour childhood",
+          "snomed_concept_id": "248087004",
+          "preferred_term": "Overtly sexualized behavior in childhood (finding)",
+          "sentence": "She has sent sexualised images to peers, triggering Dad to be verbally abusive and threatening towards her.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "810771000000107",
+          "name": "Child no longer safeguarding concern (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "critical",
+          "reason": "The encounter documents an active S47 investigation and multi-agency strategy meeting with ongoing S17 family support work \u2014 coding 'Child no longer safeguarding concern' as present is clinically dangerous and directly contradicted by the note; this code should be refuted or removed entirely, as the safeguarding concern is active, not resolved."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "The most serious issue is the assertion=present on 'Child no longer safeguarding concern' (810771000000107), which is directly contradicted by the encounter text describing an active S47 investigation and ongoing S17 support \u2014 this is a safety-critical wrong assertion that could mislead future clinicians. Additionally, Anya's documented sexualised behaviour (sending sexualised images to peers) is a critical red-flag finding for possible child sexual exploitation that is absent from the coded list. All six existing concept lookups returned unreliable terminology server results (organism tag) so concept IDs could not be independently verified, but the clinical logic of each code was assessed against the note text directly.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 14043,
+        "output_tokens": 1805,
+        "total_tokens": 15848,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "17ebad32-b1b3-497e-84e4-7dc9e560cbcf",
+        "date": "2024-01-29",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8b54191b-e0d8-4959-952a-1e03d3f2f008",
+    "patient_id": "6519712760",
+    "date": "2024-04-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hair thinning",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Hair thinning is explicitly listed in the history as an active symptom and is a recognised feature of iron deficiency anaemia in this patient.",
+          "snomed_search": "loss of hair",
+          "snomed_concept_id": "278040002",
+          "preferred_term": "Loss of hair (finding)",
+          "sentence": "History: Feels weak and achey, cramps and bone pain, brittle nails, hair thinning",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "chaperone declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The examination section explicitly documents that the chaperone was declined by the patient, which should be recorded as a situation code for medico-legal purposes.",
+          "snomed_search": "chaperone",
+          "snomed_concept_id": "763380007",
+          "preferred_term": "Provision of chaperone declined (situation)",
+          "sentence": "With consent, chaperone declined - visible external haemorrhoids - one very red and sore looking, too tender to be able to examine internally",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1812681000000102",
+          "name": "Mass of anal structure (finding)",
+          "severity": "medium",
+          "reason": "The terminology server returned this concept ID as unreliable (semantic tag 'organism'), indicating a corrupted or invalid index entry; the note documents visible external haemorrhoids which should be coded with a verified external haemorrhoids disorder concept.",
+          "replace_with_concept_id": "23913003",
+          "replace_with_preferred_term": "External hemorrhoids (disorder) [server lookup unreliable \u2014 verify before applying]",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is substantively well-coded with all major active problems, symptoms, procedures and referral captured. Two additions are recommended: hair thinning (loss of hair) as an active symptom of iron deficiency, and chaperone declined as a medico-legally important situation. The existing haemorrhoids code [1812681000000102] returned as unreliable on the terminology server (organism tag) and should be replaced with a verified external haemorrhoids concept \u2014 note that the replacement candidate 23913003 also returned an unreliable lookup, so local terminology validation is advised before substitution.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8708,
+        "output_tokens": 1983,
+        "total_tokens": 10691,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "8b54191b-e0d8-4959-952a-1e03d3f2f008",
+        "date": "2024-04-17",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c99092d3-ff41-48b6-8c8f-a9817deaae62",
+    "patient_id": "6519712760",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "coded",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [
+        {
+          "concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "assertion": "present",
+          "severity": "high",
+          "evidence": "Hb 76 g/L (severely low), MCV 64 fL, MCH 19.1 pg, CHr 19.7 pg all below reference range; lab comment explicitly states findings consistent with iron deficiency"
+        },
+        {
+          "concept_id": "70153002",
+          "preferred_term": "Hemorrhoids (disorder)",
+          "assertion": "present",
+          "severity": "medium",
+          "evidence": "Listed explicitly in clinical information as a reason for the FBC request; clinically relevant as a potential cause of iron deficiency anaemia"
+        },
+        {
+          "concept_id": "803411000000103",
+          "preferred_term": "Reticulocyte haemoglobin content measurement (procedure)",
+          "assertion": "present",
+          "severity": "medium",
+          "evidence": "CHr 19.7 pg reported and below reference range (29\u201334 pg); supports iron deficiency diagnosis"
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Coding is complete and clinically accurate: iron deficiency anaemia (87522002) is well-supported by the severely abnormal FBC indices and explicit lab comment; haemorrhoids (70153002) correctly coded as the stated clinical reason for the test. The lab's suggestion to consider haemoglobinopathy screening is advisory only ('if status unknown') and does not represent a confirmed action in this encounter, so no procedure code is warranted for it. Observable entity codes are pipeline-generated and correctly excluded from audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12524,
+        "output_tokens": 1497,
+        "total_tokens": 14021,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "c99092d3-ff41-48b6-8c8f-a9817deaae62",
+        "date": "2024-04-18",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a2b57c97-d84c-4cb8-82f0-7baea1bbe5f4",
+    "patient_id": "6519712760",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum ferritin level below reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab result is explicitly documented as < 2 ng/ml against a reference range of 10-291 and flagged as 'Abnormal' \u2014 the clinical interpretation (below reference range finding) must be coded alongside the observable entity.",
+          "snomed_search": "serum ferritin low",
+          "snomed_concept_id": "126121000119104",
+          "preferred_term": "Serum ferritin level below reference range (finding)",
+          "sentence": "Serum ferritin level (XE24r) < 2 ng/ml [10 - 291] Outside reference range; Please note change to method-specific reference range from 16th April 2024",
+          "char_start": 37,
+          "char_end": 175
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The observable entity code for serum ferritin and the haemorrhoids disorder are both correctly coded, but the abnormal result interpretation \u2014 serum ferritin below reference range (126121000119104) \u2014 is missing and should be added. No explicit diagnosis of iron deficiency or iron deficiency anaemia is stated in the note text, so those should not be inferred from the numeric value alone without further clinical documentation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3838,
+        "output_tokens": 1274,
+        "total_tokens": 5112,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "a2b57c97-d84c-4cb8-82f0-7baea1bbe5f4",
+        "date": "2024-04-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b320cc15-9413-4c0c-bdac-2173612fe04b",
+    "patient_id": "6519712760",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "haemorrhoids",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Haemorrhoids is explicitly listed as a clinical reason for the blood test request and should be coded as an active problem.",
+          "snomed_search": "haemorrhoids",
+          "snomed_concept_id": "70153002",
+          "preferred_term": "Hemorrhoids (disorder)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: multiple symptoms, haemorrhoids.",
+          "char_start": 107,
+          "char_end": 120
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (270990000 Serum vitamin D measurement and 34713006 Vitamin D deficiency) are both confirmed correct by SNOMED search \u2014 lookup_concept returned unreliable/wrong semantic tags for both but search_snomed confirms the concept IDs are valid. Haemorrhoids is explicitly documented as a clinical reason for the request and is missing from the coded list. 'Not on Thyroid Tx' is an absent/negative finding and should not be coded. The 'No Further Action' outcome is administrative only.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2991,
+        "output_tokens": 977,
+        "total_tokens": 3968,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "b320cc15-9413-4c0c-bdac-2173612fe04b",
+        "date": "2024-04-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2598c89a-c85c-491e-bdad-22d1455d0bb8",
+    "patient_id": "6519712760",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "haemorrhoids",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Haemorrhoids is explicitly listed in the clinical information as a reason for request and represents an active clinical problem requiring coding.",
+          "snomed_search": "haemorrhoids",
+          "snomed_concept_id": "70153002",
+          "preferred_term": "Hemorrhoids (disorder)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: multiple symptoms, haemorrhoids.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "29303009",
+          "name": "Electrocardiogram (procedure)",
+          "severity": "medium",
+          "reason": "No mention of an ECG anywhere in this encounter text; the evidence field 'ECG done' has no basis in this auto-filed U&E/creatinine result note and appears to have been carried over from a different encounter."
+        },
+        {
+          "conceptId": "1003671000000109",
+          "name": "Haemoglobin A1c level (observable entity)",
+          "severity": "medium",
+          "reason": "No HbA1c result or reference appears anywhere in this encounter text; the evidence field 'Haemoglobin A1c level 5.5%' is not present in this auto-filed U&E report and appears to belong to a different encounter."
+        },
+        {
+          "conceptId": "1001371000000100",
+          "name": "Serum C reactive protein level (observable entity)",
+          "severity": "medium",
+          "reason": "No CRP result or reference appears anywhere in this encounter text; the evidence field 'Plasma C-reactive protein < 5 mg/L' is not present in this auto-filed U&E report and appears to belong to a different encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This encounter is an auto-filed U&E/creatinine result note; three coded concepts (ECG, HbA1c, CRP) have no textual evidence in this encounter and appear to have been incorrectly attributed from other encounters. Haemorrhoids is explicitly documented as a reason for request but has not been coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4802,
+        "output_tokens": 1494,
+        "total_tokens": 6296,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "2598c89a-c85c-491e-bdad-22d1455d0bb8",
+        "date": "2024-04-18",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d9ba4389-0bac-4008-b192-adc85aa58af5",
+    "patient_id": "6519712760",
+    "date": "2024-04-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "416125006",
+          "name": "Concentration of hemoglobin in erythrocyte (observable entity)",
+          "severity": "medium",
+          "reason": "This concept represents MCHC (haemoglobin concentration within erythrocytes), not the haemoglobin in blood (HGB/HB) that is evidenced by the FBC results (Hb 71.6 g/L and previous Hb 68 g/L); the correct observable entity for whole-blood haemoglobin is 1107511000000100.",
+          "replace_with_concept_id": "1107511000000100",
+          "replace_with_preferred_term": "Mass concentration of haemoglobin in blood (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The anaemia disorder code [271737000] is confirmed correct and clinically well-supported (Hb 71.6 g/L, ongoing diagnosis). The haemoglobin observable entity is miscoded as [416125006] 'Concentration of hemoglobin in erythrocyte' (an MCHC concept) rather than the correct whole-blood haemoglobin observable [1107511000000100]; this should be replaced. Note: MCV 59.7 fL is objectively microcytic but the clinician documented only 'anaemia - ongoing' without explicitly stating 'microcytic anaemia', so no more specific disorder code is mandated from this note alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6017,
+        "output_tokens": 1629,
+        "total_tokens": 7646,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "d9ba4389-0bac-4008-b192-adc85aa58af5",
+        "date": "2024-04-20",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "79fdf59c-f5cd-4f8f-bb72-aa4c9965bce1",
+    "patient_id": "6519712760",
+    "date": "2024-04-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The coded concept 35240004 (Iron deficiency, disorder) is the correct and only codeable clinical finding in this SMS encounter; lookup_concept returned an unreliable substance tag but search_snomed confirms the concept is a valid disorder. The iron supplement prescription is a medication record item (out of scope), and the planned follow-up blood test has not yet occurred so should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2471,
+        "output_tokens": 691,
+        "total_tokens": 3162,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "79fdf59c-f5cd-4f8f-bb72-aa4c9965bce1",
+        "date": "2024-04-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f78498b6-c29d-4d91-a045-efa5a48ec6ef",
+    "patient_id": "6519712760",
+    "date": "2024-04-22",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [
+        {
+          "concept_id": "34713006",
+          "term": "Vitamin D deficiency (disorder)",
+          "assertion": "present",
+          "severity": "high",
+          "reason": "Confirmed by blood test result; prescription issued \u2014 active diagnosis correctly coded."
+        },
+        {
+          "concept_id": "865281000000106",
+          "term": "Provision of information about vitamin D supplementation (procedure)",
+          "assertion": "present",
+          "severity": "medium",
+          "reason": "Patient letter provides information about vitamin D supplementation including NHS link \u2014 correctly coded as a procedure."
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Both coded concepts are confirmed correct via SNOMED search (lookup_concept returned unreliable results due to a terminology server index issue, but search_snomed validated both IDs at top score). The encounter is fully and correctly coded: active vitamin D deficiency disorder plus provision of supplementation information; the prescription itself belongs in the medication record and does not require a separate SNOMED code here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3370,
+        "output_tokens": 1015,
+        "total_tokens": 4385,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "f78498b6-c29d-4d91-a045-efa5a48ec6ef",
+        "date": "2024-04-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c42f55ce-ccd9-4536-9609-4ccaf6b5d258",
+    "patient_id": "6519712760",
+    "date": "2024-04-22",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of prescription issue lines (Fultium-D3, Ferrous gluconate), ETP2 FP10 print status entries, and an SCR preference administrative update \u2014 there is no clinical narrative, examination, or documented diagnosis. The existing code [34713006] Vitamin D deficiency was inferred solely from the medication name, which is explicitly excluded by audit rules; it should not have been coded from this encounter text alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 570,
+        "output_tokens": 443,
+        "total_tokens": 1013,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "c42f55ce-ccd9-4536-9609-4ccaf6b5d258",
+        "date": "2024-04-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "10f7da84-83d4-4b3a-bc82-e403f8914d35",
+    "patient_id": "6519712760",
+    "date": "2024-04-23",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both coded concepts (Iron deficiency anaemia 87522002 and Vitamin D deficiency 34713006) are confirmed correct via SNOMED search despite unreliable lookup_concept server responses. Constipation is mentioned only as a patient concern about a side effect of iron tablets, with cosmocol on repeats as a precaution \u2014 insufficient evidence to code it as an active present diagnosis. No missing or overcoded concepts identified within scope.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4951,
+        "output_tokens": 1124,
+        "total_tokens": 6075,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "10f7da84-83d4-4b3a-bc82-e403f8914d35",
+        "date": "2024-04-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "22e3c8ce-753c-43da-a82c-185a03aff066",
+    "patient_id": "6519712760",
+    "date": "2024-05-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Mean cell volume 79 fL - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MCV is explicitly flagged 'Outside reference range' by the lab system (79 fL, ref 80\u201399); the interpretive finding should be coded in addition to the observable entity already coded.",
+          "snomed_search": "mean corpuscular volume below reference range",
+          "snomed_concept_id": "165455001",
+          "preferred_term": "Mean corpuscular volume below reference range (finding)",
+          "sentence": "Mean cell volume (42A..) 79 fL [80 - 99] - Outside reference range; Please note a change in results",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Mean cell haemoglobin 24.9 pg - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MCH is explicitly flagged 'Outside reference range' by the lab system (24.9 pg, ref 27\u201332); the interpretive finding should be coded in addition to the observable entity already coded.",
+          "snomed_search": "mean corpuscular haemoglobin below reference range",
+          "snomed_concept_id": "165439008",
+          "preferred_term": "Mean corpuscular hemoglobin below reference range (finding)",
+          "sentence": "Mean cell haemoglobin level (XE2pb) 24.9 pg [27 - 32] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The six existing codes correctly capture the observable entities measured in the FBC. However, two results (MCV and MCH) are explicitly flagged as outside reference range by the lab system and their interpretive findings (below-range findings) are absent from the coded list. The haemoglobin at 117 g/L is within the stated reference range and the reviewer marked the report 'Normal, No Further Action', so no anaemia diagnosis is warranted from this encounter alone; however the microcytic/hypochromic pattern (low MCV + low MCH) warrants the two below-range finding codes for completeness and future audit trail.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5931,
+        "output_tokens": 1471,
+        "total_tokens": 7402,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "22e3c8ce-753c-43da-a82c-185a03aff066",
+        "date": "2024-05-21",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "696b7076-e1c8-47c6-aae7-2a0e3adfffa9",
+    "patient_id": "6519712760",
+    "date": "2024-05-21",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "30bde9e7-d055-42d8-a212-7a6ca27408d6",
+    "patient_id": "6519712760",
+    "date": "2024-09-05",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "entities": [
+        {
+          "conceptId": "12063002",
+          "term": "Rectal hemorrhage (disorder)",
+          "assertion": "present",
+          "status": "confirmed"
+        },
+        {
+          "conceptId": "70153002",
+          "term": "Hemorrhoids (disorder)",
+          "assertion": "present",
+          "status": "confirmed"
+        }
+      ],
+      "notes": "Both coded concepts are confirmed correct via search_snomed (lookup server returned unreliable results for both IDs but search independently validated them). No codeable gaps identified: absent findings (no weight loss, no change in bowels, no abdominal pain) are correctly excluded; vitamin D and ferrous gluconate are plan/medication items without an explicit documented diagnosis; the haemorrhoid referral is a planned future procedure and is not coded as present per rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5695,
+        "output_tokens": 1430,
+        "total_tokens": 7125,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "30bde9e7-d055-42d8-a212-7a6ca27408d6",
+        "date": "2024-09-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7efd1374-e06f-420d-9087-33c122b466a0",
+    "patient_id": "6519712760",
+    "date": "2024-11-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Borderline faecal immunochemical test result",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly flags the result as 'Borderline' \u2014 this is a clinically significant finding-level interpretation of the FIT result that drives the 2WW referral and must be captured as a finding, not just as the observable entity.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "Quantitative faecal immunochemical test Report, Borderline, Other: will update JH - note referred on haemorrhoid pathway.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1049361000000101",
+          "name": "Quantitative faecal immunochemical test (observable entity)",
+          "severity": "low",
+          "reason": "This observable entity concept is coded twice in the same encounter \u2014 once for the raw numeric result and once to represent the 'Borderline' qualifier; a single instance of the observable entity code is sufficient, and the borderline interpretation should be captured as a separate finding-level code rather than a second instance of the same observable."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW LGI referral (892201000000106) is correctly and critically coded. The observable entity for the FIT test (1049361000000101) is duplicated and should appear only once; the clinically important 'Borderline' result interpretation should be captured as a finding (occult blood detected by immunoassay, 71711000112103) rather than as a second instance of the observable entity. Note: 'Haemorrhoids referral' appears only as the original lab request reason, not as a new diagnosis in this encounter, so no haemorrhoids code is required here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4050,
+        "output_tokens": 1402,
+        "total_tokens": 5452,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "7efd1374-e06f-420d-9087-33c122b466a0",
+        "date": "2024-11-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d027dc3d-5d4c-4dc3-a307-ecbeaf42d281",
+    "patient_id": "6519712760",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter text is an administrative medical secretary routing note for a 2WW lower GI cancer referral; the 2WW referral procedure (892201000000106) and lab observable entity codes are correctly coded by structured pipelines. However, the FIT result is coded as concept 1049361000000101 (classified as an observable entity) but the terminology server returns this concept ID as unreliable (semantic tag 'organism' \u2014 clearly erroneous); the evidence phrase 'FIT positive' represents a clinical finding, and the correct SNOMED concept is 71711000112103 'Occult blood detected in feces by immunoassay (finding)' \u2014 this should be recoded accordingly. No explicit clinical interpretation of the microcytic blood picture (Hb 98, MCV 74, MCH 24) appears in the encounter text, so iron deficiency anaemia cannot be inferred from this note alone without a prescriber's documented interpretation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4381,
+        "output_tokens": 1192,
+        "total_tokens": 5573,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "d027dc3d-5d4c-4dc3-a307-ecbeaf42d281",
+        "date": "2024-12-19",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "07dfe79b-15b4-4388-ac9d-57bef9fc43c0",
+    "patient_id": "6519712760",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "59614000",
+          "name": "Strain M 6906 (qualifier value)",
+          "severity": "critical",
+          "reason": "Concept ID 59614000 resolves to 'Strain M 6906 (qualifier value)' \u2014 a microbiological qualifier value, not a finding; it is the wrong code for a positive faecal immunochemical test result.",
+          "replace_with_concept_id": "71711000112103",
+          "replace_with_preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "306191004",
+          "name": "Extension Namespace placeholder (unreliable \u2014 not confirmed as 'Referral to gastrointestinal surgery service')",
+          "severity": "critical",
+          "reason": "Concept ID 306191004 cannot be verified by the terminology server and returns an Extension Namespace placeholder; the note indicates a fast-track lower GI 2WW referral for a positive FIT, which should be coded with the specific fast-track procedure concept.",
+          "replace_with_concept_id": "892201000000106",
+          "replace_with_preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two critical coding errors identified: (1) the positive FIT finding is mapped to concept 59614000 which resolves to a microbiological qualifier value ('Strain M 6906'), not a clinical finding \u2014 replace with 71711000112103 'Occult blood detected in feces by immunoassay (finding)'; (2) the lower GI referral concept 306191004 is unverifiable (Extension Namespace placeholder) and should be replaced with 892201000000106 'Fast track referral for suspected lower gastrointestinal cancer (procedure)', which correctly captures the 2WW safety-netting intent. The AKI staging of 0 (No AKI) is explicitly negative and correctly absent from the coded list. All 19 lab observable entity codes are pipeline-generated and out of audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5935,
+        "output_tokens": 1355,
+        "total_tokens": 7290,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "07dfe79b-15b4-4388-ac9d-57bef9fc43c0",
+        "date": "2024-12-19",
+        "coded_count": 21
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ac6ef46d-e716-4140-9a2e-678176fea163",
+    "patient_id": "6519712760",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum ferritin level below reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The ferritin result of 2 ng/ml is explicitly flagged as 'Outside reference range' and 'Abnormal' in the note; the observable entity is coded but the abnormal finding interpretation is absent from the coded list.",
+          "snomed_search": "serum ferritin below reference range",
+          "snomed_concept_id": "126121000119104",
+          "preferred_term": "Serum ferritin level below reference range (finding)",
+          "sentence": "Serum ferritin level (XE24r) 2 ng/ml [10 - 291] - Outside reference range",
+          "char_start": 27,
+          "char_end": 82
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW lower GI referral (892201000000106) and FIT positive finding are correctly coded; lookup_concept returned an unreliable substance-tag result for 892201000000106 but search_snomed confirms it is the correct procedure concept. The one genuine gap is the missing clinical finding code for the critically low ferritin (2 ng/ml, explicitly flagged as outside reference range), which is clinically important in the context of a suspected lower GI cancer pathway. All observable entity lab codes are pipeline-generated and correctly excluded from audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5570,
+        "output_tokens": 1375,
+        "total_tokens": 6945,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "ac6ef46d-e716-4140-9a2e-678176fea163",
+        "date": "2024-12-19",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "370d70a4-6e3e-4ee3-923b-7b1ad56b7f09",
+    "patient_id": "6519712760",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "59614000",
+          "name": "Strain M 6906 (qualifier value)",
+          "severity": "critical",
+          "reason": "Concept ID 59614000 resolves to 'Strain M 6906 (qualifier value)' \u2014 a completely wrong concept; the intended finding (positive FIT result) should be coded as 'Occult blood detected in feces by immunoassay (finding)'.",
+          "replace_with_concept_id": "71711000112103",
+          "replace_with_preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "306191004",
+          "name": "Referral to gastrointestinal surgery service (procedure)",
+          "severity": "critical",
+          "reason": "A FIT-positive lower GI referral in this clinical context is a 2WW fast-track referral for suspected colorectal cancer (NG12); the generic GI surgery service referral code should be replaced with the specific fast-track suspected lower GI cancer referral code.",
+          "replace_with_concept_id": "892201000000106",
+          "replace_with_preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two critical coding errors identified: (1) concept 59614000 is a wrong-concept error \u2014 it resolves to a qualifier value unrelated to faecal occult blood and must be replaced with 71711000112103 'Occult blood detected in feces by immunoassay'; (2) the referral code 306191004 is insufficiently specific for a FIT-positive 2WW pathway \u2014 892201000000106 'Fast track referral for suspected lower gastrointestinal cancer' is the correct NG12-aligned code. All observable entity lab codes are appropriately written by the structured pipeline and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5924,
+        "output_tokens": 1339,
+        "total_tokens": 7263,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "370d70a4-6e3e-4ee3-923b-7b1ad56b7f09",
+        "date": "2024-12-19",
+        "coded_count": 21
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "62be82c0-b93f-47f5-a553-d2ff4a49b024",
+    "patient_id": "6519712760",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FIT positive",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly states 'FIT positive' as the reason for the lower GI referral \u2014 the positive result finding must be coded, not just the observable entity for the test itself.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lower GI referral for FIT positive",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A fast-track (2WW) lower GI referral triggered by a positive FIT is a safety-critical procedure that must be coded to support cancer pathway tracking and audit.",
+          "snomed_search": "fast track referral lower gastrointestinal cancer",
+          "snomed_concept_id": "892201000000106",
+          "preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "sentence": "Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two critical coding gaps identified: the positive FIT result finding and the fast-track lower GI cancer referral are both absent from the coded list despite being explicitly documented. Additionally, the blood results show a microcytic picture (Hb 98 g/L, MCV 74 fL, MCH 24 pg) which is clinically significant in the context of a FIT-positive referral \u2014 a clinician should explicitly document and code microcytic/iron-deficiency anaemia if confirmed. The coded FIT observable entity [1049361000000101] returned an unreliable terminology server result (semantic_tag 'organism') but has not been flagged as overcoded per audit rules; human review of that concept ID is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7502,
+        "output_tokens": 1711,
+        "total_tokens": 9213,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "62be82c0-b93f-47f5-a553-d2ff4a49b024",
+        "date": "2024-12-19",
+        "coded_count": 20
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bca37080-d1d2-4d92-9415-64126aa13dd1",
+    "patient_id": "6519712760",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Lower GI referral for FIT positive",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Lower GI ref for FIT positive' \u2014 this is a fast-track/2WW referral for suspected lower GI cancer triggered by a positive FIT, a safety-critical NG12 red-flag pathway that must be coded.",
+          "snomed_search": "fast track referral lower gastrointestinal cancer",
+          "snomed_concept_id": "892201000000106",
+          "preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: Lower GI ref for FIT posotive.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Abnormal liver function tests",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The LFT report is explicitly documented as 'Abnormal' in the report text; the clinical interpretation should be coded as a finding, not just the individual observable entity measurements.",
+          "snomed_search": "liver function tests outside reference range",
+          "snomed_concept_id": "166603001",
+          "preferred_term": "Liver function tests outside reference range (finding)",
+          "sentence": "Liver function tests Report, Abnormal, but expected, Need to speak to doctor: FU booked.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant issues found: (1) CRITICAL \u2014 a fast-track lower GI cancer referral (NG12 pathway, FIT-positive trigger) is entirely absent from the coded list and must be added; (2) the existing code 59614000 used for the FIT-positive finding resolves to a qualifier value ('Strain M 6906') rather than a clinical finding \u2014 this is an invalid concept for this purpose and requires human verification to replace with a correct validated finding code; (3) the explicitly documented 'Abnormal' LFT interpretation should be coded as a finding in addition to the individual observable entity measurements already present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6324,
+        "output_tokens": 1484,
+        "total_tokens": 7808,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "bca37080-d1d2-4d92-9415-64126aa13dd1",
+        "date": "2024-12-19",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5e336693-322a-47d4-ac0c-0ae884f7a8a9",
+    "patient_id": "6519712760",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "low Haemoglobin / microcytic hypochromic anaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Hb 98 g/L (below reference 115\u2013165), MCV 74 fL and MCH 24 pg are all flagged outside reference range; the lab comment explicitly states 'Please note low Haemoglobin' \u2014 the disorder of anaemia (at minimum) must be coded, not just the observable entity values.",
+          "snomed_search": "microcytic hypochromic anaemia",
+          "snomed_concept_id": "44666001",
+          "preferred_term": "Microcytic hypochromic anemia (disorder)",
+          "sentence": "Full blood count (424..) - Please note low Haemoglobin",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "FIT positive (lower GI referral)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly states 'Lower GI ref for FIT positive' \u2014 a positive faecal immunochemical test triggering a lower GI referral is a safety-critical red-flag finding (NG12 criteria) and must be coded with the correct immunoassay-specific finding concept.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: Lower GI ref for FIT posotive.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two critical issues found: (1) concept 59614000 is a wrong code (resolves to a qualifier value unrelated to occult blood) and must be replaced with 71711000112103 for FIT-positive finding; (2) the clinically significant anaemia disorder (microcytic hypochromic pattern: Hb 98, MCV 74, MCH 24) is entirely absent from the coded list \u2014 only the raw observable entity values are coded, not the disorder itself. The lower GI referral for FIT positive is a safety-critical NG12 red-flag pathway and correct coding is essential for audit and recall purposes. Note also that concept 416125006 returned an unreliable lookup (organism tag) but has not been flagged as overcoded per policy; human review of that observable entity code is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6107,
+        "output_tokens": 1926,
+        "total_tokens": 8033,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "5e336693-322a-47d4-ac0c-0ae884f7a8a9",
+        "date": "2024-12-19",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dfed07d0-40f5-45a6-a560-5d504c9b2949",
+    "patient_id": "6519712760",
+    "date": "2024-12-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "positive FIT of 12",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A positive faecal immunochemical test result is a NG12 red-flag finding driving the 2WW referral and must be coded as a finding, not merely as an observable entity.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "ida earlier this year was treated with oral iron - symptoms and Ida have recurred since stopping",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "704031007",
+          "name": "Referral for overseas medical treatment (as coded \u2014 lookup returned unreliable/organism)",
+          "severity": "critical",
+          "reason": "Concept 704031007 is unreliable (terminology server returned semantic_tag 'organism'); the note documents a 2-week-wait fast-track referral for suspected lower GI cancer (positive FIT, PR bleeding), which must be coded as 892201000000106.",
+          "replace_with_concept_id": "892201000000106",
+          "replace_with_preferred_term": "Fast track referral for suspected colorectal cancer (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "387147005",
+          "name": "Ferrous gluconate (substance)",
+          "severity": "low",
+          "reason": "Individual drug names belong in the medication record, not the encounter problem/finding list; no clinical finding or adverse event associated with ferrous gluconate is documented in this note."
+        },
+        {
+          "conceptId": "73761001",
+          "name": "Colonoscopy (procedure)",
+          "severity": "medium",
+          "reason": "The note states the patient is 'awaiting colonoscopy' \u2014 the procedure is planned/future and has not yet occurred; coding it as assertion=present implies it has been performed."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most critical error is concept 704031007 coded as the referral \u2014 the terminology server flags it as unreliable (returns 'organism') and the clinical context clearly requires a fast-track 2WW colorectal cancer referral code (892201000000106); this is a patient-safety issue. Additionally, ferrous gluconate as a substance should be removed from the clinical finding list (medication record only), and the colonoscopy should not be coded as present since it is a future/planned procedure. A positive FIT finding code should be added alongside the existing observable entity to capture the clinically significant result.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5015,
+        "output_tokens": 1987,
+        "total_tokens": 7002,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "dfed07d0-40f5-45a6-a560-5d504c9b2949",
+        "date": "2024-12-27",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "68a1094a-461e-414b-8b62-c86d08f9e20e",
+    "patient_id": "6519712760",
+    "date": "2025-06-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "72354005",
+          "term": "Oral contraceptive intolerance (finding)",
+          "assertion": "present",
+          "severity": "high",
+          "reason": "Concept 72354005 is 'Oral contraceptive intolerance' but the note documents intolerance to oral iron (PO iron), not oral contraceptives \u2014 wrong substance entirely.",
+          "replace_with_concept_id": "59037007",
+          "replace_with_preferred_term": "Intolerance to drug (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "One critical miscoding identified: concept 72354005 ('Oral contraceptive intolerance') has been applied to the phrase 'not tolerating PO iron' \u2014 PO iron (oral iron supplementation) has been confused with oral contraceptives. This is a clinically significant wrong-concept error. The best available SNOMED replacement is 59037007 'Intolerance to drug (finding)'; no specific 'oral iron intolerance' concept exists in SNOMED CT. The other two codes (87522002 iron deficiency anaemia; 391475007 coeliac disease screening) are correctly applied and well-evidenced by the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6930,
+        "output_tokens": 1320,
+        "total_tokens": 8250,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "68a1094a-461e-414b-8b62-c86d08f9e20e",
+        "date": "2025-06-27",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b01e6129-1ec7-4f1d-a393-cbadab877562",
+    "patient_id": "6519712760",
+    "date": "2025-06-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hair falling",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports hair falling as an active symptom, consistent with iron deficiency anaemia, and should be coded as a presenting complaint.",
+          "snomed_search": "hair loss complaint",
+          "snomed_concept_id": "407551001",
+          "preferred_term": "Complaining of hair loss (finding)",
+          "sentence": "Very tired and weak, hair falling, nails falling, heart palpitations, dry throat",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "nails falling",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports nail changes as an active presenting symptom alongside other features of iron deficiency anaemia and should be coded.",
+          "snomed_search": "nail changes finding",
+          "snomed_concept_id": "416596008",
+          "preferred_term": "Nail changes (finding)",
+          "sentence": "Very tired and weak, hair falling, nails falling, heart palpitations, dry throat",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "dry throat",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dry throat is explicitly listed as an active symptom in the presenting complaint and should be coded.",
+          "snomed_search": "pharyngeal dryness",
+          "snomed_concept_id": "102618009",
+          "preferred_term": "Pharyngeal dryness (finding)",
+          "sentence": "Very tired and weak, hair falling, nails falling, heart palpitations, dry throat",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "haemorrhoids",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Haemorrhoids are explicitly stated as an active condition affecting the patient's treatment plan (reason for not taking iron tablets), and should be coded as a current disorder.",
+          "snomed_search": "haemorrhoids",
+          "snomed_concept_id": "70153002",
+          "preferred_term": "Hemorrhoids (disorder)",
+          "sentence": "Doesn't take iron tablets as gives her constipation and makes her haemorrhoids worse.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "constipation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Constipation is explicitly stated as an active problem experienced by the patient when taking iron tablets, directly influencing the management plan.",
+          "snomed_search": "constipation",
+          "snomed_concept_id": "14760008",
+          "preferred_term": "Constipation (finding)",
+          "sentence": "Doesn't take iron tablets as gives her constipation and makes her haemorrhoids worse.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "blood tests inc thyroid",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Thyroid function tests are explicitly ordered in the plan and should be coded as a procedure; thyroid investigation is clinically significant given the symptom profile.",
+          "snomed_search": "thyroid panel procedure",
+          "snomed_concept_id": "35650009",
+          "preferred_term": "Thyroid panel (procedure)",
+          "sentence": "1. Blood tests inc thyroid",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 7 existing codes are all clinically justified and correctly asserted. However, six additional codeable concepts are missing: hair loss, nail changes, and pharyngeal dryness as presenting symptoms; haemorrhoids and constipation as active conditions materially affecting the treatment plan; and a thyroid panel as an explicitly ordered investigation. The haemorrhoids and constipation findings are particularly important as they explain non-adherence to iron supplementation and directly shape the management approach.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11494,
+        "output_tokens": 2184,
+        "total_tokens": 13678,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "b01e6129-1ec7-4f1d-a393-cbadab877562",
+        "date": "2025-06-27",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "68fd1c3a-813a-4ada-9cf6-daca1cd01872",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tatt",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "TATT (tired all the time) is explicitly listed as a clinical reason for the investigation request and should be coded as an active finding.",
+          "snomed_search": "tired all the time",
+          "snomed_concept_id": "267032009",
+          "preferred_term": "Tired all the time (finding)",
+          "sentence": "Clinical Details: Not on Thyroid Tx Reasons for Request: tatt. chronic IDA. not tolerated PO iron if still low, refer for iron transfusion.",
+          "char_start": 120,
+          "char_end": 124
+        },
+        {
+          "term": "not tolerated PO iron",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Oral iron intolerance is explicitly documented as a clinical reason for the management plan (referral for IV iron infusion) and represents a clinically relevant situation warranting coding.",
+          "snomed_search": "oral iron not tolerated",
+          "snomed_concept_id": "407563006",
+          "preferred_term": "Treatment not tolerated (situation)",
+          "sentence": "Clinical Details: Not on Thyroid Tx Reasons for Request: tatt. chronic IDA. not tolerated PO iron if still low, refer for iron transfusion.",
+          "char_start": 148,
+          "char_end": 169
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The core IDA code (87522002) is correct despite an unreliable lookup_concept response \u2014 search_snomed confirms it as the preferred disorder concept. Two clinically documented findings are missing: TATT (267032009, a precise SNOMED match) and oral iron intolerance (best available: generic 'Treatment not tolerated' 407563006 \u2014 no specific oral iron intolerance situation code exists in SNOMED). AKI Stage 0 and the conditional future referral for IV iron do not require coding. The seven lab observable entity codes are pipeline-generated and are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4894,
+        "output_tokens": 1471,
+        "total_tokens": 6365,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "68fd1c3a-813a-4ada-9cf6-daca1cd01872",
+        "date": "2025-08-08",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8067e11e-020d-4ee3-bb61-ee4a729d67c3",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tatt (tired all the time)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "\"tatt\" (tired all the time) is explicitly listed as a clinical reason for investigation and is an active presenting symptom that should be coded independently of the IDA diagnosis.",
+          "snomed_search": "fatigue",
+          "snomed_concept_id": "84229001",
+          "preferred_term": "Fatigue (finding)",
+          "sentence": "Reasons for Request: tatt. chronic IDA. not tolerated PO iron",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "not tolerated PO iron",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient has not tolerated oral iron, which is a clinically significant finding that drives the management plan (conditional referral for IV iron transfusion) and should be recorded.",
+          "snomed_search": "drug intolerance iron",
+          "snomed_concept_id": "59037007",
+          "preferred_term": "Intolerance to drug (finding)",
+          "sentence": "Reasons for Request: tatt. chronic IDA. not tolerated PO iron      if still low, refer for iron transfusion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The core diagnosis (chronic IDA, 87522002) and all lab observable entities are correctly coded. Two clinically relevant findings from the free-text clinical details are missing: the presenting symptom of fatigue (\"tatt\") and the documented intolerance to oral iron, which directly informs the management plan. The conditional referral for IV iron transfusion is future/planned and should not be coded at this stage. The HbA1c result is normal with no further action required and no additional disorder code is needed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9525,
+        "output_tokens": 1581,
+        "total_tokens": 11106,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "8067e11e-020d-4ee3-bb61-ee4a729d67c3",
+        "date": "2025-08-08",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5606a6a8-2c76-432f-8f02-4b18310039d9",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tatt",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "TATT (Tired All The Time) is explicitly listed as a clinical reason for the blood test request and represents an active presenting symptom that should be coded.",
+          "snomed_search": "tired all the time",
+          "snomed_concept_id": "267032009",
+          "preferred_term": "Tired all the time (finding)",
+          "sentence": "Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      tatt. chronic IDA. not tolerated PO iron      if still low, refer for iron transfusion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Iron deficiency anaemia is correctly coded as an active disorder. The presenting symptom 'TATT' (Tired All The Time, 267032009) is explicitly documented as a reason for investigation but has not been coded. The CKD boilerplate text is auto-generated template content attached to the eGFR result and does not indicate a CKD diagnosis for this patient (eGFR >90). The planned iron transfusion referral is a future procedure and should not be coded as present. 'Not tolerated PO iron' has no sufficiently specific SNOMED concept available from search results to warrant coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6031,
+        "output_tokens": 1399,
+        "total_tokens": 7430,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "5606a6a8-2c76-432f-8f02-4b18310039d9",
+        "date": "2025-08-08",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "67ec53bb-24a6-42b0-b2ae-045f48a0c390",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Mean cell haemoglobin below reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MCH is 19.6 pg against a reference range of 27\u201332 pg and is explicitly flagged as outside reference range; the finding interpretation is not coded despite the MCH observable entity being coded.",
+          "snomed_search": "mean corpuscular haemoglobin below reference range",
+          "snomed_concept_id": "165439008",
+          "preferred_term": "Mean corpuscular hemoglobin below reference range (finding)",
+          "sentence": "Mean cell haemoglobin level (XE2pb) 19.6 pg [27 - 32] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Mean cell volume below reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MCV is 67 fL against a reference range of 80\u201399 fL and is explicitly flagged as outside reference range; the finding interpretation is not coded despite the MCV observable entity being coded.",
+          "snomed_search": "mean corpuscular volume below reference range",
+          "snomed_concept_id": "165455001",
+          "preferred_term": "Mean corpuscular volume below reference range (finding)",
+          "sentence": "Mean cell volume (42A..) 67 fL [80 - 99] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Core coding is sound: Iron deficiency anaemia [87522002], haemoglobin below reference range [165397008], and reticulocyte haemoglobin content measurement [803411000000103] are all correctly coded and well-evidenced by the lab report and clinical details (chronic IDA, Hb 90 g/L). Two below-reference-range finding interpretations are missing for MCV and MCH, both of which are explicitly flagged outside range in the report. The lab comment suggesting haemoglobinopathy screening is a recommendation only and has not been actioned in this encounter, so no procedure code is warranted at this time.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15793,
+        "output_tokens": 2465,
+        "total_tokens": 18258,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "67ec53bb-24a6-42b0-b2ae-045f48a0c390",
+        "date": "2025-08-08",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "de6e7748-667c-435e-adc6-b920b94aaf94",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is accurate: iron deficiency anaemia (87522002) is correctly applied as present based on the explicit 'chronic IDA' clinical context, and all observable entity codes are appropriate lab pipeline entries. The 'tatt' symptom in the request field is subsumed by the active IDA diagnosis and does not require separate coding; the B12 result is reported as normal with no action, so no B12 deficiency disorder arises; the iron transfusion is a future conditional plan and is not yet a coded procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4247,
+        "output_tokens": 1224,
+        "total_tokens": 5471,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "de6e7748-667c-435e-adc6-b920b94aaf94",
+        "date": "2025-08-08",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "879811c3-1d7e-47ba-8466-c27c59772bbc",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All 10 coded concepts are appropriate: the observable entity codes reflect structured lab pipeline results, iron deficiency anaemia (87522002) is correctly coded as present given the explicit 'chronic IDA' in the clinical information, and the serum folate observable (993411000000108) correctly captures the filed result. The folate result is normal so no folate-deficiency disorder applies; 'tatt' in the request text is a reason-for-request phrase rather than a GP-assessed finding in this encounter; and the conditional iron transfusion referral is future/planned and not yet actioned. lookup_concept returned unreliable flags for both key concepts due to server-side index corruption, but search_snomed confirmed both concept IDs are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4089,
+        "output_tokens": 880,
+        "total_tokens": 4969,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "879811c3-1d7e-47ba-8466-c27c59772bbc",
+        "date": "2025-08-08",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "af0de250-0215-49c7-b0e2-ea38d5fd5477",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tatt",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly lists 'tatt' (tired all the time) as a reason for the investigation request \u2014 this is an active presenting symptom that should be coded.",
+          "snomed_search": "tired all the time",
+          "snomed_concept_id": "267032009",
+          "preferred_term": "Tired all the time (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: tatt. chronic IDA. not tolerated PO iron if still low, refer for iron transfusion.",
+          "char_start": 130,
+          "char_end": 134
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing coding is largely sound: [87522002] Iron deficiency anaemia is correctly coded with strong supporting evidence (ferritin 3 ng/ml, explicit 'chronic IDA' in clinical details), and all observable entity lab codes are appropriately written by the structured pipeline. The one gap is 'tatt' (tired all the time, 267032009), explicitly listed as a reason for request and not yet coded. The planned iron transfusion is a future procedure and correctly omitted; 'not tolerated PO iron' has no sufficiently specific SNOMED match and is excluded per drug-intolerance rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7442,
+        "output_tokens": 1433,
+        "total_tokens": 8875,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "af0de250-0215-49c7-b0e2-ea38d5fd5477",
+        "date": "2025-08-08",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4dde6453-f3fd-4aaf-a4df-1582fc825689",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both clinically-derived codes are well-supported: Iron deficiency anaemia (87522002) is confirmed by the explicit \"chronic IDA\" clinical detail and a critically low ferritin of 3 ng/mL; Iron adverse reaction (293354007) is confirmed by \"not tolerated PO iron.\" The terminology server returned unreliable lookups for both concept IDs, but search_snomed independently confirmed both are valid SNOMED disorder concepts. All nine observable entity codes are lab pipeline entries and are not subject to audit. The mention of \"refer for iron transfusion if still low\" is a conditional future plan and correctly not coded as a procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7688,
+        "output_tokens": 1157,
+        "total_tokens": 8845,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "4dde6453-f3fd-4aaf-a4df-1582fc825689",
+        "date": "2025-08-08",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "48301c0b-61fa-496d-a514-776ce811fa3d",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tatt",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "TATT (tired all the time) is a documented clinical reason for the investigation and is a codeable presenting symptom (fatigue) not captured in the coded list.",
+          "snomed_search": "fatigue tiredness",
+          "snomed_concept_id": "84229001",
+          "preferred_term": "Fatigue (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: tatt. chronic IDA. not tolerated PO iron if still low, refer for iron transfusion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "72354005",
+          "name": "Oral contraceptive intolerance (finding)",
+          "severity": "high",
+          "reason": "The note documents intolerance to oral iron ('not tolerated PO iron'), not oral contraceptives; concept 72354005 is clinically incorrect for this encounter.",
+          "replace_with_concept_id": "59037007",
+          "replace_with_preferred_term": "Intolerance to drug (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The most significant error is concept 72354005 ('Oral contraceptive intolerance') being applied to a note about intolerance to oral iron supplementation \u2014 a clear concept mismatch that should be replaced with 'Intolerance to drug (finding)' [59037007] or a more specific iron-intolerance concept if available. The IDA [87522002] and low ferritin finding [126121000119104] are correctly coded (lookup server returned unreliable results for these IDs but search_snomed confirms the concept IDs are correct). TATT (fatigue) is documented as a presenting symptom and should be added. The planned iron infusion referral is future/conditional and should not be coded as a present procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7593,
+        "output_tokens": 1547,
+        "total_tokens": 9140,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "48301c0b-61fa-496d-a514-776ce811fa3d",
+        "date": "2025-08-08",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6824c33c-0f1b-4806-97e9-2561f73abdf7",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "72354005",
+          "term": "not tolerated PO iron",
+          "assertion": "present",
+          "severity": "high",
+          "reason": "Concept [72354005] resolves to a qualifier value ('An 7705') and its display name 'Oral contraceptive intolerance' is clinically incorrect; the note documents intolerance to oral iron (PO iron), not oral contraceptives.",
+          "snomed_concept_id": "59037007",
+          "preferred_term": "Intolerance to drug (finding)"
+        }
+      ],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "72354005",
+          "name": "Oral contraceptive intolerance (finding) [resolved: qualifier value 'An 7705']",
+          "severity": "high",
+          "reason": "This concept ID resolves to a qualifier value unrelated to the clinical finding; the note documents intolerance to oral iron (PO iron), not oral contraceptives \u2014 this is a wrong concept, not merely a wrong assertion.",
+          "replace_with_concept_id": "59037007",
+          "replace_with_preferred_term": "Intolerance to drug (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The three clinical codes for serum ferritin, iron deficiency anaemia, and low haemoglobin are well-supported by the encounter text. However, concept [72354005] is a critical miscoding: it resolves to a qualifier value ('An 7705') and its display name 'Oral contraceptive intolerance' is entirely wrong for the documented finding of 'not tolerated PO iron' (oral iron intolerance). The correct replacement is [59037007] 'Intolerance to drug (finding)' \u2014 the most specific available SNOMED concept, as no dedicated oral iron intolerance concept exists in the terminology. The reticulocyte count result is within the reference range and is handled by the structured lab pipeline, so no additional observable entity code is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4503,
+        "output_tokens": 1380,
+        "total_tokens": 5883,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "6824c33c-0f1b-4806-97e9-2561f73abdf7",
+        "date": "2025-08-08",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1d33934e-4fdf-43e9-b976-a1c838117a9c",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Bone profile",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The bone profile panel is explicitly documented as performed and reviewed in this encounter; the procedure itself should be coded.",
+          "snomed_search": "bone profile",
+          "snomed_concept_id": "167036008",
+          "preferred_term": "Bone profile (procedure)",
+          "sentence": "Bone profile (44Z2.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "chronic IDA",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Iron deficiency anaemia is explicitly named as an active clinical problem in the clinical information section of this encounter ('chronic IDA. not tolerated PO iron') and is not present in the coded list.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: tatt. chronic IDA. not tolerated PO iron if still low, refer for iron transfusion.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum adjusted calcium below reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum adjusted calcium is 2.09 mmol/L against a reference range of 2.12\u20132.51 mmol/L and is explicitly flagged as 'outside reference range'; this constitutes a finding of hypocalcaemia that warrants coding.",
+          "snomed_search": "hypocalcaemia",
+          "snomed_concept_id": "5291005",
+          "preferred_term": "Hypocalcemia (disorder)",
+          "sentence": "Serum adjusted calcium concentration (Xabpk) 2.09 mmol/L [2.12 - 2.51] Outside reference range; Reference range amended to account for calibration difference in the SIEMENS assay.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The five structured lab observable-entity codes are correctly applied by the pipeline. Three coding gaps identified: the bone profile procedure itself is uncoded; chronic iron deficiency anaemia is explicitly named in the clinical request details but absent from the coded list; and the adjusted calcium result is below the reference range (2.09 vs 2.12\u20132.51 mmol/L) and flagged as outside range, warranting a hypocalcaemia disorder code. Note that the lab report adds a calibration caveat for the SIEMENS assay, which a clinician should consider when interpreting the calcium result \u2014 the reviewer has marked the bone profile as 'No Further Action', so the hypocalcaemia finding may be considered borderline/artefactual, but it remains documentable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4409,
+        "output_tokens": 1517,
+        "total_tokens": 5926,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "1d33934e-4fdf-43e9-b976-a1c838117a9c",
+        "date": "2025-08-08",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6ff5fff5-ddc5-4b60-a1c8-ba9d435f0050",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chronic IDA",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Iron deficiency anaemia is explicitly documented as an active clinical condition in the reason-for-request field and is driving the investigation and management plan.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: tatt. chronic IDA. not tolerated PO iron if still low, refer for iron transfusion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The tTG-IgA observable entity code is appropriate for the test performed. However, chronic iron deficiency anaemia is explicitly stated as an active condition in the clinical information and is missing from the coded list; it should be added as present. The normal tTG result and TATT symptom do not require separate coding given the context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3875,
+        "output_tokens": 1147,
+        "total_tokens": 5022,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "6ff5fff5-ddc5-4b60-a1c8-ba9d435f0050",
+        "date": "2025-08-08",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9d070a89-faa0-4375-b604-7c174f91d834",
+    "patient_id": "6519712760",
+    "date": "2025-08-08",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Both coded concepts are confirmed correct via SNOMED search: 268400002 (12 lead electrocardiogram, procedure) and 426285000 (Electrocardiogram: normal sinus rhythm, finding) accurately capture the HCA-performed ECG and its normal result. Lookup_concept returned unreliable organism tags for both IDs, but search_snomed confirmed both as valid procedure and finding concepts respectively with top scores. No additional codeable clinical content is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3090,
+        "output_tokens": 758,
+        "total_tokens": 3848,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "9d070a89-faa0-4375-b604-7c174f91d834",
+        "date": "2025-08-08",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "11a3c7ed-bc03-44d5-8252-c5b338a66f22",
+    "patient_id": "6519712760",
+    "date": "2025-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hair loss",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Hair loss is explicitly listed as a presenting symptom alongside fatigue and chest pain, and is a recognised feature of iron deficiency anaemia, but has not been coded.",
+          "snomed_search": "alopecia",
+          "snomed_concept_id": "56317004",
+          "preferred_term": "Alopecia (disorder)",
+          "sentence": "had blood test initially due to weakness and feeling tired all time, hair loss and occasional chest pain",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "constipation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Constipation is explicitly documented as a trigger for haemorrhoidal bleeding and is directly managed in the plan with dietary advice and laxatives.",
+          "snomed_search": "constipation",
+          "snomed_concept_id": "14760008",
+          "preferred_term": "Constipation (finding)",
+          "sentence": "has haemmoroid - cause bleed at least once a week - triggered by foods and constipation - confirmed by colonscopy",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "refused upper GI endoscopy",
+          "severity": "high",
+          "suggested_assertion": "declined",
+          "reason": "The patient has explicitly and persistently declined upper GI endoscopy offered to exclude upper GI pathology as a cause of iron deficiency anaemia; this refusal has safety implications and should be coded as a declined situation rather than a performed procedure.",
+          "snomed_search": "procedure declined by patient",
+          "snomed_concept_id": "440621003",
+          "preferred_term": "Referral declined by patient (situation)",
+          "sentence": "discussed Upper GI and need to r/o pathology - however Mrs Sharma insists that she still does not want to have upper GI endoscopy",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "iron transfusion declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The patient explicitly declined IV iron transfusion due to concerns about allergy and side effects, preferring oral treatment first; this clinically significant patient decision should be coded.",
+          "snomed_search": "drug declined by patient",
+          "snomed_concept_id": "182895007",
+          "preferred_term": "Drug declined by patient (situation)",
+          "sentence": "Mrs Sharma does not prefer to have iron transfusion now as read about allergy and side effects and prefer to try oral treatment first",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "387147005",
+          "name": "Ferrous gluconate (substance)",
+          "severity": "low",
+          "reason": "Individual drug substances should live in the medication record, not the encounter problem/finding list; the prescription is already captured via the ETP2 FP10 entry."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "76009000",
+          "name": "Esophagogastroduodenoscopy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "declined",
+          "severity": "high",
+          "reason": "The note documents that the patient refused upper GI endoscopy on two occasions; coding it as 'present' implies the procedure was performed, which is clinically incorrect and misleading."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The primary diagnosis (iron deficiency anaemia), haemorrhoids, colonoscopy, fatigue, and chest pain are appropriately coded, but the encounter has several issues: the upper GI endoscopy is wrongly asserted as 'present' when it was declined; hair loss, constipation, and both patient refusals (upper GI endoscopy and IV iron) are uncoded. The terminology server returned unreliable lookups for most concept IDs, but cross-validation via search_snomed confirmed the core concept IDs (87522002, 76009000, 29857009) are clinically correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 6,
+        "input_tokens": 15201,
+        "output_tokens": 1236,
+        "total_tokens": 16437,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519712760",
+        "encounter_id": "11a3c7ed-bc03-44d5-8252-c5b338a66f22",
+        "date": "2025-08-12",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  }
+]

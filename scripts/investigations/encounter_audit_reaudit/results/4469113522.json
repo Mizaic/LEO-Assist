@@ -1,0 +1,1280 @@
+[
+  {
+    "encounter_id": "ea4dd196-d08b-425c-a528-0a7600d1c65b",
+    "patient_id": "4469113522",
+    "date": "2024-02-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This encounter consists entirely of a failed telephone contact attempt by a duty clinician trying to reach the patient about pre-existing high BP readings, with no clinical assessment, examination, diagnosis, or management decision documented; the three coded concepts (Blood pressure observable, PSA level, History of malignant neoplasm) appear to be standing problem-list codes with no clinical narrative basis in this specific encounter note, and per audit rules, problem-list codes must not be flagged as overcoded on the basis of a single administrative/non-contact encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3101,
+        "output_tokens": 1023,
+        "total_tokens": 4124,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "ea4dd196-d08b-425c-a528-0a7600d1c65b",
+        "date": "2024-02-23",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "76583abe-30c6-4017-b26f-5c253e3ed17d",
+    "patient_id": "4469113522",
+    "date": "2024-02-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "blood pressure reading raised",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Two consecutive significantly elevated BP readings (191/108, 187/104) are documented on examination and acted upon clinically (duty doctor consulted, HBPM initiated); the observable entity code alone does not capture the finding of raised BP.",
+          "snomed_search": "elevated blood pressure reading",
+          "snomed_concept_id": "163027005",
+          "preferred_term": "On examination - blood pressure reading raised (finding)",
+          "sentence": "191/108\n187/104\nAsymptomatic, no headaches, dizziness etc, states he feels fine.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "home blood pressure monitoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient was explicitly advised to perform HBPM, has a monitor at home, and was given a record sheet \u2014 this is a clinical procedure initiated during this encounter.",
+          "snomed_search": "blood pressure recorded by patient at home",
+          "snomed_concept_id": "413153004",
+          "preferred_term": "Blood pressure recorded by patient at home (procedure)",
+          "sentence": "Discussed with Duty Dr K, advised if asymptomatic to ask to do HBPM. Has monitor at home, given record sheet",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "94521000",
+          "name": "Metastatic malignant neoplasm to rib (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The bone scan report explicitly states 'possibly ribs' \u2014 this is an uncertain finding and must be coded as possible, not present, to avoid overstating confirmed metastatic disease extent."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three coding issues found: (1) the rib metastasis is coded as 'present' but the note says 'possibly ribs' \u2014 assertion must be changed to 'possible'; (2) the clinically significant finding of raised BP on examination (163027005) is missing despite two readings >185/100 prompting duty doctor advice; (3) the HBPM procedure (413153004) initiated this encounter should be coded. The structured injection and oncology codes are otherwise appropriate. Note: lookup_concept returned an Extension Namespace placeholder for 94521000, but search_snomed independently confirms this is the correct SNOMED concept ID for 'Metastatic malignant neoplasm to rib (disorder)'.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6908,
+        "output_tokens": 1585,
+        "total_tokens": 8493,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "76583abe-30c6-4017-b26f-5c253e3ed17d",
+        "date": "2024-02-23",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f9a921bd-bdab-4698-aefa-af58878d18ed",
+    "patient_id": "4469113522",
+    "date": "2024-05-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hot flushes",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient is finding the amount and severity of hot flushes difficult \u2014 a clinically significant side effect of GnRH analogue therapy that should be coded.",
+          "snomed_search": "hot flushes",
+          "snomed_concept_id": "198436008",
+          "preferred_term": "Menopausal flushing (disorder)",
+          "sentence": "Finding the amount and severity of hot flushes difficult. Advised to speak to specialist nurses or GP if struggling.",
+          "char_start": 290,
+          "char_end": 395
+        },
+        {
+          "term": "intramuscular injection of gonadorelin analogue",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The Decapeptyl SR 11.25mg IM injection was administered during this encounter and is documented in full detail; the procedure should be coded with a SNOMED concept \u2014 the coded list only contains a CTV3/Read legacy code (Xaa4d), not a SNOMED procedure concept.",
+          "snomed_search": "intramuscular injection gonadorelin analogue",
+          "snomed_concept_id": "865211000000104",
+          "preferred_term": "Intramuscular injection of gonadorelin analogue (procedure)",
+          "sentence": "Given: Intramuscular injection of gonadorelin analogue (Xaa4d)",
+          "char_start": 530,
+          "char_end": 592
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "128462008",
+          "name": "Metastatic malignant neoplasm (disorder)",
+          "severity": "low",
+          "reason": "The more specific concept 94222008 'Metastatic malignant neoplasm to bone' is already coded and fully subsumes the clinical evidence; the broader parent concept 128462008 is redundant and adds no additional clinical information.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two genuine gaps identified: hot flushes (an active, symptomatic side effect of androgen deprivation therapy explicitly noted and counselled upon) and the absence of a SNOMED procedure code for the IM gonadorelin analogue injection (only a legacy CTV3 code Xaa4d is present in the coded list). The broader metastatic neoplasm code (128462008) is redundant given the more specific bone metastasis code (94222008) is already coded. Prostate malignancy and bone metastasis coding is otherwise appropriate; lookup_concept returned unreliable results for these concepts but search_snomed confirmed the correct concept IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5966,
+        "output_tokens": 1817,
+        "total_tokens": 7783,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "f9a921bd-bdab-4698-aefa-af58878d18ed",
+        "date": "2024-05-17",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "691ed874-16cc-4de4-8c31-4253c3351d34",
+    "patient_id": "4469113522",
+    "date": "2024-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Medication review done",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly a clinical pharmacist medication review, documented as completed ('Medication review done: Yes'), which is a codeable clinical procedure not captured in the existing coded concepts.",
+          "snomed_search": "review of medication",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "sentence": "Medication review done: Yes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "777868006",
+          "name": "Triptorelin (product)",
+          "severity": "low",
+          "reason": "Triptorelin is an individual drug name referenced as a current medication; per coding rules, individual drug names belong in the medication record and should not be coded as a SNOMED encounter concept."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is largely appropriate for this pharmacist medication review encounter. The medication review procedure itself (182836005) is missing from the coded list despite being the primary purpose of the encounter. Triptorelin [777868006] is coded as a product/substance but per convention individual drug names belong in the medication record rather than the encounter problem list. All five existing concept lookups returned unreliable terminology server results, but cross-referencing via search confirms 399068003 (prostate cancer) is correct; the other clinical concepts (249288007, 403618004, 386472008) are clinically plausible given the note content. Note: a future GP appointment for hot flushes is mentioned but has not yet occurred \u2014 no procedure code required at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9786,
+        "output_tokens": 1468,
+        "total_tokens": 11254,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "691ed874-16cc-4de4-8c31-4253c3351d34",
+        "date": "2024-08-12",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7569abe0-127d-4582-8d8c-cdfa59d089f3",
+    "patient_id": "4469113522",
+    "date": "2024-08-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "94503003",
+          "name": "Metastatic malignant neoplasm to prostate (disorder) [as labelled \u2014 concept ID unverifiable]",
+          "severity": "high",
+          "reason": "The terminology server cannot confirm concept 94503003 (returns Extension Namespace placeholder); the coder's stated intent was to capture the primary prostate carcinoma diagnosis, but this concept ID \u2014 even as labelled \u2014 describes metastasis TO the prostate, not a primary prostate carcinoma. The primary diagnosis should be coded as Carcinoma of prostate (254900004).",
+          "replace_with_concept_id": "254900004",
+          "replace_with_preferred_term": "Carcinoma of prostate (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The most significant issue is concept [94503003], which is both unverifiable on the terminology server and clinically wrong \u2014 'Metastatic malignant neoplasm to prostate' does not represent a primary prostate carcinoma; it should be replaced with 254900004 (Carcinoma of prostate). The remaining codes \u2014 bone metastases (94222008, confirmed by search), the IM gonadorelin analogue procedure (865211000000104), triptorelin substance (395915003), and PSA observable entity (1030791000000100) \u2014 are all clinically appropriate and well-evidenced by the encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6133,
+        "output_tokens": 1407,
+        "total_tokens": 7540,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "7569abe0-127d-4582-8d8c-cdfa59d089f3",
+        "date": "2024-08-28",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "29b6296c-28d6-4c77-be89-2b1e6a7f0fa0",
+    "patient_id": "4469113522",
+    "date": "2024-08-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "399068003",
+          "name": "Malignant neoplasm of prostate (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly states 'Carcinoma of prostate' \u2014 a more specific SNOMED concept (254900004) matches the documented histological type exactly and should be preferred over the broader parent term.",
+          "replace_with_concept_id": "254900004",
+          "replace_with_preferred_term": "Carcinoma of prostate (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Overall coding is clinically sound \u2014 bone metastases and the primary tumour are captured, and the PSA observable entity is present. The only refinement needed is replacing the broad 'Malignant neoplasm of prostate' code with the more specific 'Carcinoma of prostate' (254900004) to match the documented histological term. The triptorelin substance code is within scope but sits at the boundary of medication-record territory; the bone scan referenced in the note appears to be a prior investigation (from the urology letter dated 13/3/23) and does not require a new procedure code at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15425,
+        "output_tokens": 2345,
+        "total_tokens": 17770,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "29b6296c-28d6-4c77-be89-2b1e6a7f0fa0",
+        "date": "2024-08-28",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "618afb36-b314-4e3b-a2c3-06d073e25b79",
+    "patient_id": "4469113522",
+    "date": "2024-09-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Carcinoma of prostate",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'Carcinoma of prostate (X78Y6) - Assumed diagnosis' as the primary problem; the primary tumour must be coded separately from metastatic disease.",
+          "snomed_search": "carcinoma of prostate",
+          "snomed_concept_id": "254900004",
+          "preferred_term": "Carcinoma of prostate (disorder)",
+          "sentence": "Problem: Carcinoma of prostate (X78Y6) - Assumed diagnosis, PSA 32; bone scan suggests bony mets R humerus, L scapula, pelvic girdle and possibly ribs",
+          "char_start": 72,
+          "char_end": 230
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "94503003",
+          "name": "Metastatic malignant neoplasm to prostate (disorder)",
+          "severity": "high",
+          "reason": "The note documents bone metastases (humerus, scapula, pelvic girdle, ribs) from prostate carcinoma \u2014 the metastases are TO bone, not TO the prostate; this concept is clinically incorrect for this patient.",
+          "replace_with_concept_id": "94222008",
+          "replace_with_preferred_term": "Metastatic malignant neoplasm to bone (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two significant coding issues identified: (1) the primary diagnosis 'Carcinoma of prostate' is missing and must be coded alongside the metastatic disease; (2) the metastasis code [94503003] is clinically wrong \u2014 it encodes 'metastatic neoplasm TO the prostate' whereas the bone scan evidence clearly documents skeletal metastases FROM prostate cancer, which should be coded as 94222008 'Metastatic malignant neoplasm to bone'. The PSA observable entity and gonadorelin injection procedure codes are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5214,
+        "output_tokens": 1402,
+        "total_tokens": 6616,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "618afb36-b314-4e3b-a2c3-06d073e25b79",
+        "date": "2024-09-25",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "db466a6c-f818-43fb-a3ad-3e2ef09a1a17",
+    "patient_id": "4469113522",
+    "date": "2024-12-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Carcinoma of prostate",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary diagnosis is prostate carcinoma (noted as X78Y6 in the encounter); the correct primary malignancy code is absent \u2014 the currently coded [94503003] represents metastatic disease TO the prostate, not FROM it.",
+          "snomed_search": "carcinoma of prostate",
+          "snomed_concept_id": "254900004",
+          "preferred_term": "Carcinoma of prostate (disorder)",
+          "sentence": "Problem: Carcinoma of prostate (X78Y6) - Assumed diagnosis, PSA 32; bone scan suggests bony mets R humerus, L scapula, pelvic girdle and possibly ribs",
+          "char_start": 68,
+          "char_end": 90
+        },
+        {
+          "term": "bony metastases (R humerus, L scapula, pelvic girdle, possibly ribs)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Bone scan confirms bony metastases at multiple sites; secondary malignant neoplasm of bone is a clinically significant active finding that must be coded separately from the primary.",
+          "snomed_search": "metastatic malignant neoplasm bone",
+          "snomed_concept_id": "94222008",
+          "preferred_term": "Metastatic malignant neoplasm to bone (disorder)",
+          "sentence": "Problem: Carcinoma of prostate (X78Y6) - Assumed diagnosis, PSA 32; bone scan suggests bony mets R humerus, L scapula, pelvic girdle and possibly ribs",
+          "char_start": 120,
+          "char_end": 210
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "94503003",
+          "name": "Metastatic malignant neoplasm to prostate (disorder)",
+          "severity": "high",
+          "reason": "This code represents cancer that has metastasised TO the prostate from another primary site; the patient has primary prostate carcinoma spreading to bone \u2014 the direction of metastasis is inverted.",
+          "replace_with_concept_id": "254900004",
+          "replace_with_preferred_term": "Carcinoma of prostate (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The most significant error is a clinically dangerous miscoding: [94503003] 'Metastatic malignant neoplasm to prostate' has been applied to a patient with primary prostate carcinoma metastasising to bone \u2014 the direction of spread is completely reversed. The primary tumour code [254900004] and the bone metastasis code [94222008] are both missing. The IM gonadorelin analogue injection [865211000000104] and abdominal pain [21522001] are correctly coded; the PSA observable entity is a structured pipeline code and is appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9766,
+        "output_tokens": 1828,
+        "total_tokens": 11594,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "db466a6c-f818-43fb-a3ad-3e2ef09a1a17",
+        "date": "2024-12-18",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "201ae201-7ac1-494e-aeeb-fe367e865d87",
+    "patient_id": "4469113522",
+    "date": "2025-01-06",
+    "result": null,
+    "status": "error"
+  },
+  {
+    "encounter_id": "8f9ae047-005b-4e25-9de6-885dad34c5e1",
+    "patient_id": "4469113522",
+    "date": "2025-01-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5b1f2f37-bc5a-4db4-b246-3e78122b7d8c",
+    "patient_id": "4469113522",
+    "date": "2025-01-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Excessive belching",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as a current symptom ('Excessive belching for few weeks') and not captured in any existing coded concept.",
+          "snomed_search": "excessive belching",
+          "snomed_concept_id": "162077000",
+          "preferred_term": "Excessive belching (finding)",
+          "sentence": "- Excessive belching for few weeks",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "12063002",
+          "name": "Rectal hemorrhage (disorder)",
+          "severity": "critical",
+          "reason": "lookup_concept returns this ID as a qualifier value (not a disorder/finding), making it an invalid code for this clinical context; the note documents 'fresh blood on toilet paper' which is best captured as Hematochezia \u2014 the top SNOMED search hit with score 1.3.",
+          "replace_with_concept_id": "405729008",
+          "replace_with_preferred_term": "Hematochezia (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "142231000119108",
+          "name": "Fecal incontinence with incomplete defecation (finding)",
+          "severity": "high",
+          "reason": "lookup_concept returns this ID as an unreliable 'organism' concept; the note documents 'incomplete evacuation' (a sensation, not fecal incontinence), which is correctly captured by 249515001 'Incomplete passage of stool (finding)'.",
+          "replace_with_concept_id": "249515001",
+          "replace_with_preferred_term": "Incomplete passage of stool (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two coded concepts have invalid or unreliable SNOMED IDs that must be corrected: 12063002 (rectal haemorrhage) resolves as a qualifier value rather than a disorder and should be replaced with 405729008 Hematochezia \u2014 critically important given the red-flag rectal bleeding in the context of bowel habit change; 142231000119108 resolves as an organism concept and mischaracterises the symptom as faecal incontinence rather than the documented sensation of incomplete evacuation (249515001). One additional finding (excessive belching) is undocumented in the coded list. Hot flushes from GnRH agonist therapy are mentioned but 'managing these' and no appropriate male-specific SNOMED concept was returned; a FIT procedure was requested but no reliable procedure concept was resolved from search. The core red-flag constellation (rectal bleeding, change in bowel habit, incomplete evacuation) in a patient with known prostate cancer with bony metastases is otherwise well-recognised in the coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11172,
+        "output_tokens": 2533,
+        "total_tokens": 13705,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "5b1f2f37-bc5a-4db4-b246-3e78122b7d8c",
+        "date": "2025-01-06",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dd8ec04b-60cc-4825-b1c8-5bb8dde0a7de",
+    "patient_id": "4469113522",
+    "date": "2025-01-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes are confirmed correct: 399068003 (Malignant neoplasm of prostate) is well-evidenced by 'known Ca prostate', and 88111009 (Altered bowel function) correctly captures the documented 'CIBH' reason for the TSH request. The TSH specimen was lost and the repeat is only planned (not yet performed), so no procedure code is warranted. Lookup_concept returned unreliable results for both concept IDs due to a terminology server index issue, but search_snomed independently confirmed both IDs and preferred terms as valid.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5682,
+        "output_tokens": 1341,
+        "total_tokens": 7023,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "dd8ec04b-60cc-4825-b1c8-5bb8dde0a7de",
+        "date": "2025-01-14",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1dd1ce51-fbf1-4c3e-a313-b289df187957",
+    "patient_id": "4469113522",
+    "date": "2025-01-20",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter is a phlebotomy service visit containing only administrative workflow text (consent, referral source, sample taken, phlebotomist seen) and structured lab pipeline observable entity codes \u2014 there is no clinical narrative, diagnosis, examination finding, or clinical interpretation documented in the encounter text itself. All 14 coded concepts are lab observable entities written by the structured pipeline and are not subject to audit here; no clinical content is present in the note to drive additional coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2912,
+        "output_tokens": 784,
+        "total_tokens": 3696,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "1dd1ce51-fbf1-4c3e-a313-b289df187957",
+        "date": "2025-01-20",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3f374023-42b8-4ab4-9066-e1ecee33cec4",
+    "patient_id": "4469113522",
+    "date": "2025-01-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Haematocrit 0.394 - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The haematocrit result of 0.394 is explicitly flagged 'Outside reference range' (ref: 0.4\u20130.54) in the lab report; the below-range finding should be coded alongside the observable entity already present.",
+          "snomed_search": "haematocrit below reference range",
+          "snomed_concept_id": "165414004",
+          "preferred_term": "Hematocrit below reference range (finding)",
+          "sentence": "Haematocrit (X76tb) 0.394  [0.4 - 0.54] - Outside reference range",
+          "char_start": 282,
+          "char_end": 340
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The eosinophilia finding (386789004) is correctly coded \u2014 the terminology server lookup returned unreliable/organism for this ID but search_snomed consistently resolves it as 'Eosinophil count above reference range (finding)', indicating a server index issue rather than a genuine coding error. The haematocrit is explicitly flagged outside reference range in the report text and the corresponding below-range finding code is missing; note that lookup_concept for 165414004 was also unreliable, but search_snomed returns a clear, high-scoring match with the correct semantic tag. The six observable entity codes are pipeline-written and correctly retained.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7592,
+        "output_tokens": 1407,
+        "total_tokens": 8999,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "3f374023-42b8-4ab4-9066-e1ecee33cec4",
+        "date": "2025-01-20",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c14069ab-6eab-4971-837d-a6fba15f98ec",
+    "patient_id": "4469113522",
+    "date": "2025-01-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FIT >200",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A FIT result >200 is a clinically significant positive finding that should be coded as a finding, not just as the observable entity; the positive result interpretation is not captured by the observable entity code alone.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "See FIT >200.",
+          "char_start": 95,
+          "char_end": 107
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "This patient has change in bowel habit and FIT >200 \u2014 the referral is for suspected colorectal cancer, not breast cancer; the breast cancer fast-track code is clinically incorrect and a patient safety risk.",
+          "replace_with_concept_id": "276401000000108",
+          "replace_with_preferred_term": "Fast track referral for suspected colorectal cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Critical coding error: the 2WW referral has been coded as 'Fast track referral for suspected breast cancer' (276341000000100) when the clinical picture (FIT >200, change in bowel habit) clearly indicates a colorectal cancer pathway \u2014 this must be corrected to 276401000000108 immediately for safety and audit purposes. Additionally, the positive FIT result finding (occult blood detected by immunoassay) should be coded alongside the observable entity to capture the clinically significant result.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3475,
+        "output_tokens": 1147,
+        "total_tokens": 4622,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "c14069ab-6eab-4971-837d-a6fba15f98ec",
+        "date": "2025-01-23",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "38a131c4-f09a-49db-8b64-e6f3921ae23b",
+    "patient_id": "4469113522",
+    "date": "2025-02-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "medium",
+          "reason": "The note explicitly records 'Heavy cigarette smoker (20-39 cigs/day)'; the coded concept 77176002 is the generic parent 'Smoking (finding)' \u2014 a more specific child concept should be used.",
+          "replace_with_concept_id": "230063004",
+          "replace_with_preferred_term": "Heavy cigarette smoker (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The weight and BMI observable entity codes are appropriate for a vitals-only recording. The smoking code 77176002 ('Smoking (finding)') is too broad given the note explicitly states 'Heavy cigarette smoker (20-39 cigs/day)'; it should be replaced with 230063004 ('Heavy cigarette smoker (finding)'), a confirmed SNOMED child concept in the correct hierarchy. Note: lookup_concept returned an unreliable result for 77176002 (tagged as 'organism'), but get_descendants confirmed it is a legitimate smoking parent with 230063004 as a valid, more specific child.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4904,
+        "output_tokens": 1007,
+        "total_tokens": 5911,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "38a131c4-f09a-49db-8b64-e6f3921ae23b",
+        "date": "2025-02-04",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "342c03fb-5c0b-4dd3-a364-849526391820",
+    "patient_id": "4469113522",
+    "date": "2025-02-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Haemorrhoid",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Haemorrhoid is explicitly documented as a new episode in the encounter (Minor: Haemorrhoid G84..) but has no corresponding SNOMED concept in the coded list.",
+          "snomed_search": "haemorrhoid",
+          "snomed_concept_id": "70153002",
+          "preferred_term": "Hemorrhoids (disorder)",
+          "sentence": "Minor: Haemorrhoid (G84..) (New Episode)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Proctoscopy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Proctoscopy is explicitly documented as a new episode procedure in the encounter (Proctoscopy Xa8Ou) but has no corresponding SNOMED concept in the coded list.",
+          "snomed_search": "proctoscopy",
+          "snomed_concept_id": "42238002",
+          "preferred_term": "Proctoscopy (procedure)",
+          "sentence": "Proctoscopy (Xa8Ou) (New Episode)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "128462008",
+          "name": "Metastatic malignant neoplasm (disorder)",
+          "severity": "medium",
+          "reason": "This generic metastasis code is redundant given that the more specific site-specific concept 94222008 (Metastatic malignant neoplasm to bone) is already coded for the same clinical finding; retaining both creates duplication at different levels of specificity.",
+          "replace_with_concept_id": "94222008",
+          "replace_with_preferred_term": "Metastatic malignant neoplasm to bone (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two new-episode clinical items (Haemorrhoid and Proctoscopy) are documented in the encounter but absent from the SNOMED coded list and must be added. The generic metastasis code 128462008 is redundant alongside the already-coded site-specific concept 94222008 (bone) and should be removed; note that lookup_concept returned unreliable results for both metastasis concept IDs, but search_snomed independently confirmed 94222008 as the correct specific code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4343,
+        "output_tokens": 1552,
+        "total_tokens": 5895,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "342c03fb-5c0b-4dd3-a364-849526391820",
+        "date": "2025-02-04",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5239fc0a-b168-4f59-b18c-48891dcb3e60",
+    "patient_id": "4469113522",
+    "date": "2025-03-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hot flushes",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient is explicitly documented as continuing to experience hot flushes as an ongoing symptom related to GnRH analogue therapy; this active finding is not coded.",
+          "snomed_search": "hot flushes",
+          "snomed_concept_id": "198436008",
+          "preferred_term": "Menopausal flushing (disorder)",
+          "sentence": "Continues to experience hot flushes for which he plans to speak with specialist nurse about again.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "128462008",
+          "name": "Metastatic malignant neoplasm (disorder)",
+          "severity": "low",
+          "reason": "This broad parent concept is fully subsumed by the already-coded 94222008 (Metastatic malignant neoplasm to bone), which is the specific finding evidenced in the note; retaining both creates redundancy without additional clinical information."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Coding is largely accurate for a complex oncology injection encounter. The main gap is the uncoded active symptom of hot flushes (vasomotor side effect of GnRH analogue therapy, explicitly documented as ongoing). The broad metastasis code 128462008 is redundant given the more specific bone metastasis code 94222008 is already present; note that lookup_concept returned unreliable results for both metastasis concept IDs due to a terminology server index issue, but search_snomed confirmed 94222008 is the correct and specific preferred term for bone metastases.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5950,
+        "output_tokens": 1438,
+        "total_tokens": 7388,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "5239fc0a-b168-4f59-b18c-48891dcb3e60",
+        "date": "2025-03-11",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7837c6fe-284b-4d20-bb6d-1539cdd35531",
+    "patient_id": "4469113522",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a283407f-c98c-48e2-914b-8e8a71b0da5c",
+    "patient_id": "4469113522",
+    "date": "2025-05-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CT colonography",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "CT colonography is explicitly listed as a procedure performed in this encounter but has not been coded.",
+          "snomed_search": "computed tomography colonography",
+          "snomed_concept_id": "1051291000000100",
+          "preferred_term": "Low dose computed tomography colonography (procedure)",
+          "sentence": "CT colonography (XacD0) (Ongoing Episode)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "high",
+          "reason": "The note explicitly documents 'Adenocarcinoma of rectum' \u2014 a site- and morphology-specific diagnosis \u2014 making the non-specific 'Malignant neoplasm of intestine' an under-coded replacement; the correct concept is 254582000.",
+          "replace_with_concept_id": "254582000",
+          "replace_with_preferred_term": "Adenocarcinoma of rectum (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The primary cancer diagnosis is coded at an unacceptably non-specific level (Malignant neoplasm of intestine) when the note clearly states Adenocarcinoma of rectum \u2014 this must be corrected to 254582000. CT colonography performed in the encounter is entirely absent from the coded list. The metastatic liver code (94381002) is confirmed correct by SNOMED search despite an unreliable lookup_concept response; the flexible sigmoidoscopy, liver biopsy, and USS guidance codes are clinically consistent with the encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7831,
+        "output_tokens": 1588,
+        "total_tokens": 9419,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "a283407f-c98c-48e2-914b-8e8a71b0da5c",
+        "date": "2025-05-23",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e9861d89-ae14-4021-a8fc-5f850e6a2b15",
+    "patient_id": "4469113522",
+    "date": "2025-06-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Intramuscular injection of gonadorelin analogue",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The procedure was performed and fully documented in this encounter (Decapeptyl SR 11.25mg IM, right buttock) and must be coded as a procedure.",
+          "snomed_search": "intramuscular injection gonadorelin analogue",
+          "snomed_concept_id": "865211000000104",
+          "preferred_term": "Intramuscular injection of gonadorelin analogue (procedure)",
+          "sentence": "Given: Intramuscular injection of gonadorelin analogue (Xaa4d)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "399068003",
+          "name": "Malignant neoplasm of prostate (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note explicitly states 'Assumed diagnosis' for the carcinoma of prostate, indicating diagnostic uncertainty; the correct assertion is 'possible' not 'present'."
+        }
+      ],
+      "overcoded": [],
+      "confidence": 0.88,
+      "notes": "Two issues identified: (1) the GnRH analogue IM injection procedure [865211000000104] is fully documented but not coded; (2) the prostate carcinoma is explicitly labelled 'Assumed diagnosis' in the note, so its assertion should be 'possible' rather than 'present'. The bone metastasis code [94222008] is appropriate given the bone scan findings, though the 'possibly ribs' qualifier means a 'possible' assertion could also be considered for that concept. lookup_concept returned unreliable results for both disorder codes but search_snomed confirmed both concept IDs are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5856,
+        "output_tokens": 1290,
+        "total_tokens": 7146,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "e9861d89-ae14-4021-a8fc-5f850e6a2b15",
+        "date": "2025-06-03",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "abdaab33-8909-4380-83d0-30143f1c6b58",
+    "patient_id": "4469113522",
+    "date": "2025-07-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a receptionist-logged third-party administrative encounter with no GP clinical narrative; the single coded concept 314503007 ('Did not attend - hospital appointment') is confirmed by search_snomed as the correct and only candidate for this finding and is clinically appropriate given the note content. The concept ID returned as unreliable by lookup_concept but is independently validated by the terminology search; no deletion is warranted. The patient safety concern (missing cancer treatment) is captured by the DNA code and should prompt urgent GP clinical follow-up, but no additional SNOMED-scope concepts are codeable from this receptionist note alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3447,
+        "output_tokens": 975,
+        "total_tokens": 4422,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "abdaab33-8909-4380-83d0-30143f1c6b58",
+        "date": "2025-07-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5681c544-9152-48c2-85cc-8182047ecc11",
+    "patient_id": "4469113522",
+    "date": "2025-08-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes are confirmed correct: 395915003 (Triptorelin substance) is evidenced by active Decapeptyl SR prescription, and 236240005 (Clean intermittent self-catheterisation) is evidenced by the LoFric male catheter on the repeat list. Lookup_concept returned unreliable results for both IDs but search_snomed confirmed both concept IDs are accurate. No new clinical diagnoses or findings are explicitly documented in this medication review without patient encounter; sildenafil removal is an administrative medication action and no diagnosis should be inferred from tamsulosin alone without explicit textual confirmation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4741,
+        "output_tokens": 1002,
+        "total_tokens": 5743,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "5681c544-9152-48c2-85cc-8182047ecc11",
+        "date": "2025-08-21",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d63496a9-6a53-47f9-83d8-53a78cb241af",
+    "patient_id": "4469113522",
+    "date": "2025-08-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chronic pain due to malignant neoplastic disease",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Pain is the primary presenting complaint driving the entire consultation \u2014 opioid escalation, cyclizine, and palliative referral are all pain-management responses; this should be coded explicitly.",
+          "snomed_search": "chronic pain cancer",
+          "snomed_concept_id": "735935009",
+          "preferred_term": "Chronic pain due to malignant neoplastic disease (finding)",
+          "sentence": "now struggling with pain",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "vomiting",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vomiting is explicitly documented as an ongoing symptom and directly informs the prescription of cyclizine as an antiemetic.",
+          "snomed_search": "nausea vomiting symptom",
+          "snomed_concept_id": "16932000",
+          "preferred_term": "Nausea and vomiting (disorder)",
+          "sentence": "occassionally also struggles with vomiting",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "reduced appetite",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Reduced appetite is explicitly documented and is a clinically significant symptom in the context of metastatic malignancy requiring monitoring and palliative management.",
+          "snomed_search": "reduced appetite",
+          "snomed_concept_id": "64379006",
+          "preferred_term": "Decrease in appetite (finding)",
+          "sentence": "Reduced appetite",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363508008",
+          "name": "Malignant neoplasm of intestine (disorder)",
+          "severity": "medium",
+          "reason": "The note documents 'Rectal anal cancer' \u2014 'Malignant neoplasm of intestine' is anatomically too broad and imprecise; it should be replaced with the overlapping rectum/anus/anal canal concept which best captures the documented 'rectal anal' description.",
+          "replace_with_concept_id": "109839004",
+          "replace_with_preferred_term": "Overlapping malignant neoplasm of rectum, anus and anal canal (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "116491000119104",
+          "name": "Osteoporosis treatment declined (situation) [as coded]",
+          "severity": "high",
+          "reason": "The terminology server confirms this concept ID resolves to 'DRB1*09012 (substance)' \u2014 an HLA allele, not a clinical situation; the note documents refusal of cancer treatment, which should be coded with an appropriate declined/refused treatment situation code such as 406149000 Medication declined or a cancer-treatment-refused situation."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a complex palliative encounter with several significant coding issues: concept ID 116491000119104 is a completely wrong code (HLA substance) used to represent treatment refusal and must be corrected; 363508008 (Malignant neoplasm of intestine) is too broad for the documented 'rectal anal cancer' and should be replaced with the overlapping rectum/anus/anal canal concept. Three clinically important active symptoms \u2014 cancer pain (the primary driver of the consultation), vomiting, and reduced appetite \u2014 are absent from the coded list. Note also that an advanced care planning need is documented but no ACP procedure code has been applied; this may warrant a separate review. Confidence is slightly reduced because several existing concept IDs returned unreliable terminology server responses, though the clinical context supports their intended meaning.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 16596,
+        "output_tokens": 2726,
+        "total_tokens": 19322,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "d63496a9-6a53-47f9-83d8-53a78cb241af",
+        "date": "2025-08-22",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2060e79d-1451-4f46-a61f-39bec24f4c1c",
+    "patient_id": "4469113522",
+    "date": "2025-08-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "entities": [
+        {
+          "concept_id": "266987004",
+          "term": "History of malignant neoplasm (situation)",
+          "assertion": "present",
+          "verdict": "confirmed \u2013 search_snomed validates this concept ID; standing problem-list code for prostate carcinoma history"
+        },
+        {
+          "concept_id": "128462008",
+          "term": "Metastatic malignant neoplasm (disorder)",
+          "assertion": "present",
+          "verdict": "confirmed \u2013 search_snomed validates this concept ID; well evidenced by 'multiple mets' in note"
+        },
+        {
+          "concept_id": "14040001000004109",
+          "term": "Uncontrolled pain (finding)",
+          "assertion": "present",
+          "verdict": "confirmed \u2013 search_snomed validates this concept ID; explicitly documented as driving opioid and palliative care decisions"
+        },
+        {
+          "concept_id": "103735009",
+          "term": "Palliative care (regime/therapy)",
+          "assertion": "present",
+          "verdict": "outside disorder/finding/situation audit scope but clinically appropriate; palliative nursing involvement agreed at this encounter"
+        }
+      ],
+      "notes": "All four coded concepts are confirmed correct via search_snomed (lookup_concept returned unreliable results for three IDs but search validation confirmed them). The note references advance care planning as not yet established \u2014 this is a future/planned item and should not be coded as present; it is noted here for clinical awareness only. Coding is complete and accurate for this clinical supervision encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6479,
+        "output_tokens": 1778,
+        "total_tokens": 8257,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "2060e79d-1451-4f46-a61f-39bec24f4c1c",
+        "date": "2025-08-22",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0759b8d5-c4c9-450b-bcaa-3e808ac461a3",
+    "patient_id": "4469113522",
+    "date": "2025-08-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "intramuscular injection of Decapeptyl (triptorelin) GnRH analogue",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The Decapeptyl SR 11.25mg IM injection was physically administered today under a PSD; this is a clinical procedure that occurred in this encounter and should be coded as a procedure, not merely as a substance/product.",
+          "snomed_search": "intramuscular injection GnRH analogue",
+          "snomed_concept_id": "865211000000104",
+          "preferred_term": "Intramuscular injection of gonadorelin analogue (procedure)",
+          "sentence": "Decapeptyl SR 11.25mg powder and solvent for suspension for injection vials (Ipsen Ltd) - 1 vial - IM injection every 3 months",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "128462008",
+          "name": "Metastatic malignant neoplasm (disorder)",
+          "severity": "medium",
+          "reason": "This generic metastatic neoplasm code is fully subsumed by the more specific 94222008 (Metastatic malignant neoplasm to bone) which is already coded; retaining both creates redundancy without additional clinical information.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        },
+        {
+          "conceptId": "777868006",
+          "name": "Triptorelin (product)",
+          "severity": "medium",
+          "reason": "A substance/product code does not capture the clinical act of IM injection administration that occurred today; this should be replaced by the procedure code for intramuscular injection of gonadorelin analogue (865211000000104).",
+          "replace_with_concept_id": "865211000000104",
+          "replace_with_preferred_term": "Intramuscular injection of gonadorelin analogue (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "399068003",
+          "name": "Malignant neoplasm of prostate (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note explicitly states 'Assumed diagnosis' and 'assumed prostate cancer' throughout, indicating the diagnosis has not been histologically confirmed; assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three coding issues identified: (1) the prostate cancer assertion should be 'possible' as the note repeatedly states 'assumed diagnosis'; (2) the generic metastatic neoplasm code (128462008) is redundant given the more specific bone metastasis code (94222008) is already present; (3) the triptorelin product code (777868006) should be replaced with the procedure code for IM injection of gonadorelin analogue (865211000000104) to correctly represent the clinical act performed today. Lookup_concept returned unreliable results for all four existing concept IDs due to a terminology server index issue; concept validity was confirmed via search_snomed cross-referencing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11603,
+        "output_tokens": 2177,
+        "total_tokens": 13780,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "0759b8d5-c4c9-450b-bcaa-3e808ac461a3",
+        "date": "2025-08-28",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3eda8f17-5183-47bd-8766-d7753553c760",
+    "patient_id": "4469113522",
+    "date": "2025-08-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bone scan",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly references bone scan results showing bony metastases at multiple named sites; the diagnostic imaging procedure itself should be coded.",
+          "snomed_search": "radioisotope scan bone",
+          "snomed_concept_id": "41747008",
+          "preferred_term": "Radioisotope scan of bone (procedure)",
+          "sentence": "bone scan suggests bony mets R humerus, L scapula, pelvic girdle and possibly ribs",
+          "char_start": 120,
+          "char_end": 195
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "128462008",
+          "name": "Metastatic malignant neoplasm (disorder)",
+          "severity": "medium",
+          "reason": "This is the direct parent concept of the already-coded [94222008] Metastatic malignant neoplasm to bone (disorder); coding both is redundant as the more specific site-specific child concept fully subsumes the parent.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The core oncology coding (prostate malignancy, bone metastases, PSA) is clinically appropriate, but [128462008] Metastatic malignant neoplasm is redundant given the more specific [94222008] Metastatic malignant neoplasm to bone is already coded. The bone scan procedure (41747008) referenced in the note is missing from the coded list. Note: lookup_concept returned unreliable results for all three disorder concept IDs, but search_snomed confirmed their identity and correctness independently.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10572,
+        "output_tokens": 1706,
+        "total_tokens": 12278,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "3eda8f17-5183-47bd-8766-d7753553c760",
+        "date": "2025-08-28",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5faa49d7-b732-46d8-bddc-ae39537b344b",
+    "patient_id": "4469113522",
+    "date": "2025-11-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Seasonal influenza vaccination declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "Patient explicitly declined seasonal influenza vaccination during this encounter; this is a clinically relevant declined intervention that should be coded.",
+          "snomed_search": "influenza vaccination",
+          "snomed_concept_id": "315640000",
+          "preferred_term": "Influenza vaccination declined (situation)",
+          "sentence": "Not given: Seasonal influenza vaccination declined (XaZ0i)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The most significant coding error is concept 94503003, which the terminology server cannot reliably confirm and which search results identify as 'Metastatic malignant neoplasm to prostate (disorder)' \u2014 this is clinically incorrect given the note describes bony metastases (R humerus, L scapula, pelvic girdle, ribs); the correct concept should be 94222008 'Metastatic malignant neoplasm to bone (disorder)'. However, because lookup_concept returned unreliable=true for 94503003, this cannot be flagged as overcoded per rules; it is noted here for human review. Seasonal influenza vaccination declined (315640000) is missing from the SNOMED-coded list. Herpes zoster vaccination declined is recorded via a local/CTV3 code (Xaa9j) and may not have a confirmed SNOMED mapping available. The PSA observable entity and prostate malignancy codes are otherwise appropriate for this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6301,
+        "output_tokens": 1235,
+        "total_tokens": 7536,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4469113522",
+        "encounter_id": "5faa49d7-b732-46d8-bddc-ae39537b344b",
+        "date": "2025-11-28",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  }
+]

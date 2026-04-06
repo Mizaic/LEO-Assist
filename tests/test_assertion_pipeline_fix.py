@@ -10,8 +10,7 @@ Covers every layer where the bug existed or where new behaviour was added:
    declined and cancelled; patient shortcut gate query uses FOREACH.
 4. Tier Classifier -- declined and cancelled both trigger Tier 3 in
    both modes; both are in _AUTO_CODE_BLOCKED.
-5. Label Verifier -- _AUTO_CODE_BLOCKED and _ASSERTION_QUEUE_SET include
-   declined and cancelled.
+5. Label Verifier -- _AUTO_CODE_BLOCKED includes declined and cancelled.
 6. Extractor Contract -- CONTRACT_VERSION is 1.2 (bumped for schema change).
 7. Patient Timeline Query -- GET_PATIENT_CODING_TIMELINE returns
    required fields and is ordered by date.
@@ -118,6 +117,9 @@ class TestSchemaMapperAssertionAllowlist:
     def test_hypothetical_still_passes_through(self):
         assert self._map_entity("hypothetical") == "hypothetical"
 
+    def test_planned_still_passes_through(self):
+        assert self._map_entity("planned") == "planned"
+
 
 # ---------------------------------------------------------------------------
 # 3. Documents Queries
@@ -141,6 +143,18 @@ class TestDocumentsQueriesAssertionContext:
     def test_cancelled_in_non_present(self):
         non_present, _ = self._import()
         assert "cancelled" in non_present
+
+    def test_planned_in_non_present(self):
+        non_present, _ = self._import()
+        assert "planned" in non_present
+
+    def test_assertion_context_planned(self):
+        _, ctx_fn = self._import()
+        ctx = ctx_fn("planned")
+        assert ctx["assertion"] == "planned"
+        assert ctx["planned"] is True
+        assert ctx["negated"] is False
+        assert ctx["hypothetical"] is False
 
     def test_assertion_context_declined(self):
         _, ctx_fn = self._import()
@@ -251,7 +265,7 @@ class TestTierClassifierDeclinedCancelled:
 
 
 class TestLabelVerifierAssertionSets:
-    """_AUTO_CODE_BLOCKED and _ASSERTION_QUEUE_SET in label_verifier.py."""
+    """_AUTO_CODE_BLOCKED in label_verifier.py blocks all non-present assertions."""
 
     def test_auto_code_blocked_contains_declined(self):
         """_AUTO_CODE_BLOCKED is a local constant; verify by source inspection."""
@@ -269,19 +283,6 @@ class TestLabelVerifierAssertionSets:
         assert '"cancelled"' in src or "'cancelled'" in src, (
             "_AUTO_CODE_BLOCKED must contain 'cancelled'"
         )
-
-    def test_assertion_queue_set_contains_declined(self):
-        from services.api.app.services.label_verifier import _ASSERTION_QUEUE_SET
-        assert "declined" in _ASSERTION_QUEUE_SET
-
-    def test_assertion_queue_set_contains_cancelled(self):
-        from services.api.app.services.label_verifier import _ASSERTION_QUEUE_SET
-        assert "cancelled" in _ASSERTION_QUEUE_SET
-
-    def test_assertion_queue_set_contains_possible(self):
-        """Regression guard -- possible must remain in the queue set."""
-        from services.api.app.services.label_verifier import _ASSERTION_QUEUE_SET
-        assert "possible" in _ASSERTION_QUEUE_SET
 
 
 # ---------------------------------------------------------------------------

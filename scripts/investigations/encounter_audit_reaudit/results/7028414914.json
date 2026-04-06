@@ -1,0 +1,333 @@
+[
+  {
+    "encounter_id": "b8656cb9-c722-4ec9-bd8b-ef05ab095484",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lip wound",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note describes an open lip wound cleaned and closed with glue; 'Open wound of lip' is the correct code \u2014 the currently coded 'Stab wound of lip' (283456007) is both clinically wrong and terminologically unreliable.",
+          "snomed_search": "open wound of lip",
+          "snomed_concept_id": "210344002",
+          "preferred_term": "Open wound of lip (disorder)",
+          "sentence": "Cleaned lip wound with gauze and saline - debris/grit sucessfully removed",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hand wound",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note describes an open hand wound with grit/debris cleaned with saline; 'Open wound of hand' is the correct code \u2014 the currently coded 'Gunshot wound of hand' (1287393009) is both clinically wrong and terminologically unreliable.",
+          "snomed_search": "open wound of hand",
+          "snomed_concept_id": "125652005",
+          "preferred_term": "Open wound of hand (disorder)",
+          "sentence": "Hand wound cleaned with saline and gauze - advised to bathe in hot soapy water to help bring grit out",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "debris/grit in wound",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Grit/debris was identified in the wounds and removed; 'Foreign body in skin wound (disorder)' is the correct in-scope code \u2014 the currently coded concept 397175005 is a morphologic abnormality (out of scope) and terminologically unreliable.",
+          "snomed_search": "foreign body skin wound",
+          "snomed_concept_id": "211463006",
+          "preferred_term": "Foreign body in skin wound (disorder)",
+          "sentence": "Cleaned lip wound with gauze and saline - debris/grit sucessfully removed",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "283456007",
+          "name": "Stab wound of lip (disorder)",
+          "severity": "high",
+          "reason": "The note describes a lip wound contaminated with grit/debris (consistent with a fall or abrasion), not a stab wound; this concept is also terminologically unreliable (Extension Namespace placeholder).",
+          "replace_with_concept_id": "210344002",
+          "replace_with_preferred_term": "Open wound of lip (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1287393009",
+          "name": "Gunshot wound of hand (disorder)",
+          "severity": "high",
+          "reason": "The note describes a hand wound with grit/debris requiring saline cleaning, not a gunshot wound; the terminology server also returned this concept as an organism (clearly wrong concept ID).",
+          "replace_with_concept_id": "125652005",
+          "replace_with_preferred_term": "Open wound of hand (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "397175005",
+          "name": "Foreign body in wound (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "Morphologic abnormality is outside the required SNOMED coding scope and the concept ID is terminologically unreliable; replace with the in-scope disorder equivalent.",
+          "replace_with_concept_id": "211463006",
+          "replace_with_preferred_term": "Foreign body in skin wound (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Three significant coding errors identified: the lip wound has been miscoded as a stab wound and the hand wound as a gunshot wound \u2014 both are clinically implausible given the context (child with mum, grit/debris contamination) and both concept IDs are terminologically unreliable. The foreign body code uses an out-of-scope morphologic abnormality with an unreliable concept ID and should be replaced with the disorder equivalent. The wound cleaning and glue closure procedure codes are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5035,
+        "output_tokens": 1989,
+        "total_tokens": 7024,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "b8656cb9-c722-4ec9-bd8b-ef05ab095484",
+        "date": "2024-04-18",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4e39d1f6-b19d-4304-8dce-c8b1acda13e5",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "grit all in hands",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents grit (foreign body material) embedded in the patient's hands following the fall, which is a distinct clinical finding that should be coded separately from the lip laceration.",
+          "snomed_search": "foreign body in skin wound",
+          "snomed_concept_id": "211463006",
+          "preferred_term": "Foreign body in skin wound (disorder)",
+          "sentence": "cut to lip and grit all in hands",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (lip laceration and glue wound closure) are correct and well-evidenced; lookup_concept returned unreliable Extension Namespace results for both but search_snomed confirmed both concept IDs with top scores. One coding gap identified: the explicitly documented grit in the hands (foreign body in skin wound, 211463006) is not coded. No LOC and no vomiting are negative findings and correctly absent from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8319,
+        "output_tokens": 1359,
+        "total_tokens": 9678,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "4e39d1f6-b19d-4304-8dce-c8b1acda13e5",
+        "date": "2024-04-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "931ce4cd-4524-4edb-991a-eb5ecf95e3b5",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All three coded concepts are correct and well-evidenced: sore throat and ear pain are the documented presenting complaints, and blood pressure is appropriately captured as an observable entity from structured vitals. Terminology server lookups for the two finding codes returned unreliable results, but search_snomed confirmed both concept IDs map to the expected preferred terms and semantic tags. NEWS2 and remaining vitals are structured pipeline values and are not in scope for encounter-level coding.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4638,
+        "output_tokens": 862,
+        "total_tokens": 5500,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "931ce4cd-4524-4edb-991a-eb5ecf95e3b5",
+        "date": "2024-11-07",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ee1b533c-b35b-4c14-9cdd-6a5706f0f538",
+    "patient_id": "7028414914",
+    "date": "2024-11-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Pain in Rt ear",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Right ear pain is an explicit presenting complaint documented in both the PC and HPC sections and is a distinct clinical finding separate from the tonsillitis diagnosis.",
+          "snomed_search": "ear pain",
+          "snomed_concept_id": "301354004",
+          "preferred_term": "Pain of ear (finding)",
+          "sentence": "PC: Sore throat, ear pain",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "dark brown cerumen, moist \u2014 Rt ear 0% TM view",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Right ear examination documents dark brown cerumen causing 0% tympanic membrane view, consistent with impacted cerumen \u2014 a distinct clinical finding that should be coded.",
+          "snomed_search": "impacted cerumen ear",
+          "snomed_concept_id": "18070006",
+          "preferred_term": "Impacted cerumen (disorder)",
+          "sentence": "Rt ear: 0% TM view, dark brown cerumen, moist. No canal inflammation.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Pus on tonsils",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Pus on tonsils is explicitly documented in the FeverPAIN scoring and supports the tonsillitis diagnosis; tonsillar exudate is a distinct examination finding that should be coded.",
+          "snomed_search": "exudate on tonsils",
+          "snomed_concept_id": "394715003",
+          "preferred_term": "On examination - exudate on tonsils (finding)",
+          "sentence": "Pus on tonsils: Yes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "274747003",
+          "name": "Localized swelling, mass and lump, neck (finding)",
+          "severity": "medium",
+          "reason": "The note documents 'Raised cervical lymph glands', which is cervical lymphadenopathy \u2014 a specific lymph node finding \u2014 not a generic neck swelling/lump; the coded concept is imprecise and misleading.",
+          "replace_with_concept_id": "127086001",
+          "replace_with_preferred_term": "Cervical lymphadenopathy (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis of tonsillitis (90176007) and fever (386661006) are correctly coded, but the cervical lymph node finding is coded with an imprecise neck-swelling concept rather than cervical lymphadenopathy (127086001). Three clinically documented findings are missing: right ear pain (presenting complaint), impacted cerumen in the right ear (examination finding causing 0% TM view), and tonsillar exudate (FeverPAIN criterion). Lookup_concept returned unreliable results for all three existing concept IDs, but search_snomed confirmed 386661006 and 90176007 are valid; 274747003 was not confirmed by search and should be replaced.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10925,
+        "output_tokens": 2239,
+        "total_tokens": 13164,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "ee1b533c-b35b-4c14-9cdd-6a5706f0f538",
+        "date": "2024-11-08",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f6f8a693-4abd-4e01-ab12-4a8686975367",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [
+        {
+          "term": "recurrent ulcers on lip/cheek mucosa",
+          "severity": "low",
+          "suggested_assertion": "historical",
+          "reason": "The note documents a history of recurrent oral ulcers on lip and cheek mucosa over the past year, each resolving within 1-2 weeks; this is a distinct historical finding from the acute tongue ulcer already coded.",
+          "snomed_search": "recurrent oral ulceration",
+          "snomed_concept_id": "723177002",
+          "preferred_term": "Recurrent ulcer of mouth (disorder)",
+          "sentence": "has had a few ulcers over the past year or so on lip/ cheek mucosa area which has gone within a week or two, but this is the worst.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All four coded concepts are correctly identified and well-evidenced by the encounter text: the 2WW head and neck cancer referral (critical safety code), tongue ulcer (primary presenting disorder), cancer safety netting, and never-smoked status are all appropriate. The only minor gap is a historical code for recurrent oral ulcers on lip/cheek mucosa, which provides useful background context but is low priority given the acute tongue ulcer is already coded. Lookup_concept returned unreliable results for three of the four concepts, but search_snomed independently confirmed all concept IDs are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8995,
+        "output_tokens": 1638,
+        "total_tokens": 10633,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "f6f8a693-4abd-4e01-ab12-4a8686975367",
+        "date": "2025-03-19",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3ea0f438-ab6b-4739-954a-3b336fd8c320",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dad has mouth ulcers as well",
+          "severity": "low",
+          "suggested_assertion": "family",
+          "reason": "Father's history of mouth ulcers is clinically relevant in a paediatric recurrent oral ulcer presentation and should be recorded as a family history finding to support future diagnostic workup (e.g. Beh\u00e7et's, familial aphthous stomatitis).",
+          "snomed_search": "family history mouth ulcers",
+          "snomed_concept_id": "",
+          "preferred_term": "",
+          "sentence": "dad has mouth ulcers as well.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary code 723177002 (Recurrent ulcer of mouth) is correct and well-evidenced \u2014 the terminology server lookup returned an unreliable result (organism tag) but search_snomed confirms the concept ID is valid in the disorder hierarchy. The only gap is the father's history of mouth ulcers, which warrants a family history situation code; no specific SNOMED concept for 'family history of mouth ulcers' was resolvable via search, so no concept ID can be proposed \u2014 human review recommended for that item.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3716,
+        "output_tokens": 1075,
+        "total_tokens": 4791,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "3ea0f438-ab6b-4739-954a-3b336fd8c320",
+        "date": "2025-03-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  }
+]

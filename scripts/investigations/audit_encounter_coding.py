@@ -13,6 +13,7 @@ Usage
     python scripts/investigations/audit_encounter_coding.py --resume
     python scripts/investigations/audit_encounter_coding.py --yes --since-days 14
     python scripts/investigations/audit_encounter_coding.py --yes --since 2026-01-01
+    python scripts/investigations/audit_encounter_coding.py --yes --kg-writeback
 
 Outputs (in --output dir, default scripts/investigations/encounter_audit/):
     encounter_audit.db           -- SQLite checkpoint (crash-safe)
@@ -22,12 +23,14 @@ Outputs (in --output dir, default scripts/investigations/encounter_audit/):
     severity_summary.txt         -- counts by severity
     top_issues.txt               -- top 50 most-common missing concepts
 """
+
 from __future__ import annotations
 
 import argparse
 import csv
 import json
 import logging
+import os
 import random
 import sys
 import threading
@@ -56,7 +59,111 @@ from scripts.investigations._audit_db import (  # noqa: E402
     STATUS_DONE,
     CheckpointDB,
 )
-from scripts.investigations._audit_llm import call_llm_with_retry  # noqa: E402
+from scripts.investigations._audit_llm import (  # noqa: E402
+    call_llm_with_retry,
+    _extract_assertion,
+)
+
+_CODING_AGENT_ENABLED = os.getenv("CODING_AGENT_ENABLED", "true").lower() not in {
+    "false",
+    "0",
+    "no",
+    "off",
+}
+
+# -- Admin pre-filter ---------------------------------------------------------
+# Patterns that reliably indicate no clinical content. Matched against the full
+# encounter text. A match skips the LLM call entirely -> no_clinical_content.
+_ADMIN_PATTERNS: list[str] = [
+    # Receptionist / access-role headers
+    "receptionist",
+    "medical secretary",
+    "admin",
+    "access role",
+    # Scheduling / appointment messages
+    "appointment confirmation",
+    "appointment reminder",
+    "we are writing to confirm your appointment",
+    "you have been booked",
+    "please attend",
+    "sms reminder",
+    "text reminder",
+    # Repeat / workflow (often no clinical body in short notes)
+    "repeat prescription",
+    "repeat medication",
+    "requested repeat",
+    "medication collection",
+    # Pure NHS routing / referral destination lines with no clinical body
+    "nhs 111",
+    "111 report received",
+    "111 routing",
+    # Satisfaction surveys
+    "patient satisfaction",
+    "friends and family test",
+    "would you recommend",
+    "please rate your experience",
+]
+# If the text is shorter than this AND matches an admin pattern, skip the agent.
+_ADMIN_SHORT_THRESHOLD = 300
+# Minimum clinical keyword count needed to avoid the short-text bypass.
+_CLINICAL_KEYWORDS: frozenset[str] = frozenset(
+    [
+        "diagnosis",
+        "prescribed",
+        "examination",
+        "assessment",
+        "history",
+        "complaint",
+        "symptoms",
+        "treatment",
+        "referral",
+        "medication",
+        "blood pressure",
+        "bp",
+        "pulse",
+        "temperature",
+        "weight",
+        "height",
+        "pain",
+        "cough",
+        "fever",
+        "chest",
+        "abdomen",
+        "infection",
+        "diabetes",
+        "hypertension",
+        "asthma",
+        "copd",
+        "anxiety",
+        "depression",
+        "review",
+        "follow up",
+        "plan",
+        "impression",
+        "investigation",
+    ]
+)
+
+
+def _is_admin_only(text: str) -> bool:
+    """Return True when the encounter text is clearly non-clinical admin content.
+
+    Two triggers:
+    1. Any known admin pattern present AND text is short (< _ADMIN_SHORT_THRESHOLD).
+    2. Text is very short (< 80 chars) with no clinical keywords.
+    """
+    lower = text.lower()
+    if len(text) < 80:
+        has_clinical = any(kw in lower for kw in _CLINICAL_KEYWORDS)
+        if not has_clinical:
+            return True
+    if len(text) < _ADMIN_SHORT_THRESHOLD:
+        if any(pat in lower for pat in _ADMIN_PATTERNS):
+            clinical_hits = sum(1 for kw in _CLINICAL_KEYWORDS if kw in lower)
+            if clinical_hits < 2:
+                return True
+    return False
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -152,8 +259,11 @@ def _discover_page(
 ) -> list[dict[str, Any]]:
     q = _Q_ENCOUNTER_IDS.format(extra_where=extra_where)
     return client.run(
-        q, skip=skip, page_size=page_size,
-        since_date=since_date, until_date=until_date,
+        q,
+        skip=skip,
+        page_size=page_size,
+        since_date=since_date,
+        until_date=until_date,
     )
 
 
@@ -212,19 +322,30 @@ def _run_sample(
         logger.info(
             "  [%d/%d] %s  patient=%s  assessment=%s  missing=%d"
             "  wrong_assertion=%d  overcoded=%d  confidence=%s",
-            i, len(sample), row["date"], row["patient_id"],
-            assessment, missing_n, wrong_n, over_n, conf,
+            i,
+            len(sample),
+            row["date"],
+            row["patient_id"],
+            assessment,
+            missing_n,
+            wrong_n,
+            over_n,
+            conf,
         )
         for m in result.get("missing", []):
             logger.info(
                 "    MISSING [%s] %s -- %s",
-                m.get("severity", "?"), m.get("term", "?"), m.get("reason", ""),
+                m.get("severity", "?"),
+                m.get("term", "?"),
+                m.get("reason", ""),
             )
         for w in result.get("wrong_assertion", []):
             logger.info(
                 "    ASSERTION [%s] %s: %s -> %s",
-                w.get("severity", "?"), w.get("name", "?"),
-                w.get("current_assertion"), w.get("suggested_assertion"),
+                w.get("severity", "?"),
+                w.get("name", "?"),
+                w.get("current_assertion"),
+                w.get("suggested_assertion"),
             )
         if result.get("notes"):
             logger.info("    NOTE: %s", result["notes"])
@@ -241,13 +362,18 @@ def run_preflight(
     """Print volume stats and run sample. Returns True if user confirms."""
     extra_where = (
         "AND EXISTS { (p)-[:HAS_EPISODE_OF_CARE]->(:EpisodeOfCare) }"
-        if cancer_only else ""
+        if cancer_only
+        else ""
     )
     _print_volumes(client, since_date, until_date)
     llm = create_llm(provider="aws", tier=tier)
     _run_sample(
-        client, llm, n=sample_n, extra_where=extra_where,
-        since_date=since_date, until_date=until_date,
+        client,
+        llm,
+        n=sample_n,
+        extra_where=extra_where,
+        since_date=since_date,
+        until_date=until_date,
     )
     logger.info("--- Sample complete ---")
     try:
@@ -295,7 +421,10 @@ def run_discovery(
         skip += _PAGE_SIZE
         logger.info(
             "Discovery: fetched %d records (skip=%d, new=%d, total=%d)",
-            len(page), skip - _PAGE_SIZE, inserted, total_inserted,
+            len(page),
+            skip - _PAGE_SIZE,
+            inserted,
+            total_inserted,
         )
         if len(page) < _PAGE_SIZE:
             break
@@ -308,15 +437,204 @@ def run_discovery(
 # ---------------------------------------------------------------------------
 
 
+_ASSERTION_WORDS = frozenset(
+    {
+        "absent",
+        "present",
+        "historical",
+        "possible",
+        "family",
+        "declined",
+        "cancelled",
+        "refuted",
+        "normal",
+        "negative",
+        "positive",
+    }
+)
+
+
+def _strip_assertion_words(search: str) -> str:
+    """Remove trailing assertion words from a snomed_search term."""
+    words = search.strip().split()
+    while words and words[-1].lower() in _ASSERTION_WORDS:
+        words.pop()
+    return " ".join(words)
+
+
+def _sanitise_result(result: dict) -> dict:
+    """Clean LLM result before storing:
+    - Strip assertion words from snomed_search terms.
+    - Remove absent findings from the 'missing' list.
+    - Remove wrong_assertion entries where current == suggested.
+    """
+    cleaned_missing = []
+    for m in result.get("missing", []):
+        if m.get("suggested_assertion") == "absent":
+            continue
+        ss = (m.get("snomed_search") or "").strip()
+        if ss:
+            m["snomed_search"] = _strip_assertion_words(ss)
+        if m.get("snomed_search"):
+            cleaned_missing.append(m)
+    result["missing"] = cleaned_missing
+
+    result["wrong_assertion"] = [
+        w
+        for w in result.get("wrong_assertion", [])
+        if w.get("current_assertion") != w.get("suggested_assertion")
+    ]
+    return result
+
+
+_ASSESSMENT_NORM = {
+    # has_issues variants
+    "not clean": "has_issues",
+    "not_clean": "has_issues",
+    "has issues": "has_issues",
+    "has_issue": "has_issues",
+    "issues_found": "has_issues",
+    "errors_found": "has_issues",
+    "needs_attention": "has_issues",
+    "dirty": "has_issues",
+    "partial": "has_issues",
+    # needs_review variants
+    "incomplete": "needs_review",
+    "requires_review": "needs_review",
+    # no_clinical_content variants
+    "no_codeable_content": "no_clinical_content",
+    "no_clinical_coding": "no_clinical_content",
+    "admin_only": "no_clinical_content",
+    "admin only": "no_clinical_content",
+    "non_clinical": "no_clinical_content",
+    # clean variants
+    "no_issues": "clean",
+    "no issues": "clean",
+    "all_correct": "clean",
+}
+
+
+def _check_cost_cap(
+    result: dict, cost_acc: "CostAccumulator | None", eid: str, db: CheckpointDB
+) -> bool:
+    """Return True if cost cap hit and caller should stop."""
+    if cost_acc is None:
+        return False
+    meta = result.get("metadata") or {}
+    input_tok = int(meta.get("input_tokens") or 0)
+    output_tok = int(meta.get("output_tokens") or 0)
+    model_id = str(meta.get("model_id") or "")
+    if cost_acc.add_tokens(input_tok, output_tok, model_id):
+        logger.warning(
+            "audit.cost_cap_hit: cumulative_usd=%.2f cap=%.2f "
+            "input_tokens=%d output_tokens=%d -- pausing",
+            cost_acc.total_usd,
+            cost_acc.cap_usd,
+            cost_acc.total_input_tokens,
+            cost_acc.total_output_tokens,
+        )
+        db.mark_done(eid, {"encounter_assessment": "skipped", "reason": "cost_cap"})
+        return True
+    return False
+
+
+def _invoke_agent(tier: str, pid: str, eid: str, text: str, coded: list[dict]) -> dict:
+    """Invoke the coding agent subgraph and return the verdict dict."""
+    from libs.pipeline_graph.registry import get_registry
+
+    subgraph = get_registry().build("encounter_coding_agent")
+    output = subgraph.invoke(
+        {
+            "encounter_id": eid,
+            "patient_id": pid,
+            "encounter_text": text,
+            "coded_entities": coded,
+            "tier": tier,
+            "apply": False,
+        }
+    )
+    return output.get("verdict") or {
+        "encounter_assessment": "needs_review",
+        "missing": [],
+        "overcoded": [],
+        "wrong_assertion": [],
+        "confidence": 0.0,
+        "notes": "agent returned no verdict",
+    }
+
+
+def _extract_ner_from_verdict(eid: str, result: dict, db: CheckpointDB) -> None:
+    """Write NER training rows from missing entities that have sentence offsets."""
+    for m in result.get("missing", []):
+        sentence = m.get("sentence") or ""
+        char_start = m.get("char_start")
+        char_end = m.get("char_end")
+        concept_id = m.get("snomed_concept_id") or ""
+        entity = m.get("term") or ""
+        if not (
+            sentence and char_start is not None and char_end is not None and concept_id
+        ):
+            continue
+        db.insert_ner_example(
+            {
+                "encounter_id": eid,
+                "sentence": sentence,
+                "entity": entity,
+                "start_char": int(char_start),
+                "end_char": int(char_end),
+                "concept_id": concept_id,
+                "term": m.get("preferred_term") or entity,
+                "semantic_tag": "disorder",
+                "assertion": m.get("suggested_assertion") or "present",
+            }
+        )
+
+
+def _verified_by_for_audit_result(result: dict[str, Any]) -> str:
+    notes = str(result.get("notes") or "")
+    if "Pre-filter" in notes:
+        return "audit_prefilter"
+    return "audit_agent"
+
+
+def _maybe_write_audit_verified_kg(
+    *,
+    kg_writeback: bool,
+    raw_text: str,
+    coded: list[dict[str, Any]],
+    result: dict[str, Any],
+) -> None:
+    if not kg_writeback:
+        return
+    assessment = str(result.get("encounter_assessment") or "")
+    # Only write encounters that were correctly coded with real clinical entities.
+    # no_clinical_content = admin/routine with nothing to code -> skip.
+    if assessment not in ("no_issues", "clean"):
+        return
+    from libs.audit.kg_verified_writeback import write_audit_verified_to_kg
+
+    q = float(result.get("confidence") or 0.92)
+    write_audit_verified_to_kg(
+        raw_encounter_text=raw_text,
+        coded_rows=coded,
+        quality_score=q,
+        verified_by=_verified_by_for_audit_result(result),
+        assessment=assessment,
+    )
+
+
 def _audit_one(
     client: PatientGraphClient,
-    llm: Any,
+    tier: str,
     db: CheckpointDB,
     row: dict[str, Any],
     cost_acc: "CostAccumulator | None" = None,
+    kg_writeback: bool = False,
 ) -> bool:
-    """Process one encounter: LLM call + checkpoint.
+    """Process one encounter: LLM audit + evidence quality check + NER extraction.
 
+    Single Neo4j load -- coded list is reused for LLM context, surface gap
+    detection, wrong concept detection, and NER sentence extraction.
     Returns False if the cost cap was hit (caller should stop the loop).
     """
     pid, eid = row["patient_id"], row["encounter_id"]
@@ -327,38 +645,38 @@ def _audit_one(
                 eid, {"encounter_assessment": "skipped", "reason": "empty text"}
             )
             return True
-        from scripts.investigations._audit_llm import build_user_message
-        user_msg = build_user_message(text, coded)
-        result = call_llm_with_retry(llm, text, coded)
 
-        if cost_acc is not None:
-            from scripts.investigations._audit_llm import SYSTEM_PROMPT
-            input_chars = len(SYSTEM_PROMPT) + len(user_msg)
-            output_chars = len(json.dumps(result))
-            if cost_acc.add(input_chars, output_chars):
-                logger.warning(
-                    "audit.cost_cap_hit: cumulative_usd=%.2f cap=%.2f -- pausing",
-                    cost_acc.total_usd, cost_acc.cap_usd,
-                )
-                db.mark_done(
-                    eid, {"encounter_assessment": "skipped", "reason": "cost_cap"}
-                )
-                return False
+        if _is_admin_only(text):
+            pre_result = {
+                "encounter_assessment": "no_clinical_content",
+                "missing": [],
+                "overcoded": [],
+                "wrong_assertion": [],
+                "confidence": 0.98,
+                "notes": "Pre-filter: admin-only text, no LLM call needed.",
+            }
+            db.mark_done(eid, pre_result)
+            logger.info(
+                "Coded %s (%s) -- no_clinical_content [pre-filter]",
+                eid[:8],
+                row.get("date"),
+            )
+            return True
 
-        _norm = {
-            "not clean": "has_issues",
-            "not_clean": "has_issues",
-            "has issues": "has_issues",
-            "has_issue": "has_issues",
-            "issues_found": "has_issues",
-            "errors_found": "has_issues",
-            "incomplete": "needs_review",
-            "requires_review": "needs_review",
-        }
-        result["encounter_assessment"] = _norm.get(
+        if _CODING_AGENT_ENABLED:
+            result = _invoke_agent(tier, pid, eid, text, coded)
+        else:
+            llm = create_llm(provider="aws", tier=tier)
+            result = call_llm_with_retry(llm, text, coded)
+
+        if _check_cost_cap(result, cost_acc, eid, db):
+            return False
+
+        result["encounter_assessment"] = _ASSESSMENT_NORM.get(
             str(result.get("encounter_assessment", "")).lower(),
             result.get("encounter_assessment", ""),
         )
+        result = _sanitise_result(result)
         result["_meta"] = {
             "patient_id": pid,
             "encounter_id": eid,
@@ -366,9 +684,19 @@ def _audit_one(
             "coded_count": len(coded),
         }
         db.mark_done(eid, result)
+
+        # NER from agent verdict: missing entities with sentence+offset.
+        _extract_ner_from_verdict(eid, result, db)
+
+        # Surface gaps + wrong concept detection + NER from coded evidence.
+        # Reuses the coded list already in memory -- no second Neo4j query.
+        _check_evidence_inline(eid, text, coded, db)
+
         logger.info(
             "Coded %s (%s) -- %s  missing=%d  wrong=%d  overcoded=%d",
-            eid[:8], row.get("date"), result.get("encounter_assessment"),
+            eid[:8],
+            row.get("date"),
+            result.get("encounter_assessment"),
             len(result.get("missing", [])),
             len(result.get("wrong_assertion", [])),
             len(result.get("overcoded", [])),
@@ -386,11 +714,11 @@ def _audit_worker(
     rows: list[dict[str, Any]],
     worker_id: int,
     cost_acc: "CostAccumulator | None" = None,
+    kg_writeback: bool = False,
 ) -> None:
-    """Thread worker: each thread owns its own LLM client instance."""
-    llm = create_llm(provider="aws", tier=tier)
+    """Thread worker: processes a chunk of encounters with the given tier."""
     for i, row in enumerate(rows, 1):
-        ok = _audit_one(neo_client, llm, db, row, cost_acc)
+        ok = _audit_one(neo_client, tier, db, row, cost_acc, kg_writeback)
         if not ok:
             logger.info("Worker-%d: stopped at cost cap after %d rows", worker_id, i)
             return
@@ -405,46 +733,73 @@ def run_coding_audit(
     workers: int = 1,
     cost_cap_usd: float = 100.0,
     neo_client_for_alerts: "PatientGraphClient | None" = None,
+    limit: int | None = None,
+    kg_writeback: bool = False,
 ) -> float:
     """Phase 2: iterate pending encounters, optionally with concurrent workers.
+
+    Args:
+        limit: If set, stop after processing this many encounters. Useful for
+               dry runs (e.g. --limit 100) before committing to a full run.
 
     Returns cumulative estimated cost in USD.
     """
     pending = list(db.pending_encounters())
+    if limit is not None and limit < len(pending):
+        pending = pending[:limit]
+        logger.info(
+            "Phase 2: limited to first %d encounters (--limit %d).",
+            limit,
+            limit,
+        )
     logger.info(
         "Phase 2: %d encounters to process with %d worker(s) cost_cap=$%.0f.",
-        len(pending), workers, cost_cap_usd,
+        len(pending),
+        workers,
+        cost_cap_usd,
     )
     cost_acc = CostAccumulator(cap_usd=cost_cap_usd)
 
     if workers <= 1:
-        llm = create_llm(provider="aws", tier=tier)
         for i, row in enumerate(pending, 1):
-            ok = _audit_one(client, llm, db, row, cost_acc)
+            ok = _audit_one(client, tier, db, row, cost_acc, kg_writeback)
             if not ok:
                 logger.warning(
                     "Cost cap reached at encounter %d/%d ($%.2f).",
-                    i, len(pending), cost_acc.total_usd,
+                    i,
+                    len(pending),
+                    cost_acc.total_usd,
                 )
                 if neo_client_for_alerts:
                     _create_cost_cap_alert(
                         neo_client_for_alerts, cost_acc.total_usd, cost_cap_usd
                     )
                 break
-            if i % 50 == 0:
+            if i % 10 == 0:
                 counts = db.counts()
                 logger.info(
-                    "Progress: %d/%d done  errors=%d  cost=~$%.2f",
-                    counts["done"], counts["total"], counts["error"],
-                    cost_acc.total_usd,
+                    "Progress: %d/%d done  errors=%d  " "in=%dk out=%dk  cost=$%.4f",
+                    counts["done"],
+                    counts["total"],
+                    counts["error"],
+                    counts["input_tokens"] // 1000,
+                    counts["output_tokens"] // 1000,
+                    counts["cost_usd"],
                 )
         return cost_acc.total_usd
+
+    # Pre-warm the registry in the main thread so all workers inherit a fully
+    # initialised registry rather than racing to initialise it themselves.
+    if _CODING_AGENT_ENABLED:
+        from libs.pipeline_graph.registry import get_registry as _get_registry
+
+        _get_registry()
 
     chunks = [pending[i::workers] for i in range(workers)]
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {
             pool.submit(
-                _audit_worker, client, tier, db, chunk, wid, cost_acc
+                _audit_worker, client, tier, db, chunk, wid, cost_acc, kg_writeback
             ): wid
             for wid, chunk in enumerate(chunks, 1)
             if chunk
@@ -458,74 +813,55 @@ def run_coding_audit(
                 logger.info("Worker-%d finished.", wid)
 
     if cost_acc.is_capped and neo_client_for_alerts:
-        _create_cost_cap_alert(
-            neo_client_for_alerts, cost_acc.total_usd, cost_cap_usd
-        )
+        _create_cost_cap_alert(neo_client_for_alerts, cost_acc.total_usd, cost_cap_usd)
 
     counts = db.counts()
     logger.info(
-        "Phase 2 complete: done=%d  error=%d  cost=~$%.2f",
-        counts["done"], counts["error"], cost_acc.total_usd,
+        "Phase 2 complete: done=%d  error=%d  "
+        "input_tokens=%d  output_tokens=%d  cost=$%.4f",
+        counts["done"],
+        counts["error"],
+        counts["input_tokens"],
+        counts["output_tokens"],
+        counts["cost_usd"],
     )
-    return cost_acc.total_usd
+    return counts["cost_usd"]
 
 
 # ---------------------------------------------------------------------------
-# Phase 3 -- Surface-form coverage
+# Phase 2 inline -- evidence quality check (surface gaps + wrong concepts + NER)
 # ---------------------------------------------------------------------------
+# Replaces the old separate Phase 3. Runs inside _audit_one so each encounter
+# is only loaded from Neo4j once. _Q_ENCOUNTER_DETAIL already returns the full
+# coded list with evidence phrases, so no second Neo4j round-trip is needed.
+
+_ADMIN_EVIDENCE_PATTERNS = (
+    "entered at:",
+    "care started",
+    "care ended",
+    "lll spa",
+    "llr spa",
+    "woodbrook medical centre",
+    "university hospitals of leicester",
+    "admission to",
+    "ambulance service",
+    "receptionist access role",
+    "surgery: ",
+    "it will take place by phone",
+    "video or in person as agreed",
+)
+
+_MAX_EVIDENCE_CHARS = 80
+# Minimum resolver score before we trust a mismatch as a wrong concept.
+_WRONG_CONCEPT_SCORE_THRESHOLD = 5.0
 
 
-def _check_surface_forms(
-    encounter_id: str,
-    coded: list[dict[str, Any]],
-    db: CheckpointDB,
-) -> None:
-    """Check each evidence phrase resolves to the expected SNOMED concept.
-
-    Uses TerminologyClient so input normalisation (lab-value stripping,
-    EMIS code stripping) is applied automatically, and results are
-    re-keyed to the original evidence phrases.
-    """
-    candidates = [
-        c for c in coded
-        if c.get("evidence") and c.get("concept_id") is not None
-    ]
-    if not candidates:
-        return
-
-    unique_terms = list({c["evidence"] for c in candidates})
-    tags = {
-        c["evidence"]: c.get("semantic_tag", "disorder")
-        for c in candidates
-    }
-    try:
-        results = TerminologyClient().resolve(unique_terms, expected_tags=tags)
-    except Exception as exc:
-        logger.warning("Resolve batch failed: %s", exc)
-        return
-
-    for c in candidates:
-        ev = c["evidence"]
-        expected_id = str(c["concept_id"])
-        hits = results.get(ev, [])
-        found_pos = next(
-            (i for i, h in enumerate(hits) if str(h.concept_id) == expected_id),
-            None,
-        )
-        top = hits[0] if hits else None
-        gap_type = _gap_type(found_pos)
-        if gap_type is None:
-            continue
-        db.upsert_surface_gap({
-            "encounter_id": encounter_id,
-            "evidence": ev,
-            "expected_concept_id": expected_id,
-            "expected_name": c.get("term"),
-            "semantic_tag": c.get("semantic_tag"),
-            "resolver_top_result": top.term if top else None,
-            "resolver_top_score": top.score if top else None,
-            "gap_type": gap_type,
-        })
+def _is_usable_evidence(phrase: str) -> bool:
+    """Return False for phrases that can never be useful surface forms."""
+    if len(phrase) > _MAX_EVIDENCE_CHARS:
+        return False
+    low = phrase.lower()
+    return not any(pat in low for pat in _ADMIN_EVIDENCE_PATTERNS)
 
 
 def _gap_type(position: int | None) -> str | None:
@@ -537,26 +873,208 @@ def _gap_type(position: int | None) -> str | None:
     return None
 
 
-def run_surface_form_audit(
-    client: PatientGraphClient,
+def _batch_resolve(candidates: list[dict[str, Any]]) -> dict:
+    """Resolve all unique evidence phrases in one TerminologyClient call."""
+    unique = list({c["evidence"] for c in candidates})
+    tags = {c["evidence"]: c.get("semantic_tag", "disorder") for c in candidates}
+    try:
+        return TerminologyClient().resolve(unique, expected_tags=tags)
+    except Exception as exc:
+        logger.warning("Resolve batch failed: %s", exc)
+        return {}
+
+
+def _record_surface_gap(
+    eid: str, c: dict, stored_id: str, hits: list, top: Any, db: CheckpointDB
+) -> None:
+    found_pos = next(
+        (i for i, h in enumerate(hits) if str(h.concept_id) == stored_id), None
+    )
+    gap = _gap_type(found_pos)
+    if gap is None:
+        return
+    db.upsert_surface_gap(
+        {
+            "encounter_id": eid,
+            "evidence": c["evidence"],
+            "expected_concept_id": stored_id,
+            "expected_name": c.get("term"),
+            "semantic_tag": c.get("semantic_tag"),
+            "resolver_top_result": top.term if top else None,
+            "resolver_top_score": top.score if top else None,
+            "gap_type": gap,
+        }
+    )
+
+
+def _record_wrong_concept(
+    eid: str, c: dict, stored_id: str, top: Any, db: CheckpointDB
+) -> None:
+    """Flag when the resolver confidently returns a different concept than stored."""
+    if top is None:
+        return
+    resolved_id = str(top.concept_id)
+    if resolved_id == stored_id:
+        return
+    if (top.score or 0) < _WRONG_CONCEPT_SCORE_THRESHOLD:
+        return
+    db.insert_wrong_concept(
+        {
+            "encounter_id": eid,
+            "evidence": c["evidence"],
+            "stored_concept_id": stored_id,
+            "stored_name": c.get("term"),
+            "resolved_concept_id": resolved_id,
+            "resolved_name": top.term,
+            "resolver_score": top.score,
+            "semantic_tag": c.get("semantic_tag"),
+        }
+    )
+
+
+def _split_sentences(text: str) -> list[str]:
+    """Split GP note text into sentences on newlines and sentence boundaries."""
+    import re
+
+    sentences: list[str] = []
+    for line in text.replace("\r\n", "\n").split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        parts = re.split(r"(?<=[.?!])\s+(?=[A-Z])", line)
+        sentences.extend(p.strip() for p in parts if p.strip())
+    return sentences
+
+
+def _extract_ner_examples(
+    eid: str, text: str, candidates: list[dict[str, Any]], db: CheckpointDB
+) -> None:
+    """Find the source sentence for each evidence phrase and store as NER training row."""
+    sentences = _split_sentences(text)
+    for c in candidates:
+        ev = c.get("evidence") or ""
+        if not ev:
+            continue
+        ev_lower = ev.lower()
+        sentence = next((s for s in sentences if ev_lower in s.lower()), None)
+        if not sentence:
+            continue
+        start = sentence.lower().find(ev_lower)
+        db.insert_ner_example(
+            {
+                "encounter_id": eid,
+                "sentence": sentence,
+                "entity": ev,
+                "start_char": start,
+                "end_char": start + len(ev),
+                "concept_id": str(c["concept_id"]),
+                "term": c.get("term"),
+                "semantic_tag": c.get("semantic_tag"),
+                "assertion": _extract_assertion(c.get("context")),
+            }
+        )
+
+
+def _check_evidence_inline(
+    eid: str,
+    text: str,
+    coded: list[dict[str, Any]],
     db: CheckpointDB,
 ) -> None:
-    """Phase 3: check surface-form resolver coverage for all coded DOCUMENTS."""
-    logger.info("Phase 3: checking surface-form coverage ...")
-    done_rows = list(db.all_results())
-    checked = 0
-    for row in done_rows:
-        if row["status"] != STATUS_DONE:
-            continue
-        pid = row["patient_id"]
+    """Single-pass: surface gaps + wrong concept detection + NER extraction.
+
+    Replaces the old separate Phase 3 (run_surface_form_audit). No second
+    Neo4j query needed -- coded was already fetched by _load_encounter.
+    """
+    candidates = [
+        c
+        for c in coded
+        if c.get("evidence")
+        and c.get("concept_id") is not None
+        and _is_usable_evidence(c["evidence"])
+    ]
+    if not candidates:
+        return
+
+    resolved = _batch_resolve(candidates)
+
+    for c in candidates:
+        ev = c["evidence"]
+        stored_id = str(c["concept_id"])
+        hits = resolved.get(ev, [])
+        top = hits[0] if hits else None
+        _record_surface_gap(eid, c, stored_id, hits, top, db)
+        _record_wrong_concept(eid, c, stored_id, top, db)
+
+    _extract_ner_examples(eid, text, candidates, db)
+
+
+# ---------------------------------------------------------------------------
+# Phase 2b -- LLM gap resolution
+# ---------------------------------------------------------------------------
+
+
+def run_llm_gap_resolution(db: CheckpointDB) -> dict[str, int]:
+    """Phase 2b: resolve snomed_search terms from Phase 2 LLM output.
+
+    Collects every unique snomed_search term the LLM proposed as missing,
+    resolves them in one batch via TerminologyClient, and writes the results
+    back into the surface_form_gaps table so the report and feed script have
+    a pre-resolved picture of which gaps can be fixed with surface forms vs
+    which need new terminology mappings.
+
+    Returns counts dict with 'resolved', 'unresolved', 'skipped'.
+    """
+    logger.info("Phase 2b: collecting snomed_search terms from LLM output ...")
+    term_encounters: dict[str, list[str]] = {}
+    for row in db.all_results():
+        result = row.get("result") or {}
         eid = row["encounter_id"]
-        _, coded = _load_encounter(client, pid, eid)
-        _check_surface_forms(eid, coded, db)
-        checked += 1
-        if checked % 200 == 0:
-            logger.info("Surface-form: checked %d encounters", checked)
-    gaps = db.counts()["surface_gaps"]
-    logger.info("Phase 3 complete: %d surface-form gaps found.", gaps)
+        for m in result.get("missing", []):
+            ss = (m.get("snomed_search") or "").strip().lower()
+            if ss and 1 <= len(ss.split()) <= 6:
+                term_encounters.setdefault(ss, []).append(eid)
+
+    unique_terms = list(term_encounters.keys())
+    logger.info("Phase 2b: resolving %d unique LLM gap terms ...", len(unique_terms))
+    if not unique_terms:
+        return {"resolved": 0, "unresolved": 0, "skipped": 0}
+
+    try:
+        results = TerminologyClient().resolve(unique_terms)
+    except Exception as exc:
+        logger.warning("Phase 2b: batch resolve failed: %s", exc)
+        return {"resolved": 0, "unresolved": 0, "skipped": len(unique_terms)}
+
+    counts = {"resolved": 0, "unresolved": 0, "skipped": 0}
+    for term in unique_terms:
+        hits = results.get(term, [])
+        top = hits[0] if hits else None
+        encounter_ids = term_encounters[term]
+        for eid in encounter_ids:
+            db.upsert_surface_gap(
+                {
+                    "encounter_id": eid,
+                    "evidence": term,
+                    "expected_concept_id": top.concept_id if top else None,
+                    "expected_name": top.term if top else None,
+                    "semantic_tag": top.semantic_tag if top else None,
+                    "resolver_top_result": top.term if top else None,
+                    "resolver_top_score": top.score if top else None,
+                    "gap_type": "llm_proposed" if top else "llm_unresolvable",
+                }
+            )
+        if top:
+            counts["resolved"] += 1
+        else:
+            counts["unresolved"] += 1
+
+    logger.info(
+        "Phase 2b complete: %d terms resolved, %d unresolvable.",
+        counts["resolved"],
+        counts["unresolved"],
+    )
+    return counts
 
 
 # ---------------------------------------------------------------------------
@@ -577,21 +1095,23 @@ def _collect_results(db: CheckpointDB) -> tuple[dict, list]:
         def _sev_count(key: str, sev: str) -> int:
             return sum(1 for x in result.get(key, []) if x.get("severity") == sev)
 
-        summary_rows.append({
-            "encounter_id": row["encounter_id"],
-            "patient_id": pid,
-            "date": row["date"],
-            "status": row["status"],
-            "assessment": result.get("encounter_assessment", ""),
-            "coded_count": result.get("_meta", {}).get("coded_count", ""),
-            "missing_critical": _sev_count("missing", "critical"),
-            "missing_high": _sev_count("missing", "high"),
-            "missing_medium": _sev_count("missing", "medium"),
-            "missing_low": _sev_count("missing", "low"),
-            "wrong_assertion": len(result.get("wrong_assertion", [])),
-            "overcoded": len(result.get("overcoded", [])),
-            "confidence": result.get("confidence", ""),
-        })
+        summary_rows.append(
+            {
+                "encounter_id": row["encounter_id"],
+                "patient_id": pid,
+                "date": row["date"],
+                "status": row["status"],
+                "assessment": result.get("encounter_assessment", ""),
+                "coded_count": result.get("_meta", {}).get("coded_count", ""),
+                "missing_critical": _sev_count("missing", "critical"),
+                "missing_high": _sev_count("missing", "high"),
+                "missing_medium": _sev_count("missing", "medium"),
+                "missing_low": _sev_count("missing", "low"),
+                "wrong_assertion": len(result.get("wrong_assertion", [])),
+                "overcoded": len(result.get("overcoded", [])),
+                "confidence": result.get("confidence", ""),
+            }
+        )
     return per_patient, summary_rows
 
 
@@ -647,6 +1167,35 @@ def _write_top_issues(db: CheckpointDB, out_dir: Path) -> None:
     (out_dir / "top_issues.txt").write_text("\n".join(lines), encoding="utf-8")
 
 
+def _write_ner_training(db: CheckpointDB, out_dir: Path) -> int:
+    """Write NER training data as JSONL (one sentence+entities per line).
+
+    Groups multiple entities from the same sentence into one record so
+    overlapping entities are preserved and the format is spaCy/HF-compatible.
+    """
+    from collections import defaultdict
+
+    by_sentence: dict[str, dict] = defaultdict(lambda: {"entities": []})
+    for ex in db.all_ner_examples():
+        key = ex["sentence"]
+        by_sentence[key]["text"] = ex["sentence"]
+        by_sentence[key]["entities"].append(
+            {
+                "start": ex["start_char"],
+                "end": ex["end_char"],
+                "label": ex["concept_id"],
+                "term": ex["term"],
+                "semantic_tag": ex["semantic_tag"],
+                "assertion": ex["assertion"],
+            }
+        )
+    path = out_dir / "ner_training.jsonl"
+    with path.open("w", encoding="utf-8") as f:
+        for record in by_sentence.values():
+            f.write(json.dumps(record) + "\n")
+    return len(by_sentence)
+
+
 def generate_reports(db: CheckpointDB, out_dir: Path) -> None:
     """Phase 4: write all report files from SQLite data."""
     logger.info("Phase 4: generating reports ...")
@@ -658,15 +1207,27 @@ def generate_reports(db: CheckpointDB, out_dir: Path) -> None:
     _write_severity_summary(summary_rows, out_dir)
     _write_top_issues(db, out_dir)
 
-    gaps = db.all_surface_gaps()
     gap_path = out_dir / "surface_form_gaps.json"
-    gap_path.write_text(json.dumps(gaps, indent=2), encoding="utf-8")
+    gap_path.write_text(json.dumps(db.all_surface_gaps(), indent=2), encoding="utf-8")
+
+    wrong_path = out_dir / "wrong_concepts.json"
+    wrong_path.write_text(
+        json.dumps(db.all_wrong_concepts(), indent=2), encoding="utf-8"
+    )
+
+    ner_count = _write_ner_training(db, out_dir)
 
     counts = db.counts()
     logger.info(
         "Reports complete. Encounters: total=%d done=%d error=%d "
-        "surface_gaps=%d",
-        counts["total"], counts["done"], counts["error"], counts["surface_gaps"],
+        "surface_gaps=%d wrong_concepts=%d ner_examples=%d ner_sentences=%d",
+        counts["total"],
+        counts["done"],
+        counts["error"],
+        counts["surface_gaps"],
+        counts["wrong_concepts"],
+        counts["ner_examples"],
+        ner_count,
     )
     logger.info("Output directory: %s", out_dir.resolve())
 
@@ -737,9 +1298,12 @@ RETURN d.metric_id AS metric_id
 # Cost tracking (Phase 2)
 # ---------------------------------------------------------------------------
 
-_COST_PER_INPUT_TOKEN = 0.000003   # Sonnet input ($/token)
-_COST_PER_OUTPUT_TOKEN = 0.000015  # Sonnet output ($/token)
-_CHARS_PER_TOKEN = 4               # rough estimate for English clinical text
+# Bedrock on-demand pricing per token (USD), April 2026.
+# Kept in sync with _audit_db._PRICING.
+_COST_PER_INPUT_TOKEN = 3.0 / 1_000_000  # Sonnet 3.5/3.7 input
+_COST_PER_OUTPUT_TOKEN = 15.0 / 1_000_000  # Sonnet 3.5/3.7 output
+_HAIKU_COST_PER_INPUT = 0.80 / 1_000_000
+_HAIKU_COST_PER_OUTPUT = 4.0 / 1_000_000
 
 _Q_CREATE_COST_CAP_ALERT = """
 MERGE (a:SafetyNetAlert {alert_id: $alert_id})
@@ -753,24 +1317,37 @@ RETURN a.alert_id AS alert_id
 
 
 class CostAccumulator:
-    """Thread-safe USD cost accumulator for the Phase 2 audit loop."""
+    """Thread-safe USD cost accumulator for the Phase 2 audit loop.
+
+    Accepts actual token counts from the LLM response (preferred) and
+    applies correct per-model Bedrock on-demand pricing.
+    """
 
     def __init__(self, cap_usd: float) -> None:
         self.cap_usd = cap_usd
         self._lock = threading.Lock()
         self._total_usd: float = 0.0
+        self._total_input_tokens: int = 0
+        self._total_output_tokens: int = 0
         self._capped: bool = False
 
-    def add(self, input_chars: int, output_chars: int) -> bool:
-        """Add estimated cost and return True if the cap was just exceeded."""
-        input_tokens = input_chars / _CHARS_PER_TOKEN
-        output_tokens = output_chars / _CHARS_PER_TOKEN
-        cost = (
-            input_tokens * _COST_PER_INPUT_TOKEN
-            + output_tokens * _COST_PER_OUTPUT_TOKEN
-        )
+    def add_tokens(
+        self,
+        input_tokens: int,
+        output_tokens: int,
+        model_id: str = "",
+    ) -> bool:
+        """Add cost from actual token counts. Return True if cap just exceeded."""
+        model_lower = (model_id or "").lower()
+        if "haiku" in model_lower:
+            price_in, price_out = _HAIKU_COST_PER_INPUT, _HAIKU_COST_PER_OUTPUT
+        else:
+            price_in, price_out = _COST_PER_INPUT_TOKEN, _COST_PER_OUTPUT_TOKEN
+        cost = input_tokens * price_in + output_tokens * price_out
         with self._lock:
             self._total_usd += cost
+            self._total_input_tokens += input_tokens
+            self._total_output_tokens += output_tokens
             if not self._capped and self._total_usd >= self.cap_usd:
                 self._capped = True
                 return True
@@ -782,16 +1359,30 @@ class CostAccumulator:
             return self._total_usd
 
     @property
+    def total_input_tokens(self) -> int:
+        with self._lock:
+            return self._total_input_tokens
+
+    @property
+    def total_output_tokens(self) -> int:
+        with self._lock:
+            return self._total_output_tokens
+
+    @property
     def is_capped(self) -> bool:
         with self._lock:
             return self._capped
 
 
-def _create_cost_cap_alert(neo_client: PatientGraphClient, cost_usd: float, cap_usd: float) -> None:
-    alert_id = str(uuid.uuid5(
-        uuid.NAMESPACE_URL,
-        f"audit_cost_cap:{date.today().isoformat()}",
-    ))
+def _create_cost_cap_alert(
+    neo_client: PatientGraphClient, cost_usd: float, cap_usd: float
+) -> None:
+    alert_id = str(
+        uuid.uuid5(
+            uuid.NAMESPACE_URL,
+            f"audit_cost_cap:{date.today().isoformat()}",
+        )
+    )
     description = (
         f"Audit run paused: cumulative cost ${cost_usd:.2f} reached "
         f"the ${cap_usd:.0f} cap. Remaining encounters were skipped."
@@ -804,7 +1395,9 @@ def _create_cost_cap_alert(neo_client: PatientGraphClient, cost_usd: float, cap_
         )
         logger.warning(
             "audit.cost_cap_hit: cost_usd=%.2f cap_usd=%.2f alert_id=%s",
-            cost_usd, cap_usd, alert_id,
+            cost_usd,
+            cap_usd,
+            alert_id,
         )
     except Exception:
         logger.error("Failed to create cost_cap alert", exc_info=True)
@@ -814,6 +1407,7 @@ def _run_escalation_check(neo_client: PatientGraphClient) -> None:
     """Run alert escalation check after each audit run (Phase 4 tail)."""
     try:
         from libs.audit.escalation import run_escalation_check
+
         run_escalation_check(neo_client)
     except Exception:
         logger.error("Escalation check failed", exc_info=True)
@@ -865,22 +1459,12 @@ def _write_audit_results_to_neo4j(
 ) -> None:
     """Write AuditRun and DriftMetric nodes to Neo4j."""
     total = len(summary_rows)
-    clean_count = sum(
-        1 for r in summary_rows if str(r.get("assessment")) == "clean"
-    )
+    clean_count = sum(1 for r in summary_rows if str(r.get("assessment")) == "clean")
     pct_clean = round(100.0 * clean_count / total, 2) if total else 0.0
-    critical_count = sum(
-        int(r.get("missing_critical") or 0) for r in summary_rows
-    )
-    high_count = sum(
-        int(r.get("missing_high") or 0) for r in summary_rows
-    )
-    overcoded_count = sum(
-        int(r.get("overcoded") or 0) for r in summary_rows
-    )
-    parse_error_count = sum(
-        1 for r in summary_rows if str(r.get("status")) == "error"
-    )
+    critical_count = sum(int(r.get("missing_critical") or 0) for r in summary_rows)
+    high_count = sum(int(r.get("missing_high") or 0) for r in summary_rows)
+    overcoded_count = sum(int(r.get("overcoded") or 0) for r in summary_rows)
+    parse_error_count = sum(1 for r in summary_rows if str(r.get("status")) == "error")
 
     domain_clean: dict[str, list] = defaultdict(list)
     term_counter: Counter = Counter()
@@ -940,7 +1524,9 @@ def _write_audit_results_to_neo4j(
         )
         logger.info(
             "Neo4j write complete: run_id=%s metric_id=%s pct_clean=%.1f%%",
-            run_id, metric_id, pct_clean,
+            run_id,
+            metric_id,
+            pct_clean,
         )
     except Exception:
         logger.error("Failed to write audit results to Neo4j", exc_info=True)
@@ -959,22 +1545,39 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--cancer-only", action="store_true")
     p.add_argument("--patient", metavar="ID", help="Audit a single patient")
     p.add_argument(
-        "--workers", type=int, default=1, metavar="N",
-        help="Concurrent LLM workers (default 1; try 5-10 for Bedrock)",
+        "--workers",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Concurrent LLM workers (default 5; reduce if throttled)",
     )
-    p.add_argument("--skip-resolve", action="store_true")
-    p.add_argument("--skip-discovery", action="store_true",
-                   help="Skip Phase 1 (resume from existing DB)")
-    p.add_argument("--report-only", action="store_true",
-                   help="Skip Phases 0-3, regenerate reports only")
     p.add_argument(
-        "--since-days", type=int, default=7, metavar="N",
+        "--skip-discovery",
+        action="store_true",
+        help="Skip Phase 1 (resume from existing DB)",
+    )
+    p.add_argument(
+        "--report-only",
+        action="store_true",
+        help="Skip Phases 0-3, regenerate reports only",
+    )
+    p.add_argument(
+        "--since-days",
+        type=int,
+        default=7,
+        metavar="N",
         help="Audit encounters from the last N days (default 7). "
-             "Overridden by --since.",
+        "Overridden by --since.",
     )
     p.add_argument(
-        "--since", metavar="YYYY-MM-DD",
+        "--since",
+        metavar="YYYY-MM-DD",
         help="Explicit start date for audit window (overrides --since-days).",
+    )
+    p.add_argument(
+        "--until",
+        metavar="YYYY-MM-DD",
+        help="Explicit end date for audit window (default: today).",
     )
     p.add_argument(
         "--triggered-by",
@@ -982,8 +1585,11 @@ def _parse_args() -> argparse.Namespace:
         default="manual",
         help="How this run was triggered (used in AuditRun node).",
     )
-    p.add_argument("--skip-neo4j-write", action="store_true",
-                   help="Do not write AuditRun/DriftMetric to Neo4j.")
+    p.add_argument(
+        "--skip-neo4j-write",
+        action="store_true",
+        help="Do not write AuditRun/DriftMetric to Neo4j.",
+    )
     p.add_argument(
         "--cost-cap",
         type=float,
@@ -992,16 +1598,32 @@ def _parse_args() -> argparse.Namespace:
         help="Maximum estimated cost in USD before pausing the run (default $100).",
     )
     p.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Stop after processing N encounters. Useful for dry runs (e.g. --limit 100).",
+    )
+    p.add_argument(
         "--output",
         default=str(ROOT / "scripts" / "investigations" / "encounter_audit"),
         metavar="DIR",
+    )
+    p.add_argument(
+        "--kg-writeback",
+        action="store_true",
+        help=(
+            "Write no_issues / clean audits to Knowledge Graph as "
+            "TrainingCandidate + GoldLabel after regex DE-ID + DeIdValidator gate "
+            "(never stores raw encounter_id/patient_id; admin-only encounters skipped)."
+        ),
     )
     return p.parse_args()
 
 
 def _compute_date_window(args: argparse.Namespace) -> tuple[str, str]:
     """Return (since_date, until_date) as ISO strings."""
-    until_date = date.today().isoformat()
+    until_date = args.until if args.until else date.today().isoformat()
     if args.since:
         since_date = args.since
     else:
@@ -1052,7 +1674,8 @@ def main() -> None:
         # Phase 1 -- discovery
         if not args.skip_discovery:
             run_discovery(
-                neo_client, db,
+                neo_client,
+                db,
                 cancer_only=args.cancer_only,
                 patient_id=args.patient,
                 since_date=since_date,
@@ -1067,11 +1690,15 @@ def main() -> None:
             workers=args.workers,
             cost_cap_usd=args.cost_cap,
             neo_client_for_alerts=neo_client,
+            limit=args.limit,
+            kg_writeback=args.kg_writeback,
         )
 
-        # Phase 3 -- surface-form check
-        if not args.skip_resolve:
-            run_surface_form_audit(neo_client, db)
+        # Phase 2b -- resolve LLM gap snomed_search terms (post-processing aggregate)
+        run_llm_gap_resolution(db)
+
+        # Phase 3 (surface gaps + wrong concepts + NER) runs inline inside
+        # _audit_one above -- no separate pass needed.
 
         # Phase 4 -- reports + optional Neo4j write
         generate_reports(db, out_dir)

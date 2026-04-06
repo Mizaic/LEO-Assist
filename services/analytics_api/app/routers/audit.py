@@ -882,8 +882,10 @@ def _ensure_registry(kg: KnowledgeGraphClient) -> DomainRegistry:
 
     if valuesets:
         return DomainRegistry.from_fhir(valuesets)
-    # No ValueSets found — return a defaults-based registry so we at least have configs
-    return DomainRegistry.from_defaults()
+    raise RuntimeError(
+        "DomainRegistry: no ncda-* ValueSet nodes found in the knowledge graph. "
+        "Seed the KG with domain ValueSets before starting the analytics-api."
+    )
 
 
 def _q_comorbidities(base: str, params: dict, client: PatientGraphClient) -> dict:

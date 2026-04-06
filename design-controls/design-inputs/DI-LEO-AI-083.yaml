@@ -1,0 +1,85 @@
+# -- DI-LEO-AI-083 -- Unified Encounter Coding Agent
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-083"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-051"]
+  requirement: >
+    The system SHALL provide a unified LangGraph-based clinical coding agent
+    (encounter_coding_agent) that operates in two modes determined by the
+    coded_entities input: audit mode (coded_entities populated -- verify and
+    correct existing codes) and code mode (coded_entities empty -- extract all
+    clinically relevant entities). The agent SHALL use seven SNOMED and patient
+    context tools (search_snomed, lookup_concept, resolve_evidence,
+    get_patient_demographics, get_patient_problems, read_context,
+    submit_verdict) with a maximum of six tool-loop iterations per encounter.
+    The agent verdict SHALL include source sentence and character offsets for
+    each entity. The agent SHALL route through the existing 9-layer
+    run_post_processing() stack and the existing tier classifier before any
+    write-back occurs. Write-back SHALL be gated on apply=True AND entity
+    tier >= 1 (confidence >= 0.95). In audit mode, the agent SHALL produce
+    a verdict compatible with the existing audit script result format
+    (missing, overcoded, wrong_assertion keys) for backward compatibility.
+    The agent SHALL be registered in the subgraph registry as
+    encounter_coding_agent and wired into the audit pipeline (Sonnet tier)
+    and the runtime extractor registry (Haiku tier, behind FallbackExtractor,
+    apply=False). Kill switches (CODING_AGENT_ENABLED, CODING_AGENT_TIER,
+    CODING_AGENT_MAX_ITERATIONS) SHALL allow runtime reconfiguration without
+    redeployment.
+  rationale: >
+    Combining coding and auditing in one LangGraph agent with SNOMED tool
+    access eliminates the split between two separate LLM call paths, ensures
+    concepts are always terminology-verified before being proposed, captures
+    NER training data natively with accurate character offsets, and enables
+    a cost ladder (Sonnet builds gold data, Haiku runs in production) that
+    reduces per-encounter LLM spend by approximately 95%.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: "Agent always uses search_snomed before proposing a concept ID not in coded_entities"
+      - type: "safety"
+        spec: "Agent verdict passes through run_post_processing() before any write-back"
+      - type: "safety"
+        spec: "Write-back only occurs when apply=True AND entity confidence >= 0.95 (Tier 1)"
+      - type: "functional"
+        spec: "Verdict includes sentence, char_start, char_end for every entity in missing list"
+      - type: "functional"
+        spec: "Max six tool-loop iterations enforced; budget exhaustion yields needs_review verdict"
+      - type: "functional"
+        spec: "Audit mode verdict has missing/overcoded/wrong_assertion keys (backward compat)"
+      - type: "performance"
+        spec: "Haiku agent processes one encounter in < 30 seconds p95"
+    constraints:
+      - type: "safety"
+        spec: "Runtime AgentExtractorProvider always invokes with apply=False"
+      - type: "safety"
+        spec: "Token budget per tier: 50K Haiku, 200K Sonnet; exhausted -> needs_review"
+    dependencies: ["DI-LEO-AI-036", "DI-LEO-AI-072", "DI-LEO-AI-074"]
+    downstream_impacts:
+      - "Audit pipeline: replaces call_llm_with_retry in _audit_one"
+      - "Runtime pipeline: AgentExtractorProvider behind FallbackExtractor"
+      - "NER training: missing entities supply sentence+offset for ner_examples table"
+    technical_details:
+      language: "Python"
+      framework: "LangGraph / Bedrock / neo4j-driver / TerminologyClient"
+      file_structure:
+        - "libs/prompts/coding_agent_v1.py"
+        - "libs/pipeline_graph/subgraphs/encounter_coding_agent.py"
+        - "libs/pipeline_graph/registry.py"
+        - "services/coding_worker/app/pipeline/extractor_registry.py"
+        - "scripts/investigations/audit_encounter_coding.py"
+      estimated_loc: 450
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-083 test cases pass: tool-loop behaviour, verdict shape, post-processing
+      parity, assertion handling, token budget enforcement, kill switch behaviour,
+      NER offset validation, and backward-compatible audit output format.
+    test_protocol: "VT-LEO-AI-083"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-057"]
+  tags: ["coding-agent", "langgraph", "audit", "ner", "snomed"]

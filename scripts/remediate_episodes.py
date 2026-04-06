@@ -84,7 +84,8 @@ WEAK_EXCLUSION_IDS: frozenset[str] = frozenset([
 STRONG_EXCLUSION_IDS: frozenset[str] = frozenset([
     "395100000",         # No evidence of cancer found (situation)
     "414861001",         # No evidence of recurrence of cancer
-    "415068001",         # No malignancy found on biopsy
+    # 415068001 REMOVED: this is "Exposure to ultraviolet radiation (event)" in SNOMED,
+    #   not a cancer exclusion concept. Confirmed via patient graph 2026-04-06.
     "1090791000000103",  # No evidence of malignancy (UK extension)
     "923501000000103",   # Referral cancelled by patient
     "20376005",          # Benign neoplastic disease

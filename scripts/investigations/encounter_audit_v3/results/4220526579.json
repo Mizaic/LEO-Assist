@@ -1,0 +1,576 @@
+[
+  {
+    "encounter_id": "c92ea76b-6183-4b7e-93a3-330a960c53a4",
+    "patient_id": "4220526579",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e121daaa-e693-49ef-a71a-693133b3d52f",
+    "patient_id": "4220526579",
+    "date": "2025-12-05",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter consists entirely of administrative content: a medical secretary access role log, a patient telephone number entry, and an SMS appointment cancellation/rebooking message sent via AccuRx. No clinical narrative, diagnoses, findings, procedures, or any SNOMED-codeable content is present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 473,
+        "output_tokens": 344,
+        "total_tokens": 817,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "e121daaa-e693-49ef-a71a-693133b3d52f",
+        "date": "2025-12-05",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f46b1835-8c73-420a-bc4b-97fb210d5f65",
+    "patient_id": "4220526579",
+    "date": "2025-12-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "25a1feb4-5ecf-475a-a918-73888f42a784",
+    "patient_id": "4220526579",
+    "date": "2025-12-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "64a7bf1e-0a31-41dd-865c-ba8cffd2d04d",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d4459075-bc46-4775-89c8-7e61ab396a7b",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "This encounter consists entirely of administrative routing text: a receptionist access role entry, an A&E referral acceptance status update, and a discharge timestamp. There is no clinical narrative present. The single coded concept (Seen in walk in centre) is a system-generated encounter type code and is appropriate; no clinical coding additions or changes are warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 477,
+        "output_tokens": 430,
+        "total_tokens": 907,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "d4459075-bc46-4775-89c8-7e61ab396a7b",
+        "date": "2025-12-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "861e8f70-c9cc-48d3-a516-bce75c34d2fe",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter text consists entirely of administrative routing information: admission/discharge timestamps, facility name (Loughborough UTC), and a note that 7 consultations exist under this admission. No clinical narrative, diagnoses, symptoms, procedures, or SNOMED-codeable findings are present. No coding action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 401,
+        "output_tokens": 262,
+        "total_tokens": 663,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "861e8f70-c9cc-48d3-a516-bce75c34d2fe",
+        "date": "2025-12-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9c7f55c1-88f3-4518-a6b9-3e953551eac1",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "25607008",
+          "term": "D-dimer (substance)",
+          "semantic_tag": "substance",
+          "note": "lookup_concept returned unreliable=true; server resolved this as 'CoAr 1071 virus (organism)' \u2014 clearly incorrect for a D-dimer investigation code"
+        }
+      ],
+      "missing": [
+        {
+          "term": "D-dimer measurement",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A D-dimer blood test was performed and a numeric result (0.19) recorded; the procedure should be coded with the correct SNOMED procedure concept, not a substance or organism code.",
+          "snomed_search": "D-dimer measurement",
+          "snomed_concept_id": "940711000000100",
+          "preferred_term": "Measurement of concentration of D-dimer in plasma specimen (procedure)",
+          "sentence": "DDimer (X80WJ) - 0.19",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "25607008",
+          "name": "D-dimer (substance) [coded as present]",
+          "severity": "medium",
+          "reason": "Concept 25607008 is unreliable \u2014 the terminology server resolves it as 'CoAr 1071 virus (organism)', which is semantically incorrect; a substance code is also the wrong semantic category for documenting a performed investigation, and should be replaced by the procedure concept 940711000000100."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept (25607008) is unreliable \u2014 the terminology server returns it as an organism, not a substance or procedure. The D-dimer test should be coded using the correct UK SNOMED procedure concept (940711000000100: Measurement of concentration of D-dimer in plasma specimen). The result of 0.19 is within normal range and does not require a separate clinical interpretation code unless clinical context (e.g. suspected PE) is documented, which it is not in this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 2,
+        "input_tokens": 1646,
+        "output_tokens": 892,
+        "total_tokens": 2538,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "9c7f55c1-88f3-4518-a6b9-3e953551eac1",
+        "date": "2025-12-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8a85e2bc-6ee9-4d75-b5b7-18f167639964",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d901f42b-f65b-42dc-8a3d-435737ae5d5f",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only administrative/triage routing information: patient name, entry location (Loughborough Urgent Treatment Centre), entering clinician, and a triage category assignment (Category 4 Standard). There is no clinical narrative, diagnosis, symptom, finding, procedure, or any other SNOMED-codeable clinical content present. No coding action is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 379,
+        "output_tokens": 255,
+        "total_tokens": 634,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "d901f42b-f65b-42dc-8a3d-435737ae5d5f",
+        "date": "2025-12-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1be190f0-69a3-4048-95a0-51b013d9356e",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4bd78a87-d51b-46d1-8ed5-b4724efcfe48",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8d0fb532-d148-42f8-b8e0-b593547c3f90",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter consists entirely of an administrative status update: a referral discharge notification logged by a nurse access role at Loughborough Urgent Treatment Centre on 07 Dec 2025. No clinical findings, diagnoses, procedures, or observations are present. No SNOMED coding is required or possible.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 387,
+        "output_tokens": 279,
+        "total_tokens": 666,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "8d0fb532-d148-42f8-b8e0-b593547c3f90",
+        "date": "2025-12-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4d425f2a-f3c7-4089-8b48-c3a106a6637c",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9bb598f1-30ea-4df8-98f9-ae5f17dcf9bf",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "75367002",
+          "term": "Blood pressure",
+          "status": "correct"
+        },
+        {
+          "conceptId": "281018007",
+          "term": "Ex-cigarette smoker",
+          "status": "correct"
+        },
+        {
+          "conceptId": "293586001",
+          "term": "Allergy to aspirin",
+          "status": "correct"
+        },
+        {
+          "conceptId": "25607008",
+          "term": "D-dimer (substance)",
+          "status": "wrong_code"
+        },
+        {
+          "conceptId": "429053008",
+          "term": "Wells DVT score (observable entity)",
+          "status": "wrong_code"
+        },
+        {
+          "conceptId": "787502006",
+          "term": "Entire soft tissue of lower leg (body structure)",
+          "status": "wrong_code"
+        }
+      ],
+      "missing": [
+        {
+          "term": "D-dimer assay",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A D-dimer test was performed and resulted (0.19); this must be coded as a procedure, not a substance \u2014 the current code 25607008 is an unreliable/organism concept and is semantically incorrect.",
+          "snomed_search": "D-dimer measurement procedure",
+          "snomed_concept_id": "940711000000100",
+          "preferred_term": "Measurement of concentration of D-dimer in plasma specimen (procedure)",
+          "sentence": "Investigation: D dimer.0.19",
+          "char_start": 897,
+          "char_end": 918
+        },
+        {
+          "term": "Low probability of deep vein thrombosis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Wells score of -2 explicitly documents low DVT probability and should be coded as a clinical finding to support the DVT exclusion pathway; the current observable entity code for the score itself is less appropriate than the interpreted finding.",
+          "snomed_search": "Wells DVT score low probability",
+          "snomed_concept_id": "513251000000101",
+          "preferred_term": "Low probability of deep vein thrombosis (finding)",
+          "sentence": "Wells score -2.",
+          "char_start": 870,
+          "char_end": 884
+        },
+        {
+          "term": "Soft tissue injury right lower leg",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician's explicit working diagnosis is 'soft tissue sprain to right leg'; the current code 787502006 is a body structure concept, not a disorder, and does not represent a diagnosis \u2014 a disorder code is required.",
+          "snomed_search": "soft tissue lesion lower leg",
+          "snomed_concept_id": "240010005",
+          "preferred_term": "Soft tissue lesion of lower leg and ankle (disorder)",
+          "sentence": "Advised as soft tissue sprain to right leg, cold compress, rest elevation analgesia if required.",
+          "char_start": 1010,
+          "char_end": 1104
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "25607008",
+          "name": "D-dimer (substance)",
+          "severity": "high",
+          "reason": "Lookup returned unreliable organism tag; even if valid, a substance concept is semantically incorrect for documenting a performed investigation \u2014 should be replaced by a procedure code."
+        },
+        {
+          "conceptId": "787502006",
+          "name": "Entire soft tissue of lower leg (body structure)",
+          "severity": "high",
+          "reason": "Lookup returned unreliable organism tag; even if valid, a body structure concept cannot represent the clinical diagnosis of soft tissue sprain \u2014 a disorder code is required."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Three of the six coded concepts are semantically incorrect: a substance code for a performed D-dimer test, a body structure code for the working diagnosis, and an unreliable observable entity for the Wells score interpretation. The three correct codes (blood pressure, ex-smoker, aspirin allergy) are appropriate. The D-dimer procedure, low-probability DVT finding, and a soft tissue disorder code should replace the erroneous entries. Note: the Wells score observable entity code (429053008) may be retained alongside the new finding code if the practice wishes to record the numeric score, but the interpreted finding (low probability DVT) is the clinically essential addition.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 3,
+        "input_tokens": 5714,
+        "output_tokens": 2115,
+        "total_tokens": 7829,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "9bb598f1-30ea-4df8-98f9-ae5f17dcf9bf",
+        "date": "2025-12-07",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e57d46e2-9247-488e-8903-af6c3b557055",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f5d57c19-d8e8-418b-9ddd-5ee20016634a",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7e8d57d0-82aa-43f3-87b5-449ba1603b68",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "91c501c4-39e8-4f03-ac19-66ba1c85d431",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1dc60e2f-530c-4f7c-a645-b3bbb68d1e0d",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "The encounter record contains only administrative metadata: responsible clinician name, treating organisation (Loughborough Urgent Treatment Centre), encounter start/end timestamps, and encounter type. There is no clinical narrative, diagnosis, symptom, procedure, or finding present. No SNOMED coding is possible or required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 394,
+        "output_tokens": 324,
+        "total_tokens": 718,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "1dc60e2f-530c-4f7c-a645-b3bbb68d1e0d",
+        "date": "2025-12-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8057d2a1-e529-43e4-9d91-558ce48734ed",
+    "patient_id": "4220526579",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e1d0dd2d-2ad0-4d0d-9a87-c0ce6c84ece6",
+    "patient_id": "4220526579",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "This encounter contains only administrative content: a staff access role entry (Admin/Clinical Support Access Role), a medication review invitation recall code (Y3f83), and a call/recall notification for the patient. There is no clinical narrative, diagnosis, finding, procedure, or any other SNOMED-codeable clinical content present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 373,
+        "output_tokens": 246,
+        "total_tokens": 619,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4220526579",
+        "encounter_id": "e1d0dd2d-2ad0-4d0d-9a87-c0ce6c84ece6",
+        "date": "2025-12-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a1f33911-0e2c-425e-8c2d-22474ca6bd88",
+    "patient_id": "4220526579",
+    "date": "2025-12-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

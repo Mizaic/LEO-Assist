@@ -414,41 +414,6 @@ SET r.active     = false,
 RETURN r.rule_id AS rule_id
 """
 
-# ---------------------------------------------------------------------------
-# Assertion review queue -- items with non-present, non-auto-resolved assertions
-# that require explicit human confirmation before coding.
-# ---------------------------------------------------------------------------
-
-GET_ASSERTION_REVIEW_QUEUE = """
-MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
-WHERE cr.resolved = false
-  AND t.include = true
-  AND coalesce(cr.assertion, 'present') IN ['possible', 'historical', 'family', 'refuted']
-  AND coalesce(cr.assertion_override, false) = false
-WITH cr.entity_text  AS entity_text,
-     cr.entity_label AS entity_label,
-     count(cr)       AS review_count,
-     cr.assertion    AS assertion,
-     collect(cr.review_id)[0]  AS sample_review_id,
-     collect(t.text)[0]        AS sample_encounter_text
-RETURN entity_text,
-       entity_label,
-       review_count,
-       assertion,
-       sample_review_id,
-       sample_encounter_text
-ORDER BY assertion, review_count DESC
-SKIP $skip LIMIT $limit
-"""
-
-COUNT_ASSERTION_REVIEW_GROUPS = """
-MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
-WHERE cr.resolved = false
-  AND t.include = true
-  AND coalesce(cr.assertion, 'present') IN ['possible', 'historical', 'family', 'refuted']
-  AND coalesce(cr.assertion_override, false) = false
-RETURN count(DISTINCT cr.entity_text) AS group_count
-"""
 
 # ---------------------------------------------------------------------------
 # Calibration -- override rates per decision tier.

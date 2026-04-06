@@ -1,0 +1,1704 @@
+[
+  {
+    "encounter_id": "63ae1a2b-80df-4540-80bb-759ffce8d8f5",
+    "patient_id": "4998540637",
+    "date": "2024-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Both active chronic conditions (hypertension and type 2 diabetes) have been coded using 'history of' situation codes, which is semantically incorrect \u2014 these are active, managed disorders and should be coded as active disorder concepts. The medication review procedure (XaF8d) is correctly coded. No other clinical coding gaps identified within scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5371,
+        "output_tokens": 1400,
+        "total_tokens": 6771,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "63ae1a2b-80df-4540-80bb-759ffce8d8f5",
+        "date": "2024-02-06",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d20be902-4187-43a4-84d6-b0bd8589a78a",
+    "patient_id": "4998540637",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter is entirely administrative: a receptionist-processed repeat prescription batch (Hyabak eye drops, Amlodipine, Atorvastatin, Doxazosin, Metformin) with ETP2 FP10 signing status and a Summary Care Record Update entry. No clinical narrative, examination, diagnosis, or investigation results are present. No coding action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 526,
+        "output_tokens": 320,
+        "total_tokens": 846,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "d20be902-4187-43a4-84d6-b0bd8589a78a",
+        "date": "2024-04-04",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a207bcb6-ff17-48c4-a36f-5b4924b988d9",
+    "patient_id": "4998540637",
+    "date": "2024-08-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "G2A1",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly documents 'eGFR 82. G2A1.' \u2014 G2A1 is the KDIGO staging for CKD stage 2 with normal albuminuria, which is a clinical interpretation beyond the raw eGFR value and should be coded as an active disorder.",
+          "snomed_search": "chronic kidney disease stage G2",
+          "snomed_concept_id": "431856006",
+          "preferred_term": "Chronic kidney disease stage 2 (disorder)",
+          "sentence": "eGFR 82. G2A1.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161445009",
+          "name": "History of diabetes mellitus (situation)",
+          "severity": "medium",
+          "reason": "This 'history of' situation code implies a past/resolved condition, but the patient has active, ongoing Type 2 diabetes mellitus currently managed with metformin \u2014 the active disorder is already correctly captured by code 44054006 (Diabetes mellitus type 2), making this situation code redundant and misleading.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a structured T2DM nurse review. The main coding issue is the redundant/misleading 'History of diabetes mellitus' situation code (161445009) sitting alongside the correct active disorder code (44054006) \u2014 the history-of situation should be removed as the condition is clearly active. The clinician's explicit G2A1 KDIGO staging documents CKD stage 2 and should be coded as an active disorder. Retinopathy screening is awaited (future/planned) and has not yet occurred so is not coded as present; the eGFR, weight, BMI and HbA1c observable entity codes are from the structured pipeline and are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8629,
+        "output_tokens": 1684,
+        "total_tokens": 10313,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "a207bcb6-ff17-48c4-a36f-5b4924b988d9",
+        "date": "2024-08-19",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6e9da070-f5fd-4c0d-ad52-643d7cfcd2a7",
+    "patient_id": "4998540637",
+    "date": "2024-10-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Essential hypertension",
+          "snomed_concept_id": "59621000",
+          "preferred_term": "Essential hypertension (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Explicitly stated as the problem for this encounter. The coded ID XE0Uc is a CTV3/Read code, not a valid SNOMED CT concept ID \u2014 lookup returned an unrelated disorder. Correct SNOMED concept must be applied.",
+          "sentence": "Problem: Essential hypertension (XE0Uc)",
+          "char_start": 52,
+          "char_end": 73
+        },
+        {
+          "text": "Medication review done",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Medication review explicitly documented by pharmacist. The coded ID XaF8d is a CTV3/Read code \u2014 lookup returned an unrelated disorder. Correct SNOMED concept must be applied.",
+          "sentence": "Medication review done (XaF8d)",
+          "char_start": 270,
+          "char_end": 292
+        },
+        {
+          "text": "Metformin 500mg tablets",
+          "snomed_concept_id": "44054006",
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Metformin is prescribed twice daily \u2014 a diabetes-specific medication strongly implying active Type 2 diabetes mellitus. This underlying diagnosis should be coded if not already on the problem list.",
+          "sentence": "(R) Metformin 500mg tablets - 112 tablet - one to be taken twice daily with food",
+          "char_start": 430,
+          "char_end": 510
+        },
+        {
+          "text": "Hyabak 0.15% eye drops preservative free",
+          "snomed_concept_id": "46152009",
+          "preferred_term": "Tear film insufficiency (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Hyabak 0.15% (sodium hyaluronate) is a preservative-free ocular lubricant used specifically for dry eye / tear film insufficiency. The underlying indication should be coded.",
+          "sentence": "(R) Hyabak 0.15% eye drops preservative free (Thea Pharmaceuticals Ltd) - 20 ml - apply qds",
+          "char_start": 300,
+          "char_end": 392
+        }
+      ],
+      "missing": [],
+      "overcoded": [
+        {
+          "coded_id": "XE0Uc",
+          "coded_term": "XE0Uc (CTV3/Read code \u2014 not a valid SNOMED CT concept)",
+          "reason": "XE0Uc is a CTV3/Read code for Essential Hypertension, not a SNOMED CT concept ID. Terminology lookup returned 'Malignant neoplasm of cervix uteri' \u2014 confirming this is not a valid SNOMED code. Should be replaced with SNOMED 59621000 (Essential hypertension).",
+          "severity": "high"
+        },
+        {
+          "coded_id": "XaF8d",
+          "coded_term": "XaF8d (CTV3/Read code \u2014 not a valid SNOMED CT concept)",
+          "reason": "XaF8d is a CTV3/Read code for Medication Review Done, not a SNOMED CT concept ID. Terminology lookup returned 'Malignant neoplasm of breast' \u2014 confirming this is not a valid SNOMED code. Should be replaced with SNOMED 182836005 (Review of medication).",
+          "severity": "high"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Pharmacist-led annual medication review via teleconsult (via patient's son). Two concept IDs in the note (XE0Uc, XaF8d) are CTV3/Read codes, not valid SNOMED CT IDs \u2014 both must be replaced with correct SNOMED concepts (59621000 Essential hypertension; 182836005 Review of medication). Metformin twice daily implies active Type 2 diabetes mellitus which should be coded if not already on the problem list. Hyabak eye drops imply dry eye / tear film insufficiency \u2014 indication not coded. No falls in the last year and no side effects are absent/negative findings noted for completeness but do not require separate coding. Atorvastatin and doxazosin may also imply dyslipidaemia and BPH/hypertension respectively but these are not confirmed from the note text alone and may already be on the problem list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 4793,
+        "output_tokens": 2440,
+        "total_tokens": 7233,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "6e9da070-f5fd-4c0d-ad52-643d7cfcd2a7",
+        "date": "2024-10-31",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e1e98c56-b887-40b5-8f75-b5eea95b3fce",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Total cholesterol:HDL ratio",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The total cholesterol:HDL ratio of 3 is explicitly documented in the lipid panel and is not coded, while all other individual lipid parameters have been coded.",
+          "snomed_search": "serum cholesterol HDL ratio",
+          "snomed_concept_id": "1015681000000109",
+          "preferred_term": "Serum cholesterol/high density lipoprotein ratio (observable entity)",
+          "sentence": "Total cholesterol:HDL ratio (44PF.) 3",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum non high density lipoprotein cholesterol level",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum non-HDL cholesterol of 1.7 mmol/L is explicitly documented in the lipid panel and is not coded, while other lipid parameters have been coded.",
+          "snomed_search": "serum non-HDL cholesterol level",
+          "snomed_concept_id": "1006191000000106",
+          "preferred_term": "Serum non high density lipoprotein cholesterol level (observable entity)",
+          "sentence": "Serum non high density lipoprotein cholesterol level (XabE1) 1.7 mmol/L",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "166832000",
+          "name": "Serum high density lipoprotein cholesterol measurement (procedure)",
+          "severity": "medium",
+          "reason": "The terminology server returns this concept ID as a substance (unreliable), and the clinical intent is to code the HDL cholesterol observable entity consistent with all other lipid parameters in this encounter; the correct observable entity concept should be used instead.",
+          "replace_with_concept_id": "1005681000000107",
+          "replace_with_preferred_term": "Serum high density lipoprotein cholesterol level (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The lipid panel is largely well coded but two observable entities are missing (total cholesterol:HDL ratio and serum non-HDL cholesterol), both explicitly documented with values. The HDL cholesterol code (166832000) is unreliable on the terminology server and should be replaced with the correct observable entity 1005681000000107 to be consistent with the coding pattern for all other lipid parameters in this encounter. The cholesterol level code (850981000000101) also returned an unreliable lookup but has been retained per audit rules; human verification of that concept ID is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5466,
+        "output_tokens": 1717,
+        "total_tokens": 7183,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "e1e98c56-b887-40b5-8f75-b5eea95b3fce",
+        "date": "2024-11-07",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8ae2d4d8-6523-4986-9894-4e626799855f",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "borderline proteinuria",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The report explicitly states the urine protein result is 'Borderline' \u2014 this clinical interpretation should be coded as a finding, not just the measurement procedure.",
+          "snomed_search": "proteinuria finding",
+          "snomed_concept_id": "29738008",
+          "preferred_term": "Proteinuria (finding)",
+          "sentence": "Urine protein level Report, Borderline, Need to repeat test: Repeat urine ACR 3 months.",
+          "char_start": 175,
+          "char_end": 260
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is largely appropriate for a DM/HTN review encounter; the structured lab pipeline codes are correctly present. The one gap is that the explicitly documented 'Borderline' urine protein result should be coded as Proteinuria (finding) 29738008 in addition to the measurement procedure already coded. The planned repeat urine ACR in 3 months is a future procedure and correctly omitted. Lookup_concept returned unreliable results for three concept IDs (57378007, 161501007, 161445009) due to a terminology server index issue \u2014 these codes are clinically appropriate and should not be removed on that basis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4573,
+        "output_tokens": 1329,
+        "total_tokens": 5902,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "8ae2d4d8-6523-4986-9894-4e626799855f",
+        "date": "2024-11-07",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bac90e92-a778-4a0b-a07d-783880e2a401",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Borderline urine PCR above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The urine PCR result of 31.8 mg/mmol is explicitly flagged as 'Outside reference range' and 'Borderline' by the reviewing clinician; proteinuria in a DM/HTN patient has direct management consequences (repeat ACR ordered, myeloma pathway mentioned) and should be coded as a clinical finding.",
+          "snomed_search": "proteinuria finding",
+          "snomed_concept_id": "29738008",
+          "preferred_term": "Proteinuria (finding)",
+          "sentence": "Urine protein/creatinine ratio Report,\u00ef\u00bf\u00bdBorderline,\u00ef\u00bf\u00bdNeed to repeat test: Repeat urine ACR 3 months. Review done by NOBLE, Ben (Dr) - 09 Nov 2024 16:38",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The four existing codes (BP, HbA1c, history of hypertension, history of diabetes) are appropriate for this DM/HTN review. The clinically significant finding of a borderline-elevated urine PCR (31.8 mg/mmol, above the <30 reference range), explicitly reviewed and actioned by Dr Noble with a repeat ACR plan, is missing from the coded list; Proteinuria (29738008) is the best available SNOMED concept. The planned repeat urine ACR and the myeloma free-light-chain pathway are future/conditional actions and do not require coding at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7129,
+        "output_tokens": 1393,
+        "total_tokens": 8522,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "bac90e92-a778-4a0b-a07d-783880e2a401",
+        "date": "2024-11-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "130f2019-44e0-49f8-942e-f4230096b72e",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "271000000",
+          "name": "Urine albumin measurement (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned this as a qualifier value (unreliable); search_snomed confirms the correct concept for the urine albumin result documented in this encounter is the observable entity 1003301000000109 'Urine albumin level', not a procedure code \u2014 the encounter records a measured result (4.1 mg/L), not the act of performing a measurement.",
+          "replace_with_concept_id": "1003301000000109",
+          "replace_with_preferred_term": "Urine albumin level (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a DM/HTN review with a borderline urine albumin result (4.1 mg/L); the observable entity codes for structured lab results are appropriate and the situation codes for hypertension and diabetes are confirmed correct by search. The single issue is concept 271000000, which lookup_concept returned as an unreliable qualifier value \u2014 the correct replacement is the observable entity 1003301000000109 (Urine albumin level), consistent with the documented numeric result. The 'History of...' situation codes are acceptable for these chronic conditions under ongoing review.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4076,
+        "output_tokens": 1145,
+        "total_tokens": 5221,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "130f2019-44e0-49f8-942e-f4230096b72e",
+        "date": "2024-11-07",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "99e9acab-6ac1-4c11-8484-3d5b6cfb673b",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hyponatraemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Serum sodium 128 mmol/L is explicitly flagged as outside the reference range (133\u2013146 mmol/L), confirming hyponatraemia; this active clinical finding must be coded and is absent from the coded list.",
+          "snomed_search": "hyponatraemia",
+          "snomed_concept_id": "89627008",
+          "preferred_term": "Hyponatremia (finding)",
+          "sentence": "Serum sodium level (XE2q0) 128 mmol/L [133 - 146] - Outside reference range",
+          "char_start": 72,
+          "char_end": 136
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The sole coding gap is the absence of Hyponatremia (89627008) \u2014 sodium 128 mmol/L is explicitly flagged outside the reference range and is a clinically significant active finding. All other U&E results are within range and correctly captured as observable entity codes by the structured pipeline. The two situation codes for history of diabetes and hypertension are retained as standing problem-list codes evidenced by the clinical information field; their concept IDs returned unreliable results from the terminology server but cannot be flagged for deletion on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4720,
+        "output_tokens": 1174,
+        "total_tokens": 5894,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "99e9acab-6ac1-4c11-8484-3d5b6cfb673b",
+        "date": "2024-11-07",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9e086662-6242-4baa-a914-3c531f54a5ea",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is an auto-filed FBC result encounter with a clinician sign-off of 'Normal, No Further Action'. The observable entity codes (WBC, platelets, Hb, MCV, MCH) are correctly written by the structured lab pipeline and should not be disturbed. The haematocrit is marginally below range (0.396 vs 0.4\u20130.54) but the reviewing clinician explicitly interpreted the FBC as normal with no further action, so no additional clinical finding code is warranted. History of diabetes and hypertension are correctly coded from the clinical context field.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2963,
+        "output_tokens": 887,
+        "total_tokens": 3850,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "9e086662-6242-4baa-a914-3c531f54a5ea",
+        "date": "2024-11-07",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "222b4d71-4665-485e-b9fc-7a723301190b",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All 9 coded concepts are appropriate: the observable entity lab codes reflect structured pipeline auto-filing and the two situation codes (history of hypertension, history of diabetes mellitus) are confirmed valid SNOMED concepts correctly asserted. The serum sodium of 128 mmol/L is clinically notable but the note does not explicitly document a diagnosis of hyponatraemia, so it cannot be coded from the numeric value alone. The planned repeat urine ACR in 3 months is a future procedure and must not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 10401,
+        "output_tokens": 1315,
+        "total_tokens": 11716,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "222b4d71-4665-485e-b9fc-7a723301190b",
+        "date": "2024-11-07",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0a7c537a-2332-45b6-9e68-c6c1a48d05d6",
+    "patient_id": "4998540637",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Body mass index index 25-29 - overweight",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI 26.49 kg/m\u00b2 is explicitly documented and the overweight band (22K4.) is recorded in the template but the finding is absent from the coded concept list.",
+          "snomed_search": "overweight body mass index",
+          "snomed_concept_id": "162863004",
+          "preferred_term": "Body mass index 25-29 - overweight (finding)",
+          "sentence": "Body mass index index 25-29 - overweight (22K4.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Alcohol Use Disorders Identification Test - Consumption (AUDIT-C)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The AUDIT-C questionnaire was completed in full during this encounter (score 2, all three sub-questions answered) and should be coded as a procedure performed.",
+          "snomed_search": "AUDIT-C alcohol screening",
+          "snomed_concept_id": "763302001",
+          "preferred_term": "Assessment using Alcohol Use Disorders Identification Test - Consumption (procedure)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 2",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lifestyle counselling - controlling diet",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Lifestyle counselling (XaEFY) with dietary advice is explicitly documented as performed during this LTC review and warrants a procedure code.",
+          "snomed_search": "lifestyle education",
+          "snomed_concept_id": "313204009",
+          "preferred_term": "Lifestyle education (procedure)",
+          "sentence": "Lifestyle counselling (XaEFY) - controlling diet",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding) [coded as 77176002]",
+          "severity": "medium",
+          "reason": "Concept ID 77176002 is unreliable (terminology server returns it as an organism, not a clinical finding); the correct SNOMED concept for 'Light cigarette smoker (1-9 cigs/day)' is 160603005.",
+          "replace_with_concept_id": "160603005",
+          "replace_with_preferred_term": "Light cigarette smoker (1-9 cigs/day) (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a structured LTC review for Type 2 diabetes and hypertension with good core coding (active disorder codes correctly preferred over history-of situation codes). Three gaps identified: the explicitly documented overweight BMI band, the completed AUDIT-C procedure, and lifestyle counselling; additionally the smoking concept ID 77176002 is unreliable and should be replaced with the verified 160603005. Pathology requests are future/pending and correctly excluded from procedure coding at this point.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 14000,
+        "output_tokens": 2126,
+        "total_tokens": 16126,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "0a7c537a-2332-45b6-9e68-c6c1a48d05d6",
+        "date": "2024-11-07",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "362a5d59-7e1f-4b53-b0af-d027a38ad4ab",
+    "patient_id": "4998540637",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The ankle sprain diagnosis (44465007) is correctly coded and well-evidenced. However, the X-ray procedure is coded as 'Plain X-ray of right ankle' (426721006) despite no laterality being documented anywhere in the encounter note \u2014 the note states only 'Xray reviewed' and 'Refer for X-ray: Yes'. The laterality-neutral concept 'Plain X-ray of ankle joint' (1290461004) or 'Plain X-ray of ankle region' (1290459008) would be more appropriate; the right-sided specificity is unsupported and should be reviewed. The 'Soft tissue injury' marked-in-error entries are administrative corrections already handled by the system and require no coding action.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3700,
+        "output_tokens": 894,
+        "total_tokens": 4594,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "362a5d59-7e1f-4b53-b0af-d027a38ad4ab",
+        "date": "2024-11-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ced9f62b-d453-4c3c-abd8-839b837cf6f2",
+    "patient_id": "4998540637",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "?# lateral malleolus",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The clinician documents '?#' (possible fracture) with specific tenderness at the lateral malleolus \u2014 a key Ottawa ankle rule finding \u2014 which should be coded as a possible fracture of lateral malleolus pending X-ray.",
+          "snomed_search": "fracture lateral malleolus",
+          "snomed_concept_id": "281535004",
+          "preferred_term": "Fracture of lateral malleolus (disorder)",
+          "sentence": "Diagnosis: ?# ?Sprain",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "?# 4th and 5th metatarsal shafts",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "Tenderness over the 4th and 5th metatarsal shafts is an Ottawa foot rule positive finding raising suspicion of metatarsal fracture, documented as '?#' and should be coded as a possible metatarsal fracture pending X-ray.",
+          "snomed_search": "metatarsal bone fracture",
+          "snomed_concept_id": "263251009",
+          "preferred_term": "Metatarsal bone fracture (disorder)",
+          "sentence": "Tender to 4th and 5th metatarsal shafts",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "113225006",
+          "name": "Structure of lateral malleolus of fibula (body structure)",
+          "severity": "medium",
+          "reason": "Body structure codes are outside the clinical coding scope for encounter findings; tenderness at the lateral malleolus is an examination finding, not a body structure, and is better captured by coding the possible fracture of lateral malleolus (281535004).",
+          "replace_with_concept_id": "281535004",
+          "replace_with_preferred_term": "Fracture of lateral malleolus (disorder)",
+          "replace_with_assertion": "possible"
+        },
+        {
+          "conceptId": "119546009",
+          "name": "Bone structure of shaft of metatarsal (body structure)",
+          "severity": "medium",
+          "reason": "Body structure codes are outside the clinical coding scope for encounter findings; metatarsal shaft tenderness is an examination finding best captured by coding the possible metatarsal fracture (263251009).",
+          "replace_with_concept_id": "263251009",
+          "replace_with_preferred_term": "Metatarsal bone fracture (disorder)",
+          "replace_with_assertion": "possible"
+        },
+        {
+          "conceptId": "209529003",
+          "name": "Sprain of ankle and/or foot (disorder)",
+          "severity": "low",
+          "reason": "This broader concept duplicates the more specific [44465007] Sprain of ankle already coded in the same encounter; retaining both creates redundancy and the broader code adds no clinical value."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "44465007",
+          "name": "Sprain of ankle (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician explicitly documents '?Sprain' indicating diagnostic uncertainty pending X-ray results; assertion should be 'possible' not 'present'."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The encounter has several coding quality issues: two body structure codes (113225006, 119546009) are outside clinical coding scope and should be replaced with the clinically appropriate possible fracture disorder codes; the sprain assertion should be 'possible' given explicit '?Sprain' documentation; the broader sprain code (209529003) duplicates the specific one; and two key possible fracture diagnoses (lateral malleolus, metatarsal) are missing entirely. Multiple concept lookups returned unreliable results from the terminology server, suggesting some coded IDs may need verification against a local SNOMED release.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 10933,
+        "output_tokens": 2584,
+        "total_tokens": 13517,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "ced9f62b-d453-4c3c-abd8-839b837cf6f2",
+        "date": "2024-11-12",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1688e685-9117-4624-b567-4c6b0a1cf0a0",
+    "patient_id": "4998540637",
+    "date": "2025-01-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Does use hearing aid - bilateral",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The structured questionnaire explicitly records 'Does use hearing aid (Xa2yX) bilateral' \u2014 this finding is clinically relevant to the ear assessment and microsuction referral but is absent from the coded concept list.",
+          "snomed_search": "bilateral hearing aid use",
+          "snomed_concept_id": "285055002",
+          "preferred_term": "Does use hearing aid (finding)",
+          "sentence": "Hearing aid: Does use hearing aid (Xa2yX) bilateral",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All five existing codes are confirmed correct and well-evidenced by the note: history of diabetes (caution), wax in ear canal (right ear blocked), history of surgery (previous ear surgery), medical contraindication to ear syringing (two explicit contraindications), and ear microsuction care pathway (PRISM referral made). The one gap is the explicitly structured finding 'Does use hearing aid \u2014 bilateral' (285055002), which is documented in the questionnaire with its own Read code (Xa2yX) but has not been carried through to the SNOMED coded list. Note: lookup_concept returned unreliable/corrupted results for all five existing concept IDs, but search_snomed independently confirmed all five preferred terms and semantic tags as correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10297,
+        "output_tokens": 1784,
+        "total_tokens": 12081,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "1688e685-9117-4624-b567-4c6b0a1cf0a0",
+        "date": "2025-01-23",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "becbef78-59a2-444f-9020-117e6062d170",
+    "patient_id": "4998540637",
+    "date": "2025-01-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Other specified hearing loss",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as the presenting symptom (Read code FyuU1 / '[X]Other specified hearing loss') and is the clinical reason for the ear wax removal referral; it is not captured by the impacted cerumen disorder code alone.",
+          "snomed_search": "hearing loss",
+          "snomed_concept_id": "15188001",
+          "preferred_term": "Hearing loss (disorder)",
+          "sentence": "Presenting Symptoms: [X]Other specified hearing loss (FyuU1)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes are clinically correct and well-evidenced (lookup_concept returned unreliable results for these IDs but search_snomed confirms their validity). The presenting symptom of hearing loss (Read FyuU1) is explicitly documented but not coded; SNOMED 15188001 'Hearing loss (disorder)' is the appropriate equivalent. Absent findings (no dizziness, no earache) and workflow/discharge codes are correctly excluded from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9158,
+        "output_tokens": 1375,
+        "total_tokens": 10533,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "becbef78-59a2-444f-9020-117e6062d170",
+        "date": "2025-01-29",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "05fd577a-57a0-419e-a8c0-e8b9a2426267",
+    "patient_id": "4998540637",
+    "date": "2025-03-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "2WW lung cancer referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "NG12 criteria are met: haemoptysis + 100 pack-year smoking history + 3-month cough in an adult \u2014 an urgent suspected lung cancer referral should have been made and coded; the plan documents only CXR and bloods with no 2WW referral.",
+          "snomed_search": "fast track referral suspected lung cancer",
+          "snomed_concept_id": "276491000000101",
+          "preferred_term": "Fast track referral for suspected lung cancer (procedure)",
+          "sentence": "Has noticed flecks of blood in sputum over past 2/52 ... 100 pack years ... Plan: Check CXR and bloods",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom and is not coded in the encounter.",
+          "snomed_search": "rhinorrhoea",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and is not coded.",
+          "snomed_search": "post-nasal drip",
+          "snomed_concept_id": "162382001",
+          "preferred_term": "Complaining of postnasal drip (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "CRITICAL SAFETY CONCERN: This patient meets NG12 criteria for urgent suspected lung cancer referral (haemoptysis + 100 pack-year smoking history + 3-month productive cough + coarse crepitations) but no 2WW referral is documented or coded \u2014 this requires immediate clinical review. Additionally, the terminology server returned unreliable/corrupted lookups for concepts 289114008 (cough), 66857006 (haemoptysis), and 12441001 (epistaxis); cross-referencing via search_snomed confirms the concept IDs are clinically appropriate matches, so these are not flagged as overcoded, but the practice should verify these IDs against their local SNOMED release. Rhinorrhoea and post-nasal drip are documented symptoms that are uncoded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9761,
+        "output_tokens": 1918,
+        "total_tokens": 11679,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "05fd577a-57a0-419e-a8c0-e8b9a2426267",
+        "date": "2025-03-10",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2c4b583b-57bd-4ec8-8632-191fdb30d1b0",
+    "patient_id": "4998540637",
+    "date": "2025-03-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "abnormal left hilar enlargement",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The radiologist explicitly reports an abnormal left hilum with enlargement and ill-defined hilar point \u2014 a specific radiological finding that is the primary driver of the suspected lung cancer code and must be independently coded.",
+          "snomed_search": "mass of hilum",
+          "snomed_concept_id": "309530007",
+          "preferred_term": "Mass of hilum (finding)",
+          "sentence": "the left hilum looks abnormal with enlargement and an ill-defined hilar point.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "blood in rhinorrhoea",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents 'small amounts fresh blood in rhinorrhea' \u2014 haemorrhagic nasal discharge is a distinct and clinically significant symptom from plain nasal discharge (already coded) and is a potential red-flag upper airway symptom in this context.",
+          "snomed_search": "hemorrhagic nasal discharge",
+          "snomed_concept_id": "72189003",
+          "preferred_term": "Hemorrhagic nasal discharge (disorder)",
+          "sentence": "Has also noticed small amounts fresh blood in rhinorrhea.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and is a distinct finding from nasal discharge; it is not captured by the existing nasal discharge code.",
+          "snomed_search": "postnasal drip",
+          "snomed_concept_id": "162382001",
+          "preferred_term": "Complaining of postnasal drip (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter is a radiologist's CXR report auto-filed into the GP record with strong red-flag content: abnormal left hilar enlargement in a heavy smoker with haemoptysis. The existing coding correctly captures suspected lung malignancy, haemoptysis, abnormal CXR, and smoking, but misses the specific hilar mass finding (the key radiological driver), the haemorrhagic nature of the nasal discharge (a separate red-flag symptom), and post-nasal drip. Several existing concept IDs returned unreliable lookups from the terminology server but are clinically appropriate and have not been flagged as overcoded on that basis alone. A CT scan has been recommended but not yet performed \u2014 this should be actioned urgently given the red-flag findings.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9195,
+        "output_tokens": 2123,
+        "total_tokens": 11318,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "2c4b583b-57bd-4ec8-8632-191fdb30d1b0",
+        "date": "2025-03-11",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6513ffdc-341d-4263-b1e5-d46384ea3a7e",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly listed in the clinical details as an associated symptom and has not been coded.",
+          "snomed_search": "nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom alongside rhinorrhoea and has not been coded.",
+          "snomed_search": "postnasal drip",
+          "snomed_concept_id": "162382001",
+          "preferred_term": "Complaining of postnasal drip (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "haemoptysis with persistent cough \u2014 suspected lung cancer 2WW referral decision",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Haemoptysis plus a 3-month productive cough meets NG12 criteria for suspected lung cancer 2WW referral; the reviewing clinician marked only the PSA as 'No Further Action' with no documented clinical decision or safety-netting regarding these red-flag respiratory symptoms.",
+          "snomed_search": "suspected lung cancer referral",
+          "sentence": "Has noticed flecks of blood in sputum over past 2/52. Chesty cough over past 3/12.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "CRITICAL SAFETY CONCERN: This auto-filed PSA result review contains clinical details describing haemoptysis and a 3-month productive cough \u2014 NG12 red-flag criteria for suspected lung cancer \u2014 but the reviewer's action is documented only as 'No Further Action' in relation to the PSA result. There is no coded or documented 2WW referral decision or safety-netting for the respiratory symptoms; this requires urgent human review. Additionally, rhinorrhoea and post-nasal drip are uncoded symptoms explicitly listed in the clinical details. The lookup_concept server returned unreliable/corrupted results for concepts 66857006 and 289114008, but search_snomed confirms both are valid SNOMED finding codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7099,
+        "output_tokens": 2242,
+        "total_tokens": 9341,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "6513ffdc-341d-4263-b1e5-d46384ea3a7e",
+        "date": "2025-03-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "314184dc-b352-463f-a39b-9d24bfba3b7a",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom and has not been coded.",
+          "snomed_search": "nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and has not been coded.",
+          "snomed_search": "post nasal drip",
+          "snomed_concept_id": "75803007",
+          "preferred_term": "Posterior rhinorrhea (disorder)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Haemoptysis (2 weeks) with a 3-month productive cough is a potential lung cancer red-flag constellation \u2014 the haemoptysis IS correctly coded, but rhinorrhoea and post-nasal drip are documented symptoms that have been omitted. The 'chesty cough' is coded with a non-specific 'Does cough' concept when 'Productive cough' (28743005) would be more precise. The AKI staging result (Stage 0 / No AKI) does not require additional coding beyond the observable entity already present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3573,
+        "output_tokens": 1635,
+        "total_tokens": 5208,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "314184dc-b352-463f-a39b-9d24bfba3b7a",
+        "date": "2025-03-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b9f551a9-d5e3-4a45-b3f8-c5d605c18b57",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom and should be coded as a separate finding.",
+          "snomed_search": "nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and should be coded separately from rhinorrhoea.",
+          "snomed_search": "post-nasal drip",
+          "snomed_concept_id": "75803007",
+          "preferred_term": "Posterior rhinorrhea (disorder)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding) [coded] \u2014 lookup returned semantic_tag 'organism'; unreliable concept ID",
+          "severity": "medium",
+          "reason": "Concept ID 289114008 is unreliable (terminology server returned semantic_tag 'organism'); the correct SNOMED concept for cough is 49727002 'Cough (finding)'.",
+          "replace_with_concept_id": "49727002",
+          "replace_with_preferred_term": "Cough (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Haemoptysis (blood in sputum) is correctly coded and is a safety-critical red-flag symptom \u2014 the note should be reviewed to confirm appropriate clinical follow-up/2WW referral consideration has been documented. The cough concept ID (289114008) is unreliable and should be replaced with 49727002 'Cough (finding)'. Rhinorrhoea and post-nasal drip are documented symptoms that are not yet coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3980,
+        "output_tokens": 1530,
+        "total_tokens": 5510,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "b9f551a9-d5e3-4a45-b3f8-c5d605c18b57",
+        "date": "2025-03-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "24f6e138-e93f-4f1d-aacd-49818200dbd3",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom alongside the cough and should be coded as a current finding.",
+          "snomed_search": "nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and should be coded as a current finding.",
+          "snomed_search": "posterior rhinorrhea",
+          "snomed_concept_id": "75803007",
+          "preferred_term": "Posterior rhinorrhea (disorder)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Haemoptysis (66857006) is correctly coded and represents a safety-critical red-flag symptom (NG12 \u2014 blood in sputum with 3-month cough); the note records only a normal CRP with no further action, which warrants clinical safety-netting review outside the scope of coding audit. Two associated symptoms \u2014 rhinorrhoea and post-nasal drip \u2014 are documented but not coded. The CRP observable entity code is accepted as a structured lab pipeline entry and not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3682,
+        "output_tokens": 1522,
+        "total_tokens": 5204,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "24f6e138-e93f-4f1d-aacd-49818200dbd3",
+        "date": "2025-03-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bfd7e5b6-d9e1-4d56-b743-860ed1a46e99",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "flecks of blood in sputum / haemoptysis with 3-month cough",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Haemoptysis combined with a 3-month cough meets NG12 criteria for urgent 2-week-wait lung cancer referral; no referral or safety-netting is documented and this must be reviewed immediately.",
+          "snomed_search": "haemoptysis",
+          "snomed_concept_id": "66857006",
+          "preferred_term": "Hemoptysis (finding)",
+          "sentence": "Has noticed flecks of blood in sputum over past 2/52",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "rhinorrhoea",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom and should be coded.",
+          "snomed_search": "nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and should be coded.",
+          "snomed_search": "post-nasal drip",
+          "snomed_concept_id": "75803007",
+          "preferred_term": "Posterior rhinorrhea (disorder)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "SAFETY-CRITICAL: Haemoptysis (blood in sputum) in the context of a 3-month productive cough meets NICE NG12 criteria for urgent 2-week-wait lung cancer referral; the encounter note records only a normal ferritin result with 'No Further Action' and does not document any clinical response to the haemoptysis \u2014 this requires immediate clinical review. Additionally, rhinorrhoea and post-nasal drip are documented symptoms that are uncoded. The terminology server returned unreliable results for concepts 289114008 (cough) and 66857006 (haemoptysis) but search_snomed confirms 66857006 is the correct haemoptysis concept; the existing haemoptysis code is therefore retained as correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3878,
+        "output_tokens": 1582,
+        "total_tokens": 5460,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "bfd7e5b6-d9e1-4d56-b743-860ed1a46e99",
+        "date": "2025-03-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bed14524-fd08-4036-a71f-dc91fc1c9cb9",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom and is not captured in the existing coded concepts.",
+          "snomed_search": "nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and is not captured in the existing coded concepts.",
+          "snomed_search": "posterior rhinorrhea",
+          "snomed_concept_id": "75803007",
+          "preferred_term": "Posterior rhinorrhea (disorder)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding) [as coded]",
+          "severity": "medium",
+          "reason": "Lookup returned unreliable result (semantic_tag='organism'), indicating concept ID 289114008 is incorrect; the correct SNOMED concept for cough is 49727002 Cough (finding), or more specifically 284523002 Persistent cough (finding) given the 3-month duration documented.",
+          "replace_with_concept_id": "284523002",
+          "replace_with_preferred_term": "Persistent cough (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two associated upper respiratory symptoms (rhinorrhoea and post-nasal drip) are documented but uncoded. The cough concept ID 289114008 is unreliable (terminology server returns an 'organism' semantic tag) and should be replaced with 284523002 Persistent cough (finding), which better reflects the 3-month duration stated in the note. Haemoptysis (66857006) is correctly coded as a safety-critical red-flag finding; although the lookup server returned an unreliable result for this ID, search_snomed independently confirms 66857006 as Hemoptysis (finding) \u2014 no change needed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3866,
+        "output_tokens": 1724,
+        "total_tokens": 5590,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "bed14524-fd08-4036-a71f-dc91fc1c9cb9",
+        "date": "2025-03-13",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "751cc855-9e00-48a4-8192-fcc499dd6c69",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "haemoptysis with 3-month cough \u2014 2WW lung cancer referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Haemoptysis (blood-flecked sputum \u00d72 weeks) combined with a 3-month cough meets NICE NG12 criteria for urgent suspected lung cancer referral; no 2WW referral is documented or coded in this encounter.",
+          "snomed_search": "fast track referral suspected lung cancer",
+          "snomed_concept_id": "276491000000101",
+          "preferred_term": "Fast track referral for suspected lung cancer (procedure)",
+          "sentence": "Has noticed flecks of blood in sputum over past 2/52",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom in the clinical details and should be coded as a finding.",
+          "snomed_search": "nasal discharge rhinorrhoea",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom alongside rhinorrhoea and should be coded separately as a distinct finding.",
+          "snomed_search": "postnasal drip complaint",
+          "snomed_concept_id": "162382001",
+          "preferred_term": "Complaining of postnasal drip (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "CRITICAL SAFETY CONCERN: Haemoptysis (blood-flecked sputum for 2 weeks) combined with a 3-month productive cough meets NICE NG12 red-flag criteria for suspected lung cancer; no 2WW fast-track referral is documented or coded \u2014 this requires urgent human review. The U&E lab codes and hyponatraemia finding (89627008) are correctly coded; rhinorrhoea and post-nasal drip are documented symptoms that are missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8624,
+        "output_tokens": 1962,
+        "total_tokens": 10586,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "751cc855-9e00-48a4-8192-fcc499dd6c69",
+        "date": "2025-03-13",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9c9df350-53ca-48a3-960e-40d90e8606e2",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom and should be coded as a clinical finding.",
+          "snomed_search": "nasal discharge",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom alongside rhinorrhoea and should be coded.",
+          "snomed_search": "post nasal drip",
+          "snomed_concept_id": "75803007",
+          "preferred_term": "Posterior rhinorrhea (disorder)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "haematocrit below reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The haematocrit result is explicitly flagged as 'Outside reference range' in the report and the clinical interpretation should be coded as a finding, not just the observable entity.",
+          "snomed_search": "low haematocrit",
+          "snomed_concept_id": "165414004",
+          "preferred_term": "Hematocrit below reference range (finding)",
+          "sentence": "Haematocrit (X76tb) 0.397  [0.4 - 0.54] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "SAFETY-CRITICAL: Haemoptysis with a 3-month productive cough meets NICE NG12 criteria for urgent 2-week-wait lung cancer referral \u2014 the haemoptysis concept ID 66857006 is confirmed by the terminology server to be a qualifier value ('Strain M 6906'), not a disorder/finding, indicating a corrupt or incorrect code that must be urgently corrected. Additionally, rhinorrhoea, post-nasal drip, and the explicitly flagged below-range haematocrit are uncoded clinical findings from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6247,
+        "output_tokens": 1496,
+        "total_tokens": 7743,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "9c9df350-53ca-48a3-960e-40d90e8606e2",
+        "date": "2025-03-13",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a4bf3ba9-8eda-440a-bd9c-8083e0832eab",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "flecks of blood in sputum / haemoptysis with 3-month cough",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Haemoptysis combined with a 3-month productive cough meets NICE NG12 criteria for urgent suspected lung cancer referral; there is no documentation in this encounter that a 2WW referral was made or considered, representing a potential safety gap.",
+          "snomed_search": "fast track referral suspected lung cancer",
+          "snomed_concept_id": "276491000000101",
+          "preferred_term": "Fast track referral for suspected lung cancer (procedure)",
+          "sentence": "Has noticed flecks of blood in sputum over past 2/52",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly listed as an associated symptom in the clinical details and should be coded.",
+          "snomed_search": "nasal discharge rhinorrhoea",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and should be coded separately from rhinorrhoea.",
+          "snomed_search": "post nasal drip",
+          "snomed_concept_id": "162382001",
+          "preferred_term": "Complaining of postnasal drip (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The existing codes for haemoptysis (66857006) and cough (289114008) are clinically appropriate, though the lookup for 66857006 returned an unreliable qualifier-value result \u2014 search_snomed confirms it is the correct haemoptysis concept. Critically, haemoptysis with a 3-month cough meets NICE NG12 criteria for urgent suspected lung cancer referral, and there is no documentation in this auto-filed lab encounter that a 2WW referral was initiated or considered; this requires urgent clinical review. Additionally, rhinorrhoea and post-nasal drip are explicitly stated symptoms that are uncoded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6144,
+        "output_tokens": 1833,
+        "total_tokens": 7977,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "a4bf3ba9-8eda-440a-bd9c-8083e0832eab",
+        "date": "2025-03-13",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7b4e7649-8726-427f-b9cd-90137cdde18f",
+    "patient_id": "4998540637",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum bilirubin outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The bilirubin result is explicitly flagged 'Outside reference range' (22 umol/L vs upper limit 21); the clinical interpretation of an above-range result should be coded, not just the observable entity.",
+          "snomed_search": "serum bilirubin raised",
+          "snomed_concept_id": "166612004",
+          "preferred_term": "Serum bilirubin above reference range (finding)",
+          "sentence": "Serum bilirubin level (44E..) 22 umol/L [< 21] - Outside reference range",
+          "char_start": 72,
+          "char_end": 131
+        },
+        {
+          "term": "Chesty cough",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "'Chesty cough' is a productive cough; the more specific concept 'Productive cough' better represents the documented symptom than the generic 'Does cough' (289114008) currently coded.",
+          "snomed_search": "productive cough",
+          "snomed_concept_id": "28743005",
+          "preferred_term": "Productive cough (finding)",
+          "sentence": "Chesty cough over past 3/12.",
+          "char_start": 220,
+          "char_end": 247
+        },
+        {
+          "term": "rhinorrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rhinorrhoea is explicitly documented as an associated symptom and is a codeable clinical finding not currently captured.",
+          "snomed_search": "rhinorrhoea",
+          "snomed_concept_id": "64531003",
+          "preferred_term": "Nasal discharge (finding)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 248,
+          "char_end": 287
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly documented as an associated symptom and is a distinct codeable clinical finding not currently captured.",
+          "snomed_search": "post-nasal drip",
+          "snomed_concept_id": "75803007",
+          "preferred_term": "Posterior rhinorrhea (disorder)",
+          "sentence": "Associated rhinorrhoea, post-nasal drip.",
+          "char_start": 261,
+          "char_end": 287
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding)",
+          "severity": "medium",
+          "reason": "The note documents a 'chesty cough' (productive cough), which is more specific than the generic 'Does cough'; replace with Productive cough (28743005).",
+          "replace_with_concept_id": "28743005",
+          "replace_with_preferred_term": "Productive cough (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "SAFETY ALERT: Haemoptysis (blood in sputum \u00d72 weeks) combined with a 3-month productive cough meets NICE NG12 criteria for an urgent 2-week-wait lung cancer referral \u2014 the encounter note contains no documentation of this referral being considered or made; this requires immediate clinical review. Additionally, the coded haemoptysis concept (66857006) returned an unreliable lookup result but is confirmed correct by search_snomed. The bilirubin result is flagged outside reference range and should be coded as an above-range finding; 'Does cough' should be replaced with the more specific 'Productive cough'; rhinorrhoea and post-nasal drip are uncoded documented symptoms.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6494,
+        "output_tokens": 2154,
+        "total_tokens": 8648,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "7b4e7649-8726-427f-b9cd-90137cdde18f",
+        "date": "2025-03-13",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a98fbd45-e3e9-4c53-89ac-337300f3d2ba",
+    "patient_id": "4998540637",
+    "date": "2025-03-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "abnormal left hilum with enlargement and ill-defined hilar point",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The CXR report explicitly describes an abnormal left hilum with enlargement and ill-defined hilar point \u2014 this is the key radiological finding driving the 2WW referral and must be coded as an active finding.",
+          "snomed_search": "plain X-ray chest abnormal",
+          "snomed_concept_id": "1290960005",
+          "preferred_term": "Plain X-ray of chest abnormal (finding)",
+          "sentence": "the left hilum looks abnormal with enlargement and an ill-defined hilar point.",
+          "char_start": 230,
+          "char_end": 305
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure) [MISCODED \u2014 concept resolves to DRB1*09012 (substance)]",
+          "severity": "critical",
+          "reason": "Concept ID 276341000000100 resolves to a substance (DRB1*09012), not a referral procedure; the note clearly documents a 2WW chest referral for suspected lung cancer, which requires concept 276491000000101.",
+          "replace_with_concept_id": "276491000000101",
+          "replace_with_preferred_term": "Fast track referral for suspected lung cancer (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "399208008",
+          "name": "Plain X-ray of chest (procedure) [DUPLICATE]",
+          "severity": "medium",
+          "reason": "Plain X-ray of chest is coded twice; the CXR procedure only occurred once and the second instance was incorrectly used to represent the abnormal CXR result, which should be a separate finding code (1290960005)."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'I notice a history of smoking' \u2014 this is a past history reference, not a confirmed current active smoking status, so assertion should be historical."
+        }
+      ],
+      "confidence": 0.95,
+      "notes": "This encounter contains two critical coding errors: (1) the 2WW referral is coded with concept 276341000000100 which resolves to a substance (DRB1*09012) rather than the correct 'Fast track referral for suspected lung cancer' (276491000000101) \u2014 a safety-critical miscoding given the clinical context of suspected lung malignancy; (2) the CXR procedure is duplicated and the abnormal CXR finding (hilar enlargement) is entirely absent from the coded list despite being the primary driver of the 2WW pathway decision.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4957,
+        "output_tokens": 1476,
+        "total_tokens": 6433,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "a98fbd45-e3e9-4c53-89ac-337300f3d2ba",
+        "date": "2025-03-18",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "867b9ed6-fd91-4ed5-85a4-959b20a6a788",
+    "patient_id": "4998540637",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "315609007",
+          "name": "Pack years (assessment scale)",
+          "severity": "low",
+          "reason": "Semantic tag 'assessment scale' is outside the auditable SNOMED scope; the preferred observable entity concept for cigarette pack-years should be used instead.",
+          "replace_with_concept_id": "401201003",
+          "replace_with_preferred_term": "Cigarette pack-years (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a high-quality 2WW lung cancer coding with all critical concepts present: abnormal CXR (168734001), fast-track lung cancer referral (276491000000101), persistent cough (284523002), dyspnoea on exertion (60845006), and smoking status (77176002). The only issue is that pack-years is coded as 315609007 'Pack years (assessment scale)' \u2014 an out-of-scope semantic tag \u2014 when 401201003 'Cigarette pack-years (observable entity)' is the correct in-scope SNOMED concept. Lookup_concept returned unreliable results for 60845006 and 284523002 due to server index issues, but search_snomed independently confirms 60845006 is the correct concept for dyspnoea on exertion; 284523002 for persistent cough is clinically appropriate and well-evidenced by the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6212,
+        "output_tokens": 1453,
+        "total_tokens": 7665,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4998540637",
+        "encounter_id": "867b9ed6-fd91-4ed5-85a4-959b20a6a788",
+        "date": "2025-03-21",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "549b6950-499f-4647-982a-19311235af23",
+    "patient_id": "4998540637",
+    "date": "2025-03-31",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

@@ -1,0 +1,963 @@
+[
+  {
+    "encounter_id": "ce6b414b-1577-4ae5-8fb6-d5cd7a313396",
+    "patient_id": "4300102074",
+    "date": "2024-01-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-processed repeat prescription request (Memantine and Donepezil) and an administrative SCR preference update \u2014 there is no GP clinical narrative, examination, diagnosis, or plan. The two coded concepts (dementia history and GP surgery attendance) are standing/system-set codes and must not be altered on the basis of this admin-only encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1531,
+        "output_tokens": 634,
+        "total_tokens": 2165,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "ce6b414b-1577-4ae5-8fb6-d5cd7a313396",
+        "date": "2024-01-02",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e717c2ce-2660-4698-9501-125d25df7cbe",
+    "patient_id": "4300102074",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Medication review done",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Medication review done (XaF8d)' \u2014 this clinical procedure should be coded as a SNOMED procedure.",
+          "snomed_search": "review of medication",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "sentence": "Medication review done (XaF8d)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "recurrent cellulitis",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note documents long-term prophylactic doxycycline for cellulitis since 2007, indicating an established history of recurrent cellulitis that should be coded as a disorder.",
+          "snomed_search": "recurrent cellulitis",
+          "snomed_concept_id": "698567002",
+          "preferred_term": "Recurrent cellulitis (disorder)",
+          "sentence": "also takes the doxyxcyline prophylactic she is on long term for prophylactic for cellulitis been on this since 2007",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "long-term doxycycline prophylaxis",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is on long-term antibiotic (doxycycline) prophylaxis since 2007; this situation should be coded to support prescribing safety and medication review context.",
+          "snomed_search": "long-term current use antibiotic",
+          "snomed_concept_id": "711149003",
+          "preferred_term": "Long-term current use of antibiotic (situation)",
+          "sentence": "also takes the doxyxcyline prophylactic she is on long term for prophylactic for cellulitis been on this since 2007",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (telephone consultation and Alzheimer's dementia) are appropriate and well-evidenced; lookup_concept returned unreliable results for both but search_snomed confirmed the concept IDs are correct. Three additions are needed: the explicitly documented medication review procedure, the underlying recurrent cellulitis disorder driving long-term prophylaxis since 2007, and the long-term antibiotic use situation. No safety-critical gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7906,
+        "output_tokens": 1752,
+        "total_tokens": 9658,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "e717c2ce-2660-4698-9501-125d25df7cbe",
+        "date": "2024-04-04",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ad851698-ad36-4154-97ac-a6f5771c8134",
+    "patient_id": "4300102074",
+    "date": "2024-04-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "advanced dementia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'advanced dementia' as an active condition; this is a specific diagnosis that should be coded as a dementia disorder, not merely as non-specific cognitive impairment.",
+          "snomed_search": "dementia disorder",
+          "snomed_concept_id": "52448006",
+          "preferred_term": "Dementia (disorder)",
+          "sentence": "pt has advanced dementia, muddled but at baseline, with daughter.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "7121000122100",
+          "name": "Pain Assessment in Advanced Dementia scale (assessment scale)",
+          "severity": "medium",
+          "reason": "No PAINAD scale assessment is documented anywhere in the encounter note; this code has no evidential basis in the text and the concept ID returned an unreliable 'organism' result from the terminology server, suggesting a spurious or hallucinated code."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The essential hypertension code (59621000) is correctly applied as an active disorder for this new episode. The main issues are: (1) 'advanced dementia' is documented explicitly but coded only as the non-specific 'cognitive impairment' (386806002, itself unreliable on this server) \u2014 a dementia disorder code (52448006 or a more specific subtype if the aetiology is known) should be added; (2) the PAINAD scale code (7121000122100) has no supporting evidence in the note and its concept ID is flagged as unreliable by the terminology server. The numerous observable entity lab codes are pipeline-generated and are not in scope for this audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11258,
+        "output_tokens": 1679,
+        "total_tokens": 12937,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "ad851698-ad36-4154-97ac-a6f5771c8134",
+        "date": "2024-04-24",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "98222b27-1f9f-490e-b68a-c1da3554d6e3",
+    "patient_id": "4300102074",
+    "date": "2024-05-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dementia (active)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note states 'Has dementia' as an active condition directly influencing prescribing decisions; it should be coded as an active dementia disorder, not only as a historical situation.",
+          "snomed_search": "dementia",
+          "snomed_concept_id": "52448006",
+          "preferred_term": "Dementia (disorder)",
+          "sentence": "Has dementia, lives alone, carers TDS.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "increased risk of falls",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly documents increased falls risk as a reason to limit antihypertensive dose, making this a clinically significant coded finding.",
+          "snomed_search": "at increased risk for falls",
+          "snomed_concept_id": "129839007",
+          "preferred_term": "At increased risk for falls (finding)",
+          "sentence": "Not increased as lives alone with dementia, increase risk of falls if BP goes to low.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The note documents hypertension as a new active episode (BP 181/90), not a historical condition; the active disorder is already correctly coded as 59621000 Essential hypertension, making this 'History of' situation code redundant and misleading.",
+          "replace_with_concept_id": "59621000",
+          "replace_with_preferred_term": "Essential hypertension (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The main coding issues are: (1) 'History of hypertension' is overcoded alongside the correctly coded active Essential hypertension for a documented new episode; (2) 'History of dementia' uses the wrong concept \u2014 dementia is active and influencing prescribing, requiring the disorder code 52448006; (3) the clinician-documented increased falls risk (driving the prescribing decision) is missing from the coded record. The type/subtype of dementia is unspecified in the note so the broad dementia disorder code is appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6607,
+        "output_tokens": 1879,
+        "total_tokens": 8486,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "98222b27-1f9f-490e-b68a-c1da3554d6e3",
+        "date": "2024-05-13",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f86d1346-3db6-4f90-b84d-06d39c93ed07",
+    "patient_id": "4300102074",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Discussion about DNACPR clinical decision",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Discussion about DNACPR clinical decision (XacXn)' as a structured entry; this is a clinically significant procedure that must be coded.",
+          "snomed_search": "discussion DNACPR decision",
+          "snomed_concept_id": "713080004",
+          "preferred_term": "Discussion about do not attempt cardiopulmonary resuscitation clinical decision (procedure)",
+          "sentence": "Discussion about DNACPR clinical decision (XacXn)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Discussion about advance care planning with carer",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Discussion about advance care planning with carer (XabXA)' as a structured entry; this is a distinct procedure from the DNACPR discussion and should be coded.",
+          "snomed_search": "advance care planning discussion",
+          "snomed_concept_id": "713662007",
+          "preferred_term": "Discussion about advance care planning (procedure)",
+          "sentence": "Discussion about advance care planning with carer (XabXA)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Falls risk assessment complete",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A structured falls risk assessment (XaJ9X) was completed with documented responses to all questions; this procedure should be coded.",
+          "snomed_search": "falls risk assessment",
+          "snomed_concept_id": "408589008",
+          "preferred_term": "Falls assessment (procedure)",
+          "sentence": "Falls risk assessment complete (XaJ9X) 1 - Is there a history of any falls in the previous year?: No",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Preferred place of death: patient undecided",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Preferred place of death: patient undecided (XaQzt)' as part of the ReSPECT/EOL care planning; this is a clinically relevant finding that should be coded.",
+          "snomed_search": "preferred place of death undecided",
+          "snomed_concept_id": "517161000000101",
+          "preferred_term": "Undecided about preferred place of death (finding)",
+          "sentence": "Preferred place of death: patient undecided (XaQzt)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Has ReSPECT (Recommended Summary Plan for Emergency Care and Treatment)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Has ReSPECT (Recommended Summary Plan for Emergency Care and Treatment) (Y1fc1)'; this is a significant care planning finding that should be coded.",
+          "snomed_search": "ReSPECT care plan",
+          "snomed_concept_id": "1107891000000106",
+          "preferred_term": "Has Recommended Summary Plan for Emergency Care and Treatment (finding)",
+          "sentence": "Has ReSPECT (Recommended Summary Plan for Emergency Care and Treatment) (Y1fc1)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Preferred place of care - patient undecided",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Preferred place of care - patient undecided (XaasH)' as part of the ReSPECT/EOL care planning; this is a clinically relevant finding that should be coded.",
+          "snomed_search": "preferred place of care undecided",
+          "snomed_concept_id": "895911000000107",
+          "preferred_term": "Undecided about preferred place of care (finding)",
+          "sentence": "Preferred place of care - patient undecided (XaasH)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a structured ReSPECT/EOL/integrated care planning encounter with rich clinical content; the 6 existing codes are clinically appropriate and evidenced in the note (terminology server returned unreliable lookups for all 6 concept IDs, so none are flagged as overcoded). Six significant procedures and findings documented in the structured template entries are missing from the coded list, most notably the DNACPR discussion, advance care planning discussion with carer, falls risk assessment, ReSPECT form completion, and preferred place of death/care status.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 15866,
+        "output_tokens": 2772,
+        "total_tokens": 18638,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "f86d1346-3db6-4f90-b84d-06d39c93ed07",
+        "date": "2024-06-27",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1b3beb44-fe04-4c4c-bb79-ad494f6928d2",
+    "patient_id": "4300102074",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Pain in left arm",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient has an ongoing ache in the left arm since a fall 3+ years ago, noted on examination and relevant to the tremor workup; this active symptom is not coded.",
+          "snomed_search": "pain left arm",
+          "snomed_concept_id": "287045000",
+          "preferred_term": "Pain in left arm (finding)",
+          "sentence": "Has a slight tremor - seems to affect left arm slightly more (L dominant) - has a general ache in tha tarm scine fall 3+ yrs ago",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Compression hosiery declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The patient explicitly declined compression therapy some years ago; this is a clinically significant declined intervention relevant to ongoing lymphoedema management and should be recorded.",
+          "snomed_search": "procedure",
+          "snomed_concept_id": "1296859006",
+          "preferred_term": "Procedure declined (situation)",
+          "sentence": "Not using any compression as declined it some years ago as too difficult to put on, could perhaps get carers to do it in AM visit now though",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "829991004",
+          "name": "Tremor in bilateral outstretched hands (finding)",
+          "severity": "low",
+          "reason": "The terminology server returned this concept ID as a 'substance' (DPB199*2901), indicating the ID is unreliable on this server; however the clinical evidence (bilateral tremor on examination) supports the intent. A verified general tremor code (26079004 Tremor) may be safer if this ID cannot be confirmed.",
+          "replace_with_concept_id": "26079004",
+          "replace_with_preferred_term": "Tremor (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The encounter is clinically rich and the five coded concepts broadly reflect the correct clinical picture (Alzheimer's dementia, cognitive impairment, lymphoedema, bilateral tremor, FOR resus). However, three of the five concept IDs (386806002, 829991004, 304252001) returned incorrect semantic tags from the terminology server (substance/namespace), suggesting possible ID mapping issues that warrant human verification. Two genuine coding gaps were identified: the active left arm pain (post-fall, ongoing) and the historically declined compression therapy, both of which are clinically relevant to ongoing management decisions documented in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12182,
+        "output_tokens": 1970,
+        "total_tokens": 14152,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "1b3beb44-fe04-4c4c-bb79-ad494f6928d2",
+        "date": "2024-06-27",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "49e31b98-4e87-4276-a28a-e8e63b295cab",
+    "patient_id": "4300102074",
+    "date": "2024-07-26",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter is entirely administrative: a receptionist-processed repeat prescription request (Memantine, Donepezil, Amlodipine) plus an SCR preference update, with no GP clinical review, examination, diagnosis, or management plan documented. The two coded concepts ([185202000] encounter type, [161465002] history of dementia) are standing/appointment-system codes that must not be challenged on the basis of an admin-only note; notably, [161465002]'s evidence rationale relies on medication-label inference (\"for dementia\"), which is explicitly out of scope for coding from this encounter type.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2913,
+        "output_tokens": 931,
+        "total_tokens": 3844,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "49e31b98-4e87-4276-a28a-e8e63b295cab",
+        "date": "2024-07-26",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0212a48a-4042-42a6-b62b-6e779a963d53",
+    "patient_id": "4300102074",
+    "date": "2024-09-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "recurrent cellulitis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents the current flare plus two prior episodes within 2 months, with prophylactic doxycycline already in place \u2014 this pattern constitutes recurrent cellulitis and should be explicitly coded.",
+          "snomed_search": "recurrent cellulitis",
+          "snomed_concept_id": "698567002",
+          "preferred_term": "Recurrent cellulitis (disorder)",
+          "sentence": "Had flare 2 weeks ago and before this 2 monthr prior. Currently having start of flare.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "449711005",
+          "name": "Cellulitis of lower leg (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly documents the right lower leg as the affected site; a lateralised code is available and more precise.",
+          "replace_with_concept_id": "41771000087106",
+          "replace_with_preferred_term": "Cellulitis of right lower limb from knee to ankle (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "234097001",
+          "name": "Lymphedema (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly states 'lymphoedema right leg'; a lateralised concept is available and should be preferred for clinical precision.",
+          "replace_with_concept_id": "15637871000119106",
+          "replace_with_preferred_term": "Lymphedema of right lower limb (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Core diagnoses (essential tremor, cellulitis, lymphoedema) are correctly coded and evidenced by the note. Two specificity upgrades are recommended \u2014 both the cellulitis and lymphoedema codes should be replaced with right-sided lateralised equivalents as the note clearly documents right leg involvement. Additionally, the pattern of recurrent cellulitis (current flare plus two prior episodes within ~2 months, on prophylactic antibiotics) warrants an explicit recurrent cellulitis code. No safety-critical gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8776,
+        "output_tokens": 1801,
+        "total_tokens": 10577,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "0212a48a-4042-42a6-b62b-6e779a963d53",
+        "date": "2024-09-24",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b657fe0f-f8d2-4c30-a83a-713481cc5fa9",
+    "patient_id": "4300102074",
+    "date": "2024-11-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of a receptionist-processed repeat prescription request (Memantine, Donepezil, Amlodipine), an ETP2 printing status line, and a Summary Care Record preference update \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text to code from. Both existing coded concepts (185202000 and 161465002) returned unreliable terminology lookups but per audit rules, standing problem-list codes must not be flagged as overcoded on the basis of an admin-only encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1571,
+        "output_tokens": 588,
+        "total_tokens": 2159,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "b657fe0f-f8d2-4c30-a83a-713481cc5fa9",
+        "date": "2024-11-04",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "25b95129-732a-45c4-85cc-b235ef7a48c8",
+    "patient_id": "4300102074",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept [26079004] Tremor (finding) is correct and appropriately specific given the note text \u2014 the prescription of Propranolol for tremor is the only codeable clinical content. lookup_concept returned an unreliable substance tag for this ID, but search_snomed confirms 26079004 is the valid SNOMED finding concept; no overcoding or missing codes identified. The SCR preference override is purely administrative and not in scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2873,
+        "output_tokens": 873,
+        "total_tokens": 3746,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "25b95129-732a-45c4-85cc-b235ef7a48c8",
+        "date": "2024-12-02",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6cd49558-eaa9-4199-9af4-8b25fbd295cc",
+    "patient_id": "4300102074",
+    "date": "2024-12-20",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of a receptionist-processed repeat prescription request and a Summary Care Record preference update \u2014 there is no clinical narrative, GP review, symptoms, examination, diagnosis, or plan. The existing coded concept [161465002] was derived solely from medication names, which per audit rules is not valid evidence for coding a diagnosis from an encounter note; however, as an admin-only encounter, standing problem-list codes must not be removed on this basis. No new coding is warranted from this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1534,
+        "output_tokens": 674,
+        "total_tokens": 2208,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "6cd49558-eaa9-4199-9af4-8b25fbd295cc",
+        "date": "2024-12-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e04476cb-a80e-4dff-9cde-94233fb182c9",
+    "patient_id": "4300102074",
+    "date": "2025-02-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "275540007",
+          "name": "History of brain disorder (situation)",
+          "severity": "medium",
+          "reason": "This vague 'history of brain disorder' situation code is redundant and inappropriate alongside the specific active Alzheimer's dementia disorder code (416975007); the lookup_concept result was unreliable (returned an Extension Namespace placeholder), and even if valid, asserting a 'history of' situation as 'present' is contradictory \u2014 the specific disorder code fully captures the active diagnosis.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The specific active Alzheimer's dementia disorder code (416975007 \u2014 Primary degenerative dementia of the Alzheimer type, senile onset) is appropriate and well-evidenced by the encounter's problem entry. The co-coded 'History of brain disorder' (275540007) is both terminologically unreliable (server returned an Extension Namespace placeholder) and clinically redundant/contradictory \u2014 a vague historical situation code should not be asserted as 'present' alongside a specific active disorder; it should be removed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3041,
+        "output_tokens": 1054,
+        "total_tokens": 4095,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "e04476cb-a80e-4dff-9cde-94233fb182c9",
+        "date": "2025-02-06",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "993f3c81-c23e-4540-9022-e03757c46a56",
+    "patient_id": "4300102074",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The single coded concept [26079004] Tremor (finding) is correct and well-evidenced by the propranolol prescription indication. lookup_concept returned an unreliable result for this ID, but search_snomed confirms it is the legitimate SNOMED finding concept. No other in-scope clinical content is present in this encounter beyond the medication record and administrative lines.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2284,
+        "output_tokens": 699,
+        "total_tokens": 2983,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "993f3c81-c23e-4540-9022-e03757c46a56",
+        "date": "2025-03-14",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f5de88b6-901c-455b-a4fe-a20e65133a4f",
+    "patient_id": "4300102074",
+    "date": "2025-04-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "recurrent cellulitis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents a pattern of recurrent cellulitis episodes requiring long-term antibiotic prophylaxis and a recent flare; 'Recurrent cellulitis' is more clinically specific than the generic lower limb cellulitis code already applied.",
+          "snomed_search": "recurrent cellulitis",
+          "snomed_concept_id": "698567002",
+          "preferred_term": "Recurrent cellulitis (disorder)",
+          "sentence": "on LT doxy prophylaxis for this. past 2w has been on the double dose, 200mg daily as fortnight ago, it was redder, hot and painful",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "long-term antibiotic use",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is on long-term doxycycline prophylaxis ('LT doxy prophylaxis'), which is a clinically significant situation warranting a dedicated code for medication safety and prescribing context.",
+          "snomed_search": "long term current use antibiotic",
+          "snomed_concept_id": "711149003",
+          "preferred_term": "Long-term current use of antibiotic (situation)",
+          "sentence": "on LT doxy prophylaxis for this.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing disorder codes (lymphoedema, cellulitis of lower limb) are clinically valid and correctly asserted as present. Two additions are recommended: 'Recurrent cellulitis' (698567002) to capture the documented pattern of recurrent episodes driving long-term prophylaxis, and 'Long-term current use of antibiotic' (711149003) to reflect the explicitly stated long-term doxycycline prophylaxis regime.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8895,
+        "output_tokens": 1716,
+        "total_tokens": 10611,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "f5de88b6-901c-455b-a4fe-a20e65133a4f",
+        "date": "2025-04-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a163965c-c069-4c6e-89a0-f6ea688c78fc",
+    "patient_id": "4300102074",
+    "date": "2025-05-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161465002",
+          "name": "History of dementia (situation)",
+          "severity": "high",
+          "reason": "The note documents active, worsening dementia \u2014 the son reports it is getting worse, the patient is on Donepezil 10mg and Memantine 20mg for dementia, and the pharmacist is reviewing these drugs; a 'history of' situation code is clinically incorrect for an ongoing active disorder.",
+          "replace_with_concept_id": "52448006",
+          "replace_with_preferred_term": "Dementia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Three of the four coded concepts are correct and well-evidenced (lives alone, tremor, cellulitis). The dementia code is the sole but significant error: 161465002 'History of dementia (situation)' must be replaced with 52448006 'Dementia (disorder)' assertion=present, as the note clearly describes an active, progressive condition under active pharmacological management. All four lookup_concept calls returned unreliable/wrong semantic tags from the terminology server, but search_snomed confirmed all four concept IDs are valid \u2014 the server index appears corrupted for these IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9002,
+        "output_tokens": 1467,
+        "total_tokens": 10469,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "a163965c-c069-4c6e-89a0-f6ea688c78fc",
+        "date": "2025-05-21",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "904541ec-3f4b-4a7b-8083-eae67d37ae61",
+    "patient_id": "4300102074",
+    "date": "2025-06-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dementia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly references 'her dementia' as an active condition affecting communication and capacity; this should be coded as the disorder Dementia rather than the vague 'cognitive impairment' or an unverified 'history of dementia' situation.",
+          "snomed_search": "dementia",
+          "snomed_concept_id": "52448006",
+          "preferred_term": "Dementia (disorder)",
+          "sentence": "asked if I could speak to pt directly - he says not with her currently and also with her dementia might be challenging",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "386806002",
+          "name": "Cognitive impairment (finding)",
+          "severity": "medium",
+          "reason": "The note specifies 'her dementia' \u2014 a more specific disorder \u2014 making the broad 'cognitive impairment' finding redundant; lookup_concept returned an unreliable Extension Namespace placeholder for this ID, further undermining its validity. Replace with Dementia (disorder) 52448006.",
+          "replace_with_concept_id": "52448006",
+          "replace_with_preferred_term": "Dementia (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "161465002",
+          "name": "History of dementia (situation) \u2014 as coded",
+          "severity": "medium",
+          "reason": "lookup_concept returned semantic_tag 'qualifier value' for this concept ID, indicating it is not a valid clinical situation or disorder code; furthermore the note describes active dementia (present assertion), not a historical condition, making this code both technically invalid and assertionally wrong. Replace with Dementia (disorder) 52448006.",
+          "replace_with_concept_id": "52448006",
+          "replace_with_preferred_term": "Dementia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "This encounter contains a safety-critical NG12 red-flag scenario (new breast lump, family history of breast cancer, elderly patient with dementia) \u2014 a fast-track referral to breast clinic (276341000000100) is being planned but has NOT yet been actioned in this encounter (plan is to 'discuss in debrief then call son back'), so it should not be coded as present yet but must be followed up urgently. The dementia coding is problematic: concept 386806002 returned an unreliable Extension Namespace placeholder and concept 161465002 returned an incorrect 'qualifier value' semantic tag \u2014 both should be replaced with the validated Dementia disorder code 52448006 (assertion=present, as the condition is active and affecting capacity). Concept 429740004 (family history of breast cancer) also returned an unreliable 'organism' semantic tag from the terminology server and should be verified by a coder, though the clinical content is correct. The 2WW referral outcome must be coded once actioned.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4481,
+        "output_tokens": 1744,
+        "total_tokens": 6225,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "904541ec-3f4b-4a7b-8083-eae67d37ae61",
+        "date": "2025-06-30",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9a85516b-801f-4494-8ca6-34bbcf61a4ab",
+    "patient_id": "4300102074",
+    "date": "2025-07-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ex-smoker",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'ex-smoker' as part of the patient's history; this is a clinically relevant finding for a suspected breast cancer workup and should be coded.",
+          "snomed_search": "ex-smoker",
+          "snomed_concept_id": "8517006",
+          "preferred_term": "Ex-smoker (finding)",
+          "sentence": "ex-smoker",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "is still for CPR",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient's resuscitation status as 'still for CPR', which is a clinically significant advance care planning finding that must be coded.",
+          "snomed_search": "for cardiopulmonary resuscitation",
+          "snomed_concept_id": "450475007",
+          "preferred_term": "For cardiopulmonary resuscitation (finding)",
+          "sentence": "is still for CPR",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "248306003",
+          "name": "Fatty dimpling of skin (finding)",
+          "severity": "medium",
+          "reason": "lookup_concept returned this ID as an unreliable Extension Namespace placeholder; the correct and specific SNOMED concept for the documented finding ('L breast obvious dimpling') is 248816004 'Dimpling of surface of breast (finding)'.",
+          "replace_with_concept_id": "248816004",
+          "replace_with_preferred_term": "Dimpling of surface of breast (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "115941000119108",
+          "name": "Breast symptom of change in nipple (finding)",
+          "severity": "low",
+          "reason": "lookup_concept returned this ID as unreliable (organism semantic tag); the specific finding of nipple retraction is already captured by 271955004 'Retraction of nipple (finding)', making this broader parent code redundant and potentially erroneous."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is a high-quality 2WW breast cancer encounter with good clinical coding overall, but three concept IDs are unreliable or wrong on the terminology server (248306003, 161465002, 115941000119108) and require correction; active dementia is miscoded as a historical situation with an invalid concept ID and should be replaced with 52448006 'Dementia (disorder)'. Two clinically relevant findings \u2014 ex-smoker status and CPR resuscitation status \u2014 are missing from the coded list. The more specific left-nipple retraction code (15953221000119100) could optionally replace the bilateral/unspecified 271955004, though this is low priority.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 14427,
+        "output_tokens": 2248,
+        "total_tokens": 16675,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "9a85516b-801f-4494-8ca6-34bbcf61a4ab",
+        "date": "2025-07-01",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "80165903-7492-42da-a33b-c1745da29600",
+    "patient_id": "4300102074",
+    "date": "2025-08-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "tethered breast mass",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Tethering of a breast mass is a cardinal clinical sign of malignancy and must be coded explicitly; it is directly stated in the mammogram report ('tethered malignant L inner breast mass') and is a safety-critical finding supporting the 2WW pathway.",
+          "snomed_search": "tethered breast sign",
+          "snomed_concept_id": "164683000",
+          "preferred_term": "On examination - sign tethered (finding)",
+          "sentence": "Mammogram (537..) - b/l - features of tethered malignant L inner breast mass with associated microcalcifications (New Episode)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "mammographic mass of left breast",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The mammogram report explicitly describes a mass in the left breast; this specific lateralised mammographic finding should be coded in addition to the general breast lump and suspected malignancy codes.",
+          "snomed_search": "mammographic mass left breast",
+          "snomed_concept_id": "15634311000119103",
+          "preferred_term": "Mammographic mass of left breast (finding)",
+          "sentence": "Mammogram (537..) - b/l - features of tethered malignant L inner breast mass with associated microcalcifications (New Episode)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "27931000119107",
+          "name": "Mammographic microcalcification of breast (disorder)",
+          "severity": "low",
+          "reason": "The note specifies left breast microcalcifications; a lateralised code is available and more precise.",
+          "replace_with_concept_id": "12240061000119108",
+          "replace_with_preferred_term": "Mammographic microcalcification of left breast (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "89164003",
+          "name": "Breast lump (finding)",
+          "severity": "low",
+          "reason": "The note specifies a left breast mass; a lateralised code is available and more precise.",
+          "replace_with_concept_id": "12240181000119103",
+          "replace_with_preferred_term": "Mass of left breast (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The two most clinically important codes \u2014 suspected breast malignancy (134405005) and bilateral mammography (43204002) \u2014 are correctly applied and well-evidenced. However, tethering of the breast mass (a critical malignancy sign) is not coded, and the mammographic mass of the left breast is absent. Two existing codes (breast lump, microcalcification) should be replaced with lateralised equivalents for precision. Note: lookup_concept returned unreliable/wrong semantic tags for 134405005 and 27931000119107, but search_snomed confirms both concept IDs are clinically correct \u2014 the terminology server index appears corrupted for those lookups.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5293,
+        "output_tokens": 1807,
+        "total_tokens": 7100,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "80165903-7492-42da-a33b-c1745da29600",
+        "date": "2025-08-09",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e8076b4a-f58b-4bae-9b3e-e9d7a7eb6e62",
+    "patient_id": "4300102074",
+    "date": "2025-10-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of a receptionist-issued repeat prescription request (Memantine, Donepezil, Amlodipine) and an SCR preference update \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text present. All three coded concepts are inferred from medication names or the appointment system rather than from any clinical content in this note; per audit rules, medication-inferred diagnoses and standing problem-list codes must not be added or removed on the basis of an admin-only encounter, and the terminology server returned unreliable/wrong semantic tags for all three concept IDs (qualifier value \u00d7 2, organism \u00d7 1), so no overcoding action is warranted either.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1704,
+        "output_tokens": 564,
+        "total_tokens": 2268,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4300102074",
+        "encounter_id": "e8076b4a-f58b-4bae-9b3e-e9d7a7eb6e62",
+        "date": "2025-10-06",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  }
+]

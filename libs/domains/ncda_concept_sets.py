@@ -193,12 +193,15 @@ SEEN_BY_SPECIALIST_IDS: frozenset[int] = frozenset([
 # ---------------------------------------------------------------------------
 # Verified against LEO terminology server 2026-04-03:
 #   - 395100000 and 414861001 confirmed present and correct.
-#   - 415068001 and 1090791000000103 NOT FOUND in our knowledge graph;
-#     retained in case the KG is later updated with these UK extension codes.
+#   - 415068001 REMOVED: confirmed to be "Exposure to ultraviolet radiation (event)"
+#     in both the patient graph and SNOMED CT -- it was never a cancer exclusion concept.
+#   - 1090791000000103 NOT FOUND in our knowledge graph;
+#     retained in case the KG is later updated with this UK extension code.
 CANCER_EXCLUSION_IDS: frozenset[int] = frozenset([
     395100000,          # No evidence of cancer found (situation)
     414861001,          # No evidence of recurrence of cancer (situation)
-    415068001,          # No malignancy found on biopsy (situation) -- not in KG yet
+    # 415068001 REMOVED -- this is "Exposure to ultraviolet radiation (event)",
+    #   NOT "No malignancy found on biopsy". The ID was incorrect.
     1090791000000103,   # No evidence of malignancy (situation) -- UK ext, not in KG yet
 ])
 

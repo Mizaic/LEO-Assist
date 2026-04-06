@@ -26,7 +26,13 @@ SCOPE -- only flag issues within these SNOMED semantic tag categories:
   disorder, finding, situation, observable entity, procedure, qualifier value, substance
 
 DO NOT flag:
-- Administrative or organisational text with no clinical meaning
+- Administrative or organisational text with no clinical meaning. This includes:
+    * System routing headers (e.g. "Entered at: LLR SPA", "Care started and ended at LLR SPA")
+    * Referral destination text (e.g. "Breast Clinic to Woodbrook Medical Centre",
+      "Oncology to Woodbrook Medical Centre", "Ambulance Service to Woodbrook Medical Centre")
+    * Staff/receptionist access log entries (e.g. "Surgery: SMITH, Jane (Receptionist Access Role)")
+    * Appointment scheduling text (e.g. "It will take place by phone, video or in person")
+    * Admission routing lines (e.g. "Admission to University Hospitals of Leicester NHS Trust")
 - Concepts mentioned only in copy-pasted secondary care letters or discharge
   summaries (these are coded separately from the source document)
 - Template prompts or placeholder text
@@ -39,11 +45,35 @@ DO NOT flag:
   You MAY flag: medication-related events (e.g. "medication review done",
   "drug declined", "new drug started") and diagnoses explicitly stated in the
   note -- but NEVER infer a diagnosis solely because a drug is prescribed.
-- Absent findings coded as SNOMED concepts (e.g. "no chest pain", "no dysuria").
-  Only flag genuinely PRESENT or HISTORICAL clinical entities.
+- Absent findings. NEVER add an absent finding to the "missing" list. If a note
+  says "no chest pain", "AKI excluded", "no signs of infection" -- these must NOT
+  appear in "missing" at all. The suggested_assertion "absent" is only valid in the
+  "wrong_assertion" block (correcting an existing code's assertion), never in "missing".
 - Diagnoses inferred from a medication without explicit textual confirmation.
   Example: ramipril alone does NOT confirm hypertension (also used for heart
   failure, diabetic nephropathy). The diagnosis must appear in the note text.
+- Normal/negative investigation results where the test procedure is already coded.
+  E.g. "FOBT normal", "CXR normal", "BCSP faecal occult blood test normal" -- if
+  the test procedure is coded, the normal result does not require an additional code.
+- Raw numeric measurements and lab values with units (e.g. "MCH 30.4 pg",
+  "BMI 27.14 kg/m2", "Alcohol units per week: 25 Units/Week", "eGFR 62 mL/min").
+  Only flag the clinical interpretation if it is clinically significant and not
+  already coded (e.g. flag "obesity" if BMI > 30 is explicitly documented as such).
+- Background history phrases like "Background of X" or "BG of X" if X is already
+  coded in the ALREADY CODED list (with any assertion including historical).
+
+DO NOT flag as OVERCODED:
+- Laboratory observable entity codes (blood pressure, HbA1c, eGFR, electrolytes,
+  bilirubin, creatinine, albumin, ALT, ALP, cholesterol, full blood count components
+  etc.). These are written by structured lab data pipelines, not derived from the
+  encounter free text. Assume they are correct unless the note explicitly contradicts.
+- Standard encounter type codes such as "seen in general practitioner surgery",
+  "seen in primary care establishment", "telephone consultation" -- these are set by
+  the appointment system, not the clinician note.
+- "History of X" situation codes where the note or coded list contains any historical
+  reference to condition X. These are correctly coded as historical context.
+- "Normal appearance (finding)" and similar normal-result findings -- assume coded
+  correctly by the structured results pipeline.
 
 ASSERTIONS -- the following are the only valid assertion values:
   present   -- condition is active and currently relevant to this patient
@@ -64,6 +94,24 @@ SEVERITY LEVELS -- assign one to every finding:
               with clinical relevance, secondary prevention
   low      -- cosmetic: marginally better assertion possible, administrative
 
+SNOMED SEARCH PHRASE RULES:
+The "snomed_search" field must be a SHORT, NORMALISED clinical term (2-5 words maximum).
+It is passed directly to a SNOMED terminology server search API -- long phrases return
+no results. Rules:
+  1. Extract ONE core clinical concept only -- never combine multiple conditions.
+  2. NEVER include assertion words: do not write "absent", "present", "historical",
+     "possible", "family", "declined", "normal", "negative" in the search string.
+     Write just the clinical concept: "acute kidney injury", not "acute kidney injury absent".
+  3. NEVER use "OR" -- pick the single most specific concept.
+  4. NEVER include drug names as part of the search -- search the diagnosis instead.
+  GOOD: "weight loss", "type 2 diabetes", "faecal occult blood test positive",
+        "acute kidney injury", "macrocytosis", "underweight", "NHS health check"
+  BAD:  "acute kidney injury absent" (assertion word in search)
+  BAD:  "neuropathic pain OR generalised anxiety disorder" (multiple concepts + OR)
+  BAD:  "urgent cancer referral breast 2 week wait" (too long -- use "suspected breast cancer referral")
+  BAD:  "had breast lumpectomy and node clearance on left side" (full sentence)
+If you cannot extract a 2-5 word normalised term for a single concept, do NOT include the finding.
+
 Return ONLY valid JSON matching this schema exactly (no text before or after):
 {
   "encounter_assessment": "clean",
@@ -73,7 +121,7 @@ Return ONLY valid JSON matching this schema exactly (no text before or after):
       "severity": "critical|high|medium|low",
       "suggested_assertion": "present|historical|absent|possible|family|declined",
       "reason": "one sentence: why this should be coded",
-      "snomed_search": "search phrase for SNOMED browser"
+      "snomed_search": "2-5 word normalised SNOMED search term"
     }
   ],
   "overcoded": [

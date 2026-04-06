@@ -352,6 +352,7 @@ export interface DomainSummary {
   description: string;
   subdomain_count: number;
   source?: "nice" | "platform" | "tenant";
+  episode_detector?: boolean;
 }
 
 export interface SubdomainSummary {
@@ -360,7 +361,10 @@ export interface SubdomainSummary {
   milestone_type?: string;
   time_window_months?: number;
   semantic_tags: string[];
+  assertion_filter?: string[];
   concept_count: number;
+  /** Total IS_A descendants across all stored concepts. 0 means all concepts are leaf nodes. */
+  descendant_count?: number;
 }
 
 export interface DomainDetail extends DomainSummary {
@@ -416,17 +420,18 @@ export async function fetchDomain(domainId: string): Promise<DomainDetail> {
 export async function createDomain(
   name: string,
   description = "",
+  episodeDetector = false,
 ): Promise<DomainSummary> {
   return fetchJson<DomainSummary>(`${ANALYTICS_BASE}/analytics/domains`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({ name, description, episode_detector: episodeDetector }),
   });
 }
 
 export async function updateDomain(
   domainId: string,
-  update: { name?: string; description?: string },
+  update: { name?: string; description?: string; episode_detector?: boolean },
 ): Promise<DomainSummary> {
   return fetchJson<DomainSummary>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
@@ -490,6 +495,7 @@ export async function updateSubdomain(
     milestone_type?: string;
     time_window_months?: number;
     semantic_tags?: string[];
+    assertion_filter?: string[];
   },
 ): Promise<SubdomainSummary> {
   return fetchJson<SubdomainSummary>(

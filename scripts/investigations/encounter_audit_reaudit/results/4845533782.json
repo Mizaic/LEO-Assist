@@ -1,0 +1,2379 @@
+[
+  {
+    "encounter_id": "327b6366-22c2-4a7b-96bc-a7b47e370f90",
+    "patient_id": "4845533782",
+    "date": "2024-02-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both coded concepts are confirmed valid by SNOMED search (lookup_concept returned unreliable results but search confirmed the IDs). Pain of right shoulder region (1260146002) correctly captures the primary presenting complaint, and Shoulder strain (275334004) appropriately represents the clinician's diagnosis of muscular irritation. The cervical musculature tenderness on AROM is a minor incidental examination finding subordinate to the primary shoulder diagnosis and does not warrant a separate code. No safety-critical flags, no missing or overcoded concepts identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3047,
+        "output_tokens": 694,
+        "total_tokens": 3741,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "327b6366-22c2-4a7b-96bc-a7b47e370f90",
+        "date": "2024-02-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e8843847-36c1-4e2c-8cd2-15c99fd418f3",
+    "patient_id": "4845533782",
+    "date": "2024-02-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "gout",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is taking allopurinol for gout prevention, naming gout as an active diagnosis that should be coded on the problem list.",
+          "snomed_search": "gout",
+          "snomed_concept_id": "90560007",
+          "preferred_term": "Gout (disorder)",
+          "sentence": "pt is still taking his allopurninol for gout prevention",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "medication review",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note records 'Medication review done' (Read code XaF8d) as a completed procedure in this encounter; this should also be captured as a SNOMED procedure code.",
+          "snomed_search": "medication review",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "sentence": "Medication review done (XaF8d)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (Giant cell arteritis 414341000 and TIA 266257000) are correct and well-evidenced; lookup_concept returned unreliable Extension Namespace results for both but search_snomed confirmed the concept IDs are accurate. Two gaps identified: gout is explicitly named as the indication for allopurinol and should be coded as an active problem; the completed medication review procedure (Read XaF8d) should be captured in SNOMED as 182836005. Prednisolone cessation, alendronic acid/Vit D/Ca2+ stopping, and the normal DXA scan do not generate additional codeable disorders.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5035,
+        "output_tokens": 1403,
+        "total_tokens": 6438,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "e8843847-36c1-4e2c-8cd2-15c99fd418f3",
+        "date": "2024-02-27",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "43fd33f3-5d86-4656-bdee-fb206050d1d2",
+    "patient_id": "4845533782",
+    "date": "2024-03-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "MTX (methotrexate therapy)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The entire encounter is clinically focused on the patient's ongoing methotrexate treatment for GCA \u2014 discussing whether/when to stop it, the absence of a weaning plan, and the need for rheumatology follow-up; this active therapy should be coded as a procedure.",
+          "snomed_search": "methotrexate therapy",
+          "snomed_concept_id": "1338033004",
+          "preferred_term": "Methotrexate therapy (procedure)",
+          "sentence": "Wanted to discuss his MTX which he is on for GCA",
+          "char_start": 175,
+          "char_end": 222
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The GCA diagnosis (414341000) and telephone consultation are correctly coded. However, the fatigue concept ID (272060000) resolves to an Extension Namespace placeholder and should be replaced with the standard SNOMED concept 84229001 (Fatigue). More significantly, methotrexate therapy (1338033004) is missing despite being the central clinical subject of the entire encounter \u2014 including discussion of duration, weaning, and rheumatology follow-up. The patient's overdue rheumatology follow-up is noted in the text but as a future/planned action it does not require a procedure code; it may be worth a referral code if one is formally initiated.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5447,
+        "output_tokens": 1535,
+        "total_tokens": 6982,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "43fd33f3-5d86-4656-bdee-fb206050d1d2",
+        "date": "2024-03-15",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b0321ee4-aa51-4718-89eb-d87883928e6c",
+    "patient_id": "4845533782",
+    "date": "2024-04-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Urea and electrolytes",
+          "snomed_concept_id": "252167001",
+          "preferred_term": "Measurement of urea and electrolytes",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "The U&E panel is the core procedure performed in this encounter and should be coded as a procedure record.",
+          "sentence": "Urea and electrolytes (X77Wi)",
+          "char_start": 22,
+          "char_end": 43
+        },
+        {
+          "text": "Sample slightly haemolysed, interpret with caution",
+          "snomed_concept_id": "281289003",
+          "preferred_term": "Specimen slightly hemolyzed",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "The potassium result (5.1 mmol/L, upper end of normal) is flagged as from a slightly haemolysed sample. Haemolysis can falsely elevate potassium. This finding affects clinical interpretation and should be coded to flag the result quality.",
+          "sentence": "Serum potassium level (XE2pz) 5.1 mmol/L [3.5 - 5.3] - Sample slightly haemolysed,interpret with caution",
+          "char_start": 120,
+          "char_end": 224
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Auto-filed U&E result for methotrexate monitoring. All analyte values are within reference ranges; the report was reviewed and marked Normal/No Further Action by Dr Ketheeswaran. Two coding gaps identified: (1) the U&E procedure itself is not explicitly coded as a SNOMED procedure record; (2) the slightly haemolysed specimen finding is clinically relevant as it affects interpretation of the borderline-high potassium (5.1 mmol/L) and should be flagged. The eGFR of 66 mL/min falls in the G2 range; the lab commentary references CKD guidance generically but no CKD diagnosis should be inferred from a single reading in a Normal/NFA report \u2014 no CKD disorder code is warranted from this encounter alone. MTX monitoring context is captured by the procedure code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5596,
+        "output_tokens": 1911,
+        "total_tokens": 7507,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "b0321ee4-aa51-4718-89eb-d87883928e6c",
+        "date": "2024-04-02",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "49300230-2cf9-481f-bd4b-0808d23b3741",
+    "patient_id": "4845533782",
+    "date": "2024-04-02",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept 409673008 (Alanine aminotransferase above reference range) is confirmed valid by search_snomed despite an unreliable lookup_concept response; the ALT of 63 iu/L is genuinely above the reference range and clinically significant in the context of Methotrexate hepatotoxicity monitoring. All other blood results (FBC, U&E, eGFR 66) are either within normal limits or represent raw numeric values without an explicit documented clinical interpretation, so no additional codes are warranted from this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4740,
+        "output_tokens": 836,
+        "total_tokens": 5576,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "49300230-2cf9-481f-bd4b-0808d23b3741",
+        "date": "2024-04-02",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "795cc34f-8323-4009-8218-cdb09cc3857d",
+    "patient_id": "4845533782",
+    "date": "2024-04-19",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist-handled repeat prescription request and an SCR preference update \u2014 there is no clinical narrative, examination, diagnosis, or prescriber review text. The existing TIA code (266257000) was inferred from a medication name and a routing reference rather than from any clinical content in this note; per audit rules, diagnoses must not be inferred from drug names alone, and problem-list codes must not be flagged on admin-only encounters. No coding action is warranted from this encounter.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1466,
+        "output_tokens": 481,
+        "total_tokens": 1947,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "795cc34f-8323-4009-8218-cdb09cc3857d",
+        "date": "2024-04-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dfc12568-b2fa-4db0-ac01-e1bd5bd6b969",
+    "patient_id": "4845533782",
+    "date": "2024-04-30",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All 6 codes are correct and well-evidenced. The four observable entity codes (ALP, ALT, bilirubin, albumin) are appropriate structured lab pipeline codes. The two finding codes \u2014 409673008 (Alanine aminotransferase above reference range) and 166603001 (Liver function tests outside reference range) \u2014 are confirmed valid SNOMED findings by search, despite lookup_concept returning unreliable/corrupted results for both; the search API confirms the correct preferred terms and semantic tags. No gaps or errors identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3927,
+        "output_tokens": 795,
+        "total_tokens": 4722,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "dfc12568-b2fa-4db0-ac01-e1bd5bd6b969",
+        "date": "2024-04-30",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bd53c740-f74f-4b96-9080-0f11e501af31",
+    "patient_id": "4845533782",
+    "date": "2024-05-13",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only receptionist access role lines, repeat medication dispensing requests, a prescription status entry, and a Summary Care Record preference update \u2014 no clinical narrative, examination, diagnosis, or plan is present. No coding actions are warranted from this encounter text; the standing TIA code on the problem list is not affected by this administrative encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 582,
+        "output_tokens": 446,
+        "total_tokens": 1028,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "bd53c740-f74f-4b96-9080-0f11e501af31",
+        "date": "2024-05-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e3a8d102-57aa-413d-9346-1384e65c88bd",
+    "patient_id": "4845533782",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ALT above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The Eclipse DMARD alert explicitly documents ALT >100 & \u2264150, which is a clinically interpreted finding of elevated ALT above reference range and should be coded as a finding, not merely as an observable entity.",
+          "snomed_search": "alanine aminotransferase above reference range",
+          "snomed_concept_id": "409673008",
+          "preferred_term": "Alanine aminotransferase above reference range (finding)",
+          "sentence": "Eclipse alert - DMARD: Caution: Methotrexate detected and liver impairment (ALT >100 & <=150)",
+          "char_start": 120,
+          "char_end": 210
+        },
+        {
+          "term": "liver impairment",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The alert explicitly states 'liver impairment' in the context of ongoing methotrexate use, indicating a drug-induced hepatic disorder that requires clinical coding for DMARD monitoring and safety.",
+          "snomed_search": "drug-induced disorder of liver",
+          "snomed_concept_id": "427399008",
+          "preferred_term": "Drug-induced disorder of liver (disorder)",
+          "sentence": "Eclipse alert - DMARD: Caution: Methotrexate detected and liver impairment (ALT >100 & <=150)",
+          "char_start": 120,
+          "char_end": 210
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter documents a clinically significant DMARD safety alert with explicit liver impairment and elevated ALT in a patient on methotrexate; neither the interpreted finding (ALT above reference range) nor the drug-induced liver disorder has been coded as a disorder/finding \u2014 only observable entity codes are present. Both existing coded concept IDs returned unreliable lookups (wrong semantic tag) and cannot be confirmed, but per rules they are not flagged as overcoded on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4905,
+        "output_tokens": 1449,
+        "total_tokens": 6354,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "e3a8d102-57aa-413d-9346-1384e65c88bd",
+        "date": "2024-05-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f336e0e1-e951-49ea-8661-79e91ff3a034",
+    "patient_id": "4845533782",
+    "date": "2024-06-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "raised ALT",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "ALT 136 IU/L is explicitly documented as raised/abnormal in the report narrative and is a clinically significant finding requiring a result-interpretation finding code, not just the observable entity.",
+          "snomed_search": "alanine aminotransferase above reference range",
+          "snomed_concept_id": "409673008",
+          "preferred_term": "Alanine aminotransferase above reference range (finding)",
+          "sentence": "Serum total protein level Report, Abnormal, Make an appointment to see doctor: raised ALT, on methotrexate.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lft deranged",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly states 'lft deranged' and the report is flagged Abnormal \u2014 the overall LFT result interpretation should be coded as a finding.",
+          "snomed_search": "liver function tests outside reference range",
+          "snomed_concept_id": "166603001",
+          "preferred_term": "Liver function tests outside reference range (finding)",
+          "sentence": "Clinical Information: Reasons for Request: lft derranged.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "raised ALT on methotrexate",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly links the raised ALT to methotrexate use, indicating a drug adverse reaction that should be coded to support safe prescribing monitoring and DMARD hepatotoxicity surveillance.",
+          "snomed_search": "methotrexate adverse reaction",
+          "snomed_concept_id": "292229001",
+          "preferred_term": "Methotrexate adverse reaction (disorder)",
+          "sentence": "Make an appointment to see doctor: raised ALT, on methotrexate.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The five existing codes are all appropriate structured-pipeline observable entity codes for the LFT components. However, three clinically significant interpretation findings are missing: the raised ALT result finding, the overall deranged LFT finding, and \u2014 most importantly \u2014 the methotrexate adverse reaction disorder linking the hepatotoxicity to the causative drug, which is essential for DMARD safety monitoring.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7411,
+        "output_tokens": 1491,
+        "total_tokens": 8902,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "f336e0e1-e951-49ea-8661-79e91ff3a034",
+        "date": "2024-06-19",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "76ba0a85-4f80-47ff-9f36-dc706cebf15b",
+    "patient_id": "4845533782",
+    "date": "2024-06-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "All eight codes are clinically appropriate: the six observable entity codes reflect the structured lab pipeline and the two finding codes (ALT above reference range [409673008] and LFT outside reference range [166603001]) are well-evidenced by the abnormal result and the GP review note. Although the note mentions methotrexate as the clinical context, no explicit diagnosis of drug-induced hepatotoxicity or methotrexate adverse reaction is documented in this encounter, so no additional disorder code is warranted. Confidence is slightly reduced because lookup_concept returned unreliable/wrong semantic tags for both finding codes, though hierarchy traversal and search_snomed confirmed their clinical validity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5568,
+        "output_tokens": 1095,
+        "total_tokens": 6663,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "76ba0a85-4f80-47ff-9f36-dc706cebf15b",
+        "date": "2024-06-19",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cf35ee97-8589-48d7-9011-4940631d49a4",
+    "patient_id": "4845533782",
+    "date": "2024-06-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "methotrexate adverse reaction (progressive LFT rise linked to MTX)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly attributes the progressive LFT rise to MTX (started Jan 2023, dose escalated to 20mg July 2023); this drug-related hepatotoxicity should be coded in addition to the generic abnormal LFT finding.",
+          "snomed_search": "methotrexate adverse reaction",
+          "snomed_concept_id": "292229001",
+          "preferred_term": "Methotrexate adverse reaction (disorder)",
+          "sentence": "noted progressive increase in LFT since Aug 2023 with abnormal readings since April 2024 / Noted started on MTX in Jan 2023 but higher dose of 20mg since July 2023",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "early small joint pains",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note documents a new clinical finding of early small joint pains developing in a patient with GCA on MTX \u2014 this is a new symptom not previously present and is clinically relevant to ongoing management.",
+          "snomed_search": "pain joint of hand",
+          "snomed_concept_id": "202472008",
+          "preferred_term": "Pain of joint of hand (finding)",
+          "sentence": "MTX started for GCA - no initial peripheral joint disorders but now has early small joint pains",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "alcohol consumption approx 5-6 units per week",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Alcohol intake is explicitly documented as a contributing factor to the abnormal LFTs and is directly addressed in the management plan ('stop ETOH'), making it a clinically relevant finding requiring coding.",
+          "snomed_search": "alcohol consumption finding",
+          "snomed_concept_id": "365973006",
+          "preferred_term": "Finding of pattern of alcohol consumption through week (finding)",
+          "sentence": "alcohol consumption appx 5-6 units per week",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The two existing codes (Giant cell arteritis; Abnormal liver function) are both correct and well-evidenced. Three additional concepts are missing: (1) Methotrexate adverse reaction (292229001) \u2014 the most clinically significant gap, as the note clearly attributes the hepatotoxicity to MTX and rheumatology have stopped it; (2) early small joint pains \u2014 a new symptom documented in this encounter; (3) alcohol consumption pattern \u2014 explicitly documented as a contributing factor and addressed in the management plan. Note: repeat blood tests in 2 weeks are a future/planned procedure and should not be coded as present at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9954,
+        "output_tokens": 1991,
+        "total_tokens": 11945,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "cf35ee97-8589-48d7-9011-4940631d49a4",
+        "date": "2024-06-28",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e18aac2f-4319-4449-93a3-de546e70fbd8",
+    "patient_id": "4845533782",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Transient ischaemic attack",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "TIA is listed as an active problem in the encounter header and is directly discussed in the clinical plan regarding ongoing clopidogrel and statin use, but has not been included in the 3 coded concepts.",
+          "snomed_search": "transient ischaemic attack",
+          "snomed_concept_id": "266257000",
+          "preferred_term": "Transient ischemic attack (disorder)",
+          "sentence": "Is on clopidogrel and statin due to ?TIA but not clear whether this was indeed a TIA or related to the GCA and whether he really needs to be on them ongoing",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Methotrexate adverse reaction",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents that MTX was stopped for 2 weeks due to abnormal LFTs on rheumatology advice and then restarted when LFTs normalised, establishing a drug-adverse-reaction causal link beyond the generic 'abnormal LFT' finding already coded.",
+          "snomed_search": "methotrexate adverse reaction",
+          "snomed_concept_id": "292229001",
+          "preferred_term": "Methotrexate adverse reaction (disorder)",
+          "sentence": "Restarted MTX Saturday (was stopped for 2w due to abonrmal LFTs) then restarted when LFTs normalised",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "75183008",
+          "name": "Abnormal liver function (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "low",
+          "reason": "The note states LFTs normalised before MTX was restarted; the next LFT is pending next week to confirm ongoing normalcy, so the abnormality is resolved at the time of this encounter rather than currently active."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Three existing codes are clinically appropriate and use confirmed SNOMED concept IDs (despite unreliable lookup_concept responses, search_snomed confirmed all three IDs). Key gaps are: (1) TIA is an active problem discussed in the plan but not coded; (2) the MTX-induced LFT abnormality warrants a drug adverse reaction code in addition to the generic abnormal LFT finding; (3) the assertion on the abnormal LFT finding should arguably be historical given documented normalisation, though this is low-severity given ongoing monitoring context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8515,
+        "output_tokens": 2139,
+        "total_tokens": 10654,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "e18aac2f-4319-4449-93a3-de546e70fbd8",
+        "date": "2024-08-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b7dd135f-06cf-453e-b27c-fa953a693bde",
+    "patient_id": "4845533782",
+    "date": "2024-08-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (procedure)",
+          "severity": "medium",
+          "reason": "Concept 16310003 resolves to a qualifier value on the terminology server, not a procedure; the note specifically documents a carotid artery duplex scan and should be coded with the dedicated duplex ultrasonography of carotid artery concept.",
+          "replace_with_concept_id": "1178980000",
+          "replace_with_preferred_term": "Duplex ultrasonography of carotid artery (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four coded concepts (308064009, 414341000, 36994005) returned unreliable or mismatched results from the terminology server but were confirmed correct via search_snomed \u2014 they are clinically appropriate for this encounter. The ultrasonography code (16310003) is the sole genuine error: it resolves to a qualifier value rather than a procedure and should be replaced with the specific carotid duplex concept (1178980000). The remaining clinical content (clopidogrel review, rheumatology communication) does not generate additional SNOMED-scope codes beyond what is already captured.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7249,
+        "output_tokens": 1333,
+        "total_tokens": 8582,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "b7dd135f-06cf-453e-b27c-fa953a693bde",
+        "date": "2024-08-14",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4f44fb1f-c5ea-4742-b140-09e5331acb3e",
+    "patient_id": "4845533782",
+    "date": "2024-08-21",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is a phlebotomy service visit containing only procedural/administrative workflow fields (consent, sample collection, referral source) and a liver function test request \u2014 there is no GP clinical narrative, symptom documentation, examination, or explicit interpretation of results. All 10 already-coded concepts are observable entity lab values written by the structured lab pipeline and are out of scope for encounter-note audit; no additions, deletions, or assertion changes are warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 989,
+        "output_tokens": 568,
+        "total_tokens": 1557,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "4f44fb1f-c5ea-4742-b140-09e5331acb3e",
+        "date": "2024-08-21",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "29e17d17-d191-41b5-a0f3-b1d86e251597",
+    "patient_id": "4845533782",
+    "date": "2024-09-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "methotrexate is the problem here",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The GP explicitly suspects methotrexate as the cause of the rising ALT (hepatotoxicity), which should be coded as a possible drug-induced liver disorder to flag the medication safety concern and support the rheumatology referral.",
+          "snomed_search": "drug-induced liver disorder",
+          "snomed_concept_id": "427399008",
+          "preferred_term": "Drug-induced disorder of liver (disorder)",
+          "sentence": "This makes me suspicious that the methotrexate is the problem here.",
+          "char_start": 196,
+          "char_end": 258
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The two existing codes (ALT observable entity and ALT above reference range finding) are both confirmed correct. A clinically significant gap exists: the GP's explicit suspicion of methotrexate-induced hepatotoxicity is uncoded \u2014 this is a medication safety issue driving a rheumatology referral and should be captured as a possible drug-induced liver disorder (427399008). The lookup_concept tool returned unreliable results for both existing concept IDs (wrong semantic tag returned by server), but search_snomed confirmed both IDs are legitimate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5346,
+        "output_tokens": 1188,
+        "total_tokens": 6534,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "29e17d17-d191-41b5-a0f3-b1d86e251597",
+        "date": "2024-09-04",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "865717bb-90f9-418e-988c-3c1f28419944",
+    "patient_id": "4845533782",
+    "date": "2024-09-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ALT has gone up again to 79",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The GP explicitly interprets the ALT result as elevated ('gone up again to 79'), which is a clinical finding that should be coded separately from the observable entity measurement.",
+          "snomed_search": "raised alanine aminotransferase",
+          "snomed_concept_id": "409673008",
+          "preferred_term": "Alanine aminotransferase above reference range (finding)",
+          "sentence": "Your ALT (liver enzyme) has gone up again to 79.",
+          "char_start": 218,
+          "char_end": 258
+        },
+        {
+          "term": "methotrexate is the problem here",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The GP explicitly states suspicion that methotrexate is causing the rising ALT, representing a possible drug-induced liver disorder that should be coded to support monitoring and rheumatology communication.",
+          "snomed_search": "methotrexate adverse reaction",
+          "snomed_concept_id": "292229001",
+          "preferred_term": "Methotrexate adverse reaction (disorder)",
+          "sentence": "This makes me suspicious that the methotrexate is the problem here.",
+          "char_start": 259,
+          "char_end": 325
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing ALT observable entity code is appropriate (written by structured lab pipeline; lookup_concept returned unreliable but search confirms the concept ID is correct). Two clinically significant findings are missing: the interpreted finding of elevated ALT (409673008) and a possible methotrexate adverse reaction causing hepatotoxicity (292229001), which is directly stated by the GP and has implications for ongoing DMARD monitoring and rheumatology review.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5281,
+        "output_tokens": 1356,
+        "total_tokens": 6637,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "865717bb-90f9-418e-988c-3c1f28419944",
+        "date": "2024-09-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ce870fdb-df22-49f1-8717-aea161cdcf65",
+    "patient_id": "4845533782",
+    "date": "2025-02-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Wound healed",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'Wound healed: Yes' and 'O/E - Wound healed' as a clinical finding observed during this encounter and should be coded.",
+          "snomed_search": "wound healed",
+          "snomed_concept_id": "298006005",
+          "preferred_term": "Wound healed (finding)",
+          "sentence": "Wound healing: Wound healed / Wound healed: Yes / O/E - Wound healed (22L1.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Dressing of wound",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A wound dressing procedure (Suprasorb P sensitive dressings applied) was explicitly performed during this encounter and should be coded.",
+          "snomed_search": "dressing of wound",
+          "snomed_concept_id": "182531007",
+          "preferred_term": "Dressing of wound (procedure)",
+          "sentence": "Clips removed, wound sites cleansed with n/saline and covered with suprasorb p sensitive dressings, advise pt to remove in 24-48 hours.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Cleaning of skin wound",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Wound sites were explicitly cleansed with normal saline during this encounter; cleaning of skin wound is documented as a performed procedure in the template.",
+          "snomed_search": "wound care management",
+          "snomed_concept_id": "385942004",
+          "preferred_term": "Wound care management (procedure)",
+          "sentence": "Clips removed, wound sites cleansed with n/saline and covered with suprasorb p sensitive dressings.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "439739008",
+          "name": "Laparoscopic partial excision of kidney (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The laparoscopic nephrectomy was performed on 24/01/25 prior to this encounter; it is a past surgical procedure and must be coded as historical, not present."
+        }
+      ],
+      "overcoded": [],
+      "confidence": 0.88,
+      "notes": "The removal of clips (184043001) is correctly coded and confirmed by search. The nephrectomy (439739008) is a legitimate procedure concept confirmed via search_snomed despite an unreliable lookup_concept response, but its assertion must change from present to historical as the surgery predates this encounter. Three procedure findings documented in the template \u2014 wound healed, dressing applied, and wound cleansing \u2014 are missing from the coded list. Note: the note does not specify partial vs total/radical nephrectomy; if the operative record is available, the specificity of 439739008 (partial excision) should be verified against the actual procedure performed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9280,
+        "output_tokens": 2015,
+        "total_tokens": 11295,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "ce870fdb-df22-49f1-8717-aea161cdcf65",
+        "date": "2025-02-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b160e034-f41b-4f7b-9e9c-f7f6cb4251e2",
+    "patient_id": "4845533782",
+    "date": "2025-02-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "itchy red rash in groins",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Active groin rash treated with miconazole 2% cream in this encounter; recurrent history and antifungal response is consistent with tinea cruris, which should be coded as an active diagnosis.",
+          "snomed_search": "tinea cruris groin rash",
+          "snomed_concept_id": "399029005",
+          "preferred_term": "Tinea cruris (disorder)",
+          "sentence": "Also has itchy red rash in groins - same as previously. Miconazole worked in past - last isseud 2020 - re-issued today.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The three existing codes are clinically appropriate \u2014 lookup_concept returned unreliable results for 81516001 and 19585003 due to a terminology server index issue, but search_snomed independently confirms both concept IDs are correct (Partial nephrectomy procedure and Postoperative state finding respectively). The key gap is the active tinea cruris: a groin rash treated with a newly re-issued miconazole prescription in this encounter is a codeable active diagnosis and is entirely absent from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5810,
+        "output_tokens": 1328,
+        "total_tokens": 7138,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "b160e034-f41b-4f7b-9e9c-f7f6cb4251e2",
+        "date": "2025-02-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a756a951-49fc-4a40-90ba-30dd179119bf",
+    "patient_id": "4845533782",
+    "date": "2025-03-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Difficulty hearing in both ears",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents bilateral hearing difficulty; the more specific SNOMED concept 'Bilateral hearing loss' (95820000) should replace the generic 'Hearing loss' code currently applied as 15188001 (which returned an unreliable lookup with wrong semantic tag).",
+          "snomed_search": "bilateral hearing loss",
+          "snomed_concept_id": "95820000",
+          "preferred_term": "Bilateral hearing loss (disorder)",
+          "sentence": "Difficulty hearing in both ears, more so right.",
+          "char_start": 120,
+          "char_end": 163
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "15188001",
+          "name": "Hearing loss (disorder)",
+          "severity": "medium",
+          "reason": "The lookup for 15188001 returned an unreliable result with wrong semantic tag ('qualifier value'), and the note specifies bilateral hearing difficulty \u2014 the more specific code 95820000 'Bilateral hearing loss (disorder)' is evidenced and should replace this generic code.",
+          "replace_with_concept_id": "95820000",
+          "replace_with_preferred_term": "Bilateral hearing loss (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Impacted cerumen (18070006) is correctly coded and confirmed. The generic 'Hearing loss' code (15188001) should be replaced with the more specific 'Bilateral hearing loss' (95820000) as the note clearly documents bilateral symptoms. Ear irrigation is planned/on waiting list only \u2014 not yet performed \u2014 so no procedure code is warranted for this encounter. Olive oil application is a self-care instruction and does not require a separate SNOMED code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4924,
+        "output_tokens": 1303,
+        "total_tokens": 6227,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "a756a951-49fc-4a40-90ba-30dd179119bf",
+        "date": "2025-03-11",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "21a17c3d-99e2-4f25-b15f-a2f8dc5945b4",
+    "patient_id": "4845533782",
+    "date": "2025-04-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Liver Function Test",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "LFT is explicitly requested in the pathology section ('Liver Function Test (Postponed)') as part of the statin review, but no LFT procedure code is present in the coded list.",
+          "snomed_search": "liver function test",
+          "snomed_concept_id": "26958001",
+          "preferred_term": "Hepatic function panel (procedure)",
+          "sentence": "Pathology Request (Awaiting Sample): Liver Function Test (Postponed), Lipids (Postponed), Urate/uric acid (Postponed)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "418633004",
+          "name": "Medication compliance (observable entity)",
+          "severity": "medium",
+          "reason": "Concept 418633004 is unreliable (terminology server returns semantic_tag='organism', not a clinical concept); the note describes explicit self-reported non-concordance with both allopurinol and statin, which is best captured as Noncompliance with medication regimen (finding).",
+          "replace_with_concept_id": "129834002",
+          "replace_with_preferred_term": "Noncompliance with medication regimen (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is largely well-coded: gout (90560007), telephone consultation (386472008), serum urate (275740009), and lipid panel (16254007) are all appropriate. Two issues require correction: (1) the medication non-adherence concept 418633004 is an unreliable/wrong code \u2014 it should be replaced with 129834002 (Noncompliance with medication regimen) which accurately reflects the patient's self-reported non-concordance with both allopurinol and atorvastatin; (2) the explicitly requested Liver Function Test is missing from the coded procedures and should be added as 26958001 (Hepatic function panel).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10221,
+        "output_tokens": 1691,
+        "total_tokens": 11912,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "21a17c3d-99e2-4f25-b15f-a2f8dc5945b4",
+        "date": "2025-04-08",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7bf4bfe2-594b-488a-b3c0-314761cc15ef",
+    "patient_id": "4845533782",
+    "date": "2025-04-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All three coded concepts are confirmed correct via search_snomed (lookup_concept returned unreliable/corrupted results for 23924001 and 60845006, but search_snomed confirms both are valid finding-tag concepts). The encounter is a HCA triage note capturing vitals and two presenting complaints \u2014 tight chest and exertional dyspnoea \u2014 which are fully and appropriately coded; NEWS2 component scores are structured-pipeline observables and do not require manual coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4638,
+        "output_tokens": 974,
+        "total_tokens": 5612,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "7bf4bfe2-594b-488a-b3c0-314761cc15ef",
+        "date": "2025-04-14",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "357a0c6c-5804-490f-9eb9-49fb3a4b65be",
+    "patient_id": "4845533782",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "18d1bbd5-d263-4082-bc4c-469c269647ae",
+    "patient_id": "4845533782",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Plasma chloride level",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Plasma chloride level (110 mmol/L, Read code XaItN) is explicitly documented in the blood results but has no corresponding SNOMED observable entity in the coded list, unlike the other five analytes which are all coded.",
+          "snomed_search": "plasma chloride level",
+          "snomed_concept_id": "995511000000106",
+          "preferred_term": "Plasma chloride level (observable entity)",
+          "sentence": "Plasma chloride level (XaItN) 110 mmol/L",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Five of six analytes are correctly coded as SNOMED observable entities; plasma chloride (XaItN, 110 mmol/L) is the only analyte present in the note without a corresponding SNOMED observable entity code. The D-dimer concept ID (1019221000000107) returned an unreliable lookup result (wrong semantic tag 'organism') and cannot be verified or challenged without human review, but no deletion is warranted on that basis alone. No clinical interpretations (diagnoses or findings) are explicitly stated in the note, so no disorder/finding codes are required beyond the lab observables.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3767,
+        "output_tokens": 1056,
+        "total_tokens": 4823,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "18d1bbd5-d263-4082-bc4c-469c269647ae",
+        "date": "2025-04-15",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "03d93a03-4780-4586-80ce-a56bb038bed5",
+    "patient_id": "4845533782",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "D-Dimer > 4.00",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "An explicitly documented D-dimer result greater than 4.00 (above reference range) is the pivotal investigation finding that triggered escalation to Resus and urgent transfer to respiratory CDU for suspected PE \u2014 it must be coded.",
+          "snomed_search": "D-dimer raised",
+          "snomed_concept_id": "449830004",
+          "preferred_term": "D-dimer above reference range (finding)",
+          "sentence": "D. Dimer > 4.00",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Admission to acute assessment unit",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The discharge destination is explicitly documented as 'Admission to acute assessment unit: Yes' in the UTC Outcomes Template and should be coded as a procedure outcome for this encounter.",
+          "snomed_search": "admission acute assessment unit",
+          "snomed_concept_id": "836651000000103",
+          "preferred_term": "Admission to acute assessment unit (procedure)",
+          "sentence": "Admission to acute assessment unit: Yes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Wells' Criteria for Pulmonary Embolism = 0",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The Wells PE clinical probability score was explicitly calculated and documented (score = 0); coding the observable entity captures the formal risk stratification performed during this encounter.",
+          "snomed_search": "Wells score pulmonary embolism",
+          "snomed_concept_id": "513651000000104",
+          "preferred_term": "Wells pulmonary embolus clinical probability score (observable entity)",
+          "sentence": "Wells' Criteria for Pulmonary Embolism = 0",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "MD Cal WELLS Score DVT : -2",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The Wells DVT clinical probability score was explicitly calculated and documented (score = -2); coding the observable entity captures the formal DVT risk stratification performed during this encounter.",
+          "snomed_search": "Wells deep vein thrombosis score",
+          "snomed_concept_id": "429053008",
+          "preferred_term": "Wells deep vein thrombosis clinical probability score (observable entity)",
+          "sentence": "MD Cal WELLS Score DVT : - 2",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 8 existing codes are all clinically appropriate and well-evidenced; pleuritic pain (2237002) and suspected PE (417113001) are particularly good specific coding choices. The most significant gap is the elevated D-dimer result (>4.00), which is the pivotal investigation finding driving the entire escalation pathway and must be coded as critical. The confirmed acute admission outcome and both Wells score observables are also undocumented. Minor note: the encounter uses 'He' pronouns for a patient recorded as Ms Abigail Zvakaramba \u2014 a documentation inconsistency worth flagging to the clinician but not a coding issue.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 16503,
+        "output_tokens": 2568,
+        "total_tokens": 19071,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "03d93a03-4780-4586-80ce-a56bb038bed5",
+        "date": "2025-04-15",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d18a9dc7-3ea4-401b-8e2e-b944c36c820a",
+    "patient_id": "4845533782",
+    "date": "2025-04-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "77477000",
+          "name": "Computed tomography (procedure)",
+          "severity": "low",
+          "reason": "The generic CT procedure code is redundant alongside the already-coded specific CTPA concept [16332841000119106]; the specific code fully subsumes the generic one and dual-coding inflates the procedure record.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        },
+        {
+          "conceptId": "712798003",
+          "name": "Shotty lymph node (finding)",
+          "severity": "medium",
+          "reason": "The note records only 'Lymph node (7N89.)' \u2014 a body structure/anatomy Read code with no clinical characterisation; 'shotty' is a specific descriptor (small, firm, pea-like) not evidenced anywhere in the encounter text, making this an unjustified over-specification.",
+          "replace_with_concept_id": "301855007",
+          "replace_with_preferred_term": "Finding of lymph node (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two overcoding issues identified: (1) the generic CT procedure [77477000] is redundant given the specific CTPA code already present and should be removed; (2) 'Shotty lymph node' [712798003] is an unjustified over-specification \u2014 the source note records only the body structure code 7N89 (Lymph node) with no clinical qualifier, and should be replaced with the non-specific 'Finding of lymph node' [301855007]. The pulmonary embolism, pleural effusion, and CTPA codes are clinically appropriate. Note: terminology server returned unreliable results for several lookups; conclusions are based on search_snomed confirmation and clinical reasoning.\"",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7900,
+        "output_tokens": 1471,
+        "total_tokens": 9371,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "d18a9dc7-3ea4-401b-8e2e-b944c36c820a",
+        "date": "2025-04-20",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1b9293d4-623a-4eb8-b328-35658d4e8758",
+    "patient_id": "4845533782",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Father had prostate cancer",
+          "severity": "high",
+          "suggested_assertion": "family",
+          "reason": "Father's prostate cancer is explicitly documented and is clinically significant as a risk factor directly informing the PSA request and potential 2WW pathway.",
+          "snomed_search": "family history prostate cancer",
+          "snomed_concept_id": "414205003",
+          "preferred_term": "Family history of malignant neoplasm of prostate (situation)",
+          "sentence": "Father had prostate cancer.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "DRE with consent",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Digital rectal examination was performed during this encounter (with consent and chaperone documented) and should be coded as a procedure carried out.",
+          "snomed_search": "digital rectal examination",
+          "snomed_concept_id": "410006001",
+          "preferred_term": "Digital examination of rectum (procedure)",
+          "sentence": "DRE with consent. Sumar Ahmed chaperoning.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urine dip",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Urine dipstick is explicitly listed in the plan as an investigation to be performed at this visit and should be coded as a procedure.",
+          "snomed_search": "urine dipstick test",
+          "snomed_concept_id": "167226008",
+          "preferred_term": "Urine dipstick test (procedure)",
+          "sentence": "Urine dip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The four existing codes are all confirmed correct (lookup server returned unreliable results but SNOMED search validated all four concept IDs). Three clinically significant items are missing: family history of prostate cancer (a key risk factor driving the PSA/2WW decision), the DRE procedure (performed with consent and chaperone), and urine dipstick (explicitly listed in the plan). The conditional 2WW referral should not be coded until PSA results are known.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8490,
+        "output_tokens": 1794,
+        "total_tokens": 10284,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "1b9293d4-623a-4eb8-b328-35658d4e8758",
+        "date": "2025-05-06",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2a63e782-399c-4c0a-8ad2-9c2ff2a4949d",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum triglycerides above reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The triglyceride result is explicitly flagged '[Outside reference range]' in the report; the abnormal finding should be coded in addition to the observable entity already coded.",
+          "snomed_search": "serum triglycerides above reference range",
+          "snomed_concept_id": "166848004",
+          "preferred_term": "Serum triglycerides above reference range (finding)",
+          "sentence": "Serum triglyceride levels (XE2q9) 1.74 mmol/L [0 - 1.7] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Uric acid raised",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly states 'Uric acid raised' and recommends considering increasing allopurinol dose; the abnormal finding (above reference range) should be coded, not just the procedure.",
+          "snomed_search": "uric acid level above reference range",
+          "snomed_concept_id": "49099001",
+          "preferred_term": "Uric acid level above reference range (finding)",
+          "sentence": "Uric acid rasied - could increase allopurinol dose.. Review done by HORNE, Jonathan (Dr) - 12 May 2025 12:31",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Cholesterol above target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly documents 'Cholesterol above target - looks like not taking statin', representing a clinical interpretation of an abnormal result that should be coded as a finding.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Serum lipid levels Report, Abnormal, but expected, Other (Pharmacist review.): Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three clinically interpreted abnormal findings are missing: triglycerides outside reference range, raised uric acid, and cholesterol above target \u2014 all explicitly documented by the reporting pharmacist. The observable entity codes (raw values) are correctly coded by the structured pipeline, but the abnormal-result finding codes are absent. Additionally, concept 275740009 (serum uric acid measurement) returned an unreliable lookup response and should be verified locally; LUTS is mentioned only as the reason-for-request background context and is not a new finding being assessed in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10773,
+        "output_tokens": 2028,
+        "total_tokens": 12801,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "2a63e782-399c-4c0a-8ad2-9c2ff2a4949d",
+        "date": "2025-05-08",
+        "coded_count": 17
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b3233b3f-9101-4237-9fcb-9d06289af1a6",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Uric acid raised",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Uric acid raised - could increase allopurinol dose' \u2014 this is an active clinical finding with a proposed management action; only the measurement procedure is coded, not the finding of hyperuricaemia.",
+          "snomed_search": "hyperuricaemia raised uric acid",
+          "snomed_concept_id": "35885006",
+          "preferred_term": "Hyperuricemia (disorder)",
+          "sentence": "Uric acid rasied - could increase allopurinol dose.. Review done by HORNE, Jonathan (Dr) - 12 May 2025 12:31",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Cholesterol above target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly documents 'Cholesterol above target - looks like not taking statin', which is an active clinical finding requiring coding as serum cholesterol above reference range.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Bone profile Report, Abnormal, but expected, Other (Pharmacist review.): Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "275740009",
+          "name": "Serum uric acid measurement (procedure)",
+          "severity": "medium",
+          "reason": "The note documents a raised uric acid result with a clinical action (possible allopurinol dose increase), not merely the performance of a uric acid measurement procedure; the finding of hyperuricaemia (35885006) is the appropriate code, and the procedure code is not evidenced as a standalone entry in this encounter.",
+          "replace_with_concept_id": "35885006",
+          "replace_with_preferred_term": "Hyperuricemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two clinically significant findings are missing: hyperuricaemia (with proposed allopurinol dose increase) and serum cholesterol above target (pharmacist review). The existing code 275740009 was applied as a procedure for uric acid measurement but lookup_concept returns an unreliable substance concept \u2014 search_snomed confirms the ID is correct for the procedure, however the appropriate code for this encounter is the disorder/finding of hyperuricaemia rather than the measurement procedure. The five bone profile observable entity codes are correctly written by the structured lab pipeline and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6277,
+        "output_tokens": 1732,
+        "total_tokens": 8009,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "b3233b3f-9101-4237-9fcb-9d06289af1a6",
+        "date": "2025-05-08",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0517fe8e-7898-4669-a639-c26b404441ee",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Cholesterol above target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly documents 'Cholesterol above target' as a clinical finding with an identified cause (suspected statin non-adherence), warranting coding as a finding.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Serum ferritin Report, Abnormal, but expected, Other (Pharmacist review.): Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "418633004",
+          "name": "Medication compliance (as coded)",
+          "severity": "medium",
+          "reason": "lookup_concept returned semantic_tag='organism' confirming this concept ID is incorrect; the note documents suspected statin non-adherence which should be coded as 702566000 (Suspected non-compliance of drug therapy).",
+          "replace_with_concept_id": "702566000",
+          "replace_with_preferred_term": "Suspected non-compliance of drug therapy (situation)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "275740009",
+          "name": "Serum uric acid measurement (procedure) (as coded)",
+          "severity": "medium",
+          "reason": "lookup_concept returned semantic_tag='substance' confirming this concept ID is incorrect; the note documents raised uric acid as a clinical finding warranting the disorder code Hyperuricemia (35885006), not a procedure or substance.",
+          "replace_with_concept_id": "35885006",
+          "replace_with_preferred_term": "Hyperuricemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two existing codes ([418633004] and [275740009]) carry incorrect SNOMED concept IDs confirmed by lookup (wrong semantic tags: organism and substance respectively); both should be replaced with clinically appropriate concepts. Additionally, the explicitly documented finding of cholesterol above target is missing from the coded list. The 18 observable entity lab codes are appropriate for the structured pipeline and are not in scope for amendment.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6899,
+        "output_tokens": 1392,
+        "total_tokens": 8291,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "0517fe8e-7898-4669-a639-c26b404441ee",
+        "date": "2025-05-08",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9dd564a0-692f-4daf-b957-5682592fa34f",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "LUTS",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Lower urinary tract symptoms are explicitly listed as the reason for the blood test request and represent an active clinical finding requiring coding.",
+          "snomed_search": "lower urinary tract symptoms",
+          "snomed_concept_id": "307541003",
+          "preferred_term": "Lower urinary tract symptoms (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: LUTS. Non-suspicious prostate.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "275740009",
+          "name": "Serum uric acid measurement (as coded)",
+          "severity": "high",
+          "reason": "Concept ID 275740009 resolves on the terminology server as a 'substance' (DPB199*2901), not a uric acid measurement procedure; the note documents raised uric acid as an active clinical finding, which should be coded as Hyperuricaemia (disorder).",
+          "replace_with_concept_id": "35885006",
+          "replace_with_preferred_term": "Hyperuricemia (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "780834008",
+          "name": "Target serum total cholesterol level (as coded)",
+          "severity": "high",
+          "reason": "Concept ID 780834008 resolves on the terminology server as a 'substance' (DRB1*08032), not a cholesterol finding; the note documents cholesterol above target, which should be coded as Serum cholesterol above reference range (finding).",
+          "replace_with_concept_id": "166830008",
+          "replace_with_preferred_term": "Serum cholesterol above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two concept IDs (275740009 and 780834008) are critically miscoded \u2014 the terminology server confirms both resolve to 'substance' semantic tags unrelated to the intended clinical concepts, and must be replaced with Hyperuricemia (35885006) and Serum cholesterol above reference range (166830008) respectively. LUTS is explicitly documented as the reason for the request but is absent from the coded list. Code 702566000 (Suspected non-compliance of drug therapy) is confirmed valid by search and is appropriate for the statin non-adherence note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8901,
+        "output_tokens": 1588,
+        "total_tokens": 10489,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "9dd564a0-692f-4daf-b957-5682592fa34f",
+        "date": "2025-05-08",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fbd7a7e5-ba81-4a18-a05f-f943a3a6d38a",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "LUTS",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "LUTS (lower urinary tract symptoms) is explicitly documented as the clinical reason for the blood test request and represents an active clinical finding requiring coding.",
+          "snomed_search": "lower urinary tract symptoms",
+          "snomed_concept_id": "307541003",
+          "preferred_term": "Lower urinary tract symptoms (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: LUTS. Non-suspicious prostate.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Uric acid raised",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Raised uric acid is explicitly documented with a clinical recommendation to increase allopurinol dose; the correct code is the disorder Hyperuricaemia rather than the incorrectly resolved procedure/substance concept currently coded.",
+          "snomed_search": "hyperuricaemia",
+          "snomed_concept_id": "35885006",
+          "preferred_term": "Hyperuricemia (disorder)",
+          "sentence": "Uric acid rasied - could increase allopurinol dose.. Review done by HORNE, Jonathan (Dr) - 12 May 2025 12:31",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Cholesterol above target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Cholesterol above target is explicitly documented in the pharmacist review; the correct code is the specific finding 'Serum cholesterol above reference range' rather than the unreliable/unresolvable concept currently coded.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Serum total protein level Report, Abnormal, but expected, Other (Pharmacist review.): Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "275740009",
+          "name": "Serum uric acid measurement (procedure) \u2014 coded label",
+          "severity": "medium",
+          "reason": "Lookup returned semantic_tag 'substance' (not a procedure or finding); this concept ID does not resolve correctly on the terminology server and is not a valid code for the documented finding of raised uric acid \u2014 replace with Hyperuricaemia (disorder) 35885006.",
+          "replace_with_concept_id": "35885006",
+          "replace_with_preferred_term": "Hyperuricemia (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "365794002",
+          "name": "Finding of serum cholesterol level (finding) \u2014 coded label",
+          "severity": "medium",
+          "reason": "Lookup returned an Extension Namespace placeholder (unreliable); the note documents cholesterol specifically above target/reference range, so the more precise and verifiable code 166830008 'Serum cholesterol above reference range (finding)' should replace this.",
+          "replace_with_concept_id": "166830008",
+          "replace_with_preferred_term": "Serum cholesterol above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Three issues identified: (1) LUTS is documented as the clinical reason for the blood test request but is not coded; (2) the uric acid concept [275740009] resolves to a 'substance' semantic tag on the terminology server and should be replaced with Hyperuricaemia disorder 35885006; (3) the cholesterol concept [365794002] returns an unreliable Extension Namespace placeholder and should be replaced with the specific finding 'Serum cholesterol above reference range' (166830008). The note also mentions 'non-suspicious prostate' and possible statin non-adherence, but these are inferences rather than explicit coded diagnoses. All structured lab observable entity codes are pipeline-generated and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5577,
+        "output_tokens": 1862,
+        "total_tokens": 7439,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "fbd7a7e5-ba81-4a18-a05f-f943a3a6d38a",
+        "date": "2025-05-08",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "39f5c871-4dac-488d-a0b7-01c0523d08ff",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Cholesterol above target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly documents 'Cholesterol above target - looks like not taking statin', indicating an active finding of serum cholesterol above reference range that is not currently coded.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Serum urate level Report, Abnormal, but expected, Other (Pharmacist review.): Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Blood urate above reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The serum urate result is explicitly flagged as outside the reference range (0.44 mmol/L vs upper limit 0.43 mmol/L); a finding code for blood urate above reference range complements the existing disorder and procedure codes and captures the lab interpretation.",
+          "snomed_search": "blood urate above reference range",
+          "snomed_concept_id": "269859006",
+          "preferred_term": "Blood urate above reference range (finding)",
+          "sentence": "Serum urate level (XM0ls) 0.44 mmol/L [0.2 - 0.43] Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two missing findings identified: the pharmacist explicitly documents cholesterol above target (not coded) and the serum urate result is flagged outside reference range (a finding-level code is absent alongside the existing disorder and procedure codes). The existing codes for Hyperuricemia (35885006) and Serum urate measurement (273966000) are clinically justified despite unreliable terminology server lookups \u2014 search_snomed confirms both concept IDs are correct. All structured lab observable entity codes are pipeline-generated and correctly excluded from audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6149,
+        "output_tokens": 1639,
+        "total_tokens": 7788,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "39f5c871-4dac-488d-a0b7-01c0523d08ff",
+        "date": "2025-05-08",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3a8c37b0-e4b0-40c2-97d3-59080fd729f7",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Uric acid raised",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Uric acid raised' and recommends increasing allopurinol dose \u2014 the clinical finding of hyperuricaemia should be coded, not just the measurement procedure.",
+          "snomed_search": "hyperuricaemia",
+          "snomed_concept_id": "35885006",
+          "preferred_term": "Hyperuricemia (disorder)",
+          "sentence": "Uric acid rasied - could increase allopurinol dose.. Review done by HORNE, Jonathan (Dr) - 12 May 2025 12:31",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Cholesterol above target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly documents cholesterol is above target, which is a clinically actionable finding requiring coding.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "418633004",
+          "name": "Medication compliance (observable entity) [as coded]",
+          "severity": "medium",
+          "reason": "Concept ID 418633004 resolves to a non-clinical organism concept on the terminology server (unreliable/wrong ID); the intended clinical concept \u2014 suspected non-compliance with statin \u2014 should be coded as 702566000 'Suspected non-compliance of drug therapy (situation)'.",
+          "replace_with_concept_id": "702566000",
+          "replace_with_preferred_term": "Suspected non-compliance of drug therapy (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three coding issues identified: concept ID 418633004 is an invalid/wrong SNOMED code (resolves to an organism on the terminology server) and should be replaced with 702566000 for suspected statin non-compliance; the explicitly documented raised uric acid finding (hyperuricaemia, 35885006) is absent \u2014 only the measurement procedure is coded; and the pharmacist-documented cholesterol above target (166830008) has not been coded at all. The observable entity codes for lab results are appropriate as structured pipeline outputs and have not been flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9794,
+        "output_tokens": 1618,
+        "total_tokens": 11412,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "3a8c37b0-e4b0-40c2-97d3-59080fd729f7",
+        "date": "2025-05-08",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "264b4ffd-035e-4c54-bf54-743965a9be10",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Uric acid raised",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Uric acid raised' and recommends increasing allopurinol dose \u2014 this is a clinically interpreted finding requiring a disorder/finding code, not just a procedure/measurement code.",
+          "snomed_search": "hyperuricaemia",
+          "snomed_concept_id": "35885006",
+          "preferred_term": "Hyperuricemia (disorder)",
+          "sentence": "Uric acid rasied - could increase allopurinol dose.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Cholesterol above target",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly interprets the cholesterol result as 'above target', which is a clinical finding beyond a raw numeric value and should be coded.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "not taking statin",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review documents suspected non-compliance with statin therapy ('looks like not taking statin'), which is a clinically actionable situation warranting coding.",
+          "snomed_search": "suspected non-compliance drug therapy",
+          "snomed_concept_id": "702566000",
+          "preferred_term": "Suspected non-compliance of drug therapy (situation)",
+          "sentence": "Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "275740009",
+          "name": "Serum uric acid measurement (procedure) [as labelled in coded list]",
+          "severity": "high",
+          "reason": "lookup_concept confirms concept 275740009 resolves to 'DPB199*2901 (substance)' \u2014 a substance concept, not a procedure or finding \u2014 making this an incorrect concept ID; the clinical finding of raised uric acid should instead be coded as Hyperuricemia (disorder) 35885006.",
+          "replace_with_concept_id": "35885006",
+          "replace_with_preferred_term": "Hyperuricemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing coded concept 275740009 is incorrect \u2014 it resolves to a substance rather than a procedure or finding, and should be replaced with Hyperuricemia (disorder) 35885006. Three additional clinical findings from the pharmacist review are missing: hyperuricaemia (already covered by the replacement), cholesterol above target, and suspected statin non-adherence. The 14 observable entity lab codes appear to be correctly auto-filed by the structured pipeline and are not in scope for amendment.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6755,
+        "output_tokens": 1692,
+        "total_tokens": 8447,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "264b4ffd-035e-4c54-bf54-743965a9be10",
+        "date": "2025-05-08",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0f8e13b6-f422-4d61-a232-4bf9f3d9c354",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Uric acid raised",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly documents 'Uric acid raised' and recommends increasing allopurinol \u2014 this is a clinically actioned disorder that should be coded beyond the observable entity alone.",
+          "snomed_search": "hyperuricaemia",
+          "snomed_concept_id": "35885006",
+          "preferred_term": "Hyperuricemia (disorder)",
+          "sentence": "Uric acid rasied - could increase allopurinol dose.. Review done by HORNE, Jonathan (Dr) - 12 May 2025 12:31",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Cholesterol above target",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly states 'Cholesterol above target - looks like not taking statin', making this a clinically actioned finding that warrants a disorder/finding code beyond the observable entity.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Urea and electrolytes Report,\u00ef\u00bf\u00bdAbnormal, but expected,\u00ef\u00bf\u00bdOther (Pharmacist review.): Choelsterol above target - looks like not taking statin.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "LUTS",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Lower urinary tract symptoms is explicitly listed as the clinical reason for the blood test request and should be coded as an active finding.",
+          "snomed_search": "lower urinary tract symptoms",
+          "snomed_concept_id": "307541003",
+          "preferred_term": "Lower urinary tract symptoms (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: LUTS. Non-suspicious prostate.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "CKD (eGFR 62 with CKD guidance)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "eGFR of 62 mL/min/1.73m\u00b2 with explicit CKD-specific clinical guidance (KFRE, annual ACR check) in the report implies CKD stage 3a; if not already on the problem list this should be coded.",
+          "snomed_search": "chronic kidney disease stage 3",
+          "snomed_concept_id": "433144002",
+          "preferred_term": "Chronic kidney disease stage 3 (disorder)",
+          "sentence": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 62 mL/min ... NICE recommends the Kidney failure Risk Equation www.kfre.co.uk to predict the risk of endstage kidney disease in CKD stages 3a to 5.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The structured lab observable entity codes are appropriate and written by the automated pipeline. However, four clinically significant findings are missing: hyperuricaemia and cholesterol above target are both explicitly actioned by the pharmacist reviewer; LUTS is documented as the reason for request; and CKD stage 3 is strongly implied by the eGFR of 62 with CKD-specific NICE guidance \u2014 verify whether CKD is already on the problem list before adding. Note also that lookup_concept returned unreliable 'substance' tags for concepts 275740009 and 1032161000000109, but search_snomed confirmed both are valid procedure/observable entity codes respectively.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9042,
+        "output_tokens": 2271,
+        "total_tokens": 11313,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "0f8e13b6-f422-4d61-a232-4bf9f3d9c354",
+        "date": "2025-05-08",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e9231a5f-ecca-4c60-a171-9357f03c164a",
+    "patient_id": "4845533782",
+    "date": "2025-05-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Uric acid raised",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist review explicitly documents a raised uric acid level with a recommendation to increase allopurinol dose; the clinical finding (raised uric acid) should be coded, not just the measurement procedure.",
+          "snomed_search": "uric acid above reference range",
+          "snomed_concept_id": "49099001",
+          "preferred_term": "Uric acid level above reference range (finding)",
+          "sentence": "Uric acid rasied - could increase allopurinol dose.. Review done by HORNE, Jonathan (Dr) - 12 May 2025 12:31",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "275740009",
+          "name": "Serum uric acid measurement (procedure)",
+          "severity": "medium",
+          "reason": "The encounter text contains a pharmacist review comment on an already-available uric acid result; no uric acid measurement procedure was performed during this encounter. The clinical finding (raised uric acid) should be coded instead.",
+          "replace_with_concept_id": "49099001",
+          "replace_with_preferred_term": "Uric acid level above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The main coding error is that the raised uric acid has been coded as a measurement procedure (275740009) rather than as the clinical finding (49099001 \u2014 Uric acid level above reference range); the procedure was not performed in this encounter. All other codes (LUTS, cholesterol above range, PSA observable, and structured lab observables) are appropriate. Note: lookup_concept returned an unreliable/incorrect result for 275740009 (substance tag), but search_snomed confirms the procedure concept is valid \u2014 the issue is one of code category selection, not concept validity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6638,
+        "output_tokens": 1413,
+        "total_tokens": 8051,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "e9231a5f-ecca-4c60-a171-9357f03c164a",
+        "date": "2025-05-08",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "54605990-964f-44d7-955d-57b54f704b68",
+    "patient_id": "4845533782",
+    "date": "2025-05-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "gout",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Gout is an active background condition explicitly referenced \u2014 patient not currently flaring but allopurinol is being restarted, confirming ongoing diagnosis requiring coding.",
+          "snomed_search": "gout",
+          "snomed_concept_id": "90560007",
+          "preferred_term": "Gout (disorder)",
+          "sentence": "-not having any gout flare ups, no symptoms currently, hasnt been taking allopurinol regularly, will restart this also",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hyperuricaemia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Urate level 0.44 mmol/L is explicitly documented and allopurinol is being restarted to manage it, confirming active hyperuricaemia warranting a disorder code.",
+          "snomed_search": "hyperuricaemia",
+          "snomed_concept_id": "35885006",
+          "preferred_term": "Hyperuricemia (disorder)",
+          "sentence": "-LDL 2.2, trigs 1.74, also urate 0.44",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hyperlipidaemia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Elevated LDL (2.2) and triglycerides (1.74) are documented with explicit explanation of increased CVD risk and atorvastatin being restarted, confirming active hyperlipidaemia.",
+          "snomed_search": "hyperlipidaemia",
+          "snomed_concept_id": "55822004",
+          "preferred_term": "Hyperlipidemia (disorder)",
+          "sentence": "-LDL 2.2, trigs 1.74, also urate 0.44 / -explained increased risk of CVD",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "medication non-compliance",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports not taking atorvastatin or allopurinol regularly ('just hasn't been good with keeping up with medication'), constituting documented partial medication non-compliance.",
+          "snomed_search": "drugs partial non-compliance",
+          "snomed_concept_id": "275928001",
+          "preferred_term": "Drugs - partial non-compliance (finding)",
+          "sentence": "-has atorvastatin on repeat - not been taking, just hasnt been good with keeping up with medication",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The three existing codes are appropriate and correctly asserted (PE confirmed via search despite unreliable lookup; LDL and triglyceride observables are pipeline-generated). Four clinically significant concepts are missing: gout and hyperuricaemia (both actively managed with allopurinol restart), hyperlipidaemia (elevated lipids with CVD risk discussion and statin restart), and partial medication non-compliance (explicitly documented for both atorvastatin and allopurinol).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 12200,
+        "output_tokens": 1860,
+        "total_tokens": 14060,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "54605990-964f-44d7-955d-57b54f704b68",
+        "date": "2025-05-14",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "08dc2daa-36f6-4e75-98b7-73a316fe4ee1",
+    "patient_id": "4845533782",
+    "date": "2025-06-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "large prostrate",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "DRE explicitly documented a large prostate; this is a clinically relevant finding that should be coded.",
+          "snomed_search": "large prostate",
+          "snomed_concept_id": "249607009",
+          "preferred_term": "Large prostate (finding)",
+          "sentence": "recent DRE was normal except for large prostrate.",
+          "char_start": 196,
+          "char_end": 247
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "21522001",
+          "name": "Abdominal pain (finding)",
+          "severity": "low",
+          "reason": "The note specifically documents left iliac fossa / left lower quadrant pain; the more specific concept 'Left iliac fossa pain' (162052001) better represents the documented finding.",
+          "replace_with_concept_id": "162052001",
+          "replace_with_preferred_term": "Left iliac fossa pain (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "77477000",
+          "name": "Computed tomography (procedure)",
+          "severity": "low",
+          "reason": "The CT TAP is a future/planned procedure scheduled for 21st July from urology and has not yet occurred; future procedures should not be coded as present."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "93849006",
+          "name": "Primary malignant neoplasm of kidney (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The surgery to remove the cancerous cyst occurred in January (past event); the malignancy is historical, not a currently active/present condition."
+        },
+        {
+          "conceptId": "252053007",
+          "name": "Excision of cyst of kidney (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The excision of the renal cyst was performed in January and is a completed historical procedure, not a current one."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Several assertion errors are present: the renal malignancy and cyst excision are historical (January surgery) but coded as present, and the CT TAP is a future planned procedure that should not be coded as present. The generic 'Abdominal pain' code should be replaced by the more specific 'Left iliac fossa pain' which matches the documented LIF/left lower quadrant pain. The explicitly documented large prostate on DRE is missing from the coded list. Note: lookup_concept returned unreliable results for several concept IDs (93849006, 252053007, 1049361000000101, 21522001) \u2014 assertions and specificity were assessed from the encounter text and search results.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6677,
+        "output_tokens": 2127,
+        "total_tokens": 8804,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "08dc2daa-36f6-4e75-98b7-73a316fe4ee1",
+        "date": "2025-06-27",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d778c722-df2a-4180-9774-e7ed8473789d",
+    "patient_id": "4845533782",
+    "date": "2025-08-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "stroke history",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The lipid review explicitly states 'secondary prevention stroke/TIA hx' \u2014 a history of stroke is clinically distinct from TIA history and should be coded separately alongside the already-coded TIA history.",
+          "snomed_search": "history of cerebrovascular accident ischaemia",
+          "snomed_concept_id": "16896891000119106",
+          "preferred_term": "History of cerebrovascular accident due to ischemia (situation)",
+          "sentence": "Serum lipid levels Report, Abnormal, Other (lipid review with pharm): secondary prevention stroke/ tia hx.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "raised triglycerides",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum triglycerides 1.82 mmol/L is explicitly flagged as outside the reference range [0\u20131.7], making hypertriglyceridaemia a codeable clinical finding from this encounter.",
+          "snomed_search": "hypertriglyceridaemia",
+          "snomed_concept_id": "302870006",
+          "preferred_term": "Hypertriglyceridemia (disorder)",
+          "sentence": "Serum triglyceride levels (XE2q9) 1.82 mmol/L [0 - 1.7] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 17 observable entity codes are correctly written by the structured lab pipeline and are not in scope for audit. Concept 161511000 (History of TIA) is correctly coded \u2014 lookup_concept returned an unreliable semantic tag but search_snomed confirms the concept identity. Two gaps identified: (1) stroke history is mentioned alongside TIA history as the clinical context for secondary prevention but is not separately coded; (2) triglycerides are explicitly reported as outside the reference range and the clinical interpretation (hypertriglyceridaemia) should be coded as an active finding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6877,
+        "output_tokens": 1344,
+        "total_tokens": 8221,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "d778c722-df2a-4180-9774-e7ed8473789d",
+        "date": "2025-08-27",
+        "coded_count": 17
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fc5ab89a-0fa2-4fdc-86b6-3af34a723daa",
+    "patient_id": "4845533782",
+    "date": "2025-08-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "declined any help needed at this time",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The patient explicitly declined help/support for anxiety; this is a clinically meaningful situation that should be coded separately from the anxiety finding itself, capturing the patient's refusal of offered intervention.",
+          "snomed_search": "referral guided self-help anxiety",
+          "snomed_concept_id": "933461000000100",
+          "preferred_term": "Referral for guided self-help for anxiety declined (situation)",
+          "sentence": "Feeling anxious (XE0rb) - has taken time from work for a break, declined any help needed at this time.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "Coding is largely complete and accurate for this LTC wellbeing review; the main gap is that the patient's explicit declination of help for anxiety is not captured as a situation code \u2014 this is clinically important for continuity of care and safeguarding awareness. Note: lookup_concept returned unreliable/corrupted results for several concept IDs (238131007, 48694002) but search_snomed confirmed both are legitimate SNOMED findings; the declined-help concept (933461000000100) also returned an unreliable lookup but was confirmed via search as a valid situation \u2014 human review of that specific concept ID is advisable before committing it to the record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11013,
+        "output_tokens": 1436,
+        "total_tokens": 12449,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "fc5ab89a-0fa2-4fdc-86b6-3af34a723daa",
+        "date": "2025-08-27",
+        "coded_count": 19
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f6bbfd05-da47-4084-825f-213419813183",
+    "patient_id": "4845533782",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "raised LDL",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'See recent LDL, raised' as the clinical trigger for this consultation; the finding of LDL above reference range should be coded, not merely the substance.",
+          "snomed_search": "raised LDL cholesterol",
+          "snomed_concept_id": "445445006",
+          "preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "sentence": "See recent LDL, raised",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "less exercise since being in hospital",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The pharmacist explicitly documents reduced physical activity since hospitalisation as a clinically relevant finding discussed and acted upon in this consultation.",
+          "snomed_search": "reduced physical activity",
+          "snomed_concept_id": "366171000000107",
+          "preferred_term": "General practice physical activity questionnaire physical activity index: moderately inactive (finding)",
+          "sentence": "Has been doing less exercise since being in hospital, want to slowly increase this",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "102739008",
+          "name": "Low density lipoprotein cholesterol (substance)",
+          "severity": "medium",
+          "reason": "A substance code does not capture the clinical finding of an elevated LDL result; the correct code is the above-reference-range finding (445445006).",
+          "replace_with_concept_id": "445445006",
+          "replace_with_preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The telephone consultation code is correct, but the LDL substance code (102739008) should be replaced with the above-reference-range finding code (445445006) to properly capture the abnormal result that drove this encounter. Reduced physical activity since hospitalisation is documented and clinically discussed but uncoded. Note also references statin therapy, inclisiran/ezetimibe/Nustendi options, and dietary advice \u2014 an underlying hyperlipidaemia disorder code (55822004) should be confirmed on the problem list if not already present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8284,
+        "output_tokens": 1576,
+        "total_tokens": 9860,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "f6bbfd05-da47-4084-825f-213419813183",
+        "date": "2025-09-09",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "24ffcc74-b4bc-481b-9932-bcc827def5c0",
+    "patient_id": "4845533782",
+    "date": "2025-09-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "inclisiran refused",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "Patient explicitly declined inclisiran after reading information about it; this is a clinically significant treatment decision that should be recorded as a situation code.",
+          "snomed_search": "inclisiran",
+          "snomed_concept_id": "1362061000000100",
+          "preferred_term": "Inclisiran refused (situation)",
+          "sentence": "pt has read info, does not want to start inclisiran",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lifestyle education regarding diet",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Pharmacist explicitly discussed diet and lifestyle changes with the patient as part of the lipid management plan; this is a codeable procedure performed in this encounter.",
+          "snomed_search": "diet and lifestyle advice",
+          "snomed_concept_id": "443288003",
+          "preferred_term": "Lifestyle education regarding diet (procedure)",
+          "sentence": "would prefer to try diet/LS changes, has started making changes in the last week, less snacks",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lipid-lowering therapy initiated",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Pharmacist initiated lipid-lowering therapy (ezetimibe) in this encounter; the therapeutic procedure should be coded in addition to the individual medication.",
+          "snomed_search": "lipid lowering therapy",
+          "snomed_concept_id": "134350008",
+          "preferred_term": "Lipid-lowering therapy (procedure)",
+          "sentence": "Agreed to start Ezetimibe",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two existing codes (telephone consultation and hyperlipidaemia) are correct and well-evidenced; note that lookup_concept returned an unreliable result for 55822004 due to a server index issue, but search_snomed confirms it is the correct concept. Three additions are recommended: the patient's explicit refusal of inclisiran (a clinically important treatment decision), lifestyle/diet education provided by the pharmacist, and the initiation of lipid-lowering therapy as a procedure. The planned repeat fasting lipids and LFTs are future investigations and should not be coded as present procedures at this time.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5535,
+        "output_tokens": 1430,
+        "total_tokens": 6965,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "24ffcc74-b4bc-481b-9932-bcc827def5c0",
+        "date": "2025-09-16",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "36ec060f-a8f5-4f8b-9118-ffd123fb13dd",
+    "patient_id": "4845533782",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "gout flare 4-6 weeks ago",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a gout flare occurring 4-6 weeks prior to this encounter, which should be coded as a recent historical episode to support clinical decision-making and dose review of allopurinol.",
+          "snomed_search": "acute gout",
+          "snomed_concept_id": "770924008",
+          "preferred_term": "Acute gout (disorder)",
+          "sentence": "Allopurinol - no ADRs, tolerating well, was controlling gout symptoms well, however had a flare 4-6 weeks ago.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "last urate raised 0.44",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the last urate result was raised (0.44), which is a clinically interpreted finding directly informing the decision to repeat the urate level and potentially adjust allopurinol dose.",
+          "snomed_search": "blood urate above reference range",
+          "snomed_concept_id": "269859006",
+          "preferred_term": "Blood urate above reference range (finding)",
+          "sentence": "last urate raised 0.44, has improved concordance since then, now takes daily as rx'd - agreed to repeat urate level and review dose if needed",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "59282003",
+          "name": "Pulmonary embolism (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The PE occurred in April 2025 and is referenced throughout as the historical indication for ongoing anticoagulation therapy, not as an active/current episode; assertion should be historical."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The PE assertion should be corrected from 'present' to 'historical' as it is a past event (April 2025) serving as the indication for apixaban. Two additional findings are missing: a recent acute gout flare (4-6 weeks prior, informing allopurinol dose review) and a raised urate result (0.44, explicitly interpreted as above normal and driving the blood test request). The 'Diagnosis Drug Marked in Error' entries for hypercholesterolaemia and gout NOS are administrative drug-link corrections and do not require new clinical coding in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 9086,
+        "output_tokens": 1687,
+        "total_tokens": 10773,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4845533782",
+        "encounter_id": "36ec060f-a8f5-4f8b-9118-ffd123fb13dd",
+        "date": "2025-09-30",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  }
+]

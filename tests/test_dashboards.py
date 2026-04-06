@@ -56,6 +56,74 @@ class TestEpisodeSummary:
         assert "MATCH (ep:EpisodeOfCare)" in query
 
 
+class TestDateFilter:
+    """Verify _date_where builds string comparisons (not date() type casts).
+
+    referral_date is stored as an ISO string in Neo4j, so wrapping $date_from
+    in date() causes a type mismatch that silently returns zero rows.
+    """
+
+    def test_no_dates_returns_empty_fragment(self):
+        from services.analytics_api.app.routers.dashboards import _date_where
+
+        frag, params = _date_where(None, None)
+        assert frag == ""
+        assert params == {}
+
+    def test_date_from_only(self):
+        from services.analytics_api.app.routers.dashboards import _date_where
+
+        frag, params = _date_where("2024-01-06", None)
+        assert "date(" not in frag, "must NOT use date() cast -- referral_date is a string"
+        assert "$date_from" in frag
+        assert ">=" in frag
+        assert params["date_from"] == "2024-01-06"
+
+    def test_date_to_only(self):
+        from services.analytics_api.app.routers.dashboards import _date_where
+
+        frag, params = _date_where(None, "2025-12-31")
+        assert "date(" not in frag, "must NOT use date() cast -- referral_date is a string"
+        assert "$date_to" in frag
+        assert "<=" in frag
+        assert params["date_to"] == "2025-12-31"
+
+    def test_both_dates(self):
+        from services.analytics_api.app.routers.dashboards import _date_where
+
+        frag, params = _date_where("2024-01-06", "2025-12-31")
+        assert "date(" not in frag
+        assert "$date_from" in frag
+        assert "$date_to" in frag
+        assert params == {"date_from": "2024-01-06", "date_to": "2025-12-31"}
+
+    @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
+    def test_episode_summary_passes_date_params(self, MockPG):
+        from services.analytics_api.app.routers.dashboards import episode_summary
+
+        MockPG.return_value.run.return_value = []
+
+        episode_summary(org_id=None, date_from="2024-01-06", date_to="2025-12-31")
+        call_kwargs = MockPG.return_value.run.call_args[1]
+        assert call_kwargs.get("date_from") == "2024-01-06"
+        assert call_kwargs.get("date_to") == "2025-12-31"
+        query = MockPG.return_value.run.call_args[0][0]
+        assert "date(" not in query
+
+    @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
+    def test_episode_diagnosed_passes_date_params(self, MockPG):
+        from services.analytics_api.app.routers.dashboards import episode_diagnosed
+
+        MockPG.return_value.run.return_value = []
+
+        episode_diagnosed(org_id=None, date_from="2024-01-06", date_to="2025-12-31")
+        call_kwargs = MockPG.return_value.run.call_args[1]
+        assert call_kwargs.get("date_from") == "2024-01-06"
+        assert call_kwargs.get("date_to") == "2025-12-31"
+        query = MockPG.return_value.run.call_args[0][0]
+        assert "date(" not in query
+
+
 class TestEpisodeTimeline:
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")

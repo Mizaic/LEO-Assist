@@ -185,7 +185,8 @@ export const CTX_FLAGS: Array<{ key: string; short: string; label: string; color
   { key: "uncertain", short: "Unc", label: "Uncertain", color: "#f59e0b" },
   { key: "historical", short: "Hist", label: "Historical", color: "#8b5cf6" },
   { key: "family", short: "Fam", label: "Family history", color: "#06b6d4" },
-  { key: "hypothetical", short: "Plan", label: "Planned / awaiting", color: "#6366f1" },
+  { key: "planned", short: "Plan", label: "Planned / awaiting", color: "#6366f1" },
+  { key: "hypothetical", short: "Hypo", label: "Hypothetical / conditional", color: "#8b5cf6" },
   { key: "resolved", short: "Res", label: "Resolved", color: "#059669" },
 ];
 
@@ -223,11 +224,14 @@ export const TIER_META: Record<
 
 /** Maps an assertion string to a display chip colour (MUI color prop). */
 export const ASSERTION_CHIP: Record<string, { label: string; color: "error" | "warning" | "info" | "default" | "primary" | "success" }> = {
-  absent:      { label: "Negated",         color: "error"   },
-  refuted:     { label: "Refuted",         color: "error"   },
-  declined:    { label: "Declined",        color: "error"   },
-  possible:    { label: "Uncertain",       color: "warning" },
-  historical:  { label: "Historical",      color: "info"    },
-  family:      { label: "Family history",  color: "default" },
-  hypothetical:{ label: "Planned / awaiting", color: "primary" },
+  present:     { label: "Present",            color: "success" },
+  absent:      { label: "Negated",            color: "error"   },
+  refuted:     { label: "Refuted",            color: "error"   },
+  declined:    { label: "Declined",           color: "error"   },
+  cancelled:   { label: "Cancelled",          color: "error"   },
+  possible:    { label: "Uncertain",          color: "warning" },
+  historical:   { label: "Historical",               color: "info"    },
+  family:       { label: "Family history",            color: "default" },
+  planned:      { label: "Planned / awaiting",        color: "primary" },
+  hypothetical: { label: "Hypothetical / conditional", color: "info"    },
 };

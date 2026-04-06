@@ -1,0 +1,1021 @@
+[
+  {
+    "encounter_id": "807bc48f-98eb-4873-b298-91e65ef69de6",
+    "patient_id": "6519337463",
+    "date": "2024-03-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "6007000",
+          "name": "Magnetic resonance imaging of chest (procedure)",
+          "severity": "critical",
+          "reason": "lookup_concept resolves 6007000 to 'Malignant neoplasm of breast (disorder)' on the terminology server \u2014 a breast cancer diagnosis \u2014 not an MRI chest procedure; this concept ID must be removed immediately as it incorrectly codes this patient with breast malignancy. Furthermore, the MRI has not yet been performed (the note states an urgent task will be sent to book it), so even the intended procedure code should not carry assertion=present. The correct MRI chest procedure code (confirmed by search_snomed as 6007000 with preferred term 'Magnetic resonance imaging of chest') conflicts with the lookup result; human review of the local terminology server is required before re-applying.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "Remove entirely pending terminology server reconciliation; re-code only once MRI is actually performed",
+          "replace_with_assertion": "cancelled"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "444231005",
+          "name": "Thymoma (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The note documents '? thymoma' \u2014 a query/possible diagnosis suggested in 2022 that remains uninvestigated and unconfirmed; coding it as 'present' (active confirmed diagnosis) is clinically incorrect and could cause serious harm; it must be downgraded to 'possible' until confirmed by imaging and histology."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Two critical coding errors identified: (1) concept 6007000 resolves to 'Malignant neoplasm of breast (disorder)' on the terminology server rather than the intended MRI chest procedure \u2014 this incorrectly labels the patient with breast cancer and must be removed urgently pending terminology server reconciliation; (2) the thymoma code carries assertion=present for what is explicitly an unconfirmed '? thymoma' from 2022 \u2014 this must be changed to possible. The encounter also documents a significant clinical governance failure (a recommended investigation not actioned for 2+ years) which should be escalated through practice safety processes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3836,
+        "output_tokens": 1691,
+        "total_tokens": 5527,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "807bc48f-98eb-4873-b298-91e65ef69de6",
+        "date": "2024-03-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "47c7efc8-eb90-49b7-880d-6c86ae6fba6c",
+    "patient_id": "6519337463",
+    "date": "2024-04-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "?thymoma mass anterior mediastinum",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The note explicitly documents an incidental CT finding of a possible thymoma (?thymoma) in the anterior mediastinum \u2014 this is the primary diagnosis driving the 2WW referral and must be coded as a possible disorder for cancer pathway audit and safety-netting.",
+          "snomed_search": "thymoma",
+          "snomed_concept_id": "444231005",
+          "preferred_term": "Thymoma (disorder)",
+          "sentence": "Patient informed of incidental CT finding from 2022 - ?thymoma mass 20x25mm anterior mediastinum",
+          "char_start": 130,
+          "char_end": 205
+        },
+        {
+          "term": "mass of anterior mediastinum",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A 20x25mm anterior mediastinal mass is an objectively documented CT finding and must be coded as a finding in its own right, independent of the suspected thymoma diagnosis, to support imaging correlation and cancer pathway tracking.",
+          "snomed_search": "mass of anterior mediastinum",
+          "snomed_concept_id": "301030002",
+          "preferred_term": "Mass of anterior mediastinum (finding)",
+          "sentence": "Patient informed of incidental CT finding from 2022 - ?thymoma mass 20x25mm anterior mediastinum",
+          "char_start": 130,
+          "char_end": 205
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "734342007",
+          "name": "Specimen from mass of anterior mediastinum (specimen)",
+          "severity": "medium",
+          "reason": "This is a specimen collection concept (semantic tag: specimen) and is not evidenced by the encounter text \u2014 no biopsy or tissue specimen was taken; the correct clinical finding code is 301030002 Mass of anterior mediastinum (finding), which is proposed in 'missing'.",
+          "replace_with_concept_id": "301030002",
+          "replace_with_preferred_term": "Mass of anterior mediastinum (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter has two critical coding gaps: the suspected thymoma (assertion=possible, driving the 2WW) and the anterior mediastinal mass finding are both absent from the coded list. The existing specimen code 734342007 is semantically incorrect \u2014 no specimen was collected \u2014 and should be replaced with the finding code 301030002. The 2WW lung referral procedure (276491000000101) and imaging procedure codes (CT, MRI) are clinically appropriate and well-evidenced by the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5210,
+        "output_tokens": 1523,
+        "total_tokens": 6733,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "47c7efc8-eb90-49b7-880d-6c86ae6fba6c",
+        "date": "2024-04-09",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e2b86389-5d5d-4085-9d7b-2687175f64f7",
+    "patient_id": "6519337463",
+    "date": "2024-04-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The note explicitly documents a 2WW lung cancer referral, not a breast cancer referral; additionally, lookup_concept returned this ID as a substance (DRB1 allele), confirming the concept ID is entirely wrong for this clinical context.",
+          "replace_with_concept_id": "276491000000101",
+          "replace_with_preferred_term": "Fast track referral for suspected lung cancer (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "77477000",
+          "name": "Computed tomography (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned this ID as an organism (unreliable); the correct and specific verified concept for the documented '2022 CT thorax' is 169069000 Computed tomography of chest (procedure).",
+          "replace_with_concept_id": "169069000",
+          "replace_with_preferred_term": "Computed tomography of chest (procedure)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.96,
+      "notes": "Two significant coding errors identified: (1) the 2WW referral is critically miscoded as breast cancer (276341000000100) when the note unambiguously documents a fast track lung cancer referral \u2014 the correct code is 276491000000101; (2) the CT thorax concept ID 77477000 is unreliable/wrong and should be replaced with the specific verified code 169069000 (Computed tomography of chest), coded as historical since it was performed in 2022. The thymoma code (444231005) and never-smoked code (266919005) are both valid and correctly asserted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7736,
+        "output_tokens": 1516,
+        "total_tokens": 9252,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "e2b86389-5d5d-4085-9d7b-2687175f64f7",
+        "date": "2024-04-11",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c48b8ea8-1bb9-45b1-8dd1-2a4fd7e44945",
+    "patient_id": "6519337463",
+    "date": "2024-04-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "benign thymic cyst",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The MRI report explicitly concludes 'appearances would be in keeping with a benign thymic cyst' \u2014 this is the primary diagnosis and must be coded directly.",
+          "snomed_search": "cyst of thymus",
+          "snomed_concept_id": "40478000",
+          "preferred_term": "Cyst of thymus gland (disorder)",
+          "sentence": "The overall appearances would be in keeping with a benign thymic cyst.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "MRI thorax with contrast",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The report documents pre- and post-contrast MRI sequences were performed; the procedure with contrast (432815006) is more specific than the plain MRI code and is not currently coded.",
+          "snomed_search": "MRI chest with contrast",
+          "snomed_concept_id": "432815006",
+          "preferred_term": "Magnetic resonance imaging of chest with contrast (procedure)",
+          "sentence": "Selected T1, T2, stir and T1 fat sat pre-and post contrast sequences were performed.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "999999999",
+          "name": "Benign pathology found (situation)",
+          "severity": "medium",
+          "reason": "Concept ID 999999999 is invalid \u2014 the terminology server returned 'TRVL 112499 (qualifier value)', confirming this is not a legitimate SNOMED concept; the specific diagnosis (thymic cyst) should be coded instead.",
+          "replace_with_concept_id": "40478000",
+          "replace_with_preferred_term": "Cyst of thymus gland (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "395100000",
+          "name": "No evidence of cancer found (situation)",
+          "severity": "medium",
+          "reason": "Concept ID 395100000 is invalid \u2014 the terminology server returned 'An 7705 (qualifier value)', confirming this is not a legitimate SNOMED concept; the benign nature is better captured by coding the specific benign diagnosis."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "128717008",
+          "name": "Thymic carcinoma (morphologic abnormality)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "critical",
+          "reason": "CRITICAL MISCODING: the MRI report explicitly concludes a benign thymic cyst with no solid component, no contrast enhancement, and no malignant features \u2014 coding 'Thymic carcinoma' as present is directly contradicted by the clinical evidence and poses a serious patient safety risk."
+        }
+      ],
+      "confidence": 0.97,
+      "notes": "This encounter contains a critical miscoding: concept 128717008 (Thymic carcinoma) is coded as present, directly contradicting the MRI report which concludes a benign thymic cyst. Both other coded concept IDs (999999999 and 395100000) are invalid SNOMED identifiers. The correct primary diagnosis \u2014 Cyst of thymus gland (40478000) \u2014 is entirely absent. Urgent human review and correction is required before this record is used clinically.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9289,
+        "output_tokens": 1764,
+        "total_tokens": 11053,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "c48b8ea8-1bb9-45b1-8dd1-2a4fd7e44945",
+        "date": "2024-04-30",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "28d5e62b-532e-4530-a1e7-df3a3290aca3",
+    "patient_id": "6519337463",
+    "date": "2024-05-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept 266261006 Raynaud's phenomenon (finding) is confirmed correct and appropriately asserted as present \u2014 this is the sole active clinical reason for the teleconsult. Nifedipine is a medication (excluded from scope); BP monitoring is a future/planned activity not yet performed and must not be coded as present; no other in-scope SNOMED concepts are evidenced by the encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4046,
+        "output_tokens": 815,
+        "total_tokens": 4861,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "28d5e62b-532e-4530-a1e7-df3a3290aca3",
+        "date": "2024-05-08",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "55db5bb6-a10b-4b87-894b-8bba6c6fc8a4",
+    "patient_id": "6519337463",
+    "date": "2024-05-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept 266261006 (Raynaud's phenomenon) is confirmed correct and appropriately asserted as present \u2014 nifedipine initiation for Raynaud's is explicit in the note. The BP discussion reflects a monitoring/equipment issue with no diagnosable BP disorder stated, so no additional coding is warranted. lookup_concept returned an unreliable server placeholder for this ID, but search_snomed independently confirms it as the top-scoring match for Raynaud's phenomenon (finding).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2740,
+        "output_tokens": 758,
+        "total_tokens": 3498,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "55db5bb6-a10b-4b87-894b-8bba6c6fc8a4",
+        "date": "2024-05-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8be36b16-21b8-4863-86f4-f0e718ee9d04",
+    "patient_id": "6519337463",
+    "date": "2024-05-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Both coded concepts are clinically appropriate for this encounter: BP 128/85 (observable entity, 75367002) and Raynaud's phenomenon (finding, 266261006) \u2014 the latter confirmed as an active diagnosis being treated with nifedipine MR. Terminology server returned unreliable lookups for both concept IDs but search_snomed confirmed both are valid and correctly mapped. A more specific disorder-level code (e.g. 195295006 Raynaud's disease or 361131008 Isolated primary Raynaud's phenomenon) could marginally improve specificity, but without evidence of secondary aetiology the existing finding-level code is defensible and no change is required.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3567,
+        "output_tokens": 953,
+        "total_tokens": 4520,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "8be36b16-21b8-4863-86f4-f0e718ee9d04",
+        "date": "2024-05-14",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c526497f-a02a-4ace-a049-d7a00cb199c7",
+    "patient_id": "6519337463",
+    "date": "2024-06-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "62382002",
+          "name": "Calcinosis, Raynaud's phenomenon, sclerodactyly, and telangiectasia syndrome (disorder)",
+          "severity": "high",
+          "reason": "The note documents simple Raynaud's syndrome (cold fingers and toes, treated with nifedipine) with no mention of calcinosis, sclerodactyly, or telangiectasia; CREST syndrome is a far more specific systemic autoimmune disorder not evidenced by this encounter.",
+          "replace_with_concept_id": "195295006",
+          "replace_with_preferred_term": "Raynaud's disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The sole coded concept (62382002 \u2014 CREST syndrome) is clinically incorrect for this encounter; the note describes straightforward Raynaud's syndrome managed with nifedipine, and should be coded as Raynaud's disease (195295006). No other codeable clinical content is missing from the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2129,
+        "output_tokens": 835,
+        "total_tokens": 2964,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "c526497f-a02a-4ace-a049-d7a00cb199c7",
+        "date": "2024-06-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "43521d7f-f135-435c-bb7c-d069361dd26b",
+    "patient_id": "6519337463",
+    "date": "2024-06-14",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.97,
+      "notes": "This encounter is an auto-filed NHS Health Check HbA1c result review with a \"Satisfactory, No Further Action\" outcome; all 8 coded concepts are observable entity lab values written by the structured pipeline and are not subject to audit. No clinical narrative, diagnosis, or in-scope finding is present in the encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 779,
+        "output_tokens": 547,
+        "total_tokens": 1326,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "43521d7f-f135-435c-bb7c-d069361dd26b",
+        "date": "2024-06-14",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0815c964-46bb-48e4-9ec0-3dc8f016c68d",
+    "patient_id": "6519337463",
+    "date": "2024-06-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "NHS Health Check programme",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly documented as an 'LLR NHS Health Check V3' consultation; the procedure itself should be coded to capture the encounter type for QOF/public health reporting.",
+          "snomed_search": "NHS Health Check annual review",
+          "snomed_concept_id": "763661000000101",
+          "preferred_term": "National Health Service Health Check annual review (procedure)",
+          "sentence": "LLR NHS Health Check V3",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is otherwise of good quality: morbid obesity (238136002) is correctly derived from the BMI of 39.84 kg/m\u00b2 and confirmed as a valid SNOMED disorder concept despite a server-side lookup reliability flag. The only gap is the absence of the NHS Health Check annual review procedure code (763661000000101), which is important for QOF and public health programme reporting. All structured pipeline codes (BP, BMI, HbA1c, lipids, weight, pulse) are appropriate and not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6263,
+        "output_tokens": 1075,
+        "total_tokens": 7338,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "0815c964-46bb-48e4-9ec0-3dc8f016c68d",
+        "date": "2024-06-14",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "44780ec8-d7d7-4ede-b215-fdb790cbf89c",
+    "patient_id": "6519337463",
+    "date": "2024-07-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "62382002",
+          "name": "Calcinosis, Raynaud's phenomenon, sclerodactyly, and telangiectasia syndrome (CREST syndrome) (disorder)",
+          "severity": "high",
+          "reason": "The note documents 'Raynaud's syndrome NOS' only \u2014 there is no mention of calcinosis, sclerodactyly, oesophageal dysmotility, or telangiectasia; coding CREST syndrome is a significant overcoding error.",
+          "replace_with_concept_id": "195295006",
+          "replace_with_preferred_term": "Raynaud's disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The nifedipine adverse reaction code (292454003) is clinically correct and well-supported by the note. However, the Raynaud's code is seriously overcoded: CREST syndrome (62382002) has been applied where the note states only 'Raynaud's syndrome NOS' \u2014 this should be replaced with Raynaud's disease (195295006). Note: lookup_concept returned corrupted/unreliable semantic tags for both coded concept IDs, but search_snomed confirmed their correct SNOMED identities; the CREST overcoding is based on clinical content mismatch, not terminology server error.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3460,
+        "output_tokens": 1185,
+        "total_tokens": 4645,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "44780ec8-d7d7-4ede-b215-fdb790cbf89c",
+        "date": "2024-07-02",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ec164ae6-d7ae-4e6b-9e91-cbf67e70c91e",
+    "patient_id": "6519337463",
+    "date": "2024-10-31",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [
+        {
+          "concept_id": "276341000000100",
+          "preferred_term": "Fast track referral for suspected breast cancer (procedure)",
+          "assertion": "present",
+          "severity": "critical",
+          "note": "Correctly coded; lookup_concept returned unreliable result (wrong semantic tag) but search_snomed confirms this is the correct procedure concept at score 1.3"
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The 2WW breast cancer fast-track referral procedure is correctly coded as present. The remainder of the note is administrative routing and booking text (medical secretary access role, PRISM routing, OPD appointment status) with no additional codeable clinical content. lookup_concept returned an unreliable result for the coded concept ID, but search_snomed confirms it is the correct and only applicable SNOMED procedure code for this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2199,
+        "output_tokens": 830,
+        "total_tokens": 3029,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "ec164ae6-d7ae-4e6b-9e91-cbf67e70c91e",
+        "date": "2024-10-31",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2827b72b-289d-48ac-897b-b968fb3dae3b",
+    "patient_id": "6519337463",
+    "date": "2024-10-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "2ww dermatology referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly documents a 2WW dermatology referral for a suspected malignant skin lesion; this cancer pathway procedure is absent from the coded list despite the breast 2WW referral being coded.",
+          "snomed_search": "fast track referral suspected skin cancer",
+          "snomed_concept_id": "276281000000104",
+          "preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+          "sentence": "2ww dermatolgoy referral.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Non-cardiac sounding chest pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician's diagnosis section explicitly states 'Non-cardiac sounding chest pain', which is more specific than the coded generic 'Chest pain' and should replace it.",
+          "snomed_search": "non-cardiac chest pain",
+          "snomed_concept_id": "274668005",
+          "preferred_term": "Non-cardiac chest pain (finding)",
+          "sentence": "Diagnosis: Breast lump. New evolving mole. Non-cardiac sounding chest pain.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "29857009",
+          "name": "Chest pain (finding)",
+          "severity": "medium",
+          "reason": "The clinician explicitly diagnosed 'Non-cardiac sounding chest pain' in the Diagnosis section; the generic 'Chest pain' code should be replaced by the more specific Non-cardiac chest pain concept.",
+          "replace_with_concept_id": "274668005",
+          "replace_with_preferred_term": "Non-cardiac chest pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "29303009",
+          "name": "Electrocardiographic procedure (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "cancelled",
+          "severity": "low",
+          "reason": "The ECG is planned for 'in 2 weeks' and has not yet occurred at the time of this encounter; assertion should reflect a future/planned procedure rather than present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two critical gaps identified: the 2WW dermatology referral (explicitly documented in the plan) is entirely absent from the coded list, and the clinician's specific diagnosis of non-cardiac chest pain is under-coded as generic chest pain. The ECG is coded as present but is a future planned procedure. The breast 2WW referral, family history of breast cancer, and never-smoked finding are all correctly coded; the skin lesion situation concept [734936000] returned as unreliable from the terminology server but has not been flagged for deletion as no confirmed replacement situation concept was found.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8281,
+        "output_tokens": 2025,
+        "total_tokens": 10306,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "2827b72b-289d-48ac-897b-b968fb3dae3b",
+        "date": "2024-10-31",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "364cc8bd-eeb2-4d66-9b0d-a9fbd98c00a4",
+    "patient_id": "6519337463",
+    "date": "2025-06-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "87604009",
+          "name": "Sleeve resection of stomach (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The sleeve gastrectomy was performed on 05/08/2024 in Istanbul \u2014 it is a completed past procedure reported retrospectively by the patient, so the assertion should be 'historical' rather than 'present'."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "The procedure code 87604009 (Sleeve resection of stomach) is the correct and only available SNOMED match for sleeve gastrectomy and is appropriately coded; however, the assertion must be corrected from 'present' to 'historical' as the surgery took place in August 2024 and is being reported retrospectively via an online questionnaire. No other codeable clinical content is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1440,
+        "output_tokens": 700,
+        "total_tokens": 2140,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "364cc8bd-eeb2-4d66-9b0d-a9fbd98c00a4",
+        "date": "2025-06-18",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "85bfdf7f-4196-44d9-b82f-98a83a705235",
+    "patient_id": "6519337463",
+    "date": "2025-09-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Dizziness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dizziness is explicitly listed as a presenting complaint but is currently coded with an unreliable/wrong concept (735548000 \u2014 Extension Namespace placeholder for a dissociative disorder); the correct SNOMED code for simple dizziness as a symptom is 404640003.",
+          "snomed_search": "dizziness",
+          "snomed_concept_id": "404640003",
+          "preferred_term": "Dizziness (finding)",
+          "sentence": "PC:Dizziness, chest pain and SOB",
+          "char_start": 148,
+          "char_end": 156
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "735548000",
+          "name": "Dissociative neurological symptom disorder co-occurrent with dizziness (disorder)",
+          "severity": "high",
+          "reason": "Concept ID 735548000 returns as an Extension Namespace placeholder (unreliable) and the coded term 'Dissociative neurological symptom disorder co-occurrent with dizziness' is clinically unsupported \u2014 the note documents simple dizziness as a presenting complaint with no evidence of dissociative neurological disorder; replace with 404640003 Dizziness (finding).",
+          "replace_with_concept_id": "404640003",
+          "replace_with_preferred_term": "Dizziness (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "89138009",
+          "name": "Cardiogenic shock (disorder)",
+          "severity": "high",
+          "reason": "Concept ID 89138009 is unreliable (server returns it as an organism) and the clinical content does not support cardiogenic shock \u2014 the clinician documents '?Cardiogenic' as an uncertain aetiology for pre-syncopal symptoms in a haemodynamically stable patient (NEWS2=0, warm peripheries, CR<2s); cardiogenic shock is a serious overcoding error with no textual basis."
+        },
+        {
+          "conceptId": "704999008",
+          "name": "Anterior T wave inversion (finding)",
+          "severity": "medium",
+          "reason": "Concept ID 704999008 is unreliable on the terminology server AND is clinically incorrect: the ECG finding is 'isolated TWI in LIII' (lead III, an inferior lead), not anterior T-wave inversion; replace with the general Inverted T wave finding 59931005.",
+          "replace_with_concept_id": "59931005",
+          "replace_with_preferred_term": "Inverted T wave (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "427461000",
+          "name": "Near syncope (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician documents 'Pre-syncopal symptoms?Cardiogenic' \u2014 the diagnosis is framed as uncertain/under investigation (question mark), so assertion should be 'possible' rather than 'present'; additionally concept ID 427461000 is flagged unreliable by the server but is confirmed as a valid disorder by search_snomed."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three significant coding errors identified: (1) dizziness is coded with an Extension Namespace placeholder for a dissociative disorder \u2014 replace with 404640003; (2) cardiogenic shock (89138009) is a dangerous overcoding with no clinical basis in a stable patient \u2014 remove entirely; (3) T-wave inversion is coded as 'anterior' when the ECG documents lead III (inferior) \u2014 replace with the generic 59931005 Inverted T wave. Near syncope assertion should be 'possible' to reflect the clinician's documented uncertainty. The referral to CDU at Glenfield and troponin procedure codes are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10218,
+        "output_tokens": 2220,
+        "total_tokens": 12438,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "85bfdf7f-4196-44d9-b82f-98a83a705235",
+        "date": "2025-09-08",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "43719946-f59c-4bac-9d2a-16ec96b5bfcf",
+    "patient_id": "6519337463",
+    "date": "2025-09-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "All four coded concepts are confirmed correct via SNOMED search: chest pain (29857009), dizziness (404640003), electrocardiogram requested (164846002), and blood pressure observable (75367002). Lookup_concept returned unreliable/corrupted results for several IDs but search_snomed independently validated each concept ID and semantic tag. NEWS2 component scores and vital sign observables are structured pipeline outputs and are out of scope for narrative coding audit. No missing clinical findings identified.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6781,
+        "output_tokens": 1167,
+        "total_tokens": 7948,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "43719946-f59c-4bac-9d2a-16ec96b5bfcf",
+        "date": "2025-09-08",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2201394f-98a2-4c2d-9f9e-f5affd4ab561",
+    "patient_id": "6519337463",
+    "date": "2025-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "significant hair loss",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports significant hair loss as an active symptom; it is clinically relevant as a potential feature of iron deficiency anaemia or thyroid dysfunction, and is driving part of the investigation panel (TFTs, B12, ferritin ordered).",
+          "snomed_search": "hair loss",
+          "snomed_concept_id": "407551001",
+          "preferred_term": "Complaining of hair loss (finding)",
+          "sentence": "Also reports significant hair loss.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely accurate and well-evidenced; the main gap is the absence of a code for the patient's reported significant hair loss (407551001 \u2014 Complaining of hair loss), which is an active symptom driving part of the investigation panel. The chest pain concept [29857009] returned an unreliable lookup (organism tag) but is confirmed correct by SNOMED search. Planned procedures (Mirena coil insertion, coeliac screen, FBC/ferritin/U&Es) are appropriately not coded as they have not yet occurred.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 10613,
+        "output_tokens": 1531,
+        "total_tokens": 12144,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "2201394f-98a2-4c2d-9f9e-f5affd4ab561",
+        "date": "2025-10-15",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b8d7bb0f-7629-4641-b27e-e306cf18b852",
+    "patient_id": "6519337463",
+    "date": "2025-10-17",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "This encounter contains only receptionist access-role and appointment-arrival administrative text with no clinical narrative. The 5 coded lab observable entities are structured pipeline codes and are not subject to audit from this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 715,
+        "output_tokens": 328,
+        "total_tokens": 1043,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "b8d7bb0f-7629-4641-b27e-e306cf18b852",
+        "date": "2025-10-17",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d55b0498-f550-4245-b09e-cb6045a7e8e5",
+    "patient_id": "6519337463",
+    "date": "2025-10-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "losing hair",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Hair loss is explicitly documented as a current symptom ('losing hair') and is clinically relevant as a feature of iron deficiency anaemia; it is not captured by the fatigue code.",
+          "snomed_search": "loss of hair",
+          "snomed_concept_id": "278040002",
+          "preferred_term": "Loss of hair (finding)",
+          "sentence": "Sleepy, and losing hair.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "430715008",
+          "name": "Bariatric operative procedure (procedure)",
+          "severity": "medium",
+          "reason": "The terminology server returned an Extension Namespace placeholder for concept 430715008, indicating this concept ID cannot be verified; the note describes a partial gastrectomy (bariatric surgery Aug 2024) which would be better coded as Subtotal gastrectomy (49209004) \u2014 however, as that lookup also returned unreliable results, human review is recommended to confirm the correct procedure code.",
+          "replace_with_concept_id": "49209004",
+          "replace_with_preferred_term": "Subtotal gastrectomy (procedure)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "430715008",
+          "name": "Bariatric operative procedure (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The bariatric surgery (partial gastrectomy) was performed in August 2024 and is a past event; assertion should be historical, not present."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Core diagnoses (iron deficiency anaemia, menorrhagia, fatigue, bariatric surgery) are well captured. Key gaps are: (1) hair loss is an explicitly documented symptom that should be coded; (2) the bariatric procedure code 430715008 is unverifiable on this terminology server and should be reviewed \u2014 the procedure is historical (Aug 2024) so assertion should be 'historical'; a more specific code such as Subtotal gastrectomy (49209004) may be more appropriate pending human verification. The planned Mirena coil insertion should not be coded as present as it has not yet occurred (task sent to Woodbrook to arrange).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10768,
+        "output_tokens": 1918,
+        "total_tokens": 12686,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "d55b0498-f550-4245-b09e-cb6045a7e8e5",
+        "date": "2025-10-23",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7ae6ee39-95bb-4ea9-a13e-dcf69d79a61f",
+    "patient_id": "6519337463",
+    "date": "2025-11-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Sexually transmitted infection screening offered",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'STI screening offered: Yes' and the Read code XaZGw is documented in the structured section.",
+          "snomed_search": "sexually transmitted infection screening offered",
+          "snomed_concept_id": "835261000000109",
+          "preferred_term": "Sexually transmitted infection screening offered (situation)",
+          "sentence": "STI screening offered: Yes / Sexually transmitted infection screening offered (XaZGw)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Informed consent given",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Consent: Yes' and the Read code XaLQR (Informed consent given) is documented in the structured section.",
+          "snomed_search": "informed consent given",
+          "snomed_concept_id": "203031000000107",
+          "preferred_term": "Informed consent given (finding)",
+          "sentence": "Consent: Yes / Informed consent given (XaLQR)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Intrauterine system contraception leaflet given",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Leaflet given: Yes' and the Read code XaXnv (Intrauterine system contraception leaflet given) is documented in the structured section.",
+          "snomed_search": "intrauterine system contraception leaflet given",
+          "snomed_concept_id": "783671000000106",
+          "preferred_term": "Intrauterine system contraception leaflet given (situation)",
+          "sentence": "Leaflet given: Yes / Intrauterine system contraception leaflet given (XaXnv)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "LNG-IUD - Hormonal Coil consultation",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents a genitourinary consultation specifically for LNG-IUD (levonorgestrel intrauterine system); counselling for this device should be coded.",
+          "snomed_search": "levonorgestrel intrauterine system counselling",
+          "snomed_concept_id": "341421000000104",
+          "preferred_term": "Counselling for levonorgestrel eluting intrauterine system (procedure)",
+          "sentence": "LNG - IUD - Hormonal Coil / Contraception Consultation",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Four concepts explicitly documented in the structured Read-coded section of the note are absent from the SNOMED coded list: STI screening offered, informed consent given, IUS contraception leaflet given, and a contraception counselling procedure for the LNG-IUD. The existing telephone consultation code (386472008) returned as unreliable from the terminology server (organism tag returned) but is supported by the note text and should be verified by the coding team rather than deleted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4806,
+        "output_tokens": 1705,
+        "total_tokens": 6511,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "7ae6ee39-95bb-4ea9-a13e-dcf69d79a61f",
+        "date": "2025-11-06",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cea3782a-f0ff-48ca-a3c9-36dbbb6e28f8",
+    "patient_id": "6519337463",
+    "date": "2025-11-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "retroverted uterus",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Uterine retroversion is explicitly documented on vaginal examination and in the structured template, and is a clinically relevant finding affecting IUD insertion technique.",
+          "snomed_search": "retroverted uterus",
+          "snomed_concept_id": "271689000",
+          "preferred_term": "Retroverted uterus (finding)",
+          "sentence": "Vaginal examination: Uterus retroverted",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "chlamydia test offered",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Chlamydia screening was explicitly offered and documented in both the narrative and structured template as part of the IUD insertion protocol; this is a coded clinical action.",
+          "snomed_search": "chlamydia screening offered",
+          "snomed_concept_id": "1105301000000100",
+          "preferred_term": "Chlamydia screening offered (situation)",
+          "sentence": "STI screening: Chlamydia test offered (XaLHg)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "56340000",
+          "name": "External os structure (body structure)",
+          "severity": "medium",
+          "reason": "Body structure concepts are outside the audit scope (disorder/finding/situation/procedure/qualifier value/substance); the intended clinical finding is cervical os stenosis (a finding/disorder), but no reliable SNOMED gynaecological cervical stenosis concept was returned by search \u2014 human review needed to select the correct replacement finding code for 'mild external os stenosis'."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a well-documented failed LNG-IUD insertion for menorrhagia; core procedure codes (unsuccessful IUD insertion, uterine sounding, referral to gynaecology) and the primary diagnosis are appropriately coded. Two findings are missing: retroverted uterus (271689000) and chlamydia screening offered (1105301000000100). The body structure code 56340000 (External os structure) is out of audit scope and should be replaced with an appropriate finding code for cervical os stenosis \u2014 a reliable gynaecological SNOMED concept for this was not returned by the terminology server and requires manual selection. Multiple lookup_concept calls returned unreliable/corrupted results from the terminology server; the clinical coding judgements above are based on search_snomed confirmation and note text rather than lookup verification.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8362,
+        "output_tokens": 2005,
+        "total_tokens": 10367,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6519337463",
+        "encounter_id": "cea3782a-f0ff-48ca-a3c9-36dbbb6e28f8",
+        "date": "2025-11-28",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  }
+]

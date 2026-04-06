@@ -1,0 +1,1353 @@
+[
+  {
+    "encounter_id": "1dbbc9c4-8f07-4c43-b45d-e0cdefa02d2c",
+    "patient_id": "4983118659",
+    "date": "2024-02-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine culture performed",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Urine culture performed' \u2014 this is a completed procedure within SNOMED scope and should be coded to support audit, clinical decision support, and result tracking.",
+          "snomed_search": "urine culture",
+          "snomed_concept_id": "117010004",
+          "preferred_term": "Urine culture (procedure)",
+          "sentence": "Urine culture performed. Further report to follow.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The two existing codes (suspected UTI and urine microscopy leukocytes present) are both correct and well-evidenced \u2014 concept IDs were confirmed via SNOMED search despite the terminology server returning unreliable lookup results. One gap identified: the urine culture procedure (117010004) is explicitly documented as performed and should be coded. The normal epithelial cell count and pending culture result do not require additional codes at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5956,
+        "output_tokens": 1006,
+        "total_tokens": 6962,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "1dbbc9c4-8f07-4c43-b45d-e0cdefa02d2c",
+        "date": "2024-02-13",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0442ba9e-a137-49ee-ba80-eca16aa6db1e",
+    "patient_id": "4983118659",
+    "date": "2024-02-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Dysuria",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Dysuria is explicitly documented as an active presenting symptom and is not captured in the existing coded list.",
+          "snomed_search": "dysuria",
+          "snomed_concept_id": "49650001",
+          "preferred_term": "Dysuria (finding)",
+          "sentence": "Dysuria.",
+          "char_start": 130,
+          "char_end": 138
+        },
+        {
+          "term": "Urine for Microscopy and Culture",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "An MSU was sent for microscopy, culture and sensitivities \u2014 this procedure is explicitly documented in the plan and should be coded.",
+          "snomed_search": "urinary microscopy culture sensitivities",
+          "snomed_concept_id": "401324008",
+          "preferred_term": "Urinary microscopy, culture and sensitivities (procedure)",
+          "sentence": "Urine for Microscopy and Culture (Requested)",
+          "char_start": 900,
+          "char_end": 944
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "328751000119102",
+          "name": "Exposure of vaginal mesh implant in vagina (disorder)",
+          "severity": "medium",
+          "reason": "The note states the patient 'has a vaginal mesh in situ' with no mention of mesh exposure or erosion; this concept implies a complication (exposure) that is not documented. lookup_concept also returned this ID as a 'substance' (DRB1 allele), confirming the concept ID is unreliable in this context.",
+          "replace_with_concept_id": "722810000",
+          "replace_with_preferred_term": "Prosthesis in situ (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two coding gaps identified: dysuria (active presenting symptom) and the MSU procedure are both uncoded. The vaginal mesh concept (328751000119102) is overcoded with the wrong clinical meaning \u2014 the note describes mesh in situ, not mesh exposure/erosion; additionally lookup_concept returned this ID as a substance (DRB1 allele), flagging it as unreliable. The best available replacement is 'Prosthesis in situ (finding)' pending a more specific UK SNOMED extension code for vaginal mesh in situ. Note: haematuria with a 2-week urine recheck plan is appropriately coded and followed up; no red-flag 2WW referral was triggered by the clinician, though persistent haematuria should be monitored.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6285,
+        "output_tokens": 1559,
+        "total_tokens": 7844,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "0442ba9e-a137-49ee-ba80-eca16aa6db1e",
+        "date": "2024-02-13",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5b6e18d3-cb7f-4d9f-a9af-e210e5209003",
+    "patient_id": "4983118659",
+    "date": "2024-07-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "403830007",
+          "name": "Familial hypercholesterolemia due to homozygous low density lipoprotein receptor mutation (disorder)",
+          "severity": "high",
+          "reason": "The note records only 'high ldl' with no mention of familial hypercholesterolaemia, genetic testing, or homozygous LDL receptor mutation; this highly specific genetic disorder diagnosis is entirely unsupported by the encounter text and represents a dangerous overcoding that could mislabel the patient.",
+          "replace_with_concept_id": "13644009",
+          "replace_with_preferred_term": "Hypercholesterolemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The hypothyroidism (40930008) and high cardiovascular risk (837461000000101) codes are clinically supported by the encounter text. However, coding 403830007 (familial hypercholesterolaemia due to homozygous LDL receptor mutation) from a pharmacist note that merely states 'high ldl' is a serious overcoding error \u2014 the correct code is Hypercholesterolaemia (13644009); a specific monogenic diagnosis of this severity requires explicit clinical confirmation and genetic evidence, neither of which is present here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6614,
+        "output_tokens": 1339,
+        "total_tokens": 7953,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "5b6e18d3-cb7f-4d9f-a9af-e210e5209003",
+        "date": "2024-07-10",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f1e6aefb-30ab-4f69-ba96-fa8c778e292b",
+    "patient_id": "4983118659",
+    "date": "2024-07-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Both coded concepts (Hypothyroidism 40930008 and High risk of cardiovascular disease 837461000000101) are confirmed correct via search_snomed despite unreliable lookup_concept server responses. The mention of \"high ldl\" in the pharmacist note reads as a cited lab metric rather than an explicit diagnosis of hypercholesterolaemia, so no additional disorder code is warranted from this text alone; AKI Stage 0 is an absent finding and correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3304,
+        "output_tokens": 1074,
+        "total_tokens": 4378,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "f1e6aefb-30ab-4f69-ba96-fa8c778e292b",
+        "date": "2024-07-10",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b556985b-45d2-4e90-af25-ae9a2ebee8e0",
+    "patient_id": "4983118659",
+    "date": "2024-07-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Serum LDL cholesterol level (44P6.) 3.4 mmol/L",
+          "snomed_concept_id": "445445006",
+          "preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "LDL 3.4 mmol/L is above optimal target; the report comment explicitly flags 'high LDL' as a reason for pharmacist review and consideration of escalating oral lipid treatment.",
+          "sentence": "Serum LDL cholesterol level (44P6.) 3.4 mmol/L",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "high qrisk",
+          "snomed_concept_id": "837461000000101",
+          "preferred_term": "High risk of cardiovascular disease (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "The pharmacist/clinician review comment explicitly states 'high qrisk and ldl' as the reason for the borderline report and review. This is a clinician-interpreted finding that should be coded.",
+          "sentence": "Serum lipid levels Report, Borderline, Other (pharmacist rv.): high qrisk and ldl. (Patient Informed). Review done by PATEL, Krishan (Dr) - 11 Jul 2024 08:14",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Borderline",
+          "snomed_concept_id": "55822004",
+          "preferred_term": "Hyperlipidemia (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Total cholesterol 5.6 mmol/L and LDL 3.4 mmol/L are both elevated; the report is flagged as 'Borderline' hyperlipidaemia by the reviewing clinician. Patient is on thyroxine (hypothyroidism is a recognised secondary cause). Hyperlipidaemia should be coded as an active disorder.",
+          "sentence": "Serum lipid levels Report, Borderline, Other (pharmacist rv.): high qrisk and ldl.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "pharmacist rv. ... escalating oral lipid treatment",
+          "snomed_concept_id": "819911000000108",
+          "preferred_term": "Discussion about lipid lowering therapy (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "The note documents a pharmacist review with explicit reference to 'escalating oral lipid treatment' and patient being informed. This constitutes a discussion about lipid-lowering therapy and should be coded as a procedure.",
+          "sentence": "Serum lipid levels Report, Borderline, Other (pharmacist rv.): high qrisk and ldl. (Patient Informed). Review done by PATEL, Krishan (Dr) - 11 Jul 2024 08:14",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Annual lipid panel auto-filed with clinician (Dr Patel) review on 11 Jul 2024. Key codeable findings: (1) LDL 3.4 mmol/L explicitly flagged as 'high LDL' \u2014 code as LDL above reference range (445445006); (2) 'high qrisk' documented by clinician \u2014 code as High risk of cardiovascular disease (837461000000101); (3) Borderline hyperlipidaemia with elevated total cholesterol 5.6 and LDL 3.4 in a patient on thyroxine \u2014 code Hyperlipidemia (55822004) if not already on problem list; (4) Pharmacist review with discussion of escalating oral lipid treatment \u2014 code as Discussion about lipid lowering therapy (819911000000108). Triglycerides (1.4) and HDL (1.52) are within reference ranges and do not require separate abnormal findings codes. Confidence slightly reduced as problem list was not checked \u2014 Hyperlipidaemia may already be coded as a standing problem.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6280,
+        "output_tokens": 2596,
+        "total_tokens": 8876,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "b556985b-45d2-4e90-af25-ae9a2ebee8e0",
+        "date": "2024-07-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4b263684-f6b9-44ec-9e91-3412021fadeb",
+    "patient_id": "4983118659",
+    "date": "2024-07-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres 80 mL/min",
+          "snomed_concept_id": "1011481000000105",
+          "preferred_term": "Estimated glomerular filtration rate using creatinine Chronic Kidney Disease Epidemiology Collaboration equation per 1.73 square metres",
+          "semantic_tag": "observable entity",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "eGFR result documented in structured lab report; value 80 mL/min is within normal range. Observable entity should be coded to capture the investigation performed.",
+          "sentence": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 80 mL/min",
+          "char_start": 37,
+          "char_end": 101
+        },
+        {
+          "text": "high qrisk",
+          "snomed_concept_id": "837461000000101",
+          "preferred_term": "High risk of cardiovascular disease",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Pharmacist review explicitly documents 'high qrisk' as a clinical reason for the borderline U&E report review. This is a clinically significant cardiovascular risk finding that should be coded.",
+          "sentence": "Urea and electrolytes Report,\u00ef\u00bf\u00bdBorderline,\u00ef\u00bf\u00bdOther (pharmacist rv.): high qrisk and ldl.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "high ldl",
+          "snomed_concept_id": "13644009",
+          "preferred_term": "Hypercholesterolaemia",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Pharmacist review explicitly documents 'high ldl' as a clinical finding. Elevated LDL cholesterol is clinically significant, particularly in the context of high QRISK, and warrants coding.",
+          "sentence": "Urea and electrolytes Report,\u00ef\u00bf\u00bdBorderline,\u00ef\u00bf\u00bdOther (pharmacist rv.): high qrisk and ldl.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "On thyroxine",
+          "snomed_concept_id": "788427000",
+          "preferred_term": "Levothyroxine therapy",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Clinical information field documents patient is on thyroxine (levothyroxine). This is an ongoing therapy relevant to clinical context and should be coded if not already on the problem list.",
+          "sentence": "Clinical Information: Clinical Details: On thyroxine.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Auto-filed lab result with pharmacist review. All U&E values (Na 139, K 4.2, Urea 4.9, Creatinine 65) and eGFR (80 mL/min) are within normal reference ranges \u2014 no CKD coding warranted from this result alone. The boilerplate ACR/KFRE advisory text is not patient-specific and should not be coded. Key missing codes: (1) High cardiovascular risk (QRISK) and (2) High LDL cholesterol \u2014 both explicitly documented by the pharmacist reviewer as clinical reasons for the borderline report review. Thyroxine therapy is noted in clinical details and should be verified against the problem list. Confidence slightly reduced as 'high LDL' could map to a more specific finding if a numeric LDL value were available, but hypercholesterolaemia is the best available match from the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5565,
+        "output_tokens": 2093,
+        "total_tokens": 7658,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "4b263684-f6b9-44ec-9e91-3412021fadeb",
+        "date": "2024-07-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4e3d5ca0-9b5f-4dd7-9149-160ad8f35969",
+    "patient_id": "4983118659",
+    "date": "2024-07-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "statin declined",
+          "severity": "high",
+          "suggested_assertion": "declined",
+          "reason": "The patient explicitly declined statin therapy during this consultation, stating they are 'not keen' and want time to think \u2014 this is a clinically significant declined intervention that should be coded for audit, recall, and QOF purposes.",
+          "snomed_search": "statin",
+          "snomed_concept_id": "134396000",
+          "preferred_term": "Statin declined (situation)",
+          "sentence": "-pt not keen as heard a lot about statins and their s/e - explained rationale and s/e and how to manage them",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "102739008",
+          "name": "Low density lipoprotein cholesterol (substance)",
+          "severity": "medium",
+          "reason": "This is a substance concept, not a finding or observable entity \u2014 it represents the biochemical substance LDL cholesterol rather than the clinical result or finding of an elevated LDL level; a finding or observable entity concept would be more appropriate for coding an abnormal LDL result driving clinical decision-making.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "No clean elevated LDL finding concept confirmed via search \u2014 human review recommended to select appropriate finding/observable entity code for LDL 3.4 mmol/L above reference range."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The QRISK2 observable entity code (718087004) is confirmed correct. The key gap is the absence of 'Statin declined (situation)' (134396000), which is clinically important for QOF, audit, and recall workflows. The LDL code (102739008) uses a substance semantic tag rather than a finding/observable entity, which is semantically incorrect for documenting an abnormal result \u2014 a replacement finding concept for elevated LDL should be identified. Note also that a follow-up call is planned for next week but no procedure/recall code has been added; this may be handled by the task system rather than SNOMED coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5833,
+        "output_tokens": 1400,
+        "total_tokens": 7233,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "4e3d5ca0-9b5f-4dd7-9149-160ad8f35969",
+        "date": "2024-07-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "08db1bf0-2067-41ad-bcde-4410423a4e80",
+    "patient_id": "4983118659",
+    "date": "2024-07-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "increased risk of CVD",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents that the patient is aware of their QRISK score and increased CVD risk, making this a clinically relevant active finding that should be coded to support cardiovascular risk management and audit.",
+          "snomed_search": "increased cardiovascular risk",
+          "snomed_concept_id": "395112001",
+          "preferred_term": "At increased risk for cardiovascular event (finding)",
+          "sentence": "-aware of QRISK and increased risk of CVD - pt understands this",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "The existing code 406149000 'Medication declined' is valid but insufficiently specific \u2014 the note header explicitly records 'Statin declined (XaIIl)' and the more precise concept 134396000 'Statin declined (situation)' should replace it. Additionally, the explicitly documented increased CVD risk (QRISK discussed) warrants its own finding code. Diet and lifestyle advice was discussed but is a borderline procedure code not flagged here as it is implied by the statin refusal context.",
+      "confidence": 0.82,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3565,
+        "output_tokens": 1062,
+        "total_tokens": 4627,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "08db1bf0-2067-41ad-bcde-4410423a4e80",
+        "date": "2024-07-31",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d2d8a278-8e44-4ebc-89a7-a7f7f563adb7",
+    "patient_id": "4983118659",
+    "date": "2025-01-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss of 5 pounds in the context of progressive dysphagia and a 2WW upper GI cancer referral is a red-flag symptom that must be coded as unintentional, not intentional; the current code 416528001 is also the wrong SNOMED concept entirely (returns as a substance).",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Weight loss: 5 pounds (2.7kg) since symptoms started",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "history of acid reflux",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a history of acid reflux (previously on lansoprazole PRN, stopped taking), which is clinically relevant to the dysphagia presentation and 2WW pathway.",
+          "snomed_search": "acid reflux",
+          "snomed_concept_id": "698065002",
+          "preferred_term": "Acid reflux (finding)",
+          "sentence": "History of acid reflux: previously on lansoprazole PRN. stopped taking",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Concept 416528001 resolves on the terminology server as a substance (DRB1*08021), not a weight loss finding; furthermore the clinical context (progressive dysphagia, 2WW cancer referral) makes this unintentional weight loss, not intentional \u2014 replace with 448765001 Unintentional weight loss (finding).",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "406149000",
+          "name": "Medication declined (situation)",
+          "severity": "low",
+          "reason": "The note specifically documents statin therapy declined; the more precise code 134396000 'Statin declined (situation)' should be used in preference to the generic 'Medication declined', and 406149000 returned as unreliable/Extension Namespace on the terminology server.",
+          "replace_with_concept_id": "134396000",
+          "replace_with_preferred_term": "Statin declined (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two critical issues: concept 416528001 is an invalid code for weight loss (resolves as a substance on the terminology server) and must be replaced with 448765001 Unintentional weight loss \u2014 a safety-critical red-flag symptom in this 2WW upper GI cancer context. The generic 'Medication declined' code should be replaced with the specific 'Statin declined' (134396000). A historical acid reflux finding is documented and missing from the coded list. The bright red PR bleeding (12063002) and 2WW suspected upper GI malignancy (315273002) are correctly coded and clinically important for safety-netting.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7438,
+        "output_tokens": 1844,
+        "total_tokens": 9282,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "d2d8a278-8e44-4ebc-89a7-a7f7f563adb7",
+        "date": "2025-01-20",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d2d32129-bd8b-4025-92ec-9f22e9515d8d",
+    "patient_id": "4983118659",
+    "date": "2025-01-30",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of medical secretary administrative and workflow text (referral routing headers, 2WW pathway status lines, appointment tracking fields) with no clinical narrative, GP assessment, symptoms, or examination findings. Both existing codes (276551000000108 \u2014 fast track upper GI cancer referral; 185408004 \u2014 patient made appointment) are standard appointment-system and referral-pathway tracking codes that are set by the administrative workflow, not derived from clinical encounter text, and must not be flagged as overcoded on this basis. No coding action is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3656,
+        "output_tokens": 907,
+        "total_tokens": 4563,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "d2d32129-bd8b-4025-92ec-9f22e9515d8d",
+        "date": "2025-01-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f69dcc2f-bc95-4494-a568-1ae5ba075cfb",
+    "patient_id": "4983118659",
+    "date": "2025-01-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ECG",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "An ECG was explicitly performed during this encounter as part of the workup for new elevated BP and should be coded as a procedure.",
+          "snomed_search": "electrocardiogram",
+          "snomed_concept_id": "29303009",
+          "preferred_term": "Electrocardiographic procedure (procedure)",
+          "sentence": "ATS ECG - work up for new elevated BP   - see FA review",
+          "char_start": 82,
+          "char_end": 130
+        },
+        {
+          "term": "white coat tendency",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "White coat tendency is explicitly documented and is clinically relevant to the interpretation of the elevated BP readings; it should be coded as a finding.",
+          "snomed_search": "white coat hypertension",
+          "snomed_concept_id": "697930002",
+          "preferred_term": "Labile hypertension due to being in a clinical environment (disorder)",
+          "sentence": "home BPs awaited (brief review by GK suggests acceptable range) - known white coat tendency",
+          "char_start": 222,
+          "char_end": 313
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (Blood pressure above reference range; QRISK2 score) are correct and well-evidenced \u2014 lookup_concept returned unreliable/wrong semantic tags for both but search_snomed confirmed the concept IDs are valid. Two gaps identified: the ECG procedure performed during the encounter is uncoded, and the explicitly documented 'known white coat tendency' warrants its own finding code. The normal ECG interpretation (sinus rhythm, no acute changes) does not require additional coding. The statin discussion and future CVS risk review appointment are not yet codeable events.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3746,
+        "output_tokens": 1306,
+        "total_tokens": 5052,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "f69dcc2f-bc95-4494-a568-1ae5ba075cfb",
+        "date": "2025-01-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a434699a-72cb-45d8-82dd-80d7d8d582e7",
+    "patient_id": "4983118659",
+    "date": "2025-01-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Borderline / elevated cholesterol",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly documents 'Borderline' serum lipid levels and references QRisk and LDL as driving a pharmacist review for lipid-lowering therapy escalation \u2014 this is a clinical interpretation of hypercholesterolaemia that must be coded as a disorder, not merely as a raw lab value.",
+          "snomed_search": "hypercholesterolaemia",
+          "snomed_concept_id": "13644009",
+          "preferred_term": "Hypercholesterolemia (disorder)",
+          "sentence": "Serum lipid levels Report, Borderline, Other: see q risk and LDL - will ask pharm to review - thanks (Patient Informed).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "365794002",
+          "name": "Finding of serum cholesterol level (finding)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an Extension Namespace placeholder (unreliable); the raw numeric cholesterol value (6.1 mmol/L) is a structured lab result that should not be coded as a clinical finding from the encounter note \u2014 the clinical interpretation (borderline hypercholesterolaemia) is the appropriate code, proposed in 'missing' above.",
+          "replace_with_concept_id": "13644009",
+          "replace_with_preferred_term": "Hypercholesterolemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The LDL procedure code (166833005) and pharmacist medication review situation code (719329004) are both confirmed valid by search_snomed. However, the 'Finding of serum cholesterol level' code (365794002) is unverifiable (Extension Namespace placeholder) and in any case a raw lab value \u2014 the clinician's explicit 'Borderline' interpretation warrants a disorder-level code for hypercholesterolaemia (13644009) instead. No safety-critical gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4396,
+        "output_tokens": 1511,
+        "total_tokens": 5907,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "a434699a-72cb-45d8-82dd-80d7d8d582e7",
+        "date": "2025-01-30",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bc49f30a-df0e-40f4-8004-96a430194248",
+    "patient_id": "4983118659",
+    "date": "2025-02-05",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "35147057-904d-4e63-bcd9-63e51bfacb46",
+    "patient_id": "4983118659",
+    "date": "2025-02-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Statin declined",
+          "severity": "high",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly documents 'Statin declined (XaIIl)' as a separate coded entry; a specific statin-declined situation code exists and should be coded in addition to the broader lipid lowering therapy declined code.",
+          "snomed_search": "statin",
+          "snomed_concept_id": "134396000",
+          "preferred_term": "Statin declined (situation)",
+          "sentence": "Statin declined (XaIIl)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "LDL cholesterol above reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note documents LDL of 4 mmol/L which is above the reference range; the currently coded concept [102739008] is a substance (not a finding), so the clinical finding of elevated LDL should be coded separately.",
+          "snomed_search": "raised LDL cholesterol",
+          "snomed_concept_id": "445445006",
+          "preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "sentence": "-LDL 4, ^QRISK",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "102739008",
+          "name": "Low density lipoprotein cholesterol (substance)",
+          "severity": "medium",
+          "reason": "This is a substance concept, not a clinical finding; the note documents an elevated LDL result (LDL 4) which should be coded as the finding 'Low density lipoprotein cholesterol above reference range' rather than the raw substance.",
+          "replace_with_concept_id": "445445006",
+          "replace_with_preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "406149000",
+          "name": "Medication declined (situation)",
+          "severity": "low",
+          "reason": "The generic 'Medication declined' code is redundant here as the note already has the more specific 'Lipid lowering therapy declined' [135826008] and 'Statin declined' [134396000] coded; the broad parent adds no additional clinical information."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is largely well-coded but has two issues: (1) the LDL cholesterol is coded as a substance [102739008] rather than the appropriate finding 'LDL above reference range' [445445006]; (2) the specific 'Statin declined' situation [134396000] is documented in the note (XaIIl) but absent from the coded list, and the generic 'Medication declined' [406149000] is redundant given the more specific declined codes already present. All four lookup_concept calls returned unreliable results; concept IDs were verified via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9139,
+        "output_tokens": 1850,
+        "total_tokens": 10989,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "35147057-904d-4e63-bcd9-63e51bfacb46",
+        "date": "2025-02-18",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1c97ac18-bd78-47f8-a363-fc50994d03cd",
+    "patient_id": "4983118659",
+    "date": "2025-03-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "308857008",
+          "name": "Esophageal dysplasia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The biopsy result explicitly states 'no dysplasia or malignancy'; coding oesophageal dysplasia as present directly contradicts the documented finding and could cause serious harm if acted upon clinically \u2014 the assertion must be changed to absent."
+        }
+      ],
+      "confidence": 0.97,
+      "notes": "Two critical errors identified: (1) the 2WW referral is miscoded as breast cancer (276341000000100) when the clinical context is clearly upper GI \u2014 replace with 276551000000108 'Fast track referral for suspected upper gastrointestinal cancer'; (2) oesophageal dysplasia (308857008) is coded as present when the biopsy explicitly excluded dysplasia and malignancy \u2014 assertion must be corrected to absent. The remaining three codes (OGD 76009000, oesophagitis 16761005, oesophageal ulcer 30811009) are all clinically appropriate and correctly asserted; terminology server lookups were unreliable for these IDs but SNOMED search independently confirmed all three concept IDs are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 11171,
+        "output_tokens": 1823,
+        "total_tokens": 12994,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "1c97ac18-bd78-47f8-a363-fc50994d03cd",
+        "date": "2025-03-06",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "232b3d4a-45cf-4bba-8bd8-26be8a71f075",
+    "patient_id": "4983118659",
+    "date": "2025-04-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c9151db4-c009-4b62-a521-306ce8ba0a14",
+    "patient_id": "4983118659",
+    "date": "2025-07-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum triglyceride levels - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Triglycerides are explicitly documented as 1.72 mmol/L against a reference range of 0\u20131.7, flagged 'Outside reference range' in the report \u2014 this is a codeable abnormal finding not currently captured.",
+          "snomed_search": "serum triglycerides raised",
+          "snomed_concept_id": "166848004",
+          "preferred_term": "Serum triglycerides above reference range (finding)",
+          "sentence": "Serum triglyceride levels (XE2q9) 1.72 mmol/L [0 - 1.7] - Outside reference range",
+          "char_start": 175,
+          "char_end": 248
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two existing codes are clinically appropriate for this encounter; however, concept 406149000 (Medication declined) should ideally be replaced with the more specific 134396000 (Statin declined) given the note explicitly names statins \u2014 though this is a specificity improvement rather than an error. The explicitly flagged out-of-range triglyceride result (1.72 mmol/L) is a genuine coding gap and should be added as 166848004. The mention of thyroxine is not coded as no explicit hypothyroidism diagnosis appears in this encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4504,
+        "output_tokens": 1244,
+        "total_tokens": 5748,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "c9151db4-c009-4b62-a521-306ce8ba0a14",
+        "date": "2025-07-24",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "04c900a4-8b2a-471c-bf21-ef1143c6529b",
+    "patient_id": "4983118659",
+    "date": "2025-07-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "?2ww needed / fast track referral for suspected breast cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly states the patient is booked for a breast examination tomorrow with '?2ww needed' \u2014 a fast-track breast cancer referral is being initiated and must be coded as a safety-critical audit trail item per NG12 criteria.",
+          "snomed_search": "fast track referral suspected breast cancer",
+          "snomed_concept_id": "276341000000107",
+          "preferred_term": "Fast track referral for suspected breast cancer (procedure)",
+          "sentence": "3. Booked for appt tomorrow for breast examination ?2ww needed.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Crepitus when moves head",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Patient reports feeling crepitus on neck movement, and a specific SNOMED code for cervical spine crepitus exists; this is a clinically documented finding supporting the spondylosis diagnosis.",
+          "snomed_search": "cervical spine crepitus",
+          "snomed_concept_id": "298479009",
+          "preferred_term": "Cervical spine crepitus (finding)",
+          "sentence": "Feels crepitus when moves head.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "134396000",
+          "name": "Statin declined (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "declined",
+          "severity": "low",
+          "reason": "The situation code 'Statin declined' represents a patient refusal; the assertion should be 'declined' rather than 'present' to correctly reflect the nature of this coded concept and align with SNOMED assertion semantics."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "The five existing codes are clinically appropriate and the concept IDs are correct (lookup server returned unreliable results for 82231009 and 387800004, but SNOMED search confirms both are valid disorder codes). The critical gap is the absence of a fast-track breast cancer referral code (276341000000107): the plan documents '?2ww needed' with a same-day booking, which is a safety-critical NG12 red-flag item requiring an explicit audit trail. Cervical spine crepitus (298479009) is a minor additional finding. The assertion on the statin declined situation code should be corrected to 'declined'.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5400,
+        "output_tokens": 1618,
+        "total_tokens": 7018,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "04c900a4-8b2a-471c-bf21-ef1143c6529b",
+        "date": "2025-07-31",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4dea2a57-1127-402a-91f2-97248735f3aa",
+    "patient_id": "4983118659",
+    "date": "2025-08-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of medical secretary access-role and appointment-system routing entries for a 2WW breast referral; there is no GP clinical narrative, symptom documentation, examination, or diagnostic reasoning present. The existing procedure code 276341000000100 (Fast track referral for suspected breast cancer) is confirmed valid by SNOMED search and is appropriate as a standing code; concept 373864002 was set by the appointment system and falls outside the auditable clinical scope. No coding additions, deletions, or corrections are warranted from this administrative-only encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2546,
+        "output_tokens": 830,
+        "total_tokens": 3376,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "4dea2a57-1127-402a-91f2-97248735f3aa",
+        "date": "2025-08-01",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a29987ef-f939-49f8-9b20-e7c1359477de",
+    "patient_id": "4983118659",
+    "date": "2025-08-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "12265581000119109",
+          "name": "Retraction of bilateral nipples (finding)",
+          "severity": "high",
+          "reason": "The note explicitly documents nipple retraction on the RIGHT side only ('nipple retraction / inversion on R side', 'Nipple inversion noted on the R side'); bilateral is factually incorrect and clinically significant given this is the red-flag finding driving the 2WW referral.",
+          "replace_with_concept_id": "15953181000119108",
+          "replace_with_preferred_term": "Retraction of right nipple (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "290073004",
+          "name": "Lesion of breast (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "This is a working/suspected diagnosis under active investigation via 2WW referral; no confirmed lesion has been identified on examination ('no discreet lumps or skin changes'), so 'possible' is the correct assertion pending 2WW outcome."
+        }
+      ],
+      "confidence": 0.93,
+      "notes": "Two issues identified: (1) the nipple retraction concept is coded as bilateral (12265581000119109) when the note clearly documents right-side only \u2014 this should be replaced with 'Retraction of right nipple' (15953181000119108), which is clinically important as it is the primary red-flag finding; (2) 'Lesion of breast' is asserted as present but should be possible, as no discrete lesion was found on examination and the 2WW referral is for suspected rather than confirmed pathology. The 2WW fast-track referral procedure and family history of breast cancer situation codes are correctly coded. Note: all four lookup_concept calls returned unreliable/wrong semantic tags from the terminology server; concept IDs were verified via search_snomed which returned correct preferred terms and semantic tags.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5888,
+        "output_tokens": 1498,
+        "total_tokens": 7386,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "a29987ef-f939-49f8-9b20-e7c1359477de",
+        "date": "2025-08-01",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bb5e4d14-6b47-44f3-999a-b622fbf661d1",
+    "patient_id": "4983118659",
+    "date": "2025-08-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "soft tissue neck/shoulder pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician's stated diagnosis (Assessment/Differential) is 'soft tissue neck/shoulder pain' \u2014 this requires a disorder or finding code, not a body structure code; Disorder of soft tissue of neck (280132000) best captures the working diagnosis.",
+          "snomed_search": "disorder soft tissue neck",
+          "snomed_concept_id": "280132000",
+          "preferred_term": "Disorder of soft tissue of neck (disorder)",
+          "sentence": "Differential diagnosis (XSMiS) - soft tissue neck/shoulder pain",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "scapula slightly winging on left",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Winged scapula is an objective examination finding explicitly documented and is clinically relevant to the MSK assessment.",
+          "snomed_search": "winged scapula",
+          "snomed_concept_id": "17211005",
+          "preferred_term": "Winged scapula (finding)",
+          "sentence": "scapula slighlty winging on left- good scapula range.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "790411000000108",
+          "name": "Co-codamol measurement (procedure)",
+          "severity": "medium",
+          "reason": "The note documents prescribing/issuing co-codamol ('duty list for cocodamol'), not measuring it; a measurement procedure code is clinically incorrect for this action. Individual drug names are excluded from coding scope per rules, so no replacement concept is proposed.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        },
+        {
+          "conceptId": "95939006",
+          "name": "Structure of soft tissue of shoulder (body structure)",
+          "severity": "high",
+          "reason": "A body structure code is not appropriate for the clinician's stated diagnosis of 'soft tissue neck/shoulder pain'; the correct code is a disorder or finding (see missing: 280132000 Disorder of soft tissue of neck).",
+          "replace_with_concept_id": "280132000",
+          "replace_with_preferred_term": "Disorder of soft tissue of neck (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two significant coding errors identified: the working diagnosis is coded as a body structure (95939006) rather than a disorder, and co-codamol is coded as a 'measurement' procedure rather than a prescribing action (which falls outside SNOMED scope for individual drugs). Winged scapula is an uncoded objective examination finding. Note: several concept lookups returned unreliable/mismatched semantic tags from the terminology server, but clinical context and search results confirm the core concepts (neck pain, headache, dizziness, physiotherapy referral) are clinically appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11720,
+        "output_tokens": 2186,
+        "total_tokens": 13906,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "bb5e4d14-6b47-44f3-999a-b622fbf661d1",
+        "date": "2025-08-07",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ef7aaeb3-6963-4400-b6b0-1a2376f2a39d",
+    "patient_id": "4983118659",
+    "date": "2025-09-13",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a9c45902-3b06-478a-be69-41a3ac1c61e5",
+    "patient_id": "4983118659",
+    "date": "2025-09-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "myofascial neck pain / soft tissue neck pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician's diagnosis interpretation explicitly states 'muscular pain/stiffness' and 'appears soft tissue > joint related', making myofascial neck pain the primary diagnosis; this is more specific and accurate than the coded 'acute muscle stiffness of neck'.",
+          "snomed_search": "myofascial neck pain",
+          "snomed_concept_id": "1162314004",
+          "preferred_term": "Myofascial neck pain (finding)",
+          "sentence": "muscular pain/ stiffness \nMIld specific joint stiffness found, but appears soft tissue > joint related",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "710134003",
+          "name": "Acute muscle stiffness of neck (finding)",
+          "severity": "medium",
+          "reason": "The 'acute' qualifier is inconsistent with the clinical narrative \u2014 symptoms have been present since last Christmas (~9 months), the patient reports no improvement over time, and the clinician's diagnosis is 'muscular pain/stiffness' with a soft tissue emphasis; the chronic/myofascial nature of the presentation is not captured by an acute stiffness code.",
+          "replace_with_concept_id": "1162314004",
+          "replace_with_preferred_term": "Myofascial neck pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three of the four coded concepts (headache, hypothyroidism, neck pain) are well-evidenced and correctly asserted. The fourth code \u2014 710134003 'Acute muscle stiffness of neck' \u2014 is clinically mismatched: the presentation is chronic (onset ~9 months ago, no resolution), and the clinician's own diagnosis interpretation emphasises soft tissue/myofascial pathology; 'Myofascial neck pain' (1162314004) is a more accurate and specific replacement. Note also that concept 710134003 returned an unreliable Extension Namespace response from the terminology server, though it does appear as the top SNOMED search hit for the term.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 12408,
+        "output_tokens": 1781,
+        "total_tokens": 14189,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "a9c45902-3b06-478a-be69-41a3ac1c61e5",
+        "date": "2025-09-15",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ee6e0266-766e-43f2-a820-1eb08eaba976",
+    "patient_id": "4983118659",
+    "date": "2025-09-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both coded concepts (Hypothyroidism [40930008] and Recurrent UTI [197927001]) are confirmed as valid SNOMED disorder codes and are well-supported by the clinical content of the note. The nitrofurantoin pulmonary fibrosis mention is a prospective risk flagged for future patient discussion \u2014 not a current diagnosis \u2014 and should not be coded as present. Lansoprazole is prescribed but no explicit diagnosis (e.g. GORD, peptic ulcer) is documented in the note text, so no additional code is warranted per rules. The encounter is otherwise largely administrative (repeat prescription requests, SCR update).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3874,
+        "output_tokens": 940,
+        "total_tokens": 4814,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "ee6e0266-766e-43f2-a820-1eb08eaba976",
+        "date": "2025-09-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "82b35273-b613-496c-a761-0d1f50189474",
+    "patient_id": "4983118659",
+    "date": "2025-09-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "vaginal dryness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vagifem is documented as 'working well for dryness', confirming vaginal dryness as an active, treated condition that should be coded to support prescribing indication.",
+          "snomed_search": "vaginal dryness",
+          "snomed_concept_id": "31908003",
+          "preferred_term": "Vaginal dryness (disorder)",
+          "sentence": "-Vagifem - working well for dryness",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "328751000119102",
+          "name": "Exposure of vaginal mesh implant in vagina (disorder)",
+          "severity": "medium",
+          "reason": "The note describes a bladder mesh fitted as a background risk factor for recurrent UTIs, not an active 'exposure' (protrusion/extrusion) complication of vaginal mesh; the coded concept implies a specific mesh-exposure complication that is not evidenced by the text.",
+          "replace_with_concept_id": "194891000112100",
+          "replace_with_preferred_term": "Disorder associated with surgical mesh (disorder)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three of the four coded concepts are clinically appropriate and confirmed by SNOMED search (hypothyroidism, recurrent UTI, oesophagitis); however, the mesh concept [328751000119102] 'Exposure of vaginal mesh implant in vagina' overstates the clinical picture \u2014 the note describes a mesh in situ as a risk factor, not an active exposure complication, and a broader 'Disorder associated with surgical mesh' with historical assertion would be more accurate. Vaginal dryness (treated with Vagifem) is an active coded diagnosis that is missing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11149,
+        "output_tokens": 1935,
+        "total_tokens": 13084,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "82b35273-b613-496c-a761-0d1f50189474",
+        "date": "2025-09-23",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e994ae6a-b2a5-4fd5-af18-233cde8cf374",
+    "patient_id": "4983118659",
+    "date": "2025-10-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "intermittent headaches",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports intermittent headaches as an ongoing symptom in this review encounter and it is not captured in the coded list.",
+          "snomed_search": "headache",
+          "snomed_concept_id": "25064002",
+          "preferred_term": "Headache (finding)",
+          "sentence": "Has noticed some jaw ache and intermitent headaches still",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "jaw ache",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports jaw ache as a new or ongoing symptom noted at this review; it is clinically relevant and not coded.",
+          "snomed_search": "jaw pain",
+          "snomed_concept_id": "274667000",
+          "preferred_term": "Jaw pain (finding)",
+          "sentence": "Has noticed some jaw ache and intermitent headaches still",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "SSTM to rhomboids/upper trapezius",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Soft tissue mobilisation (SSTM) was explicitly performed to the rhomboids and upper trapezius during this session and should be coded as a procedure alongside the cervical spine mobilisation already coded.",
+          "snomed_search": "soft tissue mobilization",
+          "snomed_concept_id": "105379007",
+          "preferred_term": "Soft tissue mobilization (regime/therapy)",
+          "sentence": "SSTM to rhomboids/ UFT area x 10 mins : easier to put chin to chest- less pulling",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two existing codes are clinically appropriate for this MSK physiotherapy encounter, though lookup_concept returned unreliable semantic tags for both (returned 'substance' \u2014 likely a terminology server artefact; not flagged as overcoded on this basis). Three concepts are missing: intermittent headaches and jaw ache are explicitly reported symptoms not yet coded, and soft tissue mobilisation (SSTM) is a distinct manual therapy procedure performed in addition to the already-coded cervical spine mobilisation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5859,
+        "output_tokens": 1502,
+        "total_tokens": 7361,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "e994ae6a-b2a5-4fd5-af18-233cde8cf374",
+        "date": "2025-10-21",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5d196807-95b7-478f-bc1d-c03cf4ff92a5",
+    "patient_id": "4983118659",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "298253002",
+          "term": "Cervical facet joint pain (finding)",
+          "assertion": "present",
+          "confidence": 0.92,
+          "note": "Confirmed by search_snomed despite unreliable lookup; well-evidenced by 'tender right c3/4 facet palp'"
+        },
+        {
+          "conceptId": "229409007",
+          "term": "Mobilization of the cervical spine (regime/therapy)",
+          "assertion": "present",
+          "confidence": 0.9,
+          "note": "Confirmed by search_snomed despite unreliable lookup; evidenced by C2-5 facet P/A mobilisation and NAGs performed"
+        }
+      ],
+      "missing": [
+        {
+          "term": "headaches",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents headaches as an active symptom being managed, with a medication change (paracetamol instead of co-codamol) noted to be reducing them \u2014 this is a clinically relevant finding requiring coding.",
+          "snomed_search": "headache",
+          "snomed_concept_id": "25064002",
+          "preferred_term": "Headache (finding)",
+          "sentence": "paracetamol not cocodamol which means less headaches",
+          "char_start": 390,
+          "char_end": 438
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The two existing codes are clinically appropriate and confirmed via search_snomed (lookup_concept returned unreliable results for both, but terminology search validated the concept IDs). One gap identified: headache is explicitly documented as an active symptom being managed through analgesic selection and should be coded as a present finding. Note also documents SSTM (soft tissue massage) as a distinct technique performed, but this is reasonably considered within the scope of the cervical spine mobilisation regime/therapy code already applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5225,
+        "output_tokens": 1511,
+        "total_tokens": 6736,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "5d196807-95b7-478f-bc1d-c03cf4ff92a5",
+        "date": "2025-10-27",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0843848f-f0c6-4830-8266-1a5f32159b1f",
+    "patient_id": "4983118659",
+    "date": "2025-10-29",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept 197927001 (Recurrent urinary tract infection) is correct and well-evidenced \u2014 lookup_concept returned an unreliable result but search_snomed confirms the concept ID and preferred term are valid. The remainder of the encounter covers medication counselling (nitrofurantoin risk per MHRA guidance), a monitoring plan, and administrative SCR update; none of these constitute separately codeable disorders, findings, or procedures within SNOMED scope for this encounter. The posterior colporrhaphy/TVT in the problem header is a pre-existing historical procedure, not a new finding from this consultation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3833,
+        "output_tokens": 1009,
+        "total_tokens": 4842,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4983118659",
+        "encounter_id": "0843848f-f0c6-4830-8266-1a5f32159b1f",
+        "date": "2025-10-29",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  }
+]

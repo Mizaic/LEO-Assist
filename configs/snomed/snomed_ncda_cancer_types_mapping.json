@@ -1,7 +1,7 @@
 {
   "metadata": {
     "domain": "cancer_types",
-    "total_terms": 30,
+    "total_terms": 46,
     "successful_mappings": 30,
     "failed_mappings": 0,
     "llm_disambiguations": 29,
@@ -1392,6 +1392,101 @@
       ],
       "guideline_synonym_count": 29,
       "guideline_name": "Metastatic malignant neoplasm (disorder)"
+    },
+    "Ductal carcinoma in situ of breast (disorder)": {
+      "concept_id": 399935008,
+      "preferred_term": "Ductal carcinoma in situ of breast (disorder)",
+      "semantic_tag": "Disease",
+      "cancer_category": "breast",
+      "score": 1.0,
+      "llm_disambiguated": true,
+      "ribbon_color": "#FF69B4",
+      "ribbon_color_name": "Pink",
+      "guideline_synonyms": [
+        "DCIS",
+        "Ductal carcinoma in situ",
+        "Intraductal carcinoma in situ",
+        "Intraductal carcinoma in situ of breast",
+        "Carcinoma in situ of breast",
+        "DCIS of breast",
+        "DCIS left breast",
+        "DCIS right breast",
+        "In situ carcinoma of breast",
+        "Ductal CIS breast",
+        "Pre-invasive breast cancer",
+        "Non-invasive breast cancer"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Ductal carcinoma in situ of breast",
+      "parent_concept_id": 254837009
+    },
+    "Intraductal carcinoma in situ of breast (disorder)": {
+      "concept_id": 447137006,
+      "preferred_term": "Intraductal carcinoma in situ of breast (disorder)",
+      "semantic_tag": "Disease",
+      "cancer_category": "breast",
+      "score": 1.0,
+      "llm_disambiguated": true,
+      "ribbon_color": "#FF69B4",
+      "ribbon_color_name": "Pink",
+      "guideline_synonyms": [
+        "Intraductal DCIS",
+        "DCIS intraductal"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Intraductal carcinoma in situ of breast",
+      "parent_concept_id": 254837009
+    },
+    "Carcinoma in situ of breast (disorder)": {
+      "concept_id": 32102001,
+      "preferred_term": "Carcinoma in situ of breast (disorder)",
+      "semantic_tag": "Disease",
+      "cancer_category": "breast",
+      "score": 1.0,
+      "llm_disambiguated": true,
+      "ribbon_color": "#FF69B4",
+      "ribbon_color_name": "Pink",
+      "guideline_synonyms": [
+        "CIS breast",
+        "In situ breast carcinoma"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Carcinoma in situ of breast",
+      "parent_concept_id": 254837009
+    },
+    "Ductal carcinoma in situ of left breast (disorder)": {
+      "concept_id": 716917000,
+      "preferred_term": "Ductal carcinoma in situ of left breast (disorder)",
+      "semantic_tag": "Disease",
+      "cancer_category": "breast",
+      "score": 1.0,
+      "llm_disambiguated": true,
+      "ribbon_color": "#FF69B4",
+      "ribbon_color_name": "Pink",
+      "guideline_synonyms": [
+        "DCIS left breast",
+        "Left DCIS"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Ductal carcinoma in situ of left breast",
+      "parent_concept_id": 254837009
+    },
+    "Ductal carcinoma in situ of right breast (disorder)": {
+      "concept_id": 716918005,
+      "preferred_term": "Ductal carcinoma in situ of right breast (disorder)",
+      "semantic_tag": "Disease",
+      "cancer_category": "breast",
+      "score": 1.0,
+      "llm_disambiguated": true,
+      "ribbon_color": "#FF69B4",
+      "ribbon_color_name": "Pink",
+      "guideline_synonyms": [
+        "DCIS right breast",
+        "Right DCIS"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Ductal carcinoma in situ of right breast",
+      "parent_concept_id": 254837009
     }
   }
 }

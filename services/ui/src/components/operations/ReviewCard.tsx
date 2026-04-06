@@ -49,6 +49,10 @@ export interface ReviewItem {
   tagMismatchDelta?: number;
   /** Priority order for surface form tasks (lower = higher priority). */
   surfaceFormPriority?: number;
+  /** Pre-resolved suggested concept ID for surface form tasks. */
+  suggestedConceptId?: string;
+  /** Pre-resolved suggested concept term for surface form tasks. */
+  suggestedConceptTerm?: string;
 }
 
 type TypeLabel = { text: string; color: "warning" | "info" | "error" | "default" };
@@ -192,6 +196,7 @@ interface Props {
   onSkip: () => void;
   onAllCasesResolved: (item: ReviewItem) => void;
   busy: boolean;
+  onAcceptSuggestion?: (item: ReviewItem) => void;
 }
 
 export default function ReviewCard({
@@ -201,6 +206,7 @@ export default function ReviewCard({
   onSkip,
   onAllCasesResolved,
   busy,
+  onAcceptSuggestion,
 }: Props) {
   const [termOpen, setTermOpen] = useState(false);
   const [casesModalOpen, setCasesModalOpen] = useState(false);
@@ -298,7 +304,7 @@ export default function ReviewCard({
           <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
             {item.question}
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, whiteSpace: "pre-line" }}>
             {item.explanation}
           </Typography>
 
@@ -330,6 +336,7 @@ export default function ReviewCard({
               leoRunning={leoRunning}
               leoReady={leoReady}
               onSkip={onSkip}
+              onAcceptSuggestion={onAcceptSuggestion ? () => onAcceptSuggestion(item) : undefined}
             />
           ) : (
             <HitlActions item={item} busy={busy} onResolve={onResolveHitl} onSkip={onSkip} />
@@ -382,6 +389,7 @@ function CodingActions({
   leoRunning,
   leoReady,
   onSkip,
+  onAcceptSuggestion,
 }: {
   item: ReviewItem;
   busy: boolean;
@@ -391,10 +399,27 @@ function CodingActions({
   leoRunning: boolean;
   leoReady: boolean;
   onSkip: () => void;
+  onAcceptSuggestion?: () => void;
 }) {
   return (
     <Stack direction="row" gap={1} flexWrap="wrap">
-      <Button variant="contained" onClick={onSearch} disabled={busy} sx={{ flex: 1 }}>
+      {onAcceptSuggestion && (
+        <Button
+          variant="contained"
+          color="success"
+          onClick={onAcceptSuggestion}
+          disabled={busy}
+          sx={{ flex: 1 }}
+        >
+          Accept suggestion
+        </Button>
+      )}
+      <Button
+        variant={onAcceptSuggestion ? "outlined" : "contained"}
+        onClick={onSearch}
+        disabled={busy}
+        sx={{ flex: 1 }}
+      >
         {item.uncoded ? "Search for the right code" : "Search for a better code"}
       </Button>
       {item.count > 1 && (

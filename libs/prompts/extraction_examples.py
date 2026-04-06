@@ -105,19 +105,35 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "output": '{"terms": [{"sentence_id": "s0", "text": "appendicectomy", "lookup_term": "appendicectomy", "semantic_tag": "procedure", "assertion": "historical", "value": null, "unit": null, "reference_range": null}]}',
     },
 
+    # ── Assertion: planned ───────────────────────────────────────────────────
+    {
+        "category": "assertion:planned",
+        "model_scope": "any",
+        "description": "Booked referral -- confirmed, not yet happened",
+        "input": '[s0] Referred for physiotherapy.',
+        "output": '{"terms": [{"sentence_id": "s0", "text": "physiotherapy", "lookup_term": "physiotherapy", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "assertion:planned",
+        "model_scope": "any",
+        "description": "Awaiting investigation -- confirmed, not yet done",
+        "input": '[s0] Awaiting MRI spine.',
+        "output": '{"terms": [{"sentence_id": "s0", "text": "MRI spine", "lookup_term": "MRI scan of spine", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}]}',
+    },
+
     # ── Assertion: hypothetical ──────────────────────────────────────────────
     {
         "category": "assertion:hypothetical",
         "model_scope": "any",
-        "description": "Safety-netting text — do not extract as present",
+        "description": "Safety-netting text -- do not extract as present",
         "input": '[s0] If associated with shortness of breath, seek urgent review.',
         "output": '{"terms": []}',
     },
     {
         "category": "assertion:hypothetical",
         "model_scope": "any",
-        "description": "Planned action — not yet performed",
-        "input": '[s0] Will refer to cardiology.',
+        "description": "Conditional future action -- not yet arranged",
+        "input": '[s0] Will refer to cardiology if no improvement.',
         "output": '{"terms": [{"sentence_id": "s0", "text": "refer to cardiology", "lookup_term": "referral to cardiology", "semantic_tag": "procedure", "assertion": "hypothetical", "value": null, "unit": null, "reference_range": null}]}',
     },
 
@@ -520,6 +536,7 @@ _apply_core_by_first_category(
         "negation:compound",
         "assertion:family",
         "assertion:historical",
+        "assertion:planned",
         "observable",
         "multi-entity",
         "assertion:hypothetical",

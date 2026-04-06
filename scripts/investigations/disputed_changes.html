@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disputed Remediation Changes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #0d0d0d; --surface: #161616; --border: #272727;
+    --add: #00c896; --del: #ff5050; --upd: #f5a623;
+    --text: #e2e2e2; --muted: #777;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; padding: 28px 32px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 26px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+  .run-meta { font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+
+  .summary { display: flex; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
+  .pill { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 7px 13px; font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .card-header { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; user-select: none; }
+  .card-header:hover { background: #1c1c1c; }
+
+  .badge { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+  .badge-add { background: rgba(0,200,150,.12); color: var(--add); }
+  .badge-del { background: rgba(255,80,80,.12); color: var(--del); }
+  .badge-upd { background: rgba(245,166,35,.12); color: var(--upd); }
+
+  .card-title { flex: 1; }
+  .title-main { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .enc-id { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+
+  .conf-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .conf-text { font-family: 'IBM Plex Mono', monospace; font-size: 11px; width: 40px; text-align: right; }
+  .conf-track { width: 72px; height: 5px; background: #222; border-radius: 3px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 3px; }
+
+  .chevron { color: var(--muted); font-size: 11px; transition: transform .2s; flex-shrink: 0; }
+  .card.open .chevron { transform: rotate(90deg); }
+
+  .card-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+  .card.open .card-body { display: block; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+
+  .box { background: #111; border: 1px solid var(--border); border-radius: 4px; padding: 12px; }
+  .box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; }
+  .box-text { font-size: 13px; line-height: 1.6; color: #ccc; }
+
+  .verdict-box { border-color: rgba(255,80,80,.25); background: rgba(255,80,80,.04); }
+  .verdict-box .box-label { color: var(--del); }
+
+  .hint { margin-top: 12px; padding: 10px 12px; background: rgba(245,166,35,.05); border: 1px solid rgba(245,166,35,.2); border-radius: 4px; font-size: 12px; color: #c8a84d; line-height: 1.55; }
+  .hint strong { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Disputed Remediation Changes &mdash; December 2025 Audit</h1>
+  <div class="run-meta">9 disputed &bull; 18 applied &bull; Sonnet verifier threshold: conf &ge; 0.80</div>
+</header>
+
+<div class="summary">
+  <div class="pill"><div class="dot" style="background:#ff5050"></div><strong>9</strong>&nbsp;disputed &mdash; held for human review</div>
+  <div class="pill"><div class="dot" style="background:#00c896"></div><strong>18</strong>&nbsp;applied to Neo4j</div>
+  <div class="pill"><div class="dot" style="background:#f5a623"></div>5 ADD &bull; 3 DELETE &bull; 1 ASSERTION</div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<script>
+const data = [
+  {
+    action: 'add', title: 'IT band syndrome',
+    enc: '9bb598f1', conf: 0.62,
+    proposed: 'ADD iliotibial band syndrome (present) -- tenderness over mid-distal IT band of right thigh documented on examination.',
+    verdict: 'Sonnet DISAGREES (conf 0.62): clinician documented a non-specific soft tissue sprain, not IT band syndrome explicitly. Adding this code goes beyond what is diagnosed in the note.',
+    hint: 'Coder review needed. If IT band syndrome was the intended diagnosis, the GP should document it explicitly before the code is added.'
+  },
+  {
+    action: 'delete', title: 'Seen in primary care establishment -- namespace concern',
+    enc: '761be197', conf: 0.55,
+    proposed: 'DELETE [307778003] Seen in primary care establishment -- audit agent claims concept resolves to an Extension Namespace entry, not a valid clinical finding.',
+    verdict: 'Sonnet DISAGREES (conf 0.55): 307778003 is a recognised SNOMED CT concept. The encounter does take place in primary care. Namespace objection alone is not sufficient grounds for deletion.',
+    hint: 'Investigate terminology server resolution for this concept. If the server is returning incorrect data for 307778003, that is a terminology server configuration issue, not a coding error.'
+  },
+  {
+    action: 'delete', title: 'Consultation by MDT -- namespace concern, replacements pending',
+    enc: '761be197', conf: 0.52,
+    proposed: 'DELETE [1268903003] Consultation by multidisciplinary team -- namespace extension concern; more precise replacements (Section 47 referral, CP strategy meeting) already proposed.',
+    verdict: 'Sonnet DISAGREES (conf 0.52): MDT consultation is plausibly supported by the multi-agency strategy discussion. Evaluate replacement codes independently before deleting this one.',
+    hint: 'The replacement codes (Section 47 referral and CP strategy meeting) were applied in this run. Once confirmed correct, this deletion should be re-proposed in the next audit cycle.'
+  },
+  {
+    action: 'add', title: 'Safeguarding -- third-party disclosure (son)',
+    enc: 'bbb6f5c8', conf: 0.82,
+    proposed: 'ADD safeguarding concern (present) -- patient\'s son disclosed childhood rape; active safeguarding disclosure in the encounter.',
+    verdict: 'Sonnet DISAGREES (conf 0.82): concern relates to the patient\'s son, not the patient herself. Adding a safeguarding code to this patient\'s record could be misleading and breach the son\'s confidentiality.',
+    hint: 'CRITICAL -- escalate to Caldicott Guardian. If the safeguarding concern relates to the son only, it should be on the son\'s record. If there is a risk-to-patient dimension (e.g. she witnessed abuse), document that explicitly.'
+  },
+  {
+    action: 'delete', title: 'Mental disorder -- repeat medication request encounter',
+    enc: 'a8702b4f', conf: 0.85,
+    proposed: 'DELETE [74732009] Mental disorder -- code not evidenced in this encounter text; evidence only from problem list.',
+    verdict: 'Sonnet DISAGREES (conf 0.85): deleting a standing problem-list code because it is absent from an administrative repeat-medication request encounter is inappropriate. The code may be legitimately maintained from prior clinical encounters.',
+    hint: 'Correct Sonnet decision. Adjust audit agent scope: do not flag problem-list codes as overcoded based on absence from admin/repeat-medication encounters. Add 74732009 to suppression list for this encounter type.'
+  },
+  {
+    action: 'delete', title: 'Mental disorder -- admin CMHT referral routing',
+    enc: 'c336967b', conf: 0.62,
+    proposed: 'DELETE [74732009] Mental disorder -- encounter is purely administrative referral routing, no clinical narrative present.',
+    verdict: 'Sonnet DISAGREES (conf 0.62): referral accepted to Old Age Psychiatry CMHT implicitly supports a mental disorder. Insufficient evidence to delete safely.',
+    hint: 'Genuine clinical ambiguity. A more specific disorder code (e.g. dementia, late-onset depression) would be more useful than the umbrella Mental disorder. Flag for coder to assign a specific concept.'
+  },
+  {
+    action: 'add', title: 'Referral to sleep clinic -- chasing vs new referral',
+    enc: 'e302b92e', conf: 0.82,
+    proposed: 'ADD referral to sleep clinic (present) -- plan documents letter written to OSA sleep clinic to chase an appointment.',
+    verdict: 'Sonnet DISAGREES (conf 0.82): letter was to chase an existing appointment, not initiate a new referral. Evidence is ambiguous.',
+    hint: 'Check prior encounters for an existing sleep clinic referral code. If already coded, this encounter only needs a "follow-up contact" procedure. If not, add the original referral to the encounter where it was initiated.'
+  },
+  {
+    action: 'add', title: 'Cystoscopy -- planned future procedure, wrong assertion',
+    enc: '18666e26', conf: 0.92,
+    proposed: 'ADD cystoscopy procedure (assertion: present) -- patient is going for a cystoscopy on Tuesday under Urology.',
+    verdict: 'Sonnet DISAGREES (conf 0.92): cystoscopy is a planned future event, not a completed procedure. Assertion "present" is clinically incorrect.',
+    hint: 'Agent correctly identified a missing code but used the wrong assertion. Re-propose with assertion=planned. If the procedure has since occurred, assert=present on the follow-up encounter after the date.'
+  },
+  {
+    action: 'update', title: 'History of hypertension -- assertion changed to refuted',
+    enc: '18666e26', conf: 0.90,
+    proposed: 'UPDATE [161501007] History of hypertension -- assertion: present -> refuted. Audit claims concept resolves to "CoAr 1071 virus (organism)".',
+    verdict: 'Sonnet DISAGREES (conf 0.90): SNOMED 161501007 correctly resolves to "History of hypertension (situation)", not a virus. Concept is clinically valid. Changing to refuted would wrongly remove hypertension coding.',
+    hint: 'Terminology server resolution discrepancy. The audit agent\'s lookup_concept returned incorrect data for this concept ID. Investigate why lookup_concept is returning organism terms for situation concepts -- may be a cache or index issue.'
+  }
+];
+
+function confColor(c) {
+  return c >= 0.85 ? '#00c896' : c >= 0.65 ? '#f5a623' : '#ff5050';
+}
+
+const container = document.getElementById('cards');
+
+data.forEach((d) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const bc = d.action === 'add' ? 'badge-add' : d.action === 'delete' ? 'badge-del' : 'badge-upd';
+  const bl = d.action === 'update' ? 'assertion' : d.action;
+  const cc = confColor(d.conf);
+  card.innerHTML = `
+    <div class="card-header" onclick="this.closest('.card').classList.toggle('open')">
+      <span class="badge ${bc}">${bl}</span>
+      <div class="card-title">
+        <div class="title-main">${d.title}</div>
+        <div class="enc-id">enc: ${d.enc}&hellip;</div>
+      </div>
+      <div class="conf-group">
+        <span class="conf-text" style="color:${cc}">${Math.round(d.conf*100)}%</span>
+        <div class="conf-track"><div class="conf-fill" style="width:${d.conf*100}%;background:${cc}"></div></div>
+      </div>
+      <span class="chevron">&#9654;</span>
+    </div>
+    <div class="card-body">
+      <div class="two-col">
+        <div class="box">
+          <div class="box-label">Proposed change</div>
+          <div class="box-text">${d.proposed}</div>
+        </div>
+        <div class="box verdict-box">
+          <div class="box-label">Sonnet verifier verdict</div>
+          <div class="box-text">${d.verdict}</div>
+        </div>
+      </div>
+      <div class="hint"><strong>Resolution hint:</strong> ${d.hint}</div>
+    </div>`;
+  container.appendChild(card);
+});
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from typing import Any, Callable
 
 from langgraph.graph.state import CompiledStateGraph
@@ -71,14 +72,23 @@ class SubgraphRegistry:
 
 
 _default_registry: SubgraphRegistry | None = None
+_registry_lock = threading.Lock()
 
 
 def get_registry() -> SubgraphRegistry:
-    """Return the global default subgraph registry, creating it on first call."""
+    """Return the global default subgraph registry, creating it on first call.
+
+    Thread-safe: uses double-checked locking. The registry is assigned to the
+    module global ONLY after _register_defaults() completes, so no thread can
+    observe a partially-initialised registry.
+    """
     global _default_registry
     if _default_registry is None:
-        _default_registry = SubgraphRegistry()
-        _register_defaults(_default_registry)
+        with _registry_lock:
+            if _default_registry is None:
+                reg = SubgraphRegistry()
+                _register_defaults(reg)
+                _default_registry = reg  # assign AFTER registration is complete
     return _default_registry
 
 
@@ -208,6 +218,22 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         )
     except Exception as exc:
         logger.error("Failed to register subgraph 'human_review_gate': %s", exc)
+
+    try:
+        from libs.pipeline_graph.subgraphs.encounter_coding_agent import (
+            build_encounter_coding_agent_subgraph,
+        )
+        registry.register(
+            "encounter_coding_agent",
+            build_encounter_coding_agent_subgraph,
+            description=(
+                "Unified encounter coding/audit agent: SNOMED tool-calling LangGraph "
+                "graph for both initial coding (code mode) and audit verification "
+                "(audit mode). Tier selects the Bedrock model."
+            ),
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'encounter_coding_agent': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction import (

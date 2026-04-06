@@ -1,0 +1,371 @@
+[
+  {
+    "encounter_id": "e00f2fea-f2bb-44cb-a5bb-3610df8903aa",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter contains only two administrative entries: (1) a practitioner session entry log for Gemma Miller (Specialist Practitioner) at East Midlands Ambulance Service, and (2) a SystmOne record-sharing consent status change. No clinical content, diagnoses, symptoms, procedures, or findings are present. No SNOMED coding is applicable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 1,
+        "input_tokens": 379,
+        "output_tokens": 330,
+        "total_tokens": 709,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "e00f2fea-f2bb-44cb-a5bb-3610df8903aa",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f0fb6e4c-b21f-4b40-98fb-fa6011b7abce",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "137c7b60-af8c-434f-88ce-9c62ecd18881",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter consists entirely of administrative entries: a practitioner access log (MILLER, Gemma \u2013 Specialist Practitioner, East Midlands Ambulance Service) and a SystmOne record-sharing consent status change. No clinical narrative, diagnosis, finding, procedure, or any SNOMED-codeable content is present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 2,
+        "input_tokens": 936,
+        "output_tokens": 383,
+        "total_tokens": 1319,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "137c7b60-af8c-434f-88ce-9c62ecd18881",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "761be197-0260-4704-b83b-f31d0c9766d7",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "762931000000105",
+          "preferred_term": "Child protection strategy meeting (procedure)",
+          "status": "valid",
+          "note": "Search confirms correct ID despite lookup tool returning wrong preferred term \u2014 terminology server inconsistency."
+        },
+        {
+          "concept_id": "758741000000106",
+          "preferred_term": "Referral to child protection service under section 47 of Children Act 1989 (procedure)",
+          "status": "valid",
+          "note": "Search confirms correct ID despite lookup tool returning wrong preferred term."
+        },
+        {
+          "concept_id": "1064961000000107",
+          "preferred_term": "Child in family is safeguarding concern (situation)",
+          "status": "valid",
+          "note": "Search confirms correct ID despite lookup tool returning wrong preferred term."
+        }
+      ],
+      "missing": [
+        {
+          "term": "Adult Safeguarding",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly documented under the 'Adult Safeguarding' template heading in Taylor's (the adult patient's) own record, making adult safeguarding concern a mandatory safety-critical code.",
+          "snomed_search": "adult safeguarding concern",
+          "snomed_concept_id": "766561000000109",
+          "preferred_term": "Adult safeguarding concern (finding)",
+          "sentence": "Trust Safeguarding Template   Adult Safeguarding",
+          "char_start": 120,
+          "char_end": 155
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1268903003",
+          "name": "Consultation by multidisciplinary team (procedure)",
+          "severity": "medium",
+          "reason": "Concept ID 1268903003 resolves to 'Extension Namespace {1000091}' (a namespace concept, not a clinical procedure), and the clinical content it purports to capture is already fully and more specifically represented by the coded child protection strategy meeting (762931000000105) and section 47 referral (758741000000106)."
+        },
+        {
+          "conceptId": "307778003",
+          "name": "Seen in primary care establishment (finding)",
+          "severity": "low",
+          "reason": "Concept ID 307778003 resolves to 'Extension Namespace {1000079}' (a namespace concept, not a clinical finding); this is an invalid concept ID and the administrative encounter-type information it represents is not within the SNOMED coding scope for this encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is a safety-critical adult safeguarding encounter: the 'Adult safeguarding concern' finding (766561000000109) is missing from Taylor's record despite the encounter being explicitly filed under the Adult Safeguarding template. Two coded concept IDs (307778003, 1268903003) resolve to namespace concepts rather than valid clinical terms and should be removed; the three remaining child-protection procedure/situation codes are clinically appropriate and confirmed by SNOMED search despite a terminology server lookup inconsistency.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 4,
+        "input_tokens": 7095,
+        "output_tokens": 2024,
+        "total_tokens": 9119,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "761be197-0260-4704-b83b-f31d0c9766d7",
+        "date": "2025-12-01",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7f5d1ef0-7a89-45e4-ac31-5d1a6d7d24d8",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c7666a8b-4fa0-43ba-a63d-95cb48b4e428",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8905aa44-e5a2-4ab3-a81c-32d7747f29b1",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter consists entirely of administrative workflow entries: a clinician/location header, a referral-in routing record to East Midlands Ambulance Service, and a status update log line. No clinical narrative, diagnoses, symptoms, findings, procedures, or substances are documented. No SNOMED-codeable content is present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 2,
+        "input_tokens": 1079,
+        "output_tokens": 465,
+        "total_tokens": 1544,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "8905aa44-e5a2-4ab3-a81c-32d7747f29b1",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "45ac3210-c295-4169-b9c3-6ccc12f3ba10",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "The encounter text consists entirely of administrative routing headers: hospital name, EPR system reference, consultant referral line, admission/discharge timestamps, and a note that clinical consultations are not shown. There is no clinical narrative to audit. The single coded concept (Inpatient stay) is a reasonable administrative tag but no SNOMED clinical coding gaps or errors can be identified from this text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 1,
+        "input_tokens": 464,
+        "output_tokens": 394,
+        "total_tokens": 858,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "45ac3210-c295-4169-b9c3-6ccc12f3ba10",
+        "date": "2025-12-01",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "480eb2f3-2900-4bf5-80fe-da7e83c7babd",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "831671da-6170-4c65-b5d4-15779101a9b6",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter contains only administrative data: a staff entry timestamp, an ambulance service routing line, and a patient home address. No clinical narrative, diagnoses, findings, procedures, or medications are present. No SNOMED coding is possible or required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 1,
+        "input_tokens": 375,
+        "output_tokens": 289,
+        "total_tokens": 664,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "831671da-6170-4c65-b5d4-15779101a9b6",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "982cadc3-be16-45c2-a14d-71625ba6b3e3",
+    "patient_id": "4246897485",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dfb5e5d3-92bd-4235-a831-fe5704f7c361",
+    "patient_id": "4246897485",
+    "date": "2025-12-03",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter contains only an administrative record-sharing dissent/consent notice. There is no clinical narrative, diagnosis, finding, procedure, or any other SNOMED-codeable content present. No coding action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 1,
+        "input_tokens": 352,
+        "output_tokens": 238,
+        "total_tokens": 590,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "dfb5e5d3-92bd-4235-a831-fe5704f7c361",
+        "date": "2025-12-03",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5f645d58-0826-4f0d-a0de-26c781078351",
+    "patient_id": "4246897485",
+    "date": "2025-12-03",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "Encounter is entirely administrative. Logged by a receptionist under an Administration encounter type, triggered by a practice task. No clinical narrative, diagnoses, symptoms, findings, or procedures are present. No SNOMED CT coding is applicable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-09006773",
+        "tool_iterations": 1,
+        "input_tokens": 455,
+        "output_tokens": 344,
+        "total_tokens": 799,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246897485",
+        "encounter_id": "5f645d58-0826-4f0d-a0de-26c781078351",
+        "date": "2025-12-03",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f50dd52a-8928-45d5-a27d-796aced2d00e",
+    "patient_id": "4246897485",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

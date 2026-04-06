@@ -267,13 +267,18 @@ def edit_milestone(
 
 
 def _date_where(date_from: Optional[str], date_to: Optional[str], alias: str = "ep") -> tuple[str, dict]:
-    """Return (extra WHERE fragment, extra params) for referral_date filtering."""
+    """Return (extra WHERE fragment, extra params) for referral_date filtering.
+
+    referral_date is stored as an ISO string (e.g. "2024-01-06"), so we compare
+    strings directly rather than wrapping in date() which would cause a type
+    mismatch and return zero results.
+    """
     clauses, params = [], {}
     if date_from:
-        clauses.append(f"{alias}.referral_date >= date($date_from)")
+        clauses.append(f"{alias}.referral_date >= $date_from")
         params["date_from"] = date_from
     if date_to:
-        clauses.append(f"{alias}.referral_date <= date($date_to)")
+        clauses.append(f"{alias}.referral_date <= $date_to")
         params["date_to"] = date_to
     fragment = (" AND " + " AND ".join(clauses)) if clauses else ""
     return fragment, params

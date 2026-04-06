@@ -1,0 +1,16 @@
+[
+  {
+    "encounter_id": "768491e3-cace-46a1-a905-76ec8388c0e7",
+    "patient_id": "4246870471",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

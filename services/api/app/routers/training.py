@@ -49,13 +49,11 @@ from libs.cypher.training_label_queries import (
 from libs.cypher.coding_review_queries import (
     AUTO_RESOLVE_CODING_REVIEW,
     BATCH_RESOLVE_BY_ENTITY_TEXT,
-    COUNT_ASSERTION_REVIEW_GROUPS,
     COUNT_CODING_REVIEW_GROUPS,
     COUNT_CODING_REVIEW_PENDING,
     DEACTIVATE_CODING_IGNORE_RULE,
     DELETE_ALL_CODING_REVIEWS_UNCONDITIONAL,
     GET_ALL_CODING_IGNORE_RULES,
-    GET_ASSERTION_REVIEW_QUEUE,
     GET_CODING_IGNORE_RULES,
     GET_CODING_REVIEW_FOR_ENTITY,
     GET_CODING_REVIEW_QUEUE,
@@ -1164,8 +1162,8 @@ def correct_entity_label(
 
 
 _VALID_ASSERTIONS = frozenset({
-    "present", "absent", "refuted", "possible", "historical", "hypothetical",
-    "family", "declined", "cancelled",
+    "present", "absent", "refuted", "possible", "historical", "planned",
+    "hypothetical", "family", "declined", "cancelled",
 })
 
 
@@ -1690,7 +1688,8 @@ _ASSERTION_NOTES: dict[str, str] = {
         "The refuted entity should NOT be coded."
     ),
     "historical":  "This may be a past event, not a current active condition.",
-    "hypothetical": "This procedure is planned or awaiting -- it may not have occurred yet.",
+    "planned":      "This procedure was booked or referred -- it is confirmed but has not happened yet.",
+    "hypothetical": "This is a conditional or speculative future event -- it has not been arranged.",
     "possible":    "This was uncertain or suspected in the original record.",
     "family":      "This applies to a family member, not the patient directly.",
 }
@@ -2602,43 +2601,6 @@ def coding_review_stats(
             "total": 0, "coded": 0, "uncoded": 0,
             "resolved": 0, "pending": 0, "low_confidence": 0,
             "assertion_flagged": 0,
-        }
-    finally:
-        client.close()
-
-
-@router.get("/coding-review/assertion-queue")
-def assertion_review_queue(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(25, ge=1, le=200),
-    scope: CallerScope = Depends(get_caller_scope),
-) -> dict[str, Any]:
-    """Entities with possible/historical/family assertions requiring human review.
-
-    These are not auto-coded -- a reviewer must either confirm the assertion
-    and assign a code, change the assertion to present, or suppress the entity.
-    Returns the same grouped shape as the coding-review/grouped endpoint so
-    ReviewCard can render them without changes.
-    """
-    client = PatientGraphClient()
-    try:
-        with client.session() as session:
-            skip = (page - 1) * page_size
-            rows = session.run(
-                GET_ASSERTION_REVIEW_QUEUE,
-                skip=skip,
-                limit=page_size,
-            )
-            groups = [dict(r) for r in rows]
-            count_row = session.run(COUNT_ASSERTION_REVIEW_GROUPS).single()
-            total_groups = count_row["group_count"] if count_row else 0
-        total_pages = max(1, (total_groups + page_size - 1) // page_size)
-        return {
-            "groups": groups,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": total_pages,
-            "total_groups": total_groups,
         }
     finally:
         client.close()

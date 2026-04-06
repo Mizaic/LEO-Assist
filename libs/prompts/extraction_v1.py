@@ -57,9 +57,54 @@ the abbreviation inside the parentheses separately
 is not a result)
 - Administrative and workflow entries: "appointment booked", "SMS sent", \
 "prescription issued"
+- Whole lines or notes that are only admin (receptionist, secretary, appointment \
+confirmations, repeat prescription requests with no prescriber review text, routing \
+headers with no clinical body) -- do not invent clinical entities; leave those lines \
+without codable terms. **Exception: always extract "Seen in fast track suspected X \
+clinic" phrases even when they appear inside an otherwise administrative note -- see \
+the ALWAYS EXTRACT section below.**
 - Orders or requests not yet performed: "blood test requested", "referral made"
 - **"NAD"** — always omit. Ambiguous between "No abnormality detected" and "No apparent \
 distress". Cannot be auto-coded; leave for manual review.
+- **Routine population screening negatives as "No evidence of cancer found"** — \
+NEVER map any of these to SNOMED 395100000 (No evidence of cancer found): \
+negative cervical smear / cervical cytology results ("negative cervical cytology", \
+"cervical smear: negative", "normal recall", "no cytology result", "HPV not detected"), \
+negative FIT/FOBT results ("NEGATIVE FIT", "overall negative result", "FOBT normal", \
+"sent following an overall negative result", "low risk of bowel cancer"), \
+routine normal screening reports. \
+395100000 is ONLY correct when a patient has been discharged from an ACTIVE CANCER \
+INVESTIGATION PATHWAY (fast track referral, specialist review, biopsy, imaging result) \
+with an explicit statement that no cancer was found -- for example: \
+"No evidence of cancer found", "No evidence of malignancy", \
+"no malignancy on biopsy", "benign on histology", "no cancer on CT/MRI". \
+For routine screening negatives, code the actual result concept instead: \
+cervical cytology normal, faecal immunochemical test normal, etc. \
+ADDITIONALLY: within a cancer investigation pathway (biopsy result, \
+histopathology report, clinic discharge letter), ANY of the following patterns \
+SHOULD be coded as 395100000 -- they are explicit pathway-level discharge \
+statements and the screening-negative restriction does NOT apply to them: \
+"benign histology", "benign on biopsy", "benign pathology", \
+"confirmed benign", "benign on histopathology", "no malignancy on biopsy", \
+"benign pathology found", "no dysplasia or malignancy", \
+"no concerns raised about malignancy", "nil concerns raised about malignancy", \
+"no cancer found", "no malignancy found", "no sinister findings", \
+"no evidence of malignancy found on investigations", \
+"cancer pathway completed with no cancer found", \
+"two-week wait pathway completed with no cancer found", \
+"polyp removed but no cancer", "colonoscopy with biopsy - normal", \
+"endoscopy was normal" (when in context of a cancer investigation pathway), \
+"hiatus hernia only" (when the preceding context is a cancer 2WW investigation), \
+"not suspicious for malignancy", "not suspicious for cancer". \
+When a GP note explicitly states results of a 2WW investigation were reassuring \
+and the patient is being discharged from the cancer pathway, code 395100000 even \
+if the exact phrase "no evidence of cancer" is not used. \
+ALSO code 395100000 when an ALTERNATIVE BENIGN DIAGNOSIS is established as the \
+definitive explanation within a cancer investigation pathway: for example, \
+ulcerative colitis, haemorrhoids, hiatus hernia, tubular adenoma excised, \
+presbycusis, fibroadenoma, or similar -- provided the note confirms the cancer \
+suspicion has been resolved (e.g. "colonoscopy confirmed haemorrhoids", \
+"OGD shows hiatus hernia only", "tubular adenoma excised -- non-malignant").
 - **"CA" alone without an organ or body site** — the abbreviation "CA" (carcinoma/cancer) \
 MUST NOT be extracted unless the primary site is explicitly stated in the same sentence \
 (e.g. "prostate CA", "CA breast", "CA colon"). If only "CA" appears with no site, do \
@@ -69,6 +114,56 @@ or specialty (e.g. "MSK clinic", "referred to MSK"). Do NOT extract MSK itself a
 clinical entity. Extract the specific symptom or diagnosis instead: \
 "MSK back pain" → extract "back pain"; "attending MSK clinic" → extract nothing from \
 that phrase; "MSK pain in knee" → extract "knee pain".
+
+## ALWAYS EXTRACT
+
+The following phrases MUST be extracted regardless of the surrounding context, \
+even if the rest of the note is entirely administrative:
+
+- **"Seen in fast track suspected X clinic"** — This is a cancer pathway milestone \
+(specialist visit). Extract it as a **finding** with the exact clinic name as the \
+entity text. It must always be coded even when the note is entered by a secretary \
+or receptionist. Examples: "Seen in fast track suspected breast cancer clinic", \
+"Seen in fast track suspected urological cancer clinic", \
+"Seen in fast track suspected colorectal cancer clinic". \
+Use semantic_tag="finding". Map to the SNOMED CT UK extension concept for the \
+named clinic type.
+- **"Fast track referral for suspected X cancer/tumour"** — This is a cancer pathway \
+milestone (referral). Extract it as a **procedure** even when the note is entered \
+by a medical secretary or receptionist. Examples: "Fast track referral for suspected \
+breast cancer", "Fast track referral for suspected urological cancer". \
+Use semantic_tag="procedure". Map to the site-specific SNOMED CT UK extension \
+concept. If no site is given, use the generic "Fast track cancer referral".
+- **"Seen in 2WW Clinic" and shorthand variants** -- EMIS and other GP systems \
+record specialist attendance using shorthand such as "Seen in 2WW Clinic?", \
+"Seen in 2WW Clinic", "Was seen on 2WW", "Attended 2WW clinic". \
+Extract these as a **finding** mapped to the generic \
+"Seen in fast track suspected cancer clinic" when no cancer site is present, \
+or to the site-specific clinic concept when the site can be inferred from the \
+same note or the encounter header. Use semantic_tag="finding". \
+Examples: "Seen in 2WW Clinic? (XaPyQ)" -> Seen in fast track suspected breast \
+cancer clinic; "Was seen on 2WW, nad" -> Seen in fast track suspected cancer clinic. \
+ADDITIONALLY: when "was seen on 2WW, NAD", "was seen on 2WW and NAD", or equivalent \
+phrases appear, ALSO extract "No evidence of cancer found" (395100000) as a \
+co-occurring finding -- the "NAD" suffix confirms the investigation was negative.
+- **Benign 2WW outcome in GP or pharmacist notes** -- when a GP or pharmacist note \
+summarises the result of a recent 2WW investigation and states the outcome was normal \
+or benign (e.g. "had OGD which was normal", "2WW completed -- no cancer found", \
+"seen at ENT -- no concerns about malignancy", "colonoscopy normal -- haemorrhoids \
+confirmed"), extract BOTH the procedure/attendance concept AND "No evidence of cancer \
+found" (395100000). Use semantic_tag="finding" for the benign outcome. \
+Do NOT extract 395100000 when the note is only summarising the referral itself \
+without reporting results, or when the investigation has not yet been completed.
+- **Hospital clinic letters as specialist visit evidence** -- when the encounter \
+text is a letter from a named hospital clinic to the GP practice \
+(e.g. "Breast Clinic to Woodbrook Medical Centre", "Colorectal to Woodbrook \
+Medical Centre", "Urology to Woodbrook Medical Centre") and the letter body \
+describes the patient attending a 2WW or fast-track appointment, extract \
+"Seen in fast track suspected X cancer clinic" as a **finding** even if those \
+exact words do not appear. The clinic name in the letter header combined with \
+a narrative of attendance constitutes sufficient evidence for the \
+specialist-visit milestone. Do NOT extract a visit if the letter is only a \
+referral acknowledgement or a notification that an appointment has been booked.
 
 ## Semantic Tags
 
@@ -157,7 +252,9 @@ EVERY entity in that sentence is absent.
   Cues: "?", "query", "suspected", "possible", "probable", "likely", \
 "concerning for", "differential includes", "under investigation", \
 "awaiting confirmation", "queried", "consistent with", "in keeping with", \
-"suggestive of".
+"suggestive of", "2WW" (the cancer being investigated is suspected, not confirmed), \
+"Reasons for request:" (conditions listed are current suspicions, not confirmed), \
+"Clinical information:" (symptoms and conditions are current concerns).
 
 **historical** — Past condition, no longer active.
   Cues: "history of", "Hx of", "previous", "resolved", "cleared", "settled", \
@@ -166,11 +263,18 @@ language and explicit past dates are strong signals.
   CRITICAL: Compound sentences where a finding is introduced then resolved are fully \
 historical (e.g. "back pain on Friday, but this has since resolved").
 
-**hypothetical** — Conditional or planned, not currently present.
+**planned** — Definitively arranged but not yet completed.
+  Cues: "awaiting", "booked for", "referred for", "referral for", "on waiting \
+list", "scheduled for", "planned", "waiting list for".
+  Use this when a procedure or referral has been confirmed and set in motion but \
+has not yet happened.
+  Examples: "awaiting MRI", "booked for colonoscopy", "referral for physiotherapy".
+
+**hypothetical** — Conditional or speculative future; has NOT been arranged.
   Cues: "if develops", "should symptoms worsen", "consider if", "risk of \
-developing", "plan to", "will start", "to be arranged".
-  CRITICAL: Do NOT extract entities from safety-netting or worsening-advice phrases \
-as present — if extracted at all, use "hypothetical".
+developing", "will start if", "may need", "plan to start".
+  Use this for safety-netting language and recommendations that are contingent on \
+future events. Do NOT use for booked or arranged procedures -- use "planned" instead.
 
 **family** — Pertains to a family member, not the patient.
   Cues: "FH:", "family history of", "mother had", "father had", \
@@ -263,6 +367,17 @@ and use the site-specific cancer as lookup_term (e.g. "prostate CA" → \
 lookup_term "prostate carcinoma", tag "disorder").
 - MSK alone is a specialty/system tag, not a codable entity. Extract the specific \
 symptom or diagnosis stated in the same sentence instead.
+- FIT is ambiguous and context determines the correct interpretation:
+  * "FIT test", "FIT result", "FIT positive", "FIT negative", "FIT score", \
+"sent FIT", "FIT kit", "FIT done", "FIT returned" → faecal immunochemical test \
+(observable, lookup_term "faecal immunochemical test").
+  * "fit and well", "fit well", "generally fit", "medically fit" → do NOT extract; \
+this is a general health status comment with no SNOMED equivalent.
+  * "had a fit", "epileptic fit", "seizure", "tonic-clonic fit" → extract the \
+seizure or epilepsy disorder, NOT the faecal test.
+  * "fit note", "fit for work", "fit to fly", "fit to drive" → extract as a \
+situation or procedure if clinically relevant (e.g. "fitness for work assessment"), \
+but never as the faecal immunochemical test.
 
 When the source uses a pharmaceutical brand name, put the brand in "text" and the \
 generic active ingredient in "lookup_term":
@@ -317,8 +432,10 @@ You are a CODING TOOL. You code what is written in the clinical record. You do N
 - Interpret results: do not add clinical reasoning — code the observable entity only.
 - Generate safety advice: do not produce entities from safety-netting text.
 
-Actions the clinician PLANS to take (e.g. "will refer", "start Amoxicillin tomorrow") \
-must use assertion "hypothetical" — not yet performed.
+Actions the clinician has definitively arranged (e.g. "referred for", "booked for \
+colonoscopy", "awaiting MRI") must use assertion "planned" -- confirmed but not yet done.
+Conditional future actions (e.g. "will start if no improvement", "may need surgery") \
+must use assertion "hypothetical" -- not arranged, contingent on future events.
 
 ## Allergy Guidance
 
@@ -350,4 +467,3 @@ Before finalising EACH entity, re-read the source sentence and ask yourself:
 4. Have I extracted every distinct concept in this sentence (not just the first)?
 If any answer is wrong, fix the entity or omit it.\
 """
-

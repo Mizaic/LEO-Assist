@@ -1,0 +1,215 @@
+[
+  {
+    "encounter_id": "126b9bf2-0141-494d-8a06-0bea33404e0a",
+    "patient_id": "6269036151",
+    "date": "2024-05-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "family history of ovarian cancer (mother)",
+          "severity": "critical",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly states 'Her mum had ovarian Ca in her 40s' \u2014 a first-degree family history of ovarian cancer, directly relevant to HRT risk assessment and cancer surveillance; this must be coded with a positive family history concept, not the negation.",
+          "snomed_search": "family history ovarian cancer",
+          "snomed_concept_id": "2301000119106",
+          "preferred_term": "Family history of malignant neoplasm of ovary in first degree relative (situation)",
+          "sentence": "Her mum had ovarian Ca in her 40s",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "heavy menstrual bleeding with clots",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents 'recently has been 3 weeks late then 2 days of heavy bleeding then stopped. Some clots on last bleed the size of a 5 pence piece' \u2014 menorrhagia is a distinct finding from irregular periods and warrants its own code, particularly given the clinical context of perimenopause and HRT use.",
+          "snomed_search": "menorrhagia",
+          "snomed_concept_id": "386692008",
+          "preferred_term": "Menorrhagia (finding)",
+          "sentence": "recently has been 3 weeks late then 2 days of heavy bleeding then stopped. Some clots on last bleed the size of a 5 pence piece.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "obesity (BMI 32.9)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient self-reports a BMI of 32.9 kg/m\u00b2, which is explicitly documented in the HRT questionnaire and constitutes obesity (BMI \u226530), clinically relevant to HRT risk stratification.",
+          "snomed_search": "obesity",
+          "snomed_concept_id": "414916001",
+          "preferred_term": "Obesity (disorder)",
+          "sentence": "BMI: 32.9",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "ex-smoker",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The patient is documented as an ex-smoker (10\u201319 cigarettes/day for 20 years) in the HRT risk assessment questionnaire; smoking history is clinically relevant to cardiovascular and cancer risk in the context of HRT.",
+          "snomed_search": "ex-smoker",
+          "snomed_concept_id": "8517006",
+          "preferred_term": "Ex-smoker (finding)",
+          "sentence": "Smoking status: Ex-smoker. How much smoked: 10-19 cigarettes or equivalent per day. Years smoked: 20 years",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "758821000000106",
+          "name": "No family history of ovarian cancer (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "critical",
+          "reason": "The note explicitly states 'Her mum had ovarian Ca in her 40s' \u2014 this is a POSITIVE first-degree family history of ovarian cancer; the coded concept is the direct negation ('No family history of ovarian cancer') and is factually wrong. It must be replaced with concept 2301000119106 'Family history of malignant neoplasm of ovary in first degree relative (situation)' with assertion=family."
+        }
+      ],
+      "confidence": 0.95,
+      "notes": "There is a critical coding error: the concept coded for family history of ovarian cancer (758821000000106) is the negation \u2014 'No family history of ovarian cancer' \u2014 directly contradicted by the note which states the patient's mother had ovarian cancer in her 40s; this must be corrected urgently given its relevance to HRT risk and cancer surveillance. Additionally, menorrhagia, obesity, and ex-smoker status are all explicitly documented and clinically significant findings that are missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 19264,
+        "output_tokens": 2084,
+        "total_tokens": 21348,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "126b9bf2-0141-494d-8a06-0bea33404e0a",
+        "date": "2024-05-09",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8f0edde6-d3b2-4123-8bfb-4cea118db07b",
+    "patient_id": "6269036151",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Medication reconciliation",
+          "snomed_concept_id": "430193006",
+          "preferred_term": "Medication reconciliation (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "The encounter explicitly documents a medication reconciliation process (source: MedExpress private clinic letter 03/04/25), which is a codeable procedure. The CTV3 code XaXfG is already recorded in the note but the SNOMED equivalent should be confirmed in the record.",
+          "sentence": "Medication reconciliation (XaXfG) - MedExpress private clinic letter 03/04/25",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Weight loss medication Mounjaro supplied by private provider",
+          "snomed_concept_id": "1351584008",
+          "preferred_term": "Tirzepatide (substance)",
+          "semantic_tag": "substance",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Mounjaro (tirzepatide) is being reconciled as a new acute medication commenced by a private provider. The substance is in SNOMED scope and should be coded to support clinical record completeness, particularly as it was initiated outside NHS care.",
+          "sentence": "New acute medication: Weight loss medication Mounjaro supplied by private provider",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [
+        {
+          "description": "No underlying clinical indication (e.g. obesity / overweight) is coded in this encounter. Mounjaro (tirzepatide) is licensed for chronic weight management in adults with obesity or overweight with weight-related comorbidities. The prescribing indication should be documented and coded to support clinical governance and medicines safety.",
+          "snomed_search": "obesity",
+          "severity": "high"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a pharmacist-led medication reconciliation encounter for Mounjaro (tirzepatide 5mg weekly, weeks 5\u20138), sourced from a private clinic letter. The CTV3 code XaXfG (Medication reconciliation) and XE0hk (Medication commenced) are recorded in legacy Read/CTV3 format \u2014 the SNOMED equivalent (430193006) should be confirmed as mapped. The active clinical indication for tirzepatide (most likely obesity/overweight) is not documented or coded in this encounter, which is a gap for medicines safety and clinical governance. No red-flag or safety-critical findings are present. Confidence is slightly reduced as no patient demographics or problem list were retrieved to confirm whether obesity is already on the problem list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3056,
+        "output_tokens": 1194,
+        "total_tokens": 4250,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "8f0edde6-d3b2-4123-8bfb-4cea118db07b",
+        "date": "2025-05-09",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "06d35777-e9ba-4de8-b523-e52d5b4c42d3",
+    "patient_id": "6269036151",
+    "date": "2025-05-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "possible early signs of skin cancer / suspicious lesion referred for dermatoscopy",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "A complex trauma consultant suggested the lesion could be early signs of skin cancer; the duty doctor documented the need for dermatoscopy to rule out cancer \u2014 this red-flag concern must be coded even though the back lesion was reassured as seb K, as the thigh lesion remains under investigation.",
+          "snomed_search": "skin lesion",
+          "snomed_concept_id": "95324001",
+          "preferred_term": "Skin lesion (disorder)",
+          "sentence": "complex trauma consultant had a look at patients lesion thinkms ould be early signs of skin cancer.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "25499005",
+          "name": "Seborrheic keratosis (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "The coded concept 25499005 carries the semantic tag 'morphologic abnormality', which is not appropriate for coding a clinical diagnosis in a patient record; the correct disorder concept is 394726009 'Seborrheic keratosis (disorder)'.",
+          "replace_with_concept_id": "394726009",
+          "replace_with_preferred_term": "Seborrheic keratosis (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "427186000",
+          "name": "Dermatofibroma (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note explicitly states 'possible dermatofibroma on right thigh' and the coded evidence itself acknowledges it is unconfirmed pending dermatoscopy review, yet the assertion is recorded as present rather than possible."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three coding issues found: (1) CRITICAL \u2014 the red-flag concern about possible skin cancer raised by a consultant and prompting same-day triage and dermatoscopy referral is not coded; (2) the seborrhoeic keratosis is coded with a morphologic abnormality concept (25499005) rather than the correct disorder concept (394726009); (3) the dermatofibroma assertion is 'present' when the clinical text and coded evidence both confirm it is unconfirmed/possible. The pharmacist-led medication and HRT review coding is otherwise thorough and appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 13055,
+        "output_tokens": 1756,
+        "total_tokens": 14811,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "06d35777-e9ba-4de8-b523-e52d5b4c42d3",
+        "date": "2025-05-14",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  }
+]

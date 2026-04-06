@@ -125,6 +125,12 @@
   "clinical_override": {
     "_comment": "Strong signals that a clinician has performed an active clinical assessment. These patterns win over document_transfer and admin_only, ensuring GP-annotated encounters are not misclassified. Use patterns that cannot appear in a filed document without GP authorship.",
     "phrases": [
+      "seen in fast track",
+      "seen in 2ww clinic",
+      "seen in two week wait clinic",
+      "fast track referral for suspected",
+      "fast track cancer referral",
+      "two week wait referral for suspected",
       "presenting complaint",
       "history of presenting complaint",
       "PC:",
@@ -146,6 +152,11 @@
       "clinical assessment"
     ],
     "regex": [
+      "(?i)\\bseen\\s+in\\s+fast\\s+track\\b",
+      "(?i)\\bseen\\s+in\\s+2ww\\s+clinic\\b",
+      "(?i)\\bfast\\s+track\\s+referral\\s+for\\s+suspected\\b",
+      "(?i)\\bfast\\s+track\\s+cancer\\s+referral\\b",
+      "(?i)\\b2ww\\s+referral\\s+for\\s+suspected\\b",
       "(?i)\\bO/E\\b",
       "(?i)\\bO\\.E\\b",
       "(?i)^\\s*Hx:",

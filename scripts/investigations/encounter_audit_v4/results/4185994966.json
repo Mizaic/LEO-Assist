@@ -1,0 +1,132 @@
+[
+  {
+    "encounter_id": "c1501cc9-b23d-47b2-8688-ad54f09ecc5a",
+    "patient_id": "4185994966",
+    "date": "2025-12-01",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Encounter consists entirely of administrative routing entries: a timestamp, clinician name, N+S encounter template header, a contact-reason category label (\"Medication query\", YciwV), encounter modality (Telephone encounter, 9N31.), and a blank \"Other reason\" field. No clinical narrative, diagnoses, symptoms, findings, procedures, or prescribing decisions are documented. Nothing falls within the required SNOMED semantic tag scope. No coding action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 2,
+        "input_tokens": 1247,
+        "output_tokens": 572,
+        "total_tokens": 1819,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4185994966",
+        "encounter_id": "c1501cc9-b23d-47b2-8688-ad54f09ecc5a",
+        "date": "2025-12-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3267ea87-8ae2-4c2b-ac93-8be92e846a2a",
+    "patient_id": "4185994966",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "266607004",
+          "term": "Perimenopausal disorder",
+          "status": "ok",
+          "note": "lookup returned unreliable but search_snomed confirms 266607004 is the correct concept ID for Perimenopausal disorder (disorder)"
+        },
+        {
+          "concept_id": "170960008",
+          "term": "HRT combined estrogen/progestogen (coded)",
+          "status": "wrong",
+          "note": "lookup_concept returned semantic_tag=organism (unreliable/corrupted); this concept ID does not represent an HRT finding or situation"
+        }
+      ],
+      "missing": [
+        {
+          "term": "Hormone replacement therapy started",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "This encounter documents new HRT initiation (Oestrogel + Utrogestan prescribed for the first time in this regimen); 170955009 'Hormone replacement therapy started (situation)' is the correct SNOMED code and is evidenced by the template entry 66UC/66U9 and the plan text.",
+          "snomed_search": "hormone replacement therapy started",
+          "snomed_concept_id": "170955009",
+          "preferred_term": "Hormone replacement therapy started (situation)",
+          "sentence": "Prescribed Oestrogel, two pumps once daily. Prescribed Utrogestan 100mg, two capsules to be taken at bedtime on days 15-28 of the cycle.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The core clinical coding is largely sound: perimenopausal disorder (266607004), night sweats (42984000), and structured vitals are all correctly captured. The main issue is concept ID 170960008 coded for HRT status \u2014 the terminology server returns this as an 'organism' concept (unreliable/corrupted ID), and it should be replaced with 170955009 'Hormone replacement therapy started (situation)', which accurately reflects new HRT initiation in this encounter. The historical note of previous HRT patches being unsuitable is a minor background PMH item and does not require separate coding given the active perimenopausal disorder code already captures the clinical context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 3,
+        "input_tokens": 9178,
+        "output_tokens": 1638,
+        "total_tokens": 10816,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4185994966",
+        "encounter_id": "3267ea87-8ae2-4c2b-ac93-8be92e846a2a",
+        "date": "2025-12-02",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0be20936-4a8a-482f-a993-731190959ff1",
+    "patient_id": "4185994966",
+    "date": "2025-12-03",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains purely administrative content \u2014 a patient satisfaction survey invitation with a link to an online questionnaire. There is no clinical narrative, diagnosis, finding, procedure, or any other SNOMED-codeable content present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 385,
+        "output_tokens": 210,
+        "total_tokens": 595,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4185994966",
+        "encounter_id": "0be20936-4a8a-482f-a993-731190959ff1",
+        "date": "2025-12-03",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "204c2cd9-d5b2-4251-b454-13389916c0d0",
+    "patient_id": "4185994966",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

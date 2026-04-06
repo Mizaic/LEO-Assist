@@ -1,0 +1,91 @@
+# -- DO-LEO-AI-082 -- Domain-Driven Episode Detector Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-082"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-084"]
+    user_needs: ["UN-LEO-AI-052"]
+    risks_addressed: ["R-LEO-AI-058"]
+    verification_tests: ["VT-LEO-AI-084"]
+
+  specification:
+    title: "Domain-Driven Episode Detector"
+    description: |
+      Replaces hardcoded SNOMED frozensets in the episode detector with
+      live configuration loaded from AuditDomain/ValueSet nodes in Neo4j.
+      Key changes:
+      - AuditDomain gains episodeDetector boolean (domains.py + UI)
+      - ValueSet gains assertionFilter string list (domains.py, registry.py, UI)
+      - NCDADomain dataclass gains assertion_filter field (registry.py)
+      - _ANCHOR_QUERY returns r.assertion per DOCUMENTS relationship
+      - _classify_anchor_rows() applies concept_id + assertion double-filter
+      - DomainRegistry bootstrap raises instead of from_defaults() fallback
+      - EpisodeOfCare nodes carry domain_id property
+    acceptance_criteria:
+      - criterion: "Assertion filter exclusion"
+        type: "functional"
+        measurement: "Test"
+        target: "Row with assertion not in non-empty assertionFilter is excluded from bucket"
+      - criterion: "Assertion filter accept-all"
+        type: "functional"
+        measurement: "Test"
+        target: "Row with any assertion is included when assertionFilter is empty"
+      - criterion: "Registry fail-fast"
+        type: "safety"
+        measurement: "Test"
+        target: "RuntimeError raised when no ncda-* ValueSet nodes returned from KG"
+      - criterion: "domain_id on EpisodeOfCare"
+        type: "functional"
+        measurement: "Test"
+        target: "MERGE Cypher includes domain_id parameter and ep.domain_id is SET"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/domains.py"
+        description: "episodeDetector flag, assertionFilter on ValueSet CRUD"
+      - artifact_type: "source_code"
+        location: "libs/domain_config/registry.py"
+        description: "NCDADomain.assertion_filter field, _parse_domain_config reads assertionFilter"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "MilestoneBucket, registry parameter, assertion column in query"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/anchor.py"
+        description: "_load_registry() bootstrap, pass registry to detect_anchors"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder.py"
+        description: "domain_id parameter, SET ep.domain_id in MERGE"
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/audit.py"
+        description: "Remove from_defaults() fallback from _ensure_registry()"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/settings/domains/[id]/page.tsx"
+        description: "milestone_type Select, assertion_filter multi-select"
+    storage_location: "git"
+    technical_details:
+      language: "Python / TypeScript"
+      loc: 280
+      key_functions:
+        - "_classify_anchor_rows"
+        - "detect_anchors"
+        - "_load_registry"
+        - "build_episodes"
+        - "_upsert_valueset_flat"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Assertion filtering must not silently discard anchors when filter is empty"
+      - "Registry bootstrap must raise rather than use stale defaults"
+    risk_control_measures:
+      - "Empty assertionFilter treated as accept-all, not as reject-all"
+      - "RuntimeError raised with descriptive message when KG is unreachable"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

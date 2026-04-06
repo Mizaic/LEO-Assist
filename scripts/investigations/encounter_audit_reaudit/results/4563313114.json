@@ -1,0 +1,804 @@
+[
+  {
+    "encounter_id": "56c6f677-993c-4f98-a0b5-cfa7e93d3442",
+    "patient_id": "4563313114",
+    "date": "2024-04-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "12866006",
+          "name": "Administration of vaccine product containing only Streptococcus pneumoniae antigen (procedure)",
+          "severity": "medium",
+          "reason": "The note specifies Pneumovax 23 (23-valent polysaccharide vaccine), which maps to the more specific child concept 1119367000; the currently coded concept is the broad parent and should be replaced.",
+          "replace_with_concept_id": "1119367000",
+          "replace_with_preferred_term": "Administration of vaccine product containing only Streptococcus pneumoniae Danish serotype 1, 2, 3, 4, 5, 6B, 7F, 8, 9N, 9V, 10A, 11A, 12F, 14, 15B, 17F, 18C, 19A, 19F, 20, 22F, 23F, and 33F capsular polysaccharide antigens (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The shingles vaccination code (859641000000109) is confirmed correct despite an unreliable lookup result \u2014 search_snomed returned it as the top match. The pneumococcal code uses the broad parent concept; Pneumovax 23 is a 23-serotype polysaccharide vaccine and should be coded at the more specific child level (1119367000). No clinical findings are missing from this immunisation-only encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6546,
+        "output_tokens": 1238,
+        "total_tokens": 7784,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "56c6f677-993c-4f98-a0b5-cfa7e93d3442",
+        "date": "2024-04-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e2c637bd-041e-4763-93fc-5d5218aefa93",
+    "patient_id": "4563313114",
+    "date": "2024-04-22",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [
+        {
+          "text": "Medication review done (XaF8d)",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "confirm",
+          "reason": "Medication review is explicitly documented and already captured via the XaF8d Read code in the note. SNOMED equivalent is 182836005 \u2013 Review of medication (procedure). The resolve_evidence tool also returned 314530002 (Medication review done, situation) with score 1.0, but that concept ID was flagged as unreliable by lookup_concept; 182836005 is the confirmed SNOMED procedure equivalent.",
+          "sentence": "Medication review done (XaF8d) - needs blood in may",
+          "char_start": 62,
+          "char_end": 93
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Encounter is a medication review with six prescription re-authorisations. The only codeable clinical entity is the medication review itself, already recorded via Read code XaF8d (SNOMED equivalent: 182836005 \u2013 Review of medication). The note 'needs blood in May' is a future investigation reminder, not a codeable finding. Betamethasone ended at patient's request is an administrative medication change with no new diagnosis. Underlying conditions implied by the drug list (hypertension, hyperlipidaemia, etc.) are expected to be on the standing problem list and are not newly documented here. No missing, overcoded, or incorrectly asserted codes identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3259,
+        "output_tokens": 1286,
+        "total_tokens": 4545,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "e2c637bd-041e-4763-93fc-5d5218aefa93",
+        "date": "2024-04-22",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "09cead65-99cf-4bea-a6d6-b4aa6f2a6854",
+    "patient_id": "4563313114",
+    "date": "2024-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "cholesterol",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states atorvastatin is prescribed 'for cholesterol', confirming an active diagnosis of hypercholesterolaemia that should be coded as a disorder.",
+          "snomed_search": "hypercholesterolaemia",
+          "snomed_concept_id": "13644009",
+          "preferred_term": "Hypercholesterolemia (disorder)",
+          "sentence": "-atorvastatin for cholesterol - no s/e",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The note describes hypertension as an active, ongoing condition with multiple antihypertensive agents, home BP monitoring and a target BP \u2014 a historical situation code is inappropriate; the active disorder should be coded instead.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "Two issues identified: (1) Hypertension is coded as a historical situation (161501007) when the note clearly describes an active condition with ongoing antihypertensive therapy and home monitoring \u2014 should be replaced with the active disorder code 38341003; (2) Hypercholesterolaemia (13644009) is explicitly documented via atorvastatin use 'for cholesterol' but is absent from the coded list. BCC (254701007) and completed radiotherapy (1287742003) are appropriately coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9772,
+        "output_tokens": 1501,
+        "total_tokens": 11273,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "09cead65-99cf-4bea-a6d6-b4aa6f2a6854",
+        "date": "2024-08-12",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7767ef18-c621-4262-bf26-861f28734e8d",
+    "patient_id": "4563313114",
+    "date": "2024-09-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly states 'htn / predm review', indicating prediabetes is an active condition being reviewed in this encounter and should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Reasons for Request: htn / predm review.",
+          "char_start": 220,
+          "char_end": 248
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a routine HTN/prediabetes review with a normal ACR result. Prediabetes is explicitly named in the clinical information but is absent from the coded list. The hypertension is coded as a historical situation rather than an active disorder, which is likely incorrect for a patient actively under HTN review; however, as a standing problem-list code it requires clinical confirmation before amendment. All observable entity codes are appropriately written by the structured lab pipeline and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6668,
+        "output_tokens": 1707,
+        "total_tokens": 8375,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "7767ef18-c621-4262-bf26-861f28734e8d",
+        "date": "2024-09-19",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "21dec0a0-cf79-4e15-ac14-a9bc5dd345c9",
+    "patient_id": "4563313114",
+    "date": "2024-09-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine albumin level",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The primary clinical finding of this auto-filed result is the urine albumin value (8 mg/L); it should be coded as an observable entity (analogous to all other lab results already coded), not as a procedure.",
+          "snomed_search": "urine albumin level",
+          "snomed_concept_id": "1003301000000109",
+          "preferred_term": "Urine albumin level (observable entity)",
+          "sentence": "Urine albumin level (XE2eI) 8 mg/L [< 15]",
+          "char_start": 22,
+          "char_end": 57
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "271000000",
+          "name": "Urine albumin measurement (procedure)",
+          "severity": "medium",
+          "reason": "Lookup confirms this concept ID resolves to a qualifier value ('An 7705'), not a procedure, and in any case a procedure code is the wrong semantic type here \u2014 the note documents a lab result value, which should be coded as an observable entity (1003301000000109).",
+          "replace_with_concept_id": "1003301000000109",
+          "replace_with_preferred_term": "Urine albumin level (observable entity)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The existing procedure/qualifier-value code [271000000] for the urine albumin result is incorrect \u2014 it should be replaced with the observable entity 1003301000000109 to be consistent with all other auto-filed lab results in this encounter. The 'predm' reference in the request reason is shorthand context only and does not constitute an explicit prediabetes diagnosis in this note; no additional disorder code is warranted from this text alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3847,
+        "output_tokens": 1116,
+        "total_tokens": 4963,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "21dec0a0-cf79-4e15-ac14-a9bc5dd345c9",
+        "date": "2024-09-19",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "47f6c8f6-c6b0-4973-a234-0489b4b35c26",
+    "patient_id": "4563313114",
+    "date": "2024-09-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm (prediabetes)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical reason for the encounter explicitly states 'htn / predm review', indicating prediabetes is an active condition under review and should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Reasons for Request: htn / predm review.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The encounter is an active hypertension review ('htn / predm review'), making the 'History of hypertension' situation code inappropriate; the active disorder code 59621000 (Essential hypertension) already coded in this encounter is the correct representation.",
+          "replace_with_concept_id": "59621000",
+          "replace_with_preferred_term": "Essential hypertension (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter has two issues: (1) prediabetes ('predm') is explicitly cited as a reason for the review but is not coded \u2014 Prediabetes (finding) 714628002 should be added; (2) 'History of hypertension (situation)' [161501007] duplicates and conflicts with the correctly coded active disorder 'Essential hypertension' [59621000] and should be removed. All observable entity codes are lab pipeline entries and are not in scope for this audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4285,
+        "output_tokens": 1319,
+        "total_tokens": 5604,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "47f6c8f6-c6b0-4973-a234-0489b4b35c26",
+        "date": "2024-09-19",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "322ac0b8-bea6-4a0c-b2c1-b171c351e167",
+    "patient_id": "4563313114",
+    "date": "2024-09-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "predm review",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly states 'htn / predm review', indicating pre-diabetes is an active condition under review and should be coded.",
+          "snomed_search": "prediabetes",
+          "snomed_concept_id": "714628002",
+          "preferred_term": "Prediabetes (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: htn / predm review.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum urea level Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum urea 8.6 mmol/L is explicitly flagged as outside the reference range [2.5\u20137.8]; the observable entity is coded but the abnormal finding interpretation is not.",
+          "snomed_search": "blood urea above reference range",
+          "snomed_concept_id": "1179462007",
+          "preferred_term": "Blood urea above reference range (finding)",
+          "sentence": "Serum urea level (XM0lt) 8.6 mmol/L [2.5 - 7.8] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two coding gaps identified: pre-diabetes is explicitly named as a reason for the review but is uncoded, and the out-of-range serum urea result lacks its corresponding abnormal finding code. The five observable entity lab codes and the history of hypertension situation code (161501007) are all appropriate; the unreliable lookup for 161501007 is a terminology server index artefact \u2014 search_snomed confirms it is the correct concept. The boilerplate NICE CKD guidance text in the auto-filed note does not constitute a clinician-confirmed CKD diagnosis and has not been flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4614,
+        "output_tokens": 1499,
+        "total_tokens": 6113,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "322ac0b8-bea6-4a0c-b2c1-b171c351e167",
+        "date": "2024-09-19",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e054b877-6a6c-4faf-8a24-248c05663bad",
+    "patient_id": "4563313114",
+    "date": "2024-09-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Never smoked tobacco",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented in the encounter template (XE0oh / 'Never smoked tobacco') and is a clinically relevant smoking status finding that should be coded.",
+          "snomed_search": "never smoked tobacco",
+          "snomed_concept_id": "266919005",
+          "preferred_term": "Never smoked tobacco (finding)",
+          "sentence": "Never smoked tobacco (XE0oh)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lower risk drinking",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented in the encounter (XaXjf / 'Lower risk drinking') and corroborated by AUDIT-C score of 7; this is a coded alcohol-use finding that should be captured.",
+          "snomed_search": "lower risk alcohol drinking",
+          "snomed_concept_id": "777671000000105",
+          "preferred_term": "Lower risk alcohol drinking (finding)",
+          "sentence": "Lower risk drinking (XaXjf)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Alcohol use disorder identification test - consumption questionnaire",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The AUDIT-C consumption questionnaire was completed and scored (score 7) during this encounter; the procedure should be coded.",
+          "snomed_search": "AUDIT-C alcohol use disorders identification test consumption",
+          "snomed_concept_id": "763302001",
+          "preferred_term": "Assessment using Alcohol Use Disorders Identification Test - Consumption (procedure)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 7",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three clinically documented findings are absent from the coded list: never smoked tobacco, lower risk alcohol drinking, and the AUDIT-C consumption procedure \u2014 all explicitly recorded in the encounter template. The four existing codes (blood pressure, history of hypertension, sedentary lifestyle, radiotherapy) are correctly coded and asserted; the 'present' assertion for radiotherapy is appropriate given the patient states they 'just had' it. Note: lookup_concept returned unreliable results for 161501007 and 1287742003, but both were independently confirmed as valid via search_snomed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10252,
+        "output_tokens": 2004,
+        "total_tokens": 12256,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "e054b877-6a6c-4faf-8a24-248c05663bad",
+        "date": "2024-09-19",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4971a742-461c-4283-829b-55db70a71671",
+    "patient_id": "4563313114",
+    "date": "2024-11-06",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All three coded concepts are confirmed correct via search_snomed despite lookup_concept returning unreliable Extension Namespace placeholders for 254651007 and 402516002, and a spurious 'organism' tag for 240977001: search confirms these are respectively 'Squamous cell carcinoma of skin (disorder)', 'Basal cell carcinoma of abdomen (disorder)', and 'Biopsy of skin (procedure)'. No site-specific SCC-of-abdominal-wall child concept exists in SNOMED (no closer match than 254651007), so the current level of specificity is appropriate; confidence is slightly reduced due to the unreliable terminology server responses on all three lookups.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4305,
+        "output_tokens": 1159,
+        "total_tokens": 5464,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "4971a742-461c-4283-829b-55db70a71671",
+        "date": "2024-11-06",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d6483abf-eb86-44a4-bf8b-732a9e7b8412",
+    "patient_id": "4563313114",
+    "date": "2024-11-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "RSV vaccination (Abrysvo)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The Abrysvo RSV vaccine (Pfizer) was administered under PGD during this encounter and must be coded as a procedure.",
+          "snomed_search": "RSV vaccination",
+          "snomed_concept_id": "1303503001",
+          "preferred_term": "Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)",
+          "sentence": "Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer) Single 0.5ml",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "240758007",
+          "name": "Primary cutaneous sporotrichoid nodule (disorder)",
+          "severity": "high",
+          "reason": "Sporotrichoid nodule is a specific pattern of cutaneous sporotrichosis (fungal infection) and has no clinical basis here; the ulcerated nodules in this encounter are in the context of suspected SCC recurrence in an oncology patient, not a fungal infection.",
+          "replace_with_concept_id": "95319004",
+          "replace_with_preferred_term": "Skin nodule (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "254651007",
+          "name": "Squamous cell carcinoma of skin (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The note explicitly states '?SCC recurrence' with biopsies taken but no confirmed histology result documented \u2014 coding as present (confirmed active) is premature and clinically misleading; assertion must be 'possible' pending biopsy results."
+        },
+        {
+          "conceptId": "168534004",
+          "name": "Radiotherapy completed (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The 30 fractions of radiotherapy were completed in January 2024 \u2014 this is a past event and should carry a historical assertion, not present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two significant assertion errors: suspected SCC recurrence is coded as confirmed-present when biopsies are still pending (safety-critical), and completed radiotherapy should be historical not present. The concept [240758007] 'Primary cutaneous sporotrichoid nodule' is clinically inappropriate for this oncology wound-care context and should be replaced with a generic skin nodule code or removed. RSV vaccination administered under PGD is missing from the coded list. Lookup_concept returned unreliable results for three of the four coded concepts, but cross-validation via search_snomed confirmed the concept IDs for SCC, radiotherapy completed, and radiation dermatitis are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10839,
+        "output_tokens": 2041,
+        "total_tokens": 12880,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "d6483abf-eb86-44a4-bf8b-732a9e7b8412",
+        "date": "2024-11-19",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a446c757-918e-47d5-94b6-2f84f84b408a",
+    "patient_id": "4563313114",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only an administrative pathology request log generated by a Healthcare Assistant \u2014 there is no clinical narrative, examination, diagnosis, or plan. The 6 existing observable entity codes are structured lab pipeline entries and must not be flagged; no additional coding is warranted from this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1628,
+        "output_tokens": 487,
+        "total_tokens": 2115,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "a446c757-918e-47d5-94b6-2f84f84b408a",
+        "date": "2025-09-09",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "92d5176a-9110-4c69-af92-0d0cf4e3a9d0",
+    "patient_id": "4563313114",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [],
+      "confidence": 0.95,
+      "notes": "This encounter is an auto-filed laboratory result (urine creatinine / ACR) with a clinician review noting 'Normal, No Further Action' \u2014 no clinical narrative, diagnosis, symptom, or management decision is documented. The 6 existing codes are all structured lab pipeline observable entities unrelated to this encounter's text and are not subject to audit here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1877,
+        "output_tokens": 768,
+        "total_tokens": 2645,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "92d5176a-9110-4c69-af92-0d0cf4e3a9d0",
+        "date": "2025-09-09",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0e2e7eda-86c9-449e-bd23-f92115eb093d",
+    "patient_id": "4563313114",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "80274001",
+          "name": "Glomerular filtration rate (observable entity)",
+          "severity": "low",
+          "reason": "This is a duplicate observable entity for GFR; the eGFR result is already captured by the structured lab code 1107411000000104 (Estimated glomerular filtration rate by laboratory calculation), making this second GFR observable redundant.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "709044004",
+          "name": "Chronic kidney disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The reviewing clinician explicitly documents '?ckd' and requests repeat U&E and urine ACR in 3 months to investigate further \u2014 CKD has not been confirmed and must be coded as possible, not present, to avoid a false active diagnosis on the patient record."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The most significant issue is CKD coded as assertion=present when the clinician's own comment uses '?ckd' and defers diagnosis pending repeat testing \u2014 this must be changed to possible. The duplicate GFR observable entity (80274001) adds no value alongside the already-coded eGFR lab pipeline code. Concept 1179462007 (blood urea above reference range) returned an unreliable/corrupted lookup (semantic_tag: organism) but the clinical finding is genuinely evidenced; human review of that concept ID is advisable, though the underlying finding is real and the lab pipeline urea observable is already coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5330,
+        "output_tokens": 1367,
+        "total_tokens": 6697,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "0e2e7eda-86c9-449e-bd23-f92115eb093d",
+        "date": "2025-09-09",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9561d88d-846a-4532-919d-00732baf601a",
+    "patient_id": "4563313114",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All seven codes are appropriate: the six observable entity codes reflect structured lab pipeline results (potassium, sodium, urea, creatinine, eGFR, HbA1c) and are not derived from the encounter narrative; 714628002 Prediabetes (finding) is correctly coded as present, directly evidenced by 'known pre diabetes' in the clinical note. The 'Not on Thyroid Tx' phrase is an absent/negative finding and correctly excluded from coding. No gaps or errors identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3466,
+        "output_tokens": 884,
+        "total_tokens": 4350,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "9561d88d-846a-4532-919d-00732baf601a",
+        "date": "2025-09-09",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c978cb3b-4300-4811-b842-dbc9df63d6e8",
+    "patient_id": "4563313114",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Brief intervention for excessive alcohol consumption declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "Explicitly documented in the note (XaPty) as declined by the patient; this situation code captures a clinically significant patient refusal and is not currently coded.",
+          "snomed_search": "brief intervention alcohol",
+          "snomed_concept_id": "379411000000105",
+          "preferred_term": "Brief intervention for excessive alcohol consumption declined (situation)",
+          "sentence": "Brief intervention for excessive alcohol consumptn declined (XaPty)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Never used electronic cigarette",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Explicitly recorded in the note (Y3f44) as a smoking/vaping status finding and is within SNOMED scope but absent from the coded list.",
+          "snomed_search": "never used electronic cigarette",
+          "snomed_concept_id": "1137690000",
+          "preferred_term": "Never used electronic cigarette (finding)",
+          "sentence": "Never used electronic cigarette (Y3f44)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The main coding issue is the alcohol concept: 43783005 is unreliable and clinically inappropriate \u2014 20 units/week exceeds UK hazardous-drinking thresholds and a brief intervention was declined, so 198421000000108 'Hazardous alcohol use' should replace it. Two additional findings are missing: the 'brief intervention declined' situation and 'never used electronic cigarette'. All lab observable entities appear correctly coded by the structured pipeline.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6124,
+        "output_tokens": 1410,
+        "total_tokens": 7534,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "c978cb3b-4300-4811-b842-dbc9df63d6e8",
+        "date": "2025-09-09",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3588c654-56c2-4603-8436-72fa36c503b2",
+    "patient_id": "4563313114",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All seven codes are appropriate: the six observable entity codes reflect structured lab pipeline results and are not derived from the encounter narrative, and 714628002 (Prediabetes) is correctly coded as present \u2014 search_snomed confirms the concept ID is valid despite an unreliable lookup_concept server response. The borderline HbA1c of 44 mmol/mol and the explicit note 'known pre diabetes' fully support this coding; no additional clinical concepts require capture from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3320,
+        "output_tokens": 873,
+        "total_tokens": 4193,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "3588c654-56c2-4603-8436-72fa36c503b2",
+        "date": "2025-09-09",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "34c99554-2f2a-4b2c-89e3-d2f633eb566e",
+    "patient_id": "4563313114",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5564bccd-63f8-4611-a262-381692e621ac",
+    "patient_id": "4563313114",
+    "date": "2025-10-01",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "entities": [],
+      "notes": "This is a pharmacist-led telephone medication review encounter; the three coded concepts (telephone consultation, medication review by clinical pharmacist, history of hypertension) correctly capture the substantive clinical content. The creatinine clearance value (53.8 mL/min) is a raw numeric with no explicit clinical interpretation documented (e.g. no CKD stage stated), so no additional code is warranted; the \"borderline laboratory findings\" template entry does not resolve to a specific SNOMED concept. All three lookup_concept calls returned unreliable results from the terminology server, but independent search_snomed confirmation validates all three concept IDs as correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10812,
+        "output_tokens": 1581,
+        "total_tokens": 12393,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "5564bccd-63f8-4611-a262-381692e621ac",
+        "date": "2025-10-01",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "56ec0a27-ddbe-4cb2-bb02-bc62014b1198",
+    "patient_id": "4563313114",
+    "date": "2025-10-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Single influenza vaccination encounter with consent and fitness-for-immunisation documented; the existing procedure code 86198006 (Administration of vaccine product containing only Influenza virus antigen) is the standard UK primary care SNOMED code for this event and is correctly asserted as present. The terminology server returned an unreliable result for this concept ID but this is a known server index issue \u2014 the code itself is clinically correct and no changes are required.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2669,
+        "output_tokens": 702,
+        "total_tokens": 3371,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4563313114",
+        "encounter_id": "56ec0a27-ddbe-4cb2-bb02-bc62014b1198",
+        "date": "2025-10-06",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  }
+]

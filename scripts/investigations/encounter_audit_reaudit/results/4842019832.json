@@ -1,0 +1,579 @@
+[
+  {
+    "encounter_id": "02f3f95c-3751-4a33-8509-436821ad5a84",
+    "patient_id": "4842019832",
+    "date": "2024-06-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "doesn't feel the flow is as good",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient reports a new symptom of reduced urinary flow, which is a clinically relevant lower urinary tract symptom in the context of BPH and is driving the review; a highly specific SNOMED concept exists linking weak stream to BPH.",
+          "snomed_search": "weak urinary stream benign prostatic hypertrophy",
+          "snomed_concept_id": "117521000119100",
+          "preferred_term": "Weak urinary stream due to benign prostatic hypertrophy (finding)",
+          "sentence": "lately doesnt feel the flow is as good.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The three existing codes are all correct and well-evidenced: BPH (266569009), PSA measurement (63476009), and family history of prostate malignancy (414205003) \u2014 lookup_concept returned unreliable server results for all three but search_snomed confirmed each concept ID and semantic tag independently. One clinically meaningful finding is missing: the patient's newly reported reduced urinary flow, for which a highly specific concept 'Weak urinary stream due to benign prostatic hypertrophy' (117521000119100) exists and should be coded. Absent symptoms (no haematuria, no haematospermia, no urgency/hesitancy) and normal findings are correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6858,
+        "output_tokens": 1145,
+        "total_tokens": 8003,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "02f3f95c-3751-4a33-8509-436821ad5a84",
+        "date": "2024-06-05",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5c0ba4df-aa6d-456e-bf33-ba539f55b117",
+    "patient_id": "4842019832",
+    "date": "2024-06-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "entities": [],
+      "notes": "The single coded concept 414205003 (Family history of malignant neoplasm of prostate) is confirmed correct by search_snomed (top-scoring match), despite the terminology server returning an unreliable lookup \u2014 the concept is legitimate in the international release. All lab values are within normal range and reported as \"Normal, No Further Action\"; the CKD guidance text is boilerplate auto-appended to eGFR results and does not represent a clinician-documented diagnosis for this patient. No additional codeable clinical content is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3837,
+        "output_tokens": 887,
+        "total_tokens": 4724,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "5c0ba4df-aa6d-456e-bf33-ba539f55b117",
+        "date": "2024-06-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "91a8e31b-5724-4a11-a526-70afa355a7df",
+    "patient_id": "4842019832",
+    "date": "2024-06-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Prostate-specific antigen level (XE25C) 0.77 ng/ml [0 - 4.5]",
+          "snomed_concept_id": "166159005",
+          "preferred_term": "Prostate specific antigen within reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "PSA result explicitly reported as Normal with No Further Action; the finding of PSA within reference range should be coded to document the interpreted result of this investigation.",
+          "sentence": "Prostate-specific antigen level (XE25C) 0.77 ng/ml [0 - 4.5] ... Prostate-specific antigen level Report, Normal, No Further Action (Patient Informed).",
+          "char_start": 18,
+          "char_end": 62
+        },
+        {
+          "text": "PSA - FH prostate ca",
+          "snomed_concept_id": "414205003",
+          "preferred_term": "Family history of malignant neoplasm of prostate (situation)",
+          "semantic_tag": "situation",
+          "assertion": "family",
+          "severity": "medium",
+          "action": "add",
+          "reason": "The clinical request reason explicitly states 'FH prostate ca' (family history of prostate cancer). This is a clinically relevant situation that drives ongoing PSA surveillance and should be coded on the patient record.",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: PSA - FH prostate ca.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Auto-filed PSA result reviewed by Dr Gopee on 20 Jun 2024. PSA 0.77 ng/mL is within the normal reference range [0\u20134.5] and was reported as Normal/No Further Action. Two codeable entities are missing: (1) the interpreted finding 'PSA within reference range' to document the normal result, and (2) 'Family history of malignant neoplasm of prostate' which is explicitly cited as the clinical indication for PSA surveillance. The advisory text about UTI, 5-alpha reductase inhibitors, and 2WW referral thresholds is boilerplate guidance text embedded in the lab report and does not represent active clinical findings for this patient \u2014 no UTI is documented, no 2WW referral was made, and no 5-ARI use is mentioned. 'Not on Thyroid Tx' is a negative assertion and does not require coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3538,
+        "output_tokens": 1364,
+        "total_tokens": 4902,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "91a8e31b-5724-4a11-a526-70afa355a7df",
+        "date": "2024-06-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "66c4924d-faa0-4346-b959-95502ecee9a2",
+    "patient_id": "4842019832",
+    "date": "2024-08-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lump on finger",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary presenting complaint is a discrete lump at the dorsum of the left 1st digit MCP joint \u2014 this active finding must be coded; the current body structure code (763689000) does not capture it.",
+          "snomed_search": "lump on finger",
+          "snomed_concept_id": "248521008",
+          "preferred_term": "Lump on finger (finding)",
+          "sentence": "Developed a lump to the dorsum of the left hand 1st digit MCP - round and smooth",
+          "char_start": 95,
+          "char_end": 163
+        },
+        {
+          "term": "lipoma",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "Lipoma is explicitly documented as the second differential diagnosis alongside epidermoid cyst and must be coded as a possible finding pending USS result.",
+          "snomed_search": "lipoma",
+          "snomed_concept_id": "93163002",
+          "preferred_term": "Lipoma (disorder)",
+          "sentence": "Diagnosis: ? epidermoid cyst/ lipoma",
+          "char_start": 330,
+          "char_end": 366
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "763689000",
+          "name": "Entire soft tissue of hand (body structure)",
+          "severity": "high",
+          "reason": "This is a body structure anatomical concept, not a clinical finding or disorder \u2014 it does not represent the presenting complaint and is outside the valid SNOMED semantic scope for clinical coding of an active problem; replace with the presenting finding 'Lump on finger'.",
+          "replace_with_concept_id": "248521008",
+          "replace_with_preferred_term": "Lump on finger (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "419603000",
+          "name": "Epidermoid cyst of skin (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician documented '? epidermoid cyst' indicating diagnostic uncertainty pending USS; assertion should be 'possible' not 'present'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three issues identified: (1) the body structure code 763689000 is semantically incorrect for a presenting complaint and should be replaced with 'Lump on finger' (248521008, present); (2) the epidermoid cyst assertion must change from present to possible as the diagnosis is explicitly uncertain ('?'); (3) lipoma \u2014 the second documented differential \u2014 is entirely absent from the coded list and should be added as possible. The USS procedure code 58101000087107 is confirmed correct by search despite an unreliable lookup server response.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8462,
+        "output_tokens": 1982,
+        "total_tokens": 10444,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "66c4924d-faa0-4346-b959-95502ecee9a2",
+        "date": "2024-08-12",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "56fab861-e16b-4a54-948a-f021fc2daf3a",
+    "patient_id": "4842019832",
+    "date": "2024-10-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "soft tissue lump at the back of left hand over the 2nd MCP joint",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The presenting clinical finding is a discrete soft tissue lesion of the hand \u2014 this should be coded as a disorder/finding, not as a body structure; 239972001 'Soft tissue lesion of wrist and hand' precisely captures the active finding driving the consultation and referral.",
+          "snomed_search": "soft tissue lesion hand",
+          "snomed_concept_id": "239972001",
+          "preferred_term": "Soft tissue lesion of wrist and hand (disorder)",
+          "sentence": "had a lump at the back of left hand over the 2nd MCP joint.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "763689000",
+          "name": "Entire soft tissue of hand (body structure)",
+          "severity": "medium",
+          "reason": "A body structure concept is not appropriate as a standalone coded finding from an encounter note; the clinical entity is the lesion itself (a disorder/finding), not the anatomical region, and lookup confirmed this concept ID is unreliable on this terminology server.",
+          "replace_with_concept_id": "239972001",
+          "replace_with_preferred_term": "Soft tissue lesion of wrist and hand (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "400159008",
+          "name": "Congenital vascular malformation (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The USS report states appearances were only 'suggestive of' a vascular malformation/haemangioma \u2014 this is an unconfirmed working diagnosis driving further investigation, not a confirmed active diagnosis; assertion should be 'possible'."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Three issues identified: (1) the body structure code 763689000 should be replaced with the disorder code 239972001 'Soft tissue lesion of wrist and hand' which correctly captures the active clinical finding; (2) the vascular malformation assertion must be downgraded from 'present' to 'possible' as the USS only suggests this diagnosis; (3) the referral code 183518005 is correctly coded and confirmed valid via search. Note also mentions ganglion/lipoma as a clinical differential but as the USS has superseded this with a vascular differential, no additional differential coding is required beyond the 'possible' vascular malformation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8375,
+        "output_tokens": 1684,
+        "total_tokens": 10059,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "56fab861-e16b-4a54-948a-f021fc2daf3a",
+        "date": "2024-10-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e972c769-e36f-402e-9f8a-7a2961940b45",
+    "patient_id": "4842019832",
+    "date": "2024-11-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Medication review done",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Structured medication review explicitly completed by clinical pharmacist \u2014 core procedure for this encounter",
+          "sentence": "Medication review done: Yes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Telephone consultation",
+          "snomed_concept_id": "386472008",
+          "preferred_term": "Telephone consultation (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Encounter was conducted by telephone as documented in the structured fields",
+          "sentence": "Telephone consultation (XaIge)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "tamsulosin for prostate",
+          "snomed_concept_id": "266569009",
+          "preferred_term": "Benign prostatic hyperplasia (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Tamsulosin is prescribed specifically for prostatic symptoms; the note explicitly states 'tamsulosin for prostate' with LUTS symptoms reviewed (flow, dribbling, emptying). BPH is the clinical indication and should be coded as an active disorder.",
+          "sentence": "tamsulosin for prostate - annual bloods done, PSA in range, feels like emptying bladder properly, good urine flow, no dribbling, no blood in urine, no pain while urinating",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "PSA in range",
+          "snomed_concept_id": "166159005",
+          "preferred_term": "Prostate specific antigen within reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "PSA result explicitly documented as within range as part of annual monitoring for prostatic disease \u2014 clinically relevant finding to record",
+          "sentence": "tamsulosin for prostate - annual bloods done, PSA in range, feels like emptying bladder properly, good urine flow",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Estimated creatinine clearance calculated using actual body weight Cockcroft-Gault formula",
+          "snomed_concept_id": "1015981000000103",
+          "preferred_term": "Creatinine clearance test (observable entity)",
+          "semantic_tag": "observable entity",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Creatinine clearance formally calculated (97.5 mL/min, Cockcroft-Gault) \u2014 relevant to renal dose-checking for tamsulosin; should be coded as a performed observable",
+          "sentence": "Estimated creatinine clearance calculated using actual body weight Cockcroft-Gault formula (Y200c) 97.5 mL/min",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Clinical pharmacist telephone medication review for tamsulosin (BPH/LUTS). Three clinically significant items are missing from coding: (1) BPH as the active indication for tamsulosin \u2014 explicitly stated as 'tamsulosin for prostate'; (2) PSA within reference range \u2014 documented as part of annual monitoring; (3) Creatinine clearance observable \u2014 Cockcroft-Gault calculation performed and result recorded (97.5 mL/min). Medication review procedure and telephone consultation mode should also be coded. No safety-critical flags: no haematuria, no dysuria, no red-flag urological symptoms documented. Absent findings (no blood in urine, no pain) are not coded per assertion rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5728,
+        "output_tokens": 2162,
+        "total_tokens": 7890,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "e972c769-e36f-402e-9f8a-7a2961940b45",
+        "date": "2024-11-20",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "84f04988-13db-49a8-b913-50f75d0e4503",
+    "patient_id": "4842019832",
+    "date": "2024-12-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Fast track referral for suspected head and neck cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a 2WW fast-track referral for suspected head and neck cancer; the correct procedure code is missing and must be coded for cancer tracking and clinical safety follow-up.",
+          "snomed_search": "fast track referral suspected head neck cancer",
+          "snomed_concept_id": "280521000000108",
+          "preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "sentence": "Hospital Fast track referral for suspected head and neck cancer",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "892201000000106",
+          "name": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "severity": "critical",
+          "reason": "The encounter documents a head and neck 2WW referral, not a lower gastrointestinal cancer referral; this is the wrong anatomical site and must be replaced.",
+          "replace_with_concept_id": "280521000000108",
+          "replace_with_preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "The situation code 315277001 (Malignant neoplasm of head and/or neck suspected) is correct and well-evidenced. However, the procedure code 892201000000106 is critically wrong \u2014 it codes a lower gastrointestinal cancer fast-track referral instead of the clearly documented head and neck 2WW referral; it must be replaced with 280521000000108 (Fast track referral for suspected head and neck cancer).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3700,
+        "output_tokens": 1110,
+        "total_tokens": 4810,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "84f04988-13db-49a8-b913-50f75d0e4503",
+        "date": "2024-12-04",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3af47f23-0d57-4e11-aac1-7279c5ac9cd8",
+    "patient_id": "4842019832",
+    "date": "2024-12-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9eb58b16-d309-4cf1-9407-472cababbd94",
+    "patient_id": "4842019832",
+    "date": "2024-12-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "2WW head and neck cancer referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The 2WW referral is for suspected head and neck cancer; the correct SNOMED procedure code is 280521000000108 (Fast track referral for suspected head and neck cancer), not the lower GI cancer referral code currently coded.",
+          "snomed_search": "fast track referral head neck cancer",
+          "snomed_concept_id": "280521000000108",
+          "preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "sentence": "As ongoing and concerns for referral on 2ww head and neck to rule out sinister cause for symptoms.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "892201000000106",
+          "name": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "severity": "critical",
+          "reason": "The referral documented is explicitly for head and neck cancer (2WW head and neck), not lower gastrointestinal cancer; this is the wrong site-specific 2WW code and must be replaced.",
+          "replace_with_concept_id": "280521000000108",
+          "replace_with_preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "The primary and critical error is the wrong 2WW procedure code: 892201000000106 (lower GI cancer referral) has been applied to a head and neck 2WW referral \u2014 this must be corrected to 280521000000108 immediately for patient safety, tracking, and audit purposes. The sore throat code (267102003) is clinically acceptable, though 275488008 (Chronic sore throat) would be more specific given the documented 3-month duration.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5768,
+        "output_tokens": 1269,
+        "total_tokens": 7037,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "9eb58b16-d309-4cf1-9407-472cababbd94",
+        "date": "2024-12-04",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5c4f87fb-3151-4f2a-bfad-2f1a9f40f055",
+    "patient_id": "4842019832",
+    "date": "2025-04-23",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The single coded concept 414581006 (Laryngopharyngeal reflux disorder) is correct and well-evidenced \u2014 lookup_concept returned unreliable due to a server index anomaly, but search_snomed confirms the concept ID and preferred term are valid. No other codeable findings are present: absent symptoms (no heartburn, no red flags) must not be coded, the breath test is a conditional future plan only, and medication items (lansoprazole, Dymista) are out of SNOMED scope for this audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3698,
+        "output_tokens": 851,
+        "total_tokens": 4549,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "5c4f87fb-3151-4f2a-bfad-2f1a9f40f055",
+        "date": "2025-04-23",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "39f70ea6-b754-4abc-b967-d615f6602dda",
+    "patient_id": "4842019832",
+    "date": "2025-06-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "excision of vascular malformation on left hand",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note documents a completed surgical procedure (excision of vascular malformation, left hand, 2 weeks ago) which should be coded as a procedure performed.",
+          "snomed_search": "excision vascular malformation upper limb",
+          "snomed_concept_id": "239611000",
+          "preferred_term": "Excision of vascular malformation of upper limb (procedure)",
+          "sentence": "Had excision of vascular malformation on left hand 2 weeks ago.",
+          "char_start": 120,
+          "char_end": 175
+        },
+        {
+          "term": "posterior laryngeal pachydermia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "FNE explicitly identified posterior laryngeal pachydermia as a distinct ENT finding that is not captured by the laryngopharyngeal reflux or rhinosinusitis codes.",
+          "snomed_search": "laryngeal pachydermia",
+          "snomed_concept_id": "195866009",
+          "preferred_term": "Laryngeal pachydermia (disorder)",
+          "sentence": "FNE showed posterior laryngeal pachydermia with mild rhinitic mucosa with polypoid middle turbinate on right side.",
+          "char_start": 330,
+          "char_end": 443
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "46607005",
+          "name": "Nasal turbinate structure (body structure)",
+          "severity": "medium",
+          "reason": "This is an anatomical body structure concept, not a clinical finding or disorder; the note describes a polypoid change of the right middle turbinate which requires a finding/disorder code.",
+          "replace_with_concept_id": "249355003",
+          "replace_with_preferred_term": "Nasal turbinate finding (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The two ENT disorder codes (laryngopharyngeal reflux, chronic rhinosinusitis) and the vascular malformation disorder code are clinically appropriate; however, the completed surgical procedure is uncoded, the specific FNE finding of laryngeal pachydermia is missing, and the nasal turbinate code uses a body structure concept rather than a clinical finding. The lookup server returned unreliable results for concept 400159008 but cross-validation via search_snomed confirms it is the correct disorder concept.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5605,
+        "output_tokens": 1663,
+        "total_tokens": 7268,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4842019832",
+        "encounter_id": "39f70ea6-b754-4abc-b967-d615f6602dda",
+        "date": "2025-06-30",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  }
+]

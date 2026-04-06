@@ -1,0 +1,795 @@
+[
+  {
+    "encounter_id": "8b83a138-cf44-425d-8a42-db84e11efbf8",
+    "patient_id": "4802241127",
+    "date": "2024-02-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "annual medication review",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly documented as an annual medication review conducted by a pharmacist (teleconsult), which is a codeable procedure within SNOMED scope.",
+          "snomed_search": "review of medication",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "sentence": "telecosult: spoke to pt confirmed dob verified id: annual meds rv: discussed her TSH levels whihc are below normal range may need dose adjusting on the levo",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The two existing codes (Hypothyroidism and suppressed TSH finding) are clinically appropriate and well-evidenced by the note; concept 40930008 is confirmed correct, while 1153577007 returned an unreliable lookup result (wrong semantic tag 'organism') but cannot be flagged as overcoded on that basis alone \u2014 it is likely a valid UK SNOMED CT extension concept. The annual medication review procedure (182836005) is clearly documented but not coded. Tamoxifen discontinuation is noted but the underlying indication is not explicitly stated in the note text, so no diagnosis can be inferred; the dose adjustment for levothyroxine is planned/pending and should not be coded as a completed procedure.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8569,
+        "output_tokens": 1657,
+        "total_tokens": 10226,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "8b83a138-cf44-425d-8a42-db84e11efbf8",
+        "date": "2024-02-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "22d4d735-0043-4515-be00-ec359c1f5e1d",
+    "patient_id": "4802241127",
+    "date": "2024-05-13",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are confirmed correct: 40930008 (Hypothyroidism disorder) is appropriate for this LTC review, and 1153577007 (Serum TSH below reference range) accurately captures the subnormal TSH of 0.12 mIU/L. Note that lookup_concept returned corrupted/unreliable results for both IDs, but search_snomed independently confirmed both concept IDs and their semantic tags as valid. No additional codeable clinical content is present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5118,
+        "output_tokens": 989,
+        "total_tokens": 6107,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "22d4d735-0043-4515-be00-ec359c1f5e1d",
+        "date": "2024-05-13",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "205b97df-2df4-4ec8-a085-80ea642bfe60",
+    "patient_id": "4802241127",
+    "date": "2025-01-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dry skin",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Cetraben prescribed for dry skin is explicitly documented in the pharmacist's notes as an active, ongoing condition used PRN.",
+          "snomed_search": "dry skin",
+          "snomed_concept_id": "52475004",
+          "preferred_term": "Xeroderma (disorder)",
+          "sentence": "-cetraben for dry skin - uses prn",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "724161009",
+          "name": "Tamoxifen therapy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note explicitly states the patient has stopped Tamoxifen as of September 2024 per consultant instruction; the therapy is no longer active and should be coded as historical, not present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The hypothyroidism code is appropriate and correctly asserted as present. The Tamoxifen therapy code requires its assertion corrected from present to historical as the patient has definitively stopped treatment. Dry skin (Xeroderma) is explicitly documented as an active condition warranting a code. The underlying indication for Tamoxifen (e.g. breast cancer) is not explicitly stated in this encounter note and should not be inferred without confirmation from the problem list or a separate clinical note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5583,
+        "output_tokens": 1217,
+        "total_tokens": 6800,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "205b97df-2df4-4ec8-a085-80ea642bfe60",
+        "date": "2025-01-13",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "54b33433-4b40-4514-84e3-9163220766c2",
+    "patient_id": "4802241127",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "LDL > 3 (Abnormal)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly flags the result as 'Abnormal' with LDL > 3, triggering clinical action; the specific finding of LDL above reference range should be coded.",
+          "snomed_search": "LDL cholesterol above reference range",
+          "snomed_concept_id": "445445006",
+          "preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "sentence": "Serum lipid levels Report, Abnormal, Communicate Patient: LDL > 3, please give lifestyle advice and repeat fasting lipid profile in 4 months.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hyperlipidaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The report is flagged as abnormal with elevated LDL and total cholesterol, clinical management has been initiated (lifestyle advice, repeat testing), indicating an active hyperlipidaemia diagnosis.",
+          "snomed_search": "hyperlipidaemia",
+          "snomed_concept_id": "55822004",
+          "preferred_term": "Hyperlipidemia (disorder)",
+          "sentence": "Serum lipid levels Report, Abnormal, Communicate Patient: LDL > 3, please give lifestyle advice and repeat fasting lipid profile in 4 months.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lifestyle advice given",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The reviewing clinician explicitly instructed lifestyle advice to be given to the patient regarding elevated LDL; this is a codeable procedure performed as part of this encounter.",
+          "snomed_search": "dietary education hyperlipidaemia",
+          "snomed_concept_id": "429072008",
+          "preferred_term": "Dietary education for hyperlipidemia (procedure)",
+          "sentence": "LDL > 3, please give lifestyle advice and repeat fasting lipid profile in 4 months.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "All 18 existing codes are observable entity lab values correctly written by the structured pipeline and should not be altered. Three clinical coding gaps identified: the abnormal LDL finding, the resulting hyperlipidaemia disorder, and the lifestyle advice procedure actioned by the reviewing clinician. A planned repeat fasting lipid profile in 4 months is a future procedure and should not be coded at this time.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6841,
+        "output_tokens": 1493,
+        "total_tokens": 8334,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "54b33433-4b40-4514-84e3-9163220766c2",
+        "date": "2025-01-22",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cccc2023-277c-4314-b001-20d196c8aaf5",
+    "patient_id": "4802241127",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "NHS Health Check programme",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly documented as an NHS Health Check (LLR NHS Health Check V3); the programme procedure itself should be coded but is absent from the 7 coded concepts.",
+          "snomed_search": "NHS Health Check annual review",
+          "snomed_concept_id": "763661000000101",
+          "preferred_term": "National Health Service Health Check annual review (procedure)",
+          "sentence": "NHS Health Check programme (XaR6f)",
+          "char_start": 55,
+          "char_end": 85
+        },
+        {
+          "term": "H/O: migraine",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Migraine history is explicitly documented in the Migraine History field (Read code 1474.) and should be coded as a historical situation in SNOMED CT.",
+          "snomed_search": "history of migraine",
+          "snomed_concept_id": "161481007",
+          "preferred_term": "History of migraine (situation)",
+          "sentence": "Migraine History: H/O: migraine (1474.)",
+          "char_start": 390,
+          "char_end": 429
+        },
+        {
+          "term": "Less than 150 min moderate intensity physical activity per week",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Insufficient physical activity is explicitly recorded (XacSy) and is a clinically relevant finding within the NHS Health Check framework that should be coded in SNOMED CT.",
+          "snomed_search": "less than 150 minutes moderate physical activity",
+          "snomed_concept_id": "963071000000109",
+          "preferred_term": "Less than 150 minutes of moderate intensity physical activity per week (finding)",
+          "sentence": "Exercise: Less than 150 min moderte intensity physic activity per week (XacSy)",
+          "char_start": 530,
+          "char_end": 609
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The 7 coded concepts are all laboratory observable entities written by the structured pipeline and are appropriate; however, three clinically significant items from the encounter text are uncoded: the NHS Health Check procedure itself, a documented history of migraine (Read-coded 1474. in the note), and an explicit finding of insufficient physical activity (<150 min/week). Note: lookup_concept returned unreliable results for both 161481007 and 963071000000109 (organism tag returned in error), but both are consistent search hits for their respective clinical terms and are well-established UK SNOMED extension concepts; human review of these two concept IDs is advisable. TSH 0.17 mIU/L and free T4 24 pmol/L are coded as observables only \u2014 no explicit clinical interpretation (e.g. hyperthyroidism) is documented in the note text, so no disorder code is proposed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11663,
+        "output_tokens": 1888,
+        "total_tokens": 13551,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "cccc2023-277c-4314-b001-20d196c8aaf5",
+        "date": "2025-01-22",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0b61d44e-40ee-44fa-b0cd-4a0e9e07826c",
+    "patient_id": "4802241127",
+    "date": "2025-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TSH 0.17 miu/L - Outside reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The TSH result is explicitly documented as outside the reference range (0.17 vs 0.55\u20134.78) and the clinician noted 'slightly over' with patient notification; the abnormal result interpretation must be coded as a finding, not just the observable entity.",
+          "snomed_search": "thyroid stimulating hormone low",
+          "snomed_concept_id": "1153577007",
+          "preferred_term": "Serum thyroid stimulating hormone below reference range (finding)",
+          "sentence": "Serum TSH level (XaELV) 0.17 miu/L [0.55 - 4.78] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The two thyroid observable entity codes (TSH and free T4) are confirmed correct despite unreliable lookup_concept responses \u2014 search_snomed validated both concept IDs. The key gap is the missing abnormal result finding: the TSH is explicitly flagged as outside reference range and the clinician documented 'slightly over (Patient Informed)', which warrants coding 1153577007 'Serum thyroid stimulating hormone below reference range (finding)'. Full thyrotoxicosis (237509009) is not supported \u2014 the note describes mild over-replacement only, with no further action taken.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10359,
+        "output_tokens": 1519,
+        "total_tokens": 11878,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "0b61d44e-40ee-44fa-b0cd-4a0e9e07826c",
+        "date": "2025-01-22",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2a0f7278-598e-4a3d-891c-5eef422c08bb",
+    "patient_id": "4802241127",
+    "date": "2025-02-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter consists entirely of administrative care navigation and telephone triage routing text (receptionist booking a same-day face-to-face appointment for shoulder pain); there is no clinician-authored clinical narrative, examination, diagnosis, or investigation interpretation to code. The five standing codes (blood pressure, history of malignant neoplasm, chest X-ray, musculoskeletal history, shoulder X-ray) are problem-list or prior-encounter codes and must not be flagged as overcoded on the basis of this admin-only note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2996,
+        "output_tokens": 744,
+        "total_tokens": 3740,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "2a0f7278-598e-4a3d-891c-5eef422c08bb",
+        "date": "2025-02-07",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f460ec14-edd2-40f2-9c3c-b37b85f2398c",
+    "patient_id": "4802241127",
+    "date": "2025-02-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "14c674ff-56dc-4faa-9032-2d6c48d046e7",
+    "patient_id": "4802241127",
+    "date": "2025-02-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "night sweats",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Night sweats are explicitly documented as an active symptom and are clinically relevant in the context of postmenopausal bleeding and endometrial cancer workup.",
+          "snomed_search": "night sweats",
+          "snomed_concept_id": "42984000",
+          "preferred_term": "Night sweats (finding)",
+          "sentence": "night sweats - gets hot perspiration for a few mins every night but does not soak the sheets",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "weight gain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Documented weight gain of one stone since last summer is clinically relevant in the context of postmenopausal bleeding and suspected endometrial cancer 2WW referral.",
+          "snomed_search": "weight gain",
+          "snomed_concept_id": "262286000",
+          "preferred_term": "Weight increased (finding)",
+          "sentence": "gained weight a stone since last summer",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "light cigarette smoker",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient is an active smoker (2 cigarettes/day, reduced from 10/day) \u2014 smoking status should be coded as a current finding.",
+          "snomed_search": "light cigarette smoker",
+          "snomed_concept_id": "160603005",
+          "preferred_term": "Light cigarette smoker (1-9 cigs/day) (finding)",
+          "sentence": "smoke- 2/day cigarettes, 10/day cigarettes before cut down 10 years ago",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "5884001",
+          "name": "Mastectomy (procedure) \u2014 coded concept ID resolves to 'Latamoxef disodium (substance)'",
+          "severity": "high",
+          "reason": "Concept ID 5884001 resolves to 'Latamoxef disodium (substance)' \u2014 a drug substance \u2014 not a mastectomy procedure; the note documents a double mastectomy and the correct code is 27865001 (Excision of bilateral breasts).",
+          "replace_with_concept_id": "27865001",
+          "replace_with_preferred_term": "Excision of bilateral breasts (procedure)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "892201000000106",
+          "name": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "severity": "critical",
+          "reason": "The note documents an endometrial 2WW referral, not a lower GI cancer referral; the correct code is 276311000000101 (Fast track referral for suspected gynaecological cancer).",
+          "replace_with_concept_id": "276311000000101",
+          "replace_with_preferred_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "254837009",
+          "name": "Malignant tumor of breast (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "Breast cancer is referenced as past history (patient was on tamoxifen, had double mastectomy); there is no evidence of active current malignancy in this encounter."
+        },
+        {
+          "conceptId": "363478007",
+          "name": "Malignant neoplasm of thyroid gland (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "Thyroid cancer is explicitly documented as occurring in 2006 and is past history; it should be coded as historical, not present."
+        },
+        {
+          "conceptId": "724161009",
+          "name": "Tamoxifen therapy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states tamoxifen was stopped in October; the therapy is completed and should be coded as historical rather than present."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Two critical errors require immediate correction: the 2WW referral is coded as lower GI cancer (892201000000106) when the note clearly documents an endometrial/gynaecological 2WW, and the mastectomy concept ID (5884001) resolves to a drug substance rather than a surgical procedure. Three assertion errors exist \u2014 breast cancer, thyroid cancer, and tamoxifen therapy are all coded as present when the note places them firmly in the past. Three clinically relevant active findings (night sweats, weight gain, smoking status) are missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 6,
+        "input_tokens": 20011,
+        "output_tokens": 1848,
+        "total_tokens": 21859,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "14c674ff-56dc-4faa-9032-2d6c48d046e7",
+        "date": "2025-02-07",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "38b053cc-45e6-4786-9c5a-c0db3ed4a5a5",
+    "patient_id": "4802241127",
+    "date": "2025-02-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "112a14ed-c0e2-4fe2-b755-998af4e4f772",
+    "patient_id": "4802241127",
+    "date": "2025-02-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bilateral mastectomies",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents bilateral mastectomies as part of the patient's completed surgical treatment for breast cancer; this significant historical procedure should be coded.",
+          "snomed_search": "bilateral mastectomy",
+          "snomed_concept_id": "27865001",
+          "preferred_term": "Excision of bilateral breasts (procedure)",
+          "sentence": "background L ca breast - DCIA with bilateral mastectomies, axillary clearnace and reconstruction - had chemo and hormonal rx",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "axillary clearance",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Axillary clearance (lymphadenectomy) is explicitly documented as part of the patient's surgical history and should be coded as a historical procedure.",
+          "snomed_search": "axillary clearance",
+          "snomed_concept_id": "79544006",
+          "preferred_term": "Complete axillary lymphadenectomy (procedure)",
+          "sentence": "background L ca breast - DCIA with bilateral mastectomies, axillary clearnace and reconstruction - had chemo and hormonal rx",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "reconstruction",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Bilateral breast reconstruction following mastectomy is explicitly documented in the clinical history and should be coded as a historical situation.",
+          "snomed_search": "history of reconstruction bilateral breasts",
+          "snomed_concept_id": "16088571000119108",
+          "preferred_term": "History of reconstruction of bilateral breasts (situation)",
+          "sentence": "background L ca breast - DCIA with bilateral mastectomies, axillary clearnace and reconstruction - had chemo and hormonal rx",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "254837009",
+          "name": "Malignant tumor of breast (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The note describes breast cancer as background history with completed treatment (bilateral mastectomies, chemo, hormonal rx); coding as an active present disorder is clinically misleading \u2014 assertion should be historical, or replaced with a 'History of malignant neoplasm of breast' situation code (429087003)."
+        }
+      ],
+      "overcoded": [],
+      "confidence": 0.87,
+      "notes": "The encounter is an auto-filed radiology report (normal chest and right shoulder XR) in a patient with a background of treated left breast cancer. The key error is coding the breast malignancy as 'present' when the clinical history clearly describes it as completed/treated background disease; the assertion should be historical (or replaced with a history-of situation code). Three significant historical procedures documented in the clinical history \u2014 bilateral mastectomy, axillary clearance, and bilateral breast reconstruction \u2014 are missing from the coded list. Normal XR findings are correctly not coded separately as the procedures are already captured. Note: all four existing concept ID lookups returned unreliable results from the terminology server; the coded concepts have been accepted on clinical face value per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12687,
+        "output_tokens": 2083,
+        "total_tokens": 14770,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "112a14ed-c0e2-4fe2-b755-998af4e4f772",
+        "date": "2025-02-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6ec0a187-bf7e-4017-858e-e9d82f868eca",
+    "patient_id": "4802241127",
+    "date": "2025-02-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only administrative and workflow text generated by a medical secretary access role \u2014 referral routing lines, choice and booking administration, and appointment status updates. There is no clinical narrative, symptom documentation, examination, or diagnostic content to audit. The single coded procedure (fast track referral for suspected gynaecological cancer) was set by the referral system and correctly reflects the administrative action recorded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 506,
+        "output_tokens": 493,
+        "total_tokens": 999,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "6ec0a187-bf7e-4017-858e-e9d82f868eca",
+        "date": "2025-02-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5efaf9fe-2eed-4fd9-8233-30cc6266242c",
+    "patient_id": "4802241127",
+    "date": "2025-02-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plain X-ray (procedure)",
+          "severity": "medium",
+          "reason": "The encounter documents a right shoulder X-ray specifically (XR Shoulder Rt); the generic 'Plain X-ray' code is far too broad when a lateralised specific concept exists.",
+          "replace_with_concept_id": "3771000087100",
+          "replace_with_preferred_term": "Plain X-ray of right shoulder (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "low",
+          "reason": "The breast cancer is coded as currently active (present) with concept 254837009; a concurrent 'history of malignant neoplasm' situation code is redundant and potentially contradictory \u2014 the active disorder code is sufficient."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The chest and right shoulder X-ray results are both normal (clear lung fields, no bony lesion), and the right shoulder pain finding and breast cancer disorder are appropriately coded. The main issues are: (1) the shoulder XR procedure is coded at an unacceptably generic level \u2014 'Plain X-ray' (168537006) should be replaced with the lateralised 'Plain X-ray of right shoulder' (3771000087100); (2) 'History of malignant neoplasm' (266987004) is redundant alongside an active-assertion breast malignancy code. Note: bilateral mastectomy and reconstruction are documented as background history but are not the focus of this encounter (radiology report review); they may warrant separate problem-list coding if not already present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4984,
+        "output_tokens": 1134,
+        "total_tokens": 6118,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "5efaf9fe-2eed-4fd9-8233-30cc6266242c",
+        "date": "2025-02-07",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f571c3bc-2c38-4423-b826-253c047719c0",
+    "patient_id": "4802241127",
+    "date": "2025-02-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "961000119104",
+          "name": "Sprain of shoulder rotator cuff (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly documents insidious onset with no traumatic mechanism; 'sprain' implies an acute traumatic injury and is clinically inconsistent with the documented RCRSP presentation (impingement pattern, gradual onset, painful arc, resisted IR/ER).",
+          "replace_with_concept_id": "359532006",
+          "replace_with_preferred_term": "Rotator cuff impingement syndrome (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The right shoulder pain finding (1260146002) is correctly coded and confirmed. The disorder code 961000119104 'Sprain of shoulder rotator cuff' is a poor fit: the clinician's impression is RCRSP with classic impingement signs and explicitly insidious onset, making 'Rotator cuff impingement syndrome' (359532006) the appropriate replacement. Note that 359532006 is not lateralised in SNOMED; if a right-sided impingement concept exists in the local extension it should be preferred, but 359532006 is the best available core concept. No safety-critical findings are present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10455,
+        "output_tokens": 1717,
+        "total_tokens": 12172,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "f571c3bc-2c38-4423-b826-253c047719c0",
+        "date": "2025-02-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b1490aac-cd92-475c-9148-12baa17646ed",
+    "patient_id": "4802241127",
+    "date": "2025-04-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e56a804a-6978-478b-b6a3-115ba594fc2c",
+    "patient_id": "4802241127",
+    "date": "2025-05-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "awaiting chemotherapy next week",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient is awaiting chemotherapy next week; this active clinical situation should be coded.",
+          "snomed_search": "awaiting chemotherapy",
+          "snomed_concept_id": "512691000000101",
+          "preferred_term": "Awaiting chemotherapy (finding)",
+          "sentence": "awaiting chemotherapy next week.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "regional lymph node metastasis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note specifies spread to lymph nodes, which is more precisely coded as regional lymph node metastasis present rather than the generic metastatic malignant neoplasm concept already coded; the existing code 128462008 is unverifiable and should be replaced with this specific finding.",
+          "snomed_search": "lymph node metastasis",
+          "snomed_concept_id": "399374009",
+          "preferred_term": "Regional lymph node metastasis present (finding)",
+          "sentence": "has an aggressive endometrial ca that has spread to lymph nodes,",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "371972005",
+          "name": "Malignant neoplasm of body of uterus (disorder)",
+          "severity": "medium",
+          "reason": "Lookup returned unreliable result (semantic_tag='organism'); SNOMED search confirms 188192002 'Malignant neoplasm of endometrium of corpus uteri (disorder)' is the correct, verifiable concept matching the encounter text and the original evidence string.",
+          "replace_with_concept_id": "188192002",
+          "replace_with_preferred_term": "Malignant neoplasm of endometrium of corpus uteri (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "128462008",
+          "name": "Metastatic malignant neoplasm (disorder)",
+          "severity": "medium",
+          "reason": "Lookup returned unreliable result (semantic_tag='organism'); the note specifies lymph node spread, making 399374009 'Regional lymph node metastasis present (finding)' a more specific and verifiable replacement.",
+          "replace_with_concept_id": "399374009",
+          "replace_with_preferred_term": "Regional lymph node metastasis present (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two of the three coded concept IDs (371972005, 128462008) returned unreliable lookups and should be replaced with verified SNOMED concepts; the clinically significant finding of 'awaiting chemotherapy' is missing from the coded list. The abdominal pain code (21522001) also returned an unreliable lookup but the clinical content is adequately represented \u2014 a human review of that concept ID is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4522,
+        "output_tokens": 1721,
+        "total_tokens": 6243,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "e56a804a-6978-478b-b6a3-115ba594fc2c",
+        "date": "2025-05-27",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "88fb88c3-1340-4bdd-a043-e8197f44c45b",
+    "patient_id": "4802241127",
+    "date": "2025-06-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FHx (family history of cancer)",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly references 'FHx' in the context of genetic cancer risk assessment; a family history of malignant neoplasm should be coded.",
+          "snomed_search": "family history malignant neoplasm",
+          "snomed_concept_id": "160303001",
+          "preferred_term": "Family history of malignant neoplasm (situation)",
+          "sentence": "No genetic cause identified despite 3 cancers and FHx",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two significant coding issues: (1) [70292004] 'Treatment planning for chemotherapy' is the wrong concept \u2014 the note describes active ongoing chemotherapy ('constipation from chemo', 'delay chemo'), not treatment planning; the correct code is 367336001 Chemotherapy (procedure). (2) [371972005] 'Malignant neoplasm of body of uterus' is unreliable on the terminology server and is less specific than the note text; 188192002 'Malignant neoplasm of endometrium of corpus uteri (disorder)' matches the documented problem exactly. Additionally, the family history of cancer (FHx) referenced in the genetic risk discussion is uncoded. The '3 cancers' reference most plausibly refers to the patient's own multiple primary malignancies, making 109359008 defensible as a historical/present code, though the terminology server returned an unreliable result for it \u2014 human review of that concept ID is advisable.\"",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8330,
+        "output_tokens": 1601,
+        "total_tokens": 9931,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4802241127",
+        "encounter_id": "88fb88c3-1340-4bdd-a043-e8197f44c45b",
+        "date": "2025-06-16",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  }
+]

@@ -1,0 +1,168 @@
+[
+  {
+    "encounter_id": "fa2cd443-9023-4b52-84d0-ad578daeeb26",
+    "patient_id": "7322946243",
+    "date": "2025-02-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Lump on right nipple",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The primary presenting complaint is a breast/nipple lump (painful, enlarging, with discharge) \u2014 a classic NG12 red-flag symptom cluster; the presenting symptom itself must be coded separately from the examination finding (163467001) which is an 'on examination' code and was not performed in this encounter.",
+          "snomed_search": "breast lump finding",
+          "snomed_concept_id": "89164003",
+          "preferred_term": "Breast lump (finding)",
+          "sentence": "Lump on right nipple. Present for 3 years. Increasing size daily. Painful.",
+          "char_start": 120,
+          "char_end": 175
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "163467001",
+          "name": "On examination - breast lump-nipple/central (finding)",
+          "severity": "medium",
+          "reason": "This is an 'on examination' finding but the physical examination was declined by the patient and not performed; the lump was reported by history only over the telephone, so an examination-derived finding code is not evidenced by this encounter.",
+          "replace_with_concept_id": "89164003",
+          "replace_with_preferred_term": "Breast lump (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "This is a safety-critical encounter: a painful, enlarging nipple lump with discharge meets NG12 criteria for urgent breast referral, yet no 2WW referral was documented or coded \u2014 this warrants clinical review. The 'on examination' finding code (163467001) is inappropriate as examination was declined and not performed; it should be replaced with the symptom-level 'Breast lump (finding)' (89164003). The presenting complaint of breast lump must be explicitly coded as the primary symptom driving this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7351,
+        "output_tokens": 1685,
+        "total_tokens": 9036,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7322946243",
+        "encounter_id": "fa2cd443-9023-4b52-84d0-ad578daeeb26",
+        "date": "2025-02-04",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "17743cd1-d46b-40fc-b5e3-78d122a8bf0d",
+    "patient_id": "7322946243",
+    "date": "2025-02-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Superficial skin tag infection",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The explicit diagnosis is an infected skin tag with pus discharge, fever, and rapid enlargement \u2014 the infective/suppurative component is not captured by the plain 'Skin tag (disorder)' code alone.",
+          "snomed_search": "skin abscess",
+          "snomed_concept_id": "31928004",
+          "preferred_term": "Abscess of skin and/or subcutaneous tissue (disorder)",
+          "sentence": "Diagnosis: Superficial skin tag infection",
+          "char_start": 1063,
+          "char_end": 1097
+        },
+        {
+          "term": "keloids",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient has a documented history of keloids, which is clinically relevant background information affecting wound healing and surgical management decisions.",
+          "snomed_search": "keloid scar",
+          "snomed_concept_id": "33659008",
+          "preferred_term": "Keloid scar (disorder)",
+          "sentence": "Has hx of keloids and skin tags.",
+          "char_start": 870,
+          "char_end": 901
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW fast-track breast cancer referral (276341000000100) and skin tag (201091002) are both correctly coded and confirmed via search despite unreliable lookup_concept responses. Two gaps exist: the active infection/abscess component of the presentation is uncoded (the primary diagnosis is an infected skin tag with pus, fever, and rapid growth, not merely a skin tag), and the clinically relevant background history of keloids is absent from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4909,
+        "output_tokens": 1423,
+        "total_tokens": 6332,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7322946243",
+        "encounter_id": "17743cd1-d46b-40fc-b5e3-78d122a8bf0d",
+        "date": "2025-02-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0006b6e9-cafe-4e72-a9cf-d5e975fb88c7",
+    "patient_id": "7322946243",
+    "date": "2025-02-10",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "Both coded concepts are confirmed valid via search_snomed (lookup_concept returned unreliable/corrupted results for both IDs, but search confirmed correct preferred terms and semantic tags). The 2WW fast-track breast cancer referral procedure (276341000000100) and patient awaiting appointment status (185408004) fully and correctly capture the clinical content of this secretary-administered referral encounter; no additions or corrections are needed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3062,
+        "output_tokens": 907,
+        "total_tokens": 3969,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "7322946243",
+        "encounter_id": "0006b6e9-cafe-4e72-a9cf-d5e975fb88c7",
+        "date": "2025-02-10",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "15dcc9f3-d254-4635-9be4-a87ac442ffe3",
+    "patient_id": "7322946243",
+    "date": "2025-03-06",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f8415df7-2bf1-40cc-afce-e26f4650a76d",
+    "patient_id": "7322946243",
+    "date": "2025-08-11",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

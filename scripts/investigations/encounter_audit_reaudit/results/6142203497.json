@@ -1,0 +1,2400 @@
+[
+  {
+    "encounter_id": "93a5d8f5-02c0-47a3-b24b-3a943dd33486",
+    "patient_id": "6142203497",
+    "date": "2024-01-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "179306002",
+          "name": "Revision of uncemented total prosthetic replacement of hip joint (procedure)",
+          "severity": "high",
+          "reason": "The note documents a PRIMARY uncemented total hip replacement, not a revision; this concept is clinically incorrect for the procedure described.",
+          "replace_with_concept_id": "265160007",
+          "replace_with_preferred_term": "Uncemented prosthetic total arthroplasty of hip joint (procedure)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "774741000000101",
+          "name": "Fitness for work statement issued (finding)",
+          "severity": "medium",
+          "reason": "Terminology server cannot confirm this concept (returns as a substance); the fit note issuance is better represented as a procedure \u2014 804571000000106 'Issue of fitness certificate (procedure)' \u2014 which is a confirmed, specific match for the plan item 'Sick note until 1st Feb'.",
+          "replace_with_concept_id": "804571000000106",
+          "replace_with_preferred_term": "Issue of fitness certificate (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "179306002",
+          "name": "Revision of uncemented total prosthetic replacement of hip joint (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The note states the patient HAD a total hip replacement in December 2023 \u2014 this is a past procedure, not one performed at this telephone consultation encounter, so assertion should be historical; additionally, the coded concept is clinically wrong (revision vs primary \u2014 see overcoded entry)."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Two significant coding errors: (1) concept 179306002 is coded as a 'revision' hip replacement but the note explicitly documents a PRIMARY uncemented total hip replacement (Dec 2023) \u2014 the correct concept is 265160007 'Uncemented prosthetic total arthroplasty of hip joint' with assertion=historical; (2) concept 774741000000101 is unreliable on the terminology server (returns as a substance) and is a finding rather than a procedure \u2014 the better code for the fit note issued at this encounter is 804571000000106 'Issue of fitness certificate (procedure)'. The telephone consultation code (386472008) is correct. All red-flag symptoms were explicitly negated in the note and do not require coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5962,
+        "output_tokens": 1474,
+        "total_tokens": 7436,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "93a5d8f5-02c0-47a3-b24b-3a943dd33486",
+        "date": "2024-01-17",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d74f651e-82cd-42a6-82a2-171318b2f356",
+    "patient_id": "6142203497",
+    "date": "2024-02-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "adductor weakness 4/5",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Examination explicitly documents adductor muscle weakness graded 4/5 on the right side, which is a clinically relevant finding in the post-THR recovery context and should be coded.",
+          "snomed_search": "adductor muscle weakness",
+          "snomed_concept_id": "26544005",
+          "preferred_term": "Muscle weakness (finding)",
+          "sentence": "feels adductors are weak 4/5 power",
+          "char_start": 390,
+          "char_end": 418
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "398010007",
+          "name": "Prosthetic arthroplasty of hip (procedure)",
+          "severity": "low",
+          "reason": "This is a broader, overlapping procedure concept that duplicates the already-coded 52734007 'Total replacement of hip (procedure)', which is the more specific and accurate code for the THR documented in the note; coding both for the same clinical event is redundant."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary THR procedure code (52734007) is correct and confirmed by SNOMED search despite an unreliable terminology server lookup; the duplicate broader arthroplasty code (398010007) should be removed. Adductor weakness (4/5) is an explicitly documented examination finding that is missing from the coded list. No safety-critical findings are present in this routine post-operative review encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3915,
+        "output_tokens": 1259,
+        "total_tokens": 5174,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "d74f651e-82cd-42a6-82a2-171318b2f356",
+        "date": "2024-02-01",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5cb64e73-8660-45d8-a148-8f6fd0163e3c",
+    "patient_id": "6142203497",
+    "date": "2024-04-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Advice about treatment given",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'Advice about treatment given (677B.)' as part of the plan \u2014 this is a codeable situation within scope not currently in the coded list.",
+          "snomed_search": "advice about treatment given",
+          "snomed_concept_id": "171024009",
+          "preferred_term": "Advice about treatment given (situation)",
+          "sentence": "Plan: advised abx treatment, Advice about treatment given (677B.)for 7 days.",
+          "char_start": 175,
+          "char_end": 237
+        },
+        {
+          "term": "NKDA",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note documents 'NKDA' (no known drug allergy) \u2014 a clinically significant allergy status finding that should be coded.",
+          "snomed_search": "no known drug allergy",
+          "snomed_concept_id": "409137002",
+          "preferred_term": "No known drug allergy (situation)",
+          "sentence": "NKDA",
+          "char_start": 263,
+          "char_end": 267
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "Concept 702231000000104 coded as 'Hematuria NOS (finding)' resolved on this terminology server to 'DRB1*09012 (substance)' \u2014 a clearly incorrect semantic tag, likely a Read/CTV3 crossmap artefact (XaB5q); the correct SNOMED concept for haematuria is 34436003 'Blood in urine (finding)' and a re-map should be reviewed. Concept 314940005 'Urinary tract infection suspected (situation)' is clinically correct despite the server returning an Extension Namespace placeholder. Two genuine gaps identified: advice about treatment given (171024009) and no known drug allergy (409137002). A repeat urine dip in 2 weeks is documented as a future/planned procedure and does not require coding at this encounter.",
+      "confidence": 0.87,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5853,
+        "output_tokens": 1429,
+        "total_tokens": 7282,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "5cb64e73-8660-45d8-a148-8f6fd0163e3c",
+        "date": "2024-04-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "437cb085-3004-4eb0-904e-a81862eb12fd",
+    "patient_id": "6142203497",
+    "date": "2024-04-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "68566005",
+          "name": "Urinary tract infectious disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinical indication is documented as '? UTI', the microscopy result is 'Borderline', and the urine culture is explicitly pending \u2014 a confirmed UTI diagnosis cannot be asserted; 'possible' is the correct assertion until culture results are available."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "Both concept IDs are valid (confirmed via search despite unreliable lookup server responses). The sole coding error is the assertion on the UTI code: the note clearly documents '? UTI', a borderline microscopy result, and a pending culture, so 'possible' is required rather than 'present'. Pyuria (raised WBC on microscopy) is correctly coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2646,
+        "output_tokens": 797,
+        "total_tokens": 3443,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "437cb085-3004-4eb0-904e-a81862eb12fd",
+        "date": "2024-04-05",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f9a8112f-ba99-40ab-9b54-4892fad7bab1",
+    "patient_id": "6142203497",
+    "date": "2024-04-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine blood test +++",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The dipstick urine blood result of +++ is a distinct quantified finding that should be coded separately from the disorder of frank haematuria; it is explicitly documented in the urinalysis results.",
+          "snomed_search": "urine erythrocyte three plus",
+          "snomed_concept_id": "668021000005109",
+          "preferred_term": "Urine erythrocyte test three plus (finding)",
+          "sentence": "Urine: Urine blood test = +++ (4697.)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702224000",
+          "name": "Midstream urine specimen container (physical object)",
+          "severity": "medium",
+          "reason": "A physical object code is clinically inappropriate here; the encounter documents the act of sending an MSU to the lab, which is a procedure, not a physical object.",
+          "replace_with_concept_id": "430823004",
+          "replace_with_preferred_term": "Examination of midstream urine specimen (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three coding issues identified: (1) the leukocyte dipstick result is coded as two plus (394713005) when the note clearly documents three plus \u2014 replace with 394714004; (2) the MSU is coded as a physical object rather than a procedure \u2014 replace with 430823004; (3) the quantified urine blood dipstick result (+++) is missing as a distinct finding alongside the frank haematuria disorder. Frank haematuria (197941005) is correctly coded as a red-flag active finding; note that no 2WW referral is documented in this encounter \u2014 this should be reviewed by the duty clinician.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4697,
+        "output_tokens": 1691,
+        "total_tokens": 6388,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "f9a8112f-ba99-40ab-9b54-4892fad7bab1",
+        "date": "2024-04-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a714daa0-57f6-4528-8a07-ac3d8282ce50",
+    "patient_id": "6142203497",
+    "date": "2024-04-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "weight gain despite dieting",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Unexplained weight gain in the context of painless visible haematuria is a safety-critical red-flag symptom that must be coded \u2014 it raises the possibility of underlying malignancy and should trigger 2WW consideration per NG12 criteria.",
+          "snomed_search": "weight gain",
+          "snomed_concept_id": "262286000",
+          "preferred_term": "Weight increased (finding)",
+          "sentence": "also mentioned hes been gaining weight in the last 2 weeks despite being on a diet to lose weight",
+          "char_start": 620,
+          "char_end": 700
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "medium",
+          "reason": "The concept ID 702231000000104 resolves to a substance (DRB1*09012) on the terminology server \u2014 it is an incorrect/invalid concept ID for haematuria, and is clinically redundant given that the more specific Frank hematuria (197941005) is already coded in this encounter.",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "702224000",
+          "name": "Midstream urine specimen container (physical object)",
+          "severity": "low",
+          "reason": "A physical object concept is outside the permitted SNOMED semantic tag scope for clinical coding; the MSU request should be coded as a procedure (midstream urine specimen collection), not as a container object."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The most significant issue is the uncoded unexplained weight gain alongside painless visible haematuria \u2014 this combination is a safety-critical 2WW red-flag pattern (possible urological malignancy) that must be explicitly coded and should prompt the clinician to consider an urgent referral if not already actioned. Additionally, concept 702231000000104 resolves to an incorrect substance concept on the terminology server and is redundant with the correctly coded Frank hematuria (197941005); the MSU container (physical object) is out of scope and should be replaced with an MSU procedure code. Several other concept IDs returned Extension Namespace placeholders and could not be fully verified, but their clinical labels are appropriate for the encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6573,
+        "output_tokens": 1896,
+        "total_tokens": 8469,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "a714daa0-57f6-4528-8a07-ac3d8282ce50",
+        "date": "2024-04-05",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4998b682-d38d-4777-8f48-26b361e770b4",
+    "patient_id": "6142203497",
+    "date": "2024-04-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine protein test = +",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Proteinuria (1+) is explicitly documented on dipstick urinalysis and is a clinically significant finding requiring coding, particularly alongside 3+ haematuria which raises concern for renal pathology.",
+          "snomed_search": "proteinuria",
+          "snomed_concept_id": "29738008",
+          "preferred_term": "Proteinuria (finding)",
+          "sentence": "Urine: Urine protein test = + (4674.)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urinalysis",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A urine dipstick test was performed by the HCA and the procedure itself should be coded to support audit and clinical record completeness.",
+          "snomed_search": "urine dipstick test",
+          "snomed_concept_id": "167226008",
+          "preferred_term": "Urine dipstick test (procedure)",
+          "sentence": "Urinalysis.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "MSU sent to lab",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A midstream urine specimen was collected and sent for microscopy and culture \u2014 the collection/examination procedure should be coded.",
+          "snomed_search": "midstream urine specimen examination",
+          "snomed_concept_id": "430823004",
+          "preferred_term": "Examination of midstream urine specimen (procedure)",
+          "sentence": "MSU sent: MSU sent to lab. (4615.)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "236718002",
+          "name": "Chemical hematuria (disorder)",
+          "severity": "medium",
+          "reason": "The terminology server cannot verify concept 236718002 (returned semantic tag 'organism', flagged unreliable); the well-validated concept 34436003 'Blood in urine (finding)' is a confirmed SNOMED concept that accurately reflects a dipstick-positive haematuria result without over-specifying the aetiology at this stage.",
+          "replace_with_concept_id": "34436003",
+          "replace_with_preferred_term": "Blood in urine (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter has three coding gaps: proteinuria (1+) is undocumented, and the dipstick and MSU collection procedures are uncoded. The existing haematuria code (236718002) is flagged as unreliable by the terminology server and should be replaced with the verified 'Blood in urine (finding)' (34436003). The combination of 3+ haematuria and proteinuria warrants clinical review for possible renal or urological pathology; if haematuria is confirmed as visible/frank, NG12 2WW criteria should be considered by the reviewing clinician.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4279,
+        "output_tokens": 1672,
+        "total_tokens": 5951,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "4998b682-d38d-4777-8f48-26b361e770b4",
+        "date": "2024-04-12",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "00aa9914-393b-4799-a7a9-eb78af43b002",
+    "patient_id": "6142203497",
+    "date": "2024-04-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "passing blood and clots in my urine",
+          "snomed_concept_id": "197940006",
+          "preferred_term": "Clot hematuria (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "historical",
+          "severity": "critical",
+          "action": "add",
+          "reason": "Patient reports frank haematuria with clots \u2014 a safety-critical red-flag symptom in a 53-year-old male. Although the patient states it has resolved, frank haematuria with clots requires urgent clinical review and possible 2WW urology referral per NICE NG12. Must be coded and actioned by a clinician.",
+          "sentence": "I was passing blood and clots in my urine. I took a course of nitrofurantoin and was asked to provide another sample.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "provide another sample / urine test",
+          "snomed_concept_id": "168132005",
+          "preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Patient has submitted a repeat urine sample following a course of nitrofurantoin. The test type is described as a urine test; microscopy, culture and sensitivities is the standard procedure for post-treatment urine follow-up.",
+          "sentence": "I took a course of nitrofurantoin and was asked to provide another sample.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "\u26a0\ufe0f SAFETY-CRITICAL: This eConsultation has been routed as an administrative test-results request, but contains a clinically significant red-flag finding. The patient (male, DOB 29/09/1970, age ~53) reports frank haematuria with blood clots in urine, treated empirically with nitrofurantoin. Under NICE NG12, frank haematuria in a patient aged \u226545 warrants urgent 2WW urology referral regardless of apparent resolution. The encounter has no clinical codes applied. Two codes are missing: (1) Clot hematuria [CRITICAL] and (2) Microscopy, culture and sensitivities procedure [HIGH]. A clinician must review this eConsult urgently \u2014 it must not be processed as routine admin.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4828,
+        "output_tokens": 1764,
+        "total_tokens": 6592,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "00aa9914-393b-4799-a7a9-eb78af43b002",
+        "date": "2024-04-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0755f7f4-fe07-42b0-b5f2-118745727e08",
+    "patient_id": "6142203497",
+    "date": "2024-07-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "frank haematuria",
+          "severity": "critical",
+          "suggested_assertion": "historical",
+          "reason": "Frank haematuria is a NG12 red-flag symptom; the note documents a previous episode with MSU NAD and the patient is being reviewed this week \u2014 this must be coded with the correct disorder concept, not the wrong substance concept currently in place.",
+          "snomed_search": "frank haematuria",
+          "snomed_concept_id": "197941005",
+          "preferred_term": "Frank hematuria (disorder)",
+          "sentence": "Note prev frank haematuria and MSU NAD - app released with NB this week via PE for review and bloods",
+          "char_start": 130,
+          "char_end": 195
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Lookup confirms concept 702231000000104 resolves to 'DRB1*09012 (substance)' \u2014 a substance concept entirely unrelated to haematuria; the correct concept for frank haematuria is 197941005 (Frank hematuria (disorder)).",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The haematuria code (702231000000104) is critically wrong \u2014 the concept ID resolves to a substance (DRB1*09012), not a haematuria finding; it must be replaced with 197941005 (Frank hematuria (disorder)) with assertion=historical. Frank haematuria is a NG12 red-flag and the patient is being reviewed imminently; correct coding is safety-critical. The PSA measurement code (63476009) is confirmed correct by search despite an unreliable lookup response. Medication review (182836005) is documented (XaF8d) but is likely already captured by the appointment system code and is low priority.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3118,
+        "output_tokens": 1346,
+        "total_tokens": 4464,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "0755f7f4-fe07-42b0-b5f2-118745727e08",
+        "date": "2024-07-02",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+    "patient_id": "6142203497",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "frequency of urination",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Increased urinary frequency is explicitly documented as a presenting symptom at the initial episode ('discomfort, frequency of urination and blood in urine') and is a distinct clinical finding separate from the haematuria already coded.",
+          "snomed_search": "increased frequency of urination",
+          "snomed_concept_id": "162116003",
+          "preferred_term": "Increased frequency of urination (finding)",
+          "sentence": "pt initially rang on duty oncall 5th April with discomfort, frequency of urination and blood in urine, noticed a clot and blood in toilet pan.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "low",
+          "reason": "The generic 'Haematuria NOS' code is redundant given that both the specific disorder codes for Frank hematuria (197941005) and Chemical hematuria (236718002) are already coded from this same encounter; the non-specific code adds no clinical value and may cause duplication in problem lists.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two specific haematuria disorder codes (frank and chemical/dipstick) are correctly applied and the 2WW fast-track urology referral is coded; however, increased urinary frequency \u2014 an explicitly documented presenting symptom \u2014 is missing, and the generic 'Haematuria NOS' code is redundant alongside the two specific subtypes already coded. Note: all four existing concept IDs returned unreliable or semantically incorrect results from the terminology server (organism/substance/qualifier value tags), suggesting a server index issue; the clinical coding logic appears sound based on search confirmation of the concept IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11073,
+        "output_tokens": 1965,
+        "total_tokens": 13038,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+        "date": "2024-07-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "192fde9d-c42d-4a72-a108-c16621d80cc2",
+    "patient_id": "6142203497",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "PSA outside reference range",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The report explicitly states 'Outside reference range' with a PSA of 1,206 ng/ml \u2014 the abnormal result interpretation should be coded as a finding, not just the observable entity.",
+          "snomed_search": "prostate specific antigen above reference range",
+          "snomed_concept_id": "396152005",
+          "preferred_term": "Prostate specific antigen above reference range (finding)",
+          "sentence": "Prostate-specific antigen level (XE25C) 1,206 ng/ml [0 - 3.5] Outside reference range",
+          "char_start": 37,
+          "char_end": 110
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (as coded)",
+          "severity": "medium",
+          "reason": "Concept ID 702231000000104 resolves to 'DRB1*09012 (substance)' \u2014 a completely wrong concept; frank haematuria is already correctly coded at 197941005 and this erroneous duplicate should be removed.",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "396151003",
+          "name": "Referral to urology service for elevated prostate specific antigen (procedure)",
+          "severity": "high",
+          "reason": "The note explicitly instructs to repeat PSA in 4\u20136 weeks and only refer if still elevated; no referral has been made in this encounter \u2014 coding a completed referral procedure is not supported by the text."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is an auto-filed PSA result review with a critically elevated PSA (1,206 ng/ml) and frank haematuria noted in the clinical information. Key issues: (1) concept 702231000000104 is a wrong/invalid code (resolves to a substance, not haematuria) and is a redundant duplicate of the correctly coded 197941005; (2) the PSA-above-reference-range finding (396152005) is missing and is safety-critical given the extreme value; (3) the urology referral procedure (396151003) is overcoded as the note instructs repeat testing before any referral is made \u2014 the referral is conditional and future, not completed. The 2WW referral pathway should be coded once the repeat PSA confirms persistent elevation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4355,
+        "output_tokens": 1698,
+        "total_tokens": 6053,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "192fde9d-c42d-4a72-a108-c16621d80cc2",
+        "date": "2024-07-08",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2422b3d3-e46b-4a1d-b7d8-daef9877fe77",
+    "patient_id": "6142203497",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "medium",
+          "reason": "This UK extension code is redundant: the more specific 'Frank hematuria (disorder)' [197941005] is already coded for the same episode, and lookup_concept returned an unreliable result with the wrong semantic tag ('substance'), casting doubt on the validity of this concept ID itself.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Frank haematuria (197941005) is correctly coded as a specific disorder and captures the safety-critical NG12 red-flag finding; the duplicate 'Hematuria NOS' UK extension code [702231000000104] is redundant and its terminology server lookup returned an incorrect semantic tag ('substance'), suggesting the concept ID may be invalid \u2014 it should be removed. All observable entity codes are pipeline-generated lab values and are appropriate. AKI staging was explicitly 'Not Applicable / No Further Action' so no AKI disorder code is warranted.\"",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7591,
+        "output_tokens": 1897,
+        "total_tokens": 9488,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "2422b3d3-e46b-4a1d-b7d8-daef9877fe77",
+        "date": "2024-07-08",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f7a7706e-3edd-4777-a9cc-acd0062d1833",
+    "patient_id": "6142203497",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "C-reactive protein raised",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The CRP result is explicitly flagged as outside reference range (16 mg/L, ref <10) and the report is marked Abnormal \u2014 the clinical interpretation of a raised CRP should be coded as a finding, not just the observable entity.",
+          "snomed_search": "C-reactive protein raised",
+          "snomed_concept_id": "415068001",
+          "preferred_term": "C-reactive protein raised (finding)",
+          "sentence": "Plasma C-reactive protein level (XE2dy) 16 mg/L [< 10] - Outside reference range",
+          "char_start": 28,
+          "char_end": 88
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "high",
+          "reason": "Concept ID 702231000000104 resolves to 'DRB1*09012 (substance)' \u2014 a genomics substance concept \u2014 not a haematuria finding; the wrong concept ID has been applied. Replace with 197941005 Frank hematuria (disorder), which matches the note text 'episode frank haematuria' exactly.",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (Observable_entity)",
+          "severity": "medium",
+          "reason": "There is no mention of a PSA test or result anywhere in this encounter text; the clinical information references only haematuria and CRP, so this observable entity is not evidenced by this encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two significant coding errors: the haematuria concept ID (702231000000104) maps to a genomics substance rather than a clinical finding and must be replaced with 197941005 Frank hematuria (disorder); the PSA observable entity has no evidential basis in this encounter text. The CRP observable (1001371000000100) is confirmed by search despite an unreliable server lookup, but the abnormal result interpretation (raised CRP) is missing. Note: frank haematuria with raised CRP warrants clinical review for a 2WW/red-flag pathway \u2014 no explicit 2WW referral is documented in this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5021,
+        "output_tokens": 1593,
+        "total_tokens": 6614,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "f7a7706e-3edd-4777-a9cc-acd0062d1833",
+        "date": "2024-07-08",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4cb69548-39c8-4662-9416-fc1caef35e97",
+    "patient_id": "6142203497",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "frank haematuria",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Frank (visible/macroscopic) haematuria is explicitly documented in the clinical details and is an NG12 red-flag symptom; the currently coded concept (702231000000104) is a substance (HLA allele) and does not represent this finding at all \u2014 the correct disorder code must be applied.",
+          "snomed_search": "frank haematuria",
+          "snomed_concept_id": "197941005",
+          "preferred_term": "Frank hematuria (disorder)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: episode frank haematuria, prev MSU NAD growth.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "DRB1*09012 (substance) \u2014 miscoded as Hematuria NOS",
+          "severity": "critical",
+          "reason": "Concept 702231000000104 resolves to an HLA substance (DRB1*09012), not a haematuria finding; this is a wrong concept ID that must be replaced with 197941005 Frank hematuria (disorder).",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "notes": "The haematuria code is critically wrong: concept 702231000000104 resolves to \"DRB1*09012 (substance)\" \u2014 an HLA allele, not a clinical finding. Frank haematuria must be coded as 197941005 (Frank hematuria, disorder). This is safety-critical as frank/visible haematuria is an NG12 red-flag symptom requiring 2WW urology referral consideration; the incorrect code means this finding is invisible to clinical decision support and safety-netting tools. The five observable entity lab codes are appropriate and correctly asserted.",
+      "confidence": 0.97,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3739,
+        "output_tokens": 1144,
+        "total_tokens": 4883,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "4cb69548-39c8-4662-9416-fc1caef35e97",
+        "date": "2024-07-08",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b9098e3c-4f04-4107-8fcc-4edeac5652da",
+    "patient_id": "6142203497",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "conceptId": "702231000000103",
+          "term": "Hematuria NOS (finding)",
+          "assertion": "present",
+          "severity": "high",
+          "issue": "wrong_concept_id",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "reason": "Coded concept ID resolves to a substance (DRB1*09012), not a haematuria finding; correct concept is 197941005 Frank hematuria (disorder)"
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "The haematuria concept [702231000000103] is coded with the wrong SNOMED ID \u2014 lookup confirms it resolves to a substance (DRB1*09012), not a clinical finding. It should be replaced with 197941005 'Frank hematuria (disorder)', which is the consistent top hit from search_snomed for 'frank haematuria' / 'visible haematuria'. All bone profile observable entity codes are correctly written by the structured lab pipeline and are appropriate. The bone profile result is normal (no further action) so no disorder code is warranted. 'Prev MSU NAD growth' is a historical negative result and correctly not coded.",
+      "confidence": 0.88,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5855,
+        "output_tokens": 1346,
+        "total_tokens": 7201,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "b9098e3c-4f04-4107-8fcc-4edeac5652da",
+        "date": "2024-07-08",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e28e4c40-40d8-4938-8fde-7c81ebb958ac",
+    "patient_id": "6142203497",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding) \u2014 as labelled in coded list",
+          "severity": "medium",
+          "reason": "Lookup confirms concept ID 702231000000104 resolves to 'DRB1*09012 (substance)' \u2014 a substance concept with no relation to haematuria; this is a wrong concept ID and is also a duplicate of the correctly coded Frank hematuria (disorder) [197941005] already present in the coded list.",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The key safety-critical finding \u2014 frank haematuria \u2014 is correctly captured by concept 197941005 (Frank hematuria, disorder). However, concept 702231000000104, labelled 'Hematuria NOS', resolves on the terminology server to a substance concept (DRB1*09012) unrelated to haematuria; it is both a wrong concept ID and a duplicate of 197941005, and should be removed. LFT results (ALT 37, bilirubin 9) are within range and require no additional clinical interpretation coding. The PSA value of 1206 ng/ml is a raw numeric \u2014 no explicit clinical interpretation (e.g. raised PSA) is documented in this auto-filed note, so no additional disorder code is warranted from this encounter alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3577,
+        "output_tokens": 1306,
+        "total_tokens": 4883,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "e28e4c40-40d8-4938-8fde-7c81ebb958ac",
+        "date": "2024-07-08",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1e2a04f7-bf32-4e3c-9ca5-e6e821ff6663",
+    "patient_id": "6142203497",
+    "date": "2024-07-08",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is a phlebotomy service visit containing only administrative workflow text (consent, sample type, referral source, phlebotomist attendance); there is no clinical narrative, diagnosis, symptom, or examination finding to code. The 7 observable entity codes (U&Es, eGFR, creatinine, PSA, INR) are structured lab pipeline codes and are correctly excluded from encounter-level audit per policy. The markedly elevated PSA value (1,206 ng/mL) would require clinical coding action in a separate GP review encounter, not here.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3402,
+        "output_tokens": 904,
+        "total_tokens": 4306,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "1e2a04f7-bf32-4e3c-9ca5-e6e821ff6663",
+        "date": "2024-07-08",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "188d4f04-8b5c-4f10-93ab-aa63eed74746",
+    "patient_id": "6142203497",
+    "date": "2024-07-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The encounter documents a 2WW Urology referral for suspected prostate cancer, not a breast cancer fast-track referral; this is the wrong cancer pathway code and will cause serious cancer pathway tracking and audit failures.",
+          "replace_with_concept_id": "276431000000102",
+          "replace_with_preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "One critical overcoding error: the 2WW referral is coded as 'Fast track referral for suspected breast cancer' (276341000000100) when the encounter clearly documents a 2WW Urology referral for suspected prostate cancer \u2014 this must be replaced with 276431000000102 'Fast track referral for suspected urological cancer'. All other codes (PSA observable, eGFR observable, prostate mass finding, suspected prostate malignancy, DRE procedure, chaperone declined) are clinically appropriate and correctly asserted; the unreliable lookup returns for 315268008 and 763380007 were confirmed correct via search_snomed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8757,
+        "output_tokens": 1400,
+        "total_tokens": 10157,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "188d4f04-8b5c-4f10-93ab-aa63eed74746",
+        "date": "2024-07-11",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "41af1f6a-9841-4ff4-b532-c9c737bab465",
+    "patient_id": "6142203497",
+    "date": "2024-07-24",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "19bc7a8e-7022-4c51-83f3-677392b85f0a",
+    "patient_id": "6142203497",
+    "date": "2024-07-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "inflammatory skin lesion upper back",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The examination documents 2 red circular inflamed lesions with yellow centres plus 2 further smaller lesions on the upper back \u2014 a disorder-level code is required; the current code 708039003 is a morphologic abnormality (wrong semantic tag) and does not constitute a valid clinical encounter code.",
+          "snomed_search": "skin lesion disorder",
+          "snomed_concept_id": "95324001",
+          "preferred_term": "Skin lesion (disorder)",
+          "sentence": "Examination: 2 red circular looking lesions to upper back. one appears yellow in centre. Lesions appear inflammed. Not weeping.",
+          "char_start": 390,
+          "char_end": 490
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "708039003",
+          "name": "Inflammatory lesion (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "This is a morphologic abnormality concept, not a disorder or finding \u2014 it is not appropriate for clinical encounter coding; it should be replaced with a disorder-level skin lesion code.",
+          "replace_with_concept_id": "95324001",
+          "replace_with_preferred_term": "Skin lesion (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The prostate cancer code (399068003) is correct and confirmed by search_snomed despite an unreliable lookup_concept response. The skin lesion code (708039003) uses the wrong semantic tag \u2014 'morphologic abnormality' concepts are histopathological descriptors and must not be used as standalone clinical encounter codes; it should be replaced with a disorder-level code such as Skin lesion (disorder) 95324001, or a more specific inflammatory/infective skin disorder if the clinician can confirm the diagnosis (e.g. folliculitis/furunculosis given the pustular appearance and fusidic acid treatment). The concern about back lesions in the context of recently diagnosed prostate cancer is clinically noted but the GP has assessed these as infective/inflammatory and treated accordingly.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8624,
+        "output_tokens": 1698,
+        "total_tokens": 10322,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "19bc7a8e-7022-4c51-83f3-677392b85f0a",
+        "date": "2024-07-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ff9a549d-50e3-4fd3-8243-65aa6cb4d698",
+    "patient_id": "6142203497",
+    "date": "2024-07-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "needle phobic",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly states they are needle phobic and is struggling with ongoing degarelix injections required for prostate cancer treatment \u2014 this is clinically significant and directly impacts the management plan.",
+          "snomed_search": "needle phobia",
+          "snomed_concept_id": "231501003",
+          "preferred_term": "Needle phobia (finding)",
+          "sentence": "Struggled as needle phobic.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "2 marks on back / ring-shaped lesions",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Two enlarging, red, ring-shaped, peeling lesions on the back are the primary reason for the urgent f2f appointment and require a clinical disorder/finding code; the currently coded body structure concept (66643007) does not capture this as a clinical finding.",
+          "snomed_search": "skin lesion back",
+          "snomed_concept_id": "95324001",
+          "preferred_term": "Skin lesion (disorder)",
+          "sentence": "Has 2 marks on back for past 3-4 weeks. Not sure what they are. Feels like 2 rings. No itching. Feels slightly larger. Red in colour more around edges. Now feels starting to peel.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "66643007",
+          "name": "Skin structure of back (body structure)",
+          "severity": "medium",
+          "reason": "This is a body structure anatomical concept, not a clinical disorder or finding \u2014 it does not represent the skin lesions described in the note and falls outside the valid SNOMED coding scope for clinical encounters; replace with a skin lesion disorder code.",
+          "replace_with_concept_id": "95324001",
+          "replace_with_preferred_term": "Skin lesion (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Three substantive issues found: (1) the back lesions are coded with an anatomical body structure concept (66643007) rather than a clinical disorder \u2014 this should be replaced with Skin lesion (disorder) 95324001 pending f2f review (tinea corporis should only be coded once confirmed at the face-to-face appointment); (2) needle phobia (231501003) is explicitly documented and clinically significant given ongoing degarelix injections are required; (3) the prostate cancer (399068003) and GAD (21897009) codes are confirmed correct by search_snomed despite unreliable lookup_concept responses \u2014 the degarelix substance code (441864003) is within scope but a medication administration procedure code would be more precise. Note: sertraline dose increase to 150mg is a medication change and lives in the medication record, not the encounter coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9241,
+        "output_tokens": 2060,
+        "total_tokens": 11301,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "ff9a549d-50e3-4fd3-8243-65aa6cb4d698",
+        "date": "2024-07-30",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "04c0f659-0e49-4dd3-b210-afd6b4912d0e",
+    "patient_id": "6142203497",
+    "date": "2024-08-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "DRB1*09012 (substance)",
+          "severity": "critical",
+          "reason": "This concept ID resolves to an HLA allele substance, not a clinical finding; it was applied to represent a 2.5-month 2WW referral delay for T4N1M1 prostate cancer \u2014 a critical patient safety event that requires a correct SNOMED code.",
+          "replace_with_concept_id": "397604009",
+          "replace_with_preferred_term": "Reason for referral delay (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Concept [276341000000100] is critically miscoded \u2014 it resolves to an HLA substance (DRB1*09012) rather than any clinical finding, and must be replaced with a referral delay finding code (397604009) to correctly capture the 2.5-month 2WW delay for a T4N1M1 prostate cancer, which is a serious patient safety incident. Concept [819261000000100] returned unreliable on lookup but is confirmed as 'Review of significant event (procedure)' via search and is clinically appropriate for the Duty of Candour/significant event review documented; concept [399068003] is confirmed correct for malignant neoplasm of prostate via search despite an unreliable lookup response. The note also references a Duty of Candour process being initiated \u2014 if a dedicated DoC procedure code is required locally, consider adding 819231000000105 'Reporting of significant event (procedure)'.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4954,
+        "output_tokens": 1346,
+        "total_tokens": 6300,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "04c0f659-0e49-4dd3-b210-afd6b4912d0e",
+        "date": "2024-08-29",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "52d77a93-0f55-4024-8c3c-39cf26991a32",
+    "patient_id": "6142203497",
+    "date": "2024-09-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "right hip replacement last year",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly states 'had rt hip replaced last year' \u2014 a significant historical surgical procedure that should be coded.",
+          "snomed_search": "total replacement right hip joint",
+          "snomed_concept_id": "443435007",
+          "preferred_term": "Total replacement of right hip joint (procedure)",
+          "sentence": "has had rt hip replaced last year also has arthritic pains in his left hip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "307121000119100",
+          "name": "Enteropathic arthritis of left hip (disorder)",
+          "severity": "high",
+          "reason": "The note describes 'arthritic pains in his left hip' with no evidence of enteropathic (inflammatory bowel disease-associated) arthritis; the correct concept is osteoarthritis of the left hip joint. Furthermore, lookup_concept returned semantic_tag='substance' for this ID, confirming it is not a valid disorder code in this context.",
+          "replace_with_concept_id": "323291000119108",
+          "replace_with_preferred_term": "Osteoarthritis of left hip joint (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The prostate cancer code (399068003) and mixed anxiety/depressive disorder code (231504006) are both confirmed correct by SNOMED search despite unreliable lookup responses. The left hip arthritis code (307121000119100) is wrong on two counts: the concept ID resolves to a 'substance' in the terminology server (not a disorder), and 'enteropathic arthritis' is clinically unsupported \u2014 the note simply says 'arthritic pains in his left hip', which maps to osteoarthritis of the left hip joint (323291000119108). The historical right hip replacement is a clinically significant missing procedure code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8764,
+        "output_tokens": 1773,
+        "total_tokens": 10537,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "52d77a93-0f55-4024-8c3c-39cf26991a32",
+        "date": "2024-09-19",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2fd188a7-1d95-45e0-a30d-6c6a43777d47",
+    "patient_id": "6142203497",
+    "date": "2024-09-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum LDL cholesterol level 3.4 mmol/L",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "LDL cholesterol of 3.4 mmol/L is above the general desirable threshold (<3.0 mmol/L) and the lab note explicitly highlights its relevance for treatment escalation decisions; this abnormal finding should be coded alongside the total cholesterol result.",
+          "snomed_search": "LDL cholesterol above reference range",
+          "snomed_concept_id": "",
+          "preferred_term": "",
+          "sentence": "Serum LDL cholesterol level (44P6.) 3.4 mmol/L",
+          "char_start": 120,
+          "char_end": 165
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The existing code 166830008 (Serum cholesterol above reference range) is clinically appropriate for total cholesterol 6.1 mmol/L and is consistent with search_snomed results, though the terminology server returned it as unreliable/Extension Namespace \u2014 it should not be deleted on that basis alone. LDL 3.4 mmol/L is an additional abnormal finding explicitly highlighted in the lab report for treatment decision-making and warrants a separate code; however, the preferred SNOMED concept ID for LDL above reference range (445445006) could not be confirmed by the terminology server, so a human coder should verify the correct concept ID before applying it. Triglycerides and HDL are within reference range and do not require coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5309,
+        "output_tokens": 1566,
+        "total_tokens": 6875,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "2fd188a7-1d95-45e0-a30d-6c6a43777d47",
+        "date": "2024-09-27",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dcc9ec89-71bf-404b-8f61-cd6aac5a55a1",
+    "patient_id": "6142203497",
+    "date": "2024-09-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bp reading raised in surgery",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a raised BP reading in surgery (130/90) with a 'white coat?' query \u2014 the clinical finding of raised in-surgery BP is not captured; the existing code 75367002 is an observable entity (measurement), not the clinical finding.",
+          "snomed_search": "blood pressure reading raised",
+          "snomed_concept_id": "163027005",
+          "preferred_term": "On examination - blood pressure reading raised (finding)",
+          "sentence": "Plan: bp reading from home - rasied in surgery - white coat?",
+          "char_start": 55,
+          "char_end": 107
+        },
+        {
+          "term": "AUDIT-C questionnaire score 6",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The AUDIT-C consumption questionnaire was completed and scored 6 during this NHS Health Check; the assessment procedure itself should be coded alongside the heavy drinker finding.",
+          "snomed_search": "AUDIT-C alcohol consumption score",
+          "snomed_concept_id": "763302001",
+          "preferred_term": "Assessment using Alcohol Use Disorders Identification Test - Consumption (procedure)",
+          "sentence": "Alcohol use disorder identificatn test consumptn questionnre (XaORP) 6",
+          "char_start": 390,
+          "char_end": 460
+        },
+        {
+          "term": "Lipids (Requested)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A lipid panel was explicitly requested and blood was taken by the practice phlebotomist during this encounter; the investigation request/procedure should be coded.",
+          "snomed_search": "lipid panel",
+          "snomed_concept_id": "16254007",
+          "preferred_term": "Lipid panel (procedure)",
+          "sentence": "Pathology Request (Complete): Lipids (Requested)",
+          "char_start": 1050,
+          "char_end": 1098
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The six existing codes are all clinically appropriate and correctly asserted for this NHS Health Check encounter. Three additions are warranted: the in-surgery raised BP finding (distinct from the observable entity measurement already coded), the AUDIT-C-C procedure (score 6 documented in full), and the lipid panel procedure (blood taken and request confirmed). The 'white coat?' annotation does not negate the raised reading \u2014 it is a clinical observation requiring coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9460,
+        "output_tokens": 1829,
+        "total_tokens": 11289,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "dcc9ec89-71bf-404b-8f61-cd6aac5a55a1",
+        "date": "2024-09-27",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c90577ce-d958-4791-bf95-b5495176839f",
+    "patient_id": "6142203497",
+    "date": "2024-11-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "difficulty with word finding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as an active symptom ('Some difficulty with word finding') in a patient on chemotherapy; may indicate chemotherapy-related cognitive impairment or a neurological concern requiring monitoring.",
+          "snomed_search": "word finding difficulty",
+          "snomed_concept_id": "229738006",
+          "preferred_term": "Word finding difficulty (disorder)",
+          "sentence": "Some difficulty with word finding.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "blood when blowing nose",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Active epistaxis/nasal bleeding is documented and clinically relevant in a patient on chemotherapy (thrombocytopenia risk); patient has already discussed with consultant.",
+          "snomed_search": "bleeding from nose",
+          "snomed_concept_id": "249366005",
+          "preferred_term": "Bleeding from nose (finding)",
+          "sentence": "Blood when blowing nose - has spoken with consultant re. this.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "802921000000105",
+          "name": "Androgen deprivation therapy (procedure) [coded as 802921000000105]",
+          "severity": "medium",
+          "reason": "Concept ID 802921000000105 is unreliable \u2014 the terminology server returns it as an 'organism' semantic tag, not a procedure; the correct SNOMED concept for Androgen deprivation therapy is 707266006.",
+          "replace_with_concept_id": "707266006",
+          "replace_with_preferred_term": "Androgen deprivation therapy (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1255831008",
+          "name": "Chemotherapy for malignant neoplastic disease using targeted agent (procedure)",
+          "severity": "medium",
+          "reason": "The note states only 'halfway through 2nd round of chemotherapy' with no specification of targeted agent; the more specific 'targeted agent' qualifier is not supported by the encounter text and 367336001 Chemotherapy (procedure) is more appropriate.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two procedure concept IDs have reliability issues (802921000000105 returns as 'organism'; 1255831008 over-specifies 'targeted agent' without textual support) and should be replaced with verified SNOMED codes. Two active clinical findings \u2014 word-finding difficulty and nasal bleeding \u2014 are documented but uncoded; word-finding difficulty in a chemotherapy patient warrants particular clinical attention.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4845,
+        "output_tokens": 1737,
+        "total_tokens": 6582,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "c90577ce-d958-4791-bf95-b5495176839f",
+        "date": "2024-11-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3f89e97f-e257-41c7-9a8c-30908f9eb3d3",
+    "patient_id": "6142203497",
+    "date": "2024-12-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "redness and irritation at injection site",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The nurse explicitly documents ongoing injection site erythema and irritation that is worsening (taking longer to settle since chemotherapy), and the patient is being referred to oncology about it \u2014 this is an active clinical finding that should be coded.",
+          "snomed_search": "injection site erythema",
+          "snomed_concept_id": "213338000",
+          "preferred_term": "Injection site erythema (disorder)",
+          "sentence": "Has always experienced slight redness and irritation at injection site since starting Degarlix but says since chemo, the redness that he experiences is taking longer to settle.",
+          "char_start": 196,
+          "char_end": 370
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The existing prostate malignancy code (399068003) is correct \u2014 confirmed as 'Malignant neoplasm of prostate (disorder)' via search despite an unreliable lookup response. The clinically significant injection site erythema, which is worsening and being escalated to oncology, is missing from the coded list. The reference to chemotherapy is noted but likely already on the problem list and is not explicitly managed in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5496,
+        "output_tokens": 1189,
+        "total_tokens": 6685,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "3f89e97f-e257-41c7-9a8c-30908f9eb3d3",
+        "date": "2024-12-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1db4c536-26a1-4eab-801b-c5c5929207cc",
+    "patient_id": "6142203497",
+    "date": "2025-02-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "413943001",
+          "name": "Date chemotherapy completed (observable entity)",
+          "severity": "medium",
+          "reason": "This is a date-slot observable entity (a data field for recording when chemotherapy ended), not a clinical procedure or finding; the note states 'completed course of chemotherapy last week' which should be coded as the chemotherapy procedure with a historical assertion.",
+          "replace_with_concept_id": "367336001",
+          "replace_with_preferred_term": "Chemotherapy (procedure)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four coded concepts are appropriate and well-evidenced: prostate malignancy (399068003), androgen deprivation therapy (802921000000105), and subcutaneous gonadorelin analogue injection (892651000000109). The fourth code (413943001 'Date chemotherapy completed') is a date-slot observable entity incorrectly used to represent a completed chemotherapy course; it should be replaced with 367336001 Chemotherapy (procedure) with assertion=historical. Note: a scan and consultant review are scheduled but have not yet occurred and should not be coded as present procedures.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9651,
+        "output_tokens": 1464,
+        "total_tokens": 11115,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "1db4c536-26a1-4eab-801b-c5c5929207cc",
+        "date": "2025-02-13",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5b1414d6-665e-44ab-8e51-5adaa54dbe00",
+    "patient_id": "6142203497",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "localised reaction around injection site",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a localised reaction at the Degarelix injection site, with antihistamines advised and a plan to discuss with the consultant \u2014 this is an active, clinically managed adverse finding that should be coded.",
+          "snomed_search": "injection site disorder",
+          "snomed_concept_id": "95376002",
+          "preferred_term": "Injection site disorder (disorder)",
+          "sentence": "Continues to experience localised reaction around injection site.",
+          "char_start": 148,
+          "char_end": 207
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing code for malignant neoplasm of prostate is correct and the Degarelix subcutaneous injection procedure is captured via the structured drug injection template. The key gap is the documented localised injection site reaction \u2014 an active, clinically managed adverse finding for which antihistamines were advised and consultant review planned; this warrants a disorder code (best candidate 95376002 Injection site disorder, though the terminology server returned an unreliable result for this concept ID and a human coder should verify the preferred term before applying it). The planned consultant discussion about switching drug is a future event and does not require coding at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8337,
+        "output_tokens": 1175,
+        "total_tokens": 9512,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "5b1414d6-665e-44ab-8e51-5adaa54dbe00",
+        "date": "2025-03-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "984b01e4-67b4-4b8f-93ce-282e0273df81",
+    "patient_id": "6142203497",
+    "date": "2025-05-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "right total hip replacement",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly states the patient 'had right THR and feels much better for it', indicating a past surgical procedure that should be coded.",
+          "snomed_search": "total hip replacement",
+          "snomed_concept_id": "52734007",
+          "preferred_term": "Total replacement of hip (procedure)",
+          "sentence": "Worried left hip pain is similar to right hip pain, had right THR and feels much better for it.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "muscle weakness secondary to chemotherapy / deconditioning",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician's impression explicitly documents 'deconditioned and weak secondary to chemo' as a current active finding contributing to the presentation, which warrants coding.",
+          "snomed_search": "muscle weakness",
+          "snomed_concept_id": "26544005",
+          "preferred_term": "Muscle weakness (finding)",
+          "sentence": "Impression: posssible early OA, deconditioned and weak secondary to chemo",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The coded concept 266987004 is returning as a substance (unreliable/wrong concept ID); the note documents a specific history of prostate cancer which should be coded with the more specific concept 428262008 'History of malignant neoplasm of prostate (situation)' \u2014 replace this code."
+        },
+        {
+          "conceptId": "239872002",
+          "name": "Osteoarthritis of hip (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician documents 'possible early OA' as a differential diagnosis only; the assertion should be 'possible' rather than 'present', and a lateralised code (323291000119108 \u2014 Osteoarthritis of left hip joint) would be more specific given the left-sided presentation."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Two existing codes have issues: 266987004 should be replaced with the more specific 428262008 'History of malignant neoplasm of prostate (situation)', and the OA code assertion must change from 'present' to 'possible' (differential only) with consideration of the lateralised left hip code (323291000119108). Two additional findings are missing: historical right THR and active muscle weakness/deconditioning secondary to chemotherapy as documented in the clinical impression.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6032,
+        "output_tokens": 1684,
+        "total_tokens": 7716,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "984b01e4-67b4-4b8f-93ce-282e0273df81",
+        "date": "2025-05-19",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "744cbc67-65ed-48e4-b04f-07ab0a4b45ec",
+    "patient_id": "6142203497",
+    "date": "2025-06-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Subcutaneous injection of gonadorelin analogue",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The procedure is explicitly documented and performed in this encounter (Degarelix 80mg s/c abdomen) but is absent from the submitted coded concept list.",
+          "snomed_search": "subcutaneous injection gonadorelin analogue",
+          "snomed_concept_id": "892651000000109",
+          "preferred_term": "Subcutaneous injection of gonadorelin analogue (procedure)",
+          "sentence": "Given: Subcutaneous injection of gonadorelin analogue (XaamT)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "localised redness and rash post injection",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "An active, ongoing injection site reaction (redness and rash) is explicitly documented as a current finding known to the specialist team, and should be coded.",
+          "snomed_search": "injection site eruption",
+          "snomed_concept_id": "860897009",
+          "preferred_term": "Injection site eruption (disorder)",
+          "sentence": "Continues to experience localised redness and rash post injection which specialist team are aware of - recommend not to prime needle prior to injection.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing prostate malignancy code (399068003) is correct \u2014 lookup_concept returned an unreliable result due to a server index issue, but search_snomed confirms the concept ID and preferred term are valid. Two coding gaps identified: the GnRH analogue injection procedure performed in this encounter is not in the coded list, and the ongoing injection site reaction (redness/rash) is an active documented finding that warrants coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5396,
+        "output_tokens": 1251,
+        "total_tokens": 6647,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "744cbc67-65ed-48e4-b04f-07ab0a4b45ec",
+        "date": "2025-06-05",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e8dedeea-5354-40e3-a1e1-1348e617fbf0",
+    "patient_id": "6142203497",
+    "date": "2025-06-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter is a patient-initiated online medication request for Degarelix 80mg injection. No clinical narrative, examination, diagnosis, or plan is present. Administrative-only content \u2014 no coding action required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 370,
+        "output_tokens": 257,
+        "total_tokens": 627,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "e8dedeea-5354-40e3-a1e1-1348e617fbf0",
+        "date": "2025-06-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "de3a3b5c-72db-4b53-913d-5155323b2ee1",
+    "patient_id": "6142203497",
+    "date": "2025-06-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "soreness and swelling at injection site",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reports significant soreness and swelling at the abdominal Degarelix injection site; injection site swelling (disorder) should be coded in place of or alongside the incorrectly coded morphologic abnormality concept.",
+          "snomed_search": "injection site swelling",
+          "snomed_concept_id": "213340005",
+          "preferred_term": "Injection site swelling (disorder)",
+          "sentence": "The last two or three have been very antagonistic and caused significant soreness and swelling in/on my abdomen.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "soreness at injection site",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reports significant soreness (pain) at the abdominal Degarelix injection site, which should be coded as a distinct injection site pain disorder.",
+          "snomed_search": "injection site pain",
+          "snomed_concept_id": "95388000",
+          "preferred_term": "Injection site pain (disorder)",
+          "sentence": "The last two or three have been very antagonistic and caused significant soreness and swelling in/on my abdomen.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "13136005",
+          "name": "Injection site (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "Concept 13136005 resolves to a morphologic abnormality qualifier value (confirmed by both lookup and SNOMED search), not a disorder or finding; it does not correctly represent the patient's reported injection site soreness and swelling and should be replaced with the specific disorder codes for injection site pain (95388000) and injection site swelling (213340005).",
+          "replace_with_concept_id": "213340005",
+          "replace_with_preferred_term": "Injection site swelling (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary coding error is the use of concept 13136005 ('Injection site', a morphologic abnormality qualifier value) to represent the patient's reported injection site soreness and swelling \u2014 this should be replaced with the clinically specific disorder codes 95388000 (Injection site pain) and 213340005 (Injection site swelling). The prostate cancer and androgen deprivation therapy codes are appropriate and consistent with the problem list. Relugolix is discussed as a future/planned medication change only and should not be coded at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6908,
+        "output_tokens": 1611,
+        "total_tokens": 8519,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "de3a3b5c-72db-4b53-913d-5155323b2ee1",
+        "date": "2025-06-24",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7093e9ee-69a3-460e-889d-dcfb086a944e",
+    "patient_id": "6142203497",
+    "date": "2025-06-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "reaction to Degarelix injection",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The patient experienced a clinically significant adverse reaction to his Degarelix (hormonal) injection requiring A&E attendance; this is the primary clinical reason for the consultation and must be coded.",
+          "snomed_search": "adverse reaction following injection",
+          "snomed_concept_id": "1155807002",
+          "preferred_term": "Adverse reaction following injection of substance (disorder)",
+          "sentence": "recently the hormonal injections Degaralix havent been suiting- had a reaction he feels last time, was in A&E, but also thought to be possible infection as CRP was raised and had a temp.",
+          "char_start": 196,
+          "char_end": 358
+        },
+        {
+          "term": "PSA levels now under control",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly documents that PSA levels are now under control following treatment, representing a clinically relevant finding about disease response that should be coded.",
+          "snomed_search": "prostate specific antigen reference range",
+          "snomed_concept_id": "166159005",
+          "preferred_term": "Prostate specific antigen within reference range (finding)",
+          "sentence": "has been treated and PSA levels now under control. very pleased with the progress.",
+          "char_start": 891,
+          "char_end": 972
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing prostate malignancy code (399068003) is clinically correct despite the terminology server returning an unreliable lookup \u2014 search_snomed confirms the concept ID is valid. Two coding gaps identified: (1) the adverse reaction to Degarelix injection prompting A&E attendance is the primary clinical reason for this encounter and is uncoded; (2) the documented treatment response with PSA now within normal range is a codeable finding. Note: future prescribing of Orgovyx is discussed but not yet actioned, so no procedure code is warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4719,
+        "output_tokens": 1344,
+        "total_tokens": 6063,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "7093e9ee-69a3-460e-889d-dcfb086a944e",
+        "date": "2025-06-25",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cc19071e-82d8-46eb-9955-a476b12c8258",
+    "patient_id": "6142203497",
+    "date": "2025-07-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "red rash to injection site",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The nurse explicitly documents a recurrent injection site rash lasting ~7 days as a current side effect of Firmagon; this is a clinically relevant finding that should be coded.",
+          "snomed_search": "injection site eruption",
+          "snomed_concept_id": "860897009",
+          "preferred_term": "Injection site eruption (disorder)",
+          "sentence": "experiencing some side effects from injection, develops a red rash to injection site which lasts around 7 days.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing prostate malignancy code is appropriate. The injection site rash (eruption) is explicitly documented as an active, recurring side effect of the Firmagon injection and is not coded; this should be added. Note: lookup_concept returned unreliable results for both concepts checked \u2014 the search_snomed candidate for injection site eruption (860897009) was used on the basis of the search result alone; human review of the concept ID is advisable. The hospital discussion about the rash is planned but has not yet occurred so no further action code is needed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5239,
+        "output_tokens": 1065,
+        "total_tokens": 6304,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "cc19071e-82d8-46eb-9955-a476b12c8258",
+        "date": "2025-07-30",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "163368f9-3714-46ef-b061-bcf0fb93315d",
+    "patient_id": "6142203497",
+    "date": "2025-08-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "Two of the three coded concept IDs are unreliable: 266987004 resolves to a substance (DRB1*08032) rather than the expected 'History of malignant neoplasm (situation)', and 118117001 resolves to a qualifier value rather than a procedure \u2014 both IDs appear to be incorrect or corrupted in this terminology server instance. Lynch syndrome (716318002) is confirmed correct by direct search. The MSH2 gene mutation detected finding has no exact SNOMED match available from the search results, so no replacement concept ID can be proposed; human review is recommended to verify the correct SNOMED codes for the prostate cancer history situation and the gene mutation analysis procedure/finding, and to source a specific MSH2 gene mutation detected concept (e.g. from a national extension namespace if available).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3440,
+        "output_tokens": 1231,
+        "total_tokens": 4671,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "163368f9-3714-46ef-b061-bcf0fb93315d",
+        "date": "2025-08-28",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2381ea23-e73c-4649-b1c7-ba6ea0fc77ff",
+    "patient_id": "6142203497",
+    "date": "2025-09-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "medication review by clinical pharmacist",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly a pharmacist-led medication review with structured drug review documentation; this procedure should be coded.",
+          "snomed_search": "medication review procedure",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "sentence": "Review done by: Medication review done by clinical pharmacist (Y20a8)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "high risk for further developing cancer",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient was told he is at high risk for further developing cancer, which is a clinically significant finding that has directly impacted his mental health and should be coded.",
+          "snomed_search": "high risk cancer recurrence",
+          "snomed_concept_id": null,
+          "preferred_term": null,
+          "sentence": "Was told he is on high risk for further developing cancer and this has thrown his MH off guard",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "sleep disturbance",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reported struggling to sleep due to joint pain following Degarelix injection, constituting a documented sleep disturbance finding.",
+          "snomed_search": "sleep disturbance",
+          "snomed_concept_id": null,
+          "preferred_term": null,
+          "sentence": "struggled to sleep due to pain in joints",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "802921000000105",
+          "name": "Androgen deprivation therapy (as coded)",
+          "severity": "medium",
+          "reason": "Concept ID 802921000000105 is unreliable \u2014 the terminology server returns semantic_tag='organism', indicating a corrupted or invalid mapping; the correct SNOMED procedure concept for androgen deprivation therapy is 707266006.",
+          "replace_with_concept_id": "707266006",
+          "replace_with_preferred_term": "Androgen deprivation therapy (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "13136005",
+          "name": "Injection site (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "Concept 13136005 is a morphologic abnormality (structural anatomy concept), not a clinical disorder or finding; the note describes a localised skin reaction at the injection site, which is better represented by 95376002 Injection site disorder (disorder).",
+          "replace_with_concept_id": "95376002",
+          "replace_with_preferred_term": "Injection site disorder (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "62014003",
+          "name": "Adverse reaction caused by drug (disorder)",
+          "severity": "low",
+          "reason": "Concept ID 62014003 returned an Extension Namespace placeholder from the terminology server and cannot be confirmed as valid; if an adverse drug reaction code is required, a verified concept should be substituted after local terminology server confirmation."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "21897009",
+          "name": "Generalized anxiety disorder (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note documents the patient 'feeling more anxious' with MH discussed and Sertraline trialled, but does not explicitly diagnose GAD; a 'possible' or new anxiety disorder assertion is more accurate than a confirmed present GAD diagnosis at this stage."
+        }
+      ],
+      "confidence": 0.78,
+      "notes": "Several concept IDs in the coded list are unreliable or semantically incorrect (802921000000105 returns 'organism', 13136005 returns 'morphologic abnormality', 62014003 returns Extension Namespace placeholder) and require replacement with verified SNOMED codes. The anxiety disorder coding is over-specified given the note only documents increased anxiety with a Sertraline trial rather than a confirmed GAD diagnosis. A medication review procedure code and the clinically significant 'high cancer risk' finding are missing. Note also that Sertraline is prescribed at 200mg OD which is at the maximum licensed UK dose \u2014 while the drug itself is out of coding scope, the prescribing clinician should verify this is intentional for a new initiation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10265,
+        "output_tokens": 2354,
+        "total_tokens": 12619,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "2381ea23-e73c-4649-b1c7-ba6ea0fc77ff",
+        "date": "2025-09-02",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "93785136-3e02-4df5-b18d-4657dcb8b604",
+    "patient_id": "6142203497",
+    "date": "2025-09-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "aching all over",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reported generalised muscle aching after last Degarelix injection \u2014 a distinct finding from fatigue that should be coded separately as myalgia/muscle pain.",
+          "snomed_search": "myalgia",
+          "snomed_concept_id": "68962001",
+          "preferred_term": "Muscle pain (finding)",
+          "sentence": "Says after last injection felt lethargic and aching all over the following day.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "skin rash",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Skin rash is explicitly documented as an ongoing (though improving) post-injection finding and should be coded as an active finding at this encounter.",
+          "snomed_search": "skin rash",
+          "snomed_concept_id": "271807003",
+          "preferred_term": "Eruption of skin (disorder)",
+          "sentence": "Skin rash less then previous.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Core diagnoses (prostate malignancy, Lynch syndrome) are correctly coded. Two post-injection side effects \u2014 muscle pain and skin rash \u2014 are documented but uncoded. The fatigue concept ID (272060000) is unverifiable and should be replaced with the standard SNOMED code 84229001. Lynch syndrome coding is appropriate given the explicit genetics letter reference and active Royal Marsden referral documented in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7847,
+        "output_tokens": 1695,
+        "total_tokens": 9542,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "93785136-3e02-4df5-b18d-4657dcb8b604",
+        "date": "2025-09-25",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "916cf141-5319-4784-96eb-40c6dd57d777",
+    "patient_id": "6142203497",
+    "date": "2025-10-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "648168c8-27cf-4ee8-a310-2d209113ef34",
+    "patient_id": "6142203497",
+    "date": "2025-10-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "94aa05e4-1e66-4a80-be76-6a567a064cdc",
+    "patient_id": "6142203497",
+    "date": "2025-10-15",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "80cda046-9c02-4b4b-9ad1-523f2badbd6b",
+    "patient_id": "6142203497",
+    "date": "2025-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "arthritis",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Naproxen BD is explicitly documented as being taken 'for arthritis', making this an active coded diagnosis that is absent from the coded list.",
+          "snomed_search": "arthritis",
+          "snomed_concept_id": "3723001",
+          "preferred_term": "Arthritis (disorder)",
+          "sentence": "use naprocen BD as well , for arthritis , offered options to change naproxen to a different one as co codamol to reduce risks of interaction",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "aspirin prophylaxis declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The patient explicitly declined aspirin after a documented discussion of benefits and risks of bleeding/drug interaction, which is a clinically significant patient decision that should be recorded.",
+          "snomed_search": "aspirin prophylaxis",
+          "snomed_concept_id": "315023008",
+          "preferred_term": "Aspirin prophylaxis declined (situation)",
+          "sentence": "however Mr Fowler prefers to hold starting or using Aspirin until gets camera scan and will think about based on results as if any diagnosis",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "73761001",
+          "name": "Colonoscopy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "cancelled",
+          "severity": "medium",
+          "reason": "The colonoscopy is explicitly described as planned/future ('planned for next saturday') and has not yet occurred; coding it as present implies the procedure has been performed in this encounter, which is incorrect. Per coding rules, future/planned procedures should not be coded as present."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Four issues identified: arthritis and aspirin-declined are missing from the coded list; the colonoscopy is coded as present but is a future planned procedure; and the mental disorder code is too broad and should be replaced with Depressive disorder given the sertraline context and recent dose increase. The H. pylori test is planned (not yet performed) so correctly omitted from coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15532,
+        "output_tokens": 2253,
+        "total_tokens": 17785,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "80cda046-9c02-4b4b-9ad1-523f2badbd6b",
+        "date": "2025-10-15",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "15ecc9fa-c2ed-4a4d-aa57-eb3fba24e78f",
+    "patient_id": "6142203497",
+    "date": "2025-10-17",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The single coded concept 76601001 (Intramuscular injection) is correct and confirmed by SNOMED search \u2014 the lookup_concept unreliable flag was a terminology server index artefact, not a genuine error. The note contains only a PSD authorisation for triptorelin IM; no diagnosis or clinical finding is documented in this encounter, so no additional codes are required from this text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4075,
+        "output_tokens": 744,
+        "total_tokens": 4819,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "15ecc9fa-c2ed-4a4d-aa57-eb3fba24e78f",
+        "date": "2025-10-17",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9196e253-4af5-45b9-bbd3-5c706f923ab1",
+    "patient_id": "6142203497",
+    "date": "2025-10-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Decapeptyl SR 3mg IM injection administered",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter documents administration of a GnRH analogue (triptorelin) by intramuscular injection under a PSD from urology; the procedure of administering this injection must be coded.",
+          "snomed_search": "intramuscular injection GnRH analogue",
+          "snomed_concept_id": "865211000000104",
+          "preferred_term": "Intramuscular injection of gonadorelin analogue (procedure)",
+          "sentence": "Decapeptyl SR 3mg powder and solvent for suspension for injection vials (Ipsen Ltd) - 1 vial - ONE IM injection every 28 days",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing code 777868006 (Triptorelin product) is within scope and confirmed as a legitimate SNOMED product concept despite an unreliable terminology server response; it is retained. The key gap is the missing procedure code 865211000000104 'Intramuscular injection of gonadorelin analogue' \u2014 this is the primary clinical act documented in the encounter and should be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4336,
+        "output_tokens": 1067,
+        "total_tokens": 5403,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "9196e253-4af5-45b9-bbd3-5c706f923ab1",
+        "date": "2025-10-24",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c4c95982-2db8-4db3-9346-9215921ec591",
+    "patient_id": "6142203497",
+    "date": "2025-11-10",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Both coded concepts are confirmed correct via SNOMED search (lookup_concept returned unreliable results due to a server index issue, not genuine errors): 721730009 is a valid disorder code for H. pylori infection and 281897000 is the appropriate regime/therapy code for the eradication course issued. No additional codeable clinical content is present in the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3126,
+        "output_tokens": 719,
+        "total_tokens": 3845,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "c4c95982-2db8-4db3-9346-9215921ec591",
+        "date": "2025-11-10",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e9903d42-8700-413c-878a-fd3c7e7009e5",
+    "patient_id": "6142203497",
+    "date": "2025-11-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "H pylori infection (already treated with abx and omeprazole)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient was given antibiotics and omeprazole for H. pylori and is attending follow-up for it; the infection is the direct clinical reason for this encounter and should be coded.",
+          "snomed_search": "Helicobacter pylori infection",
+          "snomed_concept_id": "721730009",
+          "preferred_term": "Infection caused by Helicobacter pylori (disorder)",
+          "sentence": "came in for f/u re h pylori - was already given abx and omeprazole.",
+          "char_start": 116,
+          "char_end": 183
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Lynch syndrome [716318002] is correctly coded (lookup_concept returned unreliable due to server index corruption, but search_snomed confirms the concept ID and preferred term are valid). The active H. pylori infection \u2014 the primary reason for this encounter \u2014 is missing from the coded list. Several planned/future items (CVD risk bloods, PSA, aspirin initiation) are not yet performed and should not be coded as present procedures at this time, but should be actioned at the follow-up appointment on 9th December.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3849,
+        "output_tokens": 1142,
+        "total_tokens": 4991,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "e9903d42-8700-413c-878a-fd3c7e7009e5",
+        "date": "2025-11-21",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "374ba066-563b-4afb-80b3-4372af56d536",
+    "patient_id": "6142203497",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both disorder codes (Hypercholesterolaemia 13644009 and Hypertriglyceridaemia 302870006) are confirmed correct via search_snomed and are well-supported by the lab values and the lab report's explicit 'high chol' flag; lookup_concept returned unreliable/wrong semantic tags for these IDs but search_snomed confirms they are legitimate disorder concepts. The three observable entity codes are pipeline-generated and correctly excluded from manual audit. No codeable clinical content is missing from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3973,
+        "output_tokens": 1067,
+        "total_tokens": 5040,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "374ba066-563b-4afb-80b3-4372af56d536",
+        "date": "2025-12-02",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dd3bceb7-f30d-4eb1-87dd-28d6d91f97d1",
+    "patient_id": "6142203497",
+    "date": "2025-12-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "aspirin prophylaxis declined",
+          "severity": "high",
+          "suggested_assertion": "declined",
+          "reason": "The GP explicitly could not prescribe prophylactic aspirin due to concurrent NSAID GI bleed risk, and the patient declined switching analgesics \u2014 aspirin was not started; this clinical decision must be coded.",
+          "snomed_search": "aspirin prophylaxis",
+          "snomed_concept_id": "315023008",
+          "preferred_term": "Aspirin prophylaxis declined (situation)",
+          "sentence": "Explained unable to give Aspirin due to the associated risk",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "H. pylori infection",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The eradication therapy is coded but the underlying H. pylori infection is not; the note confirms recent testing and completed eradication treatment, so the infection should be coded as historical.",
+          "snomed_search": "Helicobacter pylori infection",
+          "snomed_concept_id": "721730009",
+          "preferred_term": "Infection caused by Helicobacter pylori (disorder)",
+          "sentence": "Recently got tested for H.Pylori and had eradication Tx",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "12584003",
+          "name": "Bone pain (finding) [coded] \u2014 returns as substance DRB1*08031",
+          "severity": "high",
+          "reason": "Concept 12584003 resolves to a substance (DRB1*08031), not a finding; the note documents hip pain specifically, which maps to Pain of hip region (finding).",
+          "replace_with_concept_id": "49218002",
+          "replace_with_preferred_term": "Pain of hip region (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "37372002",
+          "name": "Upper gastrointestinal hemorrhage (disorder)",
+          "severity": "high",
+          "reason": "No active upper GI bleed is documented; the GP counselled the patient on the risk of a bleed from concurrent NSAID and aspirin use \u2014 coding an active haemorrhage disorder is clinically misleading; a risk-of-bleeding finding is more appropriate.",
+          "replace_with_concept_id": "711536002",
+          "replace_with_preferred_term": "At high risk for bleeding (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant concept errors: hip pain is mapped to a substance code (12584003) and should be replaced with Pain of hip region (49218002); the upper GI haemorrhage disorder code misrepresents a risk-counselling discussion as an active bleed and should be replaced with At high risk for bleeding (711536002). Two missing codes: aspirin prophylaxis declined (315023008) is a clinically important decision record, and the H. pylori infection (721730009) should be coded historically alongside the already-coded eradication therapy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7214,
+        "output_tokens": 2111,
+        "total_tokens": 9325,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "dd3bceb7-f30d-4eb1-87dd-28d6d91f97d1",
+        "date": "2025-12-09",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fe514809-8a02-4a9c-9717-b4b564bf05ad",
+    "patient_id": "6142203497",
+    "date": "2025-12-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "six rounds of chemotherapy, completed in Mar 2025",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents completion of six cycles of chemotherapy in March 2025; this is a significant historical procedure that should be coded.",
+          "snomed_search": "chemotherapy",
+          "snomed_concept_id": "182992009",
+          "preferred_term": "Treatment completed (situation)",
+          "sentence": "Has undergone six rounds of chemotherapy, completed in Mar 2025.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most critical issue is that the active malignancy has been coded as 'Malignant melanoma stage IV M1a' (956511000000107) when the entire clinical picture \u2014 androgen deprivation therapy with degarelix/Decapeptyl, darolutamide, and ADT-related CVD risk \u2014 unambiguously points to metastatic prostate cancer; this must be corrected urgently. Additionally, the ADT procedure concept ID (802921000000105) is unreliable and should be replaced with the confirmed concept 707266006. Completed chemotherapy (March 2025) is missing as a historical coded entry. The lipid disorder codes (mixed hyperlipidaemia, hypertriglyceridaemia) and drug interaction finding are clinically appropriate and well-evidenced by the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15124,
+        "output_tokens": 2231,
+        "total_tokens": 17355,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "fe514809-8a02-4a9c-9717-b4b564bf05ad",
+        "date": "2025-12-15",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bdcd9c9d-2796-41d1-8ce1-5a5e327a94f7",
+    "patient_id": "6142203497",
+    "date": "2025-12-17",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "entities": [
+        {
+          "concept_id": "13644009",
+          "preferred_term": "Hypercholesterolemia (disorder)",
+          "assertion": "present",
+          "severity": "high",
+          "reason": "Active clinical issue discussed with pharmacist and oncology team, prompting a specific medication recommendation (Ezetimibe); confirmed correct SNOMED disorder code via search."
+        },
+        {
+          "concept_id": "865211000000104",
+          "preferred_term": "Intramuscular injection of gonadorelin analogue (procedure)",
+          "assertion": "present",
+          "severity": "high",
+          "reason": "Core procedure fully documented with consent, site (right dorsogluteal), batch number, PSD, and drug details (Decapeptyl SR / Triptorelin 3mg); confirmed correct SNOMED procedure code via search."
+        }
+      ],
+      "notes": "Both coded concepts are confirmed correct via SNOMED search (lookup_concept returned unreliable/wrong semantic tags for both IDs, but direct search confirms 13644009 = Hypercholesterolemia (disorder) and 865211000000104 = Intramuscular injection of gonadorelin analogue (procedure)). No additional codeable clinical content is present: the Ezetimibe recommendation is a medication-level event (not a codeable finding/procedure in scope), Darolutamide is a drug name excluded by rules, and the underlying oncological diagnosis (implied by Decapeptyl + Darolutamide) must not be inferred from medication alone without explicit textual confirmation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5890,
+        "output_tokens": 1252,
+        "total_tokens": 7142,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6142203497",
+        "encounter_id": "bdcd9c9d-2796-41d1-8ce1-5a5e327a94f7",
+        "date": "2025-12-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  }
+]

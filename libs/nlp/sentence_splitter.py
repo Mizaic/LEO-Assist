@@ -43,12 +43,26 @@ def is_header_sentence(text: str) -> bool:
     return bool(_HEADER_RE.match(text.strip()))
 
 
+# Clinical milestone phrases that must never be stripped, even if a future
+# header pattern accidentally matches them. Both specialist visit and referral
+# milestones are critical to the cancer episode detector.
+_FAST_TRACK_MILESTONE_RE = re.compile(
+    r"seen\s+in\s+fast\s+track|fast\s+track\s+referral\s+for\s+suspected|fast\s+track\s+cancer\s+referral",
+    re.IGNORECASE,
+)
+
+
 def filter_header_sentences(chunks: list["SentenceChunk"]) -> list["SentenceChunk"]:
     """Remove administrative header sentences from a sentence chunk list.
 
     Returns an empty list (not an exception) if all sentences are headers.
+    Allowlist: chunks containing cancer pathway milestone phrases are always
+    preserved regardless of surrounding header context.
     """
-    return [c for c in chunks if not is_header_sentence(c.text)]
+    return [
+        c for c in chunks
+        if not is_header_sentence(c.text) or _FAST_TRACK_MILESTONE_RE.search(c.text)
+    ]
 
 
 @dataclass(frozen=True)

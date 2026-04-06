@@ -1,0 +1,431 @@
+[
+  {
+    "encounter_id": "132b022f-6f62-4e5a-8551-2b156968da3f",
+    "patient_id": "6507904570",
+    "date": "2024-05-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Urine culture - E. coli",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The culture result explicitly identifies >10^5 E. coli organisms/ml \u2014 the microbiological finding of E. coli isolated in urine culture should be coded in addition to the procedure.",
+          "snomed_search": "urine culture Escherichia coli",
+          "snomed_concept_id": "167570003",
+          "preferred_term": "Urine culture - E. coli (finding)",
+          "sentence": ">10^5 Organisms/ml of Escherichia coli",
+          "char_start": 55,
+          "char_end": 95
+        },
+        {
+          "term": "Urinary tract infection caused by Escherichia coli",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A confirmed positive urine culture with >10^5 E. coli/ml, reviewed by a clinician who issued a prescription, constitutes a coded diagnosis of E. coli UTI.",
+          "snomed_search": "Escherichia coli urinary tract infection",
+          "snomed_concept_id": "301011002",
+          "preferred_term": "Urinary tract infection caused by Escherichia coli (disorder)",
+          "sentence": ">10^5 Organisms/ml of Escherichia coli",
+          "char_start": 55,
+          "char_end": 95
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "117010004",
+          "name": "Urine culture (procedure)",
+          "severity": "low",
+          "reason": "lookup_concept returned an unreliable result (semantic_tag: substance) for this ID; however search_snomed confirms 117010004 is the correct SNOMED procedure code for 'Urine culture', so the code itself is appropriate and should be retained \u2014 no replacement needed.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The existing urine culture procedure code (117010004) is correct per search_snomed despite an unreliable lookup_concept response. Two significant codes are missing: the microbiological finding of E. coli isolated in urine (167570003) and the clinical diagnosis of E. coli UTI (301011002), both clearly evidenced by the culture report and the clinician's prescribing decision. The overcoded entry above is informational only \u2014 the procedure code should be retained.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5069,
+        "output_tokens": 1451,
+        "total_tokens": 6520,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "132b022f-6f62-4e5a-8551-2b156968da3f",
+        "date": "2024-05-17",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bb650c59-ecd4-43ed-a2a8-d9d72d4764b7",
+    "patient_id": "6507904570",
+    "date": "2024-05-17",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [
+        {
+          "concept_id": "314940005",
+          "term": "Urinary tract infection suspected (situation)",
+          "assertion": "present",
+          "evidence": "Clinical information states ?uti; review confirmed no further action"
+        },
+        {
+          "concept_id": "4800001",
+          "term": "Pyuria (finding)",
+          "assertion": "present",
+          "evidence": "Urine microscopy: White blood cell count - HIGH"
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are well-evidenced and correctly asserted: pyuria maps directly to the raised WBC on microscopy, and the suspected UTI situation code correctly captures the ?uti clinical indication. The pending urine culture result is not yet available and requires no code at this stage. lookup_concept returned unreliable/wrong-tag results for both IDs, but search_snomed confirmed both concept IDs and semantic tags are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2640,
+        "output_tokens": 912,
+        "total_tokens": 3552,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "bb650c59-ecd4-43ed-a2a8-d9d72d4764b7",
+        "date": "2024-05-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5f4d5b71-0057-48f2-941d-f358f568bb84",
+    "patient_id": "6507904570",
+    "date": "2024-05-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "postmenopausal state",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states last period was November 2017 with no bleeding since, indicating an established postmenopausal state that is clinically significant in this gynaecological context and should be coded.",
+          "snomed_search": "postmenopausal state",
+          "snomed_concept_id": "76498008",
+          "preferred_term": "Postmenopausal state (finding)",
+          "sentence": "last period Nov 2017 - no bleeding since then.",
+          "char_start": 148,
+          "char_end": 191
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "784314006",
+          "name": "Adenomyosis of uterus (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note documents 'signs of adenomyosis' on USS \u2014 a radiological suggestion rather than a confirmed clinical diagnosis \u2014 so assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "overcoded": [],
+      "confidence": 0.88,
+      "notes": "Two issues identified: the adenomyosis assertion should be 'possible' as the USS shows signs rather than a confirmed diagnosis, and the postmenopausal state (last period Nov 2017, no bleeding since) is a clinically significant uncoded finding in this gynaecological encounter. The urology referral and uterine leiomyoma codes are appropriate and correctly asserted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4339,
+        "output_tokens": 1221,
+        "total_tokens": 5560,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "5f4d5b71-0057-48f2-941d-f358f568bb84",
+        "date": "2024-05-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b5d099c4-7e61-4865-9b64-d35ece7e9cf4",
+    "patient_id": "6507904570",
+    "date": "2025-05-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1153477009",
+          "name": "Serum albumin below reference range (finding)",
+          "severity": "medium",
+          "reason": "The coder intended to capture the low/suppressed TSH result but applied concept 1153477009 which resolves to 'Serum albumin below reference range' \u2014 a completely unrelated analyte. No albumin measurement is present anywhere in this encounter. The TSH numeric result is auto-filed structured lab data and does not require a separate finding code; if one is desired, a TSH-specific below-reference-range concept should be used, but no confirmed SNOMED concept for that was retrievable from this server.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The Hypothyroidism (disorder) code [40930008] is clinically correct and well-evidenced by the thyroxine dose-titration context. However, concept 1153477009 is a serious miscoding: it maps to 'Serum albumin below reference range' \u2014 an analyte not mentioned in this encounter \u2014 when the coder clearly intended to represent the suppressed TSH result. This wrong concept should be removed; a TSH-specific below-reference-range SNOMED finding could replace it if available on the local terminology server, but the raw numeric TSH value from an auto-filed lab result does not strictly require a separate finding code beyond the underlying disorder.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4504,
+        "output_tokens": 1219,
+        "total_tokens": 5723,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "b5d099c4-7e61-4865-9b64-d35ece7e9cf4",
+        "date": "2025-05-19",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d826a804-4926-450a-889d-63768d9ecd0c",
+    "patient_id": "6507904570",
+    "date": "2025-05-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "over-replaced / iatrogenic thyrotoxicosis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'aware recent TFTs suggest now over-replaced' with TSH 0.09 and symptoms (sweats, hoarseness) consistent with iatrogenic thyrotoxicosis \u2014 this is an active clinical diagnosis that must be coded; the existing procedure code [724166004] does not capture it.",
+          "snomed_search": "iatrogenic thyrotoxicosis",
+          "snomed_concept_id": "237508001",
+          "preferred_term": "Iatrogenic thyrotoxicosis (disorder)",
+          "sentence": "aware recent TFts suggest now oevr-replaced - good concordance",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "dry cough",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dry cough is explicitly listed among the 12-month symptoms and is not captured by any existing code.",
+          "snomed_search": "dry cough",
+          "snomed_concept_id": "11833005",
+          "preferred_term": "Dry cough (finding)",
+          "sentence": "in morning - dry throat and hoarseness - sense that something stuck in throat, freq throat clearing, dry cough",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "intermittent sweats",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Intermittent sweating is explicitly documented as an active symptom and is consistent with over-replacement thyrotoxicosis; it is not coded.",
+          "snomed_search": "sweating symptom",
+          "snomed_concept_id": "161857006",
+          "preferred_term": "Sweating symptom (finding)",
+          "sentence": "intermittent sweats",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The most significant gap is the absence of a coded diagnosis for iatrogenic thyrotoxicosis (237508001) \u2014 the note explicitly confirms over-replacement with a suppressed TSH 0.09 and symptomatic features; the existing thyroid replacement therapy procedure code does not substitute for this active disorder. Additionally, the coded concept [262285001] 'Weight decreased' should ideally be replaced by 416528001 'Intentional weight loss (finding)' to reflect the deliberate nature of the 10 kg loss documented, though this is a specificity issue rather than a critical error. Dry cough and intermittent sweats are explicitly documented symptoms that are uncoded. The red-flag dysphagia, globus, hoarseness, and weight loss cluster is well captured in the existing codes and the plan appropriately flags the need for examination and possible 2WW consideration.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6118,
+        "output_tokens": 1781,
+        "total_tokens": 7899,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "d826a804-4926-450a-889d-63768d9ecd0c",
+        "date": "2025-05-29",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bc5e308b-2cda-4e98-ba1a-1af6ab36ec36",
+    "patient_id": "6507904570",
+    "date": "2025-05-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Fast track referral for suspected head and neck cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A 2WW head and neck cancer fast-track referral is explicitly documented at the top of the encounter (XaMkD) and is a safety-critical coded procedure that is absent from the coded list.",
+          "snomed_search": "fast track referral suspected head neck cancer",
+          "snomed_concept_id": "280521000000108",
+          "preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+          "sentence": "Fast track referral for suspected head and neck cancer (XaMkD)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "loss of appetite",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Loss of appetite is explicitly documented in the clinical history ('some loss of appetite') and is clinically relevant in the context of a gynaecological 2WW cancer referral.",
+          "snomed_search": "loss of appetite",
+          "snomed_concept_id": "79890006",
+          "preferred_term": "Loss of appetite (finding)",
+          "sentence": "E&D but some loss of appetite-has been worried as states referred for suspected 'thyroid cancer'",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "genitourinary syndrome of menopause",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The full clinical picture \u2014 vaginal atrophy, dyspareunia, LUTS (urgency, frequency, dysuria), vaginal soreness in a postmenopausal woman \u2014 constitutes genitourinary syndrome of menopause, which is the overarching working diagnosis driving GSM treatment; atrophic vaginitis alone does not capture the urinary component.",
+          "snomed_search": "genitourinary syndrome menopause",
+          "snomed_concept_id": "16779841000119104",
+          "preferred_term": "Genitourinary syndrome of menopause (disorder)",
+          "sentence": "LUTS urgency/frequency and vaginal soreness -note seen last year and referral on LUTS pathway",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "767059009",
+          "name": "Conventional release vaginal pessary (dose form)",
+          "severity": "low",
+          "reason": "This is a pharmaceutical dose form (substance/dose form semantic tag), not a disorder, finding, procedure, or other in-scope SNOMED category; the medication itself belongs in the medication record rather than the problem/encounter coding list."
+        },
+        {
+          "conceptId": "13731000237102",
+          "name": "Arbitrary concentration of cancer antigen 125 in fluid (observable entity)",
+          "severity": "low",
+          "reason": "This is a laboratory observable entity written by the structured pathology request pipeline; the CA125 test has been requested but not yet resulted, and observable entity lab codes are set by the structured lab pipeline rather than derived from the encounter narrative."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The most critical gap is the missing 2WW head and neck cancer fast-track referral (280521000000108), which is a safety-critical procedure documented at the start of the encounter but absent from the coded list. Additionally, the dyspareunia code should be replaced with 'Deep pain on intercourse' (247419003) to reflect the note's explicit description; loss of appetite and genitourinary syndrome of menopause are clinically relevant additions. The dose form and observable entity codes are outside the expected encounter coding scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 20687,
+        "output_tokens": 2504,
+        "total_tokens": 23191,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "bc5e308b-2cda-4e98-ba1a-1af6ab36ec36",
+        "date": "2025-05-30",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "63a9b9f9-552c-4159-abf9-fae4d31a0c21",
+    "patient_id": "6507904570",
+    "date": "2025-05-30",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The key safety-critical code \u2014 Fast track referral for suspected head and neck cancer (280521000000108, procedure) \u2014 is correctly applied with assertion=present; the terminology server lookup returned an unreliable result for this concept ID but SNOMED search independently confirms it is the correct and legitimate concept. The outbound referral code (792931000000107) is a record artifact outside the auditable SNOMED scope but is a standard workflow code set by the referral system and does not require removal. No clinical narrative (symptoms, examination, diagnosis) is present in the note beyond the referral action itself, so no additional codes are missing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3168,
+        "output_tokens": 894,
+        "total_tokens": 4062,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "63a9b9f9-552c-4159-abf9-fae4d31a0c21",
+        "date": "2025-05-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0f1d01ac-9f7c-40a1-aeec-b58ecdb2756e",
+    "patient_id": "6507904570",
+    "date": "2025-05-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "cervical lymphadenopathy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Examination explicitly documents bilateral subcentimetre nodes in the anterior triangle, which is an active clinical finding relevant to the thyroid mass workup and 2WW referral.",
+          "snomed_search": "cervical lymphadenopathy",
+          "snomed_concept_id": "127086001",
+          "preferred_term": "Cervical lymphadenopathy (disorder)",
+          "sentence": "anterior triangle - bilaterally couple of subcentimetre nodes",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "281300000",
+          "name": "Below reference range (qualifier value)",
+          "severity": "medium",
+          "reason": "A generic qualifier value is not appropriate here; the note documents a specifically suppressed/low TSH result, which should be coded as the specific finding 'Serum thyroid stimulating hormone below reference range' (1153577007) rather than a non-specific qualifier value.",
+          "replace_with_concept_id": "1153577007",
+          "replace_with_preferred_term": "Serum thyroid stimulating hormone below reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "notes": "CRITICAL ERROR: Concept 276341000000100 is coded as 'Fast track referral for suspected breast cancer' \u2014 the note clearly documents a 2WW ENT referral for a thyroid mass with dysphagia and hoarseness; the correct code is 280521000000108 'Fast track referral for suspected head and neck cancer (procedure)'. This must be corrected urgently as the wrong cancer pathway is recorded, which could compromise audit, follow-up, and cancer waiting time tracking. Additionally, the TSH qualifier value code should be replaced with the specific finding code 1153577007, and bilateral cervical lymphadenopathy found on examination should be added.",
+      "confidence": 0.95,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 6,
+        "input_tokens": 19909,
+        "output_tokens": 2027,
+        "total_tokens": 21936,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6507904570",
+        "encounter_id": "0f1d01ac-9f7c-40a1-aeec-b58ecdb2756e",
+        "date": "2025-05-30",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  }
+]

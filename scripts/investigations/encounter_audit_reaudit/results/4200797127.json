@@ -1,0 +1,3012 @@
+[
+  {
+    "encounter_id": "3fe98b1c-5a55-4a21-9148-329e75feff46",
+    "patient_id": "4200797127",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a routine lithium level review (result 0.76 mmol/L, normal/NFA). The procedure concept 269871000 (Serum lithium measurement) returned unreliable on lookup but is confirmed as a legitimate procedure by search_snomed; it cannot be flagged as overcoded on unreliable-lookup grounds alone. The correct observable entity for serum lithium level (1006681000000100) also returned unreliable from the terminology server, so no replacement can be safely proposed. All other coded concepts are structured-pipeline lab observables and are not subject to audit. No clinically significant coding gaps are identifiable from the note text with reliable concept IDs available.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4595,
+        "output_tokens": 1047,
+        "total_tokens": 5642,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "3fe98b1c-5a55-4a21-9148-329e75feff46",
+        "date": "2024-04-04",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ec3edba5-d676-481a-abff-615aaf920440",
+    "patient_id": "4200797127",
+    "date": "2024-04-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Serum triglyceride levels (XE2q9) 3.85 mmol/L [< 2] - Outside reference range",
+          "snomed_concept_id": "166848004",
+          "preferred_term": "Serum triglycerides above reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Triglycerides explicitly flagged as outside reference range (3.85 mmol/L vs <2.0 mmol/L). This abnormal result finding should be coded to support clinical audit and monitoring, particularly given the patient is on Clozapine (a medication with known metabolic/lipid side effects).",
+          "sentence": "Serum triglyceride levels (XE2q9) 3.85 mmol/L [< 2] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "raised trigs but non fasting",
+          "snomed_concept_id": "302870006",
+          "preferred_term": "Hypertriglyceridemia (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "possible",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Clinician documents 'raised trigs but non fasting' \u2014 the non-fasting status means true hypertriglyceridaemia cannot be confirmed, hence assertion 'possible'. However, the borderline elevation in a patient on Clozapine (associated with metabolic syndrome and dyslipidaemia) warrants coding for monitoring and recall purposes. Reviewer has noted 'No Further Action' at this time.",
+          "sentence": "Serum lipid levels Report, Borderline, No Further Action: raised trigs but non fasting. Review done by BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) - 08 Apr 2024 10:55",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "non fasting",
+          "snomed_concept_id": "368441000000106",
+          "preferred_term": "Non fasting (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "low",
+          "action": "add",
+          "reason": "Sample explicitly documented as non-fasting, which is clinically relevant context for interpreting the raised triglyceride result and the 'Borderline, No Further Action' decision.",
+          "sentence": "Serum lipid levels Report, Borderline, No Further Action: raised trigs but non fasting.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Auto-filed lipid panel result for a patient on Clozapine (MH monitoring bloods). All other lipid values (cholesterol 4.8, HDL 1.4, LDL 1.7, TC:HDL 3.4) are within normal limits. The key actionable finding is serum triglycerides at 3.85 mmol/L (reference <2.0), explicitly flagged as outside reference range. The reviewing clinician (Dr Bridges) has noted 'Borderline, No Further Action' and attributed the elevation to the non-fasting sample. The abnormal result finding (166848004) and possible hypertriglyceridaemia disorder (302870006) should be coded to support Clozapine metabolic monitoring audit trails. Non-fasting status (368441000000106) should also be recorded as interpretive context. Structured lab values (XE2q7, XE2eD etc.) are assumed already coded by the structured pipeline and are not flagged as missing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3456,
+        "output_tokens": 2004,
+        "total_tokens": 5460,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "ec3edba5-d676-481a-abff-615aaf920440",
+        "date": "2024-04-04",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8d47ece1-18eb-4258-96de-c45669d57a82",
+    "patient_id": "4200797127",
+    "date": "2024-04-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "medium",
+          "reason": "This broad parent category is redundant given that the specific diagnosis of small lymphocytic lymphoma is already coded with 302841002; the terminology server index for this concept ID is also unreliable (returned organism/muscle neoplasm descendants), so it should be reviewed and removed in favour of the specific SLL code.",
+          "replace_with_concept_id": "302841002",
+          "replace_with_preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coding is largely appropriate for this OOH triage encounter: SLL (302841002), periorbital oedema (49563000), conjunctival hyperaemia (193894004) and fatigue are all correctly evidenced. Two issues require attention: (1) concept 363495004 is a redundant broad parent of the already-coded SLL and its terminology server index is unreliable \u2014 it should be removed in favour of 302841002; (2) concept 272060000 for fatigue returned as an Extension Namespace placeholder (unreliable) and should be replaced with the confirmed SNOMED concept 84229001 'Fatigue (finding)' \u2014 this is flagged in notes rather than wrong_assertion as the preferred term cannot be confirmed from the server, but the clinical evidence for fatigue is clear and 84229001 is the validated concept from search.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 13503,
+        "output_tokens": 1968,
+        "total_tokens": 15471,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "8d47ece1-18eb-4258-96de-c45669d57a82",
+        "date": "2024-04-20",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "38aeaaf0-ce83-47ef-861a-fbf999156d7c",
+    "patient_id": "4200797127",
+    "date": "2024-04-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Both coded concepts are correct and well-evidenced: chalazion (1482004) is the confirmed diagnosis and blood pressure (75367002) is appropriately captured as an observable entity by the structured pipeline. All other examination findings are either normal/absent (not codeable) or raw vital sign numerics without a documented clinical interpretation; no additional SNOMED concepts are warranted from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3588,
+        "output_tokens": 933,
+        "total_tokens": 4521,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "38aeaaf0-ce83-47ef-861a-fbf999156d7c",
+        "date": "2024-04-21",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "42b52838-3ccf-4fd9-b1ca-fec23821b49c",
+    "patient_id": "4200797127",
+    "date": "2024-05-10",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter is purely administrative: a receptionist-logged repeat prescription issue (Lamotrigine, Lansoprazole, Sildenafil, Venlafaxine) with ETP2 print status and a Summary Care Record preference override. No clinical narrative, examination, diagnosis, or prescriber review is present. No SNOMED coding is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 524,
+        "output_tokens": 294,
+        "total_tokens": 818,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "42b52838-3ccf-4fd9-b1ca-fec23821b49c",
+        "date": "2024-05-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d7d5234b-2d30-4d6a-b243-4fb310647af2",
+    "patient_id": "4200797127",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "37e62627-6a9d-451f-ab36-416ea17fac6b",
+    "patient_id": "4200797127",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "blood",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Rectal bleeding ('blood') is explicitly listed in the clinical information as a reason for the FIT request and is a NG12 red-flag symptom driving the 2WW LGI referral; it must be coded as a finding in its own right.",
+          "snomed_search": "hematochezia rectal bleeding",
+          "snomed_concept_id": "405729008",
+          "preferred_term": "Hematochezia (finding)",
+          "sentence": "Clinical Information: Reasons for Request:      change in bowels. blood. piles on exam.",
+          "char_start": 390,
+          "char_end": 470
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1812681000000102",
+          "name": "Mass of anal structure (finding)",
+          "severity": "medium",
+          "reason": "The encounter text states 'piles on exam' \u2014 this describes haemorrhoids, not a generic anal mass; the concept ID also returned an unreliable lookup (organism semantic tag), suggesting a coding error. Replace with a specific haemorrhoid disorder code.",
+          "replace_with_concept_id": "23913003",
+          "replace_with_preferred_term": "External hemorrhoids (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "One critical gap: rectal bleeding (hematochezia) is explicitly documented as a reason for the FIT request and is a NG12 red-flag symptom underpinning the 2WW referral, but is not coded as a standalone finding. Additionally, concept [1812681000000102] coded as 'Mass of anal structure' is both clinically imprecise (note says 'piles on exam') and returned an unreliable terminology lookup (organism tag); it should be replaced with External hemorrhoids [23913003] or Bleeding hemorrhoids [51551000]. The DRE instruction is a recommendation only (not yet performed) and should not be coded as a completed procedure. All other codes \u2014 FIT observable, abnormal FIT finding, 2WW referral, constipation, change in bowel pattern \u2014 are well-evidenced by the encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8507,
+        "output_tokens": 2041,
+        "total_tokens": 10548,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "37e62627-6a9d-451f-ab36-416ea17fac6b",
+        "date": "2024-05-23",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c9a068ae-e561-4dca-ad0f-bfe04e2dad87",
+    "patient_id": "4200797127",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "emotional support provided",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Emotional support was explicitly documented as the primary intervention delivered during this telephone triage encounter.",
+          "snomed_search": "emotional support management",
+          "snomed_concept_id": "385727009",
+          "preferred_term": "Emotional support management (procedure)",
+          "sentence": "Emotional support provided. Call ended naturally.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "fears his future / pessimistic about future",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Paul explicitly expressed fear about his future and hopelessness, which is a clinically relevant mental health finding documented as the presenting complaint.",
+          "snomed_search": "difficulty being hopeful for future",
+          "snomed_concept_id": "1069851000000100",
+          "preferred_term": "Difficulty being hopeful for future (finding)",
+          "sentence": "He explained that he fears his future based on what has been said about him in the past.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1049361000000101",
+          "name": "Quantitative faecal immunochemical test (observable entity)",
+          "severity": "medium",
+          "reason": "This GI investigation concept has no evidential basis in this mental health telephone triage encounter; it appears to belong to a different patient's record entirely."
+        },
+        {
+          "conceptId": "77176002",
+          "name": "Smoking (finding)",
+          "severity": "medium",
+          "reason": "No mention of smoking or tobacco use anywhere in this encounter note; evidence string '25-30/d for 30 years' does not appear in this text."
+        },
+        {
+          "conceptId": "363693003",
+          "name": "Constipation (finding)",
+          "severity": "medium",
+          "reason": "No mention of constipation in this encounter; evidence string '1w hx of constipation' does not appear in this text."
+        },
+        {
+          "conceptId": "86933000",
+          "name": "Heavy drinker (finding)",
+          "severity": "medium",
+          "reason": "No mention of alcohol use in this encounter; evidence string '140 units per week' does not appear in this text."
+        },
+        {
+          "conceptId": "274134003",
+          "name": "Leukoplakia (disorder)",
+          "severity": "medium",
+          "reason": "No mention of oral leukoplakia or tongue findings in this encounter; evidence string 'white patch on right side of tongue' does not appear in this text."
+        },
+        {
+          "conceptId": "1812681000000102",
+          "name": "Mass of anal structure (finding)",
+          "severity": "medium",
+          "reason": "No mention of haemorrhoids or rectal findings in this encounter; evidence string 'large bleeding external haemorrhoid' does not appear in this text."
+        },
+        {
+          "conceptId": "88111009",
+          "name": "Change in bowel pattern (finding)",
+          "severity": "medium",
+          "reason": "No mention of bowel habit changes in this encounter; evidence string 'constipation on and off over past year' does not appear in this text."
+        },
+        {
+          "conceptId": "38070000",
+          "name": "Cohabiting (finding)",
+          "severity": "low",
+          "reason": "The mere mention that Paul's wife answered the phone is an administrative detail and does not constitute clinical documentation of cohabitation status warranting a SNOMED code in this encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "All 8 coded concepts appear to have been applied to the wrong encounter \u2014 they describe GI/colorectal findings (FIT test, constipation, haemorrhoid, leukoplakia, smoking, alcohol, bowel changes) that have no evidential basis whatsoever in this mental health CAP telephone triage note. This is a serious data quality and patient safety concern suggesting a record-mixing or copy-paste error; the GI codes should be urgently reviewed and removed, and the correct patient record identified. The encounter itself warrants coding for the telephone triage, emotional support provided, and the patient's expressed difficulty being hopeful about the future.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6016,
+        "output_tokens": 1868,
+        "total_tokens": 7884,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "c9a068ae-e561-4dca-ad0f-bfe04e2dad87",
+        "date": "2024-05-23",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "22bdca1f-e75b-45aa-a7cd-824d5a2f6719",
+    "patient_id": "4200797127",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is purely administrative: a mental health CAP triage routing call in which the patient was transferred to AMH Charnwood with no clinical assessment, examination, diagnosis, or management plan documented. The 10 already-coded concepts (FIT test, smoking, alcohol, 2WW referrals, leukoplakia, etc.) belong to the patient's standing problem list from a separate GP encounter and must not be flagged as overcoded on the basis of this admin-only note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 973,
+        "output_tokens": 550,
+        "total_tokens": 1523,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "22bdca1f-e75b-45aa-a7cd-824d5a2f6719",
+        "date": "2024-05-23",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2e4f9efa-87d6-4468-8213-2a1bf6e556b2",
+    "patient_id": "4200797127",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss of 2.5 kg over the past year in a patient referred on 2WW pathways is a red-flag symptom and must be coded as unintentional; the currently coded concept 416528001 resolves to a substance (wrong concept entirely).",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "some weight loss over the past year. 2.5kg since feb.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "paranoid ideation",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "New onset paranoid ideation over the past 2 days in a patient on lithium is an active, clinically significant mental health finding; the currently coded concept 74732009 is unreliable (returns as organism) and must be replaced with the correct concept.",
+          "snomed_search": "paranoid ideation",
+          "snomed_concept_id": "417233008",
+          "preferred_term": "Paranoid ideation (finding)",
+          "sentence": "past 2d, has started to have thoughts of paranoia, feels like something bad is going to happen to him, mixture of things, police, people out to get him, something bad is going to happen.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "smoking cessation education",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Smoking cessation was explicitly discussed in the encounter and should be coded as a procedure.",
+          "snomed_search": "smoking cessation education",
+          "snomed_concept_id": "225323000",
+          "preferred_term": "Smoking cessation education (procedure)",
+          "sentence": "alcohol reduction and smoking cessation discussed.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "alcohol reduction counselling",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Alcohol reduction was explicitly discussed in the encounter and should be coded as a counselling procedure.",
+          "snomed_search": "alcohol reduction counselling",
+          "snomed_concept_id": "413473000",
+          "preferred_term": "Counseling about alcohol consumption (procedure)",
+          "sentence": "alcohol reduction and smoking cessation discussed.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept 416528001 resolves to 'DRB1*08021 (substance)' \u2014 a completely wrong SNOMED concept; the note describes unexplained weight loss (a red-flag symptom) which is not intentional, and the correct code is 448765001 Unintentional weight loss.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "high",
+          "reason": "Concept 74732009 is unreliable (terminology server returns it as an organism); the note describes specific paranoid ideation and the correct, specific concept is 417233008 Paranoid ideation (finding).",
+          "replace_with_concept_id": "417233008",
+          "replace_with_preferred_term": "Paranoid ideation (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "51551000",
+          "name": "Bleeding hemorrhoids (disorder)",
+          "severity": "low",
+          "reason": "The note specifically documents a 'large bleeding external haemorrhoid' on DRE; concept 26421009 Bleeding external hemorrhoids (disorder) is more specific and accurate than the generic bleeding haemorrhoids code.",
+          "replace_with_concept_id": "26421009",
+          "replace_with_preferred_term": "Bleeding external hemorrhoids (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "892201000000106",
+          "name": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "severity": "high",
+          "reason": "The encounter note contains no evidence of a 2WW lower GI cancer referral being made; the plan documents only a FIT test request and advice about possible future pile surgery referral \u2014 the evidence phrase 'Refer via 2WW LGI Pathway' does not appear in the note text."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This encounter has several significant coding errors: two concept IDs (416528001, 74732009) resolve to entirely wrong SNOMED concepts (a substance and an organism respectively) and must be replaced urgently, particularly 416528001 which should capture the critical red-flag unintentional weight loss. The 2WW LGI referral code (892201000000106) appears unsupported by the note text \u2014 only a FIT test was ordered. Smoking cessation education and alcohol counselling procedures are missing. Note: the CT neck/cap (77477000) is coded generically; a future audit may wish to consider a more specific CT procedure code, but this is not flagged here as the generic code is not wrong. Borderline raised triglycerides ('tgs borderline raised') is noted but not coded as a confirmed diagnosis \u2014 this is appropriate given the qualifier 'borderline'.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 6,
+        "input_tokens": 20645,
+        "output_tokens": 3434,
+        "total_tokens": 24079,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "2e4f9efa-87d6-4468-8213-2a1bf6e556b2",
+        "date": "2024-05-23",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d86997fe-a5c3-4019-aaa1-3068b199ef5b",
+    "patient_id": "4200797127",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is entirely administrative: a clerical access-role call-transfer log entered by Angela Hayes at LLR Adult Mental Health Community, with no clinical assessment, examination, diagnosis, or management plan documented. The 9 coded concepts (cancer referrals, FIT test, leukoplakia, bowel findings, CT, smoking, alcohol) are standing problem-list or prior-encounter codes and must not be removed on the basis of this admin-only note.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2257,
+        "output_tokens": 582,
+        "total_tokens": 2839,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "d86997fe-a5c3-4019-aaa1-3068b199ef5b",
+        "date": "2024-05-23",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "891fffae-92a7-41ca-9a6f-5f39f77f0a05",
+    "patient_id": "4200797127",
+    "date": "2024-05-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Schizoaffective disorder",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Diagnosis-Schizo affective disorder' as the primary diagnosis; this specific disorder must be coded rather than the generic Mental disorder parent.",
+          "snomed_search": "schizoaffective disorder",
+          "snomed_concept_id": "68890003",
+          "preferred_term": "Schizoaffective disorder (disorder)",
+          "sentence": "Duty- Diagnosis-Schizo affective disorder",
+          "char_start": 248,
+          "char_end": 285
+        },
+        {
+          "term": "fear",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Paul explicitly reports fear as an active current symptom alongside paranoia and confusion, warranting its own coded finding.",
+          "snomed_search": "fear symptom",
+          "snomed_concept_id": "1402001",
+          "preferred_term": "Fear (finding)",
+          "sentence": "Paul reported that he his mental health 'is mixed up' with symptoms of fear,paranoia and some confusion.",
+          "char_start": 330,
+          "char_end": 432
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "The note documents a specific diagnosis of schizoaffective disorder; the generic 'Mental disorder' parent code (74732009) is too broad and should be replaced by the specific schizoaffective disorder concept.",
+          "replace_with_concept_id": "68890003",
+          "replace_with_preferred_term": "Schizoaffective disorder (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "191667009",
+          "name": "Paranoid disorder (disorder)",
+          "severity": "medium",
+          "reason": "Paranoia is described as a symptom of the patient's schizoaffective episode, not as a separate standalone paranoid disorder diagnosis; coding it as an independent disorder is not supported by the note text."
+        },
+        {
+          "conceptId": "386806002",
+          "name": "Cognitive impairment (finding)",
+          "severity": "medium",
+          "reason": "'Some confusion' is mentioned as a transient symptom within the current schizoaffective episode and does not constitute a separately coded cognitive impairment finding; the lookup also returned an unreliable Extension Namespace result for this concept ID."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary diagnosis of schizoaffective disorder (68890003) is explicitly documented but coded only with the non-specific parent 'Mental disorder' (74732009), which should be replaced. Paranoia and confusion are symptoms of the acute schizoaffective episode rather than independent disorders and are overcoded as standalone diagnoses; fear (1402001) is an explicitly reported active symptom that is missing. All three existing concept lookups returned unreliable terminology server results, so hierarchy checks were used to inform the verdict.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4746,
+        "output_tokens": 1683,
+        "total_tokens": 6429,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "891fffae-92a7-41ca-9a6f-5f39f77f0a05",
+        "date": "2024-05-24",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "70fa9402-9605-44a4-9bc1-4eec39b0e1d0",
+    "patient_id": "4200797127",
+    "date": "2024-06-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "piles",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "GP explicitly documents 'I thought piles related on examination' \u2014 haemorrhoids are a clinically relevant differential/finding driving the referral decision and should be coded.",
+          "snomed_search": "haemorrhoids",
+          "snomed_concept_id": "70153002",
+          "preferred_term": "Hemorrhoids (disorder)",
+          "sentence": "i thought piles related on examination, normal ctcap last year in nov 7m ago.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "bleeding",
+          "severity": "critical",
+          "suggested_assertion": "historical",
+          "reason": "Rectal bleeding is a safety-critical red-flag symptom (NG12 criterion) explicitly documented as the presenting symptom driving the 2WW lower GI referral; it must be coded even though it has settled.",
+          "snomed_search": "rectal bleeding",
+          "snomed_concept_id": "405729008",
+          "preferred_term": "Hematochezia (finding)",
+          "sentence": "bleeding has settled since we last reviewed.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "375241000000109",
+          "name": "Bowel cancer screening programme faecal occult blood test abnormal (finding)",
+          "severity": "medium",
+          "reason": "The note documents an abnormal FIT (faecal immunochemical test) result of 193 in primary care \u2014 not a bowel cancer screening programme FOB test; the more specific and accurate concept is 'Bowel cancer screening programme liquid faecal immunochemical test abnormal' (1101371000000105), though even that references the screening programme. The observable entity code 1049361000000101 already captures the FIT result; this FOB screening finding code is a mismatch.",
+          "replace_with_concept_id": "1101371000000105",
+          "replace_with_preferred_term": "Bowel cancer screening programme liquid faecal immunochemical test abnormal (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "169064005",
+          "name": "Computed tomography normal (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note explicitly states the CT CAP was performed 'last year in nov 7m ago' \u2014 this is a historical result, not a current finding, and should be asserted as historical."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "This is a clinically significant 2WW lower GI cancer referral encounter driven by an abnormal FIT (193) and rectal bleeding; the referral procedure is correctly coded but rectal bleeding (a mandatory NG12 red-flag symptom) and haemorrhoids (the GP's clinical examination finding) are both missing. The FOB screening programme finding code is a mismatch for a primary care FIT result, and the historical CT normal result is incorrectly asserted as present. Note: lookup_concept returned unreliable/wrong semantic tags for all three concepts checked \u2014 terminology server index appears partially corrupted; concept IDs were cross-validated via search_snomed hierarchy results.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4715,
+        "output_tokens": 2029,
+        "total_tokens": 6744,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "70fa9402-9605-44a4-9bc1-4eec39b0e1d0",
+        "date": "2024-06-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a7530cf9-afc7-4afc-a0ac-a60af366df67",
+    "patient_id": "4200797127",
+    "date": "2024-06-24",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This encounter is a medication review/prescription management entry with no clinical narrative, symptoms, examination findings, or new diagnoses documented in this encounter. The medication review is already coded via Read code XaF8d. The STAMP/STOMP coding instruction is explicitly deferred \u2014 the clinician states to code it FOLLOWING the upcoming CMHT psychotropic review on 4/7/24, meaning it is not yet a completed procedure at the time of this note and should not be coded now. The medication changes (atorvastatin dose increase, venlafaxine switch) are prescription management entries only. The Summary Care Record preference update is purely administrative. No SNOMED entities are codeable from this encounter text at this time. NOTE: The STOMP concept ID 1106111000000108 returned an unreliable lookup result (semantic_tag 'organism') \u2014 if STAMP/STOMP coding is actioned after the CMHT review, the concept ID should be verified against the local terminology server before use.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4890,
+        "output_tokens": 1192,
+        "total_tokens": 6082,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "a7530cf9-afc7-4afc-a0ac-a60af366df67",
+        "date": "2024-06-24",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1f794b3a-b3f9-45aa-af47-9e33e91d9ad2",
+    "patient_id": "4200797127",
+    "date": "2024-07-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Review of mental health care plan",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented multiple times in the encounter with Read code Xaa8q; this is a key procedure performed during this contact and should be coded.",
+          "snomed_search": "review mental health care plan",
+          "snomed_concept_id": "867871000000100",
+          "preferred_term": "Review of mental health care plan (procedure)",
+          "sentence": "Review of mental health care plan (Xaa8q)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Mental health medication review",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented with Read code XaJr3 \u2014 clinician reviewed medication concordance and adverse effects; this procedure is within SNOMED scope and was performed.",
+          "snomed_search": "mental health medication review",
+          "snomed_concept_id": "413143000",
+          "preferred_term": "Mental health medication review (procedure)",
+          "sentence": "Mental health medication review (XaJr3) - Continue to be concordance with his medication, no adverse side effect reported.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Mental health annual physical examination done",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented with Read code XaJON as part of the SMI physical health check; the annual physical review procedure was completed and should be coded.",
+          "snomed_search": "mental health review",
+          "snomed_concept_id": "401061005",
+          "preferred_term": "Mental health review (procedure)",
+          "sentence": "Mental health annual physical examination done (XaJON)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Agreeing on patient actions in care plan",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Documented with Read code XaZYs; patient actions were agreed (medication, coping strategies, engagement with professionals) and this procedure is within SNOMED scope.",
+          "snomed_search": "agreeing mental health care plan",
+          "snomed_concept_id": "867851000000109",
+          "preferred_term": "Agreeing on mental health care plan (procedure)",
+          "sentence": "Agreeing on patient actions in care plan (XaZYs)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Mental health crisis plan",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Documented with Read code XaIvp; a crisis plan was discussed and documented (contact helpline/GP/CAP/111/999 or attend A&E), which is a clinically significant safety procedure.",
+          "snomed_search": "mental health crisis plan",
+          "snomed_concept_id": "401061005",
+          "preferred_term": "Mental health review (procedure)",
+          "sentence": "Mental health crisis plan (XaIvp) - To contact helpline/GP/CAP/111/999 or attend A&E if in an emergency",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "This SMI annual review encounter has five procedures explicitly documented with Read codes (care plan review, medication review, annual physical examination, care plan agreement, crisis plan) that are absent from the coded list \u2014 all fall within SNOMED procedure scope and should be coded. The mental disorder code 74732009 returned an unreliable terminology lookup and is likely too broad given the explicit 'Severe Mental Illness' context; human review is recommended to replace it with a verified SMI-specific disorder concept. The hazardous alcohol use and smoking codes are correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9778,
+        "output_tokens": 2518,
+        "total_tokens": 12296,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "1f794b3a-b3f9-45aa-af47-9e33e91d9ad2",
+        "date": "2024-07-04",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "aee371d3-2750-4ae7-ba33-c1c3833a946f",
+    "patient_id": "4200797127",
+    "date": "2024-08-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "erectile dysfunction",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented as an active condition for which sildenafil is prescribed on the repeat \u2014 this is a codeable active diagnosis, not merely a medication entry.",
+          "snomed_search": "erectile dysfunction",
+          "snomed_concept_id": "860914002",
+          "preferred_term": "Erectile dysfunction (disorder)",
+          "sentence": "also has sildenafil on his rpt for erectile dynfunction, agred leave on the rpt for use another time.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "bereavement",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Brother's recent death is documented with active discussion of coping and bereavement counselling offered \u2014 a clinically relevant psychosocial finding warranting coding, particularly given the patient's schizoaffective disorder.",
+          "snomed_search": "bereavement",
+          "snomed_concept_id": "74506000",
+          "preferred_term": "Bereavement (finding)",
+          "sentence": "his brother passed away on Tuesday, asked how he has been coping with the loss feels has helped having peiple like his partner around, discussed about bereavement counselling.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "The broad 'Mental disorder' code (74732009) should be replaced with the specific 'Schizoaffective disorder' code (68890003) which is explicitly named as the problem header \u2014 this is the most significant coding quality issue. Hyperlipidaemia (55822004) is correctly coded and confirmed. Two additional active findings are missing: erectile dysfunction (explicitly diagnosed and treated) and bereavement (clinically discussed with counselling offered, relevant to mental health risk). Note: lookup_concept returned unreliable results for both existing codes due to a terminology server index issue; concept validity was confirmed via search_snomed instead. Future planned blood tests (3/12) are not coded as they have not yet occurred.",
+      "confidence": 0.88,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6235,
+        "output_tokens": 1376,
+        "total_tokens": 7611,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "aee371d3-2750-4ae7-ba33-c1c3833a946f",
+        "date": "2024-08-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8a4b36ae-8d2d-454e-9b95-ef78d7f38109",
+    "patient_id": "4200797127",
+    "date": "2024-09-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Serum lithium level",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The serum lithium result (0.87 mmol/L) is the primary clinical output of this encounter and should be coded as an observable entity, consistent with how all other lab results in this encounter are coded.",
+          "snomed_search": "serum lithium level",
+          "snomed_concept_id": "1006681000000100",
+          "preferred_term": "Serum lithium level (observable entity)",
+          "sentence": "Serum lithium level (XE25g) 0.87 mmol/L [0.4 - 1] - Lithium greater than 0.8mmol/L needed for acute therapy",
+          "char_start": 22,
+          "char_end": 120
+        },
+        {
+          "term": "clozapine monitoring",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical details explicitly state the patient is on clozapine and the request is for monitoring; clozapine therapy monitoring should be coded alongside lithium monitoring.",
+          "snomed_search": "clozapine monitoring",
+          "snomed_concept_id": "838422006",
+          "preferred_term": "Monitoring of clozapine therapy (regime/therapy)",
+          "sentence": "on clozapine and lithium - monitoring.",
+          "char_start": 230,
+          "char_end": 268
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a lithium therapeutic drug monitoring review with clozapine co-monitoring context. The serum lithium observable entity (1006681000000100) is missing despite all other lab observables being coded via the structured pipeline; clozapine monitoring (838422006) is also absent despite being explicitly stated as a reason for the request. Note: concept 1285702007 coded as 'Monitoring of lithium therapy' returned an unreliable/organism tag from the terminology server \u2014 human review of this concept ID is recommended, though it has not been flagged as overcoded on unreliability alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4564,
+        "output_tokens": 1465,
+        "total_tokens": 6029,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "8a4b36ae-8d2d-454e-9b95-ef78d7f38109",
+        "date": "2024-09-20",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5e0171e8-1a23-442f-b1cb-d3e38fb01b20",
+    "patient_id": "4200797127",
+    "date": "2024-09-20",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is an auto-filed normal U&E result for a patient on clozapine and lithium monitoring; all four coded concepts are confirmed as valid by SNOMED search (lookup_concept returned unreliable results for all three clinical codes, but direct search confirmed each concept ID and preferred term). The broad 'Mental disorder' code (74732009) is the weakest choice \u2014 clozapine use strongly implies treatment-resistant schizophrenia \u2014 but no specific diagnosis is named in the encounter text, so per audit rules a diagnosis cannot be inferred from medication alone; the existing code is not contradicted. The two regime/therapy codes (lithium and clozapine monitoring) fall outside the stated audit scope (disorder/finding/situation/procedure/observable entity/qualifier value/substance) but are clinically appropriate standing codes and are not flagged. No missing, overcoded, or wrong-assertion issues identified within scope.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4821,
+        "output_tokens": 1499,
+        "total_tokens": 6320,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "5e0171e8-1a23-442f-b1cb-d3e38fb01b20",
+        "date": "2024-09-20",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c32572f5-2843-490d-821b-557436ca5018",
+    "patient_id": "4200797127",
+    "date": "2024-09-20",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "This encounter consists entirely of a receptionist access log and an appointment rescheduling note; there is no clinical content to audit or code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 480,
+        "output_tokens": 211,
+        "total_tokens": 691,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "c32572f5-2843-490d-821b-557436ca5018",
+        "date": "2024-09-20",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a8192d78-51cc-4f5a-aedd-5195286b7698",
+    "patient_id": "4200797127",
+    "date": "2024-09-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Smoking cessation advice",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Smoking cessation advice (Ua1Nz)' as given during this encounter, but no corresponding SNOMED procedure or situation code appears in the coded list.",
+          "snomed_search": "smoking cessation education",
+          "snomed_concept_id": "225323000",
+          "preferred_term": "Smoking cessation education (procedure)",
+          "sentence": "Advice: Smoking cessation advice (Ua1Nz)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely correct and well-evidenced: clozapine and lithium monitoring procedures are appropriately coded, smoker status is captured, and the observable entity lab codes are pipeline-generated. The one genuine gap is the smoking cessation advice explicitly documented in the template, which should be coded as a procedure (225323000 Smoking cessation education). The lookup_concept server returned unreliable results for 77176002 and 1285702007 due to index corruption, but search_snomed independently confirmed both are legitimate concepts in the expected hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5558,
+        "output_tokens": 1250,
+        "total_tokens": 6808,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "a8192d78-51cc-4f5a-aedd-5195286b7698",
+        "date": "2024-09-20",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3cd78448-273d-4511-aa93-1fddd6ea030f",
+    "patient_id": "4200797127",
+    "date": "2024-10-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Six item cognitive impairment test",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The 6-CIT was fully administered and documented in this encounter with a score of 0 (normal); the procedure should be coded.",
+          "snomed_search": "six item cognitive impairment test",
+          "snomed_concept_id": "408492009",
+          "preferred_term": "Six item cognitive impairment test (procedure)",
+          "sentence": "Six item cognitive impairment test (XaJLG) 0",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "307541003",
+          "name": "Lower urinary tract symptoms (finding)",
+          "severity": "medium",
+          "reason": "The note explicitly documents no daytime urinary symptoms, no urgency, no dysuria, and a good stream \u2014 the only urinary symptom is nocturnal enuresis, which is already specifically coded as 8009008; coding broad LUTS in addition is not supported by the clinical text and introduces diagnostic imprecision."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "30281009",
+          "name": "Disorder of prostate (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The supervising clinician advised to 'consider prostate pathology' and requested further investigation (DRE and PSA); this is a clinical suspicion under investigation, not a confirmed diagnosis \u2014 assertion should be 'possible' not 'present'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The encounter is largely well coded but has three issues: (1) LUTS is overcoded given the note explicitly negates daytime urinary symptoms and the specific nocturnal enuresis code is already present; (2) 'Disorder of prostate' is coded as present when it is only a clinical suspicion requiring investigation \u2014 assertion must be changed to 'possible'; (3) the 6-CIT procedure, fully administered and documented with a score of 0, is missing from the coded list. Note: DRE and PSA blood test are planned future procedures (review in 2 weeks) and should NOT be coded as present at this encounter; urine dip is also a future/planned action. The lookup_concept server returned unreliable results for concepts 30281009 and 307541003, but search_snomed confirmed both are valid SNOMED codes in the correct hierarchies.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12975,
+        "output_tokens": 2106,
+        "total_tokens": 15081,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "3cd78448-273d-4511-aa93-1fddd6ea030f",
+        "date": "2024-10-01",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4eefd5f8-f12c-41a9-af9b-313d376f900c",
+    "patient_id": "4200797127",
+    "date": "2024-11-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "DRE done with chaperone Jordan",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A digital rectal examination was explicitly performed and documented; procedures performed in the encounter must be coded.",
+          "snomed_search": "digital rectal examination",
+          "snomed_concept_id": "410006001",
+          "preferred_term": "Digital examination of rectum (procedure)",
+          "sentence": "DRE done with chaperone Jordan",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "bipolar disorder",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Bipolar disorder is explicitly documented as background history; the current code [74732009] is the non-specific 'Mental disorder' and is duplicated \u2014 a specific bipolar disorder concept should replace both instances.",
+          "snomed_search": "bipolar disorder",
+          "snomed_concept_id": "13746004",
+          "preferred_term": "Bipolar disorder (disorder)",
+          "sentence": "BG of CLL, bipolar disorder",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "Coded twice (duplicate entry) and too non-specific \u2014 the note explicitly states 'bipolar disorder'; both instances should be replaced with the specific bipolar disorder concept [13746004].",
+          "replace_with_concept_id": "13746004",
+          "replace_with_preferred_term": "Bipolar disorder (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "309089006",
+          "name": "Prostate mass (finding)",
+          "severity": "medium",
+          "reason": "The DRE finding is a smooth, symmetrical, enlarged, firm, non-tender prostate \u2014 this is an enlarged prostate on PR, not a 'mass'; 'Prostate mass' implies a suspicious lesion inconsistent with the documented examination findings.",
+          "replace_with_concept_id": "275302008",
+          "replace_with_preferred_term": "Prostate enlarged on PR (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "363495004",
+          "name": "Malignant neoplasm of muscle (disorder)",
+          "severity": "high",
+          "reason": "The terminology server lookup returned 'Malignant neoplasm of muscle' for this concept ID, which is clearly wrong for the documented CLL; this concept ID is unreliable and should be reviewed and replaced with a verified CLL-specific code by a human coder."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "363693003",
+          "name": "Constipation (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'was constipated before now better' \u2014 this is a resolved historical finding, not a currently active problem."
+        },
+        {
+          "conceptId": "266569009",
+          "name": "Benign prostatic hyperplasia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "BPH is a working diagnosis based on DRE findings with PSA and urine sample pending; it has not been confirmed and should be coded as possible until investigation results are reviewed."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Multiple significant coding issues found: the generic 'Mental disorder' code is duplicated and should be replaced with the specific 'Bipolar disorder' concept; BPH assertion should be 'possible' pending PSA/urine results; 'Prostate mass' misrepresents the DRE finding of a smooth enlarged prostate; constipation is resolved (historical); DRE procedure is uncoded; and the CLL concept ID [363495004] resolves to 'Malignant neoplasm of muscle' on the terminology server and requires urgent human review to assign a verified CLL-specific code. Confidence is modestly reduced due to widespread terminology server unreliability affecting several concept ID lookups.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12104,
+        "output_tokens": 2716,
+        "total_tokens": 14820,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "4eefd5f8-f12c-41a9-af9b-313d376f900c",
+        "date": "2024-11-13",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1ffa8028-3cdb-403d-886b-636998792cb7",
+    "patient_id": "4200797127",
+    "date": "2024-12-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "medium",
+          "reason": "This broad parent concept is redundant: the specific diagnosis of Small Lymphocytic Lymphoma is already precisely coded as 302841002 (Malignant lymphoma - small lymphocytic), which IS-A child of this concept; retaining both creates duplication at different levels of specificity.",
+          "replace_with_concept_id": "302841002",
+          "replace_with_preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four coded concepts are correct and well-evidenced: cervical lymphadenopathy (127086001), axillary lymphadenopathy (127189005), and SLL (302841002) all map accurately to the encounter text. The generic parent concept 363495004 (Malignant tumour of lymphoid haemopoietic and related tissue) is overcoded as it is fully subsumed by the already-coded specific SLL concept and should be removed. The possible viral illness mentioned is explicitly uncertain and attributed to the wife's opinion, with the GP also unsure \u2014 insufficient for a coded diagnosis. The f2f review booked for the following morning is a future appointment and not codeable as a completed procedure. Terminology server returned unreliable lookup results for three concept IDs; correctness was confirmed via search_snomed instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4214,
+        "output_tokens": 1282,
+        "total_tokens": 5496,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "1ffa8028-3cdb-403d-886b-636998792cb7",
+        "date": "2024-12-04",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9383a850-6463-40fd-8e20-eda2f3eecf0b",
+    "patient_id": "4200797127",
+    "date": "2024-12-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "upper respiratory tract infection",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents a clear URTI syndrome: 'feeling nasal and chesty', sneezing, dry cough, runny nose, no fever \u2014 this active diagnosis is not coded.",
+          "snomed_search": "upper respiratory infection",
+          "snomed_concept_id": "54150009",
+          "preferred_term": "Upper respiratory infection (disorder)",
+          "sentence": "Feeling \"nasal and chesty\" for the past few days. No fever. Sneezing. Dry cough (no blood). Runny nose longstanding.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "high",
+          "reason": "The note and problem entry specifically document small lymphocytic lymphoma (SLL/CLL); the coded concept 363495004 is an unreliable/incorrect broad code \u2014 the correct specific SNOMED concept is 302841002 'Malignant lymphoma - small lymphocytic (disorder)'.",
+          "replace_with_concept_id": "302841002",
+          "replace_with_preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis code for SLL should be replaced with the specific concept 302841002 rather than the broad/unreliable 363495004. A concurrent URTI presentation ('nasal and chesty', sneezing, dry cough, runny nose) is clearly documented but not coded; the lymphadenopathy and fatigue codes are otherwise appropriate and well-evidenced. The axillary and cervical lymphadenopathy concept IDs (127189005, 127086001) were confirmed correct via search despite unreliable lookup_concept responses.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6294,
+        "output_tokens": 1809,
+        "total_tokens": 8103,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "9383a850-6463-40fd-8e20-eda2f3eecf0b",
+        "date": "2024-12-05",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "171621ff-a630-4d85-a4d4-0b824541575d",
+    "patient_id": "4200797127",
+    "date": "2024-12-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "reactive lymphadenopathy",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "The triage clinician explicitly states the increasing lymph nodes 'may be reactive', raising reactive lymphadenopathy as a differential that should be coded as possible alongside the known SLL.",
+          "snomed_search": "reactive lymphadenopathy",
+          "snomed_concept_id": "445718006",
+          "preferred_term": "Reactive lymphadenopathy (disorder)",
+          "sentence": "Given short history of increasing lymph nodes these may be reactive.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "276461000000107",
+          "name": "Fast track referral for suspected haematology malignancy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "cancelled",
+          "severity": "high",
+          "reason": "The triage outcome is explicitly 'Referral Rejected back to GP - Inappropriate referral'; the 2WW referral did not proceed and should be coded as cancelled, not present."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The most significant issue is the 2WW haematology referral coded as 'present' when it was explicitly rejected/cancelled by the triage service \u2014 this should be 'cancelled'. The triage note also raises reactive lymphadenopathy as a possible differential for the increasing lymph nodes in the context of known SLL, which is not currently coded. Concept 363495004 (broad lymphoid malignancy) is redundant alongside the more specific SLL code 302841002 but cannot be confirmed as overcoded due to unreliable terminology server responses for that ID; human review of that duplicate is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8066,
+        "output_tokens": 1870,
+        "total_tokens": 9936,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "171621ff-a630-4d85-a4d4-0b824541575d",
+        "date": "2024-12-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2178abc5-a44d-4bc8-af29-7d479bbbd0c8",
+    "patient_id": "4200797127",
+    "date": "2024-12-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant neoplasm of muscle (disorder)",
+          "severity": "high",
+          "reason": "The note documents '? lymphoma' as a clinical indication \u2014 a diagnostic uncertainty, not a confirmed diagnosis \u2014 and the correct clinical entity is lymphoma (not malignant neoplasm of muscle); this concept is both the wrong disorder and the wrong assertion.",
+          "replace_with_concept_id": "315264005",
+          "replace_with_preferred_term": "Malignant lymphoma suspected (situation)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The LDH procedure code (313854008) is correct. However, the lymphoma code is doubly wrong: concept 363495004 resolves to 'Malignant neoplasm of muscle (disorder)' \u2014 an entirely different disorder \u2014 and it has been asserted as present when the note clearly states '? lymphoma' (diagnostic uncertainty only). It should be replaced with 315264005 'Malignant lymphoma suspected (situation)' with assertion=possible. The LDH result is normal with no further action, so no additional findings need coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 7460,
+        "output_tokens": 1264,
+        "total_tokens": 8724,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "2178abc5-a44d-4bc8-af29-7d479bbbd0c8",
+        "date": "2024-12-11",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6cdb5448-5236-4575-b232-a7b59e66b16a",
+    "patient_id": "4200797127",
+    "date": "2024-12-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "? lymphoma",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The lab request explicitly documents '? lymphoma' as the clinical reason for investigation; a possible lymphoma should be coded to reflect the active clinical question being investigated.",
+          "snomed_search": "lymphoma",
+          "snomed_concept_id": "",
+          "preferred_term": "",
+          "sentence": "Clinical Information: Reasons for Request:      ? lymphoma.No.",
+          "char_start": 218,
+          "char_end": 270
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "45764000",
+          "name": "Immunoglobulin M measurement (procedure)",
+          "severity": "medium",
+          "reason": "Concept ID 45764000 is flagged as unreliable by the terminology server (returns semantic_tag 'organism'), and the evidence rationale in the coded list incorrectly frames this as an abnormal finding requiring separate coding \u2014 the reviewing GP explicitly signed off the full immunoglobulin/electrophoresis panel as 'Normal, No Further Action'; the low IgM was reviewed and not actioned. The procedure code itself may be valid but the unreliable concept ID and misleading evidence rationale warrant replacement with a verified observable entity code for IgM level if the structured lab pipeline has not already captured it."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The most significant issue is the missing 'possible lymphoma' code \u2014 the lab request explicitly documents this as the clinical question under investigation, which is codeable and clinically significant. Additionally, concept 45764000 coded for IgM measurement is flagged as unreliable by the terminology server (resolves to an 'organism' semantic tag); the evidence rationale also incorrectly characterises the below-range IgM as requiring a separate abnormal finding code when the GP reviewer explicitly signed off the panel as normal with no further action. The remaining observable entity codes appear to have been auto-filed by the structured lab pipeline and are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9009,
+        "output_tokens": 1486,
+        "total_tokens": 10495,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "6cdb5448-5236-4575-b232-a7b59e66b16a",
+        "date": "2024-12-11",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "521cb8a6-a775-40e0-a04d-7ddad0083f26",
+    "patient_id": "4200797127",
+    "date": "2024-12-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "? lymphoma",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The clinical information field explicitly states '? lymphoma' as the reason for the FBC request \u2014 a possible cancer diagnosis that must be coded to ensure appropriate follow-up and clinical safety-netting, even though the FBC result was normal.",
+          "snomed_search": "suspected lymphoma",
+          "snomed_concept_id": "315264005",
+          "preferred_term": "Malignant lymphoma suspected (situation)",
+          "sentence": "Clinical Information: Reasons for Request:      ? lymphoma.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The six existing FBC observable entity codes are correctly applied by the structured lab pipeline and require no changes. However, the clinically critical gap is the absence of a code for '? lymphoma' (the stated reason for the FBC request) \u2014 SNOMED 315264005 'Malignant lymphoma suspected (situation)' with assertion=possible must be added to ensure the possible cancer diagnosis is visible on the problem list and triggers appropriate clinical follow-up, regardless of the normal FBC result.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4492,
+        "output_tokens": 1038,
+        "total_tokens": 5530,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "521cb8a6-a775-40e0-a04d-7ddad0083f26",
+        "date": "2024-12-11",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7c9f22f8-c93f-4a33-9588-fa2a4f4428da",
+    "patient_id": "4200797127",
+    "date": "2024-12-17",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This auto-filed FBC encounter is fully and correctly coded: the two clinically significant abnormal findings (Leukocytosis 111583006 and Neutrophilia 165518003) are both confirmed valid SNOMED concepts and correctly asserted as present, consistent with the GP review narrative ('neut + WBC mildly elevated'). The six observable entity codes are appropriate structured-pipeline outputs and are not subject to audit. No additional clinical diagnoses, symptoms, referrals, or procedures are documented in this encounter that would require further coding. Lookup_concept returned unreliable results for the two disorder/finding codes, but search_snomed confirmed both concept IDs are correct and in the expected hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5185,
+        "output_tokens": 1112,
+        "total_tokens": 6297,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "7c9f22f8-c93f-4a33-9588-fa2a4f4428da",
+        "date": "2024-12-17",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bdc29a95-8cdf-48a8-9bc8-251c4580bfa4",
+    "patient_id": "4200797127",
+    "date": "2024-12-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "smoking cessation advice given",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'smoking cessation advise given' \u2014 this procedure was performed in this encounter and must be coded.",
+          "snomed_search": "smoking cessation education",
+          "snomed_concept_id": "225323000",
+          "preferred_term": "Smoking cessation education (procedure)",
+          "sentence": "smokes 20-25 roll ups/day, smoking cessation advise given, patient will be keen to book appointment for smoking cessation advise when he wants to.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "high",
+          "reason": "The note documents known SLL (Small Lymphocytic Lymphoma) \u2014 a specific diagnosis that should be coded precisely; 363495004 is a broad parent concept whose SNOMED descendants are muscle neoplasms (wrong hierarchy), confirming this is the wrong code for SLL.",
+          "replace_with_concept_id": "302841002",
+          "replace_with_preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "276461000000107",
+          "name": "Fast track referral for suspected haematology malignancy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "cancelled",
+          "severity": "medium",
+          "reason": "The note explicitly states the 2WW haematology referral was rejected ('Haemotology 2ww referral rejected as not new issue') \u2014 the referral did not proceed and should be asserted as cancelled, not present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three coding issues identified: (1) The SLL diagnosis is coded with an overly broad and hierarchically incorrect parent concept \u2014 should be replaced with the specific Small Lymphocytic Lymphoma code 302841002. (2) The 2WW haematology referral assertion should be 'cancelled' as it was explicitly rejected. (3) Smoking cessation education performed in this encounter is not coded. Note: lookup_concept returned unreliable results for both 363495004 and 276461000000107; the 2WW referral code was confirmed via search_snomed; the SLL parent code was verified as wrong via get_descendants hierarchy check.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5510,
+        "output_tokens": 1576,
+        "total_tokens": 7086,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "bdc29a95-8cdf-48a8-9bc8-251c4580bfa4",
+        "date": "2024-12-20",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "aab7f486-473d-4d03-b7ca-d433aa7f4767",
+    "patient_id": "4200797127",
+    "date": "2024-12-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "SLL (Small Lymphocytic Lymphoma)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'known SLL' and the patient is actively under haematology follow-up, making this an active specific disorder that should be coded in addition to (or instead of) the generic 'History of malignant neoplasm' situation code.",
+          "snomed_search": "small lymphocytic lymphoma",
+          "snomed_concept_id": "302841002",
+          "preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "sentence": "under haem, due fu anytime now based on letter in july.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The most significant gap is the absence of a specific Small Lymphocytic Lymphoma disorder code (302841002) \u2014 the patient is actively under haematology with imminent follow-up, making the generic 'History of malignant neoplasm' situation code alone inadequate. Several coded concept IDs returned unreliable/Extension Namespace results from the terminology server (127086001, 274747003, 266433003, 86273004) and could not be fully verified, but per audit rules these have not been flagged as overcoded on that basis alone; a terminology server reconciliation is recommended.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5831,
+        "output_tokens": 1747,
+        "total_tokens": 7578,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "aab7f486-473d-4d03-b7ca-d433aa7f4767",
+        "date": "2024-12-20",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e07713de-327e-4b0b-a2ed-b63a42cbb27f",
+    "patient_id": "4200797127",
+    "date": "2025-01-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "medium",
+          "reason": "This broad parent malignancy code is redundant given that SLL is already coded specifically as a haematological malignancy; lookup also returned an unreliable organism semantic tag suggesting the concept ID may be incorrect.",
+          "replace_with_concept_id": "302841002",
+          "replace_with_preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "51092000",
+          "name": "B-cell chronic lymphocytic leukemia/small lymphocytic lymphoma (morphologic abnormality)",
+          "severity": "high",
+          "reason": "Lookup returned semantic tag 'qualifier value' (An 7705), confirming this concept ID is incorrect for SLL as a clinical disorder; the correct disorder concept is 302841002 Malignant lymphoma - small lymphocytic.",
+          "replace_with_concept_id": "302841002",
+          "replace_with_preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1556551000000104",
+          "name": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "severity": "high",
+          "reason": "Lookup returned 'DRB1*09012 (substance)' confirming this concept ID is wrong; the correct procedure is Fast track cancer referral (199251000000107), and the assertion must be 'cancelled' as the note explicitly states the 2WW referral was rejected.",
+          "replace_with_concept_id": "199251000000107",
+          "replace_with_preferred_term": "Fast track cancer referral (procedure)",
+          "replace_with_assertion": "cancelled"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "1556551000000104",
+          "name": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "cancelled",
+          "severity": "high",
+          "reason": "The encounter note explicitly states 'referred for 2ww was rejected' \u2014 the referral did not proceed and must be coded as cancelled, not present."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Three of the four coded concept IDs are incorrect: 51092000 and 1556551000000104 resolve to wrong semantic tags (qualifier value and substance respectively), and 363495004 is an unreliable/redundant broad parent. The correct disorder for SLL is 302841002 (Malignant lymphoma - small lymphocytic). The 2WW referral assertion must be changed to 'cancelled' as the note clearly states it was rejected. Concept 274741002 (generalised lymphadenopathy) returned an unreliable Extension Namespace result and should be verified by a coder against the local terminology release.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4395,
+        "output_tokens": 1628,
+        "total_tokens": 6023,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "e07713de-327e-4b0b-a2ed-b63a42cbb27f",
+        "date": "2025-01-02",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "28928f93-c370-44c7-bd1b-27fae531cb80",
+    "patient_id": "4200797127",
+    "date": "2025-01-20",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This encounter is an auto-filed serum lithium result review with a satisfactory outcome and no further action \u2014 there is no clinical narrative, new diagnosis, symptom, or management change to code. The existing encounter-type code is set by the appointment system and is not subject to audit here.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1285,
+        "output_tokens": 752,
+        "total_tokens": 2037,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "28928f93-c370-44c7-bd1b-27fae531cb80",
+        "date": "2025-01-20",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1ed9b79d-0325-49e2-966d-c25a88597334",
+    "patient_id": "4200797127",
+    "date": "2025-01-23",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are confirmed correct via search_snomed (lookup_concept returned unreliable results due to server index corruption, but concept IDs were validated by search): 129572001 'Bolus obstruction of esophagus by food' accurately captures the acute food bolus impaction presentation, and 306104004 'Referral to accident and emergency service' correctly captures the onward management. NEWS2 vital signs are normal structured pipeline data and do not require additional coding; no other in-scope clinical findings are present in the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7638,
+        "output_tokens": 970,
+        "total_tokens": 8608,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "1ed9b79d-0325-49e2-966d-c25a88597334",
+        "date": "2025-01-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "173efb09-0299-4eb6-94eb-e64d3c2a2042",
+    "patient_id": "4200797127",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5052dccc-1efc-4d92-8248-c23a43cb8d34",
+    "patient_id": "4200797127",
+    "date": "2025-05-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "likely viral",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinician's diagnosis is 'likely viral' (respiratory infection) and this primary diagnosis for the encounter should be coded.",
+          "snomed_search": "viral upper respiratory tract infection",
+          "snomed_concept_id": "281794004",
+          "preferred_term": "Viral upper respiratory tract infection (disorder)",
+          "sentence": "Diagnosis: likely viral.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "267036007",
+          "name": "Dyspnea (Clinical_finding)",
+          "severity": "medium",
+          "reason": "The note documents 'SOBOE' (shortness of breath on exertion), which maps to the more specific 'Dyspnea on exertion' rather than the generic dyspnoea concept.",
+          "replace_with_concept_id": "60845006",
+          "replace_with_preferred_term": "Dyspnea on exertion (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "low",
+          "reason": "The specific SLL disorder (302841002) is already coded as present with active haematology follow-up documented; the generic 'history of malignant neoplasm' situation code is redundant and less precise."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis of viral (upper) respiratory infection is missing from the coded list, which is the main clinical conclusion of this encounter. The dyspnoea code should be replaced with the more specific 'dyspnoea on exertion' (SOBOE as documented), and the generic 'history of malignant neoplasm' situation code is redundant given the precise SLL disorder code is already present and active.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7008,
+        "output_tokens": 1839,
+        "total_tokens": 8847,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "5052dccc-1efc-4d92-8248-c23a43cb8d34",
+        "date": "2025-05-23",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7c4f13ca-320f-4ea9-b4cb-512b90245349",
+    "patient_id": "4200797127",
+    "date": "2025-05-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Waist circumference 94 cm",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Waist circumference is explicitly measured and documented (94 cm) in the SMI physical review but is absent from the coded list; it is a clinically relevant observable in the context of obesity and cardiovascular risk monitoring.",
+          "snomed_search": "waist circumference observable",
+          "snomed_concept_id": "276361009",
+          "preferred_term": "Waist circumference (observable entity)",
+          "sentence": "Waist circumference: 94 cm  (? 37 \")",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "SMI physical health check - home visit completed",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents completion of a structured SMI physical health check (6 checks done, home visit) which is a billable QOF/enhanced services procedure and should be coded as such.",
+          "snomed_search": "severe mental illness enhanced services administration",
+          "snomed_concept_id": "843651000000108",
+          "preferred_term": "Severe mental illness enhanced services administration (procedure)",
+          "sentence": "SMI Physical checks - Home visit completed - 6 physical checks done - Blood samples dropped off @ Glenfield Hospital, Recall in 1 year.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is largely accurate with appropriate use of observable entity codes from the structured lab/vitals pipeline and correct clinical finding codes for smoking, obesity, and alcohol use. Two gaps identified: waist circumference (276361009) is explicitly measured but not coded, and the completed SMI annual physical health check procedure (843651000000108) \u2014 a clinically and contractually significant event \u2014 is absent from the coded list. The lookup_concept server returned unreliable results for 162864005 and 43783005, but both were confirmed as valid and correctly applied via search_snomed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10196,
+        "output_tokens": 1799,
+        "total_tokens": 11995,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "7c4f13ca-320f-4ea9-b4cb-512b90245349",
+        "date": "2025-05-27",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bdbf49b1-142a-4646-9a15-bd34cc488052",
+    "patient_id": "4200797127",
+    "date": "2025-05-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "signposting to smoking cessation service",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The HCA provided the patient with information about the QuitReady stop-smoking self-referral service and called the patient back with the details \u2014 this clinical intervention should be coded as a procedure.",
+          "snomed_search": "signposting smoking cessation service",
+          "snomed_concept_id": "1084381000000100",
+          "preferred_term": "Signposting to smoking cessation service (procedure)",
+          "sentence": "HCA called patient back with this information and he will self-reffer when ready.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing codes for smoking (77176002) and mental disorder (74732009) are clinically appropriate for this SMI annual review, though both returned unreliable lookup results (server index issue \u2014 not genuine errors). The key gap is the absence of a procedure code for the smoking cessation signposting intervention that was clearly documented and actioned by the HCA. The seven observable entity lab codes are pipeline-generated and correctly present. The 'O/E - mental state' template entry is too incomplete to code as a specific finding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5646,
+        "output_tokens": 1198,
+        "total_tokens": 6844,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "bdbf49b1-142a-4646-9a15-bd34cc488052",
+        "date": "2025-05-27",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e4b731ab-cec1-464f-b153-634e273ddbdb",
+    "patient_id": "4200797127",
+    "date": "2025-05-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "viral urti",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The supervising clinician explicitly states 'sounds more in keeping with viral urti given short hx' \u2014 this is a working diagnosis for the presenting complaint and should be coded as possible.",
+          "snomed_search": "viral upper respiratory tract infection",
+          "snomed_concept_id": "281794004",
+          "preferred_term": "Viral upper respiratory tract infection (disorder)",
+          "sentence": "sounds more in keeping with viral urti given short hx.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "medium",
+          "reason": "lookup_concept returned an unreliable/wrong result for this concept ID (semantic_tag='organism'); the note references CLL specifically and a verified CLL-specific disorder code (e.g. B-cell CLL) should be used \u2014 human review required to confirm correct replacement concept.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "13645005",
+          "name": "Chronic obstructive pulmonary disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The supervising clinician uses the qualifier 'likely has COPD here' \u2014 this is an unconfirmed working diagnosis; coding as present overstates certainty and the assertion should be possible pending spirometry confirmation."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two significant assertion errors: COPD is coded as 'present' but the note only supports a 'possible/likely' working diagnosis pending spirometry; the CLL concept ID (363495004) returns unreliable terminology server results and should be verified against a confirmed CLL-specific SNOMED code. Viral URTI \u2014 the presenting complaint explicitly identified by the supervisor \u2014 is missing entirely from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3845,
+        "output_tokens": 1358,
+        "total_tokens": 5203,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "e4b731ab-cec1-464f-b153-634e273ddbdb",
+        "date": "2025-05-28",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d014a1dc-94cb-4ed6-b02e-755b25543afd",
+    "patient_id": "4200797127",
+    "date": "2025-05-28",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only a receptionist access-role header, encounter-type routing codes, and a generic 'Chronic Symptoms' walk-in trigger \u2014 there is no clinical narrative, examination, diagnosis, or plan in the text provided. All six coded concepts reference evidence phrases (cough, SOBOE, smoking, alcohol, BP) that are absent from this encounter text and appear to originate from a separate clinical encounter; they cannot be audited against this administrative record and must not be removed on this basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2622,
+        "output_tokens": 743,
+        "total_tokens": 3365,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "d014a1dc-94cb-4ed6-b02e-755b25543afd",
+        "date": "2025-05-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "31a72d31-684f-496a-8919-ca4137ebda3e",
+    "patient_id": "4200797127",
+    "date": "2025-05-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "pale green phlegm / productive cough with green sputum",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'sometimes brings up pale green phlegm' \u2014 this is more specific than the generic 'Does cough' already coded and should be captured as productive cough with green sputum.",
+          "snomed_search": "productive cough green sputum",
+          "snomed_concept_id": "161924005",
+          "preferred_term": "Productive cough -green sputum (finding)",
+          "sentence": "around 10 days history of ccough, sometimes brings up pale green phlegm, no blood,",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "B/G SLL (Small Lymphocytic Lymphoma)",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note references 'B/G SLL' (background Small Lymphocytic Lymphoma) as the reason for the CT thorax \u2014 this is an active background diagnosis that must be coded.",
+          "snomed_search": "small lymphocytic lymphoma",
+          "snomed_concept_id": "302841002",
+          "preferred_term": "Malignant lymphoma - small lymphocytic (disorder)",
+          "sentence": "CT thorax noted this year for B/G SLL.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "smoking cessation counselling",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly counselled the patient about smoking cessation and sent an information link during this encounter \u2014 this intervention procedure should be coded.",
+          "snomed_search": "smoking cessation education",
+          "snomed_concept_id": "225323000",
+          "preferred_term": "Smoking cessation education (procedure)",
+          "sentence": "counselled about smoking cessation, says he will think about it and will book an appointmet with his partner, link sent for information,",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Three coding gaps identified: (1) productive cough with green sputum [161924005] is more specific than the generic 'Does cough' code and should be added or used to replace it; (2) background SLL (Small Lymphocytic Lymphoma) [302841002] is explicitly referenced as the indication for the CT thorax and must be coded as a historical/background disorder; (3) smoking cessation education [225323000] was actively delivered in this encounter and should be coded as a procedure. The CT thorax concept ID [77477000] returned as unreliable by the terminology server (organism tag) and should be reviewed by a coder \u2014 a more specific 'CT of thorax' procedure code may be appropriate. Spirometry is planned but not yet performed; do not code as present. COPD is implied but not explicitly diagnosed \u2014 appropriate to await spirometry results before coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10116,
+        "output_tokens": 2053,
+        "total_tokens": 12169,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "31a72d31-684f-496a-8919-ca4137ebda3e",
+        "date": "2025-05-28",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e3287e4a-2db3-4229-b340-3a3f039012db",
+    "patient_id": "4200797127",
+    "date": "2025-05-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "joint stiffness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports bilateral knee stiffness and back stiffness as a primary complaint ('knees feel stiff', 'back feels stiff'), which is a distinct symptom not captured by the pain codes.",
+          "snomed_search": "joint stiffness",
+          "snomed_concept_id": "84445001",
+          "preferred_term": "Joint stiffness (finding)",
+          "sentence": "knees feel stiff. back feels stiff.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lower limb muscle weakness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Objective examination finding of MMT 4-/5 globally in lower limbs is explicitly documented and represents a clinically significant finding supporting the deconditioning diagnosis.",
+          "snomed_search": "weakness muscle lower limb",
+          "snomed_concept_id": "1137412000",
+          "preferred_term": "Weakness of muscle of lower limb (finding)",
+          "sentence": "MMT - 4-/5 LL globally.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding)",
+          "severity": "low",
+          "reason": "The note specifies 'lower back pain'; concept 399079008 returned an unreliable/wrong semantic tag from the terminology server, and the more specific and verified concept for low back pain (279039007) should be used instead.",
+          "replace_with_concept_id": "279039007",
+          "replace_with_preferred_term": "Low back pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is broadly appropriate for this musculoskeletal physiotherapy encounter but has two gaps: bilateral joint stiffness (a primary patient complaint) and lower limb muscle weakness (objective MMT finding) are both uncoded. The back pain concept ID (399079008) should be replaced with the more specific and verified Low back pain code (279039007) as the note explicitly states 'lower back pain'. All other existing codes are clinically appropriate for the documented encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8722,
+        "output_tokens": 2127,
+        "total_tokens": 10849,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "e3287e4a-2db3-4229-b340-3a3f039012db",
+        "date": "2025-05-30",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6c52a495-e260-4560-9e7a-c1cb4bd093a2",
+    "patient_id": "4200797127",
+    "date": "2025-06-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "visual hallucinations",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents Paul reporting intermittent visual phenomena ('can sometimes feel like he can see people out the corner of his eyes who aren't there') \u2014 this is a visual hallucination and should be coded as an active finding in the context of his SMI review.",
+          "snomed_search": "visual hallucinations",
+          "snomed_concept_id": "64269007",
+          "preferred_term": "Visual hallucinations (finding)",
+          "sentence": "He reported that he does not experience any auditory hallucinations, can sometimes feel like he can see people out the corner of his eyes who aren't there, but finds he is able to manage this.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "poor short-term memory",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note specifically describes Paul forgetting names and words (short-term memory difficulty), which is more precisely coded as 'Poor short-term memory' rather than the generic 'Cognitive impairment' already coded; both can coexist but the specific finding adds clinical value.",
+          "snomed_search": "poor short-term memory",
+          "snomed_concept_id": "247592009",
+          "preferred_term": "Poor short-term memory (finding)",
+          "sentence": "His main concern was his short term memory, says he tends to forget things such as names and words.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "83373005",
+          "name": "Anton's syndrome (disorder) \u2014 as coded",
+          "severity": "high",
+          "reason": "Lookup returned an unreliable Extension Namespace placeholder for this concept ID; furthermore, Anton's syndrome is denial of cortical blindness \u2014 entirely inconsistent with the note which describes intermittent visual hallucinations; this code is clinically wrong and should be replaced with Visual hallucinations (64269007).",
+          "replace_with_concept_id": "64269007",
+          "replace_with_preferred_term": "Visual hallucinations (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "6471006",
+          "name": "Coded as 'Suicidal thoughts' \u2014 resolves to 'Strain M 6906 (qualifier value)'",
+          "severity": "critical",
+          "reason": "Concept ID 6471006 resolves to a qualifier value with no relation to suicidal ideation; the note explicitly documents NO suicidal thoughts and NO self-harm intent \u2014 the correct code is 134420004 'No suicidal thoughts (situation)' with assertion=absent.",
+          "replace_with_concept_id": "134420004",
+          "replace_with_preferred_term": "No suicidal thoughts (situation)",
+          "replace_with_assertion": "absent"
+        },
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder) \u2014 second duplicate instance",
+          "severity": "medium",
+          "reason": "74732009 'Mental disorder' is already coded once (correctly) for the SMI review; the second instance was added with a rationale about self-harm intent which is clinically incorrect \u2014 it is a duplicate and should be removed; the self-harm finding should instead be coded via the correct concept."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (as labelled in coded list)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note unambiguously documents 'No suicidal thoughts' and 'No apparent risk of suicide' \u2014 coding this as present is a critical patient safety error regardless of the underlying concept ID problem."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "This encounter has three significant coding errors: (1) Anton's syndrome (83373005) is the wrong concept \u2014 the note describes visual hallucinations, not denial of blindness; (2) concept 6471006 resolves to an unrelated qualifier value and is coded as 'present' when the note explicitly documents absent suicidal ideation \u2014 a critical patient safety error requiring immediate correction to 134420004 with assertion=absent; (3) Mental disorder (74732009) is duplicated. The harmful alcohol use code (198431000000105) is clinically appropriate given AUDIT=10 and 62 units/week, though the terminology server could not confirm the concept ID and should be verified against the UK SNOMED extension. A specific poor short-term memory finding should be added alongside the existing cognitive impairment code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 16390,
+        "output_tokens": 2563,
+        "total_tokens": 18953,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "6c52a495-e260-4560-9e7a-c1cb4bd093a2",
+        "date": "2025-06-04",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e90644a4-2e45-489f-864b-21664363aa9c",
+    "patient_id": "4200797127",
+    "date": "2025-09-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Medication review done by clinical pharmacist",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A structured medication review by a clinical pharmacist is explicitly documented and is a substantive clinical procedure that should be coded.",
+          "snomed_search": "medication review procedure",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "sentence": "Review done by: Medication review done by clinical pharmacist (Y20a8)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Schizoaffective disorder",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly names schizoaffective disorder as an active problem; the currently coded concept 74732009 resolves as an organism/unreliable and is far too non-specific \u2014 the correct disorder-level code 68890003 should be used.",
+          "snomed_search": "schizoaffective disorder",
+          "snomed_concept_id": "68890003",
+          "preferred_term": "Schizoaffective disorder (disorder)",
+          "sentence": "Problem: Schizoaffective disorder (Eu25.) - Delusional ideas",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly documents schizoaffective disorder; the generic 'Mental disorder' code is insufficiently specific and the lookup returned an unreliable organism semantic tag, confirming this concept ID is incorrect for this clinical context.",
+          "replace_with_concept_id": "68890003",
+          "replace_with_preferred_term": "Schizoaffective disorder (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "51092000",
+          "name": "B-cell chronic lymphocytic leukemia/small lymphocytic lymphoma (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "This concept has semantic tag 'morphologic abnormality', which is inappropriate for a patient-level active diagnosis; a disorder-level CLL/SLL code should be used instead to correctly represent the patient's condition."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states 'No suicidal thoughts' \u2014 coding this as present is a critical patient safety error that misrepresents the risk assessment; the correct SNOMED code for the documented situation is 134420004 'No suicidal thoughts (situation)' with assertion absent, or the concept should be replaced with the dedicated negated situation code."
+        },
+        {
+          "conceptId": "401229000",
+          "name": "Thoughts of deliberate self harm (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states 'No thoughts of deliberate self harm' \u2014 coding this as present is a critical patient safety error misrepresenting the mental health risk assessment; the dedicated negated situation code 401228008 'No thoughts of deliberate self harm (situation)' should be used instead."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Two critical assertion errors exist: both suicidal ideation and self-harm thoughts are coded as 'present' when the note explicitly documents their absence \u2014 this is a serious patient safety risk in a patient with schizoaffective disorder. Additionally, the schizoaffective disorder is coded with a non-specific/unreliable 'Mental disorder' concept and CLL/SLL is coded at morphologic abnormality level rather than as a disorder; both should be replaced with appropriate disorder-level codes. A medication review procedure by the clinical pharmacist is also missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 13636,
+        "output_tokens": 2558,
+        "total_tokens": 16194,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "e90644a4-2e45-489f-864b-21664363aa9c",
+        "date": "2025-09-02",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "acb6c18d-fe7e-4146-b9f8-b45d490a6937",
+    "patient_id": "4200797127",
+    "date": "2025-09-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "self-referral advised to quitready",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly advises self-referral to QuitReady (a stop smoking service), which should be coded as a referral procedure distinct from the smoking cessation education already coded.",
+          "snomed_search": "referral to smoking cessation service",
+          "snomed_concept_id": "871661000000106",
+          "preferred_term": "Referral to smoking cessation service (procedure)",
+          "sentence": "given Smoking cessation advice (Ua1Nz)and self-referral advised to quitready.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "partner smokes",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient's partner smokes at home, creating passive tobacco smoke exposure for the patient, which is clinically relevant to cessation planning and health risk.",
+          "snomed_search": "exposed to tobacco smoke at home",
+          "snomed_concept_id": "228524006",
+          "preferred_term": "Exposed to tobacco smoke at home (finding)",
+          "sentence": "partner smokes - has said she will try and quit if he does as well.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "diet and exercise advice",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The GP explicitly gave lifestyle advice on diet and exercise (separate from smoking cessation education), which constitutes a distinct coded procedure.",
+          "snomed_search": "lifestyle education",
+          "snomed_concept_id": "313204009",
+          "preferred_term": "Lifestyle education (procedure)",
+          "sentence": "also cautioned to manage lifestyle as well - diet and exercise to help lose weight and to prevent overeating when quitting smoking.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The four existing codes are all correct and well-evidenced. Three additions are needed: the self-referral to a stop smoking service (QuitReady) is a distinct procedure from the smoking cessation education already coded; the patient's home exposure to tobacco smoke from a smoking partner is a clinically relevant finding; and the explicit diet and exercise lifestyle counselling warrants a lifestyle education procedure code separate from smoking cessation advice.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 9121,
+        "output_tokens": 1893,
+        "total_tokens": 11014,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "acb6c18d-fe7e-4146-b9f8-b45d490a6937",
+        "date": "2025-09-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4ecde367-06f3-4602-87d3-6a2d531cbcaf",
+    "patient_id": "4200797127",
+    "date": "2025-09-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two coded concepts are appropriate for this triage encounter: 300954003 (Pain in calf) correctly captures the presenting complaint, and 75367002 (Blood pressure) is a structured pipeline observable. Although unilateral calf pain of 5 days raises clinical suspicion for DVT, the clinician did not document a possible DVT diagnosis, Wells score, or any DVT-related assessment \u2014 coding DVT as 'possible' would be inferring a diagnosis not stated in the text. No coding gaps or errors are present within the encounter narrative.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3584,
+        "output_tokens": 974,
+        "total_tokens": 4558,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "4ecde367-06f3-4602-87d3-6a2d531cbcaf",
+        "date": "2025-09-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ae393c83-b670-484c-971a-60cd12764ca4",
+    "patient_id": "4200797127",
+    "date": "2025-09-18",
+    "result": {
+      "encounter_assessment": "needs_review",
+      "entities": [],
+      "missing": [
+        {
+          "term": "neck pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Neck pain is explicitly documented as a presenting complaint ('c/o neck pain for past 4/7') alongside calf pain but has not been coded.",
+          "snomed_search": "neck pain",
+          "snomed_concept_id": "81680005",
+          "preferred_term": "Neck pain (finding)",
+          "sentence": "Pt c/o painful L calf for past 4/7, also c/o neck pain for same time.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "D-Dimmers",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A D-dimer blood test was performed and documented under Investigations with a normal result reported; the procedure should be coded.",
+          "snomed_search": "D-dimer measurement",
+          "snomed_concept_id": "940711000000100",
+          "preferred_term": "Measurement of concentration of D-dimer in plasma specimen (procedure)",
+          "sentence": "Investigation: D-Dimmers",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding) [coded]",
+          "severity": "medium",
+          "reason": "Concept ID 399079008 is flagged as unreliable by the terminology server (returned semantic_tag='organism'), indicating a likely coding error; back pain should be recoded using a verified concept.",
+          "replace_with_concept_id": "161891005",
+          "replace_with_preferred_term": "Backache (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "Human review required: 'Haematemesis' appears in the HPC without a preceding 'No' negation, unlike all surrounding symptoms \u2014 it is unclear whether this is a positive finding (safety-critical: upper GI bleed) or a documentation omission. Additionally, back pain is coded with an unreliable/incorrect concept ID (399079008, flagged as organism by the terminology server) and should be replaced; neck pain as a co-presenting complaint is missing; and the D-dimer procedure performed during the encounter is uncoded. Calf pain concept 300954003 also returned as unreliable \u2014 recommend verification against a known parent hierarchy.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5712,
+        "output_tokens": 1720,
+        "total_tokens": 7432,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "ae393c83-b670-484c-971a-60cd12764ca4",
+        "date": "2025-09-18",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1e954bf7-7871-4f70-a357-ed51c9d43337",
+    "patient_id": "4200797127",
+    "date": "2025-09-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Unilateral lymphadenopathy in the context of leukaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "This is the explicitly stated formal diagnosis in the encounter note and represents the primary reason for the F2F review; it is not captured by the pitting oedema code alone.",
+          "snomed_search": "lymphadenopathy",
+          "snomed_concept_id": "30746006",
+          "preferred_term": "Lymphadenopathy (disorder)",
+          "sentence": "Diagnosis: Unilateral lymphadenopathy in the context of leukaemia.",
+          "char_start": 490,
+          "char_end": 553
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "high",
+          "reason": "Concept ID 363495004 is unreliable \u2014 the terminology server maps it to 'Malignant neoplasm of muscle (organism)', which is clearly wrong for CLL; the correct concept for chronic lymphocytic leukaemia is 92814006 'Chronic lymphoid leukemia, disease (disorder)'.",
+          "replace_with_concept_id": "92814006",
+          "replace_with_preferred_term": "Chronic lymphoid leukemia, disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "404223003",
+          "name": "Deep venous thrombosis of lower extremity (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states D-dimer was normal at LUTC and DVT was clinically excluded; coding DVT as 'present' is a serious patient safety error that could lead to inappropriate anticoagulation or incorrect risk stratification."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Three significant coding issues found: (1) CRITICAL \u2014 DVT is coded as 'present' but was explicitly excluded by normal D-dimer; assertion must be changed to 'absent'. (2) The CLL concept ID (363495004) is unreliable and maps to the wrong disorder on the terminology server; replace with 92814006 for chronic lymphocytic leukaemia. (3) The formally stated diagnosis of unilateral lymphadenopathy in the context of leukaemia is missing from the coded list and should be added as 30746006.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9360,
+        "output_tokens": 1952,
+        "total_tokens": 11312,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "1e954bf7-7871-4f70-a357-ed51c9d43337",
+        "date": "2025-09-29",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "70b912e3-43e0-4310-af4a-65cacc4e7810",
+    "patient_id": "4200797127",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "needs_review",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "This is an auto-filed normal U&E result reviewed by Dr Brockhurst (No Further Action); the observable entity codes are correctly generated by the structured lab pipeline and the lymphoedema/malignancy codes reflect the standing problem list. However, concept [363495004] coded as \"Malignant tumour of lymphoid haemopoietic and related tissue (disorder)\" is flagged for human review: the terminology server returned unreliable results for this ID (semantic_tag='organism' on lookup; search maps 363495004 to 'Malignant neoplasm of muscle'), suggesting a possible concept ID mismatch for the patient's known CLL \u2014 a clinician should verify the correct SNOMED concept ID is in use for this diagnosis (the correct CLL disorder concept is likely 92814006 'Chronic lymphoid leukaemia' or similar).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4504,
+        "output_tokens": 1493,
+        "total_tokens": 5997,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "70b912e3-43e0-4310-af4a-65cacc4e7810",
+        "date": "2025-09-30",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "08d6e0e5-21df-457b-b757-ad48b1e37b1e",
+    "patient_id": "4200797127",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "51092000",
+          "name": "B-cell chronic lymphocytic leukemia/small lymphocytic lymphoma (morphologic abnormality)",
+          "severity": "high",
+          "reason": "This concept has semantic tag 'morphologic abnormality', which is not a valid clinical coding category for an active patient diagnosis; 'known CLL' in the note requires a disorder-tagged concept. No verified disorder-level CLL concept ID was returned by search, so a human coder should identify the correct SNOMED disorder code (e.g. chronic lymphocytic leukaemia disorder concept) and replace this entry.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "Chronic lymphocytic leukaemia (disorder) \u2014 concept ID to be confirmed by coder",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The lymphoedema (234097001) and LDH procedure (313854008) codes are supported by the note text and confirmed by search. The CLL code (51092000) is tagged as 'morphologic abnormality' rather than 'disorder' \u2014 this is the wrong semantic category for an active clinical diagnosis of known CLL and must be replaced with a correctly-tagged disorder concept; a human coder should identify the appropriate SNOMED disorder ID as the terminology server did not return a disorder-level CLL match. All observable entity lab codes are from the structured pipeline and are not in scope for this audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5109,
+        "output_tokens": 1560,
+        "total_tokens": 6669,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "08d6e0e5-21df-457b-b757-ad48b1e37b1e",
+        "date": "2025-09-30",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f94ca586-7465-4e77-9cb9-201f7c0c6907",
+    "patient_id": "4200797127",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (as coded) \u2014 actual SNOMED preferred term: Malignant neoplasm of muscle (disorder)",
+          "severity": "critical",
+          "reason": "Concept ID 363495004 resolves to 'Malignant neoplasm of muscle (disorder)', not a lymphoid/haematological malignancy; it is the wrong code for the documented 'known CLL' and must be replaced with the correct CLL concept.",
+          "replace_with_concept_id": "92814006",
+          "replace_with_preferred_term": "Chronic lymphoid leukemia, disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Critical coding error: concept 363495004 is mapped to 'Malignant neoplasm of muscle' in the terminology server, not to any lymphoid malignancy \u2014 it must be replaced with 92814006 (Chronic lymphoid leukemia, disease) to correctly represent the documented 'known CLL'. All lab observable entity codes and the lymphoedema disorder code (234097001) are appropriate for this auto-filed result encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7043,
+        "output_tokens": 1523,
+        "total_tokens": 8566,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "f94ca586-7465-4e77-9cb9-201f7c0c6907",
+        "date": "2025-09-30",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e2e1da70-7de6-47be-8ea0-907aa71fae55",
+    "patient_id": "4200797127",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CLL",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'known CLL' confirmed by haematology review; the specific disorder code for chronic lymphoid leukaemia is absent and should replace the incorrect/unreliable broad concept currently coded.",
+          "snomed_search": "chronic lymphocytic leukemia",
+          "snomed_concept_id": "92814006",
+          "preferred_term": "Chronic lymphoid leukemia, disease (disorder)",
+          "sentence": "will update JH - known CLL - stable counts. Review done by BROCKHURST, Nikki (Dr) - 01 Oct 2025 08:37",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (as coded) / Malignant neoplasm of muscle (as coded) \u2014 concept ID used twice",
+          "severity": "high",
+          "reason": "Concept ID 363495004 is used twice in the coded list with inconsistent labels and the terminology server returns it as unreliable (semantic tag 'organism'); neither instance correctly represents CLL \u2014 replace both with the specific CLL disorder code 92814006.",
+          "replace_with_concept_id": "92814006",
+          "replace_with_preferred_term": "Chronic lymphoid leukemia, disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary coding error is the use of concept ID 363495004 (twice, with conflicting labels) which the terminology server cannot verify and which does not represent CLL; the correct specific code is 92814006 'Chronic lymphoid leukemia, disease (disorder)'. Lymphoedema (234097001) and the FBC observable entity codes are appropriate. The above-range neutrophil and WBC results are attributable to known stable CLL per the haematology review and do not require separate coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5934,
+        "output_tokens": 1455,
+        "total_tokens": 7389,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "e2e1da70-7de6-47be-8ea0-907aa71fae55",
+        "date": "2025-09-30",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f38e431a-6cc1-436f-bdcd-e37381a7b886",
+    "patient_id": "4200797127",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "234097001",
+          "name": "Lymphedema (disorder)",
+          "severity": "medium",
+          "reason": "The note specifies 'Unilateral lower limb lymphoedema'; the coded concept is the non-specific parent \u2014 a more precise child concept is available and should be used instead.",
+          "replace_with_concept_id": "403385000",
+          "replace_with_preferred_term": "Lymphedema of lower extremity (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The lymphoedema code should be refined from the non-specific parent 234097001 to the lower-extremity-specific 403385000 (or a laterality-specific child if the affected side is documented elsewhere); the CRP observable entity and encounter-type codes are pipeline/system-set and are out of audit scope. The CRP result is mildly elevated (12 mg/L, ref &lt;10) and the review was documented as 'No Further Action' \u2014 no additional clinical coding is required from this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3869,
+        "output_tokens": 1125,
+        "total_tokens": 4994,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "f38e431a-6cc1-436f-bdcd-e37381a7b886",
+        "date": "2025-09-30",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "20e44aaf-149f-4684-99de-b5e9bc5fc941",
+    "patient_id": "4200797127",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Unilateral lower limb lymphoedema",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly stated as the clinical reason for the bone profile request in the lab requisition; not on the patient's problem list and not coded in this encounter.",
+          "snomed_search": "lower limb lymphoedema",
+          "snomed_concept_id": "234097001",
+          "preferred_term": "Lymphedema (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: Unilateral lower limb lymphoedema.",
+          "char_start": 490,
+          "char_end": 540
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "high",
+          "reason": "The terminology server returns inconsistent and unreliable results for this concept ID (returning 'CoAr 1071 virus (organism)' and 'Malignant neoplasm of muscle (disorder)' on separate lookups); the evidence field states 'known CLL' which maps correctly to concept 92814006 'Chronic lymphoid leukemia, disease (disorder)' \u2014 the coded ID should be replaced.",
+          "replace_with_concept_id": "92814006",
+          "replace_with_preferred_term": "Chronic lymphoid leukemia, disease (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The bone profile lab observable entity codes are appropriate and correctly coded by the structured pipeline. The main issues are: (1) the coded concept for CLL (363495004) is unreliable on the terminology server and should be replaced with 92814006 'Chronic lymphoid leukemia, disease'; (2) the clinical reason for the bone profile request \u2014 unilateral lower limb lymphoedema \u2014 is explicitly documented but not coded. The serum albumin is marginally above range but the reviewing clinician has signed off the overall bone profile as 'Normal, No Further Action', so no additional abnormal finding code is warranted for the albumin result alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7209,
+        "output_tokens": 1680,
+        "total_tokens": 8889,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "20e44aaf-149f-4684-99de-b5e9bc5fc941",
+        "date": "2025-09-30",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7cbd95cf-fca0-4b87-9938-179570485178",
+    "patient_id": "4200797127",
+    "date": "2025-10-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "elevated CRP",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents mild elevated CRP as part of the investigation results supporting the cellulitis diagnosis; this is a distinct coded finding.",
+          "snomed_search": "elevated C-reactive protein",
+          "snomed_concept_id": "119971000119104",
+          "preferred_term": "C-reactive protein above reference range (finding)",
+          "sentence": "Mild neutrophilia and CRP.",
+          "char_start": 148,
+          "char_end": 172
+        },
+        {
+          "term": "elevated LDH",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Mild elevated LDH is explicitly documented; in a patient with a haematologist, this is a clinically significant finding that warrants coding and follow-up.",
+          "snomed_search": "elevated lactate dehydrogenase",
+          "snomed_concept_id": "396697000",
+          "preferred_term": "Serum lactate dehydrogenase level above reference range (finding)",
+          "sentence": "Mild LDH.",
+          "char_start": 173,
+          "char_end": 182
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary cellulitis code (449711005) is confirmed correct by search despite an unreliable terminology server lookup; a more lateralised code (left lower limb, 41651000087106 or 10633351000119109) could improve specificity but is not flagged as a hard error. The neutrophilia code is mapped to the broader 'leukocytosis' concept \u2014 should be replaced with the specific neutrophilia finding (165518003). Elevated CRP and elevated LDH are both explicitly documented results that are missing from the coded list; the elevated LDH is particularly notable given this patient has a haematologist.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5174,
+        "output_tokens": 1525,
+        "total_tokens": 6699,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "7cbd95cf-fca0-4b87-9938-179570485178",
+        "date": "2025-10-02",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c7b24c04-d963-49f4-8911-f75031203110",
+    "patient_id": "4200797127",
+    "date": "2025-10-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "pitting oedema",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Examination explicitly documents 'Ongoing pitting oedema to knee' as a specific clinical finding on examination; this is a distinct finding from the lymphoedema diagnosis and should be coded.",
+          "snomed_search": "pitting oedema lower limb",
+          "snomed_concept_id": "271594007",
+          "preferred_term": "Pitting edema (finding)",
+          "sentence": "Ongoing pitting oedema to knee. Stable.",
+          "char_start": 680,
+          "char_end": 718
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is largely well-coded with the primary diagnosis (lymphoedema), active cellulitis, CT procedure, and lymphoma background all captured. Key issues: (1) the concept ID coded for neutrophilia (111583006) is unreliable per the terminology server and should be replaced with 165518003 'Neutrophilia (finding)'; (2) the explicitly documented normal D-dimer result (used to exclude DVT) is missing and should be coded; (3) the examination finding of pitting oedema to the knee is a distinct codeable finding not captured by the lymphoedema diagnosis code. The lymphoma concept ID (363495004) also returned as unreliable from the server but the clinical coding intent is appropriate \u2014 a human review of that concept ID is advisable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8897,
+        "output_tokens": 1953,
+        "total_tokens": 10850,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "c7b24c04-d963-49f4-8911-f75031203110",
+        "date": "2025-10-10",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d2f1bcb5-b345-48ab-b32c-23953353e43b",
+    "patient_id": "4200797127",
+    "date": "2025-10-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Schizoaffective disorder",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The specific diagnosis of schizoaffective disorder is explicitly documented but only the broad parent concept 'Mental disorder' (74732009) has been coded; the precise diagnosis must be coded for an accurate clinical record.",
+          "snomed_search": "schizoaffective disorder",
+          "snomed_concept_id": "68890003",
+          "preferred_term": "Schizoaffective disorder (disorder)",
+          "sentence": "Diagnosis: Schizoaffective disorder",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "No suicidal thoughts",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The risk summary explicitly documents absence of suicidal ideation; coding 6471006 'Suicidal thoughts' as present is a dangerous assertion error \u2014 the correct concept is 134420004 'No suicidal thoughts (situation)' which positively captures the documented absence.",
+          "snomed_search": "no suicidal thoughts",
+          "snomed_concept_id": "134420004",
+          "preferred_term": "No suicidal thoughts (situation)",
+          "sentence": "No current thoughts or self-harm, suicide or harm to others.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "Coded twice and represents only a broad parent concept; the specific diagnosis of schizoaffective disorder is documented and should replace both instances of this non-specific code.",
+          "replace_with_concept_id": "68890003",
+          "replace_with_preferred_term": "Schizoaffective disorder (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "severity": "critical",
+          "reason": "Coded as assertion=present but the note explicitly states 'No current thoughts or self-harm, suicide or harm to others' \u2014 asserting suicidal thoughts as present is clinically dangerous and factually incorrect; replace with 134420004 'No suicidal thoughts (situation)'.",
+          "replace_with_concept_id": "134420004",
+          "replace_with_preferred_term": "No suicidal thoughts (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The risk summary explicitly documents NO suicidal thoughts; coding this finding as 'present' directly contradicts the clinical record and creates a serious patient safety risk \u2014 the concept should be replaced with 134420004 'No suicidal thoughts (situation)' assertion=present, or 6471006 recoded as absent."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "This encounter has two critical coding errors: (1) 'Suicidal thoughts' is coded as present when the note explicitly documents their absence \u2014 a patient safety risk that must be corrected immediately, ideally by replacing with 134420004 'No suicidal thoughts (situation)'; (2) the diagnosis is coded only at the non-specific 'Mental disorder' level (74732009, duplicated) rather than the documented 'Schizoaffective disorder' (68890003). Note: urine ACR has been planned (form to be posted) but not yet performed \u2014 this should be coded when the result is received. Telephone consultation (386472008) and cohabiting (38070000) codes are appropriate and well-evidenced.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6910,
+        "output_tokens": 1801,
+        "total_tokens": 8711,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "d2f1bcb5-b345-48ab-b32c-23953353e43b",
+        "date": "2025-10-14",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "aa85b572-56f7-4c4b-b69e-909837adef45",
+    "patient_id": "4200797127",
+    "date": "2025-10-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "5008001",
+          "name": "Pitting edema (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "Concept ID 5008001 resolves to a qualifier value / morphologic abnormality on the terminology server, not a clinical finding; the correct SNOMED finding code for pitting oedema is 284521000 'Pitting edema (finding)'.",
+          "replace_with_concept_id": "284521000",
+          "replace_with_preferred_term": "Pitting edema (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "128053003",
+          "name": "Deep venous thrombosis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states DVT was excluded at the urgent care centre; coding it as present is a serious patient safety error that could lead to inappropriate anticoagulation or clinical confusion."
+        },
+        {
+          "conceptId": "302841002",
+          "name": "Malignant lymphoma - small lymphocytic (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The patient only expressed concern that symptoms could be related to an SLL flare-up; there is no confirmed SLL diagnosis in this encounter or on the problem list, so the assertion should be 'possible' pending haematology review."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two significant assertion errors: DVT is coded as present despite being explicitly excluded (critical patient safety risk), and SLL is coded as present based only on patient-expressed concern rather than a confirmed diagnosis. The pitting oedema concept ID (5008001) resolves to a morphologic abnormality/qualifier value rather than a clinical finding and should be replaced with 284521000. Additionally, there is a laterality discrepancy in the note \u2014 the subjective complaint and assessment consistently describe the RIGHT leg, but the Derm examination section documents 'Left lower leg' oedema; this documentation inconsistency should be reviewed and corrected by the clinician before finalising the cellulitis laterality coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11664,
+        "output_tokens": 1764,
+        "total_tokens": 13428,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4200797127",
+        "encounter_id": "aa85b572-56f7-4c4b-b69e-909837adef45",
+        "date": "2025-10-17",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  }
+]

@@ -1,0 +1,1610 @@
+[
+  {
+    "encounter_id": "98ae3c50-4e80-4971-a685-291909e22fa4",
+    "patient_id": "4562218347",
+    "date": "2024-01-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "NHS Health Check programme",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents completion of an NHS Health Check (Part 1), which should be coded as a procedure.",
+          "snomed_search": "NHS Health Check annual review",
+          "snomed_concept_id": "763661000000101",
+          "preferred_term": "National Health Service Health Check annual review (procedure)",
+          "sentence": "NHS Health Check programme (XaR6f)",
+          "char_start": 52,
+          "char_end": 80
+        },
+        {
+          "term": "GPPAQ physical activity index: active",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The GPPAQ result of 'active' is explicitly documented and is a codeable finding relevant to cardiovascular risk assessment in the NHS Health Check.",
+          "snomed_search": "GPPAQ physical activity index active",
+          "snomed_concept_id": "366241000000106",
+          "preferred_term": "General practice physical activity questionnaire physical activity index: active (finding)",
+          "sentence": "GPPAQ physical activity index: active (XaPPE)",
+          "char_start": 83,
+          "char_end": 129
+        },
+        {
+          "term": "FH: Hypertension",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Family history of hypertension is explicitly recorded as 'Yes' and is a codeable cardiovascular risk factor relevant to the NHS Health Check.",
+          "snomed_search": "family history hypertension",
+          "snomed_concept_id": "160357008",
+          "preferred_term": "Family history: Hypertension (situation)",
+          "sentence": "FH: Hypertension (12C1.)",
+          "char_start": 1079,
+          "char_end": 1097
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Three codeable findings are absent: the NHS Health Check procedure itself, the GPPAQ 'active' result, and family history of hypertension. Additionally, the 'Moderate drinker' code (43783005) is clinically inconsistent with an AUDIT-C score of 6 in a female patient, which meets the threshold for hazardous alcohol use (198421000000108); the lookup for 43783005 also returned an unreliable organism tag, though search_snomed confirms the preferred term is correct. Observable entity lab codes are appropriately attributed to the structured pipeline and have not been flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 13945,
+        "output_tokens": 1980,
+        "total_tokens": 15925,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "98ae3c50-4e80-4971-a685-291909e22fa4",
+        "date": "2024-01-08",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f2ba13a8-00a7-4a9c-839c-5643d72206bf",
+    "patient_id": "4562218347",
+    "date": "2024-01-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Hypercholesterolaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Total cholesterol 6.6 mmol/L with an explicit clinical management plan ('Try diet 3/12') constitutes a diagnosis of hypercholesterolaemia that should be coded as a disorder, not merely as a reference-range finding.",
+          "snomed_search": "hypercholesterolaemia",
+          "snomed_concept_id": "13644009",
+          "preferred_term": "Hypercholesterolemia (disorder)",
+          "sentence": "Serum cholesterol level (XE2eD) 6.6 mmol/L - Try diet 3/12, If Chol>7.0, ?DM, ?inc WT, ?Hypothyroid",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "102739008",
+          "name": "Low density lipoprotein cholesterol (substance)",
+          "severity": "high",
+          "reason": "Concept 102739008 resolves to an organism (CoAr 1071 virus) on the terminology server \u2014 it is not a valid clinical finding code; the intended elevated LDL finding should be replaced with the correct finding concept.",
+          "replace_with_concept_id": "445445006",
+          "replace_with_preferred_term": "Low density lipoprotein cholesterol above reference range (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The LDL code (102739008) is critically wrong \u2014 it maps to a virus organism rather than any cholesterol finding and must be replaced with the correct elevated LDL finding (445445006, noting that concept also returned as unreliable from this server and should be verified locally). The elevated total cholesterol finding (166830008) is plausible but the encounter also warrants a disorder-level code for hypercholesterolaemia (13644009) given the explicit dietary management plan documented by the reviewing clinician. The ?DM and ?Hypothyroid prompts in the note are speculative differentials only and do not require coding at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4415,
+        "output_tokens": 1397,
+        "total_tokens": 5812,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "f2ba13a8-00a7-4a9c-839c-5643d72206bf",
+        "date": "2024-01-08",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "331a79e2-3898-495c-a7c0-a73e168d45a7",
+    "patient_id": "4562218347",
+    "date": "2024-01-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hypercholesterolaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The entire encounter is driven by elevated LDL cholesterol (4.2 mmol/L) with explicit patient counselling about cholesterol lowering and cardiovascular risk; the underlying disorder is not coded despite being the primary clinical reason for contact.",
+          "snomed_search": "hypercholesterolaemia",
+          "snomed_concept_id": "13644009",
+          "preferred_term": "Hypercholesterolemia (disorder)",
+          "sentence": "tel con to discuss lipids states diet quite healthy / px understands importance of loweing cholesterol though not keen on statin",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "blood pressure 130/88",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A blood pressure of 130/88 mmHg is explicitly recorded in the plan; the diastolic of 88 mmHg is above the normal reference range and constitutes a clinically relevant finding in the context of cardiovascular risk management.",
+          "snomed_search": "elevated blood pressure",
+          "snomed_concept_id": "24184005",
+          "preferred_term": "Blood pressure above reference range (finding)",
+          "sentence": "Plan:  130/88 bp",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The primary diagnosis driving this encounter \u2014 hypercholesterolaemia \u2014 is absent from the coded list despite the entire consultation being focused on elevated LDL (4.2 mmol/L) and cardiovascular risk management; this is the most significant gap. All five existing coded concept IDs returned unreliable results from the terminology server (semantic tag mismatches), so their correctness cannot be confirmed programmatically, but they are clinically plausible given the encounter context and have not been flagged as overcoded on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8420,
+        "output_tokens": 1541,
+        "total_tokens": 9961,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "331a79e2-3898-495c-a7c0-a73e168d45a7",
+        "date": "2024-01-18",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8a672dff-360c-432f-b4ed-0abfe98b6970",
+    "patient_id": "4562218347",
+    "date": "2024-01-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Post-COVID-19 syndrome",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes persistent fatigue and reduced exercise tolerance since acquiring COVID in 2022/23, which is the clinical picture of Post-COVID-19 syndrome \u2014 a more specific and clinically appropriate code than the acute COVID disorder currently coded.",
+          "snomed_search": "post-COVID-19 syndrome",
+          "snomed_concept_id": "1325161000000102",
+          "preferred_term": "Post-COVID-19 syndrome (disorder)",
+          "sentence": "Prior to acquiring covid (2022/2023), was more active. Now feels tired/exhausted more easily after activity, therefore has reduced intensity of activity and states weight is increasing",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Prev PMR",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note states 'Prev PMR and long term steroids' \u2014 polymyalgia rheumatica is explicitly documented as a previous diagnosis and should be coded with historical assertion; the current code 472961001 resolves to 'Ceftazidime (substance)' and is entirely wrong.",
+          "snomed_search": "polymyalgia rheumatica",
+          "snomed_concept_id": "65323003",
+          "preferred_term": "Polymyalgia rheumatica (disorder)",
+          "sentence": "Prev PMR and long term steroids",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "472961001",
+          "name": "Ceftazidime (substance)",
+          "severity": "high",
+          "reason": "This concept resolves to 'Ceftazidime (substance)' \u2014 an antibiotic \u2014 and has no clinical basis in this encounter; it was presumably intended to represent 'History of disorder of connective tissue' but the wrong concept ID was used. Replace with Polymyalgia rheumatica (historical).",
+          "replace_with_concept_id": "65323003",
+          "replace_with_preferred_term": "Polymyalgia rheumatica (disorder)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "840539006",
+          "name": "Disease caused by severe acute respiratory syndrome coronavirus 2 (disorder)",
+          "severity": "medium",
+          "reason": "The acute COVID-19 disorder code is less specific than warranted: the clinical narrative describes ongoing post-COVID sequelae (persistent fatigue, reduced exercise tolerance since 2022/23), which is better captured by Post-COVID-19 syndrome (1325161000000102) rather than the acute infection code.",
+          "replace_with_concept_id": "1325161000000102",
+          "replace_with_preferred_term": "Post-COVID-19 syndrome (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two significant coding errors identified: concept 472961001 is critically miscoded (resolves to 'Ceftazidime (substance)' rather than any connective tissue history \u2014 the intended PMR history should be coded as 65323003 Polymyalgia rheumatica with historical assertion); and the acute COVID code should be replaced with Post-COVID-19 syndrome to reflect the documented persistent post-exertional fatigue since 2022/23. The DEXA procedure is correctly coded; the normal result finding is not flagged per audit rules. Asthma (implied by missed review) is not coded from this encounter text as it is background history likely on the problem list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6532,
+        "output_tokens": 1922,
+        "total_tokens": 8454,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "8a672dff-360c-432f-b4ed-0abfe98b6970",
+        "date": "2024-01-19",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fecedf88-5fe6-4df1-ba45-9dca416a56e6",
+    "patient_id": "4562218347",
+    "date": "2024-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Asthma trigger - cold air",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly states cold weather is an asthma trigger; this is documented in the template as XaLJS and in the free-text narrative and should be coded as a finding.",
+          "snomed_search": "asthma trigger cold air",
+          "snomed_concept_id": "201191000000108",
+          "preferred_term": "Asthma trigger - cold air (finding)",
+          "sentence": "States triggers are cold weather and respiratory infection.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Asthma trigger - respiratory infection",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly states respiratory infection is an asthma trigger; documented in the template as XaLIm and in the free-text narrative and should be coded as a finding.",
+          "snomed_search": "asthma trigger respiratory infection",
+          "snomed_concept_id": "201031000000108",
+          "preferred_term": "Asthma trigger - respiratory infection (finding)",
+          "sentence": "States triggers are cold weather and respiratory infection.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (Asthma disorder, Ex-cigarette smoker) are correct and confirmed by search \u2014 lookup_concept returned unreliable semantic tags for both but search_snomed confirmed the concept IDs are valid. Two asthma trigger findings (cold air, respiratory infection) are explicitly documented in both the free-text narrative and the structured template but are absent from the coded concept list; these should be added. All other template entries (ACT score, PEFR values, inhaler technique, compliance, self-management plan, influenza advice) are either numeric observables handled by the structured pipeline, regime/therapy codes outside audit scope, or procedure-type entries not requiring separate disorder/finding codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8906,
+        "output_tokens": 1374,
+        "total_tokens": 10280,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "fecedf88-5fe6-4df1-ba45-9dca416a56e6",
+        "date": "2024-01-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7ff9dd13-27d9-4de0-b439-dc3e665e60e9",
+    "patient_id": "4562218347",
+    "date": "2024-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "clicking shoulder",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports a click in the left upper arm/shoulder on movement, which is a distinct clinical finding separate from the pain code already applied.",
+          "snomed_search": "clicking shoulder",
+          "snomed_concept_id": "202597009",
+          "preferred_term": "Clicking shoulder (finding)",
+          "sentence": "also feels like a click.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "muscle weakness left shoulder/upper arm",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Examination documents power 4/5 at the left shoulder and the patient reports the arm feels weaker; this is an objective finding that should be coded independently of the pain finding.",
+          "snomed_search": "muscle weakness upper limb",
+          "snomed_concept_id": "713512009",
+          "preferred_term": "Muscle weakness of upper limb (finding)",
+          "sentence": "power 4/5 left shoulder.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "decreased active range of knee flexion",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Knee flexion has been limited to approximately 100\u00b0 since an old motorbike injury 30 years ago and is confirmed on examination (AROM = PROM 0\u2013100\u00b0); this chronic structural limitation is a distinct codeable finding not captured by the knee pain code.",
+          "snomed_search": "decreased active range knee flexion",
+          "snomed_concept_id": "299337006",
+          "preferred_term": "Decreased active range of knee flexion (finding)",
+          "sentence": "old motorbike injury 30 years go and knee flexionb limitied to around 100 since",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "referral to physiotherapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly states 'refer to physio for knee' and a Hospital Routine FCP referral is documented; the referral procedure should be coded to support activity recording and audit.",
+          "snomed_search": "referral to physiotherapy",
+          "snomed_concept_id": "306170007",
+          "preferred_term": "Referral to physiotherapy service (procedure)",
+          "sentence": "refer to physio for knee",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (knee pain and left shoulder pain) are well-evidenced and correctly asserted. Four additional concepts are missing: clicking shoulder, upper limb muscle weakness (both objectively documented on examination), chronic reduced knee flexion range (a distinct long-standing structural finding confirmed on exam), and the physiotherapy referral procedure documented in the plan.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11118,
+        "output_tokens": 2016,
+        "total_tokens": 13134,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "7ff9dd13-27d9-4de0-b439-dc3e665e60e9",
+        "date": "2024-01-22",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "09b5a288-8530-4246-8e92-06846670d1cd",
+    "patient_id": "4562218347",
+    "date": "2024-05-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists entirely of medication re-authorisation entries, a community pharmacy routing amendment, and a Summary Care Record preference update, with clinical content explicitly deferred to separate MA and asthma review encounters (\"see MA and asthma reviews, bloods ok\"). There is no substantive clinical narrative, examination, diagnosis, or management decision documented here; the standing Asthma code is a problem-list entry and is not subject to audit from this administrative encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 1,
+        "input_tokens": 985,
+        "output_tokens": 553,
+        "total_tokens": 1538,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "09b5a288-8530-4246-8e92-06846670d1cd",
+        "date": "2024-05-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f15bfa77-97db-4616-9076-061401752fc7",
+    "patient_id": "4562218347",
+    "date": "2024-05-31",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "99ce3c82-3af2-40a5-97ad-9121f925583b",
+    "patient_id": "4562218347",
+    "date": "2024-07-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Liver Function Test (Requested)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a pathology request for Liver Function Tests, which is a procedure that occurred during this consultation and should be coded.",
+          "snomed_search": "liver function test",
+          "snomed_concept_id": "26958001",
+          "preferred_term": "Hepatic function panel (procedure)",
+          "sentence": "Pathology Request (Complete): Liver Function Test (Requested), Lipids (Requested), Urea & electrolytes (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Lipids (Requested)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a pathology request for a lipid panel, which is a procedure that occurred during this consultation and should be coded.",
+          "snomed_search": "lipid panel",
+          "snomed_concept_id": "16254007",
+          "preferred_term": "Lipid panel (procedure)",
+          "sentence": "Pathology Request (Complete): Liver Function Test (Requested), Lipids (Requested), Urea & electrolytes (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urea & electrolytes (Requested)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a pathology request for urea and electrolytes, which is a procedure that occurred during this consultation and should be coded.",
+          "snomed_search": "urea electrolytes blood test",
+          "snomed_concept_id": null,
+          "preferred_term": null,
+          "sentence": "Pathology Request (Complete): Liver Function Test (Requested), Lipids (Requested), Urea & electrolytes (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two existing codes (Telephone consultation, QRISK2 score) are correct and well-evidenced; the lookup_concept unreliable returns were server artefacts, confirmed by search_snomed. Three pathology requests documented in the encounter (LFT, Lipids, U&E) are missing as procedure codes \u2014 LFT (26958001) and Lipid panel (16254007) were confirmed via search; U&E concept ID was not resolved within the tool iteration limit and should be verified manually (likely 'Urea and electrolytes measurement' 444164000 or similar). The statin discussion and elevated cholesterol are contextual/background and do not require new coding in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5381,
+        "output_tokens": 1537,
+        "total_tokens": 6918,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "99ce3c82-3af2-40a5-97ad-9121f925583b",
+        "date": "2024-07-17",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0814c137-c00a-468d-8d14-5b6944fcf73d",
+    "patient_id": "4562218347",
+    "date": "2024-08-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "elevated Cholesterol",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab report and clinical review explicitly document serum cholesterol above reference range (6 mmol/L flagged as elevated), which is the primary finding driving the statin decision; this clinical interpretation should be coded as a finding distinct from the raw observable entity.",
+          "snomed_search": "serum cholesterol above reference range",
+          "snomed_concept_id": "166830008",
+          "preferred_term": "Serum cholesterol above reference range (finding)",
+          "sentence": "Serum lipid levels Report, Borderline, Need to speak to doctor: elevated Cholesterol and LDL - Qrisk 13.3 (Patient Informed). Review done by OLADELE, Okikiola (Dr) - 06 Aug 2024 16:02",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "elevated Cholesterol and LDL \u2014 patient considering statin",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical review explicitly documents elevated cholesterol and LDL with a QRISK of 13.3% and the patient considering statin therapy; a hyperlipidaemia disorder code captures the active clinical condition driving management decisions.",
+          "snomed_search": "hyperlipidaemia",
+          "snomed_concept_id": "55822004",
+          "preferred_term": "Hyperlipidemia (disorder)",
+          "sentence": "Serum lipid levels Report, Borderline, Need to speak to doctor: elevated Cholesterol and LDL - Qrisk 13.3 (Patient Informed). Review done by OLADELE, Okikiola (Dr) - 06 Aug 2024 16:02",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The 14 coded observable entities and QRISK score are appropriate; however, the clinical review explicitly documents elevated cholesterol and LDL as active findings driving a statin decision, and neither a 'serum cholesterol above reference range' finding nor a hyperlipidaemia disorder has been coded. The statin has not yet been started (patient 'considering'), so no medication-related code is needed, but the underlying lipid disorder should be captured. Note: lookup_concept for 13644009 (hypercholesterolaemia) returned an unreliable qualifier-value result, so the broader confirmed concept 55822004 (Hyperlipidemia disorder) is recommended instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10725,
+        "output_tokens": 1975,
+        "total_tokens": 12700,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "0814c137-c00a-468d-8d14-5b6944fcf73d",
+        "date": "2024-08-05",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4b6775d6-e5be-4e37-ae5d-9e2c4dd8d2b7",
+    "patient_id": "4562218347",
+    "date": "2024-10-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "physiological menopause",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient has been through physiological menopause ('asymptomatic of menopausal sxs to date thru physiological menopause'), which is directly relevant to the letrozole prescribing decision and ongoing oncology management.",
+          "snomed_search": "menopause",
+          "snomed_concept_id": "289903006",
+          "preferred_term": "Menopause present (finding)",
+          "sentence": "has been asymptomatic of menopausal sxs to date thru physiological menopause - discussed possible effects of letrozole and the alternatives to HRT we can can explore should she struggle with these",
+          "char_start": 340,
+          "char_end": 530
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "254837009",
+          "name": "Malignant tumor of breast (disorder)",
+          "severity": "medium",
+          "reason": "This generic breast malignancy code is redundant alongside the more specific 713609000 (Invasive carcinoma of breast); the terminology server returned an unreliable result for this concept ID (semantic_tag='organism'), suggesting the concept ID may be incorrect or corrupted \u2014 human review recommended to confirm whether this code should be replaced by or consolidated with 713609000.",
+          "replace_with_concept_id": "713609000",
+          "replace_with_preferred_term": "Invasive carcinoma of breast (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The encounter documents active management of right-sided invasive breast carcinoma including letrozole initiation, menopause status, and monitoring plans. The most significant gap is the absence of a menopause code (289903006), which is explicitly documented and clinically material to the aromatase inhibitor prescribing decision. The concept ID 254837009 returned an unreliable server result (organism tag) and should be reviewed \u2014 it appears redundant alongside 713609000 which is the more specific and appropriate code. Laterality (right breast) is noted in the encounter text but no non-histotype-specific right-sided invasive carcinoma SNOMED concept was found via search; a human coder should verify whether a lateralised concept exists in the local extension. The radiotherapy referral (DXT to Coventry) was made by Dr Sampson in secondary care and is not this GP's action to code; the postponed pathology requests have not yet been performed and should not be coded as present procedures.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9563,
+        "output_tokens": 2472,
+        "total_tokens": 12035,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "4b6775d6-e5be-4e37-ae5d-9e2c4dd8d2b7",
+        "date": "2024-10-02",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "50e7a787-10f2-4fbc-b945-e5bfd262abff",
+    "patient_id": "4562218347",
+    "date": "2024-12-06",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Both coded concepts are confirmed as correct SNOMED disorder codes via search (terminology server lookups were unreliable due to index issues but search results validated both IDs). Breast cancer (254837009) coded as present is appropriate given the active oncology follow-up context; radiation dermatitis (49084001) as present correctly reflects the active condition driving the Flamigel RT prescription. No missing concepts within scope; Flamigel RT is a medication (out of scope), and the upcoming oncology appointment is a future/planned event not yet codeable as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3212,
+        "output_tokens": 976,
+        "total_tokens": 4188,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "50e7a787-10f2-4fbc-b945-e5bfd262abff",
+        "date": "2024-12-06",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5ed0996e-f892-4cf4-a196-dafa36dbf908",
+    "patient_id": "4562218347",
+    "date": "2025-05-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dry eyes",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports using Hylo-Forte regularly and Hylo Night PRN for dry eyes \u2014 this active symptomatic condition should be coded.",
+          "snomed_search": "dry eye syndrome",
+          "snomed_concept_id": "46152009",
+          "preferred_term": "Tear film insufficiency (disorder)",
+          "sentence": "Using Hylo-Forte regularly, and dry eyes and uses the Hylo Night PRN basis and would like this to be remain on repeats",
+          "char_start": 390,
+          "char_end": 497
+        },
+        {
+          "term": "Asthma review up to date",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Asthma is an active condition evidenced by Qvar and Salamol inhalers on the medication list and an explicit asthma review being documented; it should be coded as a disorder.",
+          "snomed_search": "asthma",
+          "snomed_concept_id": "195967001",
+          "preferred_term": "Asthma (disorder)",
+          "sentence": "Asthma review up to date",
+          "char_start": 107,
+          "char_end": 131
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing coded concepts (406149000 Medication declined, 266987004 History of malignant neoplasm) are clinically appropriate and confirmed correct via search despite unreliable lookup_concept server responses. Two active clinical conditions documented in the encounter are missing: Asthma (explicitly reviewed, supported by Qvar/Salamol) and dry eye / tear film insufficiency (explicitly reported by patient, supported by Hylo-Forte and Hylo Night prescriptions). Note: Letrozole declination is correctly coded; the oncology background (malignant neoplasm history) is also correctly coded \u2014 a more specific cancer type could be considered if the oncology record is available.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5272,
+        "output_tokens": 1171,
+        "total_tokens": 6443,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "5ed0996e-f892-4cf4-a196-dafa36dbf908",
+        "date": "2025-05-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "14f0a454-57a7-4efb-9346-172e37e954f5",
+    "patient_id": "4562218347",
+    "date": "2025-10-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Hypertension",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Hypertension is the stated diagnosis and primary reason for this encounter but is absent from the 4 coded concepts (only referenced in the problem header XE0Ub, not as a coded SNOMED concept in this encounter).",
+          "snomed_search": "hypertension",
+          "snomed_concept_id": "38341003",
+          "preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "sentence": "Diagnosis: Hypertension.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "TATT / fatigue",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports feeling TATT (tired all the time), a clinically relevant symptom documented in the history that warrants coding.",
+          "snomed_search": "fatigue tiredness",
+          "snomed_concept_id": "84229001",
+          "preferred_term": "Fatigue (finding)",
+          "sentence": "Feels TATT.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Less able to do multiple activities / reduced exercise tolerance",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports progressive reduction in ability to cycle, walk and play tennis over 3 years \u2014 a clinically significant finding of impaired exercise tolerance that should be coded.",
+          "snomed_search": "reduced exercise tolerance",
+          "snomed_concept_id": "267044007",
+          "preferred_term": "Impaired exercise tolerance (finding)",
+          "sentence": "Less active. Less able to do multiple activities on the same day: cycling / walking / tennis. Energy levels feel lower. Over the past 3 years.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Does not want to take statins",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "Patient has explicitly declined statin therapy; this is a clinically important decision affecting cardiovascular risk management and should be coded.",
+          "snomed_search": "statin",
+          "snomed_concept_id": "134396000",
+          "preferred_term": "Statin declined (situation)",
+          "sentence": "Does not want to take statins. Friend had bad SEs.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Strong FHx CVD",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "A strong family history of cardiovascular disease is explicitly documented and is clinically relevant to this patient's cardiovascular risk assessment.",
+          "snomed_search": "family history cardiovascular disease",
+          "snomed_concept_id": "266894000",
+          "preferred_term": "Family history: Cardiovascular disease (situation)",
+          "sentence": "Strong FHx CVD (not premature).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "medium",
+          "reason": "The note specifies breast cancer \u2014 a more specific SNOMED code exists and should be used in preference to the generic parent concept.",
+          "replace_with_concept_id": "429087003",
+          "replace_with_preferred_term": "History of malignant neoplasm of breast (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter has several significant coding gaps: the primary diagnosis (hypertension) is not coded as a SNOMED concept, fatigue and impaired exercise tolerance are undercoded, statin declination is missing, and family history of CVD is absent. The breast cancer history code should be replaced with the breast-specific situation code (429087003). Note: blood tests are ordered but no specific test type is named, so a procedure code cannot be reliably assigned beyond what is already coded. Amlodipine initiation is a medication event (medication record scope, not flagged here).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8751,
+        "output_tokens": 2139,
+        "total_tokens": 10890,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "14f0a454-57a7-4efb-9346-172e37e954f5",
+        "date": "2025-10-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7541c777-1b6d-432d-8f1d-8a22e1119e09",
+    "patient_id": "4562218347",
+    "date": "2025-10-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "high",
+          "reason": "The encounter note explicitly records 'Hypertension (New Episode)', indicating a new active diagnosis \u2014 not a historical one; the correct code is the active hypertension disorder.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "29303009",
+          "name": "Electrocardiogram (procedure)",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of an ECG being performed or requested in this encounter; the evidence field references 'Bloods and ECG' which does not appear in the encounter note itself."
+        },
+        {
+          "conceptId": "399208008",
+          "name": "Plain X-ray of chest (procedure)",
+          "severity": "medium",
+          "reason": "The XR Chest is documented as 'Requested' (i.e. a future/planned procedure not yet performed); per coding rules, procedures not yet carried out should not be coded as present."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "254837009",
+          "name": "Malignant tumor of breast (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The evidence states 'Breast cancer last year incl surgery and radiotherapy', indicating a treated past malignancy; assertion=present implies active disease which is clinically misleading and potentially unsafe."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Four significant coding issues identified: (1) Hypertension is coded as a historical situation despite being a new active diagnosis \u2014 should be the active disorder with assertion=present; (2) Breast cancer assertion should be historical given completed treatment last year; (3) ECG has no textual basis in this encounter note; (4) Chest X-ray is only requested/planned and should not be coded as a completed procedure. Note: the terminology server returned unreliable results for all four existing concept IDs, so hierarchy verification was performed via search_snomed cross-referencing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6080,
+        "output_tokens": 1670,
+        "total_tokens": 7750,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "7541c777-1b6d-432d-8f1d-8a22e1119e09",
+        "date": "2025-10-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4bd9578c-101e-43c2-ba53-0d8e1ee115f3",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "suspected lung lesion / CXR to exclude lung lesion",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "CXR explicitly requested to exclude a lung lesion in a 71-year-old presenting with fatigue \u2014 this is a red-flag cancer investigation context that must be coded as a suspected malignant lung neoplasm.",
+          "snomed_search": "suspected lung malignancy",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two significant issues: (1) CRITICAL \u2014 a CXR was requested specifically to exclude a lung lesion in a 71-year-old with fatigue; 'Malignant neoplasm of lung suspected' must be coded to ensure safety-net follow-up. (2) HIGH \u2014 hypertension is coded as 'History of hypertension' (161501007, which also resolves as unreliable) when the note clearly states 'new HTN'; this should be replaced with Essential hypertension (59621000) assertion=present. The FBC observable entity codes appear appropriate as structured lab pipeline outputs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6173,
+        "output_tokens": 1437,
+        "total_tokens": 7610,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "4bd9578c-101e-43c2-ba53-0d8e1ee115f3",
+        "date": "2025-10-27",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2fb4a90e-5806-4c10-af70-8b07859198f7",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lung lesion (to exclude)",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "CXR was explicitly requested to exclude a lung lesion in a 71-year-old \u2014 this is a safety-critical suspected finding that must be coded as possible/under investigation per NG12 red-flag principles.",
+          "snomed_search": "lesion of lung",
+          "snomed_concept_id": "301232003",
+          "preferred_term": "Lesion of lung (disorder)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 218,
+          "char_end": 253
+        },
+        {
+          "term": "serum folate normal",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The report explicitly states the serum folate result is Normal with No Further Action \u2014 the interpretive finding should be coded alongside the observable entity.",
+          "snomed_search": "serum folate",
+          "snomed_concept_id": "165649003",
+          "preferred_term": "Serum folate within reference range (finding)",
+          "sentence": "Serum folate level Report, Normal, No Further Action (Patient Informed).",
+          "char_start": 310,
+          "char_end": 381
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Two coding gaps identified: (1) CRITICAL \u2014 a possible lung lesion in a 71-year-old (CXR requested to exclude) is absent from the coded list; this is a safety-critical red-flag finding requiring a possible-assertion code and follow-up tracking. (2) LOW \u2014 the normal serum folate interpretive finding (165649003) is missing; only the observable entity has been coded, not the result interpretation. All four existing codes are otherwise correct and appropriately asserted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4354,
+        "output_tokens": 1325,
+        "total_tokens": 5679,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "2fb4a90e-5806-4c10-af70-8b07859198f7",
+        "date": "2025-10-27",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "739bae3a-d76a-4ac5-b291-1e0162dd7e62",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "new HTN",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter text explicitly states '71yo new HTN' as a clinical reason for the request; hypertension is an active new diagnosis and must be coded.",
+          "snomed_search": "hypertension",
+          "snomed_concept_id": "38341003",
+          "preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "sentence": "71yo new HTN and fatigue.",
+          "char_start": 120,
+          "char_end": 143
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two definite issues: (1) Fatigue is coded with an invalid/unreliable concept ID (272060000) and should be recoded as 84229001 'Fatigue (finding)'; (2) the explicitly documented new diagnosis of hypertension ('new HTN') is entirely absent from the coded list and must be added. Prediabetes (714628002) and the HbA1c observable entity are correctly coded; the CXR-to-exclude-lung-lesion context does not warrant a lung lesion code as no diagnosis was confirmed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3817,
+        "output_tokens": 1212,
+        "total_tokens": 5029,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "739bae3a-d76a-4ac5-b291-1e0162dd7e62",
+        "date": "2025-10-27",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d662b4ed-2111-47d8-b29c-50c166b13be3",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "new HTN",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents 'new HTN' as an active current diagnosis; active hypertensive disorder should be coded, not a historical situation concept.",
+          "snomed_search": "hypertension",
+          "snomed_concept_id": "38341003",
+          "preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: 71yo new HTN and fatigue.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "QRisk >18%",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The report explicitly documents QRisk >18% triggering a statin/lifestyle discussion; high cardiovascular disease risk should be coded as a clinical finding, not just the assessment scale.",
+          "snomed_search": "high risk cardiovascular disease",
+          "snomed_concept_id": "837461000000101",
+          "preferred_term": "High risk of cardiovascular disease (finding)",
+          "sentence": "Serum lipid levels Report, Abnormal, Communicate Patient: QRisk >18%, for appt with GP, pharmacist or ACP in the next 6 weeks to discuss statin/lifestyle (Patient Informed).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "5501000119106",
+          "name": "Postoperative hypertension (disorder)",
+          "severity": "high",
+          "reason": "The note describes 'new HTN' with no surgical or postoperative context whatsoever; postoperative hypertension is clinically incorrect and should be replaced with active hypertensive disorder.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two significant coding errors: (1) active 'new HTN' has been miscoded as both a historical situation [161501007] and an erroneous 'postoperative hypertension' [5501000119106] \u2014 neither is appropriate; active hypertensive disorder [38341003] should be used. (2) The QRisk >18% finding warrants a high cardiovascular risk finding code in addition to the assessment scale. Note also that the CXR was requested (not yet performed) to exclude a lung lesion in a 71-year-old \u2014 if the CXR result is abnormal, a lung lesion finding will require urgent coding at that encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5125,
+        "output_tokens": 1945,
+        "total_tokens": 7070,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "d662b4ed-2111-47d8-b29c-50c166b13be3",
+        "date": "2025-10-27",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ce9c721c-89dc-4abe-a8ed-bbeac290b1d3",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lung lesion",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "CXR was explicitly requested to exclude a lung lesion in a 71-year-old \u2014 this is a cancer red-flag investigation and the suspected finding must be coded as possible to ensure appropriate follow-up and audit trail.",
+          "snomed_search": "lesion of lung",
+          "snomed_concept_id": "301232003",
+          "preferred_term": "Lesion of lung (disorder)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant issues: (1) Hypertension is coded as 'History of hypertension' (161501007 \u2014 also flagged unreliable by terminology server) but the note explicitly states 'new HTN', requiring replacement with Essential hypertension [59621000] assertion=present. (2) A possible lung lesion driving a CXR in a 71-year-old is a safety-critical red-flag finding that must be coded as possible to ensure cancer pathway audit and follow-up; the CXR procedure alone is insufficient. B12 result is normal with no further action \u2014 no additional disorder code required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5183,
+        "output_tokens": 1308,
+        "total_tokens": 6491,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "ce9c721c-89dc-4abe-a8ed-bbeac290b1d3",
+        "date": "2025-10-27",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "88d3c6e0-08f2-46be-80c5-9b76e65c759d",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "high",
+          "reason": "The note documents 'new HTN' \u2014 an active, newly diagnosed condition \u2014 not a historical one; this should be coded as active hypertensive disorder.",
+          "replace_with_concept_id": "38341003",
+          "replace_with_preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "5501000119106",
+          "name": "Postoperative hypertension (disorder)",
+          "severity": "high",
+          "reason": "The note contains no surgical or postoperative context whatsoever; 'postoperative hypertension' is clinically unsupported and the concept ID returns as an unverifiable Extension Namespace placeholder. Active hypertension (38341003) already proposed as replacement for the history code above \u2014 this duplicate should be removed entirely."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant coding errors exist: (1) 'History of hypertension' (161501007) is wrong \u2014 the note explicitly states 'new HTN', requiring active hypertensive disorder (38341003); (2) 'Postoperative hypertension' (5501000119106) is clinically unsupported and uses an unverifiable Extension Namespace concept ID \u2014 it must be removed. The CXR is only requested (not yet performed) so the procedure assertion warrants review; the clinical reason (exclude lung lesion in a 71-year-old) is a safety-relevant red-flag context that should be documented clearly. The HbA1c coding with impaired glucose regulation (849171000000106) is clinically reasonable, though 'Non-diabetic hyperglycemia' (700449008) would be marginally more specific.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4637,
+        "output_tokens": 1519,
+        "total_tokens": 6156,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "88d3c6e0-08f2-46be-80c5-9b76e65c759d",
+        "date": "2025-10-27",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f6ec9110-4642-47c9-b239-5906ee301411",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "12dada09-3c4e-4bb7-b804-1663d5b3fc17",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "suspected lung lesion / exclude lung lesion",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "CXR is explicitly requested to exclude a lung lesion \u2014 this is a red-flag suspected malignancy that must be coded as a possible finding per NG12 safety-critical patterns.",
+          "snomed_search": "malignant neoplasm lung suspected",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 95,
+          "char_end": 127
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two significant issues: (1) CRITICAL \u2014 a suspected lung lesion (CXR to exclude lung malignancy) is entirely uncoded, representing a safety-critical red-flag omission under NG12 criteria. (2) The hypertension code (5501000119106) is an unverifiable Extension Namespace concept mapped to 'postoperative hypertension', which is clinically unsupported by the note \u2014 Essential hypertension (59621000) is the appropriate replacement for a new, unqualified HTN diagnosis in primary care. Code [272060000] for fatigue also returned as unreliable but the clinical content is valid; a coder should verify the concept ID against the local terminology server.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4884,
+        "output_tokens": 1344,
+        "total_tokens": 6228,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "12dada09-3c4e-4bb7-b804-1663d5b3fc17",
+        "date": "2025-10-27",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "78311743-be08-4648-bb64-707fc9dce03d",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lung lesion (to exclude)",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "CXR was explicitly requested to exclude a lung lesion in a 71-year-old with new hypertension and fatigue \u2014 a red-flag cancer investigation that must be coded as a possible/suspected finding per NG12 safety standards.",
+          "snomed_search": "suspected lung cancer",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "new HTN",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Hypertension is explicitly documented as a new diagnosis; the correct code is Essential hypertension, not postoperative hypertension (which is clinically unsupported and uses an unreliable concept ID).",
+          "snomed_search": "essential hypertension",
+          "snomed_concept_id": "59621000",
+          "preferred_term": "Essential hypertension (disorder)",
+          "sentence": "71yo new HTN and fatigue.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "5501000119106",
+          "name": "Postoperative hypertension (disorder) [as coded \u2014 concept ID unreliable]",
+          "severity": "high",
+          "reason": "lookup_concept returned an Extension Namespace placeholder (unreliable); the note documents 'new HTN' with no surgical context whatsoever \u2014 postoperative hypertension is clinically unsupported and the concept ID cannot be verified. Should be replaced with Essential hypertension.",
+          "replace_with_concept_id": "59621000",
+          "replace_with_preferred_term": "Essential hypertension (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two significant issues: (1) The hypertension concept ID 5501000119106 is an unverifiable Extension Namespace placeholder mapped to 'Postoperative hypertension' \u2014 clinically wrong given 'new HTN' with no surgical context; replace with Essential hypertension (59621000). (2) A CXR requested to exclude a lung lesion in a 71-year-old is a safety-critical red-flag investigation that must be coded as 'Malignant neoplasm of lung suspected' (162573006, assertion=possible) \u2014 this is currently absent from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4051,
+        "output_tokens": 1481,
+        "total_tokens": 5532,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "78311743-be08-4648-bb64-707fc9dce03d",
+        "date": "2025-10-27",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "adbd1738-69bc-469f-ad21-815ffe585c2c",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "new HTN",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents 'new HTN' as an active, current diagnosis in a 71-year-old; this should be coded as active hypertensive disorder, not as a historical situation.",
+          "snomed_search": "hypertension",
+          "snomed_concept_id": "38341003",
+          "preferred_term": "Hypertensive disorder, systemic arterial (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: 71yo new HTN and fatigue.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Borderline eGFR / possible CKD stage 3A",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The lab report explicitly states 'Borderline eGFR' and invokes CKD 3a\u20135 NICE guidance with a recommendation to repeat U&E in 8\u201312 weeks; a possible CKD stage 3A should be coded to trigger appropriate monitoring.",
+          "snomed_search": "chronic kidney disease stage 3a",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "sentence": "Urea and electrolytes Report, Borderline, Need to repeat test: Borderline eGFR, repeat U&E in 8-12 weeks.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "CXR to exclude lung lesion",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "In a 71-year-old presenting with fatigue and new hypertension, a CXR specifically requested to 'exclude lung lesion' represents a red-flag cancer investigation; a possible lung lesion / suspected lung malignancy should be coded to ensure safety-netting and follow-up.",
+          "snomed_search": "suspected lung lesion",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Suspected lung cancer (situation)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three significant coding gaps identified: (1) concept 161501007 is unreliable and should be replaced with active hypertension disorder 38341003, as the note clearly documents 'new HTN'; (2) the lab report's explicit 'Borderline eGFR' commentary with CKD 3a\u20135 NICE guidance warrants a possible CKD stage 3A code; (3) critically, a CXR requested to 'exclude lung lesion' in a 71-year-old with fatigue is a red-flag safety-critical finding that must be coded as possible suspected lung lesion and safety-netted. The CXR procedure assertion should also be reviewed as the note says 'requested' rather than completed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5783,
+        "output_tokens": 2230,
+        "total_tokens": 8013,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "adbd1738-69bc-469f-ad21-815ffe585c2c",
+        "date": "2025-10-27",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2a73cb2c-ff88-41e5-b98c-0a97c5b969f7",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "exclude lung lesion",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "A CXR was explicitly requested to exclude a lung lesion in a 71-year-old \u2014 this is a safety-critical red-flag suspicion that must be coded as a suspected/possible finding regardless of whether the result is yet available.",
+          "snomed_search": "lung malignancy suspected",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 130,
+          "char_end": 165
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The four existing codes are clinically appropriate and evidenced by the note text (all concept ID lookups returned unreliable server responses but the clinical content is sound). The critical gap is the absence of a suspected lung lesion/malignancy code \u2014 a CXR was explicitly requested to exclude a lung lesion in a 71-year-old presenting with new hypertension and fatigue, which is a safety-critical red-flag situation requiring a possible/suspected coding. The CXR result is not yet documented in this encounter and must be followed up and coded when available.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4009,
+        "output_tokens": 1423,
+        "total_tokens": 5432,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "2a73cb2c-ff88-41e5-b98c-0a97c5b969f7",
+        "date": "2025-10-27",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2d6736a6-db0c-4051-a9ef-ad5491ede98e",
+    "patient_id": "4562218347",
+    "date": "2025-10-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CXR requested to exclude lung lesion",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "A CXR was explicitly requested in a 71-year-old to exclude a lung lesion \u2014 this is a red-flag safety-critical pattern requiring a suspected lung malignancy situation code to be coded alongside the procedure.",
+          "snomed_search": "lung malignancy suspected",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "CXR requsted to exclude lung lesion.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Three existing codes (fatigue, CXR, hypertension) are clinically supported by the note text; all three concept lookups returned unreliable server responses so no overcoding can be inferred. A critical gap exists: the clinical reason for the CXR \u2014 to exclude a lung lesion in a 71-year-old \u2014 must be captured as 'Malignant neoplasm of lung suspected' (162573006, assertion=possible). The vitamin D result (82 nmol/L, normal, no further action) does not require additional coding beyond the auto-filed lab entry.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3989,
+        "output_tokens": 1158,
+        "total_tokens": 5147,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "2d6736a6-db0c-4051-a9ef-ad5491ede98e",
+        "date": "2025-10-27",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "22baa310-d104-4e60-92c4-8ec407b2e0c6",
+    "patient_id": "4562218347",
+    "date": "2025-10-29",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Strong family history of MI (both parents, eldest brother)",
+          "severity": "high",
+          "suggested_assertion": "family",
+          "reason": "A strong family history of myocardial infarction across multiple first-degree relatives is explicitly documented and is a key driver of the elevated QRISK2 score; it must be coded for CVD risk audit and clinical decision support.",
+          "snomed_search": "family history myocardial infarction",
+          "snomed_concept_id": "266897007",
+          "preferred_term": "Family history: Myocardial infarction (situation)",
+          "sentence": "Strong family history of MI (both parents, eldest brother - all noted as heavy smokers).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "406149000",
+          "name": "Medication declined (situation)",
+          "severity": "medium",
+          "reason": "The note explicitly documents statin therapy declined; a more specific SNOMED code exists and should be used in preference to the generic 'Medication declined' situation.",
+          "replace_with_concept_id": "134396000",
+          "replace_with_preferred_term": "Statin declined (situation)",
+          "replace_with_assertion": "declined"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "Coding is largely good \u2014 the pharmacist has captured the key clinical elements including non-diabetic hyperglycaemia, QRISK2 score, LDL measurement, and statin declination. Two issues: (1) the documented strong family history of MI across multiple first-degree relatives is missing entirely and is clinically significant for CVD risk profiling; (2) the generic 'Medication declined' code should be replaced with the more specific 'Statin declined (situation)' [134396000], which is directly evidenced by the note text and already present as a Read/SNOMED code in the encounter header (XaIIl).",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 8412,
+        "output_tokens": 1480,
+        "total_tokens": 9892,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "22baa310-d104-4e60-92c4-8ec407b2e0c6",
+        "date": "2025-10-29",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a24f1546-d934-46e0-92ce-9d7b1f6a1fb6",
+    "patient_id": "4562218347",
+    "date": "2025-11-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "hernia repair with mesh (higher up, historical)",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly states the patient has had a prior hernia repair with mesh at a site slightly higher than the current concern \u2014 this is a clinically relevant past surgical history that should be coded.",
+          "snomed_search": "repair hernia surgical mesh",
+          "snomed_concept_id": "719265006",
+          "preferred_term": "Repair of inguinal hernia using surgical mesh (procedure)",
+          "sentence": "similar hernia slightly higher up, with a mesh.",
+          "char_start": 175,
+          "char_end": 218
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "15971541000119105",
+          "name": "Left femoral hernia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "low",
+          "reason": "The patient self-reports a possible femoral hernia ('thinks she may have') and no lump has been noticed; the diagnosis is unconfirmed pending the booked face-to-face review, so 'possible' is more accurate than 'present'."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The left femoral hernia concept ID (15971541000119105) is confirmed valid as a disorder by search despite a corrupted terminology server lookup. The main gap is the absence of a historical coded procedure for the prior mesh hernia repair, which is clinically relevant surgical history explicitly mentioned in the note. The assertion on the femoral hernia could be softened to 'possible' as the diagnosis is patient-reported and unconfirmed, though this is a low-severity issue. The prior repair site ('slightly higher up') most likely represents an inguinal hernia repair with mesh (719265006), though the exact site is not specified \u2014 a coder should confirm at the face-to-face review.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3710,
+        "output_tokens": 1291,
+        "total_tokens": 5001,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "a24f1546-d934-46e0-92ce-9d7b1f6a1fb6",
+        "date": "2025-11-24",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7329a505-4b29-4c93-90c0-12039fbf5d10",
+    "patient_id": "4562218347",
+    "date": "2025-11-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "groin pain / inguinal discomfort",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Inguinal pain is the primary presenting complaint driving this entire encounter and referral, and must be coded as an active finding.",
+          "snomed_search": "groin pain",
+          "snomed_concept_id": "102570003",
+          "preferred_term": "Inguinal pain (finding)",
+          "sentence": "Reports mild discomfort in the inguinal region, present even now. Experiences sharp pain on coughing or sneezing unless bending over or raising the ipsilateral leg.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "left femoral hernia repair in July 2012",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "A prior femoral hernia repair is explicitly documented in the PMHx and is directly clinically relevant to the current presentation of possible recurrence; it should be coded as a historical procedure.",
+          "snomed_search": "femoral hernia repair",
+          "snomed_concept_id": "238171002",
+          "preferred_term": "Repair of femoral hernia (procedure)",
+          "sentence": "PMHx: Left femoral hernia repair in July 2012 by Professor Dennison.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-operative neuropathic pain",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "A confirmed historical diagnosis of post-operative neuropathic pain following the 2012 hernia repair is explicitly documented in the PMHx and should be coded as a historical finding.",
+          "snomed_search": "neuropathic pain",
+          "snomed_concept_id": "247398009",
+          "preferred_term": "Neuropathic pain (finding)",
+          "sentence": "History of post-operative neuropathic pain approximately 15 months after the 2012 hernia repair, which was initially investigated as a possible recurrence but was ultimately diagnosed as nerve-related pain by Professor Dennison.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "254837009",
+          "name": "Malignant neoplasm of breast (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The note states 'Breast cancer last year', indicating a past diagnosis; coding as present implies active current disease which is not supported by the encounter text."
+        },
+        {
+          "conceptId": "773661002",
+          "name": "Recurrent femoral hernia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note explicitly documents '?hernia recurrence' and 'Possible recurrent left inguinal/femoral hernia' \u2014 the diagnosis is unconfirmed and under investigation pending specialist review; asserting it as present overstates clinical certainty."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Two significant assertion errors: breast cancer is coded as active (present) when the note clearly describes it as a past diagnosis, and the recurrent hernia is coded as confirmed (present) when the clinician explicitly documents it as a possible/differential diagnosis pending specialist review. Three additional concepts are missing: the primary presenting complaint of inguinal pain, the historically relevant femoral hernia repair procedure, and the previously diagnosed post-operative neuropathic pain. The referral code (306180006) is clinically appropriate for the documented hernia clinic referral, though the terminology server could not confirm the concept ID; no more specific hernia clinic referral concept was found in SNOMED.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 22527,
+        "output_tokens": 2737,
+        "total_tokens": 25264,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4562218347",
+        "encounter_id": "7329a505-4b29-4c93-90c0-12039fbf5d10",
+        "date": "2025-11-28",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  }
+]

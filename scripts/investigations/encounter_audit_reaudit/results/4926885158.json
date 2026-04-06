@@ -1,0 +1,358 @@
+[
+  {
+    "encounter_id": "8e707c45-0c9c-484e-9d9d-a86766170934",
+    "patient_id": "4926885158",
+    "date": "2024-05-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "372130007",
+          "name": "Malignant neoplasm of skin (disorder)",
+          "severity": "medium",
+          "reason": "Lookup returned unreliable/wrong semantic tag; the note documents a history of basal cell carcinoma specifically, which should be coded as the disorder concept 254701007 with historical assertion rather than this broad/unverifiable concept.",
+          "replace_with_concept_id": "254701007",
+          "replace_with_preferred_term": "Basal cell carcinoma of skin (disorder)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "1162893000",
+          "name": "Squamous cell carcinoma in situ (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "This concept has semantic tag 'morphologic abnormality', which is outside the permitted SNOMED coding scope and is not a disorder; the note documents history of intraepidermal carcinoma (SCC in situ of skin) which should be coded as disorder 254656002 with historical assertion.",
+          "replace_with_concept_id": "254656002",
+          "replace_with_preferred_term": "Squamous cell carcinoma in situ of skin (disorder)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "372130007",
+          "name": "Malignant neoplasm of skin (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The skin observation explicitly states 'hx of basal cell carcinoma' and the patient was previously under dermatology; this is a historical diagnosis, not a currently active one."
+        },
+        {
+          "conceptId": "1162893000",
+          "name": "Squamous cell carcinoma in situ (morphologic abnormality)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The skin observation states 'hx of... intraepidermal carcinoma'; this is a historical finding and should not be asserted as currently present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The two skin cancer history codes have both wrong concept choice and wrong assertion: 372130007 is unverifiable on the terminology server and too broad (replace with 254701007 Basal cell carcinoma of skin, historical); 1162893000 is a morphologic abnormality not a disorder (replace with 254656002 Squamous cell carcinoma in situ of skin, historical). All other codes \u2014 hypertension, T2DM, elevated BP, dermatology referral, scalp lesion, DNACPR, ReSPECT form, and treatment escalation plan \u2014 are well-evidenced and correctly asserted. A dermatology A&G (PRISM) has been initiated for the active scalp lesions; no 2WW red-flag criteria are explicitly triggered in the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 15394,
+        "output_tokens": 1937,
+        "total_tokens": 17331,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "8e707c45-0c9c-484e-9d9d-a86766170934",
+        "date": "2024-05-10",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e171b336-fbea-47d7-adfc-4d1143165e7c",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Serum urea level (XM0lt) 8.6 mmol/L [2.5 - 7.8] - Outside reference range",
+          "snomed_concept_id": "1179462007",
+          "preferred_term": "Blood urea above reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Serum urea is explicitly flagged as outside reference range (8.6 mmol/L vs upper limit 7.8 mmol/L). This abnormal result should be coded.",
+          "sentence": "Serum urea level (XM0lt) 8.6 mmol/L [2.5 - 7.8] - Outside reference range",
+          "char_start": 175,
+          "char_end": 248
+        },
+        {
+          "text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 50 mL/min",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "eGFR of 50 mL/min places this patient in CKD stage 3A (eGFR 45\u201359). The clinical commentary explicitly references CKD stages 3a\u20135 and the KFRE tool for end-stage kidney disease risk prediction, confirming CKD is the working diagnosis. The request reason '6m dm' (6-monthly diabetes monitoring) is consistent with diabetic nephropathy surveillance. CKD stage 3A should be coded.",
+          "sentence": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 50 mL/min",
+          "char_start": 249,
+          "char_end": 323
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Auto-filed U&E result with one out-of-range value (serum urea 8.6 mmol/L, upper limit 7.8) and an eGFR of 50 mL/min. The clinical commentary explicitly references CKD stages 3a\u20135 and the KFRE end-stage kidney disease risk tool, strongly supporting a CKD stage 3A coding. Reason for request is '6m dm' (6-monthly diabetes monitoring), consistent with diabetic nephropathy surveillance. Sodium, potassium, and creatinine are all within reference range. Urine ACR is recommended but not yet performed \u2014 no codeable result available. Confidence slightly reduced as patient problem list was not retrieved to confirm whether CKD 3A is already coded; if it is, only the elevated urea finding is missing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5485,
+        "output_tokens": 1974,
+        "total_tokens": 7459,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "e171b336-fbea-47d7-adfc-4d1143165e7c",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "295792bc-5f33-4e76-be97-9dfd961eb73c",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "diabetes mellitus",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a 6-month diabetes review ('6m dm') and a follow-up diabetes review ('fu with SR for dm rv'), confirming active diabetes mellitus in this patient \u2014 not a family history.",
+          "snomed_search": "type 2 diabetes mellitus",
+          "snomed_concept_id": "44054006",
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: 6m dm. ... fu with SR for dm rv.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "HbA1c above reference range",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "HbA1c of 8.6% is explicitly flagged as outside the reference range [4\u20135.9%] and labelled 'Borderline', indicating a clinically significant abnormal finding that should be coded as a finding, not just a procedure.",
+          "snomed_search": "haemoglobin A1c above reference range",
+          "snomed_concept_id": "444751005",
+          "preferred_term": "Hemoglobin A1c above reference range (finding)",
+          "sentence": "Haemoglobin A1c level (X772q) 8.6 % [4 - 5.9] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "160303001",
+          "name": "Family history of diabetes mellitus (situation)",
+          "severity": "high",
+          "reason": "The note describes the patient's own active diabetes review ('6m dm', 'dm rv'), not a family history of diabetes; this code is clinically incorrect for this encounter and misleadingly implies the patient does not have diabetes themselves.",
+          "replace_with_concept_id": "44054006",
+          "replace_with_preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter is an auto-filed HbA1c result for a patient's 6-month diabetes review; the critical error is coding 'Family history of diabetes mellitus' instead of the patient's own active diabetes mellitus. The HbA1c procedure code (313835008) is valid but should be supplemented with the abnormal finding code (444751005). Note: the exact diabetes subtype (Type 2 vs other) should be confirmed against the patient's problem list before finalising 44054006.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6028,
+        "output_tokens": 1503,
+        "total_tokens": 7531,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "295792bc-5f33-4e76-be97-9dfd961eb73c",
+        "date": "2025-05-06",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "caf14a39-4191-4eec-a47e-f62fad70d29b",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "diabetes mellitus",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly references '6m dm' (6-month diabetes review) and 'dm rv' confirming an active diabetes diagnosis, yet no diabetes disorder is present on the problem list or coded in this encounter.",
+          "snomed_search": "type 2 diabetes mellitus",
+          "snomed_concept_id": "44054006",
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "sentence": "Clinical Information: Reasons for Request: 6m dm. ... fu with SR for dm rv.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "HbA1c 71 mmol/mol - diabetic control interpretation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "HbA1c of 71 mmol/mol is in the diabetic range (\u226548 mmol/mol); a finding code capturing the diabetic control interpretation should be coded alongside the procedure to support QOF and clinical decision-making.",
+          "snomed_search": "HbA1c borderline diabetic control",
+          "snomed_concept_id": "165680008",
+          "preferred_term": "Hemoglobin A1c between 7 percent to 10 percent indicating borderline diabetic control (finding)",
+          "sentence": "Haemoglobin A1c level - IFCC standardised Report, Borderline, Need to speak to nurse: fu with SR for dm rv.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing HbA1c procedure code is appropriate for this encounter (lookup_concept returned unreliable due to a terminology server index issue, not a clinical error \u2014 the code is not flagged as overcoded). Two significant gaps exist: (1) diabetes mellitus is explicitly referenced as the reason for the test ('6m dm', 'dm rv') but is absent from both the problem list and this encounter's codes \u2014 type 2 diabetes should be coded; (2) the HbA1c result of 71 mmol/mol is in the diabetic range and a finding/interpretation code should accompany the procedure code. Note: the lab report uses 'Borderline' loosely \u2014 71 mmol/mol (\u22488.6%) is above the diagnostic threshold and maps to the 7\u201310% borderline control finding; clinical review should confirm the exact diabetes type before finalising the disorder code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4367,
+        "output_tokens": 1796,
+        "total_tokens": 6163,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "caf14a39-4191-4eec-a47e-f62fad70d29b",
+        "date": "2025-05-06",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "06c16887-5713-4027-8f56-29a107180c83",
+    "patient_id": "4926885158",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "IDDM",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The podiatrist explicitly records 'IDDM' under relevant medical information, making diabetes a clinically relevant background condition for this podiatry encounter that should be coded.",
+          "snomed_search": "insulin dependent diabetes mellitus",
+          "snomed_concept_id": "73211009",
+          "preferred_term": "Diabetes mellitus (disorder)",
+          "sentence": "Relevant medical information (XaYmG) - IDDM",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "wrong_assertion": [],
+      "overcoded": [],
+      "confidence": 0.78,
+      "notes": "The encounter has two issues: (1) the corn type coding is uncertain \u2014 the presenting complaint says 'H molle' (soft corn) but the treatment plan says 'HD' (hard corn), creating a genuine intra-note conflict that should be reviewed against the clinical record; (2) IDDM is explicitly documented as relevant medical history and should be coded, though the exact diabetes subtype (Type 1 vs insulin-treated Type 2) should be confirmed from the problem list before finalising the concept. Note: both coded concept IDs returned unreliable/wrong results from the terminology server but were confirmed via search_snomed and are not flagged as overcoded on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5986,
+        "output_tokens": 1697,
+        "total_tokens": 7683,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "06c16887-5713-4027-8f56-29a107180c83",
+        "date": "2025-05-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "52df1ba9-fd9b-4200-8124-07a9845f4ad1",
+    "patient_id": "4926885158",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "urge incontinence",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Urge incontinence is explicitly documented as a distinct symptom in the GP LUTS assessment and is not fully captured by the general LUTS finding code already coded.",
+          "snomed_search": "urge urinary incontinence",
+          "snomed_concept_id": "87557004",
+          "preferred_term": "Urge incontinence of urine (finding)",
+          "sentence": "Urgency. With some urge incontinence.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "403530003",
+          "name": "Erosive pustular dermatosis (disorder)",
+          "severity": "medium",
+          "reason": "The note specifies the scalp as the site; a more specific SNOMED concept exists (238733003 \u2014 Erosive pustular dermatosis of the scalp) and should be used in preference to the generic parent code.",
+          "replace_with_concept_id": "238733003",
+          "replace_with_preferred_term": "Erosive pustular dermatosis of the scalp (disorder)",
+          "replace_with_assertion": "historical"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "302866003",
+          "name": "Hypoglycemia (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note documents a single hypoglycaemic episode 'in April' \u2014 a past event, not an active or ongoing condition; assertion should be historical."
+        },
+        {
+          "conceptId": "403530003",
+          "name": "Erosive pustular dermatosis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The dermatology letter explicitly states the condition is 'currently completely resolved' with only mild residual scarring; the condition is no longer active and should be coded as historical."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The main coding issues are: (1) erosive pustular dermatosis is coded with the generic parent concept rather than the more specific scalp-site code (238733003), and its assertion should be historical given documented complete resolution; (2) the hypoglycaemia episode is a past event (April) and should be historical not present; (3) urge incontinence is explicitly documented as a distinct finding and warrants its own code alongside the existing LUTS code. The UTI coding (leukocytes-only dipstick in a male with BPH) is clinically borderline but defensible given empirical antibiotic treatment and culture request by the GP. Note: a future PSA test and urology referral are planned but not yet performed \u2014 these are correctly coded as procedures with present assertion reflecting the clinical decision made at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 20497,
+        "output_tokens": 2140,
+        "total_tokens": 22637,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "52df1ba9-fd9b-4200-8124-07a9845f4ad1",
+        "date": "2025-05-12",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  }
+]

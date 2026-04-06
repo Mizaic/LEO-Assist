@@ -1,0 +1,85 @@
+# -- DO-LEO-AI-083 -- Benign Cancer Pathway Closure Detection
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-083"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-085"]
+    user_needs: ["UN-LEO-AI-052"]
+    risks_addressed: ["R-LEO-AI-059"]
+    verification_tests: ["VT-LEO-AI-085"]
+
+  specification:
+    title: "Benign Cancer Pathway Closure Detection"
+    description: |
+      The episode builder detects 'No evidence of cancer found' (SNOMED 395100000)
+      encounters scoped to each individual episode window and closes episodes as
+      'closed_benign' when the concept is coded within 365 days of the referral
+      date. A confirmed cancer diagnosis always takes precedence.
+
+      The detection is implemented as _benign_closure_for_episode() in
+      episode_builder.py, which queries Neo4j with explicit after_date and
+      before_date parameters derived from the referral date + 365 days. The
+      no_cancer_discharge FHIR ValueSet is seeded into Neo4j by
+      _seed_no_cancer_discharge_valueset.py and linked to the cancer_audit
+      AuditDomain. Surface form aliases for benign discharge phrases and 2WW
+      clinic shorthand are pinned via _pin_2ww_clinic_aliases.py.
+    acceptance_criteria:
+      - criterion: "Benign closure within window"
+        type: "functional"
+        measurement: "Test"
+        target: "Episode with 395100000 coded within 365 days of referral gets status=closed_benign"
+      - criterion: "Benign closure beyond window rejected"
+        type: "functional"
+        measurement: "Test"
+        target: "395100000 coded beyond 365 days does NOT close the episode"
+      - criterion: "No episode without referral"
+        type: "safety"
+        measurement: "Test"
+        target: "No EpisodeOfCare created from 395100000 alone (no referral anchor)"
+      - criterion: "Diagnosis precedence"
+        type: "functional"
+        measurement: "Test"
+        target: "When cancer diagnosis exists, episode status=completed not closed_benign"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder.py"
+        description: >
+          _benign_closure_for_episode(), _BENIGN_CLOSURE_QUERY,
+          _MAX_BENIGN_CLOSURE_DAYS, _NO_CANCER_CONCEPT_ID
+      - artifact_type: "source_code"
+        location: "libs/domain_config/registry.py"
+        description: "no_cancer_discharge domain entry with milestone_type=benign_closure"
+      - artifact_type: "source_code"
+        location: "scripts/investigations/_seed_no_cancer_discharge_valueset.py"
+        description: "Seeds ncda-no-cancer-discharge ValueSet into Neo4j KG"
+      - artifact_type: "source_code"
+        location: "scripts/investigations/_pin_2ww_clinic_aliases.py"
+        description: "Pins 2WW clinic shorthand and benign discharge phrases to SNOMED"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 150
+      key_functions:
+        - "_benign_closure_for_episode"
+        - "_BENIGN_CLOSURE_QUERY"
+        - "build_episodes"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Scoped 365-day window prevents spurious episode closure from unrelated patient records"
+      - "Referral precondition prevents standalone 395100000 from generating episodes"
+      - "Diagnosis precedence ensures cancer episodes are never closed as benign when cancer confirmed"
+    risk_control_measures:
+      - "Per-episode date-bounded Cypher query replaces global patient-level benign scan"
+      - "Only present-assertion DOCUMENTS relationships trigger benign closure"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

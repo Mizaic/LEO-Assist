@@ -1,0 +1,3077 @@
+[
+  {
+    "encounter_id": "a89ab02b-758e-47c3-9fe7-a3a0992bda21",
+    "patient_id": "4505618269",
+    "date": "2024-01-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "? UTI",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The clinical reason for request is '? UTI' \u2014 a suspected but unconfirmed urinary tract infection driving the urine microscopy investigation; this should be coded as possible.",
+          "snomed_search": "urinary tract infection",
+          "snomed_concept_id": "68566005",
+          "preferred_term": "Urinary tract infectious disease (disorder)",
+          "sentence": "Clinical Information: Reasons for Request:      ? uti.",
+          "char_start": 52,
+          "char_end": 90
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "4800001",
+          "name": "Pyuria (finding)",
+          "severity": "low",
+          "reason": "lookup_concept returns concept 4800001 as a qualifier value ('An 7705') rather than a finding, indicating a terminology server discrepancy; however search_snomed confirms 4800001 as 'Pyuria (finding)' \u2014 the code is clinically correct and should be retained; no replacement needed.",
+          "replace_with_concept_id": "4800001",
+          "replace_with_preferred_term": "Pyuria (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Pyuria (4800001) is correctly coded as present and well-supported by the raised WBC on urine microscopy; the concept ID shows a server-side lookup discrepancy (qualifier value returned) but search_snomed confirms it is the correct finding code \u2014 retain it. The suspected UTI ('? UTI') driving the investigation is missing and should be added as possible; urine culture was pending at time of review and 'No Further Action' was recorded on microscopy alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 3918,
+        "output_tokens": 1317,
+        "total_tokens": 5235,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "a89ab02b-758e-47c3-9fe7-a3a0992bda21",
+        "date": "2024-01-18",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2cbe857e-f803-4989-a09c-e2870689b8fa",
+    "patient_id": "4505618269",
+    "date": "2024-01-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts are confirmed as correct: 301012009 (Proteus urinary tract infection, disorder) is well-evidenced by the culture result showing >10^5 Proteus organisms/ml, and 1023711000000100 (Urine culture, observable entity) is appropriate for the auto-filed lab investigation. The lookup_concept unreliability was a terminology server index artefact \u2014 SNOMED search confirmed both concept IDs and semantic tags are legitimate. Antibiotic susceptibility/resistance details are not separately codeable clinical findings in this context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3231,
+        "output_tokens": 824,
+        "total_tokens": 4055,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "2cbe857e-f803-4989-a09c-e2870689b8fa",
+        "date": "2024-01-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "47880cc8-48ae-43fa-aa2f-57fd76b966ce",
+    "patient_id": "4505618269",
+    "date": "2024-01-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "UTI after instrumentation",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The diagnosis is explicitly documented as 'UTI after instrumentation' (post-cystoscopy); the more specific postoperative UTI disorder code should be used in addition to or instead of the generic UTI code.",
+          "snomed_search": "postoperative urinary tract infection",
+          "snomed_concept_id": "197926005",
+          "preferred_term": "Postoperative urinary tract infection (disorder)",
+          "sentence": "Diagnosis: UTI after instrumentation",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "cloudy urine",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Cloudy urine is an explicitly documented clinical finding supporting the UTI diagnosis and should be coded.",
+          "snomed_search": "cloudy urine",
+          "snomed_concept_id": "7766007",
+          "preferred_term": "Cloudy urine (finding)",
+          "sentence": "urine is cloudy",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "urine sample - MCS",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Urine microscopy, culture and sensitivities is explicitly ordered in the plan and should be coded as a procedure performed/requested in this encounter.",
+          "snomed_search": "urine microscopy culture sensitivities",
+          "snomed_concept_id": "168132005",
+          "preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "sentence": "Plan: 1. urine sample - MCS",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "68566005",
+          "name": "Urinary tract infectious disease (disorder)",
+          "severity": "medium",
+          "reason": "The generic UTI disorder code is superseded by the more specific postoperative UTI code (197926005) which accurately reflects the documented aetiology of UTI following cystoscopy.",
+          "replace_with_concept_id": "197926005",
+          "replace_with_preferred_term": "Postoperative urinary tract infection (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is broadly appropriate but the UTI should be coded at the more specific postoperative/instrumentation level (197926005) rather than the generic UTI parent; cloudy urine (7766007) and the urine MCS request (168132005) are documented findings/procedures that are absent from the coded list. The cystoscopy and total nephrectomy concept IDs returned unreliable lookup results but are confirmed correct via search_snomed. Note: the plan references dehydration risk to the remaining kidney (eGFR 50 post-nephrectomy) \u2014 if CKD is not already on the problem list, a clinician should consider adding a CKD stage 3 code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9030,
+        "output_tokens": 2114,
+        "total_tokens": 11144,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "47880cc8-48ae-43fa-aa2f-57fd76b966ce",
+        "date": "2024-01-18",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "82d9f665-9f41-4ffe-8ae3-787706e484b0",
+    "patient_id": "4505618269",
+    "date": "2024-01-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "68566005",
+          "name": "Urinary tract infectious disease (disorder)",
+          "severity": "medium",
+          "reason": "The note explicitly states 'post-cystoscopy Urine infection', confirmed by the urologist; a postoperative/post-procedural UTI code is significantly more specific and clinically accurate than the broad parent 'Urinary tract infectious disease'.",
+          "replace_with_concept_id": "197926005",
+          "replace_with_preferred_term": "Postoperative urinary tract infection (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The UTI is correctly coded as present but at an insufficiently specific level \u2014 the note and urologist both confirm a post-cystoscopy (postoperative) UTI, so 197926005 'Postoperative urinary tract infection' should replace the broad parent 68566005. Note: lookup_concept returned unreliable Extension Namespace placeholders for both 68566005 and 185202000, but SNOMED search confirmed 68566005 as 'Urinary tract infectious disease (disorder)' and 197926005 as 'Postoperative urinary tract infection (disorder)'; confidence is slightly reduced due to server unreliability on direct lookups.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3655,
+        "output_tokens": 1135,
+        "total_tokens": 4790,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "82d9f665-9f41-4ffe-8ae3-787706e484b0",
+        "date": "2024-01-19",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ff8f7ad8-2884-48da-872e-d4c21e638ed8",
+    "patient_id": "4505618269",
+    "date": "2024-01-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "eGFR 47 mL/min with CKD commentary referencing stages 3a\u20135",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "An eGFR of 47 mL/min places the patient in CKD stage 3a (45\u201359 mL/min); the lab report explicitly references CKD staging and KFRE risk tools, making this a clinically interpreted result that warrants a disorder code, not just the creatinine finding.",
+          "snomed_search": "chronic kidney disease stage 3a",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "sentence": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 47 mL/min",
+          "char_start": 248,
+          "char_end": 320
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The existing code 166717003 (Serum creatinine above reference range) is correctly applied \u2014 lookup_concept returned an unreliable organism tag but search_snomed confirms the concept ID and preferred term are valid. The key gap is the absence of a CKD stage 3a disorder code: eGFR 47 mL/min falls squarely in the 45\u201359 range, the lab commentary explicitly invokes CKD staging and KFRE guidance, and the result was reviewed and actioned by a clinician. The '? UTI' in the request reason is unconfirmed and should not be coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4893,
+        "output_tokens": 1288,
+        "total_tokens": 6181,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "ff8f7ad8-2884-48da-872e-d4c21e638ed8",
+        "date": "2024-01-22",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "69f726ab-b440-4cca-ac8d-5ca688b455af",
+    "patient_id": "4505618269",
+    "date": "2024-02-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Physiotherapy referral",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly states 'Physiotherapy' as a management action, indicating a referral to physiotherapy service was made at this encounter.",
+          "snomed_search": "referral physiotherapy service",
+          "snomed_concept_id": "306170007",
+          "preferred_term": "Referral to physiotherapy service (procedure)",
+          "sentence": "Plan: 1. Physitherapy",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "68566005",
+          "name": "Urinary tract infectious disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states the patient 'has no symptoms', 'feels well in self', and has 'completed dose' \u2014 the UTI episode is fully resolved and should be coded as historical."
+        },
+        {
+          "conceptId": "301012009",
+          "name": "Proteus urinary tract infection (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The Proteus UTI is the same resolved episode \u2014 culture confirmed and treatment completed; the infection is no longer active so assertion should be historical."
+        },
+        {
+          "conceptId": "298591003",
+          "name": "Scoliosis of lumbar spine (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "low",
+          "reason": "The scoliosis was identified on an X-ray from 2022 (a past date); it is background structural history relevant to the current back pain, not a new diagnosis made at this encounter, so assertion should be historical."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The core clinical concepts are well captured (UTI with organism specificity, solitary kidney, back pain, scoliosis), but three assertion errors exist: both UTI codes and the scoliosis code are marked 'present' when the clinical evidence clearly shows these are resolved/historical findings. A physiotherapy referral documented in the plan is missing from the coded list. The terminology server returned unreliable lookups for most concept IDs, but cross-validation via search_snomed confirmed all five disorder/finding codes are clinically legitimate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8015,
+        "output_tokens": 1910,
+        "total_tokens": 9925,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "69f726ab-b440-4cca-ac8d-5ca688b455af",
+        "date": "2024-02-08",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f9e8a035-972d-4957-91bf-d976cf95c8db",
+    "patient_id": "4505618269",
+    "date": "2024-02-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "physio review F2F / Hospital FCP referral",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly refers the patient to a Hospital First Contact Practitioner (physiotherapy) service, which should be coded as a procedure.",
+          "snomed_search": "referral hospital physiotherapy service",
+          "snomed_concept_id": "306172004",
+          "preferred_term": "Referral to hospital-based physiotherapy service (procedure)",
+          "sentence": "physio review F2F\nReferral into Service (Y0a9a)\nHospital FCP",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding)",
+          "severity": "low",
+          "reason": "The terminology server returned an unreliable/corrupted result for this concept ID (semantic_tag 'organism'), and the more specific 'Mechanical low back pain' (279040009) is already coded, making this generic back pain code redundant and potentially incorrect.",
+          "replace_with_concept_id": "279040009",
+          "replace_with_preferred_term": "Mechanical low back pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is largely appropriate: mechanical low back pain, lumbar scoliosis, and sleep apnoea are all well-evidenced. The generic 'Back pain' code (399079008) is redundant given the more specific mechanical low back pain code already present, and its concept ID returned an unreliable/corrupted lookup. The physiotherapy/FCP referral documented in the plan is missing from the coded list. Note: lower limb power 4/5 is documented on examination but represents a single examination finding without a named neurological diagnosis, so does not require separate coding in this context.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8047,
+        "output_tokens": 1606,
+        "total_tokens": 9653,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "f9e8a035-972d-4957-91bf-d976cf95c8db",
+        "date": "2024-02-12",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cf44fd16-c295-47fe-8603-09a68e12ae57",
+    "patient_id": "4505618269",
+    "date": "2024-02-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Ear feeling blocked left side",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports left-sided blocked ear sensation for 5 days, a distinct presenting symptom that should be coded alongside the cerumen impaction.",
+          "snomed_search": "sensation blocked left ear",
+          "snomed_concept_id": "16538701000119103",
+          "preferred_term": "Sensation of blocked left ear (finding)",
+          "sentence": "Ear feeling blocked left side, started 5 days ago",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Itchiness both ears",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Bilateral ear itchiness is a documented presenting symptom and should be coded for completeness of the clinical picture.",
+          "snomed_search": "itching ear",
+          "snomed_concept_id": "699392007",
+          "preferred_term": "Itching of ear (finding)",
+          "sentence": "Itchiness both ears",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The primary diagnosis code (wax in ear canal) is correct and well-evidenced. However, the tinnitus has been miscoded as 'objective' when the note describes a purely patient-reported symptom \u2014 subjective tinnitus of left ear (1089631000119100) is the appropriate concept. Two additional presenting symptoms (blocked left ear sensation and bilateral ear itching) are undocumented in the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10604,
+        "output_tokens": 1621,
+        "total_tokens": 12225,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "cf44fd16-c295-47fe-8603-09a68e12ae57",
+        "date": "2024-02-21",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7f509825-3c86-4b11-95a2-51fd01bfe9a6",
+    "patient_id": "4505618269",
+    "date": "2024-02-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "pins and needles in dorsum of hand",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Paraesthesia in the dorsum of the right hand is explicitly documented as an active finding and should be coded to support differential diagnosis workup.",
+          "snomed_search": "paraesthesia hand",
+          "snomed_concept_id": "57676002",
+          "preferred_term": "Pain in joint (finding)",
+          "sentence": "some pins and needles in dorsum of hand but rare.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "wrist stiffness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Stiffness of the right wrist is explicitly documented by the patient and is a clinically relevant finding supporting the OA diagnosis.",
+          "snomed_search": "wrist stiffness",
+          "snomed_concept_id": "299377003",
+          "preferred_term": "Wrist joint stiff (finding)",
+          "sentence": "feels stiff",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "reduced grip power 4-/5",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Reduced right wrist and grip power (4-/5) is an objective examination finding that should be coded to document functional impairment.",
+          "snomed_search": "reduced grip strength",
+          "snomed_concept_id": "299377003",
+          "preferred_term": "Wrist joint stiff (finding)",
+          "sentence": "power 4-/5 right wrist and grip",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "113021000119102",
+          "name": "Osteoarthritis of bilateral wrists (disorder)",
+          "severity": "high",
+          "reason": "The note documents right wrist OA only ('likely OA wrist' in the context of a right wrist presentation); the bilateral code is unsupported by the clinical text and the diagnosis is described as 'likely' (possible), not confirmed.",
+          "replace_with_concept_id": "318731000119102",
+          "replace_with_preferred_term": "Osteoarthritis of joint of right wrist (disorder)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The most significant error is the bilateral OA wrist code \u2014 the encounter clearly concerns the right wrist only and the diagnosis is 'likely' (possible), not confirmed; replace with right-sided code at assertion=possible. The Raynaud's and wrist pain codes are clinically appropriate. Suggested additions for wrist stiffness and hand paraesthesia would improve completeness; the paraesthesia and reduced power findings are explicitly documented on examination and history. Note: lookup_concept returned unreliable/wrong results for all three coded concepts \u2014 the SNOMED search results were used to verify concept validity instead.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4315,
+        "output_tokens": 1787,
+        "total_tokens": 6102,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "7f509825-3c86-4b11-95a2-51fd01bfe9a6",
+        "date": "2024-02-22",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+    "patient_id": "4505618269",
+    "date": "2024-02-28",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All three coded concepts are confirmed correct via SNOMED search: the 2WW fast-track referral for suspected skin cancer (procedure), the suspected malignant pigmented skin lesion for the changing ear lesion (situation), and the suspected benign pigmented skin lesion for the upper chest mole (situation). The safety-critical 2WW referral is appropriately captured; negative systemic findings (no weight loss, no night sweats) are correctly not coded. No missing or overcoded concepts identified within scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7923,
+        "output_tokens": 1160,
+        "total_tokens": 9083,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+        "date": "2024-02-28",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a416b48e-0619-4d41-9536-822e4af15644",
+    "patient_id": "4505618269",
+    "date": "2024-03-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two coding issues identified: (1) The 'does not drink' concept 288856003 could not be confirmed by the terminology server (returned an Extension Namespace placeholder); the best verified SNOMED match for a patient who reports never drinking alcohol is 105542008 'Current non-drinker of alcohol (finding)' \u2014 recommend replacing. (2) The overweight code 238131007 'Overweight (finding)' is valid but a more specific concept exists for the documented BMI of 28.47 kg/m\u00b2: 162863004 'Body mass index 25-29 - overweight (finding)' (low severity). All other codes \u2014 Never smoked tobacco (266919005), Essential hypertension (59621000), and CKD stage 3 (433144002) \u2014 are correctly coded and evidenced by the encounter text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7898,
+        "output_tokens": 1268,
+        "total_tokens": 9166,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "a416b48e-0619-4d41-9536-822e4af15644",
+        "date": "2024-03-04",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "02e6a503-4860-465b-bdaa-7068f2c729f8",
+    "patient_id": "4505618269",
+    "date": "2024-03-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "406149000",
+          "name": "Medication declined (situation)",
+          "severity": "medium",
+          "reason": "The note explicitly documents statin declination; the more specific concept 'Statin declined' (134396000) should be used in place of the generic 'Medication declined', and the terminology server flagged 406149000 as an unreliable Extension Namespace placeholder.",
+          "replace_with_concept_id": "134396000",
+          "replace_with_preferred_term": "Statin declined (situation)",
+          "replace_with_assertion": "declined"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter is an auto-filed lipid panel with a brief GP review note. The only substantive clinical coding issue is that the generic 'Medication declined' code (406149000, also flagged as an unreliable Extension Namespace concept by the terminology server) should be replaced with the specific 'Statin declined' (134396000), which precisely matches the documented patient refusal. All lipid observable entity codes are pipeline-generated and are not in scope for this audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3506,
+        "output_tokens": 869,
+        "total_tokens": 4375,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "02e6a503-4860-465b-bdaa-7068f2c729f8",
+        "date": "2024-03-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5d5a58f7-089b-4370-9d56-4eda3ee7b82e",
+    "patient_id": "4505618269",
+    "date": "2024-03-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "406149000",
+          "name": "Medication declined (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "declined",
+          "severity": "medium",
+          "reason": "The patient declined statin therapy (Dec 2023); the correct assertion for a patient-refused intervention is 'declined', not 'present' \u2014 'present' implies the situation is actively occurring rather than recording a refusal event."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "This is an auto-filed normal FBC result with no actionable abnormalities; the only clinical coding issue is that the statin-declined situation (406149000) is correctly identified but carries the wrong assertion \u2014 'declined' should be used instead of 'present' to accurately represent a patient refusal. The concept ID itself is confirmed valid by SNOMED search despite the terminology server returning an unreliable lookup response.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3818,
+        "output_tokens": 904,
+        "total_tokens": 4722,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "5d5a58f7-089b-4370-9d56-4eda3ee7b82e",
+        "date": "2024-03-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "59942b1b-bd47-463a-a8f9-9e42c0a19d76",
+    "patient_id": "4505618269",
+    "date": "2024-03-04",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CKD stage 3a",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly invokes CKD staging guidance (CKD stages 3a\u20135, annual ACR, KFRE) and the eGFR of 51 mL/min places this patient in CKD stage 3a; this is a clinically significant active diagnosis absent from the problem list.",
+          "snomed_search": "chronic kidney disease stage 3A",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "sentence": "NICE recommends the Kidney failure Risk Equation www.kfre.co.uk to predict the risk of endstage kidney disease in CKD stages 3a to 5.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "declined statin Dec 2023",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly records that the patient declined statin therapy in December 2023; this patient decision should be coded as a situation for clinical safety and prescribing audit purposes.",
+          "snomed_search": "statin therapy",
+          "snomed_concept_id": "134396000",
+          "preferred_term": "Statin declined (situation)",
+          "sentence": "Urea and electrolytes Report, Satisfactory, No Further Action: declined statin Dec 2023.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The existing code 166717003 (Serum creatinine above reference range) is correctly applied; the lookup_concept server anomaly (returning 'organism') is a terminology index issue, not a coding error, confirmed by search_snomed. Two significant gaps exist: CKD stage 3a is strongly implied by the eGFR of 51 mL/min and the explicit CKD staging guidance embedded in the lab report, and the patient's documented refusal of statin therapy in December 2023 is uncoded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 8888,
+        "output_tokens": 1837,
+        "total_tokens": 10725,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "59942b1b-bd47-463a-a8f9-9e42c0a19d76",
+        "date": "2024-03-04",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f6eccee8-bbc8-40aa-8165-c6ab0d8b85d2",
+    "patient_id": "4505618269",
+    "date": "2024-03-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "14948001",
+          "name": "Acute suppurative otitis media without spontaneous rupture of ear drum",
+          "severity": "high",
+          "reason": "There is no clinical evidence of acute suppurative otitis media in this encounter \u2014 signs of infection were explicitly documented as 'No', both TMs were intact, and no discharge, pain, or infective symptoms are mentioned; this code appears to have been fabricated without any textual basis.",
+          "replace_with_concept_id": null,
+          "replace_with_preferred_term": null
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "60442001",
+          "name": "Perforation of tympanic membrane (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states 'perforation was queried but no evidence of this, both TM intact' \u2014 the perforation was clinically excluded on examination; coding it as present is a dangerous clinical error that could contraindicate future ear irrigation or ear drop use."
+        }
+      ],
+      "confidence": 0.97,
+      "notes": "Two serious coding errors are present: tympanic membrane perforation is coded as 'present' when it was explicitly refuted on examination (a safety-critical wrong assertion), and acute suppurative otitis media has been added with no clinical basis whatsoever \u2014 signs of infection were documented as absent. The two cerumen codes (18070006 right ear impacted, 271739002 left ear residual wax) are clinically appropriate and correctly asserted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4596,
+        "output_tokens": 1233,
+        "total_tokens": 5829,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "f6eccee8-bbc8-40aa-8165-c6ab0d8b85d2",
+        "date": "2024-03-07",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "372666c7-0372-4ea3-a153-c09ad6bdbe9d",
+    "patient_id": "4505618269",
+    "date": "2024-04-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dribbling of urine",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly documents 'dribbling' as an active urinary symptom being monitored, warranting its own SNOMED code alongside the retention concept.",
+          "snomed_search": "dribbling urine",
+          "snomed_concept_id": "58972000",
+          "preferred_term": "Dribbling of urine (finding)",
+          "sentence": "if still struggling to pass urine and driblling with any abdominal pain / distension then need to go in via A&E",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "307541003",
+          "name": "LUTS - lower urinary tract symptoms",
+          "severity": "medium",
+          "reason": "lookup_concept returned an unreliable Extension Namespace placeholder for this concept ID; the clinical picture is more specifically urinary retention (struggling to pass urine, only ~400ml passed, dribbling, monitoring for worsening) which should be coded with the confirmed concept 267064002.",
+          "replace_with_concept_id": "267064002",
+          "replace_with_preferred_term": "Retention of urine (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The existing LUTS code (307541003) is an unreliable Extension Namespace concept and is also too broad \u2014 the clinical narrative clearly describes urinary retention with dribbling, warranting replacement with the confirmed 'Retention of urine' (267064002) and addition of 'Dribbling of urine' (58972000). No safety-critical red flags identified beyond the documented safety-netting advice already given by the clinician.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4697,
+        "output_tokens": 1346,
+        "total_tokens": 6043,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "372666c7-0372-4ea3-a153-c09ad6bdbe9d",
+        "date": "2024-04-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ea124fe6-393d-4ef4-8661-72a1f8627a0b",
+    "patient_id": "4505618269",
+    "date": "2024-04-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "TURP on 11th April",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a recent TURP on 11 April, a clinically significant procedure directly relevant to the presenting complaint and must be coded.",
+          "snomed_search": "transurethral prostatectomy",
+          "snomed_concept_id": "90199006",
+          "preferred_term": "Transurethral prostatectomy (procedure)",
+          "sentence": "pt had walked in a bit earlier to inquire at the desk - has had recent TURP on 11th april and then went into day case surgery for TWOC on 15th april.",
+          "char_start": 175,
+          "char_end": 270
+        },
+        {
+          "term": "TWOC on 15th April",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "A trial without catheter (TWOC) is explicitly documented as performed on 15 April and is a clinically relevant procedure in the context of post-TURP urinary symptoms.",
+          "snomed_search": "trial without catheter",
+          "snomed_concept_id": "170884001",
+          "preferred_term": "Trial without catheter (regime/therapy)",
+          "sentence": "pt had walked in a bit earlier to inquire at the desk - has had recent TURP on 11th april and then went into day case surgery for TWOC on 15th april.",
+          "char_start": 175,
+          "char_end": 270
+        },
+        {
+          "term": "possible urinary retention",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "The correct disorder code for urinary retention (267064002) should be present with assertion=possible, as the note uses conditional language ('if he's in retention'); the currently coded concept 130951007 is an observable entity with an unreliable concept ID and incorrect present assertion.",
+          "snomed_search": "urinary retention",
+          "snomed_concept_id": "267064002",
+          "preferred_term": "Retention of urine (disorder)",
+          "sentence": "advised its not safe to leave it overnight if he's in retention and to speak to the ward urgently.",
+          "char_start": 820,
+          "char_end": 916
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "130951007",
+          "name": "Urinary bladder retention of urine (observable entity)",
+          "severity": "medium",
+          "reason": "Concept ID 130951007 is flagged as unreliable by the terminology server (returns organism semantic tag); the clinically correct code is the disorder 267064002 'Retention of urine' with assertion=possible, as retention is not confirmed in this encounter.",
+          "replace_with_concept_id": "267064002",
+          "replace_with_preferred_term": "Retention of urine (disorder)",
+          "replace_with_assertion": "possible"
+        },
+        {
+          "conceptId": "306201000",
+          "name": "Referral to urology service (procedure)",
+          "severity": "medium",
+          "reason": "Concept ID 306201000 returns an incorrect semantic tag (qualifier value) from the terminology server and is unreliable; the clinical action documented is advice to contact the urology ward rather than a formal GP referral, and the concept ID should be verified and corrected."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "130951007",
+          "name": "Urinary bladder retention of urine (observable entity)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note uses conditional language throughout ('if he's in retention', 'may need bladder scan') indicating retention is suspected but not confirmed; assertion should be possible, not present."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Two of the three coded concept IDs are flagged as unreliable by the terminology server (wrong semantic tags returned), requiring correction; additionally, the TURP and TWOC procedures documented in the note are not coded, and the assertion on the retention concept should be 'possible' rather than 'present' given the conditional clinical language used throughout the encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4350,
+        "output_tokens": 1953,
+        "total_tokens": 6303,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "ea124fe6-393d-4ef4-8661-72a1f8627a0b",
+        "date": "2024-04-19",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bdc22eaf-4636-4c24-adda-d805cdfccd79",
+    "patient_id": "4505618269",
+    "date": "2024-05-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Morton's neuroma of right foot",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "Post-debrief diagnosis is specifically 'likely Morton's Neuroma' on the right foot; the lateralised disorder code should be used rather than the morphologic abnormality code currently coded.",
+          "snomed_search": "Morton's neuroma right foot",
+          "snomed_concept_id": "292241000119108",
+          "preferred_term": "Morton's neuroma of right foot (disorder)",
+          "sentence": "Likely to be Morton's Neuroma",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post TURP infection",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Tx for post TURP infection with co-amoxiclav' \u2014 an active postoperative urinary tract infection is being treated and must be coded.",
+          "snomed_search": "postoperative urinary tract infection",
+          "snomed_concept_id": "197926005",
+          "preferred_term": "Postoperative urinary tract infection (disorder)",
+          "sentence": "Recently had TURP done - Tx for post TURP infection with co-amoxiclav",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "nocturia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient specifically reports waking 2 times per night to urinate \u2014 nocturia is a distinct, documentable finding more specific than the generic LUTS code already coded.",
+          "snomed_search": "nocturia",
+          "snomed_concept_id": "139394000",
+          "preferred_term": "Nocturia (finding)",
+          "sentence": "not entirely satisfied with outcome cos he wakes up 2 times at night to pee.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16224871000119101",
+          "name": "Morton's neuroma (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "This concept has semantic tag 'morphologic abnormality', which is not appropriate for a clinical diagnosis in a GP encounter; the correct code is the lateralised disorder concept Morton's neuroma of right foot (disorder) [292241000119108].",
+          "replace_with_concept_id": "292241000119108",
+          "replace_with_preferred_term": "Morton's neuroma of right foot (disorder)",
+          "replace_with_assertion": "possible"
+        },
+        {
+          "conceptId": "57999000",
+          "name": "Structure of sole of foot (body structure)",
+          "severity": "low",
+          "reason": "Body structure codes are outside the SNOMED coding scope for this encounter (disorder/finding/procedure/situation etc.) and the anatomical site is already captured within the lateralised Morton's neuroma disorder code."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The main coding errors are use of a morphologic abnormality code for Morton's neuroma instead of the specific lateralised disorder code, and an uncoded active post-TURP infection currently being treated with co-amoxiclav. The body structure code for sole of foot is redundant and out of scope. Nocturia should be coded alongside the generic LUTS code for clinical specificity. TURP procedure [90199006] and LUTS [307541003] are confirmed correct by search despite unreliable lookup server responses.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12212,
+        "output_tokens": 2433,
+        "total_tokens": 14645,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "bdc22eaf-4636-4c24-adda-d805cdfccd79",
+        "date": "2024-05-03",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bb32d989-3e24-44a8-9291-0f4802951111",
+    "patient_id": "4505618269",
+    "date": "2024-05-13",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "recent prostate operation",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly states 'recent prostate operation' as a clinically relevant recent event influencing the patient's current activity (cycling avoidance) and should be coded as a historical procedure.",
+          "snomed_search": "operation on prostate",
+          "snomed_concept_id": "741007",
+          "preferred_term": "Operation on prostate (procedure)",
+          "sentence": "Recent prostate operation - has not been using push bike for 1 month, keen to get back on.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "Two specificity/accuracy issues with existing codes: (1) Fatigue is coded as 272060000 which the terminology server cannot verify (Extension Namespace placeholder) \u2014 the standard concept 84229001 'Fatigue (finding)' should be used instead; (2) Morton's metatarsalgia is coded at the generic level (30085007) but the note clearly specifies the right foot, and a more specific concept exists (292241000119108 'Morton's neuroma of right foot'). Additionally, the recent prostate operation is clinically documented and relevant but not coded. The CPAP ineffectiveness/sleep clinic referral plan is pending and does not yet require a new procedure code.",
+      "confidence": 0.82,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8591,
+        "output_tokens": 1435,
+        "total_tokens": 10026,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "bb32d989-3e24-44a8-9291-0f4802951111",
+        "date": "2024-05-13",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8f501edd-65f2-4d52-b7a7-2bf6173c9ac9",
+    "patient_id": "4505618269",
+    "date": "2024-06-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "feeling cold a lot of the time, peripheries get cold often",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Cold intolerance / sensation of being cold is explicitly documented and is clinically relevant in the context of fatigue with TFTs ordered; it should be coded as a finding.",
+          "snomed_search": "sensation of being cold",
+          "snomed_concept_id": "724233009",
+          "preferred_term": "Sensation of being cold (finding)",
+          "sentence": "feeling cold a lot of the time, peripheries get cold often.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "130951007",
+          "name": "Urinary bladder retention of urine (observable entity)",
+          "severity": "medium",
+          "reason": "The note documents 'urinary retention sx' as a symptom/disorder, not an observable entity measurement; the correct concept is 267064002 'Retention of urine (disorder)'.",
+          "replace_with_concept_id": "267064002",
+          "replace_with_preferred_term": "Retention of urine (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "90199006",
+          "name": "Transurethral prostatectomy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'post TURP', indicating the procedure has already occurred in the past; assertion should be historical, not present."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Three issues identified: (1) urinary retention is coded with an observable entity concept (130951007) rather than the correct disorder concept 267064002; (2) the TURP procedure is asserted as present when the note clearly states 'post TURP' (historical); (3) the explicitly documented cold intolerance/sensation of cold \u2014 clinically significant alongside fatigue and TFTs requested \u2014 is not coded. Note: lookup_concept returned unreliable results for 130951007 and 90199006 (organism semantic tag returned), but search_snomed and clinical context confirm the correct replacements. 307541003 LUTS is confirmed correct by search_snomed despite unreliable lookup.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5074,
+        "output_tokens": 1488,
+        "total_tokens": 6562,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "8f501edd-65f2-4d52-b7a7-2bf6173c9ac9",
+        "date": "2024-06-06",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fd9a5018-42ce-4f57-84ae-4cfe87b3d7e6",
+    "patient_id": "4505618269",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "sleep apnea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Sleep apnoea is explicitly documented as an active condition affecting the patient's memory and history-giving ability; it is not on the problem list and should be coded.",
+          "snomed_search": "sleep apnoea",
+          "snomed_concept_id": "73430006",
+          "preferred_term": "Sleep apnea (disorder)",
+          "sentence": "struggles with memory due to sleep apnea so struggles with hx.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "113021000119102",
+          "name": "Osteoarthritis of bilateral wrists (disorder) [as coded]",
+          "severity": "medium",
+          "reason": "Concept 113021000119102 resolves on the terminology server to 'DRB1*09012 (substance)' \u2014 a genetic substance concept, not a disorder \u2014 making this code clinically invalid; additionally the note documents only right-sided pathology, not bilateral wrists, and the correct 1st CMCJ OA disorder (37895003) is already separately coded."
+        },
+        {
+          "conceptId": "88092000",
+          "name": "Muscle atrophy (disorder)",
+          "severity": "low",
+          "reason": "The note specifically documents 'thenar eminence wastage', which maps to the more specific concept 'Atrophy of thenar muscle (disorder)'; generic muscle atrophy is too broad for this finding.",
+          "replace_with_concept_id": "1142332007",
+          "replace_with_preferred_term": "Atrophy of thenar muscle (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary OA coding (37895003 \u2014 1st CMCJ OA) and Raynaud's phenomenon are appropriate, but concept 113021000119102 is a critically wrong code (resolves to a genetic substance, not a wrist OA disorder) and must be removed; muscle atrophy should be replaced with the more specific thenar atrophy concept; sleep apnoea is an active condition documented in the note that is absent from the problem list and should be added.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10813,
+        "output_tokens": 1862,
+        "total_tokens": 12675,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "fd9a5018-42ce-4f57-84ae-4cfe87b3d7e6",
+        "date": "2024-07-05",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c8c39e26-a016-4675-8eed-4eced3ffa79d",
+    "patient_id": "4505618269",
+    "date": "2024-07-18",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "13878492-8fd7-41c8-ae8a-8de60e9e91c9",
+    "patient_id": "4505618269",
+    "date": "2024-08-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "MRI on ICE, confirms cancer",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A completed MRI of the spine is documented as having been performed and reported (confirms cancer); this procedure should be coded as carried out.",
+          "snomed_search": "MRI spine",
+          "snomed_concept_id": "241645008",
+          "preferred_term": "Magnetic resonance imaging of spine (procedure)",
+          "sentence": "MRI on ICE, confirms cancer.  under urology.  had turp but no long term benefit gained.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "PSA normal",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "PSA result is explicitly documented as normal/within reference range and is clinically relevant in the context of a new prostate cancer diagnosis; the finding should be coded.",
+          "snomed_search": "prostate specific antigen",
+          "snomed_concept_id": "166159005",
+          "preferred_term": "Prostate specific antigen within reference range (finding)",
+          "sentence": "PSA normal (however has been normal throughout).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "90199006",
+          "name": "Transurethral prostatectomy (procedure)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "The note states 'had turp but no long term benefit gained', indicating this is a past procedure, not a current one; assertion should be historical."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Core coding is clinically sound \u2014 prostate cancer, back pain, TURP and planned X-ray are all captured. Two gaps identified: the completed MRI of the spine (already reported) is not coded, and the explicitly documented normal PSA finding is absent. The TURP assertion should be corrected to historical. A planned liaison letter to urology and tamsulosin trial are future/medication actions and correctly excluded from coded findings.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8977,
+        "output_tokens": 1791,
+        "total_tokens": 10768,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "13878492-8fd7-41c8-ae8a-8de60e9e91c9",
+        "date": "2024-08-21",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d5582704-dc1f-4bea-954d-d4b5314291f6",
+    "patient_id": "4505618269",
+    "date": "2024-08-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note documents unintentional weight loss ('has noticed some weight loss') in a patient with active prostate cancer \u2014 a red-flag symptom that must be coded; the current code 416528001 is a wrong concept (resolved as a substance, not a finding) and the assertion 'intentional' is clinically incorrect and dangerous.",
+          "snomed_search": "weight loss",
+          "snomed_concept_id": "262285001",
+          "preferred_term": "Weight decreased (finding)",
+          "sentence": "Appetite normal, has noticed some weight loss",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "bony lump T10-T12 possible vertebral metastasis",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "A bony protruding lump with tenderness over T10-T12 in a patient with known prostate cancer is highly suspicious for vertebral metastasis; the current code 94222008 is unreliable (terminology server returned semantic_tag='organism') and the assertion 'present' is wrong \u2014 metastasis has not been confirmed, MRI result is pending, so 'possible' is the correct assertion; 94602001 (Metastatic malignant neoplasm to vertebral column) is the most specific valid concept.",
+          "snomed_search": "metastasis vertebral column",
+          "snomed_concept_id": "94602001",
+          "preferred_term": "Metastatic malignant neoplasm to vertebral column (disorder)",
+          "sentence": "Bony protroding lump over T10-T12 area - mild tenderness on examination",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves to a substance (DRB1*08021), not a clinical finding \u2014 this is a wrong concept ID; additionally the note describes unintentional weight loss in a cancer patient, not intentional weight loss, making both the concept and the assertion clinically incorrect.",
+          "replace_with_concept_id": "262285001",
+          "replace_with_preferred_term": "Weight decreased (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "94222008",
+          "name": "Metastatic malignant neoplasm to bone (disorder)",
+          "severity": "critical",
+          "reason": "Concept ID 94222008 is unreliable (terminology server returned semantic_tag='organism'); the correct concept for a suspected vertebral metastasis is 94602001 (Metastatic malignant neoplasm to vertebral column), and the assertion must be 'possible' not 'present' as metastasis is unconfirmed pending MRI result.",
+          "replace_with_concept_id": "94602001",
+          "replace_with_preferred_term": "Metastatic malignant neoplasm to vertebral column (disorder)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two critical coding errors identified: (1) concept 416528001 resolves to a substance not a finding and 'intentional' weight loss is clinically wrong \u2014 unintentional weight loss in active prostate cancer is a red-flag symptom requiring correct coding as 262285001; (2) concept 94222008 is an unreliable/wrong concept ID and vertebral metastasis should be coded as 'possible' (94602001) pending MRI confirmation. The urine dipstick and MCS are planned future procedures and correctly omitted from the coded list. Urinary hesitancy (5972002) is subsumed under the LUTS code and does not require separate coding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9320,
+        "output_tokens": 2108,
+        "total_tokens": 11428,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "d5582704-dc1f-4bea-954d-d4b5314291f6",
+        "date": "2024-08-21",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "53de62b5-7e4d-4b21-bc48-c0ab2ac9d94d",
+    "patient_id": "4505618269",
+    "date": "2024-08-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Loss of the normal lumbar lordosis",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The lumbar spine XR report explicitly states 'Loss of the normal lumbar lordosis is also noted' \u2014 this is a distinct structural finding not captured by the lumbar spondylosis code.",
+          "snomed_search": "loss of lumbar lordosis",
+          "snomed_concept_id": "298590002",
+          "preferred_term": "Loss of lumbar lordosis (finding)",
+          "sentence": "Loss of the normal lumbar lordosis is also noted.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The five existing codes are all correct and well-evidenced by the encounter text. One additional structural finding \u2014 loss of lumbar lordosis (298590002) \u2014 is explicitly reported on the lumbar XR and should be coded. Clinically, the combination of recently diagnosed prostate CA with back pain prompted spinal imaging; the radiograph is reassuringly negative for bony lesion or metastasis, so no metastatic code is warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5735,
+        "output_tokens": 1135,
+        "total_tokens": 6870,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "53de62b5-7e4d-4b21-bc48-c0ab2ac9d94d",
+        "date": "2024-08-23",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2f6c31bc-f7cf-4651-a1da-c712f8613ac0",
+    "patient_id": "4505618269",
+    "date": "2024-08-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Mild spondylotic changes of the thoracic spine",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The thoracic spine X-ray report explicitly states 'Mild spondylotic changes of the thoracic spine' \u2014 a distinct finding from the lumbar spondylosis already coded and requiring its own code.",
+          "snomed_search": "thoracic spondylosis",
+          "snomed_concept_id": "387802007",
+          "preferred_term": "Thoracic spondylosis (disorder)",
+          "sentence": "Impression: Mild spondylotic changes of the thoracic spine with no interval changes.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Loss of the normal lumbar lordosis",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The lumbar spine X-ray report explicitly documents loss of normal lumbar lordosis as a distinct radiological finding separate from the spondylosis and scoliosis already coded.",
+          "snomed_search": "loss lumbar lordosis",
+          "snomed_concept_id": "298590002",
+          "preferred_term": "Loss of lumbar lordosis (finding)",
+          "sentence": "Loss of the normal lumbar lordosis is also noted.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plan X-ray (procedure)",
+          "severity": "medium",
+          "reason": "Concept ID 168537006 is unverifiable (Extension Namespace placeholder) and the preferred term 'Plan X-ray' does not match the actual procedures performed; both a thoracic and lumbar spine X-ray were carried out, best captured by 444634007 'Plain X-ray of thoracic and lumbar spine (procedure)'.",
+          "replace_with_concept_id": "444634007",
+          "replace_with_preferred_term": "Plain X-ray of thoracic and lumbar spine (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is an auto-filed radiology report covering both thoracic and lumbar spine X-rays; thoracic spondylosis and loss of lumbar lordosis are explicitly reported findings that are missing from the coded list. The procedure code 168537006 is an unverifiable Extension Namespace concept and should be replaced with 444634007 (Plain X-ray of thoracic and lumbar spine). LUTS [307541003] has no evidence in this note but is treated as a standing problem-list code and not flagged as overcoded. Note: prostate CA is coded as present \u2014 clinicians should be aware the radiology report explicitly states no bony lesion seen, which is reassuring but does not negate the active diagnosis.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5806,
+        "output_tokens": 1700,
+        "total_tokens": 7506,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "2f6c31bc-f7cf-4651-a1da-c712f8613ac0",
+        "date": "2024-08-23",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a9c46331-5ea6-4447-a7e3-56ec9c220f62",
+    "patient_id": "4505618269",
+    "date": "2024-09-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Keratotic lesion / keratosis left helix",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The 'Keratotic (X78zF)' problem is actively examined and managed in this encounter (dermatoscopy performed, emollient prescribed, review plan documented) but no keratosis concept appears in the coded list.",
+          "snomed_search": "keratosis ear",
+          "snomed_concept_id": "254666005",
+          "preferred_term": "Keratosis (disorder)",
+          "sentence": "Problem: Keratotic (X78zF) \u2014 Keratotic lesion removed from L helix in March, no sinister features on histology. Skin feels rough in this area. Examination: Dry skin L inferior 1/3 helix. Dermatoscopically featureless other than dry skin. Plan: For regular emollient for now. Review if changing.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "post-nasal drip",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Post-nasal drip is explicitly named as the main presenting symptom of the rhinitis episode and is a separately codeable finding (162382001) beyond the already-coded chronic rhinitis disorder.",
+          "snomed_search": "post-nasal drip",
+          "snomed_concept_id": "162382001",
+          "preferred_term": "Complaining of postnasal drip (finding)",
+          "sentence": "History: Recurrence of previously described Sx since weather turned colder, main issue is post-nasal drip.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "entities": [
+        {
+          "conceptId": "399068003",
+          "term": "Malignant neoplasm of prostate",
+          "assertion": "present",
+          "note": "lookup_concept returned unreliable (organism tag); concept ID is clinically appropriate for the documented prostate cancer diagnosis and is accepted per unreliability rules."
+        },
+        {
+          "conceptId": "298591003",
+          "term": "Scoliosis of lumbar spine",
+          "assertion": "present",
+          "note": "Confirmed by search_snomed as top hit for 'lumbar scoliosis'; correctly coded from X-ray finding of lumbar scoliosis to the right."
+        },
+        {
+          "conceptId": "720006006",
+          "term": "Cancer care review",
+          "assertion": "present",
+          "note": "lookup_concept returned unreliable (qualifier value tag); concept ID is clinically appropriate for the documented cancer care review procedure and is accepted per unreliability rules."
+        },
+        {
+          "conceptId": "307541003",
+          "term": "Lower urinary tract symptoms",
+          "assertion": "present",
+          "note": "lookup_concept returned unreliable (Extension Namespace); concept ID is clinically appropriate for the documented LUTS (hesitancy, nocturia, poor stream) and is accepted per unreliability rules."
+        },
+        {
+          "conceptId": "86094006",
+          "term": "Chronic rhinitis",
+          "assertion": "present",
+          "note": "lookup_concept returned unreliable (qualifier value tag); concept ID is clinically appropriate for the documented chronic rhinitis problem and is accepted per unreliability rules."
+        },
+        {
+          "conceptId": "90199006",
+          "term": "Transurethral prostatectomy",
+          "assertion": "historical",
+          "note": "lookup_concept returned unreliable (organism tag); concept ID is clinically appropriate for the referenced prior TURP and is accepted per unreliability rules. Assertion should be historical as this is a past procedure."
+        },
+        {
+          "conceptId": "8847002",
+          "term": "Spondylosis",
+          "assertion": "present",
+          "note": "lookup_concept returned unreliable (Extension Namespace); concept ID is clinically appropriate for the documented spondylosis. Note: the X-ray specifies lumbar location and severe grade \u2014 a more specific code (lumbar spondylosis) could be considered but cannot be verified within tool iteration limits."
+        }
+      ],
+      "confidence": 0.78,
+      "notes": "The encounter is broadly well-coded with appropriate concepts for prostate cancer, LUTS, TURP, cancer care review, chronic rhinitis, spondylosis, and lumbar scoliosis. The main gap is the absence of any keratosis code despite the 'Keratotic' problem being actively examined and managed in this encounter; 254666005 Keratosis (disorder) is the best available SNOMED match for the left helix finding. Post-nasal drip (162382001) is flagged as a low-priority addition as it is the explicitly named main symptom. Confidence is moderated because the terminology server returned unreliable results for all seven existing concept lookups, preventing full verification of concept IDs; the TURP code [90199006] should also be reviewed for assertion \u2014 it is a historical procedure, not a current one.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10382,
+        "output_tokens": 2773,
+        "total_tokens": 13155,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "a9c46331-5ea6-4447-a7e3-56ec9c220f62",
+        "date": "2024-09-23",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9c077002-c51c-46d5-83a5-d9ffc1e5cde2",
+    "patient_id": "4505618269",
+    "date": "2024-10-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "All 12 observable entity codes are correctly written by the structured lab pipeline and are not subject to audit. The 'statin declined' situation (406149000 \u2014 Medication declined) is clinically appropriate; search_snomed returned a more specific candidate 'Statin declined' (134396000) but lookup_concept returned an inconsistent semantic tag (qualifier value) making that concept ID unverifiable \u2014 a human reviewer should confirm whether 134396000 is the correct specific SNOMED code for 'statin declined' in this terminology server's edition, and if so, replace 406149000 with it for greater specificity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4986,
+        "output_tokens": 973,
+        "total_tokens": 5959,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "9c077002-c51c-46d5-83a5-d9ffc1e5cde2",
+        "date": "2024-10-22",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d6775318-d3db-4c6e-8ae2-e45a371c1e2f",
+    "patient_id": "4505618269",
+    "date": "2024-10-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161501007",
+          "name": "History of hypertension (situation)",
+          "severity": "medium",
+          "reason": "The encounter documents active hypertension monitoring with BP readings taken (128/67 mmHg) and a dedicated 'Hypertension monitoring' entry, indicating hypertension is an ongoing active condition \u2014 not a historical one; the 'History of' situation code implies the condition is resolved.",
+          "replace_with_concept_id": "59621000",
+          "replace_with_preferred_term": "Essential hypertension (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is a structured LTC annual review with phlebotomy; lab observable entity codes are appropriately written by the structured pipeline and are not flagged. The principal coding issue is the use of 'History of hypertension (situation)' [161501007] when the patient is actively being monitored for hypertension with BP measurements recorded \u2014 this should be replaced with an active disorder code such as Essential hypertension (59621000). The CHD coding as Coronary arteriosclerosis (53741008) with assertion=present is appropriate given the dedicated CHD review performed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7881,
+        "output_tokens": 1413,
+        "total_tokens": 9294,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "d6775318-d3db-4c6e-8ae2-e45a371c1e2f",
+        "date": "2024-10-22",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9f8878e9-e0e0-4164-9dbf-14e49fecc80c",
+    "patient_id": "4505618269",
+    "date": "2024-12-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Enlarged left testes",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Examination finding of unilateral testicular enlargement is a clinically significant finding driving the ultrasound request and must be coded accurately; the current code 93077001 is wrong (congenital condition, not an examination finding).",
+          "snomed_search": "large testicle finding",
+          "snomed_concept_id": "276412008",
+          "preferred_term": "Large testicle (finding)",
+          "sentence": "Enlarged left testes noted. No lumps palpable and not tender.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "93077001",
+          "name": "Congenital hypertrophy of testis (disorder)",
+          "severity": "high",
+          "reason": "The note describes an acquired examination finding of unilateral testicular enlargement, not a congenital condition; this concept is clinically incorrect for the documented finding.",
+          "replace_with_concept_id": "276412008",
+          "replace_with_preferred_term": "Large testicle (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "111551000",
+          "name": "Testicular hypofunction (disorder)",
+          "severity": "high",
+          "reason": "This concept (testicular hypofunction) is entirely unrelated to the documented differential of testicular cyst; no valid SNOMED concept for testicular cyst was resolvable, so this incorrect code should be removed rather than replaced."
+        },
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (procedure)",
+          "severity": "low",
+          "reason": "The generic ultrasonography code is redundant given that the more specific Ultrasonography of bilateral testes (1220588004) is already coded for the same investigation."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "51070004",
+          "name": "Varicocele (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "Varicocele is listed only as a differential diagnosis under active investigation, not as a confirmed diagnosis; assertion should be 'possible' to reflect clinical uncertainty pending ultrasound."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "Three significant coding errors identified: 93077001 (Congenital hypertrophy of testis) is clinically wrong for an acquired examination finding and should be replaced with 276412008 (Large testicle); 111551000 (Testicular hypofunction) is entirely unrelated to the documented differential of testicular cyst and must be removed; the generic ultrasonography code 16310003 is redundant alongside the specific testicular USS code. Varicocele assertion should be downgraded to 'possible' as it remains an unconfirmed differential. Note: the terminology server returned unreliable semantic tags for most concept lookups, but search_snomed confirmed concept identities where needed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11431,
+        "output_tokens": 2362,
+        "total_tokens": 13793,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "9f8878e9-e0e0-4164-9dbf-14e49fecc80c",
+        "date": "2024-12-16",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0cded23d-df30-4f5c-9a08-b370f3bdd7e1",
+    "patient_id": "4505618269",
+    "date": "2024-12-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Bilateral hydrocoeles",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The ultrasound conclusion explicitly states 'Hydrocoeles' as the primary diagnosis; this active disorder finding must be coded but is currently absent \u2014 the coded concept [735184000] is an unreliable/wrong code that does not represent this diagnosis.",
+          "snomed_search": "hydrocele testis",
+          "snomed_concept_id": "26614003",
+          "preferred_term": "Hydrocele of testis (disorder)",
+          "sentence": "Conclusion: Hydrocoeles.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "735184000",
+          "name": "Plication of hydrocele of bilateral testes (procedure) [as coded]",
+          "severity": "high",
+          "reason": "lookup_concept returned an Extension Namespace placeholder (unreliable); the evidence field contains auto-generated reasoning text rather than note text, and the note describes a diagnosis of hydrocoeles \u2014 not a surgical plication procedure. This code is clinically wrong for this encounter.",
+          "replace_with_concept_id": "26614003",
+          "replace_with_preferred_term": "Hydrocele of testis (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The key error is concept [735184000], which is an unreliable Extension Namespace placeholder that appears to have been auto-generated as a surgical procedure code (plication) when the note documents only a diagnostic finding of bilateral hydrocoeles on ultrasound; it must be replaced with [26614003] Hydrocele of testis (disorder). The remaining two codes \u2014 Ultrasonography [16310003] and Ultrasound scan abnormal [169255008] \u2014 are appropriate for this auto-filed imaging report encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4851,
+        "output_tokens": 1265,
+        "total_tokens": 6116,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "0cded23d-df30-4f5c-9a08-b370f3bdd7e1",
+        "date": "2024-12-30",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "122a4dff-451a-4706-9a7b-1a5348a9200e",
+    "patient_id": "4505618269",
+    "date": "2025-01-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bilateral hydroceles",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Bilateral hydroceles are the primary active diagnosis driving the referral and should be coded as a disorder, not a procedure.",
+          "snomed_search": "hydrocele of testis",
+          "snomed_concept_id": "26614003",
+          "preferred_term": "Hydrocele of testis (disorder)",
+          "sentence": "bilateral hydroceles - one is moderate - ongoing symptoms - pain and swelling - would like to consider treatment options under urology",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "TURP feb 24",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The patient had a transurethral resection of the prostate in February 2024, which is clinically relevant as it contextualises the worsening LUTS and should be coded as a historical procedure.",
+          "snomed_search": "transurethral prostatectomy",
+          "snomed_concept_id": "90199006",
+          "preferred_term": "Transurethral prostatectomy (procedure)",
+          "sentence": "also worsening LUTS since turp feb 24",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "735184000",
+          "name": "Plication of hydrocele of bilateral testes (procedure)",
+          "severity": "high",
+          "reason": "Concept 735184000 is unreliable on the terminology server and the coded evidence description indicates it was intended to represent the bilateral hydrocele diagnosis; a surgical plication procedure was NOT performed at this encounter \u2014 the correct code is the disorder Hydrocele of testis (26614003).",
+          "replace_with_concept_id": "26614003",
+          "replace_with_preferred_term": "Hydrocele of testis (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary coding error is the use of a procedure code (plication of hydrocele, 735184000 \u2014 also unverifiable on the terminology server) in place of the disorder code for bilateral hydroceles (26614003); additionally, the historical TURP (Feb 2024) is clinically relevant and missing. The active surveillance of prostate cancer (712837004) and LUTS (307541003) codes are appropriate and well-evidenced by the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6305,
+        "output_tokens": 1652,
+        "total_tokens": 7957,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "122a4dff-451a-4706-9a7b-1a5348a9200e",
+        "date": "2025-01-02",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d6a6af38-4f18-41e0-80bf-fad584496c09",
+    "patient_id": "4505618269",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Raynaud's",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly states 'does have reynauds' \u2014 this is an active condition documented in the history and should be coded.",
+          "snomed_search": "Raynaud phenomenon",
+          "snomed_concept_id": "266261006",
+          "preferred_term": "Raynaud's phenomenon (finding)",
+          "sentence": "no numbness in legs but does have reyanuds so gets cold toes.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "broke ribs (ladder fall)",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient reports fracturing ribs in a historical ladder fall \u2014 this is a clinically relevant past injury that should be coded as historical.",
+          "snomed_search": "rib fracture",
+          "snomed_concept_id": "33737001",
+          "preferred_term": "Fracture of rib (disorder)",
+          "sentence": "injured falling off ladder some years ago and broke ribs.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "chronic low back pain (acute on chronic)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The diagnosis explicitly states 'acute on chronic' back pain; the existing generic 'Back pain' code does not capture the chronic nature \u2014 'Chronic low back pain' is more specific and clinically accurate.",
+          "snomed_search": "chronic low back pain",
+          "snomed_concept_id": "278860009",
+          "preferred_term": "Chronic low back pain (finding)",
+          "sentence": "Diagnosis: Back sprain NOS (S57z.) acute on chronic.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The most significant issue is the wrong tremor type coded: examination clearly documents a resting tremor (observed while sitting), but 'Postural tremor of upper limb' has been coded \u2014 this distinction is clinically critical given the explicit Parkinson's disease discussion in the plan, and should be replaced with 25082004 'Resting tremor (finding)'. Additionally, Raynaud's phenomenon and historical rib fracture are undocumented in the coded list, and the chronic component of the back pain (explicitly stated as 'acute on chronic') warrants a more specific 'Chronic low back pain' code. Note: all four existing concept IDs returned unreliable results from the terminology server and could not be confirmed; they have not been flagged as overcoded on that basis alone per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8854,
+        "output_tokens": 2278,
+        "total_tokens": 11132,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "d6a6af38-4f18-41e0-80bf-fad584496c09",
+        "date": "2025-03-14",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2da3e38e-0b55-4418-b270-63c8a4cace0e",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Mild SI joint osteoarthritis",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The XR Pelvis result explicitly documents 'Mild SI joint osteoarthritis' as a specific diagnosis; this should be coded as a disorder rather than only as generic 'Abnormal imaging'.",
+          "snomed_search": "sacroiliac joint osteoarthritis",
+          "snomed_concept_id": "15722961000119101",
+          "preferred_term": "Osteoarthritis of bilateral sacroiliac joints (disorder)",
+          "sentence": "XR Pelvis: Mild SI joint osteoarthritis",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "408574004",
+          "name": "Abnormal imaging (Clinical_finding)",
+          "severity": "medium",
+          "reason": "The imaging finding is specifically 'Mild SI joint osteoarthritis' \u2014 a precise disorder code exists and should replace this non-specific 'Abnormal imaging' code; lookup for this concept ID was also unreliable (Extension Namespace placeholder returned).",
+          "replace_with_concept_id": "15722961000119101",
+          "replace_with_preferred_term": "Osteoarthritis of bilateral sacroiliac joints (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The main coding issue is that 'Mild SI joint osteoarthritis' from the XR Pelvis result is coded only as the non-specific 'Abnormal imaging' (408574004, which also has an unreliable concept lookup); it should be replaced with the specific SI joint osteoarthritis disorder. The FIT observable entity (1049361000000101) is correctly coded; per audit rules, the normal result finding is not additionally required. Concept 267004000 ('History of musculoskeletal disease') also returned an unreliable lookup (qualifier value semantic tag) but cannot be flagged overcoded on that basis alone \u2014 human review of that concept ID is advisable. Laterality of SI joint OA is unspecified in the note; bilateral concept used as best available match.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7291,
+        "output_tokens": 1991,
+        "total_tokens": 9282,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "2da3e38e-0b55-4418-b270-63c8a4cace0e",
+        "date": "2025-03-21",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f833c0aa-0050-487d-9a4e-8bba7df0b01f",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "clothes appear baggy / possible unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "Patient with known prostate cancer has clothes appearing baggy \u2014 a red-flag sign of unintentional weight loss that must be coded and investigated, particularly given the cancer background.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "General appearance: Clothes appear baggy",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "high cardiovascular risk (QRisk 35%)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical finding of high cardiovascular disease risk (QRisk 35%) is explicitly documented and directly drove the decision to start statin therapy; the risk finding itself should be coded in addition to the QRISK scale score.",
+          "snomed_search": "high risk cardiovascular disease",
+          "snomed_concept_id": "837461000000101",
+          "preferred_term": "High risk of cardiovascular disease (finding)",
+          "sentence": "Assessment: High cardiovascular risk (Q risk score 35%)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "pain in pelvis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly describes severe pain in the left side of the pelvis as a primary complaint; the coded concept 54586004 (lower abdominal pain) is unreliable and anatomically imprecise \u2014 pelvic pain (30473006) should be coded.",
+          "snomed_search": "pelvic pain",
+          "snomed_concept_id": "30473006",
+          "preferred_term": "Pain in pelvis (finding)",
+          "sentence": "Severe pain in left side of pelvis and back, affecting mobility and daily activities",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "54586004",
+          "name": "Lower abdominal pain (finding)",
+          "severity": "medium",
+          "reason": "The note describes pelvic pain, not lower abdominal pain; the concept ID returns as unreliable on lookup and is anatomically imprecise for this presentation \u2014 replace with Pain in pelvis (30473006).",
+          "replace_with_concept_id": "30473006",
+          "replace_with_preferred_term": "Pain in pelvis (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "12584003",
+          "name": "Bone pain (finding)",
+          "severity": "low",
+          "reason": "The note does not use the term 'bone pain'; this concept ID returns as unreliable on lookup, and the finding is redundant given that back pain and pelvic pain are already coded separately from explicit note text."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "1343605000",
+          "name": "Osteoarthritis of lumbar spine (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician explicitly states 'suspected osteoarthritis' \u2014 this is a working diagnosis under investigation (X-ray requested), not a confirmed diagnosis, so assertion should be 'possible'."
+        },
+        {
+          "conceptId": "609558009",
+          "name": "Essential tremor (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician states 'likely essential tremor, not consistent with Parkinson's disease at this stage' with a plan to monitor \u2014 this is a provisional working diagnosis and should be coded as 'possible', not confirmed present."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Several significant coding issues found: two working diagnoses (suspected osteoarthritis, likely essential tremor) are incorrectly asserted as confirmed present rather than possible; a safety-critical red-flag finding (possible unintentional weight loss in a prostate cancer patient with baggy clothes) is uncoded; pelvic pain is miscoded as lower abdominal pain using an unreliable concept ID; and the clinical finding of high cardiovascular risk is absent despite driving the statin prescribing decision. Multiple coded concept IDs returned as unreliable on terminology server lookup \u2014 the coding system should verify these IDs against the local SNOMED release.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 20373,
+        "output_tokens": 2619,
+        "total_tokens": 22992,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "f833c0aa-0050-487d-9a4e-8bba7df0b01f",
+        "date": "2025-03-21",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "09c4d0b4-b8a5-48fd-9ecb-aaae7f8454d8",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter contains only administrative text: a practice-generated recall task requesting fasting lipids and LFTs in 2 months, with no clinical narrative, examination findings, diagnoses, or management decisions documented. The 7 coded concepts (lab observables, history of malignant neoplasm, X-ray procedure, musculoskeletal history) are all standing problem-list or structured-pipeline codes with no basis in this encounter's text; per audit rules, problem-list codes must not be flagged as overcoded on administrative-only encounters.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 1939,
+        "output_tokens": 523,
+        "total_tokens": 2462,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "09c4d0b4-b8a5-48fd-9ecb-aaae7f8454d8",
+        "date": "2025-03-21",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1dea0549-83e8-46e4-ab32-1306dca6c380",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Scoliosis concave to the right centred at L3",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Lumbar scoliosis with lateral translocation of L3 on L4 is explicitly reported on the XR lumbar spine and is a distinct structural finding not captured by any existing code.",
+          "snomed_search": "scoliosis lumbar spine",
+          "snomed_concept_id": "298591003",
+          "preferred_term": "Scoliosis of lumbar spine (disorder)",
+          "sentence": "Scoliosis concave to the right centred at L3 with long-standing lateral translocation of L3 on L4 to the left.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1074561000119104",
+          "name": "Osteoarthritis of right sacroiliac joint (disorder)",
+          "severity": "medium",
+          "reason": "Both the pelvis XR and lumbar spine XR reports describe bilateral SI joint osteoarthritis ('Mild SI joint osteoarthritis' / 'Mild SI joint OA'), so the right-sided-only code is insufficiently specific and laterally incorrect.",
+          "replace_with_concept_id": "15722961000119101",
+          "replace_with_preferred_term": "Osteoarthritis of bilateral sacroiliac joints (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Overall coding is clinically thorough and captures the key radiological findings (degenerative disc disease, retrolisthesis, bilateral hip OA, prostate cancer background, constipation). Two issues identified: the SI joint OA code uses a right-sided-only concept when both reports clearly state bilateral involvement (replace with 15722961000119101), and lumbar scoliosis \u2014 an explicitly reported structural finding \u2014 has been omitted entirely. The four observable entity codes (FIT, ALT, bilirubin, TSH) appear to be auto-filed lab pipeline entries unrelated to this XR report encounter and are not flagged per audit rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11601,
+        "output_tokens": 1825,
+        "total_tokens": 13426,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "1dea0549-83e8-46e4-ab32-1306dca6c380",
+        "date": "2025-03-21",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "31af8e8b-3851-4feb-ab24-212301ecaedd",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Scoliosis concave to the right centred at L3",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The lumbar spine XR explicitly reports scoliosis centred at L3 with lateral translocation of L3 on L4 \u2014 a distinct structural finding not captured by any existing code.",
+          "snomed_search": "scoliosis lumbar spine",
+          "snomed_concept_id": "298591003",
+          "preferred_term": "Scoliosis of lumbar spine (disorder)",
+          "sentence": "Scoliosis concave to the right centred at L3 with long-standing lateral translocation of L3 on L4 to the left.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "medium",
+          "reason": "Prostate cancer is coded as an active present disorder ([399068003]); a 'history of malignant neoplasm' situation code is contradictory and redundant alongside an active cancer diagnosis \u2014 the background reference 'BG of prostate ca.' reflects ongoing active disease, not a resolved past malignancy."
+        },
+        {
+          "conceptId": "298350001",
+          "name": "Bone absent (finding)",
+          "severity": "high",
+          "reason": "Concept 298350001 means a bone is physically absent from the body; it does not represent 'no aggressive bone lesion seen' \u2014 the radiological exclusion of bony metastases is an absent finding and must not be coded per coding rules; this concept is clinically incorrect for the evidence cited."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter is an auto-filed radiology report reviewed by Dr Patel. Most substantive findings are well coded (degenerative disc disease, retrolisthesis, hip OA, SI joint OA, back pain, constipation, prostate cancer). Two overcoding errors require correction: 'Bone absent (finding)' [298350001] is the wrong concept entirely \u2014 it denotes physical absence of a bone, not exclusion of metastatic lesion, and absent findings should not be coded; 'History of malignant neoplasm' [266987004] is contradictory alongside an active prostate cancer code. One genuine gap exists: lumbar scoliosis (explicitly reported on XR) is not coded. The three lab observable entity codes (ALT, bilirubin, TSH) appear to originate from a structured lab pipeline and are out of scope for this encounter audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10421,
+        "output_tokens": 1806,
+        "total_tokens": 12227,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "31af8e8b-3851-4feb-ab24-212301ecaedd",
+        "date": "2025-03-21",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bb1c1182-e01e-4b9a-9290-a16d7a539918",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b35a357c-2cf5-45a0-a48b-77a36399d405",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is an auto-filed normal bone profile; all observable entity codes are appropriate for the structured lab pipeline. The clinical finding codes (back pain, constipation, prostate cancer) are problem-list carry-overs evidenced by background history \u2014 these are not flagged as overcoded per policy. However, the generic situation code 266987004 'History of malignant neoplasm (situation)' should be replaced by the more specific 428262008 'History of malignant neoplasm of prostate (situation)', which is directly supported by the documented background of prostate cancer and avoids ambiguity in the oncology history record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5792,
+        "output_tokens": 1192,
+        "total_tokens": 6984,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "b35a357c-2cf5-45a0-a48b-77a36399d405",
+        "date": "2025-03-21",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a6bed0df-3fd8-42c5-b7cd-4aa52f64f54d",
+    "patient_id": "4505618269",
+    "date": "2025-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CKD stage 3a",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "eGFR of 50 mL/min/1.73m\u00b2 places the patient in CKD stage 3A (45\u201359 range); the note explicitly references KFRE for CKD stages 3a\u20135 and recommends annual ACR, confirming CKD is the clinical interpretation of these results.",
+          "snomed_search": "chronic kidney disease stage 3a",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "sentence": "NICE recommends the Kidney failure Risk Equation www.kfre.co.uk to predict the risk of endstage kidney disease in CKD stages 3a to 5.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum urea outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum urea 8 mmol/L is explicitly flagged 'Outside reference range' in the lab report and should be coded as an abnormal finding, not just the observable entity.",
+          "snomed_search": "blood urea above reference range",
+          "snomed_concept_id": "1179462007",
+          "preferred_term": "Blood urea above reference range (finding)",
+          "sentence": "Serum urea level (XM0lt) 8 mmol/L [2.5 - 7.8] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum creatinine outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum creatinine 123 umol/L is explicitly flagged 'Outside reference range' and should be coded as an abnormal finding in addition to the observable entity.",
+          "snomed_search": "serum creatinine above reference range",
+          "snomed_concept_id": "166717003",
+          "preferred_term": "Serum creatinine above reference range (finding)",
+          "sentence": "Serum creatinine level (XE2q5) 123 umol/L [60 - 120] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The most significant gap is the absence of a CKD stage 3A disorder code \u2014 the eGFR of 50 mL/min and the explicit KFRE/ACR guidance in the report text make this a clear clinical diagnosis that warrants coding. The out-of-range urea and creatinine findings are also missing as interpreted findings (currently only the observable entities are coded). Background problem-list codes (prostate cancer history, SI joint OA, ALT, bilirubin, TSH) are not evidenced in this encounter text but are not flagged as overcoded as they are likely standing problem-list entries.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6141,
+        "output_tokens": 1921,
+        "total_tokens": 8062,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "a6bed0df-3fd8-42c5-b7cd-4aa52f64f54d",
+        "date": "2025-03-21",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f1b2c67e-65fb-4212-bb0c-5714323c0539",
+    "patient_id": "4505618269",
+    "date": "2025-04-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "orthopaedic referral declined by patient",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states the patient does not want orthopaedic input at present and has chosen to self-manage; this patient decision should be coded as a declined secondary care referral.",
+          "snomed_search": "referral to secondary care",
+          "snomed_concept_id": "507001000000104",
+          "preferred_term": "Referral to secondary care declined (situation)",
+          "sentence": "pt keen to self manage and does not want orthopaedic input at present. agreed to book in if changes mind.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The key issue is that concept ID 399079008 coded for 'Low back pain' is wrong \u2014 the terminology server confirms it is an organism concept, not a finding; it must be replaced with 279039007 (Low back pain). Concept 1343605000 (Osteoarthritis of lumbar spine) is validated by SNOMED search despite an unreliable lookup response and is correctly coded. A declined secondary care referral situation code is missing to document the patient's explicit refusal of orthopaedic input.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5614,
+        "output_tokens": 1359,
+        "total_tokens": 6973,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "f1b2c67e-65fb-4212-bb0c-5714323c0539",
+        "date": "2025-04-11",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "41d9fcf1-8e36-4a25-93ea-3316835e4f7b",
+    "patient_id": "4505618269",
+    "date": "2025-07-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "resting tremor on left hand getting worse",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reports a worsening resting tremor on the left hand; this is a new, clinically significant neurological finding warranting its own code and a booked follow-up appointment.",
+          "snomed_search": "resting tremor",
+          "snomed_concept_id": "25082004",
+          "preferred_term": "Resting tremor (finding)",
+          "sentence": "Mentioned a resting tremor on left hand getting worse",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "left shoulder stiffness",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports left shoulder stiffness following the fall; this is a distinct injury site from the knee and should be coded separately as a current finding.",
+          "snomed_search": "shoulder stiffness",
+          "snomed_concept_id": "84445001",
+          "preferred_term": "Joint stiffness (finding)",
+          "sentence": "No swelling or bruising visualised on left shoulder - pt reports feels a bit stiff compared to normal.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plain X-ray (procedure)",
+          "severity": "low",
+          "reason": "The coded concept is an unspecific generic 'Plain X-ray'; the note clearly documents an X-ray of the left knee specifically, warranting a lateralised knee-specific procedure code.",
+          "replace_with_concept_id": "1290408007",
+          "replace_with_preferred_term": "Plain X-ray of left knee region (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "282026002",
+          "name": "Injury of soft tissue (disorder)",
+          "severity": "low",
+          "reason": "The stated diagnosis is 'Soft tissue injury of left knee' with bruising and tenderness; a more specific lateralised knee injury code better represents the clinical finding.",
+          "replace_with_concept_id": "11791081000119109",
+          "replace_with_preferred_term": "Contusion of left knee (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two existing codes are present but insufficiently specific \u2014 both should be replaced with lateralised, site-specific concepts. Two clinically important findings are missing: the worsening resting tremor (high severity, booked for follow-up) and left shoulder joint stiffness post-fall. The resting tremor in particular is a significant neurological symptom that must be coded to support continuity of care ahead of the planned review appointment.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8805,
+        "output_tokens": 1809,
+        "total_tokens": 10614,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "41d9fcf1-8e36-4a25-93ea-3316835e4f7b",
+        "date": "2025-07-10",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1f3fc6e2-262f-4c7f-a521-bf0d2e16add6",
+    "patient_id": "4505618269",
+    "date": "2025-07-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "dysphagia",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "Patient mentions intermittent swallowing difficulty during the consultation; in the context of a suspected Parkinson's pathway referral this is a clinically relevant associated symptom that should be coded, even if mild and uncertain.",
+          "snomed_search": "dysphagia",
+          "snomed_concept_id": "40739000",
+          "preferred_term": "Dysphagia (disorder)",
+          "sentence": "No cerebellar signs - pt mentioned has an issue with swallowing sometimes but very mild and intermittent?",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "knee contusion / bruising",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The knee follow-up documents active mild bruising on examination with ongoing mild pain on kneeling; physiotherapy has been decided for this \u2014 it is an active clinical problem being managed in this encounter and should be coded.",
+          "snomed_search": "contusion of knee",
+          "snomed_concept_id": "22878006",
+          "preferred_term": "Contusion of knee (disorder)",
+          "sentence": "mild bruising seen medially, no swelling or tenderness on palpation.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "49049000",
+          "name": "Parkinson's disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note explicitly documents '?parkinson' as an uncertain differential, the referral is to a 'suspected Parkinson's pathway', and the debriefing clinician considers benign essential tremor more likely \u2014 coding this as present (active/confirmed) is clinically incorrect and misleading."
+        },
+        {
+          "conceptId": "609558009",
+          "name": "Essential tremor (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "Essential tremor is documented as the other leading differential diagnosis ('?parkinson/benign essential tremor') with the plan to manage as BET only if Parkinson's is ruled out \u2014 it is not a confirmed diagnosis and should be coded as possible, not present."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "The two most significant errors are assertion-level: both Parkinson's disease and Essential tremor are coded as 'present' (confirmed) when the entire encounter makes clear these are competing unconfirmed differentials under investigation \u2014 both must be 'possible'. Two additional findings are missing: the knee contusion (active problem with examination findings and physiotherapy plan) and intermittent dysphagia (clinically relevant in the context of a suspected Parkinson's referral). Note: physiotherapy referrals for knee and sciatica are planned/future procedures and should not be coded as present per coding rules, but the clinician should ensure these are captured once actioned. The lookup server returned unreliable results for 609558009 and 862081000000106, but both were confirmed via search_snomed as correct concept IDs.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9830,
+        "output_tokens": 2137,
+        "total_tokens": 11967,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "1f3fc6e2-262f-4c7f-a521-bf0d2e16add6",
+        "date": "2025-07-14",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e43c6c4d-4cb9-4cb5-9e54-48ae3d80829e",
+    "patient_id": "4505618269",
+    "date": "2025-07-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "tremor",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Tremor is documented as an active current finding ('has tremor') and is the basis for the ongoing PD investigation; it should be coded independently as a present finding.",
+          "snomed_search": "tremor",
+          "snomed_concept_id": "26079004",
+          "preferred_term": "Tremor (finding)",
+          "sentence": "has tremor and being investigated for PD.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "L knee pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Left knee pain is an explicitly documented presenting complaint following the bicycle fall and is a distinct finding from the haematoma that warrants its own code.",
+          "snomed_search": "left knee pain",
+          "snomed_concept_id": "1003722009",
+          "preferred_term": "Pain of knee region (finding)",
+          "sentence": "L knee pain 2/52hx",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "11830061000119100",
+          "name": "Hematoma of right knee region (disorder)",
+          "severity": "high",
+          "reason": "The note consistently documents injury to the LEFT knee ('fell onto L knee', 'haematoma present medial knee' in the context of a left-sided injury); the RIGHT knee code is a laterality error.",
+          "replace_with_concept_id": "11830111000119104",
+          "replace_with_preferred_term": "Hematoma of left knee region (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "49049000",
+          "name": "Parkinson's disease (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The note states 'being investigated for PD' \u2014 the diagnosis is under active investigation and not yet confirmed, so the assertion must be 'possible' rather than 'present' to avoid implying a confirmed diagnosis."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "Three definite coding issues identified: (1) the haematoma has the wrong laterality \u2014 RIGHT knee coded but LEFT knee is documented throughout; (2) Parkinson's disease is coded as confirmed/present when the note explicitly states it is still under investigation; (3) tremor (the active presenting finding driving the PD investigation) and left knee pain (the primary MSK presenting complaint) are both missing from the coded list. The shoulder strain code (275334004) is correct and well-evidenced. Note: lookup_concept returned unreliable/wrong semantic tags for all three existing concept IDs, but search_snomed confirmed 275334004 and 49049000 are legitimate SNOMED disorder codes; the laterality error on the knee haematoma was identified via search comparison.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 14447,
+        "output_tokens": 2246,
+        "total_tokens": 16693,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "e43c6c4d-4cb9-4cb5-9e54-48ae3d80829e",
+        "date": "2025-07-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7d8ff9cb-f0cd-4fb6-bf39-beb50d360140",
+    "patient_id": "4505618269",
+    "date": "2025-07-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "OA in the SI joints",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'Known OA in the SI joints and lower back' \u2014 osteoarthritis of the sacroiliac joints is an active, named diagnosis not captured in any existing code.",
+          "snomed_search": "osteoarthritis bilateral sacroiliac joints",
+          "snomed_concept_id": "15722961000119101",
+          "preferred_term": "Osteoarthritis of bilateral sacroiliac joints (disorder)",
+          "sentence": "Known OA in the SI joints and lower back.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two existing codes have reliability issues: [399079008] coded as 'Back pain' returned an unreliable lookup (organism tag) \u2014 the correct concept for 'low back pain' is 279039007 (Low back pain); [282026002] 'Injury of soft tissue' is confirmed by search but is non-specific \u2014 a more precise code such as 125601008 'Injury of knee' or 239999004 'Soft tissue lesion of knee region' better reflects the documented diagnosis of soft tissue knee injury. Additionally, OA of the SI joints (explicitly stated as a known diagnosis) is entirely absent from the coded list and should be added.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5666,
+        "output_tokens": 1467,
+        "total_tokens": 7133,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "7d8ff9cb-f0cd-4fb6-bf39-beb50d360140",
+        "date": "2025-07-31",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7fbf2d6f-8ee3-442e-b789-090ac5e71eea",
+    "patient_id": "4505618269",
+    "date": "2025-08-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "osteoarthritis of left knee",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The radiology report explicitly states 'marginal osteophytosis at the lateral malleolus suggestive of minor OA changes' \u2014 this is a new radiological diagnosis of osteoarthritis of the left knee and must be coded.",
+          "snomed_search": "osteoarthritis left knee",
+          "snomed_concept_id": "323301000119109",
+          "preferred_term": "Osteoarthritis of left knee joint (disorder)",
+          "sentence": "Marginal osteophytosis at the lateral malleolus suggestive of minor OA changes.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "swelling of knee",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Knee swelling is explicitly documented in the clinical history and is a distinct finding from knee pain; it is not captured by the existing bone pain code.",
+          "snomed_search": "swelling knee region",
+          "snomed_concept_id": "248491001",
+          "preferred_term": "Swelling of knee region (finding)",
+          "sentence": "Left knee pain and swelling following fall off bike 1 month ago.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plan X-ray (procedure)",
+          "severity": "low",
+          "reason": "The coded concept is a generic plain X-ray procedure; the note documents a left knee X-ray specifically, and a lateralised concept exists that should be used instead.",
+          "replace_with_concept_id": "1290408007",
+          "replace_with_preferred_term": "Plain X-ray of left knee region (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "12584003",
+          "name": "Bone pain (finding)",
+          "severity": "medium",
+          "reason": "The note documents left knee pain, not generic bone pain; 'Pain of knee region' is the anatomically specific and clinically accurate concept for this presentation.",
+          "replace_with_concept_id": "1003722009",
+          "replace_with_preferred_term": "Pain of knee region (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Four coding issues identified: the procedure code should be lateralised to 'Plain X-ray of left knee region' (1290408007); 'Bone pain' should be replaced with the anatomically specific 'Pain of knee region'; new OA diagnosis from the radiology report (osteoarthritis of left knee joint) is missing; and knee swelling documented in the clinical history is uncoded. The chondrocalcinosis code (442942009) is clinically correct despite the unreliable lookup result \u2014 search confirms it as the preferred SNOMED term. Note: all three existing concept lookups returned unreliable results from the terminology server, suggesting possible index issues; the replacements proposed are based on confirmed search results.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8921,
+        "output_tokens": 1936,
+        "total_tokens": 10857,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "7fbf2d6f-8ee3-442e-b789-090ac5e71eea",
+        "date": "2025-08-01",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3f6b4a0d-52b3-41bb-9b1a-dc649530d669",
+    "patient_id": "4505618269",
+    "date": "2025-08-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "lateral osteophytes (left knee)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Lateral osteophytes of the left knee were explicitly identified on X-ray and represent a distinct radiological finding that should be coded alongside the CPPD.",
+          "snomed_search": "osteophyte left knee",
+          "snomed_concept_id": "316601000119102",
+          "preferred_term": "Osteophyte of left knee (disorder)",
+          "sentence": "nil #s. medial CPPD. lateral osteophytes. good joint space.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "shoulder pain not improving",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "An active shoulder complaint is documented as ongoing and unresolved, with a management plan recorded \u2014 this is a distinct active clinical problem requiring its own code.",
+          "snomed_search": "pain of shoulder region",
+          "snomed_concept_id": "45326000",
+          "preferred_term": "Pain of shoulder region (finding)",
+          "sentence": "feels shoulder has not improved as yet. objective as per previous FCP appointment. pt happy to give more healing time but would like xray if not improved in 4/52.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing CPPD code (239832006) is correct \u2014 lookup_concept returned an unreliable result (wrong semantic tag) but search_snomed confirms the concept ID maps to 'Calcium pyrophosphate deposition disease (disorder)'. Two additional findings are missing: lateral osteophytes of the left knee (a distinct X-ray finding) and an active shoulder pain problem with its own documented management plan. The 'Musculoskeletal limb symptoms NOS' Read code in the template header is not a SNOMED concept in the coded list and does not substitute for specific SNOMED coding of the shoulder complaint.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5323,
+        "output_tokens": 1535,
+        "total_tokens": 6858,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "3f6b4a0d-52b3-41bb-9b1a-dc649530d669",
+        "date": "2025-08-15",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "17ac88a9-f9e3-40ea-aa39-34642e0abe2b",
+    "patient_id": "4505618269",
+    "date": "2025-09-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "left sided tremors",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Active neurological symptom (left-sided tremors) with an existing referral awaiting appointment is clinically significant and must be coded as a finding; the current qualifier value code (263795004) does not capture this.",
+          "snomed_search": "tremor",
+          "snomed_concept_id": "26079004",
+          "preferred_term": "Tremor (finding)",
+          "sentence": "Left sided tremors- already referred . Awaiting appointment",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "263795004",
+          "name": "Left sided (qualifier value)",
+          "severity": "medium",
+          "reason": "This is a bare qualifier value (and returns as an unreliable Extension Namespace concept), not a clinical finding or disorder; the left-sided tremors should be coded as Tremor (finding) 26079004 rather than a laterality qualifier standing alone.",
+          "replace_with_concept_id": "26079004",
+          "replace_with_preferred_term": "Tremor (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "40257000",
+          "name": "Contusion of shoulder region (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician documented '? Left shoulder contusion' \u2014 the '?' prefix explicitly indicates diagnostic uncertainty, so the assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three issues found: (1) the left-sided tremors are coded only as a bare qualifier value (263795004, which is also an unreliable Extension Namespace concept) rather than as Tremor (finding) 26079004; (2) the contusion is coded as 'present' despite the clinician's explicit '?' uncertainty marker \u2014 assertion should be 'possible'; (3) a more specific lateralised concept 'Contusion of left shoulder' (11824881000119105) is available and preferable to the non-lateralised 40257000 if the coder wishes to improve specificity. Note: a shoulder X-ray and USS are queried/planned but not yet performed \u2014 these should not be coded as procedures at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4447,
+        "output_tokens": 1378,
+        "total_tokens": 5825,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "17ac88a9-f9e3-40ea-aa39-34642e0abe2b",
+        "date": "2025-09-09",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "53d6f953-65d2-4342-b928-745fdf9b173d",
+    "patient_id": "4505618269",
+    "date": "2025-10-09",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "All three coded concepts are clinically appropriate and well-evidenced by the encounter text: the RCRSP disorder (961000119104) correctly captures the primary diagnosis, the physiotherapy referral (306170007) reflects the documented management plan, and shoulder pain (45326000) is the active presenting complaint. Lookup_concept returned unreliable results for all three IDs due to terminology server artefacts, but search_snomed independently confirmed each concept ID as the correct top-ranked match in the expected semantic hierarchy; no genuine coding gaps or errors were identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7420,
+        "output_tokens": 1349,
+        "total_tokens": 8769,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "53d6f953-65d2-4342-b928-745fdf9b173d",
+        "date": "2025-10-09",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e7c9b66e-75c9-4b7b-a538-340497c278e1",
+    "patient_id": "4505618269",
+    "date": "2025-11-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "O/E - height 1.72 m",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Height is explicitly measured and recorded in the encounter (O/E - height 229..) but is absent from the coded concept list; the structured pipeline has coded weight and BMI but omitted height.",
+          "snomed_search": "body height observable",
+          "snomed_concept_id": "1153637007",
+          "preferred_term": "Body height (observable entity)",
+          "sentence": "O/E - height (229..) 1.72 m (? 5 ' 8 \")",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Prostate-specific antigen monitoring",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "PSA monitoring is explicitly documented in the LLR PSA Monitoring section (XaIqh) and a PSA blood test has been requested; this procedure is not in the coded list.",
+          "snomed_search": "prostate specific antigen measurement",
+          "snomed_concept_id": "63476009",
+          "preferred_term": "Prostate specific antigen measurement (procedure)",
+          "sentence": "Prostate-specific antigen monitoring (XaIqh)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Chronic disease management annual review completed",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Chronic disease management annual review completed' (Xaagy) and 'Annual LTC review: Yes', confirming a completed annual review procedure that is not in the coded list.",
+          "snomed_search": "chronic disease annual review",
+          "snomed_concept_id": "394720003",
+          "preferred_term": "Chronic disease management annual review (procedure)",
+          "sentence": "Chronic disease management annual review completed (Xaagy)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a healthcare assistant LTC wellbeing/phlebotomy review with generally reasonable coding, but three gaps exist: height observable is missing despite weight and BMI being coded; PSA monitoring procedure is documented but uncoded; and the annual chronic disease review procedure is not captured. The hypertension is coded as a 'History of' situation (161501007) when the note records it as an active Problem \u2014 this should be replaced with the active disorder concept 59621000. The lookup for 161501007 returned an unreliable result from the terminology server but search_snomed confirms the concept identity; the assertion/concept mismatch with the active problem remains a genuine issue.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6916,
+        "output_tokens": 1695,
+        "total_tokens": 8611,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "e7c9b66e-75c9-4b7b-a538-340497c278e1",
+        "date": "2025-11-17",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "685b9ef2-c9f9-4e6a-afa8-fbf4c30b84ad",
+    "patient_id": "4505618269",
+    "date": "2025-11-17",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Platelet count below reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The lab report explicitly flags the platelet count (136 10^9/L) as 'Outside reference range' and the report narrative states 'Borderline low platelets'; the clinical interpretation finding should be coded alongside the observable entity.",
+          "snomed_search": "platelet count below reference range",
+          "snomed_concept_id": "415116008",
+          "preferred_term": "Platelet count below reference range (finding)",
+          "sentence": "Full blood count Report, Borderline, Need to repeat test: Borderline low platelets",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Haematocrit below reference range",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Haematocrit 0.399 is explicitly flagged 'Outside reference range' (ref 0.4\u20130.54) in the auto-filed result; the interpretive finding should be coded.",
+          "snomed_search": "haematocrit below reference range",
+          "snomed_concept_id": "165414004",
+          "preferred_term": "Hematocrit below reference range (finding)",
+          "sentence": "Haematocrit (X76tb) 0.399  [0.4 - 0.54] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Full blood count",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A full blood count was performed and reviewed; the procedure itself is not coded \u2014 only individual observable components are present in the coded list.",
+          "snomed_search": "full blood count",
+          "snomed_concept_id": "26604007",
+          "preferred_term": "Complete blood count (procedure)",
+          "sentence": "Full blood count (424..)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 6 existing codes are all observable entity (lab component) codes correctly written by the structured pipeline and are not in scope for removal. Two out-of-range interpretive findings (platelet count below range, haematocrit below range) and the FBC procedure itself are missing. The note also documents a plan to repeat FBC in 4 weeks \u2014 this is a future/planned procedure and should not be coded as present at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6474,
+        "output_tokens": 1542,
+        "total_tokens": 8016,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "685b9ef2-c9f9-4e6a-afa8-fbf4c30b84ad",
+        "date": "2025-11-17",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "76206205-cedb-4f40-82c3-64ce077ae4c6",
+    "patient_id": "4505618269",
+    "date": "2025-11-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "ongoing lower back",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents an active, ongoing lower back pain complaint discussed during this encounter, which requires coding as a clinical finding.",
+          "snomed_search": "low back pain",
+          "snomed_concept_id": "279039007",
+          "preferred_term": "Low back pain (finding)",
+          "sentence": "Has ongoing lower back - wanted to discuss Co-codamol - advised will need to book in again to discuss",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes (Telephone consultation, Chronic rhinitis) are confirmed correct. One gap identified: the patient's active lower back pain is explicitly documented as a reason for contact but has not been coded. The Co-codamol discussion was deferred to a future appointment and does not require a separate procedure code. lookup_concept returned corrupted results for both existing concept IDs but search_snomed confirmed their validity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5050,
+        "output_tokens": 1203,
+        "total_tokens": 6253,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "76206205-cedb-4f40-82c3-64ce077ae4c6",
+        "date": "2025-11-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2fd6e366-01b2-4b78-b526-9d42ab6bd9ce",
+    "patient_id": "4505618269",
+    "date": "2025-11-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chronic low back pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the back pain has been ongoing 'over many years', making the more specific 'Chronic low back pain' the appropriate code rather than the generic back pain concept currently coded.",
+          "snomed_search": "chronic low back pain",
+          "snomed_concept_id": "278860009",
+          "preferred_term": "Chronic low back pain (finding)",
+          "sentence": "Lower back - over many years",
+          "char_start": 175,
+          "char_end": 200
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding) [as coded]",
+          "severity": "medium",
+          "reason": "Concept ID 399079008 returned an unreliable/wrong semantic tag ('organism') from the terminology server; the correct SNOMED concept for low back pain is 279039007 'Low back pain (finding)', and given the chronic duration documented, 278860009 'Chronic low back pain (finding)' is more specific and appropriate.",
+          "replace_with_concept_id": "278860009",
+          "replace_with_preferred_term": "Chronic low back pain (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "363693003",
+          "name": "Constipation (finding) [as coded]",
+          "severity": "low",
+          "reason": "Concept ID 363693003 returned an unreliable/wrong semantic tag ('organism') from the terminology server; the correct SNOMED concept for constipation is 14760008 'Constipation (finding)'.",
+          "replace_with_concept_id": "14760008",
+          "replace_with_preferred_term": "Constipation (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "398240004",
+          "name": "Medication error (event) [as coded]",
+          "severity": "medium",
+          "reason": "Concept ID 398240004 returned an unreliable semantic tag ('substance') from the terminology server; the note describes a wrong strength of Co-codamol entered and marked in error, which is more precisely coded as 370542001 'Medication prescribed in error (event)'.",
+          "replace_with_concept_id": "370542001",
+          "replace_with_preferred_term": "Medication prescribed in error (event)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Three of the four coded concept IDs returned unreliable or clearly wrong semantic tags from the terminology server and should be replaced with verified SNOMED concepts: back pain should be upgraded to 278860009 'Chronic low back pain' (duration explicitly stated as 'many years'), constipation should use 14760008, and the medication error should use the more specific 370542001 'Medication prescribed in error'. A bicycle fall is mentioned but contextualised as not affecting the presenting complaint and falls outside the auditable SNOMED scope (event semantic tag); no safety-critical flags are present in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7526,
+        "output_tokens": 1782,
+        "total_tokens": 9308,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "2fd6e366-01b2-4b78-b526-9d42ab6bd9ce",
+        "date": "2025-11-25",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e302b92e-2c7e-43bb-89bb-45e6022e0709",
+    "patient_id": "4505618269",
+    "date": "2025-12-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "referral to OSA clinic",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly states the GP will write to the OSA clinic to chase an appointment, constituting an active referral procedure that should be coded.",
+          "snomed_search": "referral to sleep clinic",
+          "snomed_concept_id": "438517001",
+          "preferred_term": "Referral to sleep clinic (procedure)",
+          "sentence": "Plan: Write to OSA clinic to chase up appt.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "418043000",
+          "name": "Advice given (situation)",
+          "severity": "medium",
+          "reason": "The note documents specific, medicolegally significant DVLA driving safety advice given twice; the more precise 'Patient advised about driving' code should replace the generic 'Advice given' code.",
+          "replace_with_concept_id": "312866008",
+          "replace_with_preferred_term": "Patient advised about driving (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four existing codes are well-evidenced and correctly asserted. The generic 'Advice given' code should be replaced with the more specific 'Patient advised about driving' (312866008), given the explicit and repeated DVLA-relevant driving safety counselling documented in the note. A referral to the sleep/OSA clinic is clearly documented in the plan and is missing from the coded list. The Epworth Sleepiness Scale score of 8 is documented but falls under 'assessment scale' semantic tag, which is outside audit scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8186,
+        "output_tokens": 1628,
+        "total_tokens": 9814,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "e302b92e-2c7e-43bb-89bb-45e6022e0709",
+        "date": "2025-12-08",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "18666e26-13ec-47fb-a5aa-b05840f06acb",
+    "patient_id": "4505618269",
+    "date": "2025-12-10",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All 5 coded concepts are confirmed correct via search_snomed despite unreliable lookup_concept responses for 3 of them (386472008 telephone consultation, 86094006 chronic rhinitis, 38341003 hypertensive disorder, 266569009 BPH, 314530002 medication review done \u2014 all verified by search). The planned cystoscopy is correctly not coded as a present procedure (future event). No clinically significant gaps identified within SNOMED scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10416,
+        "output_tokens": 1207,
+        "total_tokens": 11623,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4505618269",
+        "encounter_id": "18666e26-13ec-47fb-a5aa-b05840f06acb",
+        "date": "2025-12-10",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  }
+]

@@ -32,11 +32,66 @@ from libs.ner.context_engine import apply_context_detection_to_dicts
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
-from libs.ner.scope_guard import reclassify_assertion
+from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
 
 _SENTENCE_BOUNDARY_RE = re.compile(r"(?:\.(?:\s|$)|\n)")
+
+# ---------------------------------------------------------------------------
+# Concept-specific suppression guard (runs before all other layers)
+# ---------------------------------------------------------------------------
+
+# 395100000 | No evidence of cancer found (situation)
+# This concept is only valid as a post-pathway cancer discharge confirmation.
+# Routine population screening negatives (cervical smear, FIT, FOBT, HPV
+# screening) must NEVER be coded with this concept.
+_NO_CANCER_EVIDENCE_CONCEPT = "395100000"
+_SCREENING_NEGATIVE_PATTERNS: list[re.Pattern] = [
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"cervical\s+smear",
+        r"cervical\s+cytology",
+        r"hpv\s+(?:test|screen|not\s+detected)",
+        r"high\s+risk\s+hpv\s+not\s+detected",
+        r"normal\s+recall",
+        r"no\s+cytology\s+result",
+        r"\bfobt\b",
+        r"\bfit\b(?:\s+result|\s+test|\s+negative|\s+-|\s+normal|$)",
+        r"faecal\s+immunochemical",
+        r"faecal\s+occult\s+blood",
+        r"bowel\s+cancer\s+screening\s+programme",
+        r"overall\s+negative\s+result",
+        r"sent\s+following\s+(?:an\s+)?overall\s+negative",
+        r"no\s+detectable\s+blood.*risk\s+of\s+(?:crc|bowel|colorectal)",
+    ]
+]
+
+
+def _suppress_screening_false_positives(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remove any entity whose snomed_code is 395100000 but whose evidence
+    text matches a routine screening negative pattern.
+
+    This is a deterministic guard that catches LLM over-application of the
+    'No evidence of cancer found' concept to cervical smear, FIT, FOBT, or
+    HPV screening results.
+    """
+    kept = []
+    for ent in entities:
+        code = str(ent.get("snomed_concept_id") or ent.get("code") or "")
+        if code != _NO_CANCER_EVIDENCE_CONCEPT:
+            kept.append(ent)
+            continue
+        evidence = (
+            ent.get("text") or ent.get("entity_text") or ent.get("evidence", "")
+        )
+        if any(p.search(str(evidence)) for p in _SCREENING_NEGATIVE_PATTERNS):
+            logger.debug(
+                "Suppressed 395100000 screening false positive: %r", evidence
+            )
+        else:
+            kept.append(ent)
+    return kept
 
 
 def _extract_sentence_window(
@@ -377,12 +432,20 @@ def _apply_scope_guard_to_dicts(
     encounter_text: str,
     entities: list[dict[str, Any]],
 ) -> None:
-    """Reclassify assertions using scope-guard rules.  Mutates *entities* in place.
+    """Reclassify or suppress entities using scope-guard rules.
+
+    Mutates *entities* in place:
+    - Safety-netting entities are REMOVED from the list (they are patient
+      instructions, not clinical events, and must not reach the coding queue).
+    - Recommendation-language entities are reclassified to 'hypothetical'.
+    - Hedged-diagnosis disorder entities are reclassified to 'possible'.
 
     Uses ``_extract_sentence_window`` to scope the guard to the entity's
     local sentence rather than the full encounter.
     """
-    for ent in entities:
+    to_remove: list[int] = []
+
+    for i, ent in enumerate(entities):
         assertion = str(ent.get("assertion") or "present").strip().lower()
         if assertion not in ("present", ""):
             continue
@@ -396,8 +459,13 @@ def _apply_scope_guard_to_dicts(
             sentence_text=sentence_text,
             entity_text=str(ent.get("text") or ent.get("normalized") or ""),
         )
-        if new_assertion is not None:
+        if new_assertion == SUPPRESSED:
+            to_remove.append(i)
+        elif new_assertion is not None:
             ent["assertion"] = new_assertion
+
+    for i in reversed(to_remove):
+        entities.pop(i)
 
 
 # ── Layer 8: Situation Lookup Normalisation ──
@@ -541,6 +609,15 @@ def run_post_processing_with_trace(
                 }
             )
             raise
+
+    # Layer 0: Concept-Specific Suppression Guard
+    # Deterministic block for known LLM over-application patterns, e.g.
+    # 395100000 (No evidence of cancer found) being applied to routine screening.
+    _run_layer(
+        "layer_0",
+        "Concept Suppression Guard",
+        _suppress_screening_false_positives,
+    )
 
     # Layer 1: Post-Processor Rules
     _run_layer(

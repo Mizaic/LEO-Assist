@@ -1,0 +1,1545 @@
+[
+  {
+    "encounter_id": "cf26fcfa-4d5b-47a3-b250-3f2d2546eb9f",
+    "patient_id": "4202339649",
+    "date": "2024-05-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "281245003",
+          "name": "Musculoskeletal chest pain (finding)",
+          "severity": "medium",
+          "reason": "The primary complaint is upper back pain, not chest pain; 'more likely MSK pain' is the clinician's working differential, not a confirmed diagnosis, and the back pain is already captured by 399079008 \u2014 this code misrepresents the anatomical site and certainty level.",
+          "replace_with_concept_id": "399079008",
+          "replace_with_preferred_term": "Back pain (finding)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "2237002",
+          "name": "Pleuritic pain (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The pleuritic character (sharp pain on deep breathing) is a symptom description consistent with the presentation, but the clinician explicitly states the diagnosis is unclear and defers to f2f assessment \u2014 coding as 'present' overstates diagnostic certainty; 'possible' better reflects the working assessment."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "Two coding issues identified: (1) Musculoskeletal chest pain (281245003) is anatomically inaccurate (complaint is upper back, not chest) and overcodes a differential that is already captured by the back pain code \u2014 recommend removal or replacement with back pain as 'possible'; (2) Pleuritic pain (2237002) assertion should be 'possible' not 'present' as the clinician defers diagnosis to f2f review. Note: haemoptysis is mentioned only as a safety-netting red flag, not a present symptom, and must not be coded. Concept ID lookups returned unreliable server responses for 2237002 and 281245003, but SNOMED search confirmed both IDs are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5275,
+        "output_tokens": 1572,
+        "total_tokens": 6847,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "cf26fcfa-4d5b-47a3-b250-3f2d2546eb9f",
+        "date": "2024-05-14",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0527bbe0-f403-474d-b56b-fb897c62c7dd",
+    "patient_id": "4202339649",
+    "date": "2024-05-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "289114008",
+          "name": "Does cough (finding) [coded]",
+          "severity": "medium",
+          "reason": "Concept ID 289114008 is unreliable \u2014 the terminology server returns it as an 'organism' semantic tag, not a clinical finding; the note documents a non-productive morning cough which is correctly represented by 11833005 'Dry cough (finding)'.",
+          "replace_with_concept_id": "11833005",
+          "replace_with_preferred_term": "Dry cough (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The cough concept 289114008 is incorrectly coded \u2014 the terminology server confirms this ID is unreliable (returned as an 'organism' concept), and the correct SNOMED concept for the documented non-productive cough is 11833005 'Dry cough (finding)', which is more specific and directly supported by the note text ('Non productive'). Concepts 2237002 (Pleuritic pain) and 18491006 (PEF observable entity) are clinically appropriate for this encounter; no safety-critical findings are missing.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6390,
+        "output_tokens": 1444,
+        "total_tokens": 7834,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "0527bbe0-f403-474d-b56b-fb897c62c7dd",
+        "date": "2024-05-20",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "87742cf1-2a95-49e7-823e-3f4952bee31b",
+    "patient_id": "4202339649",
+    "date": "2024-06-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "399079008",
+          "name": "Back pain (finding)",
+          "severity": "medium",
+          "reason": "The note specifies 'thoracic back pain' \u2014 the generic Back pain code is too broad; the more specific Thoracic back pain concept should be used instead.",
+          "replace_with_concept_id": "279038004",
+          "replace_with_preferred_term": "Thoracic back pain (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "168537006",
+          "name": "Plan X-ray (procedure)",
+          "severity": "medium",
+          "reason": "The encounter documents an XR Thoracic spine specifically; the generic 'Plan X-ray' code should be replaced with the site-specific thoracic spine plain X-ray procedure.",
+          "replace_with_concept_id": "1290654008",
+          "replace_with_preferred_term": "Plain X-ray of thoracic vertebral column region (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Both existing codes are too non-specific: 'Back pain' should be replaced with 'Thoracic back pain' and the generic 'Plan X-ray' should be replaced with 'Plain X-ray of thoracic vertebral column region'. The radiology result is normal (no destructive lesion, normal vertebral bodies) so no additional finding codes are required; the '? bony lesion' was a referral query only and was not confirmed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4326,
+        "output_tokens": 1128,
+        "total_tokens": 5454,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "87742cf1-2a95-49e7-823e-3f4952bee31b",
+        "date": "2024-06-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "001a8da6-ed1c-4ea8-ad5f-9a592ce0bd78",
+    "patient_id": "4202339649",
+    "date": "2024-10-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "diarrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Diarrhoea is explicitly documented alongside constipation as part of the altered bowel habit presentation but has not been coded, while constipation has been.",
+          "snomed_search": "diarrhoea",
+          "snomed_concept_id": "62315008",
+          "preferred_term": "Diarrhea (finding)",
+          "sentence": "says since end of last year bowels havent been the same, came in with concerns of haemorrhoids with bulge and also had diarrhoea / constipation.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Unintentional weight loss of approximately 10kg since July is the primary red-flag presenting complaint driving the urgent investigation pathway; it is currently miscoded under the wrong concept (416528001 resolves to a substance, not a finding, and 'intentional' is clinically incorrect).",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "worried about \"dramatic weight loss\" since july has noticed it drop - before her holiday in july - 10 st 6 lb (66kg) and on sunday thinks she was 8 st 5 lb at her mums.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "suspected malignant neoplasm of lower gastrointestinal tract",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The clinician explicitly documents '?IBD / aware need to r/o bowel ca' and initiates FIT, calprotectin, urgent bloods and a non-site-specific pathway referral if indicated; this is a suspected (possible) lower GI malignancy, not a confirmed diagnosis, and the current code 363406005 is asserted as 'present' (confirmed) which is clinically incorrect.",
+          "snomed_search": "colorectal cancer suspected",
+          "snomed_concept_id": "315274008",
+          "preferred_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+          "sentence": "?IBD / aware need to r/o bowel ca - FIT requested. refer if indicated or non-site specific pathway.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves on the terminology server to a substance (DRB1*08021), not a finding, and the term 'intentional' directly contradicts the note which describes unintentional weight loss; this must be replaced with 448765001 Unintentional weight loss (finding).",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "363406005",
+          "name": "Malignant neoplasm of colon (disorder)",
+          "severity": "critical",
+          "reason": "The note documents a suspected/possible bowel cancer requiring exclusion ('r/o bowel ca'), not a confirmed diagnosis; asserting this as 'present' implies confirmed active malignancy which is clinically incorrect and potentially harmful. Replace with the suspected situation concept.",
+          "replace_with_concept_id": "315274008",
+          "replace_with_preferred_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Two critical coding errors require urgent correction: (1) the weight loss concept is mapped to a wrong/invalid concept ID (416528001 resolves to a substance) with the clinically opposite assertion 'intentional' \u2014 must be replaced with 448765001 Unintentional weight loss (finding); (2) suspected bowel cancer is coded as confirmed present malignancy (363406005 asserted present) when the note clearly documents a rule-out investigation \u2014 replace with 315274008 Malignant neoplasm of lower gastrointestinal tract suspected (situation) with assertion=possible. Diarrhoea (62315008) is also missing alongside the already-coded constipation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8946,
+        "output_tokens": 2474,
+        "total_tokens": 11420,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "001a8da6-ed1c-4ea8-ad5f-9a592ce0bd78",
+        "date": "2024-10-08",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6ae0bc87-b7b9-45e6-8e77-210af06e8723",
+    "patient_id": "4202339649",
+    "date": "2024-10-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FIT result normal / low risk of CRC",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a clinical interpretation of the FIT result as 'Normal, No Further Action' with 'low risk of CRC' \u2014 this result finding should be coded alongside the observable entity procedure code to capture the clinical outcome of the test.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "1101361000000103",
+          "preferred_term": "Bowel cancer screening programme liquid faecal immunochemical test normal (finding)",
+          "sentence": "Quantitative faecal immunochemical test Report, Normal, No Further Action (Patient Informed).",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The two existing codes are clinically appropriate \u2014 the observable entity for the quantitative FIT and the change in bowel pattern finding both match the note text well (lookup_concept returned unreliable results for both IDs but search_snomed confirms concept 1049361000000101 is correct; 88111009 is accepted on clinical grounds). The main gap is the absence of a coded finding for the explicitly documented normal/negative FIT result interpretation ('low risk of CRC, Normal, No Further Action'); note that the best available SNOMED match (1101361000000103) is labelled as bowel cancer screening programme specific, so a human reviewer should confirm it is appropriate for a symptomatic FIT context or identify a more suitable concept.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4109,
+        "output_tokens": 1316,
+        "total_tokens": 5425,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "6ae0bc87-b7b9-45e6-8e77-210af06e8723",
+        "date": "2024-10-08",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "17073a5e-4d12-4122-a594-12a15387c731",
+    "patient_id": "4202339649",
+    "date": "2024-10-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "suspected lung cancer",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The CDS indication explicitly states 'Lung Cancer: Diagnosis', 'Concerning Features Present (Weight Loss)', CDS Score: Indicated \u2014 this is a formal red-flag lung cancer suspicion pathway and must be coded.",
+          "snomed_search": "suspected lung cancer",
+          "snomed_concept_id": "162573006",
+          "preferred_term": "Malignant neoplasm of lung suspected (situation)",
+          "sentence": "CDS Indication: Lung Cancer: Diagnosis (UHL), CDS Clarifications: Clinical Features=Concerning Features Present(Weight Loss) CDS Score: Indicated",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Two critical errors: (1) concept 416528001 is a wrong code \u2014 it maps to a genetic substance (DRB1*08021), not weight loss; replace with 262285001 'Weight decreased (finding)'. (2) The formal lung cancer suspicion pathway (CDS Indicated, concerning features) is entirely uncoded \u2014 162573006 'Malignant neoplasm of lung suspected' must be added as a safety-critical finding. The CXR procedure and smoking codes are correct.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3546,
+        "output_tokens": 1125,
+        "total_tokens": 4671,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "17073a5e-4d12-4122-a594-12a15387c731",
+        "date": "2024-10-10",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dc37ab2a-12ad-4973-bee8-6aae7de92e47",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "The terminology server confirms concept ID 416528001 resolves to a substance (DRB1*08021), not a clinical finding; furthermore the note documents weight loss as a symptom/reason for investigation with no indication it is intentional \u2014 in the context of concurrent change in bowel habit this is a red-flag presentation requiring the unintentional weight loss concept.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Critical coding error: weight loss is coded with concept ID 416528001 which the terminology server resolves to a substance (DRB1*08021), not a clinical finding, and the assertion of 'intentional' is clinically unjustified \u2014 the note lists weight loss as a symptom prompting investigation alongside change in bowel habit, a NICE NG12 red-flag combination for colorectal cancer that warrants 'Unintentional weight loss (finding)' [448765001]. The change in bowel habit code [88111009] is confirmed correct by search (Altered bowel function, finding). All 12 laboratory observable entity codes are appropriate structured-pipeline entries and are not flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5544,
+        "output_tokens": 1394,
+        "total_tokens": 6938,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "dc37ab2a-12ad-4973-bee8-6aae7de92e47",
+        "date": "2024-10-15",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "51f8530b-9597-4c6b-a9ec-821fa6cdd556",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Bone profile",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a bone profile being performed (coded 44Z2. in the header); the procedure itself is not in the coded list.",
+          "snomed_search": "bone profile blood test",
+          "snomed_concept_id": "167036008",
+          "preferred_term": "Bone profile (procedure)",
+          "sentence": "Bone profile (44Z2.)",
+          "char_start": 22,
+          "char_end": 40
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The weight loss code (416528001) is critically wrong on two levels: the SNOMED concept ID resolves to a genetic substance rather than any weight-loss finding, and even the intended concept ('intentional weight loss') is clinically inappropriate \u2014 the note documents weight loss as a red-flag symptom driving investigation, requiring 448765001 'Unintentional weight loss (finding)'. Combined with change in bowel habit, this pattern meets NG12 criteria and warrants urgent clinical review to confirm appropriate safety-netting has occurred. The bone profile procedure code is also absent.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4339,
+        "output_tokens": 1267,
+        "total_tokens": 5606,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "51f8530b-9597-4c6b-a9ec-821fa6cdd556",
+        "date": "2024-10-15",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "73975f36-51e9-4b0a-afda-9fa327d857ed",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss is explicitly listed as a reason for the blood test request; in the context of concurrent change in bowel habit these are NG12 red-flag symptoms requiring accurate coding as unintentional weight loss \u2014 the current code [416528001] is a substance concept (HLA allele) and must be replaced with the correct finding.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: weight loss, change in bowel habit.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "DRB1*08021 (substance) \u2014 miscoded as 'Intentional weight loss'",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves to a substance (HLA allele DRB1*08021), not a weight loss finding; this is a critical miscoding that must be replaced with Unintentional weight loss [448765001] given the clinical context.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Critical miscoding: concept ID 416528001 is an HLA substance code (DRB1*08021), not a weight loss finding \u2014 it must be replaced with Unintentional weight loss [448765001]. The combination of unintentional weight loss and change in bowel habit constitutes NG12 red-flag criteria for suspected colorectal cancer; the encounter note does not document a 2WW referral being made, which should be reviewed clinically. All observable entity lab codes are pipeline-generated and correctly excluded from audit scope; change in bowel habit [88111009] is correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 3444,
+        "output_tokens": 1303,
+        "total_tokens": 4747,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "73975f36-51e9-4b0a-afda-9fa327d857ed",
+        "date": "2024-10-15",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e8c0a28c-462c-4900-b99b-7b3b72a2bf54",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss is explicitly listed as a red-flag reason for the FBC request alongside change in bowel habit; per NG12 criteria this combination warrants coding and 2WW consideration, and the current code (416528001) resolves to a substance concept not a finding \u2014 the correct finding concept must be coded.",
+          "snomed_search": "weight loss",
+          "snomed_concept_id": "262285001",
+          "preferred_term": "Weight decreased (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: weight loss, change in bowel habit.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves on the terminology server to 'DRB1*08021 (substance)' \u2014 a completely wrong concept; additionally the note text gives no basis for asserting weight loss is 'intentional', and this is a red-flag symptom requiring correct coding as Weight decreased (finding).",
+          "replace_with_concept_id": "262285001",
+          "replace_with_preferred_term": "Weight decreased (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1022481000000109",
+          "name": "Mean corpuscular haemoglobin concentration (observable entity)",
+          "severity": "low",
+          "reason": "MCHC is not reported anywhere in the encounter text; the evidence cited in the coded record incorrectly maps this code to the haemoglobin concentration result (130 g/L), which is a different analyte \u2014 MCHC should only be coded if the value is present in the lab report."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two significant coding errors identified: (1) CRITICAL \u2014 concept 416528001 is a corrupted/wrong code resolving to a substance rather than a finding, and the 'intentional' qualifier is unsupported; weight loss + change in bowel habit are NG12 red-flag symptoms requiring correct coding as 'Weight decreased (finding)' (262285001) and potential 2WW review. (2) MCHC (1022481000000109) appears overcoded as MCHC values are absent from the FBC report \u2014 the evidence was incorrectly attributed to the haemoglobin concentration result. All auto-filed FBC observable entity codes are appropriate pipeline outputs and have not been flagged.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4969,
+        "output_tokens": 1502,
+        "total_tokens": 6471,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "e8c0a28c-462c-4900-b99b-7b3b72a2bf54",
+        "date": "2024-10-15",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d71ccd79-771c-4a4e-9944-08380eccac6b",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves to 'DRB1*08021 (substance)' \u2014 a completely incorrect SNOMED concept \u2014 and the clinical term 'intentional weight loss' is also clinically wrong: weight loss is listed as an unexplained symptom prompting investigation, not a deliberate act.",
+          "replace_with_concept_id": "262285001",
+          "replace_with_preferred_term": "Weight decreased (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "Critical error: concept 416528001 is an invalid code for weight loss \u2014 it resolves to a substance (DRB1*08021) and must be replaced with 262285001 'Weight decreased (finding)'; additionally, framing unexplained weight loss under investigation as 'intentional' is clinically incorrect and potentially masks a red-flag NG12 symptom (unintentional weight loss + change in bowel habit). Concept 88111009 for change in bowel habit is correctly coded. All observable entity lab codes are pipeline-generated and appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4388,
+        "output_tokens": 1143,
+        "total_tokens": 5531,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "d71ccd79-771c-4a4e-9944-08380eccac6b",
+        "date": "2024-10-15",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "123e716b-880d-4b69-adcc-d9f6eb4885f6",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding) [as coded]",
+          "severity": "critical",
+          "reason": "Concept ID 416528001 resolves to 'DRB1*08021 (substance)' \u2014 a genomic substance, not a clinical finding \u2014 and the note contains no evidence that weight loss is intentional; the correct concept for unexplained weight loss as a red-flag symptom is 448765001 'Unintentional weight loss (finding)'.",
+          "replace_with_concept_id": "448765001",
+          "replace_with_preferred_term": "Unintentional weight loss (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The weight loss code (416528001) is critically wrong: the concept ID maps to a genomic substance rather than a clinical finding, and the note gives no basis for coding it as 'intentional' \u2014 in the context of red-flag symptoms (weight loss + change in bowel habit, NG12 colorectal criteria), the correct code is 448765001 'Unintentional weight loss (finding)'. The change in bowel habit code (88111009 'Altered bowel function') is confirmed correct by search despite an unreliable lookup result. All 14 observable entity lab codes are structured-pipeline entries and are not flagged. The clinician should also consider whether a 2WW colorectal referral has been actioned given the red-flag symptom combination.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7650,
+        "output_tokens": 1459,
+        "total_tokens": 9109,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "123e716b-880d-4b69-adcc-d9f6eb4885f6",
+        "date": "2024-10-15",
+        "coded_count": 16
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0a1ca708-e216-4125-b683-f48ce6f23fdd",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Weight loss listed as a reason for investigation alongside change in bowel habit constitutes an NG12 colorectal cancer red-flag symptom combination; the note gives no indication the weight loss is intentional, so unintentional weight loss is the correct code.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: weight loss, change in bowel habit.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "416528001",
+          "name": "Intentional weight loss (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "critical",
+          "reason": "Concept 416528001 resolves in the terminology server as 'DRB1*08021 (substance)' \u2014 an HLA allele substance, not a clinical finding \u2014 making this a critically wrong code; it must be replaced with 448765001 Unintentional weight loss (finding) as documented in the note."
+        }
+      ],
+      "confidence": 0.95,
+      "notes": "The most serious issue is that concept 416528001, coded as 'Intentional weight loss (finding)', resolves to an HLA substance code (DRB1*08021) \u2014 a completely wrong concept that must be corrected urgently. The clinically correct code is 448765001 Unintentional weight loss (finding), which together with the coded change in bowel habit represents a safety-critical NG12 colorectal cancer red-flag combination; the reviewer should confirm whether a 2WW lower GI referral has been considered and documented. The five observable entity lab codes are correctly written by the structured pipeline and require no changes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 3012,
+        "output_tokens": 1224,
+        "total_tokens": 4236,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "0a1ca708-e216-4125-b683-f48ce6f23fdd",
+        "date": "2024-10-15",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c67e8fbd-dd42-4f34-bf6d-31ba7840bd22",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "One critical coding error: concept 416528001 ('Intentional weight loss') resolves on the terminology server as a HLA substance allele and is clinically wrong on both counts \u2014 the note implies unintentional weight loss (a NG12 red-flag symptom when combined with change in bowel habit) and must be replaced with 448765001 'Unintentional weight loss (finding)'. All other codes, including 88111009 'Altered bowel function', are appropriate; the 13 observable entity lab codes are pipeline-generated and correctly excluded from manual audit.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6087,
+        "output_tokens": 1124,
+        "total_tokens": 7211,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "c67e8fbd-dd42-4f34-bf6d-31ba7840bd22",
+        "date": "2024-10-15",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d42c4360-6235-4ad2-bc80-7aaca1d7c31b",
+    "patient_id": "4202339649",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The weight loss concept (416528001) is doubly wrong: the concept ID resolves to a substance in the terminology server rather than a finding, and the clinical context (weight loss prompting thyroid function testing alongside change in bowel habit) clearly indicates unintentional/unexplained weight loss \u2014 a NG12 red-flag symptom \u2014 not intentional weight loss. This should be recoded to 448765001 'Unintentional weight loss' with urgent review of whether a 2WW colorectal referral has been considered. All lab observable entity codes are pipeline-generated and are appropriate; 88111009 'Altered bowel function' is confirmed by search_snomed despite an unreliable direct lookup and is correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7738,
+        "output_tokens": 1424,
+        "total_tokens": 9162,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "d42c4360-6235-4ad2-bc80-7aaca1d7c31b",
+        "date": "2024-10-15",
+        "coded_count": 15
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fe147145-1077-43ae-bc5a-d35a4585368d",
+    "patient_id": "4202339649",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "stressed/anxious a lot",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports getting stressed and anxious a lot \u2014 this is an active finding documented in the history and is clinically relevant to IBS management but is not currently coded.",
+          "snomed_search": "anxiety finding",
+          "snomed_concept_id": "48694002",
+          "preferred_term": "Anxiety (finding)",
+          "sentence": "admits to getting stressed/ anxious a lot.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "396331005",
+          "name": "Celiac disease (disorder)",
+          "severity": "high",
+          "reason": "The note documents 'advised bloods for coeliac' \u2014 a test has been ordered to investigate coeliac disease, not a confirmed diagnosis; coding coeliac disease as present is premature and clinically incorrect.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": "",
+          "replace_with_assertion": ""
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "10743008",
+          "name": "Irritable bowel syndrome (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The plan explicitly documents '?IBS', indicating this is a working/unconfirmed diagnosis under investigation; the assertion should be 'possible' rather than 'present' to reflect clinical uncertainty."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three coding issues identified: IBS is documented as '?IBS' (possible) but coded as present; coeliac disease is overcoded as a confirmed diagnosis when only a screening blood test has been ordered; and the patient's self-reported anxiety/stress \u2014 clinically relevant in the context of IBS \u2014 is missing from the coded list. The mebeverine substance code is noted but per audit rules individual drug names belong in the medication record rather than the problem list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5029,
+        "output_tokens": 1398,
+        "total_tokens": 6427,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "fe147145-1077-43ae-bc5a-d35a4585368d",
+        "date": "2024-10-18",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "883fb10f-ec2f-4fc5-a9c5-4e0ed4766774",
+    "patient_id": "4202339649",
+    "date": "2024-11-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "anxiety / stress",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly documents 'discussed anxiety - says day to day stressors, generally gets stressed easily' with advice to address if worsens; this is an active clinical finding requiring coding.",
+          "snomed_search": "stress finding",
+          "snomed_concept_id": "73595000",
+          "preferred_term": "Stress (finding)",
+          "sentence": "discussed anxiety - says day to day stressors, generally gets stressed easily but nothing in particular making her anxious etc.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Medication review done",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly records 'Medication review done (XaF8d)' as a completed procedure during this encounter and should be coded as a procedure.",
+          "snomed_search": "medication review",
+          "snomed_concept_id": "182836005",
+          "preferred_term": "Review of medication (procedure)",
+          "sentence": "Medication review done (XaF8d)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "419830007",
+          "name": "Mebeverine (substance)",
+          "severity": "low",
+          "reason": "Individual drug substances belong in the medication record, not encounter-level SNOMED coding; the prescription and repeat addition are already captured in the medication record."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "IBS (10743008) is correctly coded and confirmed via search despite an unreliable lookup response. Two gaps identified: the clinically documented stress/anxiety finding in the plan is uncoded, and the explicitly recorded medication review procedure is missing. Mebeverine as a substance is overcoded at encounter level as it belongs in the medication record. A contraception consultation appointment was booked for next week but has not yet occurred \u2014 no procedure code is warranted at this time.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8014,
+        "output_tokens": 2014,
+        "total_tokens": 10028,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "883fb10f-ec2f-4fc5-a9c5-4e0ed4766774",
+        "date": "2024-11-19",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1338bf9a-a2e1-412e-b56f-417344007d0e",
+    "patient_id": "4202339649",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "leukocytes +++ on urine dipstick",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Urine dipstick showed leukocytes +++ \u2014 this is a significant positive finding that should be coded as a finding in addition to the procedure code already present.",
+          "snomed_search": "leukocytes in urine",
+          "snomed_concept_id": "275741008",
+          "preferred_term": "Leukocytes in urine (finding)",
+          "sentence": "Urine dip leukocytes +++ , nitrites -ve",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "MSU",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "MSU (mid-stream urine collection) is explicitly listed in the plan as a follow-up to the positive leukocyturia finding and should be coded as a procedure.",
+          "snomed_search": "mid stream urine specimen collection",
+          "snomed_concept_id": "225271002",
+          "preferred_term": "Collection of mid-stream specimen of urine (procedure)",
+          "sentence": "3. MSU",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Smokes 5-6 cigarettes/day",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Active smoking (5-6 cigarettes/day) is explicitly documented and clinically relevant \u2014 it is the basis for the UKMEC 3 classification affecting contraception choice.",
+          "snomed_search": "light cigarette smoker",
+          "snomed_concept_id": "160603005",
+          "preferred_term": "Light cigarette smoker (1-9 cigs/day) (finding)",
+          "sentence": "Smokes 5-6 cigarettes/day , stopped when pregnant - UKMEC 3",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Paternal grandmother had breast CA",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Family history of breast cancer (paternal grandmother) is explicitly documented and is clinically relevant to contraception risk assessment.",
+          "snomed_search": "family history breast cancer",
+          "snomed_concept_id": "429740004",
+          "preferred_term": "Family history of malignant neoplasm of breast (situation)",
+          "sentence": "Paternal grandmother had breast CA",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "918551000000103",
+          "name": "Progestogen only oral contraceptive contraindicated (situation)",
+          "severity": "medium",
+          "reason": "The terminology server returned this concept as an organism (unreliable/wrong hierarchy); the note documents POP being started \u2014 a prescription/supply procedure \u2014 not a contraindication situation. The concept ID cannot be verified and the clinical assertion is incorrect.",
+          "replace_with_concept_id": "339881000000102",
+          "replace_with_preferred_term": "Supply of progestogen oral contraception (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the existing codes have unreliable terminology server lookups; 252385000 and 72531000052105 are confirmed correct via search, but 918551000000103 is unverifiable and clinically misasserted (contraindication coded when POP was actually started \u2014 replace with supply/prescription procedure). Four meaningful clinical items are missing: leukocyturia finding, MSU collection procedure, active smoking status, and family history of breast cancer. Note: a future Mirena coil fitting was discussed but not yet performed \u2014 not coded as present. Pregnancy test negative is already captured via structured code X76xz in the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 14786,
+        "output_tokens": 2383,
+        "total_tokens": 17169,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "1338bf9a-a2e1-412e-b56f-417344007d0e",
+        "date": "2024-12-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8bb0bc45-2032-46ee-8a78-bf713eb3d9d6",
+    "patient_id": "4202339649",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "marriage break up",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient is going through a marital breakdown, a clinically relevant psychosocial finding that contextualises the presentation and warrants coding.",
+          "snomed_search": "marital breakdown",
+          "snomed_concept_id": "160793008",
+          "preferred_term": "Marital breakdown (finding)",
+          "sentence": "Going through stressful time with marriage break up atm.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis of oral candidiasis (79740000) is correctly coded \u2014 lookup_concept returned unreliable due to a terminology server index issue, but search_snomed independently confirms this is the correct concept ID and semantic tag (disorder). One missing code: the explicitly documented marital breakdown (160793008) is a clinically relevant psychosocial finding that should be captured. Absent findings (no immunocompromise, no steroid/inhaler use) are correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4667,
+        "output_tokens": 999,
+        "total_tokens": 5666,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "8bb0bc45-2032-46ee-8a78-bf713eb3d9d6",
+        "date": "2025-01-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "be2c128a-766c-4da8-a465-58401c4eb85c",
+    "patient_id": "4202339649",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [
+        {
+          "concept_id": "237130006",
+          "preferred_term": "Bleeding between periods (finding)",
+          "assertion": "present",
+          "severity": "high",
+          "sentence": "Reason for the appointment: .bleeding between periods causing discomfort",
+          "notes": "Confirmed via search_snomed as a valid SNOMED finding (score 1.3); lookup_concept returned unreliable due to server Extension Namespace limitation, not a coding error."
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "This is a non-clinical care navigation telephone encounter; the sole clinical content is the presenting complaint of intermenstrual bleeding, which is correctly coded as 237130006 (Bleeding between periods, finding, present). No clinician assessment or additional codeable findings are documented. Concept ID confirmed valid via search_snomed despite lookup_concept server unreliability.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2665,
+        "output_tokens": 832,
+        "total_tokens": 3497,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "be2c128a-766c-4da8-a465-58401c4eb85c",
+        "date": "2025-03-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "28a041e2-16cf-4399-a38f-aad4b93e3f7f",
+    "patient_id": "4202339649",
+    "date": "2025-03-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "family history of breast cancer (maternal grandmother)",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Maternal grandmother's breast cancer is explicitly documented and is clinically relevant to contraceptive choice (COCP/POP) and future screening decisions.",
+          "snomed_search": "family history breast cancer",
+          "snomed_concept_id": "429740004",
+          "preferred_term": "Family history of malignant neoplasm of breast (situation)",
+          "sentence": "siser has endometriosis, maternal grandma had breast ca.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "11892641000119101",
+          "name": "Chronic female pelvic pain syndrome (disorder)",
+          "severity": "medium",
+          "reason": "lookup_concept returns this ID as 'DRB1*09011 (substance)' \u2014 wrong semantic tag indicating an unreliable/incorrect concept ID; the clinically appropriate replacement for 2-month daily female pelvic pain is confirmed concept 237067000.",
+          "replace_with_concept_id": "237067000",
+          "replace_with_preferred_term": "Chronic pain in female pelvis (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The pelvic pain concept ID [11892641000119101] is unreliable \u2014 the terminology server resolves it to a substance (DRB1*09011) rather than a disorder/finding; it should be replaced with the confirmed finding [237067000] 'Chronic pain in female pelvis'. Family history of breast cancer (maternal grandmother) is explicitly documented and clinically relevant to contraceptive counselling but is uncoded. IMB [237130006] and telephone consultation [386472008] are correctly coded. Family history of endometriosis (sister) could not be resolved to a specific SNOMED concept and is omitted per rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 10526,
+        "output_tokens": 1925,
+        "total_tokens": 12451,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "28a041e2-16cf-4399-a38f-aad4b93e3f7f",
+        "date": "2025-03-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6202b83c-f900-4a75-8240-cc64fff8c982",
+    "patient_id": "4202339649",
+    "date": "2025-03-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Irregular periods secondary to desogestrel",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The stated diagnosis is 'Irregular periods secondary to desogestrel' \u2014 this is the primary clinical conclusion of the encounter and must be coded.",
+          "snomed_search": "irregular periods",
+          "snomed_concept_id": "80182007",
+          "preferred_term": "Irregular periods (finding)",
+          "sentence": "Diagnosis: Irregular periods secondary to deogestrel.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Referral to GUM clinic for sexual health screen",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly signposted the patient to a GUM clinic for a sexual health screen; this is a codeable referral/procedure action documented in the plan.",
+          "snomed_search": "referral sexual health clinic",
+          "snomed_concept_id": "892041000000100",
+          "preferred_term": "Referral to contraception and sexual health service (procedure)",
+          "sentence": "Signposted to GUM clinic for SH screen.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "652431000000100",
+          "name": "Bleeding - vaginal NOS (finding) [as coded]",
+          "severity": "medium",
+          "reason": "Terminology server lookup returned this concept ID as 'DRB1*09012 (substance)' \u2014 a substance concept with no clinical relevance; the intended vaginal bleeding finding should be coded with the verified concept 289530006.",
+          "replace_with_concept_id": "289530006",
+          "replace_with_preferred_term": "Bleeding from vagina (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The primary diagnosis (irregular periods secondary to desogestrel) is absent from the coded list and must be added; the GUM referral in the plan is also unrecorded. The vaginal bleeding concept ID 652431000000100 resolves to a substance code on the terminology server and should be replaced with 289530006 'Bleeding from vagina (finding)'. The lower abdominal pain code 54586004 is confirmed correct despite an unreliable lookup. No safety-critical red flags identified in this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8577,
+        "output_tokens": 1816,
+        "total_tokens": 10393,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "6202b83c-f900-4a75-8240-cc64fff8c982",
+        "date": "2025-03-24",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0de917f6-d62a-4176-a935-07c06f7092ff",
+    "patient_id": "4202339649",
+    "date": "2025-06-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unintentional weight loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Unintentional weight loss is explicitly documented ('extreme weight loss through stress of separation') and is an NG12 red-flag symptom that must be coded regardless of prior investigation, particularly in the context of a new breast lump.",
+          "snomed_search": "unintentional weight loss",
+          "snomed_concept_id": "448765001",
+          "preferred_term": "Unintentional weight loss (finding)",
+          "sentence": "Has breast implants - had them checked a littel while ago as changed appearance but this is realted to extreme weight loss (through stress of separation from husband - been investigated)",
+          "char_start": 248,
+          "char_end": 407
+        },
+        {
+          "term": "chaperone declined",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'chaperone declined' during breast examination; this medicolegally significant situation should be coded to document informed consent and risk management.",
+          "snomed_search": "chaperone",
+          "snomed_concept_id": "763380007",
+          "preferred_term": "Provision of chaperone declined (situation)",
+          "sentence": "With consent, chaperone declined - L breast and axilla NAD; R breast - area that feels lumpy, in a pea sized area, upper medial quadrant just out from nipple - hard to feel, patient had to show me, no skin changes etc, axilla NAD",
+          "char_start": 558,
+          "char_end": 786
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The two existing codes (breast lump and family history of breast cancer) are correctly applied and confirmed by SNOMED search. Two significant gaps exist: unintentional weight loss is a safety-critical NG12 red-flag finding that must be coded in the context of a new breast lump, and the patient's explicit declination of a chaperone during breast examination is a medicolegally important situation that is absent from the coded record.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7265,
+        "output_tokens": 1688,
+        "total_tokens": 8953,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "0de917f6-d62a-4176-a935-07c06f7092ff",
+        "date": "2025-06-26",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6ed7dba2-6205-4aeb-8c87-18870d138f23",
+    "patient_id": "4202339649",
+    "date": "2025-07-23",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "chaperone declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states 'chaperone declined' during an intimate breast examination; this is a medicolegally important situation that should be coded to document informed consent and patient choice.",
+          "snomed_search": "chaperone",
+          "snomed_concept_id": "763380007",
+          "preferred_term": "Provision of chaperone declined (situation)",
+          "sentence": "Examination: With consent, chaperone declined - both breast examined, R normal and L - still pea sized lump upper inner medial quadrant small lump palpable, non sinister feeling but due to implants tricky to be sure",
+          "char_start": 175,
+          "char_end": 395
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The two existing codes are correct and well-evidenced: breast lump (89164003) and referral to breast clinic (313186001) appropriately capture the safety-critical NG12 pathway. The only gap is the absence of a code for chaperone declined (763380007), which is explicitly documented and medicolegally important for an intimate examination. Note also that breast implants are mentioned as complicating the assessment \u2014 if not already on the problem list, this may warrant a separate coding review.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5045,
+        "output_tokens": 1362,
+        "total_tokens": 6407,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "6ed7dba2-6205-4aeb-8c87-18870d138f23",
+        "date": "2025-07-23",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "74fe882f-5a17-4b08-9887-2bbf48cc1a3b",
+    "patient_id": "4202339649",
+    "date": "2025-09-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "heavier monthly bleed / heavy menstrual bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient reports regular heavier monthly bleed lasting 4-7 days with variable flow \u2014 this is the primary presenting complaint driving the consultation and must be coded.",
+          "snomed_search": "heavy menstrual bleeding",
+          "snomed_concept_id": "386692008",
+          "preferred_term": "Menorrhagia (finding)",
+          "sentence": "Today reports regular heavier monthly bleed lasting 4-7 days.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lower abdo cramps prior and during bleed",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient explicitly reports lower abdominal cramps before and during menstruation, consistent with dysmenorrhoea, which is a distinct active finding requiring coding.",
+          "snomed_search": "dysmenorrhoea",
+          "snomed_concept_id": "266599000",
+          "preferred_term": "Dysmenorrhea (disorder)",
+          "sentence": "Lower abdo cramps prior and during bleed.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "irregular periods secondary to desogestrel",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note documents a prior episode of irregular periods attributed to desogestrel (POP), described in the context of the earlier f2f review \u2014 this is a relevant historical finding that should be coded.",
+          "snomed_search": "irregular periods",
+          "snomed_concept_id": "80182007",
+          "preferred_term": "Irregular periods (finding)",
+          "sentence": "Was then experiencing irregular periods secondary to desogestrel.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "contraception counselling / discussion of alternatives",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The nurse briefly discussed contraceptive options (implant, depo, IUS) and arranged an onward appointment \u2014 this counselling activity should be coded as a procedure.",
+          "snomed_search": "counseling for contraception",
+          "snomed_concept_id": "72531000052105",
+          "preferred_term": "Counseling for contraception (procedure)",
+          "sentence": "Briefly discussed options re. implant, depo and ius. Appointment made with NP SR to discuss further on Friday.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "268459005",
+          "name": "Oral contraceptive advice (finding) [coded label]",
+          "severity": "medium",
+          "reason": "lookup_concept returned an Extension Namespace placeholder \u2014 this concept ID cannot be verified on the terminology server and is unreliable; the encounter is better represented by the confirmed concept 72531000052105 (Counseling for contraception).",
+          "replace_with_concept_id": "72531000052105",
+          "replace_with_preferred_term": "Counseling for contraception (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The encounter has several genuine coding gaps: the primary presenting complaint (menorrhagia) and associated dysmenorrhoea are uncoded, a historical episode of irregular periods on POP is undocumented, and the contraception counselling procedure is missing. The existing concept 268459005 is an unverifiable Extension Namespace placeholder and should be replaced with the confirmed SNOMED concept for contraception counselling. Note: a future appointment with NP SR to discuss long-acting reversible contraception (implant/depo/IUS) has been arranged but the procedure has not yet occurred and should not be coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5080,
+        "output_tokens": 1945,
+        "total_tokens": 7025,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "74fe882f-5a17-4b08-9887-2bbf48cc1a3b",
+        "date": "2025-09-15",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5f855a38-8fca-4f3a-885d-c8efedbcebe0",
+    "patient_id": "4202339649",
+    "date": "2025-09-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Periods all over the place",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Irregular periods is the patient's presenting complaint driving the contraceptive review and should be coded as an active finding.",
+          "snomed_search": "irregular periods",
+          "snomed_concept_id": "80182007",
+          "preferred_term": "Irregular periods (finding)",
+          "sentence": "Periods all over the place.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Oral contraceptive changed",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient is switching from desogestrel POP to norethisterone (Noriday) POP; a contraceptive method change is a clinically significant event that should be coded.",
+          "snomed_search": "oral contraceptive changed",
+          "snomed_concept_id": "169468003",
+          "preferred_term": "Oral contraceptive changed (situation)",
+          "sentence": "3 month trial of Noriday then review.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Took COC for many years",
+          "severity": "low",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly documents a history of combined oral contraceptive use over many years, which is relevant contraceptive history and should be coded historically.",
+          "snomed_search": "history oral contraceptive usage",
+          "snomed_concept_id": "161772002",
+          "preferred_term": "History of oral contraceptive usage (situation)",
+          "sentence": "Took COC for many years . Had no problems with this.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The four existing codes are clinically appropriate and correctly asserted (terminology server returned unreliable results for 77176002 and 185202000 but both are confirmed valid by search and encounter-type rules respectively). Three additions are warranted: the presenting complaint of irregular periods (80182007), the contraceptive method change to Noriday (169468003), and a historical record of long-term COC use (161772002). Absent findings (no PCB, no unusual discharge) and the normal smear result are correctly excluded per coding rules.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12367,
+        "output_tokens": 1935,
+        "total_tokens": 14302,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "5f855a38-8fca-4f3a-885d-c8efedbcebe0",
+        "date": "2025-09-19",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8c9ef15d-d095-4b14-bd53-1ab0f25b7e4a",
+    "patient_id": "4202339649",
+    "date": "2025-09-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "unscheduled bleeding on desogestrel",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents unscheduled/breakthrough bleeding on desogestrel as the presenting problem and this is a distinct finding from the broader abnormal uterine bleeding code already applied.",
+          "snomed_search": "breakthrough bleeding",
+          "snomed_concept_id": "56169002",
+          "preferred_term": "Break-through bleeding (finding)",
+          "sentence": "Has been having unscheduled bleeding on desogrestrel since start of this year.",
+          "char_start": 130,
+          "char_end": 196
+        },
+        {
+          "term": "heavier than period / heavy menstrual bleeding",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note describes PV bleeding heavier than a period and TXA is prescribed specifically for heavy bleeding; menorrhagia is a more specific finding than the coded abnormal uterine bleeding and should be co-coded.",
+          "snomed_search": "heavy menstrual bleeding",
+          "snomed_concept_id": "386692008",
+          "preferred_term": "Menorrhagia (finding)",
+          "sentence": "Now having 2 weeks of PV bleeding. Heavier then period.",
+          "char_start": 270,
+          "char_end": 325
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (procedure) [coded as procedure but lookup returned qualifier value]",
+          "severity": "medium",
+          "reason": "Concept 16310003 resolves to a qualifier value on the terminology server, not a procedure; the note documents a pelvic USS which is best represented by Pelvic echography (procedure).",
+          "replace_with_concept_id": "24848001",
+          "replace_with_preferred_term": "Pelvic echography (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The two core clinical codes (Dysmenorrhea 266599000 and Abnormal uterine bleeding 44991000119100) are confirmed correct by SNOMED search despite unreliable lookup responses. The pelvic USS procedure code (16310003) resolves to a qualifier value rather than a procedure and should be replaced with 24848001 (Pelvic echography). Breakthrough bleeding on desogestrel (56169002) and menorrhagia (386692008) are additional findings evidenced by the note that should be added; no specific SNOMED concept for family history of endometriosis was resolvable so this is noted but not proposed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9339,
+        "output_tokens": 2124,
+        "total_tokens": 11463,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "8c9ef15d-d095-4b14-bd53-1ab0f25b7e4a",
+        "date": "2025-09-22",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fcec0b7b-2e05-43a3-87c4-565691e6dd84",
+    "patient_id": "4202339649",
+    "date": "2025-09-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "norethisterone adverse reaction",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states norethisterone was stopped because it worsened PV bleeding \u2014 this is a specific adverse drug reaction that should be coded rather than a generic drug-stopped situation.",
+          "snomed_search": "norethisterone adverse reaction",
+          "snomed_concept_id": "293214008",
+          "preferred_term": "Norethisterone adverse reaction (disorder)",
+          "sentence": "Has stopped Norethisterone issued on 19/9 as it was making her PV bleeding worse.",
+          "char_start": 113,
+          "char_end": 183
+        },
+        {
+          "term": "drug therapy discontinued",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Norethisterone was discontinued by the patient; the correct situation code is 274512008 Drug therapy discontinued, replacing the incorrectly coded 698459008 which resolves to a substance concept on this server.",
+          "snomed_search": "drug treatment stopped",
+          "snomed_concept_id": "274512008",
+          "preferred_term": "Drug therapy discontinued (situation)",
+          "sentence": "Has stopped Norethisterone issued on 19/9 as it was making her PV bleeding worse.",
+          "char_start": 113,
+          "char_end": 183
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "698459008",
+          "name": "Antidepressant drug treatment stopped (situation)",
+          "severity": "high",
+          "reason": "Lookup returns this concept as a substance (DRB1*08032), not a situation; the note describes stopping norethisterone (a progestogen), not an antidepressant \u2014 this code is both semantically wrong and clinically inaccurate.",
+          "replace_with_concept_id": "274512008",
+          "replace_with_preferred_term": "Drug therapy discontinued (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The abnormal uterine bleeding code (44991000119100) is clinically appropriate and confirmed by search, though the terminology server cannot verify it directly. The drug-stopped situation code (698459008) is wrong on two counts: the concept resolves to a substance on this server and the clinical description ('antidepressant') does not match norethisterone; it should be replaced with 274512008 Drug therapy discontinued. The specific norethisterone adverse reaction (293214008) is missing and should be added. The planned Depo-Provera injection has not yet occurred (appointment booked for 24/10) and should not be coded as a procedure at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4282,
+        "output_tokens": 1643,
+        "total_tokens": 5925,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "fcec0b7b-2e05-43a3-87c4-565691e6dd84",
+        "date": "2025-09-30",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7df18d47-e636-430e-a27f-3e61e83f9140",
+    "patient_id": "4202339649",
+    "date": "2025-10-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "entities": [
+        {
+          "conceptId": "185202000",
+          "term": "Seen in general practitioner surgery (finding)",
+          "assertion": "present",
+          "note": "lookup_concept returned an unexpected qualifier value term, but search_snomed confirms 185202000 is the correct concept for this encounter-type finding. Encounter-type codes are set by the appointment system and are not flagged."
+        },
+        {
+          "conceptId": "250425007",
+          "term": "Pregnancy test negative (finding)",
+          "assertion": "present",
+          "note": "lookup_concept returned unreliable Extension Namespace placeholder, but search_snomed confirms 250425007 is the correct and only candidate. Correctly coded \u2014 negative pregnancy test performed prior to Depo-Provera administration is clinically significant."
+        },
+        {
+          "conceptId": "709534006",
+          "term": "Administration of depot contraceptive (procedure)",
+          "assertion": "present",
+          "note": "lookup_concept returned unreliable Extension Namespace placeholder, but search_snomed confirms 709534006 as the top-scoring match. Correctly coded \u2014 Depo-Provera 150mg/1ml administered this encounter."
+        }
+      ],
+      "notes": "All three coded concepts are confirmed correct via search_snomed despite two returning unreliable lookup results. The resolved PV bleeding (referenced to 22/9 notes) is a normal/negative finding in this encounter and does not require addition; the prior episode would have been coded at the original consultation. No safety-critical gaps identified.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8705,
+        "output_tokens": 1592,
+        "total_tokens": 10297,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4202339649",
+        "encounter_id": "7df18d47-e636-430e-a27f-3e61e83f9140",
+        "date": "2025-10-24",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  }
+]

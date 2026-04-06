@@ -1,0 +1,1610 @@
+[
+  {
+    "encounter_id": "189e294b-60bb-4cf9-aaa4-8bb430b098e2",
+    "patient_id": "4643293950",
+    "date": "2024-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Critical miscoding: the evidence string explicitly states \"chronic diarrhoea, daily\" but the coded concept is 409966000 Acute diarrhea (disorder); this must be replaced with 236071009 Chronic diarrhea (disorder). This is clinically significant because a FIT has been requested alongside the symptom, suggesting a colorectal cancer red-flag workup \u2014 accurate characterisation of the diarrhoea as chronic (not acute) is essential for clinical safety and audit trail. Blood pressure (75367002) is a structured-pipeline observable and is not flagged. The encounter is otherwise a workflow/phlebotomy routing note with no further codeable clinical content.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3355,
+        "output_tokens": 1081,
+        "total_tokens": 4436,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "189e294b-60bb-4cf9-aaa4-8bb430b098e2",
+        "date": "2024-01-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "219af28e-193e-4059-a59a-dc5d436c397b",
+    "patient_id": "4643293950",
+    "date": "2024-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "rectal pains throughout defaecation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinician explicitly documents the patient experiences rectal pain throughout defaecation as a distinct active symptom, which is not captured by the diarrhoea code.",
+          "snomed_search": "rectal pain",
+          "snomed_concept_id": "77880009",
+          "preferred_term": "Rectal pain (finding)",
+          "sentence": "experiences rectal pains througout defactaion, also BG of diverticuitis?",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "diverticulitis",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The clinician documents a background history of diverticulitis ('BG of diverticulitis?'), which is clinically relevant context for the presenting diarrhoea and should be coded as a historical condition.",
+          "snomed_search": "diverticulitis",
+          "snomed_concept_id": "307496006",
+          "preferred_term": "Diverticulitis (disorder)",
+          "sentence": "experiences rectal pains througout defactaion, also BG of diverticuitis?",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "186431008",
+          "name": "Infection caused by Clostridioides difficile (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The clinician documents '??cdiff' (double question mark), indicating a highly uncertain differential diagnosis, not a confirmed active infection; coding as present overstates clinical certainty and could mislead downstream care."
+        },
+        {
+          "conceptId": "721104000",
+          "name": "Sepsis due to urinary tract infection (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The note explicitly frames urinary sepsis as 'BG of recent hospital admission' (background history), meaning it is a resolved past episode that contextualises the current presentation, not an active current condition."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two significant assertion errors: C. diff is coded as present despite being a highly uncertain differential (??cdiff) and should be possible; urinary sepsis is coded as present despite being explicitly historical background. Rectal pain during defaecation and a background of diverticulitis are both documented and missing from the coded list. FIT test and stool sample are planned future procedures and should not be coded as present. Note: lookup_concept returned unreliable results for both disorder codes, but search_snomed confirmed both concept IDs are valid SNOMED disorder codes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7139,
+        "output_tokens": 1839,
+        "total_tokens": 8978,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "219af28e-193e-4059-a59a-dc5d436c397b",
+        "date": "2024-01-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "70221a7e-fffc-431a-9287-c061faa27102",
+    "patient_id": "4643293950",
+    "date": "2024-01-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "sore around anus / pain on passing stool",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents perianal soreness and pain on defaecation as active symptoms but no perianal pain concept has been coded.",
+          "snomed_search": "perianal pain",
+          "snomed_concept_id": "307225003",
+          "preferred_term": "Perianal pain (finding)",
+          "sentence": "he is sore- around anus, ... pain on passing stool",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "34095006",
+          "name": "Dehydration (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The note explicitly states 'rule out dehydration' and the referral letter says 'to rule out dehydration secondary to diarrhoea' \u2014 dehydration is a suspected/working diagnosis under investigation, not a confirmed active disorder; assertion should be 'possible'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two issues found: (1) Dehydration is coded as 'present' but the clinical text consistently frames it as a rule-out \u2014 assertion must be changed to 'possible'. (2) Perianal pain/soreness is an explicitly documented symptom (perianal soreness and pain on defaecation) that has been omitted from the coded list. The three existing concept IDs returned unreliable results from the lookup server but are confirmed as legitimate SNOMED concepts via the search server; no overcoding is indicated on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4310,
+        "output_tokens": 1337,
+        "total_tokens": 5647,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "70221a7e-fffc-431a-9287-c061faa27102",
+        "date": "2024-01-16",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a765e05b-53b8-435d-b625-67c5c041287f",
+    "patient_id": "4643293950",
+    "date": "2024-01-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Quantitative faecal immunochemical test > 200 ug/g (Abnormal)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The FIT result is explicitly reported as Abnormal at >200 \u00b5g/g \u2014 the finding of a positive immunochemical occult blood test must be coded alongside the observable entity to ensure the abnormal result is captured and traceable as a safety-critical finding driving the 2WW referral.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "Quantitative faecal immunochemical test (Xaf0H) > 200 ug/g",
+          "char_start": 37,
+          "char_end": 88
+        },
+        {
+          "term": "diarrhoea",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Diarrhoea is explicitly documented as the clinical reason for the FIT request ('diarrhoea after admission') and is an active symptom underpinning the 2WW LGI cancer pathway referral; it must be coded.",
+          "snomed_search": "diarrhoea",
+          "snomed_concept_id": "62315008",
+          "preferred_term": "Diarrhea (finding)",
+          "sentence": "Clinical Information: Reasons for Request: diarrhoea after admission.",
+          "char_start": 220,
+          "char_end": 289
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "134403003",
+          "name": "Urgent referral (procedure)",
+          "severity": "low",
+          "reason": "This generic 'Urgent referral' code is fully subsumed by the more specific 892201000000106 (Fast track referral for suspected lower gastrointestinal cancer) which is already coded; retaining both creates redundancy without additional clinical information.",
+          "replace_with_concept_id": "892201000000106",
+          "replace_with_preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The 2WW LGI referral and FIT observable entity are correctly coded, but the abnormal FIT finding (occult blood detected by immunoassay \u2014 a safety-critical result driving the cancer pathway) and the presenting symptom of diarrhoea are both missing. The generic 'Urgent referral' code is redundant alongside the specific fast-track LGI code and should be removed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6305,
+        "output_tokens": 1812,
+        "total_tokens": 8117,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "a765e05b-53b8-435d-b625-67c5c041287f",
+        "date": "2024-01-18",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "78e22b08-fd6d-48ca-9bcc-ce7226b7ad18",
+    "patient_id": "4643293950",
+    "date": "2024-01-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The single coded concept \u2014 Diarrhea (62315008, finding) \u2014 is correct and well-evidenced as the stated clinical reason for the FBC request. Although haemoglobin and haematocrit are marginally below the male reference range, the reviewing haematologist has explicitly reported the FBC as 'Normal, No Further Action'; coding anaemia from raw numeric values without an explicit clinical diagnosis in the note would be prohibited under audit rules. No coding gaps or errors identified.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5809,
+        "output_tokens": 1081,
+        "total_tokens": 6890,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "78e22b08-fd6d-48ca-9bcc-ce7226b7ad18",
+        "date": "2024-01-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c54bd01a-031f-4b2f-90f1-3d7b27ef94aa",
+    "patient_id": "4643293950",
+    "date": "2024-01-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Serum urea level 9.6 mmol/L - Outside reference range",
+          "snomed_concept_id": "1179462007",
+          "preferred_term": "Blood urea above reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Serum urea is explicitly flagged as outside reference range (9.6 mmol/L vs [2.5\u20137.8]). This is a clinically relevant abnormal biochemistry result that should be coded.",
+          "sentence": "Serum urea level (XM0lt) 9.6 mmol/L [2.5 - 7.8] - Outside reference range",
+          "char_start": 22,
+          "char_end": 79
+        },
+        {
+          "text": "diarrhoea after admission",
+          "snomed_concept_id": "62315008",
+          "preferred_term": "Diarrhea (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "Diarrhoea is documented as the clinical reason for the U&E request. It is an active clinical finding driving investigation and should be coded.",
+          "sentence": "Clinical Information: Reasons for Request: diarrhoea after admission.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Auto-filed lab result encounter reviewed by Dr Okoye on 22 Jan 2024. Two codeable findings are missing: (1) Serum urea is explicitly flagged outside reference range at 9.6 mmol/L [ref 2.5\u20137.8] \u2014 coded as 'Blood urea above reference range'. (2) Diarrhoea is documented as the clinical reason for the U&E request and should be coded. All other results (creatinine, sodium, potassium, eGFR) are within normal limits and the overall report is signed off as 'Normal, No Further Action'. The CKD guidance text is boilerplate advisory appended by the lab system and does not constitute a CKD diagnosis for this patient; no CKD code is warranted without an explicit diagnosis. eGFR of 68 mL/min is borderline (CKD stage 2 territory) but no clinician has diagnosed CKD in this note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4893,
+        "output_tokens": 1679,
+        "total_tokens": 6572,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "c54bd01a-031f-4b2f-90f1-3d7b27ef94aa",
+        "date": "2024-01-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "902d9703-2c35-494f-ba4e-b7f0f1859659",
+    "patient_id": "4643293950",
+    "date": "2024-01-24",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "wearing pads at night",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient is wearing pads at night, indicating urinary incontinence, which is clinically relevant to this elderly patient living alone and should be coded for care planning.",
+          "snomed_search": "urinary incontinence",
+          "snomed_concept_id": "165232002",
+          "preferred_term": "Urinary incontinence (finding)",
+          "sentence": "Wearing pads at night",
+          "char_start": 175,
+          "char_end": 196
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely appropriate and safety-conscious, capturing the key red-flag triad of chronic diarrhoea, weight loss, and FIT test request. Two issues identified: (1) 'Weight decreased' should be replaced with the more specific 'Unintentional weight loss' (448765001) \u2014 a critical distinction for NG12 colorectal cancer pathway triggering; (2) nocturnal urinary incontinence (pad-wearing) is undercoded and clinically relevant to this frail, isolated patient's care plan. Planned social care/OT/PT referral is noted in the plan but not yet actioned so correctly absent from coded list. Fall code 242419006 has semantic tag 'event' which is outside audit scope but is clinically appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9635,
+        "output_tokens": 1636,
+        "total_tokens": 11271,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "902d9703-2c35-494f-ba4e-b7f0f1859659",
+        "date": "2024-01-24",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b0cc6e81-c987-421f-8286-43109553a0be",
+    "patient_id": "4643293950",
+    "date": "2024-01-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "faecal impaction",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Faecal impaction is the explicit clinical indication for this referral and enema request; the correct disorder-tagged concept (44635007) is absent \u2014 the currently coded concept 67409000 resolves to a qualifier value, not a disorder.",
+          "snomed_search": "faecal impaction",
+          "snomed_concept_id": "44635007",
+          "preferred_term": "Fecal impaction (disorder)",
+          "sentence": "Kindly Give enema to the patient with impaction, authorisation is on system one",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "enema",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The GP has explicitly authorised and requested that an enema be given to the patient in this encounter; this procedure should be coded.",
+          "snomed_search": "giving patient enema",
+          "snomed_concept_id": "61919008",
+          "preferred_term": "Giving patient an enema (procedure)",
+          "sentence": "Kindly Give enema to the patient with impaction, authorisation is on system one",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "67409000",
+          "name": "Fecal impaction (morphologic abnormality)",
+          "severity": "medium",
+          "reason": "Concept 67409000 resolves on the terminology server to a qualifier value ('An 7705'), not a disorder; the clinically correct active-diagnosis code for faecal impaction is 44635007 (Fecal impaction (disorder)).",
+          "replace_with_concept_id": "44635007",
+          "replace_with_preferred_term": "Fecal impaction (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter contains genuine clinical content (faecal impaction diagnosis + authorised enema). The coded concept 67409000 is the morphologic abnormality / qualifier value variant of faecal impaction rather than the disorder; it should be replaced with 44635007. The authorised enema procedure (61919008) is also missing from the coded list.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3860,
+        "output_tokens": 1250,
+        "total_tokens": 5110,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "b0cc6e81-c987-421f-8286-43109553a0be",
+        "date": "2024-01-25",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "214d824f-7eca-4716-ad19-7b7445535bd2",
+    "patient_id": "4643293950",
+    "date": "2024-01-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "term": "faecal impaction",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Active faecal impaction is the explicit clinical indication for the District Nurse enema referral and must be coded with the correct disorder concept.",
+          "snomed_search": "faecal impaction",
+          "snomed_concept_id": "44635007",
+          "preferred_term": "Fecal impaction (disorder)",
+          "sentence": "we need District Nurse to give Enema for dismpaction today",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "notes": "The encounter is a District Nurse referral via Single Point of Access for enema administration to treat active faecal impaction \u2014 this is clinical content and the condition is correctly identified as present. However, the coded concept 67409000 \"Fecal impaction (morphologic abnormality)\" carries the wrong semantic tag (morphologic abnormality, confirmed by lookup returning \"An 7705 qualifier value\") and should be replaced with 44635007 \"Fecal impaction (disorder)\", which is the appropriate clinical disorder code for a GP problem list.",
+      "confidence": 0.92,
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2286,
+        "output_tokens": 797,
+        "total_tokens": 3083,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "214d824f-7eca-4716-ad19-7b7445535bd2",
+        "date": "2024-01-25",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d543aac2-df82-4a52-b0d5-a092d202f6eb",
+    "patient_id": "4643293950",
+    "date": "2024-01-25",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "faecal incontinence",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient has been wearing incontinence pads for 2 weeks and soiling of the anal orifice was confirmed on examination \u2014 this is a distinct active clinical finding not captured by the overflow diarrhoea code.",
+          "snomed_search": "faecal incontinence",
+          "snomed_concept_id": "722881006",
+          "preferred_term": "Functional fecal incontinence (disorder)",
+          "sentence": "has accident so wearing incontinnece pad for 2 weeks now",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "digital rectal examination",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A PR examination was explicitly performed with documented consent and clinical findings (full firm rectum, soiling, stool present); the procedure should be coded.",
+          "snomed_search": "digital rectal examination",
+          "snomed_concept_id": "410006001",
+          "preferred_term": "Digital examination of rectum (procedure)",
+          "sentence": "consent Given for PR exam , soiling of anal orifice, and sore due to chronic diarrhoea , no bleeding , but passing wind and loose stool , On examination there is stool in the rectum - full , firm but not hard",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "134403003",
+          "name": "Urgent referral (procedure)",
+          "severity": "low",
+          "reason": "This generic 'Urgent referral' code is redundant given that the specific fast-track 2WW lower GI cancer referral (892201000000106) is already coded in the same encounter; the lookup also returned an unreliable Extension Namespace result for this concept ID.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "363406005",
+          "name": "Malignant neoplasm of colon (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "critical",
+          "reason": "The note explicitly states 'rule out ca bowel' as a differential diagnosis \u2014 bowel cancer has not been confirmed; coding it as present implies an established diagnosis and is clinically misleading and potentially harmful."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "This encounter contains multiple significant coding errors: the weight loss concept ID (416528001) resolves to an HLA substance rather than the intended finding and must be replaced with 448765001 (Unintentional weight loss); bowel cancer is coded as 'present' when it is explicitly a rule-out differential and must be 'possible'; faecal impaction uses a morphologic abnormality code rather than the disorder equivalent (44635007); the generic urgent referral is redundant alongside the specific 2WW lower GI code; and two clinically important findings \u2014 faecal incontinence and the PR examination procedure \u2014 are absent from the coded list. The fast-track 2WW referral (892201000000106) and family history of colorectal cancer (1421000119104) are correctly coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 15839,
+        "output_tokens": 2666,
+        "total_tokens": 18505,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "d543aac2-df82-4a52-b0d5-a092d202f6eb",
+        "date": "2024-01-25",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "222db589-b00c-42b8-92e2-fa2879c29a87",
+    "patient_id": "4643293950",
+    "date": "2024-01-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "has not had his bowels opened properly for a few weeks now and is struggling",
+          "snomed_concept_id": "14760008",
+          "preferred_term": "Constipation (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Patient has active constipation \u2014 explicitly described as not having bowels opened properly for several weeks. This is the primary clinical reason for the visit and should be coded.",
+          "sentence": "Explained he has not had his bowels opened properly for a few weeks now and is struggling, with consent Phosphate Enema administered BN Z104 EXP 10/2026, Fred comfortable on his left side in bed.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Phosphate Enema administered",
+          "snomed_concept_id": "719908001",
+          "preferred_term": "Administration of enema via rectal route (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Phosphate enema was administered rectally by the community nurse \u2014 a clinical intervention that should be coded. Most specific available SNOMED procedure concept for rectal enema administration.",
+          "sentence": "with consent Phosphate Enema administered BN Z104 EXP 10/2026, Fred comfortable on his left side in bed.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "text": "Urgent home visit (9NF7.)",
+          "snomed_concept_id": "185466002",
+          "preferred_term": "Home visit for urgent condition (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "An unscheduled urgent home visit was conducted by a community nurse as requested by the GP. CTV3 code 9NF7 referenced in the note maps to this SNOMED concept.",
+          "sentence": "Urgent home visit (9NF7.) - unscheduled visit for enema as requested by GP.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Community nursing urgent home visit for a male patient (Fred) with constipation of several weeks' duration. Three codeable clinical concepts identified: (1) Constipation \u2014 the primary presenting problem; (2) Administration of enema via rectal route \u2014 the clinical intervention performed (phosphate enema, batch Z104, exp 10/2026); (3) Home visit for urgent condition \u2014 the encounter type, cross-referenced by CTV3 code 9NF7 in the note. None of these are currently coded. No safety-critical flags identified. Son Kevin was present and informed; SPA number provided for weekend follow-up.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 2,
+        "input_tokens": 2588,
+        "output_tokens": 1475,
+        "total_tokens": 4063,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "222db589-b00c-42b8-92e2-fa2879c29a87",
+        "date": "2024-01-26",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "08f5eff3-0d90-49d1-98da-2274928a8d76",
+    "patient_id": "4643293950",
+    "date": "2024-01-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276401000000108",
+          "name": "Fast track referral for suspected colorectal cancer (procedure)",
+          "severity": "high",
+          "reason": "The encounter text consistently documents a '2WW lower GI' referral, not a colorectal-specific referral; the more precise and accurate concept is 'Fast track referral for suspected lower gastrointestinal cancer' (892201000000106).",
+          "replace_with_concept_id": "892201000000106",
+          "replace_with_preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The 2WW lower GI cancer referral is correctly captured as a procedure with present assertion, but the coded concept (276401000000108 \u2014 colorectal cancer fast track) is less specific than the documented clinical intent. The encounter text and system entries all refer to 'lower GI cancer', which maps precisely to 892201000000106 ('Fast track referral for suspected lower gastrointestinal cancer'). Note: lookup_concept returned an unreliable/wrong semantic tag for 276401000000108, but search_snomed confirms its preferred term; the replacement is still warranted on specificity grounds.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3103,
+        "output_tokens": 944,
+        "total_tokens": 4047,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "08f5eff3-0d90-49d1-98da-2274928a8d76",
+        "date": "2024-01-26",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f1fc782a-42a4-4e0b-a091-58aaa7491305",
+    "patient_id": "4643293950",
+    "date": "2024-01-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "overflow diarrhoea",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'overflow diarrhoea' as the presenting problem and clinical diagnosis; this is a distinct, more specific finding than constipation alone and should be coded to accurately represent the episode.",
+          "snomed_search": "overflow diarrhoea",
+          "snomed_concept_id": "31499008",
+          "preferred_term": "Chronic constipation with overflow (disorder)",
+          "sentence": "Had overflow diarrhoea, given Enema, Was able to pass stools- no more diarrhoea",
+          "char_start": 130,
+          "char_end": 200
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "385709006",
+          "name": "Enema administration assessment (procedure)",
+          "severity": "medium",
+          "reason": "The note states the patient was 'given Enema' \u2014 this describes the act of administering an enema, not an assessment of enema administration; a more precise code such as 'Giving patient an enema' (61919008) or 'Administration of enema via rectal route' (719908001) better reflects the documented clinical action.",
+          "replace_with_concept_id": "61919008",
+          "replace_with_preferred_term": "Giving patient an enema (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The safety-critical 2WW referral and high FIT result are already coded (UK extension concepts \u2014 terminology server could not verify IDs but they are plausible given the clinical context). The primary presenting diagnosis of overflow diarrhoea (31499008) is missing and should be added as it is the specific clinical finding driving this encounter. The enema code used (385709006 \u2014 'assessment') is a poor fit for the documented action of administering an enema; replacement with 61919008 is recommended. A future colonoscopy/2WW pathway appointment is implied but has not yet occurred so is not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3799,
+        "output_tokens": 1487,
+        "total_tokens": 5286,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "f1fc782a-42a4-4e0b-a091-58aaa7491305",
+        "date": "2024-01-30",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ce94c754-067d-400b-b21e-70d5fa5de8c8",
+    "patient_id": "4643293950",
+    "date": "2024-06-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "699047009",
+          "name": "Duration of antiplatelet therapy (observable entity)",
+          "severity": "medium",
+          "reason": "lookup_concept returned unreliable=true with semantic_tag 'organism', confirming this concept ID is invalid in this context; the coded evidence rationale (antiplatelet therapy without gastroprotection) does not map to an observable entity measuring duration of therapy, and no valid SNOMED concept for 'on antiplatelet without gastroprotection' was returned by search \u2014 this code should be removed and reviewed by a coder.",
+          "replace_with_concept_id": "201111000000104",
+          "replace_with_preferred_term": "Clopidogrel indicated (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The single coded concept (699047009) is unreliable \u2014 the terminology server returns it as an 'organism' concept, making it clinically invalid for this encounter. The core clinical situation (88-year-old on clopidogrel without gastroprotection, lansoprazole initiated) is not correctly captured; the closest available SNOMED situation code is 'Clopidogrel indicated (situation)' [201111000000104] but a human coder should confirm whether a more specific gastroprotection-gap situation code exists in the local extension. Procedure codes for medication counselling and shared decision making are already recorded via Read/CTV3 codes in the consultation template.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5377,
+        "output_tokens": 1285,
+        "total_tokens": 6662,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "ce94c754-067d-400b-b21e-70d5fa5de8c8",
+        "date": "2024-06-11",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "dbd9ba5d-a131-49cb-86ff-abae169f3315",
+    "patient_id": "4643293950",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Both coded concepts (431883007 \u2014 Referral to DVT clinic; 432805000 \u2014 DVT suspected) are confirmed correct by SNOMED search despite unreliable lookup_concept server responses. The remaining note content (home BP monitoring instruction, safety-netting, medication management discussion, clinical supervision header) contains no additional codeable clinical findings within scope. The duplicated template block adds no new clinical information.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3807,
+        "output_tokens": 881,
+        "total_tokens": 4688,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "dbd9ba5d-a131-49cb-86ff-abae169f3315",
+        "date": "2024-11-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "efbcbd74-2894-437a-8fae-73b21eb29765",
+    "patient_id": "4643293950",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "FHx of bowel cancer +",
+          "severity": "critical",
+          "suggested_assertion": "family",
+          "reason": "Family history of bowel cancer is explicitly documented and is a safety-critical risk factor directly relevant to the positive FIT test and missed 2WW referral.",
+          "snomed_search": "family history bowel cancer",
+          "snomed_concept_id": "275109007",
+          "preferred_term": "Family history: Bowel cancer (situation)",
+          "sentence": "FHx of bowel cancer +",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "R/ hallux - erythematous+, non tender, mild oedema",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Erythema and oedema of the right hallux is a distinct clinical finding documented on examination \u2014 potentially representing gout or cellulitis \u2014 and is not captured by any existing code.",
+          "snomed_search": "hallux erythema swelling",
+          "snomed_concept_id": "415692008",
+          "preferred_term": "Swelling of first metatarsophalangeal joint of hallux (disorder)",
+          "sentence": "R/ hallux - erythematous+, non tender, mild oedema +",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "lives by himself",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient lives alone, which is clinically relevant to this encounter \u2014 it directly affects his ability to attend appointments, collect medication, and receive safety-net support.",
+          "snomed_search": "lives alone finding",
+          "snomed_concept_id": "105529008",
+          "preferred_term": "Lives alone (finding)",
+          "sentence": "lives by himself",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "49601007",
+          "name": "Disorder of cardiovascular system (disorder)",
+          "severity": "medium",
+          "reason": "The note documents 'BG of CVD' but gives no specific cardiovascular diagnosis; this broad parent concept should ideally be replaced with a more specific coded disorder (e.g. ischaemic heart disease or cerebrovascular disease) if the underlying condition is known from the problem list.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Three significant coding gaps identified: (1) family history of bowel cancer is safety-critical and entirely absent from the coded list; (2) the right hallux erythema/oedema finding is a distinct clinical observation not captured by any existing code and warrants further clinical assessment (possible gout or cellulitis); (3) the patient living alone is clinically relevant to this encounter's management. The CVD code (49601007) is confirmed as the correct concept ID despite server unreliability on lookup, but should be reviewed for specificity. The non-attendance code (93391000000102) and FIT code (71711000112103) are UK extension codes that could not be fully verified by the terminology server but their clinical intent is appropriate and they should be retained. A future DVT clinic appointment is scheduled for 14/11/24 \u2014 the DVT scan procedure itself has not yet occurred and should not be coded as present at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 13457,
+        "output_tokens": 2576,
+        "total_tokens": 16033,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "efbcbd74-2894-437a-8fae-73b21eb29765",
+        "date": "2024-11-12",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "86abc298-ba5d-4b05-9f67-605d29664ac9",
+    "patient_id": "4643293950",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1078511000000102",
+          "name": "Home visit requested by care home staff (finding)",
+          "severity": "medium",
+          "reason": "The note explicitly states the patient lives alone and is fully independent \u2014 there is no care home involvement; this concept is factually inapplicable and duplicates the already-coded Home visit procedure (439708006).",
+          "replace_with_concept_id": "439708006",
+          "replace_with_preferred_term": "Home visit (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "281792000",
+          "name": "Swollen calf (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "high",
+          "reason": "The note explicitly documents 'No calf swelling'; coding this as present directly contradicts the clinical record and could falsely suggest DVT-positive findings."
+        }
+      ],
+      "confidence": 0.93,
+      "notes": "Three significant coding errors identified: (1) Akatamathesia (53314000) is the wrong concept entirely \u2014 Difficulty mobilizing (302046008) should replace it; (2) Swollen calf (281792000) is coded as present when the note explicitly states 'No calf swelling' \u2014 assertion must be corrected to absent; (3) 'Home visit requested by care home staff' (1078511000000102) is inapplicable as the patient lives alone and is fully independent, and duplicates the correctly-coded Home visit procedure. The pain in lower limb (10601006) and home visit procedure (439708006) codes are appropriate.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5054,
+        "output_tokens": 1470,
+        "total_tokens": 6524,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "86abc298-ba5d-4b05-9f67-605d29664ac9",
+        "date": "2024-11-12",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "936e5e88-14d7-499a-a043-163f7ff46781",
+    "patient_id": "4643293950",
+    "date": "2024-11-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Quantitative faecal immunochemical test abnormal result (63 \u00b5g/g)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The FIT result is explicitly abnormal at 63 \u00b5g/g (above 10 \u00b5g/g threshold); the coded observable entity concept [1049361000000101] is unreliable (terminology server returns 'organism' semantic tag), and the correct finding-level code for a positive FIT by immunoassay should be used instead.",
+          "snomed_search": "faecal immunochemical test",
+          "snomed_concept_id": "71711000112103",
+          "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "sentence": "Quantitative faecal immunochemical test (Xaf0H) 63 ug/g ... Quantitative faecal immunochemical test Report, Abnormal, Need to speak to doctor.",
+          "char_start": 37,
+          "char_end": 75
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1049361000000101",
+          "name": "Quantitative faecal immunochemical test (observable entity)",
+          "severity": "medium",
+          "reason": "Terminology server confirms this concept ID is unreliable (returns semantic tag 'organism'); the observable entity alone does not capture the abnormal result \u2014 replace with the finding-level code for a positive FIT immunoassay result.",
+          "replace_with_concept_id": "71711000112103",
+          "replace_with_preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "134403003",
+          "name": "Urgent referral (procedure)",
+          "severity": "low",
+          "reason": "The specific 2WW lower GI cancer referral is already fully captured by [892201000000106] 'Fast track referral for suspected lower gastrointestinal cancer'; the generic 'Urgent referral' code is redundant and adds no clinical specificity."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW LGI referral, family history of colorectal cancer, and altered bowel function are well coded; however the FIT observable entity concept [1049361000000101] is terminology-server unreliable and should be replaced with the confirmed finding code for a positive FIT immunoassay result (71711000112103). The generic 'Urgent referral' [134403003] is redundant given the specific fast-track LGI code already present. Note: the lab report instructs a digital rectal examination if not already done \u2014 this is a future/planned procedure and has not yet occurred, so it is not coded as present.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4303,
+        "output_tokens": 1546,
+        "total_tokens": 5849,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "936e5e88-14d7-499a-a043-163f7ff46781",
+        "date": "2024-11-14",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "624605af-5d65-47cb-93eb-c7f6952c2c26",
+    "patient_id": "4643293950",
+    "date": "2024-11-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "CKD / eGFR drop < 60",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "eGFR of 53 mL/min/1.73m\u00b2 with the lab report explicitly referencing CKD stages 3a-5 and noting 'eGFR drop < 60' indicates CKD stage 3B; this active diagnosis is not coded.",
+          "snomed_search": "chronic kidney disease stage 3B",
+          "snomed_concept_id": "700379002",
+          "preferred_term": "Chronic kidney disease stage 3B (disorder)",
+          "sentence": "Urea and electrolytes Report, Borderline, Need to repeat test: eGFR drop < 60.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Serum urea 12.6 mmol/L - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum urea is explicitly flagged as outside the reference range (12.6 mmol/L vs 2.5\u20137.8) and the lab report is marked Borderline; the abnormal result finding should be coded.",
+          "snomed_search": "urea above reference range",
+          "snomed_concept_id": "1179462007",
+          "preferred_term": "Blood urea above reference range (finding)",
+          "sentence": "Serum urea level (XM0lt) 12.6 mmol/L [2.5 - 7.8] - Outside reference range",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "668381000000100",
+          "name": "Anemia unspecified (disorder)",
+          "severity": "medium",
+          "reason": "lookup_concept returned semantic_tag='organism' (unreliable/corrupt concept ID); the correct SNOMED concept for unspecified anaemia is 271737000 'Anemia (disorder)'.",
+          "replace_with_concept_id": "271737000",
+          "replace_with_preferred_term": "Anemia (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW LGI referral [892201000000106] is correctly coded and confirmed by search despite an unreliable lookup response. The anaemia concept ID [668381000000100] appears corrupt (terminology server returns 'organism' semantic tag) and should be replaced with [271737000]. CKD stage 3B is clinically implied by eGFR 53 and the explicit lab commentary but is not coded; the raised urea (outside reference range) also warrants a finding code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11465,
+        "output_tokens": 1917,
+        "total_tokens": 13382,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "624605af-5d65-47cb-93eb-c7f6952c2c26",
+        "date": "2024-11-18",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d4db38e1-b8df-41ad-adf4-b3004c509745",
+    "patient_id": "4643293950",
+    "date": "2024-11-18",
+    "result": {
+      "encounter_assessment": "coded",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "All four coded concepts are clinically justified and confirmed by the SNOMED terminology server: anaemia (Hb 115 g/L below male reference range), 2WW LGI suspected malignancy situation, fast-track LGI referral procedure, and quantitative FIT observable entity (pending). The lookup_concept tool returned unreliable/corrupted results for all four IDs, but search_snomed independently confirmed each concept ID with correct semantic tags and high scores. No additional codeable findings are present \u2014 the anticoagulant mention is a medication context note (not a new diagnosis), and all FBC indices outside reference range are already captured under the anaemia code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5796,
+        "output_tokens": 1225,
+        "total_tokens": 7021,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "d4db38e1-b8df-41ad-adf4-b3004c509745",
+        "date": "2024-11-18",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bbc7631f-ba10-4727-8205-a4fdb7669d79",
+    "patient_id": "4643293950",
+    "date": "2024-11-20",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "This encounter is purely administrative \u2014 a medical secretary access-role entry logging the creation and status update of a 2WW lower GI fast-track referral, with no clinical narrative, symptoms, examination, or GP assessment present. The two existing codes (315274008 suspected lower GI malignancy; 892201000000106 fast track referral procedure) are both valid SNOMED concepts confirmed by search and are appropriate standing codes for cancer tracking and QOF purposes; they must not be removed on the basis of this admin-only note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3579,
+        "output_tokens": 953,
+        "total_tokens": 4532,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "bbc7631f-ba10-4727-8205-a4fdb7669d79",
+        "date": "2024-11-20",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6e5ca321-d95d-4c96-ae35-f2ef4c54804b",
+    "patient_id": "4643293950",
+    "date": "2024-11-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Faecal Calprotectin",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Faecal calprotectin is explicitly requested as a pathology investigation (listed under 'Pathology Request: Awaiting Sample') and should be coded as an ordered investigation.",
+          "snomed_search": "faecal calprotectin",
+          "snomed_concept_id": "1002571000000102",
+          "preferred_term": "Faecal calprotectin content (observable entity)",
+          "sentence": "Pathology Request (Awaiting Sample): Faecal Calprotectin (Postponed)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Stool culture",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Stool culture is explicitly requested in the plan and listed under pathology requests (Awaiting Sample) as part of the investigation for persistent diarrhoea.",
+          "snomed_search": "stool culture",
+          "snomed_concept_id": "117028002",
+          "preferred_term": "Stool culture (procedure)",
+          "sentence": "no stool culture done or calprotectin , will request this as well and also resend FIT request as been >1 week not received the kit by post.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "overflow diarrhoea (historical)",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The note explicitly references a prior episode of overflow diarrhoea ('doesnt seem blocked/constipated like last time and had overflow diarrhoea'), which is a clinically relevant historical finding distinguishing the current presentation.",
+          "snomed_search": "overflow diarrhoea",
+          "snomed_concept_id": "236071009",
+          "preferred_term": "Chronic diarrhea (disorder)",
+          "sentence": "says not c/o of any abdominal discomfort, doesnt seem blocked/ constipated like last time and had overflow diarrhoea.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "referral to incontinence nurses declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The son explicitly declined the offered referral to incontinence nurses on the patient's behalf; declined interventions should be coded to document the clinical decision.",
+          "snomed_search": "referral declined by patient",
+          "snomed_concept_id": "440621003",
+          "preferred_term": "Referral declined by patient (situation)",
+          "sentence": "offered referral to incontinece nurses to review and manage if pt is in bed and soiling, but son declined this and said waht he needs is someone to try and treat the diarrhoea.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The three existing codes (FIT, chronic diarrhoea, frailty) are all confirmed correct and well-evidenced. Key gaps are the two explicitly requested investigations (faecal calprotectin and stool culture), a historical overflow diarrhoea episode referenced in the note, and a declined referral to incontinence nurses. Note: a colorectal referral and DRE are discussed but are future/planned \u2014 these should not be coded as present procedures at this stage but should be actioned when completed. The overflow diarrhoea historical code may already exist on the problem list; if so, the historical flag can be disregarded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 12420,
+        "output_tokens": 2487,
+        "total_tokens": 14907,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "6e5ca321-d95d-4c96-ae35-f2ef4c54804b",
+        "date": "2024-11-22",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d7e6eec5-f60d-4414-b283-2d790839ced9",
+    "patient_id": "4643293950",
+    "date": "2024-11-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "59614000",
+          "name": "Occult blood detected in feces (finding)",
+          "severity": "medium",
+          "reason": "A more specific immunoassay-specific concept exists for a FIT result; the generic faecal occult blood finding should be replaced with the immunochemical-method-specific equivalent.",
+          "replace_with_concept_id": "71711000112103",
+          "replace_with_preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW referral (276401000000108) and FIT observable entity (1049361000000101) are correctly coded and clinically evidenced by the note. The faecal occult blood finding (59614000) is valid but insufficiently specific \u2014 the FIT is an immunochemical assay and SNOMED contains the more precise child concept 71711000112103 'Occult blood detected in feces by immunoassay'. Note: the encounter text indicates the patient had not returned a new FIT kit, but a prior FIT result of 63 \u00b5g Hb/g had already triggered the 2WW referral; the coding correctly reflects that prior positive result and referral.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7512,
+        "output_tokens": 1402,
+        "total_tokens": 8914,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "d7e6eec5-f60d-4414-b283-2d790839ced9",
+        "date": "2024-11-22",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b7f43099-af53-4ebe-b051-d478705408f8",
+    "patient_id": "4643293950",
+    "date": "2024-12-03",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists entirely of medical secretary access-role and choice-and-booking administration lines with no clinical narrative; the standing code 315274008 (Malignant neoplasm of lower gastrointestinal tract suspected) is clinically appropriate for the 2WW lower GI referral and must not be removed on the basis of this admin-only note. Note: lookup_concept returned an unreliable substance tag for 315274008, but search_snomed confirms it is the correct situation concept \u2014 the lookup result should be disregarded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 2073,
+        "output_tokens": 715,
+        "total_tokens": 2788,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "b7f43099-af53-4ebe-b051-d478705408f8",
+        "date": "2024-12-03",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ba4c64ce-8419-4a8c-8f01-7a5b2259eb81",
+    "patient_id": "4643293950",
+    "date": "2024-12-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "decreased appetite",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'appetite not as good as it used to be' \u2014 reduced appetite is a clinically relevant symptom in the context of the lower GI 2WW referral and should be coded.",
+          "snomed_search": "decreased appetite",
+          "snomed_concept_id": "64379006",
+          "preferred_term": "Decrease in appetite (finding)",
+          "sentence": "appetite not as good as it used to be, but does eat meals.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "72011007",
+          "name": "Rheumatic aortic stenosis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The clinician documents 'likely AS' (i.e. suspected, not confirmed), and there is no evidence of rheumatic aetiology in the note; the code should be replaced with the non-specific parent 60573004 'Aortic valve stenosis (disorder)' with assertion=possible to reflect the working diagnosis accurately."
+        }
+      ],
+      "confidence": 0.87,
+      "notes": "The encounter is clinically rich and mostly well coded, but two concept-level issues require correction: (1) 72011007 'Rheumatic aortic stenosis' is both the wrong subtype (no rheumatic aetiology documented) and the wrong assertion (clinician says 'likely AS' \u2014 should be possible); replace with 60573004 'Aortic valve stenosis' assertion=possible. (2) 232289002 'Multisensory dizziness' is an unverifiable concept ID (Extension Namespace); replace with confirmed 404640003 'Dizziness (finding)'. Two additions are also needed: decreased appetite (64379006) and DVT excluded (1141709008), both explicitly documented in the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 16433,
+        "output_tokens": 2414,
+        "total_tokens": 18847,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "ba4c64ce-8419-4a8c-8f01-7a5b2259eb81",
+        "date": "2024-12-09",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b69e286b-4f83-43af-985d-0415fa9988b0",
+    "patient_id": "4643293950",
+    "date": "2024-12-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "bowel ca under investigation",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The note explicitly states the patient is under investigation for bowel cancer \u2014 a safety-critical finding that must be coded correctly; the current code 315270004 maps to kidney (wrong site) and must be replaced with the bowel/intestinal suspected malignancy concept.",
+          "snomed_search": "suspected bowel cancer",
+          "snomed_concept_id": "315274008",
+          "preferred_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+          "sentence": "Patient's son reported that patient is due to have x ray on knee and is under investigations for bowel ca.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "recurrent falls suspected",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The son confirms one fall has occurred and suspects further falls, making 'Recurrent falls' (279992002) more clinically accurate than the generic fall event code currently used.",
+          "snomed_search": "recurrent falls",
+          "snomed_concept_id": "279992002",
+          "preferred_term": "Recurrent falls (finding)",
+          "sentence": "Patient's son advised that he suspects patient has had more falls.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "315270004",
+          "name": "Malignant neoplasm of kidney suspected (situation)",
+          "severity": "critical",
+          "reason": "Concept ID 315270004 resolves to a non-clinical concept (returned as 'substance' by the terminology server) and does not represent bowel cancer; the note documents investigation for bowel cancer, not kidney malignancy \u2014 this is a wrong-site coding error.",
+          "replace_with_concept_id": "315274008",
+          "replace_with_preferred_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Critical coding error: the suspected malignancy has been coded to concept 315270004 which resolves incorrectly (kidney/substance) rather than the documented bowel cancer under investigation \u2014 this must be corrected to 315274008 (Malignant neoplasm of lower gastrointestinal tract suspected) as a safety-critical priority. Additionally, given the son's report of multiple falls, upgrading from a single fall event to 'Recurrent falls' (279992002) would better reflect the clinical picture; diarrhoea (62315008) and knee arthritis (371081002) are appropriately coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5227,
+        "output_tokens": 1526,
+        "total_tokens": 6753,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "b69e286b-4f83-43af-985d-0415fa9988b0",
+        "date": "2024-12-11",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7700341a-42dc-4ed4-98c9-830d1df9d5e4",
+    "patient_id": "4643293950",
+    "date": "2024-12-24",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "29fbd8ce-744e-42b7-a6f3-f89c7625be06",
+    "patient_id": "4643293950",
+    "date": "2024-12-27",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "vascular calcifications",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vascular calcifications are explicitly noted as a distinct incidental radiological finding on the right knee X-ray, separate from the OA changes, and are clinically relevant as a potential marker of peripheral vascular disease.",
+          "snomed_search": "vascular calcification",
+          "snomed_concept_id": "237897009",
+          "preferred_term": "Vascular calcification (disorder)",
+          "sentence": "Vascular calcifications are noted.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The two existing codes (Osteoarthritis of knee 239873007 and Knee joint effusion 202381003) are both confirmed correct by SNOMED search \u2014 lookup_concept returned unreliable/corrupted results for both but search independently validated the concept IDs. One additional finding is missing: vascular calcifications (237897009) are explicitly documented in the radiology report as a distinct incidental finding and should be coded. The enthesophyte at the quadriceps tendon insertion could not be resolved to a specific SNOMED disorder concept and has been omitted per protocol.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7580,
+        "output_tokens": 1331,
+        "total_tokens": 8911,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "29fbd8ce-744e-42b7-a6f3-f89c7625be06",
+        "date": "2024-12-27",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "85e18c4f-679c-459f-8eec-a2bf3d3d99dd",
+    "patient_id": "4643293950",
+    "date": "2025-01-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "package of care declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states 'package of care both declined at present', which is a clinically and legally significant situation requiring coding for care planning and safeguarding purposes.",
+          "snomed_search": "local authority care package",
+          "snomed_concept_id": "828961000000108",
+          "preferred_term": "Local authority care package declined (situation)",
+          "sentence": "Accepting help from other family members, touched on package of care both declined at present.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The existing code 377301000000106 (Lacks capacity to give consent, Mental Capacity Act 2005) is clinically appropriate and confirmed by search_snomed despite the terminology server returning an unreliable lookup result; it should be retained. The explicit refusal of a package of care by the patient/family is missing from the coded list and warrants a 'declined' situation code. Skin findings are normal/negative and the pending X-ray has no result yet \u2014 neither requires coding at this stage.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 6245,
+        "output_tokens": 1163,
+        "total_tokens": 7408,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "85e18c4f-679c-459f-8eec-a2bf3d3d99dd",
+        "date": "2025-01-08",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e123475f-c8bc-4a0a-bca4-31462d2cb5fa",
+    "patient_id": "4643293950",
+    "date": "2025-06-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Medication review without patient",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents a medication review conducted without the patient present (via telephone with patient's son), which is a codeable procedure distinct from the generic 'medication review done' finding already in the summary.",
+          "snomed_search": "medication review without patient",
+          "snomed_concept_id": "391156007",
+          "preferred_term": "Medication review without patient (procedure)",
+          "sentence": "Medication review without patient (XaIVl) spoke with pts son",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "413213005",
+          "name": "Ulcerogenic deformed duodenum (disorder)",
+          "severity": "medium",
+          "reason": "The note documents PPI use for gastroprotection because the patient is taking clopidogrel (an ulcerogenic drug), not that the patient has a structurally deformed duodenum caused by ulceration; this disorder code is not evidenced by the encounter text.",
+          "replace_with_concept_id": "710814002",
+          "replace_with_preferred_term": "Long-term current use of drug therapy (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The housebound finding (160689007) and Cockcroft-Gault observable entity (1556501000000100) are correctly coded and well-evidenced. However, 413213005 'Ulcerogenic deformed duodenum' is a clear miscoding \u2014 the note describes gastroprotection indication due to clopidogrel use, not a structural duodenal deformity; a long-term drug therapy situation code (or a more specific 'long-term current use of antiplatelet drug' concept) would better represent the clinical intent. The explicitly documented medication review without patient (391156007) should also be added.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11589,
+        "output_tokens": 1675,
+        "total_tokens": 13264,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "e123475f-c8bc-4a0a-bca4-31462d2cb5fa",
+        "date": "2025-06-02",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "07b387e8-7e13-4686-988e-9da5ea3f9a54",
+    "patient_id": "4643293950",
+    "date": "2025-07-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "text": "Urea and electrolytes",
+          "snomed_concept_id": "252167001",
+          "preferred_term": "Measurement of urea and electrolytes (procedure)",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "severity": "medium",
+          "action": "add",
+          "reason": "U&E panel was performed and auto-filed; the procedure itself should be coded.",
+          "sentence": "Urea and electrolytes (X77Wi)",
+          "char_start": 26,
+          "char_end": 47
+        },
+        {
+          "text": "Serum urea level 12.8 mmol/L - Outside reference range",
+          "snomed_concept_id": "1179462007",
+          "preferred_term": "Blood urea above reference range (finding)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "severity": "high",
+          "action": "add",
+          "reason": "Serum urea 12.8 mmol/L is explicitly flagged as outside the reference range (2.5\u20137.8 mmol/L); this is a clinically significant abnormal result requiring coding.",
+          "sentence": "Serum urea level (XM0lt) 12.8 mmol/L [2.5 - 7.8] - Outside reference range",
+          "char_start": 130,
+          "char_end": 205
+        },
+        {
+          "text": "eGFR using creatinine (CKD-EPI) 64 mL/min with CKD guidance",
+          "snomed_concept_id": "700378005",
+          "preferred_term": "Chronic kidney disease stage 3A (disorder)",
+          "semantic_tag": "disorder",
+          "assertion": "possible",
+          "severity": "high",
+          "action": "add",
+          "reason": "eGFR of 64 mL/min/1.73m\u00b2 falls in the CKD stage 3a range (45\u201359 is 3b; 60\u201389 is 3a). The embedded report text explicitly references CKD stages 3a\u20135, recommends annual urine ACR, and directs use of the KFRE tool \u2014 all standard CKD 3a management guidance. CKD stage 3a should be coded as 'possible' pending confirmation with a second eGFR reading and urine ACR, unless already on the problem list.",
+          "sentence": "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 64 mL/min",
+          "char_start": 206,
+          "char_end": 280
+        }
+      ],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Auto-filed U&E result with three codeable findings missing: (1) the U&E procedure itself; (2) raised serum urea 12.8 mmol/L (ref 2.5\u20137.8), explicitly flagged outside reference range; (3) eGFR 64 mL/min/1.73m\u00b2 in the CKD stage 3a range \u2014 the embedded report body includes NICE CKD 3a\u20135 guidance (annual ACR, KFRE tool), strongly indicating CKD 3a as the clinical context. CKD 3a coded as 'possible' pending second eGFR confirmation and urine ACR unless already on the problem list. Sodium, potassium, and creatinine are all within reference range and do not require coding. Report marked 'Satisfactory, No Further Action' by Dr Saleem but the abnormal urea and reduced eGFR remain clinically codeable.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5688,
+        "output_tokens": 2029,
+        "total_tokens": 7717,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "07b387e8-7e13-4686-988e-9da5ea3f9a54",
+        "date": "2025-07-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4d951249-7f84-4844-8f54-1b0a0476df39",
+    "patient_id": "4643293950",
+    "date": "2025-07-01",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "134403003",
+          "name": "Urgent referral (procedure)",
+          "severity": "high",
+          "reason": "lookup_concept returned unreliable for this ID; search_snomed confirms the correct specific code for a 2WW lower GI / colorectal cancer referral is 276401000000108 'Fast track referral for suspected colorectal cancer'.",
+          "replace_with_concept_id": "276401000000108",
+          "replace_with_preferred_term": "Fast track referral for suspected colorectal cancer (procedure)",
+          "replace_with_assertion": "historical"
+        },
+        {
+          "conceptId": "225952006",
+          "name": "Preparation of patient for investigation (regime/therapy)",
+          "severity": "critical",
+          "reason": "The note documents the patient declining all invasive investigations/procedures following the 2WW pathway \u2014 this is a patient refusal (declined assertion), not a preparation regime; the correct code is 440621003 'Referral declined by patient (situation)' with assertion=declined, which is safety-critical for the medicolegal record.",
+          "replace_with_concept_id": "440621003",
+          "replace_with_preferred_term": "Referral declined by patient (situation)",
+          "replace_with_assertion": "declined"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two significant coding errors found: (1) the 2WW referral is coded with a generic/unreliable 'Urgent referral' concept \u2014 it should be the specific 'Fast track referral for suspected colorectal cancer' with assertion=historical since the referral is past; (2) the patient's refusal of invasive investigations is critically miscoded as a 'Preparation for investigation' regime/therapy \u2014 it must be coded as 'Referral declined by patient' with assertion=declined to create a proper medicolegal safety-net record. The FIT positive (71711000112103) and anaemia (271737000) codes are confirmed correct despite lookup_concept server inconsistencies.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9401,
+        "output_tokens": 1769,
+        "total_tokens": 11170,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4643293950",
+        "encounter_id": "4d951249-7f84-4844-8f54-1b0a0476df39",
+        "date": "2025-07-01",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  }
+]

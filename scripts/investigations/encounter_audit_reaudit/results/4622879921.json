@@ -1,0 +1,1161 @@
+[
+  {
+    "encounter_id": "bc92719b-5c2d-479d-adcb-e023e8b0b664",
+    "patient_id": "4622879921",
+    "date": "2024-01-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Family history of ischaemic heart disease (Mother)",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly records a family history of ischaemic heart disease with the subject identified as the patient's mother; this situation should be coded.",
+          "snomed_search": "family history ischaemic heart disease",
+          "snomed_concept_id": "297242006",
+          "preferred_term": "Family history of ischemic heart disease (situation)",
+          "sentence": "Family history of ischaemic heart disease (Xa6aj) - Subject: Mother",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "FH: Myocardial infarction (Brother)",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly records a family history of myocardial infarction with the subject identified as the patient's brother; this situation should be coded.",
+          "snomed_search": "family history myocardial infarction",
+          "snomed_concept_id": "266897007",
+          "preferred_term": "Family history: Myocardial infarction (situation)",
+          "sentence": "FH: Myocardial infarction (XE0oI) - Subject: Brother",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Rash",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rash is documented twice in the encounter text (once as a standalone entry and once within the letter content) and is not captured in the coded list.",
+          "snomed_search": "rash skin eruption",
+          "snomed_concept_id": "271807003",
+          "preferred_term": "Eruption of skin (disorder)",
+          "sentence": "Rash - Rash / Original text: Rash",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Examination of breast",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "A breast examination is explicitly documented as performed during this encounter and should be coded as a procedure.",
+          "snomed_search": "examination of breast",
+          "snomed_concept_id": "46662001",
+          "preferred_term": "Examination of breast (procedure)",
+          "sentence": "Examination of breast (XB002)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a GP2GP-imported breast clinic letter with several coding gaps: two family history cardiovascular situations (mother: IHD; brother: MI) are unrecorded, a rash documented twice in the letter body is uncoded, and the breast examination procedure is missing. The existing 7 codes are clinically appropriate; note that concept 89164003 (Breast lump) returned as unreliable from the terminology server but is retained per audit rules as the clinical term is consistent with the note text.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5430,
+        "output_tokens": 1729,
+        "total_tokens": 7159,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "bc92719b-5c2d-479d-adcb-e023e8b0b664",
+        "date": "2024-01-19",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e1176214-e2cc-4660-bff1-b1b1ffe177a6",
+    "patient_id": "4622879921",
+    "date": "2024-04-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "low blood pressure",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states 'usually her BP on low side', indicating a recognised background finding of hypotension that is clinically relevant to the vertigo presentation and management plan.",
+          "snomed_search": "low blood pressure",
+          "snomed_concept_id": "45007003",
+          "preferred_term": "Low blood pressure (disorder)",
+          "sentence": "do bloods, BP check ussually her BP on low side,",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Vertigo (399153001) is correctly coded as present \u2014 lookup_concept returned an unreliable/conflicting result (substance tag) but search_snomed confirms this is the correct concept ID for Vertigo (finding). The clinically relevant background finding of low blood pressure, explicitly noted as influencing management, is missing from the coded list. Nausea was transient and self-resolved within the episode and is of low additional coding value.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3550,
+        "output_tokens": 1068,
+        "total_tokens": 4618,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "e1176214-e2cc-4660-bff1-b1b1ffe177a6",
+        "date": "2024-04-10",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a7cca75a-4b36-44d2-91a0-38c5a71f95f8",
+    "patient_id": "4622879921",
+    "date": "2024-04-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Full blood count",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The FBC procedure is explicitly documented as performed and results are present; the procedure code is within SNOMED scope and not covered by the structured lab observable pipeline.",
+          "snomed_search": "full blood count",
+          "snomed_concept_id": "26604007",
+          "preferred_term": "Complete blood count (procedure)",
+          "sentence": "Full blood count (424..) / Full blood count - FBC Report",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "399153001",
+          "name": "Vertigo (finding)",
+          "severity": "low",
+          "reason": "lookup_concept returned an unreliable result (substance tag) for this concept ID, but search_snomed confirms 399153001 = 'Vertigo (finding)' \u2014 the code is correct and the assertion is appropriate; no overcoding. NOTE: This entry is informational only \u2014 the code should be RETAINED.",
+          "replace_with_concept_id": "399153001",
+          "replace_with_preferred_term": "Vertigo (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a GP2GP lab import of a normal FBC with a brief clinical annotation noting vertigo; the vertigo code (399153001) is confirmed correct by search_snomed despite an unreliable lookup_concept response, and all seven coded concepts are appropriate. The only minor gap is the absence of the FBC procedure code (26604007), which is low severity as structured lab pipelines often handle this. The 'not on thyroid medication' annotation has no suitable SNOMED codeable equivalent in scope.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11013,
+        "output_tokens": 2047,
+        "total_tokens": 13060,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "a7cca75a-4b36-44d2-91a0-38c5a71f95f8",
+        "date": "2024-04-19",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2ba15616-253f-4ba4-9ce3-caf6ca5c0561",
+    "patient_id": "4622879921",
+    "date": "2024-04-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "iron deficiency",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The letter explicitly states ferritin is reduced and issues an iron supplement prescription, indicating active iron deficiency which should be coded as a disorder rather than leaving only the lab finding.",
+          "snomed_search": "iron deficiency",
+          "snomed_concept_id": "35240004",
+          "preferred_term": "Iron deficiency (disorder)",
+          "sentence": "Your recent blood test showed that your ferritin levels were reduced. This is a common issue that can be treated by taking iron supplements.",
+          "char_start": 290,
+          "char_end": 430
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "438641000124100",
+          "name": "Iron supplement (substance)",
+          "severity": "medium",
+          "reason": "Substance codes (semantic tag: substance) are outside the permitted SNOMED coding scope for clinical encounters; the clinical condition (iron deficiency disorder) should be coded instead, and individual drug/supplement names belong in the medication record.",
+          "replace_with_concept_id": "35240004",
+          "replace_with_preferred_term": "Iron deficiency (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The ferritin finding code (126121000119104) is valid and correctly asserted despite an unreliable terminology server lookup \u2014 SNOMED search confirms it is the correct concept. The iron supplement substance code (438641000124100) is out of scope (semantic tag: substance) and should be replaced with the active disorder 'Iron deficiency (disorder)' 35240004, which is directly evidenced by the reduced ferritin and the issued prescription. The planned repeat blood test in 2\u20133 months is a future procedure and should not be coded as present at this encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 3204,
+        "output_tokens": 1233,
+        "total_tokens": 4437,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "2ba15616-253f-4ba4-9ce3-caf6ca5c0561",
+        "date": "2024-04-26",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8de57736-10fe-4237-8507-0a15f719e944",
+    "patient_id": "4622879921",
+    "date": "2024-05-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "nausea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents active nausea ('has been feeling nauseated') as a current symptom distinct from vomiting, which is absent \u2014 this is a codeable active finding.",
+          "snomed_search": "nausea",
+          "snomed_concept_id": "422587007",
+          "preferred_term": "Nausea (finding)",
+          "sentence": "has been feeling nauseated but no episode of sickness",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "386465007",
+          "name": "Prescribed medication education (procedure)",
+          "severity": "low",
+          "reason": "The evidence cited is the Prochlorperazine prescription, which belongs in the medication record per coding rules; the note does not document a formal medication education session, and the Brandt-Daroff exercise advice is a separate clinical action for which no specific SNOMED procedure code was resolvable."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "BPPV is correctly coded as the primary diagnosis and the BP observable is appropriate. Nausea is an explicitly documented active symptom that should be coded separately from BPPV. The 'Prescribed medication education' procedure code is not well-supported by the note text \u2014 the prescription itself belongs in the medication record, and no specific SNOMED code for Brandt-Daroff exercise advice was resolvable. Note: all three lookup_concept calls returned unreliable/wrong semantic tags from the terminology server; concept validity was cross-checked via search_snomed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6629,
+        "output_tokens": 1522,
+        "total_tokens": 8151,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "8de57736-10fe-4237-8507-0a15f719e944",
+        "date": "2024-05-22",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "84dc7090-d7d5-4ae1-a787-6d34405d3e8f",
+    "patient_id": "4622879921",
+    "date": "2024-10-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "sickness episodes",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents recurrent sickness/nausea episodes occurring with vertigo episodes in the mornings, which is a clinically relevant associated symptom not currently coded.",
+          "snomed_search": "nausea and vomiting",
+          "snomed_concept_id": "16932000",
+          "preferred_term": "Nausea and vomiting (disorder)",
+          "sentence": "she gets sickness episodes more in the mornings with her vertigo episodes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "always she has lower BP",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The GP explicitly notes the patient chronically has low blood pressure (BP 95/62 today), making hypotension a standing clinical finding that should be coded.",
+          "snomed_search": "low blood pressure",
+          "snomed_concept_id": "45007003",
+          "preferred_term": "Low blood pressure (disorder)",
+          "sentence": "her BP 95/62  today-always she has lower BP.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "183829003",
+          "name": "Referral for imaging (procedure)",
+          "severity": "medium",
+          "reason": "lookup_concept returned this concept ID as semantic tag 'qualifier value' (preferred term 'An 7705'), not a procedure \u2014 this is an incorrect or invalid concept ID for a referral procedure; the note documents a head scan referral but no verified SNOMED procedure concept was found to replace it with confidence.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Two significant concept ID errors are present: [186738001] is an unreliable Extension Namespace placeholder coded as 'Epidemic vertigo' when the note supports only non-specific vertigo [399153001], and [183829003] resolves to a qualifier value rather than a valid procedure code for the head scan referral. Additionally, the explicitly documented nausea/sickness episodes and the clinician's statement of chronic low blood pressure are both uncoded active findings.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5773,
+        "output_tokens": 1663,
+        "total_tokens": 7436,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "84dc7090-d7d5-4ae1-a787-6d34405d3e8f",
+        "date": "2024-10-02",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bd16377a-864a-4d17-b25d-10cd7876212e",
+    "patient_id": "4622879921",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Vertigo",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Vertigo is listed explicitly under PMHx and should be coded as a historical finding.",
+          "snomed_search": "vertigo",
+          "snomed_concept_id": "399153001",
+          "preferred_term": "Vertigo (finding)",
+          "sentence": "PMhx Vertigo",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Intolerance to Codeine",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Codeine intolerance causing dizziness is explicitly documented and is a clinically important drug intolerance that must be coded for patient safety.",
+          "snomed_search": "intolerance to drug",
+          "snomed_concept_id": "59037007",
+          "preferred_term": "Intolerance to drug (finding)",
+          "sentence": "Intolerance to Codeine - causes dizziness",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Caesarean section",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient reports one delivery by Caesarean section (breach); this is a relevant obstetric history that should be coded as a historical procedure.",
+          "snomed_search": "caesarean section",
+          "snomed_concept_id": "11466000",
+          "preferred_term": "Cesarean section (procedure)",
+          "sentence": "2 children - 1 natural and 1 C-section (breach)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "89164003",
+          "name": "Breast lump (finding)",
+          "severity": "low",
+          "reason": "This generic bilateral breast lump code is redundant given that laterality-specific codes for mass of left breast (12240181000119103) and mass of right breast (12240221000119106) are already coded, providing greater clinical precision.",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The safety-critical 2WW breast referral and laterality-specific breast mass codes are correctly captured. Key issues are: (1) the generic 'Breast lump' code is redundant given the laterality-specific codes; (2) the menopause concept should be the finding 'Menopause present' (289903006) rather than the observable entity; (3) Codeine intolerance (a patient safety item), Vertigo (PMHx), and a historical Caesarean section are all missing from the coded list. Terminology server returned unreliable lookups for several concept IDs, but search results confirmed their validity.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 6,
+        "input_tokens": 16599,
+        "output_tokens": 2681,
+        "total_tokens": 19280,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "bd16377a-864a-4d17-b25d-10cd7876212e",
+        "date": "2024-12-02",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d87301af-5fef-4f3c-b0dd-351aaf4b4740",
+    "patient_id": "4622879921",
+    "date": "2024-12-16",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Mammography Laterality: Bilateral",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Bilateral mammography is explicitly documented as a procedure performed at the breast clinic appointment and has not been coded.",
+          "snomed_search": "mammography bilateral breasts",
+          "snomed_concept_id": "43204002",
+          "preferred_term": "Mammography of bilateral breasts (procedure)",
+          "sentence": "Mammogram (537..) Original text: Mammography Laterality: Bilateral",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Seen in breast clinic",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Attendance at breast clinic is explicitly recorded in the imported record (code 9N1y9) and represents a clinically relevant care setting finding that should be captured.",
+          "snomed_search": "seen in breast clinic",
+          "snomed_concept_id": "185271006",
+          "preferred_term": "Seen in breast clinic (finding)",
+          "sentence": "Seen in breast clinic (9N1y9)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "The four existing codes (breast lump, fibroadenoma, breast cyst, ultrasonography) are confirmed correct by search_snomed despite unreliable lookup server responses \u2014 these should be retained. Two procedures/findings from the imported breast clinic letter are missing: bilateral mammography (a procedure that was performed) and 'Seen in breast clinic' (a care setting finding). Note also a potential laterality discrepancy: the ultrasound is documented as right breast, while the lump and cyst are coded as left \u2014 this appears to reflect two separate investigations and is consistent with a triple assessment, but the right-breast ultrasound laterality is not explicitly captured in the procedure code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6770,
+        "output_tokens": 1621,
+        "total_tokens": 8391,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "d87301af-5fef-4f3c-b0dd-351aaf4b4740",
+        "date": "2024-12-16",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b1fcd236-2448-4912-a1de-4179e462c56e",
+    "patient_id": "4622879921",
+    "date": "2025-01-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two presenting-complaint codes (Dyspnea 267036007 and Does cough 289114008) are confirmed as legitimate SNOMED finding concepts via search, despite the terminology server returning unreliable lookup results for both IDs. Blood pressure and NEWS2 component values are structured pipeline observables and are correctly excluded from manual coding. No clinical diagnoses, procedures, or red-flag findings are documented in this triage note, so no additions are required.",
+      "entities": [],
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5293,
+        "output_tokens": 997,
+        "total_tokens": 6290,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "b1fcd236-2448-4912-a1de-4179e462c56e",
+        "date": "2025-01-08",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7c5e9273-5e17-4628-9a3e-18b212b926cb",
+    "patient_id": "4622879921",
+    "date": "2025-01-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Nasal congestion",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Nasal congestion is explicitly documented as a presenting symptom but has not been coded.",
+          "snomed_search": "nasal congestion",
+          "snomed_concept_id": "68235000",
+          "preferred_term": "Nasal congestion (finding)",
+          "sentence": "Nasal congestion.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Sore throat",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Mildly sore throat is explicitly documented as a presenting symptom but has not been coded.",
+          "snomed_search": "sore throat",
+          "snomed_concept_id": "267102003",
+          "preferred_term": "Sore throat (finding)",
+          "sentence": "Mildly sore throat.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "29857009",
+          "name": "Chest pain (finding)",
+          "severity": "low",
+          "reason": "Generic chest pain is redundant given that the more specific 'Pleuritic pain' (2237002) is already coded and fully accounts for the chest pain described in the note (sharp, worse on deep breathing and coughing).",
+          "replace_with_concept_id": "",
+          "replace_with_preferred_term": ""
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is largely of good quality with appropriate capture of the primary diagnosis (viral URTI), pleuritic chest pain, and key symptoms; however, two explicitly documented presenting symptoms \u2014 nasal congestion and sore throat \u2014 are absent from the coded list. Generic chest pain (29857009) is redundant alongside the more specific pleuritic pain (2237002) and should be retired in favour of the specific code.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7709,
+        "output_tokens": 1731,
+        "total_tokens": 9440,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "7c5e9273-5e17-4628-9a3e-18b212b926cb",
+        "date": "2025-01-08",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1e15d1a5-b14a-484c-8af2-6b43f662dddc",
+    "patient_id": "4622879921",
+    "date": "2025-01-08",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Nasal congestion",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Nasal congestion is explicitly documented in the encounter note (Read code X00hh) but has not been captured in the SNOMED coded list.",
+          "snomed_search": "nasal congestion",
+          "snomed_concept_id": "68235000",
+          "preferred_term": "Nasal congestion (finding)",
+          "sentence": "Nasal congestion (X00hh)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Sore throat",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Sore throat is recorded as a transfer-degraded entry with original text 'Sore throat' and is a clinically relevant symptom of the diagnosed URTI, but is absent from the coded list.",
+          "snomed_search": "sore throat",
+          "snomed_concept_id": "267102003",
+          "preferred_term": "Sore throat (finding)",
+          "sentence": "Transfer-degraded record entry (XaLGM) - Original text: Sore throat",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The core coding is of good quality \u2014 all major findings (URTI, chest pain, cough, dyspnoea, fatigue, headache, pallor, cervical lymphadenopathy, ECG) are correctly captured. Two minor symptom findings \u2014 nasal congestion (explicitly coded in the source Read code X00hh) and sore throat (transfer-degraded original text) \u2014 are missing from the SNOMED coded list; both are low-severity additions consistent with the URTI presentation. Concept IDs 29857009, 127086001, and 54150009 returned unreliable lookup results but were confirmed as correct via search_snomed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6754,
+        "output_tokens": 1482,
+        "total_tokens": 8236,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "1e15d1a5-b14a-484c-8af2-6b43f662dddc",
+        "date": "2025-01-08",
+        "coded_count": 10
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "25cbc245-39b3-42b0-8402-6f3168413a80",
+    "patient_id": "4622879921",
+    "date": "2025-03-11",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "iron deficient in the past, was anemic",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient explicitly reports a past history of iron deficiency anaemia (end of 2021, treated with iron supplements) which should be coded as a historical disorder for clinical continuity and to contextualise the current TATT workup.",
+          "snomed_search": "iron deficiency anaemia",
+          "snomed_concept_id": "87522002",
+          "preferred_term": "Iron deficiency anemia (disorder)",
+          "sentence": "used to be iron deficient in the past, was anemic - says towards end of 2021. had to take iron supplements , and since then has continued to take supplements.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Three of the four existing codes are clinically appropriate and correctly asserted (fatigue, vegetarian diet, vitreous floaters, referral to optometrist); lookup_concept returned unreliable/wrong-semantic-tag results for 15013002 and 308465004 but search_snomed confirms both are correct SNOMED concepts. The sole gap is the patient's explicitly documented historical iron deficiency anaemia (2021), which is clinically relevant to the current TATT investigation and should be coded as historical.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4785,
+        "output_tokens": 1293,
+        "total_tokens": 6078,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "25cbc245-39b3-42b0-8402-6f3168413a80",
+        "date": "2025-03-11",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c1417a71-2b75-4bde-b44d-438471bb0789",
+    "patient_id": "4622879921",
+    "date": "2025-05-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "2WW urology referral for suspected urological cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states visible haematuria meets 2WW urology criteria and a follow-up task was sent to action the referral \u2014 this is a safety-critical NG12 red-flag pathway that must be coded once actioned; the clinical decision to refer has been made in this encounter.",
+          "snomed_search": "fast track referral suspected urological cancer",
+          "snomed_concept_id": "276431000000102",
+          "preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "sentence": "Discussed visible haematuria, advised to send sample for MC&S, if nil infection would meet criteria for 2ww urology. Sent task to myself to follow up in 2/7.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two existing codes (Frank hematuria 197941005 and Postmenopausal state 76498008) are both confirmed correct by SNOMED search despite unreliable lookup_concept responses. The critical gap is the 2WW urology referral: the clinician has explicitly determined the patient meets NG12 criteria for fast-track urological cancer referral (visible haematuria, postmenopausal, no infective cause identified on dipstick) and has set a task to action it \u2014 this decision must be coded as a procedure once the referral is formally sent. If the MSU returns negative for infection and the referral is actioned, 276431000000102 (Fast track referral for suspected urological cancer) should be added with assertion=present. Consider also whether 281856007 (Recurrent frank haematuria) is more specific than 197941005 given the two documented episodes.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 7585,
+        "output_tokens": 1449,
+        "total_tokens": 9034,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "c1417a71-2b75-4bde-b44d-438471bb0789",
+        "date": "2025-05-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "60c4795a-9924-4a04-aca2-1d66e1d23ec2",
+    "patient_id": "4622879921",
+    "date": "2025-05-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "2ww?",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The reviewing clinician explicitly queries a 2-week-wait referral for visible haematuria \u2014 a NG12 red-flag safety-critical pattern that must be coded to ensure follow-up and audit trail.",
+          "snomed_search": "fast track referral suspected urological cancer",
+          "snomed_concept_id": "276431000000102",
+          "preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+          "sentence": "UAS Urine Microscopy Report, Abnormal, Other (update KW): Hi Kat MSU normal. 2ww?. Review done by PATEL, Krishan (Dr) - 09 May 2025 08:18",
+          "char_start": 290,
+          "char_end": 460
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "high",
+          "reason": "lookup_concept returns this ID as a substance (DRB1*09012), not a haematuria finding \u2014 this is a wrong concept ID; the note documents visible haematuria which is already better captured by the co-coded Frank hematuria concept.",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The encounter documents visible haematuria with an explicit clinician query for a 2-week-wait (NG12) urological cancer referral \u2014 this safety-critical possible referral is uncoded and must be addressed urgently. Additionally, concept 702231000000104 is a wrong concept ID (terminology server resolves it as a substance, not a haematuria finding) and should be replaced by the correctly coded Frank hematuria (197941005) which is already present; the 2WW query status should be clarified and actioned by the responsible clinician.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4250,
+        "output_tokens": 1417,
+        "total_tokens": 5667,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "60c4795a-9924-4a04-aca2-1d66e1d23ec2",
+        "date": "2025-05-07",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e8f09d6c-8abe-404b-bb6b-52c84ed73177",
+    "patient_id": "4622879921",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "702231000000104",
+          "name": "Hematuria NOS (finding)",
+          "severity": "medium",
+          "reason": "This concept ID resolves to a substance (DRB1*09012) rather than a clinical finding, indicating an invalid or corrupted code; furthermore, frank haematuria is already correctly and more specifically coded as [197941005] Frank hematuria (disorder), making this a duplicate that should be removed.",
+          "replace_with_concept_id": "197941005",
+          "replace_with_preferred_term": "Frank hematuria (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The encounter is clinically well-coded overall: the 2WW fast-track urology referral (276431000000102), frank haematuria (197941005), lower abdominal pain (54586004), and telephone consultation (386472008) are all appropriate and evidenced. The sole issue is a duplicate haematuria code \u2014 [702231000000104] resolves to an invalid substance concept on the terminology server and is redundant given the more specific and correctly mapped [197941005] Frank hematuria (disorder) already present; it should be removed.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7646,
+        "output_tokens": 1690,
+        "total_tokens": 9336,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "e8f09d6c-8abe-404b-bb6b-52c84ed73177",
+        "date": "2025-05-09",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a005be86-3545-415d-94e9-372039ea58d5",
+    "patient_id": "4622879921",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [
+        {
+          "concept_id": "21522001",
+          "term": "Abdominal pain (finding)",
+          "assertion": "present",
+          "status": "correct"
+        },
+        {
+          "concept_id": "405729008",
+          "term": "Hematochezia (finding)",
+          "assertion": "present",
+          "status": "correct"
+        },
+        {
+          "concept_id": "307541003",
+          "term": "LUTS - lower urinary tract symptoms",
+          "assertion": "present",
+          "status": "overcoded"
+        },
+        {
+          "concept_id": "315332003",
+          "term": "Suspected malignant neoplasm (situation)",
+          "assertion": "present",
+          "status": "overcoded"
+        }
+      ],
+      "missing": [
+        {
+          "term": "haematuria",
+          "severity": "critical",
+          "suggested_assertion": "historical",
+          "reason": "The note states 'no further haematuria', implying prior haematuria that drove the 2WW urology referral \u2014 a safety-critical symptom that must be coded as historical.",
+          "snomed_search": "haematuria",
+          "snomed_concept_id": "34436003",
+          "preferred_term": "Blood in urine (finding)",
+          "sentence": "No weight loss/night sweats or further haematuria",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "previous history of abdominal adhesions with key hole surgery",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Clinically relevant past history of abdominal adhesions post-laparoscopic surgery, documented explicitly and pertinent to the current RLQ pain presentation.",
+          "snomed_search": "postprocedural abdominal adhesions",
+          "snomed_concept_id": "197201009",
+          "preferred_term": "Postprocedural pelvic peritoneal adhesions (disorder)",
+          "sentence": "Previous history of abdominal adhesions with key hole surgery",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "307541003",
+          "name": "LUTS - lower urinary tract symptoms",
+          "severity": "medium",
+          "reason": "The concept ID is unreliable (terminology server returned an Extension Namespace placeholder); the note documents specifically 'increased urinary frequency', not broad LUTS \u2014 replace with the confirmed specific concept.",
+          "replace_with_concept_id": "162116003",
+          "replace_with_preferred_term": "Increased frequency of urination (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "315332003",
+          "name": "Suspected malignant neoplasm (situation)",
+          "severity": "high",
+          "reason": "The concept ID is unreliable (Extension Namespace placeholder); the note specifies a 2WW referral for urology/haematuria \u2014 replace with the confirmed, organ-specific situation concept.",
+          "replace_with_concept_id": "397657005",
+          "replace_with_preferred_term": "Malignant neoplasm of urinary system suspected (situation)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Two existing concept IDs (307541003, 315332003) are unverifiable on this terminology server and should be replaced with confirmed, more specific SNOMED concepts. A critical safety gap exists: prior haematuria driving the 2WW urology referral is not coded. The historical abdominal adhesions are also missing and are clinically relevant to the RLQ pain presentation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 14512,
+        "output_tokens": 2807,
+        "total_tokens": 17319,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "a005be86-3545-415d-94e9-372039ea58d5",
+        "date": "2025-05-09",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "429896a6-b781-479f-82a6-e3df1c55136f",
+    "patient_id": "4622879921",
+    "date": "2025-05-28",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4320f250-0b7c-4f15-ba61-ffa4f5803f89",
+    "patient_id": "4622879921",
+    "date": "2025-07-22",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Cyst of Bartholin's gland",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Confirmed clinical diagnosis on examination ('appearance consistent with Bartholin's cyst on left side') and explicitly stated in the Diagnosis section; the currently coded concept 734115003 is an unreliable/wrong substance code.",
+          "snomed_search": "Bartholin gland cyst",
+          "snomed_concept_id": "57044006",
+          "preferred_term": "Cyst of Bartholin's gland duct (disorder)",
+          "sentence": "appearance consistent with bartholn's cyst on left side, nil sinister features pea sized, non tender",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "postmenopausal state",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient is documented as 3 years post-menopausal, which is clinically relevant context for both the haematuria red-flag assessment and the vaginal lump.",
+          "snomed_search": "postmenopausal state",
+          "snomed_concept_id": "76498008",
+          "preferred_term": "Postmenopausal state (finding)",
+          "sentence": "3 years post menopausal",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Taking high vaginal swab",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "High vaginal swab was performed during the examination and is documented in both the plan and pathology requests; the currently coded concept 258521001 is a specimen code, not a procedure.",
+          "snomed_search": "high vaginal swab procedure",
+          "snomed_concept_id": "301805004",
+          "preferred_term": "Taking high vaginal swab (procedure)",
+          "sentence": "High vaingal swab for mcs",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Urine microscopy, culture and sensitivities",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Urine for microscopy and culture was explicitly requested as part of the haematuria workup and is documented in the pathology requests; the currently coded concept 273973005 is an unreliable Extension Namespace placeholder.",
+          "snomed_search": "urine microscopy culture",
+          "snomed_concept_id": "168132005",
+          "preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "sentence": "Urine for Microscopy and Culture (Requested)",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "haematuria in postmenopausal woman",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Haematuria in a postmenopausal woman meets NG12 red-flag criteria and should trigger a 2WW urology referral consideration; the note documents haematuria of 3 weeks duration in a 3-years-postmenopausal patient with no documented 2WW referral or safety-netting beyond SOS advice.",
+          "snomed_search": "frank hematuria",
+          "snomed_concept_id": "197941005",
+          "preferred_term": "Frank hematuria (disorder)",
+          "sentence": "History: hematuria since 3/7 ago intermittent, every few days",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "734115003",
+          "name": "Bartholin gland cyst fluid (substance) [unreliable \u2014 server returned organism]",
+          "severity": "high",
+          "reason": "Concept ID 734115003 is unreliable (terminology server returned semantic_tag='organism'); the clinical finding is Bartholin's gland cyst (disorder), which should be coded as 57044006 instead.",
+          "replace_with_concept_id": "57044006",
+          "replace_with_preferred_term": "Cyst of Bartholin's gland duct (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "76742009",
+          "name": "Postmenopausal bleeding (finding) [unreliable \u2014 server returned organism]",
+          "severity": "high",
+          "reason": "Concept ID 76742009 is unreliable AND the note explicitly states 'no PV bleeding since [menopause]' \u2014 postmenopausal bleeding is an absent finding and must not be coded as present; coding an absent red-flag finding as present is a patient safety risk."
+        },
+        {
+          "conceptId": "258521001",
+          "name": "High vaginal swab (specimen)",
+          "severity": "medium",
+          "reason": "258521001 is a specimen concept (DRB1*08021 substance on lookup), not a procedure; the correct procedure code for the swab performed is 301805004 (Taking high vaginal swab).",
+          "replace_with_concept_id": "301805004",
+          "replace_with_preferred_term": "Taking high vaginal swab (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "273973005",
+          "name": "Culture sensitivity (procedure) [unreliable \u2014 Extension Namespace placeholder]",
+          "severity": "medium",
+          "reason": "Concept ID 273973005 resolves to an Extension Namespace placeholder and cannot be confirmed; the correct code for urine MCS is 168132005 (Microscopy, culture and sensitivities).",
+          "replace_with_concept_id": "168132005",
+          "replace_with_preferred_term": "Microscopy, culture and sensitivities (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "169064005",
+          "name": "Computed tomography normal (finding) [unreliable \u2014 qualifier value on lookup]",
+          "severity": "low",
+          "reason": "Concept ID 169064005 resolves to an unreliable qualifier value ('An 7705'); the historical normal CT is background history already captured by the CT procedure code 77477000 and does not require a separate normal-result finding code."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "76742009",
+          "name": "Postmenopausal bleeding (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states 'no PV bleeding since [menopause]' \u2014 postmenopausal bleeding is absent; coding it as present is a critical patient safety error that could mislead future clinicians into assuming a red-flag symptom is active."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "This encounter has multiple serious coding errors: four concept IDs are unreliable or semantically wrong (organism/substance/namespace placeholders used instead of disorder/procedure codes), and postmenopausal bleeding has been coded as 'present' when the note explicitly documents its absence \u2014 a critical patient safety risk. Additionally, haematuria in a 3-years-postmenopausal woman meets NG12 red-flag criteria and the absence of a documented 2WW urology referral warrants clinical review.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11249,
+        "output_tokens": 3138,
+        "total_tokens": 14387,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "4320f250-0b7c-4f15-ba61-ffa4f5803f89",
+        "date": "2025-07-22",
+        "coded_count": 11
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "32ea8956-6272-438e-8e11-76c2d9dbeb18",
+    "patient_id": "4622879921",
+    "date": "2025-08-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "low BP around 100 systolic",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The patient explicitly reports chronically low blood pressure (~100 systolic), confirmed at this encounter (112/78), and the clinician discusses it as a relevant contributing factor to the lightheadedness; this is a codeable clinical finding.",
+          "snomed_search": "hypotension",
+          "snomed_concept_id": "45007003",
+          "preferred_term": "Low blood pressure (disorder)",
+          "sentence": "Patient states usually has low BP around 100 systolic.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "734115003",
+          "name": "Bartholin gland cyst fluid (substance) [coded as substance/organism \u2014 unreliable]",
+          "severity": "medium",
+          "reason": "Concept 734115003 resolves as an organism/virus on the terminology server (unreliable); the note clearly documents an active Bartholin's gland cyst and the correct disorder code should be used instead.",
+          "replace_with_concept_id": "57044006",
+          "replace_with_preferred_term": "Cyst of Bartholin's gland duct (disorder)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "240299002",
+          "name": "Fetal bradycardia (disorder) [Extension Namespace \u2014 unreliable]",
+          "severity": "high",
+          "reason": "Concept 240299002 is an Extension Namespace placeholder and clinically incorrect \u2014 the note describes adult bradycardia (resting pulse in the 50s noted at GH and on home monitor), not fetal bradycardia; the correct code is 48867003 Bradycardia (finding).",
+          "replace_with_concept_id": "48867003",
+          "replace_with_preferred_term": "Bradycardia (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "Two significant coding errors are present: the Bartholin's gland cyst is coded with an invalid/organism concept (734115003) instead of the correct disorder code 57044006, and bradycardia is coded as 'fetal bradycardia' using an unreliable Extension Namespace concept (240299002) rather than the correct adult bradycardia finding 48867003. Additionally, the patient's documented chronic low blood pressure (a clinically relevant contributing factor to the presenting complaint) is not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7720,
+        "output_tokens": 1450,
+        "total_tokens": 9170,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "32ea8956-6272-438e-8e11-76c2d9dbeb18",
+        "date": "2025-08-05",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "15f69c4e-bcf9-4e3e-833e-f826238b6286",
+    "patient_id": "4622879921",
+    "date": "2025-08-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Not sexually active",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents the patient is not sexually active (Read code 6122. also present), which is clinically relevant context for the gynaecological presentation and management.",
+          "snomed_search": "not sexually active",
+          "snomed_concept_id": "162171002",
+          "preferred_term": "Currently not sexually active (finding)",
+          "sentence": "Not sexually active (6122.) but still finds it quite a discomfort at night.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The two primary codes (Bartholin's gland cyst and gynaecology referral) are correct and well-evidenced. The only gap is the explicitly documented and Read-coded finding of 'not sexually active' (6122.), which should be captured in SNOMED as 162171002 'Currently not sexually active (finding)' given its clinical relevance to this gynaecological presentation. Negative examination findings (no cysts felt, no tenderness) are correctly not coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5400,
+        "output_tokens": 1084,
+        "total_tokens": 6484,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4622879921",
+        "encounter_id": "15f69c4e-bcf9-4e3e-833e-f826238b6286",
+        "date": "2025-08-26",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  }
+]

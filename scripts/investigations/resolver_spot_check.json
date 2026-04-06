@@ -1,0 +1,1399 @@
+[
+  {
+    "term": "fast track referral for suspected lung cancer",
+    "expected": "276491000000101",
+    "desc": "Lung cancer FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276491000000101 | Fast track referral for suspected lung cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276491000000101",
+        "snomed_term": "Fast track referral for suspected lung cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn7",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected colorectal cancer",
+    "expected": "276401000000108",
+    "desc": "Colorectal FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276401000000108 | Fast track referral for suspected colorectal cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276401000000108",
+        "snomed_term": "Fast track referral for suspected colorectal cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn4",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected breast cancer",
+    "expected": "276341000000100",
+    "desc": "Breast cancer FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276341000000100 | Fast track referral for suspected breast cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276341000000100",
+        "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn2",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected prostate cancer",
+    "expected": "276431000000102",
+    "desc": "Prostate -> Urological FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276431000000102 | Fast track referral for suspected urological cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276431000000102",
+        "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn5",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected bladder cancer",
+    "expected": "276431000000102",
+    "desc": "Bladder -> Urological FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276431000000102 | Fast track referral for suspected urological cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276431000000102",
+        "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn5",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected skin cancer",
+    "expected": "276281000000104",
+    "desc": "Skin cancer FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276281000000104 | Fast track referral for suspected skin cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276281000000104",
+        "snomed_term": "Fast track referral for suspected skin cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn0",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected mesothelioma",
+    "expected": "276491000000101",
+    "desc": "Mesothelioma->lung FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276491000000101 | Fast track referral for suspected lung cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276491000000101",
+        "snomed_term": "Fast track referral for suspected lung cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn7",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected upper gastrointestinal cancer",
+    "expected": "276551000000108",
+    "desc": "Upper GI FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276551000000108 | Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276551000000108",
+        "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn9",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "fast track referral for suspected cervical cancer",
+    "expected": "276311000000101",
+    "desc": "Cervical -> Gynae FTT",
+    "status": "PASS",
+    "detail": "score=1.000 -> 276311000000101 | Fast track referral for suspected gynaecological cancer (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "276311000000101",
+        "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".8Hn1",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "urgent referral for suspected cancer",
+    "expected": "306206005",
+    "desc": "Generic urgent ref",
+    "status": "PASS",
+    "detail": "score=1.000 -> 306206005 | Referral to service (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "306206005",
+        "snomed_term": "Referral to service (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": "8T0..",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "COPD",
+    "expected": "13645005",
+    "desc": "COPD disorder (not history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 13645005 | Chronic obstructive pulmonary disease (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "13645005",
+        "snomed_term": "Chronic obstructive pulmonary disease (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".H4..",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "CVA",
+    "expected": "230690007",
+    "desc": "CVA disorder (not history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 230690007 | Cerebrovascular accident (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "230690007",
+        "snomed_term": "Cerebrovascular accident (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "G66..",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Stroke",
+    "expected": "230690007",
+    "desc": "Stroke = CVA disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 230690007 | Cerebrovascular accident (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "230690007",
+        "snomed_term": "Cerebrovascular accident (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "G66..",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "TIA",
+    "expected": "266257000",
+    "desc": "TIA disorder (not history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 266257000 | Transient ischemic attack (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "266257000",
+        "snomed_term": "Transient ischemic attack (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "Fyu55",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Rheumatoid arthritis",
+    "expected": "69896004",
+    "desc": "RA disorder (not CTD history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 69896004 | Rheumatoid arthritis (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "69896004",
+        "snomed_term": "Rheumatoid arthritis (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M22.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "RA",
+    "expected": "69896004",
+    "desc": "RA abbreviation",
+    "status": "PASS",
+    "detail": "score=1.000 -> 69896004 | Rheumatoid arthritis (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "69896004",
+        "snomed_term": "Rheumatoid arthritis (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M22.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "osteoporosis",
+    "expected": "64859006",
+    "desc": "Osteoporosis (not MSK history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 64859006 | Osteoporosis (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "64859006",
+        "snomed_term": "Osteoporosis (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M61.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "osteopenia",
+    "expected": "312894000",
+    "desc": "Osteopenia (not MSK history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 312894000 | Osteopenia (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "312894000",
+        "snomed_term": "Osteopenia (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M6C.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Chronic kidney disease",
+    "expected": "709044004",
+    "desc": "CKD disorder (not renal history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 709044004 | Chronic kidney disease (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "709044004",
+        "snomed_term": "Chronic kidney disease (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".1Z1.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Fatty liver",
+    "expected": "1231824009",
+    "desc": "Fatty liver disorder (not liver history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 1231824009 | Metabolic dysfunction-associated steatotic liver disease (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "1231824009",
+        "snomed_term": "Metabolic dysfunction-associated steatotic liver disease (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "XVIjD",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "197321007",
+        "snomed_term": "Steatosis of liver (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".I7A.",
+        "score": 0.8333,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Dementia",
+    "expected": "52448006",
+    "desc": "Dementia disorder (not history)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 52448006 | Dementia (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "52448006",
+        "snomed_term": "Dementia (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E11Z",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "depression",
+    "expected": "35489007",
+    "desc": "Depression disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 35489007 | Depressive disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "35489007",
+        "snomed_term": "Depressive disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E4J5",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "255339005",
+        "snomed_term": "Depression - motion (qualifier value)",
+        "semantic_tag": "qualifier value",
+        "read_code": "X78x6",
+        "score": 0.8333,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "PTSD",
+    "expected": "47505003",
+    "desc": "PTSD disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 47505003 | Post-traumatic stress disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "47505003",
+        "snomed_term": "Post-traumatic stress disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "E29y1",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "bipolar disorder",
+    "expected": "13746004",
+    "desc": "Bipolar disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 13746004 | Bipolar disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "13746004",
+        "snomed_term": "Bipolar disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E22Z",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "schizophrenia",
+    "expected": "58214004",
+    "desc": "Schizophrenia",
+    "status": "PASS",
+    "detail": "score=1.000 -> 58214004 | Schizophrenia (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "58214004",
+        "snomed_term": "Schizophrenia (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E21Z",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "anxiety",
+    "expected": "48694002",
+    "desc": "Anxiety",
+    "status": "PASS",
+    "detail": "score=1.000 -> 48694002 | Anxiety (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "48694002",
+        "snomed_term": "Anxiety (finding)",
+        "semantic_tag": "finding",
+        "read_code": ".1B13",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Attention deficit hyperactivity disorder",
+    "expected": "406506008",
+    "desc": "ADHD",
+    "status": "PASS",
+    "detail": "score=1.000 -> 406506008 | Attention deficit hyperactivity disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "406506008",
+        "snomed_term": "Attention deficit hyperactivity disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E4D6",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "autism spectrum disorder",
+    "expected": "35919005",
+    "desc": "ASD",
+    "status": "PASS",
+    "detail": "score=1.000 -> 35919005 | Pervasive developmental disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "35919005",
+        "snomed_term": "Pervasive developmental disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E2Z3",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "borderline personality disorder",
+    "expected": "20010003",
+    "desc": "BPD",
+    "status": "PASS",
+    "detail": "score=1.000 -> 20010003 | Borderline personality disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "20010003",
+        "snomed_term": "Borderline personality disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "E21y2",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "anorexia nervosa",
+    "expected": "56882008",
+    "desc": "Anorexia nervosa",
+    "status": "PASS",
+    "detail": "score=1.000 -> 56882008 | Anorexia nervosa (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "56882008",
+        "snomed_term": "Anorexia nervosa (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E49.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "OCD",
+    "expected": "191736004",
+    "desc": "OCD",
+    "status": "PASS",
+    "detail": "score=1.000 -> 191736004 | Obsessive-compulsive disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "191736004",
+        "snomed_term": "Obsessive-compulsive disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "E203.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Alzheimers",
+    "expected": "26929004",
+    "desc": "Alzheimer's disease",
+    "status": "PASS",
+    "detail": "score=1.000 -> 26929004 | Alzheimer's disease (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "26929004",
+        "snomed_term": "Alzheimer's disease (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "Eu00.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "suicidal ideation",
+    "expected": "6471006",
+    "desc": "Suicidal thoughts",
+    "status": "PASS",
+    "detail": "score=1.000 -> 6471006 | Suicidal thoughts (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "6471006",
+        "snomed_term": "Suicidal thoughts (finding)",
+        "semantic_tag": "finding",
+        "read_code": ".1BD1",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "alcohol dependence",
+    "expected": "66590003",
+    "desc": "Alcohol dependence",
+    "status": "PASS",
+    "detail": "score=1.000 -> 66590003 | Alcohol dependence (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "66590003",
+        "snomed_term": "Alcohol dependence (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "E2310",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Hemiplegia",
+    "expected": "50582007",
+    "desc": "Hemiplegia disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 50582007 | Hemiplegia (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "50582007",
+        "snomed_term": "Hemiplegia (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "F22z.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Paraplegia",
+    "expected": "60389000",
+    "desc": "Paraplegia disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 60389000 | Paraplegia (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "60389000",
+        "snomed_term": "Paraplegia (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".F333",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Quadriplegia",
+    "expected": "11538006",
+    "desc": "Quadriplegia disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 11538006 | Quadriplegia (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "11538006",
+        "snomed_term": "Quadriplegia (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".F332",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Spinal cord injury",
+    "expected": "90584004",
+    "desc": "SCI disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 90584004 | Spinal cord injury (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "90584004",
+        "snomed_term": "Spinal cord injury (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "SJz..",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Cauda equina syndrome",
+    "expected": "192970008",
+    "desc": "Cauda equina",
+    "status": "PASS",
+    "detail": "score=1.000 -> 192970008 | Cauda equina syndrome (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "192970008",
+        "snomed_term": "Cauda equina syndrome (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "F246.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "AAA",
+    "expected": "233985008",
+    "desc": "Abdominal aortic aneurysm",
+    "status": "PASS",
+    "detail": "score=1.000 -> 233985008 | Abdominal aortic aneurysm (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "233985008",
+        "snomed_term": "Abdominal aortic aneurysm (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".G823",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Abdominal aortic aneurysm",
+    "expected": "233985008",
+    "desc": "AAA full form",
+    "status": "PASS",
+    "detail": "score=1.000 -> 233985008 | Abdominal aortic aneurysm (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "233985008",
+        "snomed_term": "Abdominal aortic aneurysm (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".G823",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Intermittent claudication",
+    "expected": "63491006",
+    "desc": "Intermittent claudication",
+    "status": "PASS",
+    "detail": "score=1.000 -> 63491006 | Intermittent claudication (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "63491006",
+        "snomed_term": "Intermittent claudication (finding)",
+        "semantic_tag": "finding",
+        "read_code": ".G85.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Peripheral vascular disease",
+    "expected": "400047006",
+    "desc": "PVD disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 400047006 | Peripheral vascular disease (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "400047006",
+        "snomed_term": "Peripheral vascular disease (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "G73y.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "SLE",
+    "expected": "55464009",
+    "desc": "Systemic lupus",
+    "status": "PASS",
+    "detail": "score=1.000 -> 55464009 | Systemic lupus erythematosus (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "55464009",
+        "snomed_term": "Systemic lupus erythematosus (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M11.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Polymyalgia rheumatica",
+    "expected": "65323003",
+    "desc": "PMR",
+    "status": "PASS",
+    "detail": "score=1.000 -> 65323003 | Polymyalgia rheumatica (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "65323003",
+        "snomed_term": "Polymyalgia rheumatica (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M41.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "PMR",
+    "expected": "65323003",
+    "desc": "PMR abbreviation",
+    "status": "PASS",
+    "detail": "score=1.000 -> 65323003 | Polymyalgia rheumatica (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "65323003",
+        "snomed_term": "Polymyalgia rheumatica (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M41.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Hepatitis B",
+    "expected": "66071002",
+    "desc": "Hepatitis B",
+    "status": "PASS",
+    "detail": "score=1.000 -> 66071002 | Viral hepatitis type B (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "66071002",
+        "snomed_term": "Viral hepatitis type B (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".A4A2",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Hepatitis C",
+    "expected": "50711007",
+    "desc": "Hepatitis C",
+    "status": "PASS",
+    "detail": "score=1.000 -> 50711007 | Viral hepatitis type C (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "50711007",
+        "snomed_term": "Viral hepatitis type C (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".A4A3",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Diabetes mellitus type 2",
+    "expected": "44054006",
+    "desc": "T2DM",
+    "status": "PASS",
+    "detail": "score=1.000 -> 44054006 | Diabetes mellitus type 2 (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "44054006",
+        "snomed_term": "Diabetes mellitus type 2 (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".C2D.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Diabetes mellitus type 1",
+    "expected": "46635009",
+    "desc": "T1DM",
+    "status": "PASS",
+    "detail": "score=1.000 -> 46635009 | Diabetes mellitus type 1 (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "46635009",
+        "snomed_term": "Diabetes mellitus type 1 (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".C2C.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "ESRD",
+    "expected": "433146000",
+    "desc": "End stage renal disease",
+    "status": "PASS",
+    "detail": "score=1.000 -> 433146000 | Chronic kidney disease stage 5 (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "433146000",
+        "snomed_term": "Chronic kidney disease stage 5 (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".1Z14",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "haemoptysis",
+    "expected": "66857006",
+    "desc": "Haemoptysis finding",
+    "status": "PASS",
+    "detail": "score=1.000 -> 66857006 | Hemoptysis (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "66857006",
+        "snomed_term": "Hemoptysis (finding)",
+        "semantic_tag": "finding",
+        "read_code": ".R63.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "weight loss",
+    "expected": "262285001",
+    "desc": "Weight decreased finding",
+    "status": "PASS",
+    "detail": "score=1.000 -> 262285001 | Weight decreased (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "262285001",
+        "snomed_term": "Weight decreased (finding)",
+        "semantic_tag": "finding",
+        "read_code": "X90kN",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "363806002",
+        "snomed_term": "Weight loss (amount) (observable entity)",
+        "semantic_tag": "observable entity",
+        "read_code": "XUSx9",
+        "score": 0.8333,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "816160009",
+        "snomed_term": "Measured weight loss (observable entity)",
+        "semantic_tag": "observable entity",
+        "read_code": "XVBn9",
+        "score": 0.8333,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "dysphagia",
+    "expected": "40739000",
+    "desc": "Dysphagia finding",
+    "status": "PASS",
+    "detail": "score=1.000 -> 40739000 | Dysphagia (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "40739000",
+        "snomed_term": "Dysphagia (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".R72.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "rectal bleeding",
+    "expected": "405729008",
+    "desc": "Hematochezia finding",
+    "status": "PASS",
+    "detail": "score=1.000 -> 405729008 | Hematochezia (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "405729008",
+        "snomed_term": "Hematochezia (finding)",
+        "semantic_tag": "finding",
+        "read_code": "X30Bk",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "12063002",
+        "snomed_term": "Rectal hemorrhage (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "J5730",
+        "score": 0.8333,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "night sweats",
+    "expected": "42984000",
+    "desc": "Night sweats finding",
+    "status": "PASS",
+    "detail": "score=1.000 -> 42984000 | Night sweats (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "42984000",
+        "snomed_term": "Night sweats (finding)",
+        "semantic_tag": "finding",
+        "read_code": "R0084",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "198436008",
+        "snomed_term": "Menopausal flushing (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".1657",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "unexplained fatigue",
+    "expected": "84229001",
+    "desc": "Fatigue finding",
+    "status": "PASS",
+    "detail": "score=1.000 -> 84229001 | Fatigue (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "84229001",
+        "snomed_term": "Fatigue (finding)",
+        "semantic_tag": "finding",
+        "read_code": ".1682",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "thrombocytosis",
+    "expected": "415115007",
+    "desc": "Platelet count above reference range",
+    "status": "PASS",
+    "detail": "score=1.000 -> 415115007 | Platelet count above reference range (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "415115007",
+        "snomed_term": "Platelet count above reference range (finding)",
+        "semantic_tag": "finding",
+        "read_code": "XUcUm",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "6631009",
+        "snomed_term": "Thrombocytosis (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".42P3",
+        "score": 0.8333,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "hypertension",
+    "expected": "38341003",
+    "desc": "Hypertension -- wait, 38341003 is dysthymia...",
+    "status": "PASS",
+    "detail": "score=1.000 -> 38341003 | Hypertensive disorder, systemic arterial (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "38341003",
+        "snomed_term": "Hypertensive disorder, systemic arterial (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".G3..",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "type 2 diabetes mellitus",
+    "expected": "44054006",
+    "desc": "Type 2 DM",
+    "status": "PASS",
+    "detail": "score=1.000 -> 44054006 | Diabetes mellitus type 2 (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "44054006",
+        "snomed_term": "Diabetes mellitus type 2 (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".C2D.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "asthma",
+    "expected": "195967001",
+    "desc": "Asthma disorder",
+    "status": "PASS",
+    "detail": "score=1.000 -> 195967001 | Asthma (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "195967001",
+        "snomed_term": "Asthma (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".H43.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "heart failure",
+    "expected": "84114007",
+    "desc": "Heart failure",
+    "status": "PASS",
+    "detail": "score=1.000 -> 84114007 | Heart failure (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "84114007",
+        "snomed_term": "Heart failure (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".G6A.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "atrial fibrillation",
+    "expected": "49436004",
+    "desc": "AF",
+    "status": "PASS",
+    "detail": "score=1.000 -> 49436004 | Atrial fibrillation (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "49436004",
+        "snomed_term": "Atrial fibrillation (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "G5730",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "chronic kidney disease",
+    "expected": "709044004",
+    "desc": "CKD",
+    "status": "PASS",
+    "detail": "score=1.000 -> 709044004 | Chronic kidney disease (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "709044004",
+        "snomed_term": "Chronic kidney disease (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".1Z1.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "hypothyroidism",
+    "expected": "40930008",
+    "desc": "Hypothyroidism",
+    "status": "PASS",
+    "detail": "score=1.000 -> 40930008 | Hypothyroidism (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "40930008",
+        "snomed_term": "Hypothyroidism (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "Cyu11",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "colonoscopy",
+    "expected": "73761001",
+    "desc": "Colonoscopy procedure",
+    "status": "PASS",
+    "detail": "score=1.000 -> 73761001 | Colonoscopy (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "73761001",
+        "snomed_term": "Colonoscopy (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": ".3637",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "chest X-ray",
+    "expected": "399208008",
+    "desc": "CXR procedure",
+    "status": "PASS",
+    "detail": "score=1.000 -> 399208008 | Plain X-ray of chest (procedure)",
+    "candidates": [
+      {
+        "snomed_concept_id": "399208008",
+        "snomed_term": "Plain X-ray of chest (procedure)",
+        "semantic_tag": "procedure",
+        "read_code": "7P042",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "FIT positive",
+    "expected": "59614000",
+    "desc": "FIT positive finding",
+    "status": "PASS",
+    "detail": "score=1.000 -> 59614000 | Occult blood detected in feces (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "59614000",
+        "snomed_term": "Occult blood detected in feces (finding)",
+        "semantic_tag": "finding",
+        "read_code": ".4794",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "71711000112103",
+        "snomed_term": "Occult blood detected in feces by immunoassay (finding)",
+        "semantic_tag": "finding",
+        "read_code": "XVMGW",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "PSA raised",
+    "expected": "396152005",
+    "desc": "PSA above reference range",
+    "status": "PASS",
+    "detail": "score=1.000 -> 396152005 | Prostate specific antigen above reference range (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "396152005",
+        "snomed_term": "Prostate specific antigen above reference range (finding)",
+        "semantic_tag": "finding",
+        "read_code": "R15y0",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "emphysema",
+    "expected": "87433001",
+    "desc": "Pulmonary emphysema (fixed)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 87433001 | Pulmonary emphysema (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "87433001",
+        "snomed_term": "Pulmonary emphysema (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".H42.",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "233675009",
+        "snomed_term": "Toxic emphysema (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "X101p",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "49158009",
+        "snomed_term": "Emphysema (morphologic abnormality)",
+        "semantic_tag": "morphologic abnormality",
+        "read_code": "H32..",
+        "score": 0.8333,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "OCD",
+    "expected": "191736004",
+    "desc": "OCD (not Osteochondritis dissecans)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 191736004 | Obsessive-compulsive disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "191736004",
+        "snomed_term": "Obsessive-compulsive disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "E203.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "Polymyalgia rheumatica",
+    "expected": "65323003",
+    "desc": "PMR",
+    "status": "PASS",
+    "detail": "score=1.000 -> 65323003 | Polymyalgia rheumatica (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "65323003",
+        "snomed_term": "Polymyalgia rheumatica (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M41.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "PMR",
+    "expected": "65323003",
+    "desc": "PMR abbreviation",
+    "status": "PASS",
+    "detail": "score=1.000 -> 65323003 | Polymyalgia rheumatica (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "65323003",
+        "snomed_term": "Polymyalgia rheumatica (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".M41.",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "bipolar",
+    "expected": "13746004",
+    "desc": "Bipolar abbreviation (was orphan)",
+    "status": "PASS",
+    "detail": "score=1.000 -> 13746004 | Bipolar disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "13746004",
+        "snomed_term": "Bipolar disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E22Z",
+        "score": 1.0,
+        "source": "hybrid"
+      },
+      {
+        "snomed_concept_id": "260994008",
+        "snomed_term": "Bipolar (qualifier value)",
+        "semantic_tag": "qualifier value",
+        "read_code": "X9078",
+        "score": 0.8333,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "ADHD",
+    "expected": "406506008",
+    "desc": "ADHD abbreviation",
+    "status": "PASS",
+    "detail": "score=1.000 -> 406506008 | Attention deficit hyperactivity disorder (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "406506008",
+        "snomed_term": "Attention deficit hyperactivity disorder (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": ".E4D6",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "suicidal ideation",
+    "expected": "6471006",
+    "desc": "Suicidal thoughts",
+    "status": "PASS",
+    "detail": "score=1.000 -> 6471006 | Suicidal thoughts (finding)",
+    "candidates": [
+      {
+        "snomed_concept_id": "6471006",
+        "snomed_term": "Suicidal thoughts (finding)",
+        "semantic_tag": "finding",
+        "read_code": ".1BD1",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  },
+  {
+    "term": "alcohol dependence",
+    "expected": "66590003",
+    "desc": "Alcohol dependence",
+    "status": "PASS",
+    "detail": "score=1.000 -> 66590003 | Alcohol dependence (disorder)",
+    "candidates": [
+      {
+        "snomed_concept_id": "66590003",
+        "snomed_term": "Alcohol dependence (disorder)",
+        "semantic_tag": "disorder",
+        "read_code": "E2310",
+        "score": 1.0,
+        "source": "hybrid"
+      }
+    ]
+  }
+]

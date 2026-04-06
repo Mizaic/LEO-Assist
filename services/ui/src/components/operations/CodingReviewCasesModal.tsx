@@ -29,7 +29,7 @@ import type { AskLeoSmartResult, TermSearchResult } from "@/lib/types";
 import { ASSERTION_CHIP } from "@/lib/types";
 
 const ASSERTION_OPTIONS = [
-  "present", "absent", "refuted", "possible", "historical", "hypothetical", "family", "declined",
+  "present", "absent", "refuted", "possible", "historical", "planned", "hypothetical", "family", "declined", "cancelled",
 ] as const;
 
 // Common NER entity types a reviewer might need to correct to.
@@ -877,10 +877,16 @@ function CaseCard({
           timeline will then show it was offered but not accepted.
         </Alert>
       )}
+      {assertionOverride === "planned" && (
+        <Alert severity="info" sx={{ mb: 1.5, py: 0.5 }}>
+          This procedure was booked or referred for. Check whether it was
+          completed before accepting a code.
+        </Alert>
+      )}
       {assertionOverride === "hypothetical" && (
         <Alert severity="info" sx={{ mb: 1.5, py: 0.5 }}>
-          This procedure was planned or awaiting. Check whether it was completed
-          before accepting a code.
+          This is a conditional or speculative future event. It has not been
+          arranged -- do not code it as completed.
         </Alert>
       )}
 

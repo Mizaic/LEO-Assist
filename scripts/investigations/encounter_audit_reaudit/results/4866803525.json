@@ -1,0 +1,388 @@
+[
+  {
+    "encounter_id": "b5bc7782-e842-48b3-8053-a387a7b8b79b",
+    "patient_id": "4866803525",
+    "date": "2024-02-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "flushing",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'does get some flushing', consistent with menopausal flushing, which is not coded.",
+          "snomed_search": "menopausal flushing",
+          "snomed_concept_id": "198436008",
+          "preferred_term": "Menopausal flushing (disorder)",
+          "sentence": "does get some flushing, sometimes does get nigth sweats, has been on the HRT for around 3/12.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "266717002",
+          "name": "Hormone replacement therapy (procedure)",
+          "severity": "medium",
+          "reason": "The note explicitly states 'she is not using the HRT at the present moment', so coding HRT as an active/present procedure is incorrect; at most this should reflect a historical or paused treatment."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "6471006",
+          "name": "Suicidal thoughts (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "absent",
+          "severity": "critical",
+          "reason": "The note explicitly states 'no SI or SH or harm to others' \u2014 suicidal ideation was assessed and found absent; coding it as present is a dangerous clinical error."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Critical error: suicidal ideation (6471006) is coded as 'present' but the note clearly documents 'no SI or SH' \u2014 this must be corrected immediately as it misrepresents a safety-critical finding. Additionally, HRT is coded as an active procedure despite the patient explicitly not currently using it, and menopausal flushing documented in the note is uncoded. Lookup_concept returned unreliable/wrong results for several concept IDs (42984000, 652431000000100, 266717002) but search_snomed confirmed 6471006 is the correct SNOMED ID for suicidal thoughts.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4145,
+        "output_tokens": 1488,
+        "total_tokens": 5633,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4866803525",
+        "encounter_id": "b5bc7782-e842-48b3-8053-a387a7b8b79b",
+        "date": "2024-02-28",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5ed2abb5-beaa-497e-84cf-7df334dc00d8",
+    "patient_id": "4866803525",
+    "date": "2024-03-21",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "postmenopausal bleeding",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The patient is on HRT (Evorel Conti) and reports 2 vaginal bleeds this year \u2014 this is postmenopausal bleeding, a NG12 red-flag finding requiring specific coding rather than generic vaginal bleeding NOS; the existing code 652431000000100 is also terminologically unreliable.",
+          "snomed_search": "postmenopausal bleeding",
+          "snomed_concept_id": "76742009",
+          "preferred_term": "Postmenopausal bleeding (finding)",
+          "sentence": "Using HRT Evorel conti patches, reports 2 bleeds this year.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "652431000000100",
+          "name": "Bleeding - vaginal NOS (finding)",
+          "severity": "critical",
+          "reason": "Terminology server returned semantic_tag='substance' confirming this concept ID is unreliable/invalid; the clinical finding is specifically postmenopausal bleeding (76742009) which is a safety-critical red-flag and must replace this code.",
+          "replace_with_concept_id": "76742009",
+          "replace_with_preferred_term": "Postmenopausal bleeding (finding)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "354737001",
+          "name": "Prolapse of vaginal walls without uterine prolapse (disorder)",
+          "severity": "medium",
+          "reason": "Terminology server returned semantic_tag='organism' confirming this concept ID is unreliable/invalid; the note documents 'vaginal prolapse evident' which maps correctly to 398022005 Vaginal wall prolapse (disorder).",
+          "replace_with_concept_id": "398022005",
+          "replace_with_preferred_term": "Vaginal wall prolapse (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "Both existing coded concept IDs are terminologically unreliable (wrong semantic tags returned by the server) and must be replaced: 652431000000100 should be replaced with 76742009 Postmenopausal bleeding (finding) \u2014 a safety-critical NG12 red-flag \u2014 and 354737001 should be replaced with 398022005 Vaginal wall prolapse (disorder). The postmenopausal bleeding finding warrants clinical review to confirm whether a 2WW gynaecology referral has been considered.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5507,
+        "output_tokens": 1564,
+        "total_tokens": 7071,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4866803525",
+        "encounter_id": "5ed2abb5-beaa-497e-84cf-7df334dc00d8",
+        "date": "2024-03-21",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1fe3c051-5b5c-4b1c-9943-9aa0620749ba",
+    "patient_id": "4866803525",
+    "date": "2025-02-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "sudden onset hearing loss",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The plan explicitly documents 'sudden onset asymmetrical hearing loss' as the clinical driver for the urgent 2WW ENT referral; sudden sensorineural hearing loss is a distinct, more specific and safety-critical diagnosis that should be coded alongside the asymmetrical hearing loss code.",
+          "snomed_search": "sudden sensorineural hearing loss",
+          "snomed_concept_id": "715239002",
+          "preferred_term": "Sudden sensorineural hearing loss (disorder)",
+          "sentence": "Plan: sudden onset asymmetrical hearing loss, with normal examination.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "Both existing codes (fast-track 2WW head and neck referral, asymmetrical hearing loss) are correct and well-evidenced. The critical gap is the absence of a code for sudden sensorineural hearing loss (715239002), which is explicitly named in the plan as the clinical basis for the urgent ENT referral and is a distinct, safety-relevant diagnosis. Note: lookup_concept returned unreliable results for both coded concept IDs (organism semantic tag), but search_snomed confirmed both IDs are correct procedures/disorders \u2014 no overcoding action warranted.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4558,
+        "output_tokens": 1139,
+        "total_tokens": 5697,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4866803525",
+        "encounter_id": "1fe3c051-5b5c-4b1c-9943-9aa0620749ba",
+        "date": "2025-02-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a3d93433-8ea5-4996-8f9d-a5137e49a1cd",
+    "patient_id": "4866803525",
+    "date": "2025-02-28",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "202882003",
+          "name": "Plantar fasciitis (disorder)",
+          "severity": "low",
+          "reason": "The note explicitly documents left foot plantar fasciitis; a lateralised concept is available and more specific than the unqualified bilateral parent.",
+          "replace_with_concept_id": "12241271000119101",
+          "replace_with_preferred_term": "Plantar fasciitis of left foot (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The primary diagnosis is correctly identified as plantar fasciitis with appropriate assertion, but the non-lateralised concept (202882003) should be replaced with the left-foot-specific concept (12241271000119101) as the note and diagnosis line both explicitly state left foot. The phrase 'cannot take ibuprofen' is noted but lacks sufficient detail to code an allergy or intolerance without further clarification; this should be recorded in the medication/allergy record rather than as a SNOMED encounter code. Historical right plantar fasciitis (resolved, a few years ago) could optionally be added as a historical finding but is not a mandatory gap.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 6806,
+        "output_tokens": 1277,
+        "total_tokens": 8083,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4866803525",
+        "encounter_id": "a3d93433-8ea5-4996-8f9d-a5137e49a1cd",
+        "date": "2025-02-28",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "79a7d2cd-fc61-44c9-8070-c91fc1811cc0",
+    "patient_id": "4866803525",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Medication review done",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'Medication review done (XaF8d)' as a completed procedure during this encounter and should be coded.",
+          "snomed_search": "medication review done",
+          "snomed_concept_id": "314530002",
+          "preferred_term": "Medication review done (situation)",
+          "sentence": "Medication review done (XaF8d)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "74732009",
+          "name": "Mental disorder (disorder)",
+          "severity": "medium",
+          "reason": "The note describes the patient taking fluoxetine for her mood with benefit, indicating a specific depressive disorder; 'Mental disorder' is an unacceptably broad root-level concept and should be replaced with the more specific Depressive disorder.",
+          "replace_with_concept_id": "35489007",
+          "replace_with_preferred_term": "Depressive disorder (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The HRT procedure (266717002) and uterus present finding (289619002) are correctly coded \u2014 lookup_concept returned unreliable results due to a server index issue, but search_snomed confirms both concept IDs are valid. The mental disorder code (74732009) is too broad given the clinical context (fluoxetine for mood/depression); it should be replaced with Depressive disorder (35489007). The explicitly documented 'Medication review done' procedure is missing from the coded list. The note records 'no SI or SH' (absent suicidal ideation/self-harm), which is correctly not coded as a patient-level finding.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 5895,
+        "output_tokens": 1619,
+        "total_tokens": 7514,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4866803525",
+        "encounter_id": "79a7d2cd-fc61-44c9-8070-c91fc1811cc0",
+        "date": "2025-03-19",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b282fe0b-2190-4997-8b90-b2733c120076",
+    "patient_id": "4866803525",
+    "date": "2025-10-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "neck pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents 'pain in the right neck' as a current symptom requiring coding.",
+          "snomed_search": "neck pain",
+          "snomed_concept_id": "81680005",
+          "preferred_term": "Neck pain (finding)",
+          "sentence": "pain in the right neck, both shoulders.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "shoulder pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Bilateral shoulder pain is explicitly documented ('both shoulders') as a current presenting symptom.",
+          "snomed_search": "pain of shoulder region",
+          "snomed_concept_id": "45326000",
+          "preferred_term": "Pain of shoulder region (finding)",
+          "sentence": "pain in the right neck, both shoulders.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "hips achey in the morning",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Morning hip achiness is documented and maps to morning joint stiffness, a clinically relevant finding that may indicate inflammatory arthropathy.",
+          "snomed_search": "morning stiffness joint",
+          "snomed_concept_id": "40144003",
+          "preferred_term": "Morning stiffness - joint (finding)",
+          "sentence": "back and shoulders, neck hurts. hips achey in the morning.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "dizzy spell when standing too quickly",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dizziness on standing from lying flat is a classic description of postural/orthostatic dizziness and should be coded specifically.",
+          "snomed_search": "postural dizziness",
+          "snomed_concept_id": "103017008",
+          "preferred_term": "Postural dizziness (finding)",
+          "sentence": "occasional dizzy spell when standing too quickly from laying flat.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1000461000000109",
+          "name": "Serum cancer antigen 125 level (observable entity)",
+          "severity": "medium",
+          "reason": "CA125 was requested as a procedure in this encounter; the correct code is the procedure 'Measurement of cancer antigen 125 in serum specimen' rather than the observable entity concept.",
+          "replace_with_concept_id": "909121000000107",
+          "replace_with_preferred_term": "Measurement of cancer antigen 125 in serum specimen (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter has several coding gaps: neck pain, bilateral shoulder pain, morning joint stiffness (hips), and postural dizziness are all explicitly documented but not coded. The CA125 concept is coded as an observable entity rather than the appropriate procedure code. The back pain concept ID (399079008) returned as unreliable/organism on lookup \u2014 the coded evidence string covers back, neck and shoulders broadly, so if retained it should be replaced with 161891005 (Backache) or 279039007 (Low back pain) depending on clinical specificity; neck and shoulder pain should be coded separately as above. No safety-critical red flags identified: weight loss is explicitly denied, no PV/PU bleeding, FIT test recently normal, and the broad investigation panel (including CA125, CXR, coeliac screen) appropriately reflects the undifferentiated fatigue and musculoskeletal presentation.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11468,
+        "output_tokens": 2241,
+        "total_tokens": 13709,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4866803525",
+        "encounter_id": "b282fe0b-2190-4997-8b90-b2733c120076",
+        "date": "2025-10-31",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0ee729fe-76cb-424e-b852-fc0646652fb5",
+    "patient_id": "4866803525",
+    "date": "2025-11-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "272060000",
+          "name": "Fatigue - symptom (finding)",
+          "severity": "medium",
+          "reason": "Concept ID 272060000 resolves to an Extension Namespace placeholder on the terminology server and cannot be confirmed as a valid SNOMED concept; the correct concept for 'fatigue' is 84229001 'Fatigue (finding)'.",
+          "replace_with_concept_id": "84229001",
+          "replace_with_preferred_term": "Fatigue (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The fatigue concept (272060000) is an unresolvable Extension Namespace placeholder and should be replaced with the standard SNOMED concept 84229001 'Fatigue (finding)'. All other codes \u2014 telephone consultation (386472008), plain CXR (399208008), and FIT negative (167667006) \u2014 are appropriate and well-evidenced by the note. The mention of 'allergies' as the indication for fexofenadine is too non-specific to code without further detail; the possible drug side-effect (fatigue from fexofenadine) is captured implicitly by the management plan rather than as a confirmed diagnosis. Note: 167667006 also returned as an Extension Namespace placeholder on lookup but is confirmed correct by direct SNOMED search returning it as the top-scoring match for 'faecal immunochemical test negative'.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 8072,
+        "output_tokens": 1492,
+        "total_tokens": 9564,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4866803525",
+        "encounter_id": "0ee729fe-76cb-424e-b852-fc0646652fb5",
+        "date": "2025-11-26",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  }
+]

@@ -35,11 +35,17 @@ const ASSERTION_META: Record<string, AssertionMeta> = {
     bg: "#f3f4f6",
     tooltip: "This was recorded as a past or historical event.",
   },
-  hypothetical: {
+  planned: {
     label: "Planned / not done",
     color: "#2563eb",
     bg: "#dbeafe",
-    tooltip: "This was recorded as planned or awaiting -- it has not happened yet.",
+    tooltip: "This was booked or referred for -- it is confirmed but has not happened yet.",
+  },
+  hypothetical: {
+    label: "Hypothetical",
+    color: "#7c3aed",
+    bg: "#ede9fe",
+    tooltip: "This is a conditional or speculative future event -- it has not been arranged.",
   },
   family: {
     label: "Family history",

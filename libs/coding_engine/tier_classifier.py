@@ -15,7 +15,8 @@ from dataclasses import dataclass
 _TIER1_SCORE_THRESHOLD = 0.95
 _TIER2_SCORE_THRESHOLD = 0.70
 _AUTO_CODE_BLOCKED = frozenset({
-    "absent", "refuted", "declined", "cancelled", "hypothetical", "possible", "historical", "family",
+    "absent", "refuted", "declined", "cancelled", "planned",
+    "hypothetical", "possible", "historical", "family",
 })
 _QUALIFIER_ASSERTIONS = frozenset({"historical", "family"})
 
@@ -64,7 +65,7 @@ def classify_tier(
     if disorder_verdict == "uncertain":
         return _tier3(is_autonomous, "uncertain_assertion")
 
-    if assertion in {"absent", "declined", "cancelled", "hypothetical"}:
+    if assertion in {"absent", "declined", "cancelled", "planned", "hypothetical"}:
         return _tier3(is_autonomous, "non_codeable_assertion")
 
     if assertion == "possible":

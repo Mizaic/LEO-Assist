@@ -19,7 +19,7 @@ RETURN
         concept_id:   toString(s.conceptId),
         name:         s.name,
         semantic_tag: s.semanticTag,
-        assertion:    r.assertion,
+        context:      r.context,
         evidence:     r.evidence,
         source:       r.source,
         confidence:   r.confidence
@@ -35,13 +35,12 @@ DELETE_OVERCODED_DOCUMENTS = """
 MATCH (e:Encounter {id: $encounter_id})<-[:HAS_ENCOUNTER]-(p:Patient)
 MATCH (e)-[r:DOCUMENTS]->(s)
 WHERE toString(s.conceptId) = $concept_id
-DELETE r
-WITH p, s, count(r) AS deleted_count
-OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e2)-[r2:DOCUMENTS]->(s)
+WITH p, s, collect(r) AS rels
+UNWIND rels AS rel
+DELETE rel
+WITH p, s, size(rels) AS deleted_count
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e2:Encounter)-[r2:DOCUMENTS]->(s)
 WITH p, s, deleted_count, count(r2) AS remaining
-FOREACH (_ IN CASE WHEN remaining = 0 THEN [1] ELSE [] END |
-    SET s._needs_shortcut_cleanup = true
-)
 RETURN deleted_count, remaining AS remaining_encounter_docs
 """
 
@@ -61,10 +60,11 @@ MATCH (e:Encounter {id: $encounter_id})<-[:HAS_ENCOUNTER]-(p:Patient)
 RETURN toString(p.id) AS patient_id
 """
 
+
 # -- ADD missing DOCUMENTS -----------------------------------------------------
-# Creates concept node + DOCUMENTS relationship + patient shortcut.
-# label and rel_type are injected at query-build time (not parameters)
-# because Cypher cannot parameterise node labels or relationship types.
+# Creates concept node + DOCUMENTS + patient shortcut.
+# Labels are fixed at query-build time (Cypher cannot parametrise labels).
+
 
 def build_add_documents_query(label: str, rel_type: str) -> str:
     """Return a Cypher query string for adding a missing DOCUMENTS link.
@@ -82,7 +82,7 @@ SET s.name         = $name,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
 MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
-SET r.assertion        = $assertion,
+SET r.context          = $context_json,
     r.evidence         = $evidence,
     r.confidence       = $confidence,
     r.source           = 'audit_remediation',
@@ -96,14 +96,19 @@ RETURN true AS written
 """
 
 
-# -- UPDATE assertion on existing DOCUMENTS -----------------------------------
-
-UPDATE_DOCUMENTS_ASSERTION = """
+# Assertion updates use r.context JSON (same shape as pipeline writes).
+GET_DOCUMENTS_CONTEXT = """
 MATCH (e:Encounter {id: $encounter_id})-[r:DOCUMENTS]->(s)
 WHERE toString(s.conceptId) = $concept_id
-SET r.assertion      = $new_assertion,
-    r.old_assertion  = $old_assertion,
-    r.remediated_by  = 'audit_remediation_v1',
-    r.remediated_at  = datetime()
-RETURN r.assertion AS assertion, count(r) AS updated
+RETURN r.context AS context_json
+LIMIT 1
+"""
+
+SET_DOCUMENTS_CONTEXT = """
+MATCH (e:Encounter {id: $encounter_id})-[r:DOCUMENTS]->(s)
+WHERE toString(s.conceptId) = $concept_id
+SET r.context         = $context_json,
+    r.remediated_by   = 'audit_remediation_v1',
+    r.remediated_at   = datetime()
+RETURN count(r) AS updated
 """

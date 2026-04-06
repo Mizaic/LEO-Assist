@@ -1,0 +1,90 @@
+[
+  {
+    "encounter_id": "b1295aaa-0165-442c-81a4-7d847b6937e8",
+    "patient_id": "4246428337",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "Encounter consists entirely of an online medication repeat request submitted by the patient (Miss Denise Marie Anne Payne) for Octasa 1600mg MR gastro-resistant tablets (mesalazine). No clinical narrative, diagnosis, examination finding, symptom, or procedure is documented. The drug name alone does not constitute a codeable SNOMED entity within the defined scope. This is a purely administrative/routing entry with no codeable clinical content.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 379,
+        "output_tokens": 493,
+        "total_tokens": 872,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246428337",
+        "encounter_id": "b1295aaa-0165-442c-81a4-7d847b6937e8",
+        "date": "2025-12-02",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "12bad84a-70ee-456a-90ff-bc1031f35b0e",
+    "patient_id": "4246428337",
+    "date": "2025-12-02",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Encounter is entirely administrative: a non-clinical team repeat medication request for Octasa 1600mg MR tablets, ETP2 prescription signing, and a Summary Care Record preference override note. No clinical findings, diagnoses, procedures, or observations are documented. No SNOMED coding is required.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-8d2766be",
+        "tool_iterations": 1,
+        "input_tokens": 583,
+        "output_tokens": 273,
+        "total_tokens": 856,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4246428337",
+        "encounter_id": "12bad84a-70ee-456a-90ff-bc1031f35b0e",
+        "date": "2025-12-02",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4b0040d2-c1c8-450e-bfae-89bd47979046",
+    "patient_id": "4246428337",
+    "date": "2025-12-04",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4ea8c517-a014-46f9-97da-4439bfa19e98",
+    "patient_id": "4246428337",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "no_clinical_content",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.98,
+      "notes": "Pre-filter: admin-only text, no LLM call needed."
+    },
+    "status": "done"
+  }
+]

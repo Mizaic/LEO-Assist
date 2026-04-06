@@ -1,0 +1,171 @@
+[
+  {
+    "encounter_id": "96a2a12a-4423-4ca7-9ec7-bc196c900788",
+    "patient_id": "6517334858",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Fast track referral for suspected skin cancer",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents a 2WW dermatology referral for suspected skin cancer; the correct SNOMED procedure code must be applied for cancer audit, safety-netting, and NG12 tracking.",
+          "snomed_search": "fast track referral suspected skin cancer",
+          "snomed_concept_id": "276281000000104",
+          "preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+          "sentence": "Fast track referral for suspected skin cancer (XaMeA) - (Added from Questionnaire)",
+          "char_start": 175,
+          "char_end": 230
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "critical",
+          "reason": "The encounter documents a 2WW dermatology referral for suspected skin cancer, not breast cancer; this concept ID is clinically incorrect and must be replaced with the skin cancer fast-track referral code.",
+          "replace_with_concept_id": "276281000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.97,
+      "notes": "A critical coding error is present: concept 276341000000100 resolves to 'Fast track referral for suspected breast cancer' (confirmed by SNOMED search), but the encounter clearly documents a 2WW dermatology referral for suspected skin cancer \u2014 the correct code is 276281000000104. The dermatology referral code (183518005) is confirmed correct by search despite an unreliable direct lookup response and should be retained.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4238,
+        "output_tokens": 1122,
+        "total_tokens": 5360,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6517334858",
+        "encounter_id": "96a2a12a-4423-4ca7-9ec7-bc196c900788",
+        "date": "2025-05-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3fe17db1-1166-4de5-8dbf-0427267a91db",
+    "patient_id": "6517334858",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "276341000000100",
+          "name": "Fast track referral for suspected breast cancer (procedure)",
+          "severity": "medium",
+          "reason": "The note describes a skin lesion (crusted and ulcerated) with no mention of breast pathology; the breast cancer 2WW code is clinically incorrect for this encounter.",
+          "replace_with_concept_id": "276281000000104",
+          "replace_with_preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.93,
+      "notes": "The 2WW referral code is wrong body site \u2014 'Fast track referral for suspected breast cancer' has been applied to what is clearly a skin lesion; this must be replaced with 'Fast track referral for suspected skin cancer' (276281000000104). The other two codes (Change in skin lesion 394896005; Ulcerated skin 520411000000100) are confirmed correct by SNOMED search despite unreliable lookup responses. No additional missing codes were identified \u2014 no suitable SNOMED concept exists for 'crusted skin lesion' as a standalone finding distinct from the ulceration already coded.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 7430,
+        "output_tokens": 1268,
+        "total_tokens": 8698,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6517334858",
+        "encounter_id": "3fe17db1-1166-4de5-8dbf-0427267a91db",
+        "date": "2025-05-12",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fbd58f14-3f2c-400d-8f21-42affbfb0f0b",
+    "patient_id": "6517334858",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "papular lesion on right anterior mid chest wall, erythematous with fine scale",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The GP documented a specific papular, erythematous, scaly 1x1cm skin lesion on examination \u2014 the actual lesion finding must be coded, not just the 'suspicious' qualifier value.",
+          "snomed_search": "skin lesion",
+          "snomed_concept_id": "95324001",
+          "preferred_term": "Skin lesion (disorder)",
+          "sentence": "papular lesion on right anterior mid chest wall 3 cm below clavicle well deramcated about 1x1cm erythematous with fine scale, no pigmemtation",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "confirmed allergy to ivy - causes sneezing when gardening",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A confirmed allergy to ivy is explicitly documented and constitutes a clinically relevant allergy finding that should be coded in the patient record.",
+          "snomed_search": "plant allergy",
+          "snomed_concept_id": "1371398000",
+          "preferred_term": "Allergy to plant (finding)",
+          "sentence": "Confirmed allergy to ivy - causes sneezing when gardening.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "personal hx of ? hayfever",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "The note records a personal history of possible hayfever, which is clinically relevant given the ivy allergy, sneezing, and breathlessness under investigation; it should be coded with a possible/historical assertion.",
+          "snomed_search": "allergic rhinitis hayfever",
+          "snomed_concept_id": "61582004",
+          "preferred_term": "Allergic rhinitis (disorder)",
+          "sentence": "-personal hx of ? hayfever",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "275937001",
+          "name": "Family history of malignant neoplasm (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "family",
+          "severity": "medium",
+          "reason": "This is a family history situation code \u2014 the correct assertion is 'family' (condition in a family member), not 'present' which implies the patient themselves has the condition."
+        }
+      ],
+      "confidence": 0.78,
+      "notes": "The encounter has substantive coding but three gaps exist: the examined skin lesion itself is not coded (only a qualifier value is present), a confirmed ivy allergy is uncoded, and possible hayfever is unrecorded. The family history of malignancy code carries the wrong assertion ('present' rather than 'family'). Note: the terminology server returned unreliable or wrong semantic-tag results for 5 of the 6 coded concept IDs (35646002, 267036007, 308191000000106, 709051008, 415261001) \u2014 these could not be confirmed but have not been flagged as overcoded per audit rules; human verification of those concept IDs against the UK SNOMED CT release is recommended.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 11507,
+        "output_tokens": 2148,
+        "total_tokens": 13655,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "6517334858",
+        "encounter_id": "fbd58f14-3f2c-400d-8f21-42affbfb0f0b",
+        "date": "2025-05-12",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  }
+]

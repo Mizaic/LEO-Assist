@@ -1,6 +1,30 @@
 {
   "context_rules": [
     {
+      "literal": "fit and well",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 2,
+      "description": "A general health status phrase meaning the patient is healthy. Any entity within this phrase (e.g. a spurious extraction of FIT as faecal immunochemical test) must be negated. This is a safety net; the extraction layer should not produce FIT entities from this phrase.",
+      "example": "patient fit and well → do not code 'faecal immunochemical test'"
+    },
+    {
+      "literal": "fit well",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 2,
+      "description": "Shortened form of 'fit and well'. Same semantics -- general health status, not a clinical test.",
+      "example": "fit well → no codable finding"
+    },
+    {
+      "literal": "medically fit",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 3,
+      "description": "Confirms the patient is in adequate health for a procedure or activity. Not a codable disorder or test.",
+      "example": "medically fit for surgery → no codable finding for the word fit"
+    },
+    {
       "literal": "nil",
       "category": "NEGATED_EXISTENCE",
       "direction": "FORWARD",
@@ -74,74 +98,74 @@
     },
     {
       "literal": "awaiting",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "The patient is waiting for something that has not happened yet. Do not code the procedure or diagnosis as complete.",
+      "description": "The patient is waiting for something that has been arranged but not yet completed. The procedure or appointment is confirmed as planned.",
       "example": "awaiting colonoscopy → the colonoscopy is booked but not done yet"
     },
     {
       "literal": "booked for",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "An appointment or procedure has been arranged but has not taken place yet.",
+      "description": "An appointment or procedure has been confirmed and arranged but has not yet taken place.",
       "example": "booked for cystoscopy → the procedure is scheduled, not yet done"
     },
     {
       "literal": "waiting list",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "BIDIRECTIONAL",
       "max_scope": 6,
-      "description": "The patient is in a queue for a procedure or appointment that has not happened yet.",
+      "description": "The patient is on a confirmed queue for a procedure or appointment that has not happened yet.",
       "example": "waiting list for hip replacement → the operation has not been done yet"
     },
     {
       "literal": "2ww",
-      "category": "HYPOTHETICAL",
+      "category": "POSSIBLE_EXISTENCE",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "A Two-Week Wait cancer referral. The patient has been referred for investigation but has not yet been seen or diagnosed. This should never be coded as a confirmed cancer.",
-      "example": "2ww referral for lung → the patient is being investigated, not diagnosed"
+      "description": "A Two-Week Wait cancer referral. The cancer is a current clinical suspicion (possible), not a confirmed diagnosis. The referral itself was placed, but the diagnosis is uncertain.",
+      "example": "2ww referral for suspected bowel cancer → bowel cancer is suspected right now, not confirmed"
     },
     {
       "literal": "referred for",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "The patient has been sent to another service but has not been seen yet. The referral is pending, not complete.",
+      "description": "A referral has been made and sent. The patient has not yet been seen by the receiving service.",
       "example": "referred for physiotherapy → physiotherapy has not started"
     },
     {
       "literal": "referral for",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "Same meaning as 'referred for' — a referral has been made but not yet acted on.",
+      "description": "A referral has been submitted. The downstream appointment or procedure has not yet taken place.",
       "example": "referral for gastroscopy → the procedure has not happened yet"
     },
     {
       "literal": "on waiting list",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "Explicitly states the patient is in a queue for something that has not yet been done.",
+      "description": "The patient is confirmed on a waiting list for something that has not yet been done.",
       "example": "on waiting list for knee surgery → surgery has not taken place"
     },
     {
       "literal": "scheduled for",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "Something has been planned and put in the diary, but it has not happened yet.",
+      "description": "An appointment or procedure has been put in the diary. It has a confirmed date but has not happened yet.",
       "example": "scheduled for CT scan → the scan has not been done"
     },
     {
       "literal": "planned",
-      "category": "HYPOTHETICAL",
+      "category": "PLANNED",
       "direction": "FORWARD",
       "max_scope": 4,
-      "description": "Something is intended to happen in the future. It has not taken place yet and should not be coded as completed.",
+      "description": "Something is confirmed as intended to happen. It has not taken place yet.",
       "example": "planned hysterectomy → the operation has not been performed"
     },
     {
@@ -299,27 +323,131 @@
     },
     {
       "literal": "reasons for request",
-      "category": "HYPOTHETICAL",
+      "category": "POSSIBLE_EXISTENCE",
       "direction": "FORWARD",
       "max_scope": 8,
-      "description": "The clinical reason a referral or investigation is being requested. The condition listed here is suspected, not confirmed — the referral is to find out more.",
-      "example": "Reasons for request: possible colorectal cancer → this is a suspicion, not a diagnosis"
+      "description": "The clinical reason a referral or investigation is being requested. The condition listed is a current clinical suspicion, not a confirmed diagnosis and not a future event.",
+      "example": "Reasons for request: possible colorectal cancer → current suspicion, not a confirmed diagnosis"
     },
     {
       "literal": "clinical information:",
-      "category": "HYPOTHETICAL",
+      "category": "POSSIBLE_EXISTENCE",
       "direction": "FORWARD",
       "max_scope": 8,
-      "description": "Background details provided to support a referral. The conditions mentioned are concerns or symptoms, not confirmed diagnoses.",
-      "example": "Clinical information: rectal bleeding, weight loss → these are symptoms prompting investigation"
+      "description": "Background details provided to support a referral. The conditions and symptoms mentioned are current clinical concerns, not confirmed diagnoses.",
+      "example": "Clinical information: rectal bleeding, weight loss → current symptoms prompting investigation"
     },
     {
       "literal": "criteria:",
-      "category": "HYPOTHETICAL",
+      "category": "POSSIBLE_EXISTENCE",
       "direction": "BIDIRECTIONAL",
       "max_scope": 6,
-      "description": "Eligibility criteria being checked for a referral or treatment. The condition is being considered as a possible reason, not confirmed.",
-      "example": "criteria: meets 2ww threshold for lung cancer referral → suspicion only, not a diagnosis"
+      "description": "Eligibility criteria being checked for a referral or treatment. The condition is a current clinical concern being assessed, not confirmed.",
+      "example": "criteria: meets 2ww threshold for lung cancer referral → current suspicion being evaluated"
+    },
+    {
+      "literal": "likely",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 5,
+      "description": "Clinical probability but not certainty. The condition is suspected rather than confirmed.",
+      "example": "likely deconditioning → possible, not confirmed"
+    },
+    {
+      "literal": "likely some",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 5,
+      "description": "Partial speculative qualifier. The clinician suspects some degree of the condition.",
+      "example": "likely some central sensitisation → possible finding"
+    },
+    {
+      "literal": "probably",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 5,
+      "description": "Clinical suspicion approaching but not reaching certainty.",
+      "example": "probably viral → possible cause"
+    },
+    {
+      "literal": "probable",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 5,
+      "description": "Clinician believes this is the most likely explanation but has not confirmed it.",
+      "example": "probable IBS → possible diagnosis"
+    },
+    {
+      "literal": "suspected",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Active clinical suspicion; investigation underway or planned to confirm.",
+      "example": "suspected DVT → possible diagnosis"
+    },
+    {
+      "literal": "query",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 4,
+      "description": "Longhand for '?' -- the condition is a differential or under investigation.",
+      "example": "query PE → possible pulmonary embolism"
+    },
+    {
+      "literal": "possible",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 5,
+      "description": "Explicit uncertainty about whether the condition is present.",
+      "example": "possible anxiety → uncertain"
+    },
+    {
+      "literal": "consistent with",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Findings are compatible with this diagnosis but do not confirm it.",
+      "example": "consistent with viral URTI → possible"
+    },
+    {
+      "literal": "may represent",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "The finding may indicate the condition but other explanations exist.",
+      "example": "may represent early fibrosis → possible"
+    },
+    {
+      "literal": "appears to be",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 5,
+      "description": "Clinical impression, not a confirmed diagnosis.",
+      "example": "appears to be cellulitis → possible"
+    },
+    {
+      "literal": "might be",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 4,
+      "description": "Tentative clinical impression.",
+      "example": "might be sciatica → possible"
+    },
+    {
+      "literal": "could be",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 4,
+      "description": "Differential diagnosis under consideration.",
+      "example": "could be early COPD → possible"
+    },
+    {
+      "literal": "impression:",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 8,
+      "description": "Clinical impression section -- conditions listed are working hypotheses, not confirmed.",
+      "example": "Impression: tension headache → possible diagnosis"
     }
   ]
 }

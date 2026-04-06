@@ -1,0 +1,107 @@
+# -- DI-LEO-AI-084 -- Domain-Driven Episode Detector
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-084"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-052"]
+  requirement: >
+    The system SHALL replace hardcoded SNOMED frozensets in the episode
+    detector with live configuration loaded from AuditDomain/ValueSet nodes
+    in the knowledge graph. Each AuditDomain node SHALL carry an
+    episodeDetector boolean property. Each linked ValueSet (subdomain) SHALL
+    carry milestoneType (referral | diagnosis | treatment_start |
+    specialist_visit), assertionFilter (list of ConText assertion values), and
+    assertionFilter SHALL be applied by the anchor detector so that a coded
+    concept is only placed into a milestone bucket when its DOCUMENTS
+    relationship assertion is in the filter (empty filter accepts all
+    assertions). The anchor detector SHALL return r.assertion from every
+    DOCUMENTS relationship it queries. The DomainRegistry singleton SHALL be
+    loaded from ncda-* ValueSet nodes in Neo4j and SHALL raise RuntimeError
+    when no ValueSet nodes are found rather than falling back to hardcoded
+    defaults. Each EpisodeOfCare node created SHALL carry a domain_id
+    property. The subdomain config UI SHALL provide controlled Select/
+    multi-select inputs for milestoneType and assertionFilter.
+  rationale: >
+    Hardcoded SNOMED frozensets require a code deployment to update, which
+    prevents clinical quality managers from responding rapidly to new NICE
+    guidance. Assertion filtering ensures the episode detector distinguishes
+    between suspected and confirmed clinical states, reducing false episode
+    creation. Fail-fast behaviour ensures misconfiguration is visible
+    immediately rather than silently degrading to stale data.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "AuditDomain.episodeDetector persisted to and read from Neo4j correctly"
+      - type: "functional"
+        spec: "ValueSet.assertionFilter persisted to and read from Neo4j correctly"
+      - type: "functional"
+        spec: "_classify_anchor_rows() excludes rows whose assertion is not in assertionFilter when filter is non-empty"
+      - type: "functional"
+        spec: "_classify_anchor_rows() accepts all assertions when assertionFilter is empty"
+      - type: "safety"
+        spec: "DomainRegistry raises RuntimeError when no ncda-* ValueSet nodes exist; no from_defaults() fallback"
+      - type: "functional"
+        spec: "EpisodeOfCare nodes have domain_id property set correctly"
+      - type: "functional"
+        spec: "milestone_type Select and assertion_filter multi-select replace free-text inputs in UI"
+      - type: "functional"
+        spec: "_load_registry performs IS_A expansion so all SNOMED descendants of parent concepts are resolved"
+      - type: "functional"
+        spec: "encounter_rules.json clinical_override includes 'seen in fast track' so admin-classified encounters are promoted to clinical"
+      - type: "functional"
+        spec: "sentence_splitter.filter_header_sentences preserves lines containing 'seen in fast track'"
+      - type: "functional"
+        spec: "extraction_v1.py ALWAYS EXTRACT rule instructs LLM to extract 'Seen in fast track suspected X clinic' phrases"
+      - type: "functional"
+        spec: "Direct DOCUMENTS writeback script writes concept + HAS_FINDING relationships without re-running LLM extraction"
+    constraints:
+      - type: "safety"
+        spec: "No hardcoded SNOMED ID frozensets remain in anchor_detector.py after this change"
+      - type: "safety"
+        spec: "Empty assertion_filter means accept all assertions -- must not silently discard any anchors"
+      - type: "safety"
+        spec: "'Seen in fast track' encounters must never be silently dropped by classifier or splitter"
+    dependencies: ["DI-LEO-AI-007", "DI-LEO-AI-062"]
+    downstream_impacts:
+      - "Episode detector: anchor_detector.py and episode_builder.py"
+      - "Domain config UI: settings/domains/[id]/page.tsx"
+      - "Analytics API: domains.py, audit.py registry bootstrap"
+      - "DomainRegistry: registry.py NCDADomain dataclass"
+      - "Pipeline: encounter_classifier (encounter_rules.json), sentence_splitter, extraction prompt"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI / LangGraph / Neo4j / Next.js MUI"
+      file_structure:
+        - "services/analytics_api/app/routers/domains.py"
+        - "libs/domain_config/registry.py"
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+        - "libs/pipeline_graph/subgraphs/anchor.py"
+        - "services/analysis_worker/app/analyzers/episode_builder.py"
+        - "libs/pipeline_graph/subgraphs/episode.py"
+        - "services/analytics_api/app/routers/audit.py"
+        - "services/ui/src/app/settings/domains/[id]/page.tsx"
+        - "services/ui/src/lib/analyticsApi.ts"
+        - "libs/classifiers/encounter_rules.json"
+        - "libs/nlp/sentence_splitter.py"
+        - "libs/prompts/extraction_v1.py"
+        - "scripts/investigations/_inventory_fast_track_specialist_encounters.py"
+        - "scripts/investigations/_pin_fast_track_specialist_visits.py"
+        - "scripts/investigations/_writeback_fast_track_specialist_docs.py"
+        - "scripts/investigations/_rerun_episodes_for_fast_track_patients.py"
+      estimated_loc: 560
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-084 test cases pass: assertion filter exclusion, assertion filter
+      accept-all, registry fail-fast on empty KG, domain_id on EpisodeOfCare,
+      episode_detector flag round-trip, milestone_type round-trip,
+      sentence_splitter allowlist, encounter_classifier clinical_override,
+      IS_A expansion applied before registry build.
+    test_protocol: "VT-LEO-AI-084"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-058"]
+  tags: ["episode-detector", "domain-config", "cancer-pathway", "anchor-detection"]

@@ -1,0 +1,416 @@
+[
+  {
+    "encounter_id": "d1d93fa4-ea94-4b03-881a-2b07d97936a3",
+    "patient_id": "4992507875",
+    "date": "2024-02-20",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "161712005",
+          "name": "Menopause, function (observable entity)",
+          "severity": "medium",
+          "reason": "The coded concept is an observable entity (Menopause, function) rather than a clinical finding; the note documents menopause as an active clinical state and the indication for HRT, making the finding-level concept 289903006 'Menopause present (finding)' the more appropriate code.",
+          "replace_with_concept_id": "289903006",
+          "replace_with_preferred_term": "Menopause present (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "84849002",
+          "name": "Tinea corporis (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician recorded '? Ringworm of body' \u2014 the question mark explicitly indicates a working/uncertain diagnosis, so the assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Two coding issues identified: tinea corporis is coded as confirmed (present) when the note clearly records it as a working diagnosis with a question mark (should be 'possible'); and menopause is coded using an observable entity concept (161712005) rather than the more appropriate finding-level concept 289903006 'Menopause present (finding)'. All other codes \u2014 BP, weight, BMI, smoking status, alcohol status, and HRT procedure \u2014 are correctly coded and evidenced by the note.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5708,
+        "output_tokens": 1320,
+        "total_tokens": 7028,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4992507875",
+        "encounter_id": "d1d93fa4-ea94-4b03-881a-2b07d97936a3",
+        "date": "2024-02-20",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a9a92dba-e484-4d5e-8025-42b7cf61ec36",
+    "patient_id": "4992507875",
+    "date": "2024-10-15",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Night pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents pain waking the patient at night, a clinically significant red-flag symptom driving the investigation plan; 'Night pain (finding)' captures this directly whereas the currently coded 'Night time (qualifier value)' is a modifier concept, not a clinical finding.",
+          "snomed_search": "night pain",
+          "snomed_concept_id": "36163009",
+          "preferred_term": "Night pain (finding)",
+          "sentence": "No pain on weight-bearing, worse with movement after prolonged resting, wakes her at night when she moves in bed.",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "2546009",
+          "name": "Night time (qualifier value)",
+          "severity": "medium",
+          "reason": "'Night time' is a SNOMED qualifier value (a temporal modifier), not a clinical finding; the clinical concept to code is 'Night pain (finding)' [36163009] which directly represents the symptom documented in the note.",
+          "replace_with_concept_id": "36163009",
+          "replace_with_preferred_term": "Night pain (finding)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "427186000",
+          "name": "Dermatofibroma (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "high",
+          "reason": "The clinician documents 'Likely dermatofibroma' \u2014 this is a working/provisional diagnosis, not a confirmed active condition; assertion should be 'possible' pending investigation results."
+        }
+      ],
+      "confidence": 0.91,
+      "notes": "Critical safety issue: the problem list entry 'Pigmented dermatofibrosarcoma protuberans' has been explicitly flagged in the note as 'Problem Header Marked in Error: Wrong data entered' and must be removed from the problem list \u2014 this is a serious malignant diagnosis incorrectly attributed to this patient. Additionally, the dermatofibroma assertion should be downgraded to 'possible' (clinician said 'Likely'), and the 'Night time (qualifier value)' code should be replaced with the clinically appropriate 'Night pain (finding)' [36163009].",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 5349,
+        "output_tokens": 1633,
+        "total_tokens": 6982,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4992507875",
+        "encounter_id": "a9a92dba-e484-4d5e-8025-42b7cf61ec36",
+        "date": "2024-10-15",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7a0dab51-dece-4ac4-b1e0-79928bca36b0",
+    "patient_id": "4992507875",
+    "date": "2024-10-31",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "1290249005",
+          "name": "Synovial popliteal cyst (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician explicitly documents this as a differential diagnosis ('?small baker's cyst'), not a confirmed diagnosis; assertion should be 'possible' rather than 'present'."
+        }
+      ],
+      "confidence": 0.92,
+      "notes": "One coding error identified: the popliteal (Baker's) cyst is prefixed with '?' in the note indicating it is a differential/unconfirmed diagnosis, but has been coded with assertion=present. This should be changed to assertion=possible. The knee pain code (1003722009) is correctly coded as present and well-evidenced by the history and examination findings.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4065,
+        "output_tokens": 823,
+        "total_tokens": 4888,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4992507875",
+        "encounter_id": "7a0dab51-dece-4ac4-b1e0-79928bca36b0",
+        "date": "2024-10-31",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4053cd5b-58ab-4e5f-a987-7939a0dfe80f",
+    "patient_id": "4992507875",
+    "date": "2024-12-02",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "knee pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Knee pain is the primary presenting complaint explicitly documented throughout the encounter and should be coded as an active finding.",
+          "snomed_search": "knee pain",
+          "snomed_concept_id": "1003722009",
+          "preferred_term": "Pain of knee region (finding)",
+          "sentence": "knee pain worsening. posterior knee pain- pain at night, affecting sleep",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "16310003",
+          "name": "Ultrasonography (procedure)",
+          "severity": "low",
+          "reason": "The note specifies ultrasound of the left knee; a lateralised code is available and more accurate than the generic ultrasonography concept.",
+          "replace_with_concept_id": "1161000087107",
+          "replace_with_preferred_term": "Ultrasonography of left knee region (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "1290249005",
+          "name": "Synovial popliteal cyst (disorder)",
+          "severity": "medium",
+          "reason": "The note specifies the left knee and a lateralised concept exists; additionally the clinician states 'likely' Baker's cyst so assertion should be possible, not present.",
+          "replace_with_concept_id": "1290327002",
+          "replace_with_preferred_term": "Synovial popliteal cyst of left knee (disorder)",
+          "replace_with_assertion": "possible"
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "1290249005",
+          "name": "Synovial popliteal cyst (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "possible",
+          "severity": "medium",
+          "reason": "The clinician explicitly qualifies the diagnosis as 'likely bakers cyst' indicating uncertainty; assertion should be possible rather than present."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "Three issues identified: (1) the primary presenting complaint of knee pain is uncoded; (2) both existing codes should use lateralised left-knee concepts given the note explicitly states 'left knee'; (3) the Baker's cyst/popliteal cyst assertion is incorrectly set to present when the clinician's language ('likely') warrants a possible assertion. Note: lookup_concept returned unreliable semantic tags for both coded concept IDs, but cross-validation via search_snomed confirmed the concept IDs are clinically correct SNOMED codes, so no deletion is warranted on that basis alone.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 4509,
+        "output_tokens": 1503,
+        "total_tokens": 6012,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4992507875",
+        "encounter_id": "4053cd5b-58ab-4e5f-a987-7939a0dfe80f",
+        "date": "2024-12-02",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8933ed26-7cc1-45dd-af67-a60a2b50314a",
+    "patient_id": "4992507875",
+    "date": "2024-12-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "NHS Health Check programme",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly documented as an NHS Health Check (LLR NHS Health Check V3 template); the programme procedure itself is not coded in the 18 concepts.",
+          "snomed_search": "NHS health check programme",
+          "snomed_concept_id": "763661000000101",
+          "preferred_term": "National Health Service Health Check annual review (procedure)",
+          "sentence": "NHS Health Check programme (XaR6f)",
+          "char_start": 55,
+          "char_end": 85
+        },
+        {
+          "term": "FH: Diabetes mellitus",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "The note explicitly records a family history of diabetes mellitus (Read code 1252.) which is a clinically relevant situation for cardiovascular risk assessment but is absent from the coded list.",
+          "snomed_search": "family history diabetes mellitus",
+          "snomed_concept_id": "160303001",
+          "preferred_term": "Family history of diabetes mellitus (situation)",
+          "sentence": "FH: Diabetes mellitus (1252.)",
+          "char_start": 0,
+          "char_end": 28
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Four concepts from the NHS Health Check template are missing from the coded list: the Health Check procedure itself, family history of diabetes mellitus, no family history of cardiovascular disease, and no history of migraine. The radial pulse rate concept (843941000000100) returned an unreliable lookup result but is confirmed valid via search_snomed; the raw pulse of 50 bpm has no explicit clinical interpretation of bradycardia documented in the note text and should not be coded as a disorder. All 18 existing codes are otherwise appropriate for this structured Health Check encounter.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 5,
+        "input_tokens": 17917,
+        "output_tokens": 2355,
+        "total_tokens": 20272,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4992507875",
+        "encounter_id": "8933ed26-7cc1-45dd-af67-a60a2b50314a",
+        "date": "2024-12-10",
+        "coded_count": 18
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "940e4922-1712-499f-98ec-4a201bee0622",
+    "patient_id": "4992507875",
+    "date": "2025-01-30",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "168537006",
+          "name": "Plan X-ray (procedure)",
+          "severity": "medium",
+          "reason": "Lookup returned an Extension Namespace placeholder \u2014 this concept ID cannot be verified; the note documents a completed X-ray (xray and US clear), not a planned one, and the correct code should be a plain X-ray procedure.",
+          "replace_with_concept_id": "1290611003",
+          "replace_with_preferred_term": "Plain X-ray of lower limb (procedure)",
+          "replace_with_assertion": "present"
+        },
+        {
+          "conceptId": "367411006",
+          "name": "Hamstring tendon transfer (procedure)",
+          "severity": "high",
+          "reason": "Lookup returned unreliable (organism semantic tag); the intended clinical concept is hamstring tendon pain/injury \u2014 a finding/disorder \u2014 not a surgical tendon transfer procedure, which is clinically incorrect for this encounter.",
+          "replace_with_concept_id": "135851009",
+          "replace_with_preferred_term": "Hamstring injury (disorder)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.87,
+      "notes": "Two significant coding errors identified: concept 168537006 is an unverifiable Extension Namespace placeholder and should be replaced with a confirmed plain X-ray procedure code; concept 367411006 resolves as an organism/virus in the terminology server and the label 'Hamstring tendon transfer' is a surgical procedure wholly inconsistent with the clinical narrative \u2014 the correct code is Hamstring injury (disorder) 135851009. Concepts 16310003 (Ultrasonography) and 306170007 (Referral to physiotherapy service) are correctly applied.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 4,
+        "input_tokens": 9034,
+        "output_tokens": 1471,
+        "total_tokens": 10505,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4992507875",
+        "encounter_id": "940e4922-1712-499f-98ec-4a201bee0622",
+        "date": "2025-01-30",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7def4c56-21fa-46ab-a121-997810f4b764",
+    "patient_id": "4992507875",
+    "date": "2025-11-07",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "entities": [],
+      "missing": [
+        {
+          "term": "Revaxis 3rd dose (tetanus, diphtheria, inactivated polio vaccination)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Revaxis 0.5ml was administered today as the patient's 3rd tetanus/diphtheria/polio dose and must be coded as a vaccination procedure, not a contraindication situation.",
+          "snomed_search": "tetanus diphtheria polio third dose",
+          "snomed_concept_id": "416144004",
+          "preferred_term": "Administration of third dose of vaccine product containing only Clostridium tetani and low dose Corynebacterium diphtheriae and inactivated Human poliovirus antigens (procedure)",
+          "sentence": "Only 2 tetanus vaccines on record - advised 3rd dose today. No contraindications identified. Post imms advice given.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Foreign travel education / travel health consultation",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A full structured travel health consultation was conducted covering multiple topics (insects, food, water, DVT, climate, rabies, Zika, malaria, sexual health, safety) and should be coded as a foreign travel education procedure.",
+          "snomed_search": "foreign travel education",
+          "snomed_concept_id": "171071003",
+          "preferred_term": "Foreign travel education (procedure)",
+          "sentence": "Discussed Nathnac advice in detail. Advised re. bite prevention 24hrs a day in regards to mosquitos and diseases they spread including Chikungunya, Jap E, Dengue, ZIKV, malaria.",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Advice on foreign travel - malaria advice",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Malaria advice was explicitly documented as given and is a clinically distinct component of the travel consultation warranting its own SNOMED procedure code.",
+          "snomed_search": "malaria travel advice",
+          "snomed_concept_id": "203361000000104",
+          "preferred_term": "Advice on foreign travel - malaria advice (procedure)",
+          "sentence": "Malaria: Advice on foreign travel - malaria advice (XaLRN) / Malaria advice given: Yes",
+          "char_start": 0,
+          "char_end": 0
+        },
+        {
+          "term": "Advice on DVT risk in air travel",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "DVT risk advice was explicitly documented as given during the travel consultation and should be coded as a procedure.",
+          "snomed_search": "deep vein thrombosis air travel advice",
+          "snomed_concept_id": "853081000000109",
+          "preferred_term": "Education about health risks associated with air travel (procedure)",
+          "sentence": "Advice on: DVT risk: Yes / Advised risk of deep vein thrombosis in air travel (XaJux)",
+          "char_start": 0,
+          "char_end": 0
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "903241000000108",
+          "name": "Diphtheria, tetanus, inactivated polio vaccination contraindicated (situation)",
+          "severity": "high",
+          "reason": "The terminology server returns this concept ID as unreliable (semantic tag 'organism'); the note explicitly states 'No contraindications identified' and the vaccine WAS administered \u2014 a contraindication situation code is clinically incorrect and directly contradicted by the encounter text.",
+          "replace_with_concept_id": "416144004",
+          "replace_with_preferred_term": "Administration of third dose of vaccine product containing only Clostridium tetani and low dose Corynebacterium diphtheriae and inactivated Human poliovirus antigens (procedure)",
+          "replace_with_assertion": "present"
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.91,
+      "notes": "The single coded concept is both clinically wrong (contraindication coded when the vaccine was actually given with no contraindications) and terminologically unreliable (concept ID resolves as 'organism'). It should be replaced with the correct Td/IPV 3rd-dose administration procedure (416144004). Additionally, the comprehensive travel health consultation \u2014 including foreign travel education, malaria advice, and DVT risk advice \u2014 is entirely uncoded despite being well-documented in the structured template.",
+      "metadata": {
+        "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+        "prompt_version": "v1.0-37946462",
+        "tool_iterations": 3,
+        "input_tokens": 8867,
+        "output_tokens": 1944,
+        "total_tokens": 10811,
+        "schema_version": 1
+      },
+      "_meta": {
+        "patient_id": "4992507875",
+        "encounter_id": "7def4c56-21fa-46ab-a121-997810f4b764",
+        "date": "2025-11-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  }
+]
