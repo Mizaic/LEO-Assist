@@ -77,6 +77,10 @@ export async function fetchEpisodeTimeline(patientId?: string, orgId?: string, i
       referral_route?: string;
       place_of_presentation?: string;
       safety_netting_recorded?: boolean;
+      inferred_outcome?: 'cancer' | 'benign' | null;
+      inferred_outcome_date?: string | null;
+      inferred_confidence?: number | null;
+      inference_signals?: string | null;
       milestones?: Array<{
         encounter_id: string;
         date: string;

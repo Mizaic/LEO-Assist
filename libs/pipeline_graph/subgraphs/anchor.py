@@ -82,7 +82,10 @@ def _expand_valuesets_with_isa(kg, valuesets: dict) -> dict:
         pid = row.get("parent_id") or ""
         if pid:
             by_parent.setdefault(pid, []).append(
-                {"code": row["child_id"], "display": row.get("display") or row["child_id"]}
+                {
+                    "code": row["child_id"],
+                    "display": row.get("display") or row["child_id"],
+                }
             )
 
     total = sum(len(v) for v in by_parent.values())
@@ -171,10 +174,17 @@ def _entity_rows(state: AnchorState) -> list[dict[str, Any]]:
         )
         rows.append(
             {
-                "encounter_id": entity.get("encounter_id") or state.get("encounter_id") or "",
-                "encounter_date": entity.get("encounter_date") or state.get("encounter_date") or "",
+                "encounter_id": entity.get("encounter_id")
+                or state.get("encounter_id")
+                or "",
+                "encounter_date": entity.get("encounter_date")
+                or state.get("encounter_date")
+                or "",
                 "concept_id": concept_id,
-                "concept_name": entity.get("concept_name") or entity.get("text") or entity.get("label") or "",
+                "concept_name": entity.get("concept_name")
+                or entity.get("text")
+                or entity.get("label")
+                or "",
                 "source": entity.get("source") or "pipeline",
                 "confidence": entity.get("confidence", 1.0),
                 "evidence": entity.get("evidence") or "",
@@ -186,13 +196,18 @@ def _entity_rows(state: AnchorState) -> list[dict[str, Any]]:
 
 def _flatten_anchor_result(anchor_result) -> list[dict[str, Any]]:
     anchors: list[dict[str, Any]] = []
-    for milestone_type, rows in (
+    ms_pairs = (
         ("referral", anchor_result.referral_anchors),
         ("diagnosis", anchor_result.diagnosis_anchors),
         ("treatment_start", anchor_result.treatment_anchors),
         ("specialist_visit", anchor_result.specialist_visit_anchors),
         ("benign_closure", anchor_result.benign_closure_anchors),
-    ):
+        (
+            "specialist_outcome_letter",
+            anchor_result.specialist_outcome_letter_anchors,
+        ),
+    )
+    for milestone_type, rows in ms_pairs:
         for row in rows:
             anchor = dict(row)
             anchor["milestone_type"] = milestone_type
@@ -203,7 +218,9 @@ def _flatten_anchor_result(anchor_result) -> list[dict[str, Any]]:
 def detect_anchors(state: AnchorState) -> dict[str, Any]:
     patient_id = state.get("patient_id") or ""
     domain_id = state.get("domain_id") or ""
-    logger.info("Detecting anchors for patient %s (domain: %s)", patient_id, domain_id or "any")
+    logger.info(
+        "Detecting anchors for patient %s (domain: %s)", patient_id, domain_id or "any"
+    )
     errors = list(state.get("errors") or [])
 
     try:
@@ -215,6 +232,7 @@ def detect_anchors(state: AnchorState) -> dict[str, Any]:
     try:
         entity_rows = _entity_rows(state)
         if entity_rows:
+
             class _Client:
                 def run(self, *_args, **_kwargs):
                     return entity_rows
@@ -249,6 +267,9 @@ def detect_anchors(state: AnchorState) -> dict[str, Any]:
                 "treatment_anchors": anchor_result.treatment_anchors,
                 "specialist_visit_anchors": anchor_result.specialist_visit_anchors,
                 "benign_closure_anchors": anchor_result.benign_closure_anchors,
+                "specialist_outcome_letter_anchors": (
+                    anchor_result.specialist_outcome_letter_anchors
+                ),
                 "detection_method": anchor_result.detection_method,
                 "expanded_start": anchor_result.expanded_start,
                 "expanded_end": anchor_result.expanded_end,

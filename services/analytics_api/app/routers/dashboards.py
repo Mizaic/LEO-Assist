@@ -398,6 +398,10 @@ def episode_timeline(
                 "       ep.place_of_presentation AS place_of_presentation, "
                 "       ep.safety_netting_recorded AS safety_netting_recorded, "
                 "       toString(ep.referral_date) AS referral_date, "
+                "       ep.inferred_outcome AS inferred_outcome, "
+                "       ep.inferred_outcome_date AS inferred_outcome_date, "
+                "       ep.inferred_confidence AS inferred_confidence, "
+                "       ep.inference_signals AS inference_signals, "
                 "       collect({encounter_id: e.id, date: toString(e.date), "
                 "       milestone: r.milestone_type}) AS milestones "
                 "ORDER BY ep.referral_date",
@@ -425,7 +429,12 @@ def episode_timeline(
                 "       ep.merged_into AS merged_into, "
                 "       ep.merged_from AS merged_from, "
                 "       ep.consolidation_reasoning AS consolidation_reasoning, "
-                "       toString(ep.referral_date) AS referral_date, milestones "
+                "       toString(ep.referral_date) AS referral_date, "
+                "       ep.inferred_outcome AS inferred_outcome, "
+                "       ep.inferred_outcome_date AS inferred_outcome_date, "
+                "       ep.inferred_confidence AS inferred_confidence, "
+                "       ep.inference_signals AS inference_signals, "
+                "       milestones "
                 "ORDER BY ep.referral_date DESC LIMIT 200",
                 org=effective_org,
             )
@@ -443,7 +452,12 @@ def episode_timeline(
             "       ep.merged_into AS merged_into, "
             "       ep.merged_from AS merged_from, "
             "       ep.consolidation_reasoning AS consolidation_reasoning, "
-            "       toString(ep.referral_date) AS referral_date, milestones "
+            "       toString(ep.referral_date) AS referral_date, "
+            "       ep.inferred_outcome AS inferred_outcome, "
+            "       ep.inferred_outcome_date AS inferred_outcome_date, "
+            "       ep.inferred_confidence AS inferred_confidence, "
+            "       ep.inference_signals AS inference_signals, "
+            "       milestones "
             "ORDER BY ep.referral_date DESC LIMIT 200",
             **scope_params,
         )

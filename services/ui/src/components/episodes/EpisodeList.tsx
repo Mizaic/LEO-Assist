@@ -141,7 +141,7 @@ export default function EpisodeList({
                   >
                     {ep.condition_type || "Unknown type"}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                  <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", flexWrap: "wrap" }}>
                     {ep.status === "merged" && (
                       <Chip label="Merged" size="small" variant="outlined" />
                     )}
@@ -150,6 +150,14 @@ export default function EpisodeList({
                     )}
                     {ep.needs_review && (
                       <Chip label="Review" size="small" color="warning" variant="outlined" />
+                    )}
+                    {ep.inferred_outcome && (
+                      <Chip
+                        label={`~ Inferred: ${ep.inferred_outcome}${ep.inferred_confidence != null ? ` (${Math.round(ep.inferred_confidence * 100)}%)` : ""}`}
+                        size="small"
+                        title={`Outcome inferred from post-clinic encounter text — not a coded diagnosis. Signals: ${ep.inference_signals ?? "none"}`}
+                        sx={{ bgcolor: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D", fontWeight: 600 }}
+                      />
                     )}
                     <Chip
                       label={riskCfg.label}

@@ -11,6 +11,7 @@ interface KPIs {
   avg_days_to_treatment: number | null;
   avg_consultations: number | null;
   episode_count: number;
+  inferred_diagnosis_count?: number | null;
 }
 
 const ITEMS: { key: keyof KPIs; label: string; sublabel: string; unit: string; target?: number }[] = [
@@ -128,6 +129,15 @@ export default function KPICards({ kpis }: { kpis: KPIs | null }) {
 
       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
         Calculated from {kpis.episode_count} referral {kpis.episode_count === 1 ? "pathway" : "pathways"}
+        {kpis.inferred_diagnosis_count != null && kpis.inferred_diagnosis_count > 0 && (
+          <Box
+            component="span"
+            sx={{ ml: 0.75, color: "#B45309", fontStyle: "italic" }}
+            title="Referral-to-diagnosis interval includes episodes where the outcome was inferred from post-clinic encounter text, not a coded diagnosis. Review these in the audit tab."
+          >
+            (incl. {kpis.inferred_diagnosis_count} inferred)
+          </Box>
+        )}
       </Typography>
     </Box>
   );

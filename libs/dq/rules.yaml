@@ -1,0 +1,235 @@
+# DQ Rules -- ISO 25012 + Healthcare-specific
+# Each rule is evaluated by rules_engine.run_all_rules().
+# severity: critical | high | medium | low
+# threshold: violation count above which status becomes 'fail' (0 = any violation fails)
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # 1. Completeness
+  # --------------------------------------------------------------------------
+  - id: "COMP-001"
+    dimension: "Completeness"
+    severity: "high"
+    threshold: 0
+    description: "Episodes missing referral_date"
+    cypher: >
+      MATCH (ep:EpisodeOfCare)
+      WHERE ep.referral_date IS NULL
+      RETURN ep.id AS id, ep.status AS detail
+      LIMIT 10
+
+  - id: "COMP-002"
+    dimension: "Completeness"
+    severity: "medium"
+    threshold: 10
+    description: "Encounters missing text field"
+    cypher: >
+      MATCH (enc:Encounter)
+      WHERE enc.text IS NULL OR enc.text = ''
+      RETURN enc.id AS id, enc.date AS detail
+      LIMIT 10
+
+  - id: "COMP-003"
+    dimension: "Completeness"
+    severity: "high"
+    threshold: 0
+    description: "DOCUMENTS edges missing assertion"
+    cypher: >
+      MATCH ()-[d:DOCUMENTS]->()
+      WHERE d.assertion IS NULL
+      RETURN id(d) AS id, 'missing assertion' AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 2. Accuracy
+  # --------------------------------------------------------------------------
+  - id: "ACCR-001"
+    dimension: "Accuracy"
+    severity: "critical"
+    threshold: 0
+    description: "Episode completed but no diagnosis anchor exists"
+    cypher: >
+      MATCH (ep:EpisodeOfCare {status: 'completed'})
+      WHERE NOT EXISTS {
+        MATCH (p:Patient)-[:HAS_EPISODE]->(ep)
+        MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)-[d:DOCUMENTS]->()
+        WHERE d.milestone_type = 'diagnosis'
+          AND d.assertion IN ['present', 'possible']
+      }
+      RETURN ep.id AS id, ep.cancer_type AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 3. Consistency
+  # --------------------------------------------------------------------------
+  - id: "CONS-001"
+    dimension: "Consistency"
+    severity: "high"
+    threshold: 0
+    description: "specialist_seen=true but specialist_visit_date is null"
+    cypher: >
+      MATCH (ep:EpisodeOfCare)
+      WHERE ep.specialist_seen = true
+        AND ep.specialist_visit_date IS NULL
+      RETURN ep.id AS id, ep.cancer_type AS detail
+      LIMIT 10
+
+  - id: "CONS-002"
+    dimension: "Consistency"
+    severity: "medium"
+    threshold: 0
+    description: "auto_closed=true but auto_close_reason is null"
+    cypher: >
+      MATCH (ep:EpisodeOfCare)
+      WHERE ep.auto_closed = true
+        AND ep.auto_close_reason IS NULL
+      RETURN ep.id AS id, ep.status AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 4. Timeliness
+  # --------------------------------------------------------------------------
+  - id: "TIME-001"
+    dimension: "Timeliness"
+    severity: "medium"
+    threshold: 50
+    description: "Episodes in_progress for over 365 days with no diagnosis"
+    cypher: >
+      MATCH (ep:EpisodeOfCare {status: 'stale_no_diagnosis'})
+      RETURN ep.id AS id, ep.referral_date AS detail
+      LIMIT 10
+
+  - id: "TIME-002"
+    dimension: "Timeliness"
+    severity: "medium"
+    threshold: 20
+    description: "Episodes stale after specialist visit (>90 days)"
+    cypher: >
+      MATCH (ep:EpisodeOfCare {status: 'stale_post_specialist'})
+      RETURN ep.id AS id, ep.specialist_visit_date AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 5. Uniqueness
+  # --------------------------------------------------------------------------
+  - id: "UNIQ-001"
+    dimension: "Uniqueness"
+    severity: "high"
+    threshold: 0
+    description: "SurfaceForms with multiple competing MAPS_TO winners"
+    cypher: >
+      MATCH (sf:SurfaceForm)-[m:MAPS_TO]->()
+      WITH sf, count(m) AS cnt
+      WHERE cnt > 1
+      RETURN sf.normalizedText AS id, toString(cnt) AS detail
+      LIMIT 10
+
+  - id: "UNIQ-002"
+    dimension: "Uniqueness"
+    severity: "medium"
+    threshold: 0
+    description: "Duplicate DOCUMENTS edges (same encounter + same conceptId)"
+    cypher: >
+      MATCH (enc:Encounter)-[d:DOCUMENTS]->(c)
+      WITH enc, c, count(d) AS cnt
+      WHERE cnt > 1
+      RETURN enc.id AS id, toString(c.conceptId) AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 6. Validity
+  # --------------------------------------------------------------------------
+  - id: "VALD-001"
+    dimension: "Validity"
+    severity: "high"
+    threshold: 0
+    description: "DOCUMENTS edges with assertion not in allowed set"
+    cypher: >
+      MATCH ()-[d:DOCUMENTS]->()
+      WHERE d.assertion IS NOT NULL
+        AND NOT d.assertion IN [
+          'present', 'absent', 'possible', 'planned',
+          'conditional', 'hypothetical'
+        ]
+      RETURN id(d) AS id, d.assertion AS detail
+      LIMIT 10
+
+  - id: "VALD-002"
+    dimension: "Validity"
+    severity: "medium"
+    threshold: 0
+    description: "DOCUMENTS edges with confidence >= 1.0 (scoring anomaly)"
+    cypher: >
+      MATCH ()-[d:DOCUMENTS]->()
+      WHERE d.confidence >= 1.0
+      RETURN id(d) AS id, toString(d.confidence) AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 7. Referential Integrity
+  # --------------------------------------------------------------------------
+  - id: "REFI-001"
+    dimension: "Referential Integrity"
+    severity: "critical"
+    threshold: 0
+    description: "DOCUMENTS edges targeting nodes with no conceptId"
+    cypher: >
+      MATCH ()-[d:DOCUMENTS]->(c)
+      WHERE c.conceptId IS NULL
+      RETURN id(d) AS id, labels(c)[0] AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 8. Conformity
+  # --------------------------------------------------------------------------
+  - id: "CONF-001"
+    dimension: "Conformity"
+    severity: "low"
+    threshold: 0
+    description: "Encounter nodes missing date property"
+    cypher: >
+      MATCH (enc:Encounter)
+      WHERE enc.date IS NULL
+      RETURN enc.id AS id, 'missing date' AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 9. Coverage
+  # --------------------------------------------------------------------------
+  - id: "COVE-001"
+    dimension: "Coverage"
+    severity: "medium"
+    threshold: 100
+    description: "EpisodeOfCare nodes in in_progress or stale status"
+    cypher: >
+      MATCH (ep:EpisodeOfCare)
+      WHERE ep.status IN ['in_progress', 'stale_no_diagnosis', 'stale_post_specialist']
+      RETURN ep.id AS id, ep.status AS detail
+      LIMIT 10
+
+  # --------------------------------------------------------------------------
+  # 10. Clinical Safety
+  # --------------------------------------------------------------------------
+  - id: "SAFE-001"
+    dimension: "Clinical Safety"
+    severity: "critical"
+    threshold: 0
+    description: "Benign exclusion code (395100000) on cancer-confirmed episodes"
+    cypher: >
+      MATCH (p:Patient)-[:HAS_EPISODE]->(ep:EpisodeOfCare {status: 'completed'})
+      MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)-[d:DOCUMENTS]->(c {conceptId: '395100000'})
+      WHERE d.assertion = 'present'
+      RETURN ep.id AS id, p.id AS detail
+      LIMIT 10
+
+  - id: "SAFE-002"
+    dimension: "Clinical Safety"
+    severity: "critical"
+    threshold: 0
+    description: "Episodes with hitl_flag but no hitl_reason recorded"
+    cypher: >
+      MATCH (ep:EpisodeOfCare {hitl_flag: true})
+      WHERE ep.hitl_reason IS NULL
+      RETURN ep.id AS id, ep.status AS detail
+      LIMIT 10

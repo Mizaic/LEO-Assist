@@ -491,6 +491,81 @@ Safety constraints enforced:
 
 ---
 
+### Change: Per-episode specialist visit claiming (2026-04-07)
+
+**Summary:** Replaced the global-per-site-key specialist matching algorithm
+(_group_specialists) with a per-episode temporal claiming algorithm
+(_claim_specialists_for_episodes). A specialist visit anchor is now eligible for
+an episode only if its encounter date >= episode referral date and falls within
+the episode window. Each visit is claimed by at most one episode, processed in
+referral-date order. Eliminates specialist_visit_date < referral_date inversions
+that caused false stale_post_specialist episode closures.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-053 | draft | Per-episode specialist visit attribution without cross-pathway contamination |
+| Design Input | DI-LEO-AI-086 | draft | Per-episode specialist claiming algorithm |
+| Design Output | DO-LEO-AI-084 | draft | _claim_specialists_for_episodes implementation |
+| Risk | R-LEO-AI-060 | mitigated | False stale status from cross-episode specialist contamination |
+| Verification Test | VT-LEO-AI-086 | passed | 10/10 test cases + live rebuild -- pytest 2026-04-07 |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-086 | Per-episode specialist claiming | R-LEO-AI-060 | VT-LEO-AI-086 |
+
+Safety constraints enforced:
+- visit_date >= ref_date is a hard filter applied before any site-key check.
+- Each specialist visit index is added to a claimed set on first claim; re-use is impossible.
+- Episodes with no matching visit receive specialist_seen=False (no fallback to neighbouring episodes).
+- Live rebuild confirmed: 0 episodes with specialist_visit_date < referral_date (was 8).
+- stale_post_specialist count reduced from 51 to 43 (8 false closures corrected).
+
+### 3.xx Specialist outcome letter milestone (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-054 | draft | Specialist correspondence detection and inferred benign completion |
+| Design Input | DI-LEO-AI-087 | draft | specialist_outcome_letter anchors and inference rules |
+| Design Output | DO-LEO-AI-085 | draft | anchor_detector + episode_builder letter milestone module |
+| Risk | R-LEO-AI-061 | analyzed | False benign completion from letter inference |
+| Verification Test | VT-LEO-AI-087 | passed | Letter bucket + inference unit tests |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-087 | Specialist outcome letter milestone | R-LEO-AI-061 | VT-LEO-AI-087 |
+
+### 3.xx Data Quality Toolkit -- API-first DQ service layer (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-056 | approved | Admin data quality toolkit -- inspect, audit, remediate patient graph without scripts |
+| Design Input | DI-LEO-AI-089 | draft | DQ toolkit API service layer -- /admin/dq/* + libs/dq/ + MCP + UI |
+| Design Output | DO-LEO-AI-087 | draft | libs/dq/ service modules, FastAPI router, MCP server, admin UI dashboard |
+| Risk | R-LEO-AI-063 | analyzed | Incorrect patient graph mutation via DQ remediation API |
+| Verification Test | VT-LEO-AI-089 | passed | 16 tests: episode health, outcome inference, rules engine, dry-run safety, SF audit, patient inspect |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-089 | Data Quality Toolkit API service layer | R-LEO-AI-063 | VT-LEO-AI-089 |
+
+---
+
+### 3.xx Post-specialist outcome inference engine (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-055 | draft | Infer cancer or benign outcome from post-specialist encounter signals |
+| Design Input | DI-LEO-AI-088 | draft | Post-specialist outcome inference engine with confidence scoring |
+| Design Output | DO-LEO-AI-086 | draft | outcome_inference.py + episode_builder third pass + analytics fallback |
+| Risk | R-LEO-AI-062 | analyzed | Incorrect benign inference masking cancer pathway |
+| Verification Test | VT-LEO-AI-088 | passed | All 5 verdict branches, confidence cap, earliest-date, status immutability |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-088 | Post-specialist outcome inference engine | R-LEO-AI-062 | VT-LEO-AI-088 |
+
+---
+
 ## 4. Approval
 
 | Role | Name | Date | Signature |

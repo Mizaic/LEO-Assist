@@ -392,6 +392,16 @@ def _q_referrals(base: str, params: dict, client: PatientGraphClient) -> list:
     return [{"referral_route": r["referral_route"], "n": r["n"], "pct": round(r["n"] * 100.0 / total, 1)} for r in rows]
 
 
+_INFERRED_CANCER_DIAG_CASE = (
+    "CASE "
+    "  WHEN diag_date IS NOT NULL THEN diag_date "
+    "  WHEN ep.inferred_outcome = 'cancer' AND ep.inferred_outcome_date IS NOT NULL "
+    "    THEN ep.inferred_outcome_date "
+    "  ELSE null "
+    "END"
+)
+
+
 def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
     agg = client.run(
         f"{base}"
@@ -399,14 +409,15 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
         "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
         "WITH ep, min(toString(diag_enc.date)) AS diag_date "
+        f"WITH ep, diag_date, {_INFERRED_CANCER_DIAG_CASE} AS effective_diag_date "
         "RETURN "
         "  sum(CASE WHEN ep.referral_date IS NOT NULL THEN 1 ELSE 0 END) AS pci_n, "
         "  avg(CASE WHEN ep.referral_date IS NOT NULL "
         "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
         "      ELSE null END) AS mean_pci, "
-        "  sum(CASE WHEN diag_date IS NOT NULL THEN 1 ELSE 0 END) AS di_n, "
-        "  avg(CASE WHEN diag_date IS NOT NULL "
-        "      THEN duration.inDays(date(ep.first_presentation_date), date(diag_date)).days "
+        "  sum(CASE WHEN effective_diag_date IS NOT NULL THEN 1 ELSE 0 END) AS di_n, "
+        "  avg(CASE WHEN effective_diag_date IS NOT NULL "
+        "      THEN duration.inDays(date(ep.first_presentation_date), date(effective_diag_date)).days "
         "      ELSE null END) AS mean_di",
         **params,
     )
@@ -416,13 +427,17 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
         "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
         "WITH ep, min(toString(diag_enc.date)) AS diag_date "
+        f"WITH ep, diag_date, {_INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
+        "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
+        "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
         "RETURN "
         "  ep.episode_id AS episode_id, ep.condition_type AS cancer_type, "
+        "  diag_is_inferred, "
         "  CASE WHEN ep.referral_date IS NOT NULL "
         "       THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
         "       ELSE null END AS pci_days, "
-        "  CASE WHEN diag_date IS NOT NULL "
-        "       THEN duration.inDays(date(ep.first_presentation_date), date(diag_date)).days "
+        "  CASE WHEN effective_diag_date IS NOT NULL "
+        "       THEN duration.inDays(date(ep.first_presentation_date), date(effective_diag_date)).days "
         "       ELSE null END AS di_days "
         "ORDER BY ep.referral_date LIMIT 500",
         **params,
@@ -587,14 +602,18 @@ def audit_summary(
             "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
             "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
             "WITH ep, min(toString(diag_enc.date)) AS diag_date "
+            f"WITH ep, diag_date, {_INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
+            "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
+            "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
             "OPTIONAL MATCH (enc2:Encounter)-[:IS_PART_OF]->(ep) "
             "WITH ep.status AS ep_status, "
             "     ep.first_presentation_date AS fp_date, "
             "     toString(ep.referral_date) AS ref_date, "
             "     ep.safety_netting_recorded AS sn, "
-            "     diag_date, "
+            "     effective_diag_date AS diag_date, "
+            "     diag_is_inferred, "
             "     count(DISTINCT enc2) AS consultation_count "
-            "RETURN ep_status, fp_date, ref_date, sn, diag_date, consultation_count",
+            "RETURN ep_status, fp_date, ref_date, sn, diag_date, diag_is_inferred, consultation_count",
             **params,
         )
 

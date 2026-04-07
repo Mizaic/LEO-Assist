@@ -1,0 +1,61 @@
+# -- DO-LEO-AI-085 -- Specialist outcome letter milestone module
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-085"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-087"]
+    user_needs: ["UN-LEO-AI-054"]
+    risks_addressed: ["R-LEO-AI-061"]
+    verification_tests: ["VT-LEO-AI-087"]
+
+  specification:
+    title: "Specialist outcome letter anchors and inferred benign episode closure"
+    description: |
+      Extends anchor detection with specialist_outcome_letter_anchors from SNOMED
+      coded DOCUMENTS rows (ValueSet-backed) and from document_transfer encounter
+      metadata plus text sentinels. Extends episode build for open referral-only
+      episodes to mark completed with HITL when a qualifying letter and absence of
+      post-letter treatment anchors align with temporal rules after the
+      post-specialist stale threshold.
+    acceptance_criteria:
+      - criterion: "Letter milestone detection"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-087 TC letter bucket non-empty when clinic_letter transfer present"
+      - criterion: "Inference guard"
+        type: "safety"
+        measurement: "Test"
+        target: "VT-LEO-AI-087 TC treatment in window blocks completion"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "_classify_anchor_rows, _classify_text_encounters, AnchorResult specialist_outcome_letter_anchors"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder.py"
+        description: "_infer_completed_from_specialist_letter, _build_open_episode integration"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 0
+      key_functions:
+        - "_classify_text_encounters"
+        - "_infer_completed_from_specialist_letter"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Inferred benign completion must remain HITL-flagged"
+    risk_control_measures:
+      - "120-day post-letter treatment window blocks inference"
+      - "90-day minimum post-specialist visit before inference"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

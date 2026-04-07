@@ -1,0 +1,98 @@
+# -- DI-LEO-AI-089 -- Data Quality Toolkit API Service Layer
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-089"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-056"]
+  requirement: >
+    The system SHALL provide a platform-admin-only REST API at /admin/dq/*
+    backed by a shared Python service layer (libs/dq/) that exposes data quality
+    inspection, audit, outcome inference, and remediation functions for patient
+    graph data, knowledge graph terminology, encounter coding, and domain
+    coverage. All public service functions SHALL return Pydantic models. All
+    mutation endpoints SHALL support dry_run mode defaulting to true. A
+    configurable DQ rules engine SHALL evaluate 10 data quality dimensions and
+    return a per-rule scorecard. The toolkit SHALL also be exposed as an MCP
+    server for Cursor AI integration and as an admin UI dashboard.
+  rationale: >
+    Replacing 300+ one-off scripts with a structured, API-first service layer
+    ensures DQ checks are reproducible, auditable, and accessible without
+    developer intervention. Pydantic models ensure consistent serialization
+    across API, MCP, and CLI consumers. Admin-only gating ensures clinical data
+    is only accessible to authorised platform administrators.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          GET /admin/dq/episodes/health returns episode status distribution with
+          counts for each status and HITL flag breakdown.
+      - type: "functional"
+        spec: >
+          GET /admin/dq/episodes/infer-outcome returns OutcomeInferenceResult
+          per stale episode with verdict in {INFERRED_CANCER, INFERRED_BENIGN,
+          INFERRED_CANCER_WEAK, INFERRED_BENIGN_WEAK, AMBIGUOUS, UNRESOLVABLE}.
+      - type: "functional"
+        spec: >
+          GET /admin/dq/rules/run returns list[DQCheckResult] with one entry per
+          configured rule, each containing rule_id, dimension, severity, status,
+          violation_count, and sample_violations.
+      - type: "functional"
+        spec: >
+          POST /admin/dq/remediation/delete-patient with dry_run=true returns a
+          preview of affected nodes/edges without modifying the database.
+      - type: "safety"
+        spec: >
+          All /admin/dq/* endpoints return HTTP 403 for non-platform-admin
+          callers; no patient data is returned to unauthorised users.
+    constraints:
+      - type: "safety"
+        spec: "All mutation endpoints default to dry_run=true; writes require explicit dry_run=false"
+      - type: "safety"
+        spec: "MCP server exposes read-only tools only; all mutation tools are excluded from MCP"
+    dependencies: []
+    downstream_impacts:
+      - "Patient graph (read access, controlled write access via remediation)"
+      - "Knowledge graph (read access for SF/concept audit)"
+      - "Admin UI (consumes /admin/dq/* endpoints)"
+      - "Cursor MCP (consumes dq_* tools)"
+
+  technical_details:
+    language: "Python"
+    framework: "FastAPI + Neo4j + Pydantic"
+    file_structure:
+      - "libs/dq/__init__.py"
+      - "libs/dq/_clients.py"
+      - "libs/dq/_models.py"
+      - "libs/dq/_filters.py"
+      - "libs/dq/signal_patterns.py"
+      - "libs/dq/patient.py"
+      - "libs/dq/episodes.py"
+      - "libs/dq/terminology.py"
+      - "libs/dq/coding.py"
+      - "libs/dq/domain.py"
+      - "libs/dq/remediation.py"
+      - "libs/dq/reports.py"
+      - "libs/dq/rules_engine.py"
+      - "libs/dq/rules.yaml"
+      - "services/api/app/routers/data_quality.py"
+      - "services/dq_mcp/server.py"
+      - "services/dq_mcp/tools.py"
+      - "services/ui/src/app/admin/data-quality/page.tsx"
+      - "services/ui/src/lib/api/dq.ts"
+    estimated_loc: 1200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in VT-LEO-AI-089 pass: episode health, outcome inference,
+      rules engine, remediation dry-run, and admin auth guard.
+    test_protocol: "VT-LEO-AI-089"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-063"]
+  tags:
+    - "data-quality"
+    - "admin-tooling"
+    - "dq-api"

@@ -18,6 +18,7 @@ export interface PatientInterval {
   cancer_type?: string | null;
   pci_days?: number | null;
   di_days?: number | null;
+  diag_is_inferred?: boolean | null;
 }
 
 interface IntervalStripPlotProps {
@@ -52,16 +53,36 @@ export default function IntervalStripPlot({
   unit = "days",
   maxDays = 365,
 }: IntervalStripPlotProps) {
-  const points = patients
-    .filter((p) => p[intervalKey] != null && (p[intervalKey] as number) <= maxDays)
-    .map((p, i, arr) => ({
-      x: p[intervalKey] as number,
-      y: jitter(i, arr.length),
-      cancer_type: p.cancer_type ?? "Unknown",
-      episode_id: p.episode_id,
-    }));
+  const filtered = patients.filter(
+    (p) => p[intervalKey] != null && (p[intervalKey] as number) <= maxDays
+  );
+  const points = filtered.map((p, i) => ({
+    x: p[intervalKey] as number,
+    y: jitter(i, filtered.length),
+    cancer_type: p.cancer_type ?? "Unknown",
+    episode_id: p.episode_id,
+    inferred: !!p.diag_is_inferred,
+  }));
+  const confirmedPoints = points.filter((p) => !p.inferred);
+  const inferredPoints = points.filter((p) => p.inferred);
+  const inferredCount = inferredPoints.length;
 
   const noData = points.length === 0;
+  const tooltipContent = ({ payload }: { payload?: Array<{ payload: typeof points[0] }> }) => {
+    if (!payload?.length) return null;
+    const d = payload[0]?.payload;
+    return (
+      <Box sx={{ bgcolor: "white", p: 1, border: "1px solid #E5E7EB", borderRadius: 1, fontSize: "0.78rem" }}>
+        <div><strong>{d?.cancer_type}</strong></div>
+        <div>{label}: {d?.x} {unit}</div>
+        {d?.inferred && (
+          <div style={{ color: "#B45309", fontStyle: "italic", marginTop: 2 }}>
+            ~ Inferred outcome - not a coded diagnosis
+          </div>
+        )}
+      </Box>
+    );
+  };
 
   return (
     <Box>
@@ -117,19 +138,7 @@ export default function IntervalStripPlot({
                 domain={[0, maxDays]}
               />
               <YAxis type="number" dataKey="y" hide domain={[0, 1.4]} />
-              <Tooltip
-                cursor={false}
-                content={({ payload }) => {
-                  if (!payload?.length) return null;
-                  const d = payload[0]?.payload;
-                  return (
-                    <Box sx={{ bgcolor: "white", p: 1, border: "1px solid #E5E7EB", borderRadius: 1, fontSize: "0.78rem" }}>
-                      <div><strong>{d?.cancer_type}</strong></div>
-                      <div>{label}: {d?.x} {unit}</div>
-                    </Box>
-                  );
-                }}
-              />
+              <Tooltip cursor={false} content={tooltipContent} />
               {median != null && (
                 <ReferenceLine x={median} stroke="#1D4ED8" strokeWidth={2} strokeDasharray="6 3" label={{ value: "Median", fill: "#1D4ED8", fontSize: 10, position: "top" }} />
               )}
@@ -139,16 +148,17 @@ export default function IntervalStripPlot({
               {allianceMedian != null && (
                 <ReferenceLine x={allianceMedian} stroke="#7C3AED" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: "Cancer Alliance", fill: "#7C3AED", fontSize: 10, position: "insideTopLeft" }} />
               )}
-              <Scatter
-                data={points}
-                fill="#1D4ED8"
-                fillOpacity={0.55}
-                r={4}
-              />
+              <Scatter data={confirmedPoints} fill="#1D4ED8" fillOpacity={0.55} r={4} name="Confirmed" />
+              <Scatter data={inferredPoints} fill="#D97706" fillOpacity={0.75} r={4} name="Inferred" />
             </ScatterChart>
           </ResponsiveContainer>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "center", mt: 0.5 }}>
             Each dot represents one patient. Dots further right = longer {label.toLowerCase()}.
+            {inferredCount > 0 && (
+              <Box component="span" sx={{ color: "#B45309" }}>
+                {" "}Amber dots ({inferredCount}) show inferred outcomes — not coded diagnoses. Hover for detail.
+              </Box>
+            )}
             {points.length < patients.filter((p) => p[intervalKey] != null).length && (
               ` (Patients beyond ${maxDays} days not shown.)`
             )}

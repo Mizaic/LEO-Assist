@@ -101,6 +101,13 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Portal", path: "/admin/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
   { label: "Support", path: "/admin/support", icon: <SupportAgentOutlinedIcon /> },
   { label: "Support Mail", path: "/mail", icon: <MailOutlineIcon />, adminOnly: true },
+  {
+    label: "Data quality",
+    path: "/admin/data-quality",
+    icon: <AssessmentOutlinedIcon />,
+    activePrefix: ["/admin/data-quality"],
+    adminOnly: true,
+  },
 ];
 
 function isEditorRoute(pathname: string): boolean {

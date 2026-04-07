@@ -1,0 +1,92 @@
+# -- R-LEO-AI-062 -- Incorrect benign inference masking cancer pathway
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-062"
+  title: "Post-specialist inference incorrectly classifies a cancer pathway as benign"
+
+  hazard:
+    description: >
+      The outcome inference engine scans post-specialist encounters for textual
+      signals and may produce an inferred_outcome of 'benign' when the true
+      outcome is cancer, either because cancer-treatment signals did not appear
+      in the 180-day window or because the outcome letter was private/redacted.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A patient with a confirmed or unconfirmed cancer diagnosis has their
+    stale_post_specialist episode inferred as 'benign'. This propagates to the
+    analytics KPIs, potentially masking the episode from the HITL review queue
+    and giving the quality lead a false sense that the pathway was resolved.
+
+  harm:
+    description: >
+      Delayed detection of a cancer case that should have triggered follow-up,
+      leading to possible patient harm if the pathway is not reviewed manually.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The inference engine never changes episode status from
+        stale_post_specialist. The episode always retains hitl_flag = true and
+        hitl_reason describing the inference basis, ensuring it remains visible
+        in the HITL review queue regardless of inferred_outcome.
+      implemented_by: ["DI-LEO-AI-088"]
+      verified_by: ["VT-LEO-AI-088"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        inferred_confidence is capped at 0.95 and weak verdicts (mixed signals)
+        are capped at 0.85, ensuring the UX always shows the inference as
+        provisional. The amber badge is visually distinct from the confirmed
+        (green) badge.
+      implemented_by: ["DI-LEO-AI-088"]
+      verified_by: ["VT-LEO-AI-088"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Quality leads are instructed via UX tooltip that inferred outcomes are
+        not coded diagnoses and require manual verification before any clinical
+        action is taken.
+      implemented_by: ["DI-LEO-AI-088"]
+      verified_by: ["VT-LEO-AI-088"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The episode always remains in the HITL queue (status unchanged, hitl_flag
+      preserved) regardless of the inferred_outcome. The UX clearly distinguishes
+      inferred from confirmed. A quality lead reviewing the HITL queue will see
+      the provisional nature of the classification and can override it. Residual
+      probability of harm is very low given these safeguards.
+
+  monitoring:
+    monitoring_plan: >
+      Track the rate of inferred_benign episodes that are subsequently overridden
+      to cancer by a quality reviewer. If override rate exceeds 10% for any cancer
+      type, review and tighten the POST_CANCER signal patterns.
+    metrics:
+      - "inferred_benign override rate per cancer type (quarterly)"
+      - "proportion of stale_post_specialist episodes with null inferred_outcome (HITL_REQUIRED) over time"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Design review - post-specialist inference experiment (April 2026)"
+    identified_date: "2026-04-07"
+    status: "analyzed"
+    tags:
+      - "episode-inference"
+      - "outcome-classification"

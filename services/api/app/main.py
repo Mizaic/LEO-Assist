@@ -32,6 +32,7 @@ from app.deps import get_caller_scope_from_request
 
 limiter = Limiter(key_func=get_remote_address)
 from app.routers.admin import router as admin_router
+from app.routers.data_quality import router as data_quality_router
 from app.routers.onboarding import router as onboarding_router
 from app.routers.mail_router import router as mail_router
 from app.routers.anchor_review import router as anchor_review_router
@@ -279,6 +280,7 @@ app.include_router(guidance_rules_router)
 app.include_router(pricing_router)
 app.include_router(reference_ranges_router)
 app.include_router(audit_quality_router)
+app.include_router(data_quality_router)
 
 
 @app.get("/health")

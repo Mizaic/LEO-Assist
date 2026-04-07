@@ -74,18 +74,28 @@ def kpi_benchmarks(
             "OPTIONAL MATCH (treat_enc:Encounter)-[tr:IS_PART_OF]->(ep) "
             "  WHERE tr.milestone_type IN ['treatment', 'treatment_started', 'first_treatment'] "
             "WITH ep, min(toString(diag_enc.date)) AS diag_date, min(toString(treat_enc.date)) AS treat_date "
+            "WITH ep, treat_date, "
+            "  CASE "
+            "    WHEN diag_date IS NOT NULL THEN diag_date "
+            "    WHEN ep.inferred_outcome = 'cancer' AND ep.inferred_outcome_date IS NOT NULL "
+            "      THEN ep.inferred_outcome_date "
+            "    ELSE null "
+            "  END AS effective_diag_date, "
+            "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
+            "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
             "RETURN "
             "  avg(CASE WHEN ep.first_presentation_date IS NOT NULL "
             "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
             "      ELSE null END) AS avg_days_to_referral, "
-            "  avg(CASE WHEN diag_date IS NOT NULL "
-            "      THEN duration.inDays(date(toString(ep.referral_date)), date(diag_date)).days "
+            "  avg(CASE WHEN effective_diag_date IS NOT NULL "
+            "      THEN duration.inDays(date(toString(ep.referral_date)), date(effective_diag_date)).days "
             "      ELSE null END) AS avg_days_to_diagnosis, "
-            "  avg(CASE WHEN diag_date IS NOT NULL AND treat_date IS NOT NULL "
-            "      THEN duration.inDays(date(diag_date), date(treat_date)).days "
+            "  avg(CASE WHEN effective_diag_date IS NOT NULL AND treat_date IS NOT NULL "
+            "      THEN duration.inDays(date(effective_diag_date), date(treat_date)).days "
             "      ELSE null END) AS avg_days_to_treatment, "
             "  null AS avg_consultations, "
-            "  count(ep) AS episode_count",
+            "  count(ep) AS episode_count, "
+            "  sum(CASE WHEN diag_is_inferred THEN 1 ELSE 0 END) AS inferred_diagnosis_count",
             **params,
         )
     finally:

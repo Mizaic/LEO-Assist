@@ -1,0 +1,135 @@
+- id: "VT-LEO-AI-088"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-088"]
+    risks: ["R-LEO-AI-062"]
+
+  metadata:
+    title: "Post-specialist outcome inference engine unit tests"
+    description: >
+      Verifies that score_post_specialist_encounters() returns the correct
+      verdict, inferred_outcome, inferred_outcome_date, and inferred_confidence
+      for all five verdict branches, and that the episode builder third pass
+      writes the correct properties onto EpisodeOfCare nodes without mutating
+      episode status.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_outcome_inference.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-088-TC-001"
+      case_name: "Clear benign verdict - benign-only signals"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call score_post_specialist_encounters() with phase2 rows containing 'discharged' and 'reassured' text only"
+          expected_result: "verdict=INFERRED_BENIGN, inferred_outcome='benign', inferred_confidence>=0.60, inferred_outcome_date=earliest signal encounter date"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'INFERRED_BENIGN'"
+        - "inferred_outcome == 'benign'"
+        - "0.60 <= inferred_confidence <= 0.95"
+        - "inferred_outcome_date == earliest signal encounter date"
+
+    - case_id: "VT-088-TC-002"
+      case_name: "Clear cancer verdict - cancer-only signals"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call score_post_specialist_encounters() with phase2 rows containing 'excision' and 'pathology' text only"
+          expected_result: "verdict=INFERRED_CANCER, inferred_outcome='cancer', inferred_confidence>=0.60"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'INFERRED_CANCER'"
+        - "inferred_outcome == 'cancer'"
+        - "0.60 <= inferred_confidence <= 0.95"
+
+    - case_id: "VT-088-TC-003"
+      case_name: "Weak cancer verdict - mixed signals cancer dominant"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call score_post_specialist_encounters() with phase2 rows containing cancer signals (3) and benign signals (1)"
+          expected_result: "verdict=INFERRED_CANCER_WEAK, inferred_outcome='cancer', inferred_confidence<=0.85"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'INFERRED_CANCER_WEAK'"
+        - "inferred_outcome == 'cancer'"
+        - "inferred_confidence <= 0.85"
+
+    - case_id: "VT-088-TC-004"
+      case_name: "HITL required - no post-specialist signals"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call score_post_specialist_encounters() with empty phase2 rows"
+          expected_result: "verdict=HITL_REQUIRED, inferred_outcome=None, inferred_confidence=None, inferred_outcome_date=None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'HITL_REQUIRED'"
+        - "inferred_outcome is None"
+        - "inferred_confidence is None"
+        - "inferred_outcome_date is None"
+
+    - case_id: "VT-088-TC-005"
+      case_name: "Earliest signal date captured correctly"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Provide phase2 rows with dates 2024-10-01 (no signal), 2024-10-15 (Efudix signal), 2024-11-01 (discharged signal)"
+          expected_result: "inferred_outcome_date == '2024-10-15'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "inferred_outcome_date == '2024-10-15'"
+
+    - case_id: "VT-088-TC-006"
+      case_name: "Confidence cap at 0.95"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call score_post_specialist_encounters() with 20 benign-only signal encounters"
+          expected_result: "inferred_confidence <= 0.95"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "inferred_confidence <= 0.95"
+
+    - case_id: "VT-088-TC-007"
+      case_name: "Episode status not mutated by inference pass"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock _apply_outcome_inference() and verify the Cypher update does not set ep.status"
+          expected_result: "_INFERENCE_UPDATE_Q contains no SET ep.status clause"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "_INFERENCE_UPDATE_Q does not contain 'ep.status'"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-088/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_date: "2026-04-07"
+      executor: "automated CI"
+      result: "pass"
+      notes: "22/22 tests passed. All 5 verdict branches verified. Confidence cap, earliest-date, and status immutability confirmed."
+      test_file: "tests/test_outcome_inference.py"

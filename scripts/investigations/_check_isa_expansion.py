@@ -1,10 +1,6 @@
-"""Check IS_A expansion for the concepts added to the cancer_audit domain.
-
-Verifies:
-1. Whether the KG has IS_A relationships from the parent concepts.
-2. How many descendants each parent has.
-3. Whether those descendants match the hardcoded concept sets.
-"""
+"""Diagnose whether IS_A expansion is working for the cancer_audit domain."""
+from __future__ import annotations
+import json
 import sys
 from pathlib import Path
 
@@ -12,115 +8,112 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
-from libs.keyvault.loader import load_keyvault_secrets
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
+
+from libs.keyvault.loader import load_keyvault_secrets
 load_keyvault_secrets()
 
-from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
-from libs.domains.ncda_concept_sets import (
-    CANCER_TYPE_IDS,
-    FAST_TRACK_REFERRAL_IDS,
-    SEEN_BY_SPECIALIST_IDS,
+from libs.neo4j_client.client import KnowledgeGraphClient
+
+DOMAIN_ID = "cancer_audit"
+
+_Q_VALUESETS = (
+    "MATCH (d:AuditDomain {id: $domain_id})-[:HAS_SUBDOMAIN]->(v:ValueSet) "
+    "RETURN v.id AS id, v.rawJson AS raw_json"
 )
 
-PARENT_CONCEPTS = {
-    "referral":       199251000000107,  # Fast track cancer referral (procedure)
-    "diagnosis":      363346000,        # Malignant neoplastic disease (disorder)
-    "specialist":     382761000000101,  # Seen in fast track suspected cancer clinic (finding)
-}
+_Q_CONCEPT_PROPS = """
+MATCH (c:Concept)
+RETURN keys(c) AS props, labels(c) AS lbls
+LIMIT 1
+"""
 
-# -- 1. Check IS_A descendants in KG --
-print("=" * 70)
-print("KG IS_A DESCENDANTS (depth 1..5)")
-print("=" * 70)
+_Q_CONCEPT_BY_ID = """
+MATCH (c:Concept {id: $cid})
+RETURN c.id AS id, c.conceptId AS conceptId, c.code AS code, c.preferredTerm AS term
+LIMIT 1
+"""
 
-kg = KnowledgeGraphClient()
-
-isa_q = (
-    "MATCH (parent:Concept)-[:IS_A*1..5]->(child:Concept) "
-    "WHERE parent.snomedId = $parent_id OR parent.conceptId = $parent_id "
-    "RETURN child.snomedId AS id, child.conceptId AS id2, "
-    "       child.preferredTerm AS term LIMIT 100"
+_Q_ISA_EXPANSION = (
+    "MATCH (ancestor:Concept)<-[:IS_A*1..5]-(d:Concept) "
+    "WHERE ancestor.id IN $ids AND d.active = true "
+    "RETURN ancestor.id AS parent_id, d.id AS child_id, "
+    "       coalesce(d.preferredTerm, d.id) AS display"
 )
 
-# Also check what relationship names exist for IS_A
-rel_q = (
-    "MATCH ()-[r]->() "
-    "WHERE type(r) IN ['IS_A','ISA','is_a','BROADER_THAN','HAS_PARENT'] "
-    "RETURN type(r) AS rel, count(r) AS n LIMIT 10"
-)
-rel_rows = kg.run(rel_q)
-print("IS_A-style relationships in KG:", rel_rows or "none found")
+_Q_ISA_ANY = """
+MATCH (a)-[:IS_A]->(b)
+RETURN labels(a) AS a_lbl, labels(b) AS b_lbl,
+       keys(a) AS a_keys, a.id AS a_id, b.id AS b_id
+LIMIT 3
+"""
 
-# Check concept node properties
-prop_q = "MATCH (c:Concept) RETURN keys(c) AS props LIMIT 1"
-prop_rows = kg.run(prop_q)
-print("Concept node properties:", prop_rows[0]["props"] if prop_rows else "none")
 
-# Try to find the parent concepts by snomedId or id property
-for label, parent_id in PARENT_CONCEPTS.items():
-    check_q = (
-        "MATCH (c) WHERE c.snomedId = $id OR c.id = $id "
-        "OR toString(c.conceptId) = $sid "
-        "RETURN labels(c) AS lbl, c.preferredTerm AS term LIMIT 3"
-    )
-    rows = kg.run(check_q, id=parent_id, sid=str(parent_id))
-    print(f"\n  {label} ({parent_id}): KG node -> {rows or 'NOT FOUND'}")
+def main() -> None:
+    kg = KnowledgeGraphClient()
+    try:
+        print("=== ValueSets in cancer_audit ===")
+        rows = kg.run(_Q_VALUESETS, domain_id=DOMAIN_ID)
+        parent_ids = []
+        for r in rows or []:
+            vid = r["id"]
+            raw = r.get("raw_json")
+            if not raw:
+                print(f"  {vid}: NO rawJson")
+                continue
+            vs = json.loads(raw) if isinstance(raw, str) else raw
+            concepts = [
+                c for inc in (vs.get("compose") or {}).get("include") or []
+                for c in inc.get("concept") or []
+            ]
+            print(f"  {vid}: {len(concepts)} explicit concepts in compose.include.concept")
+            for c in concepts:
+                code = c.get("code", "")
+                display = c.get("display", "")
+                print(f"    code={code!r:20s} display={display!r}")
+                parent_ids.append(code)
 
-kg.close()
+        print()
+        print(f"Parent IDs collected for IS_A expansion: {parent_ids}")
 
-# -- 2. Check patient graph for IS_A / hierarchy relationships --
-print("\n" + "=" * 70)
-print("PATIENT GRAPH HIERARCHY CHECK")
-print("=" * 70)
+        print()
+        print("=== IS_A relationships in graph (any) ===")
+        isa_any = kg.run(_Q_ISA_ANY)
+        if isa_any:
+            for r in isa_any:
+                print(f"  ({r['a_lbl']}) id={r['a_id']} -[:IS_A]-> ({r['b_lbl']}) id={r['b_id']}")
+        else:
+            print("  NONE found -- no IS_A relationships exist in graph!")
 
-pg = PatientGraphClient()
+        print()
+        print("=== Concept node properties ===")
+        props = kg.run(_Q_CONCEPT_PROPS)
+        if props:
+            print(f"  labels: {props[0]['lbls']}, keys: {props[0]['props']}")
+        else:
+            print("  No Concept nodes found at all!")
 
-# What relationship types connect concept nodes?
-pg_rels = pg.run(
-    "MATCH (a)-[r]->(b) WHERE b.conceptId IS NOT NULL AND a.conceptId IS NOT NULL "
-    "RETURN type(r) AS rel, count(r) AS n ORDER BY n DESC LIMIT 10"
-)
-print("Patient graph concept relationships:", pg_rels)
+        if parent_ids:
+            print()
+            print("=== IS_A expansion query result ===")
+            desc = kg.run(_Q_ISA_EXPANSION, ids=parent_ids)
+            print(f"  Descendants found: {len(desc or [])}")
+            for r in (desc or [])[:10]:
+                print(f"  {r['parent_id']} -> {r['child_id']}  {r.get('display','')}")
 
-# Do parent concepts have IS_A children in patient graph?
-for label, parent_id in PARENT_CONCEPTS.items():
-    isa_rows = pg.run(
-        "MATCH (parent)-[:IS_A*1..5]->(child) "
-        "WHERE parent.conceptId = $id OR parent.conceptId = $sid "
-        "RETURN toString(child.conceptId) AS child_id LIMIT 100",
-        id=parent_id,
-        sid=str(parent_id),
-    )
-    child_ids = {int(r["child_id"]) for r in isa_rows if r["child_id"]}
-    print(f"\n  {label} IS_A descendants in patient graph: {len(child_ids)}")
+            print()
+            print("=== Lookup concept by id directly ===")
+            for cid in parent_ids[:3]:
+                row = kg.run(_Q_CONCEPT_BY_ID, cid=cid)
+                if row:
+                    print(f"  id={cid!r} -> {row[0]}")
+                else:
+                    print(f"  id={cid!r} -> NOT FOUND in :Concept nodes")
 
-    if label == "referral" and child_ids:
-        overlap = child_ids & FAST_TRACK_REFERRAL_IDS
-        print(f"    Overlap with FAST_TRACK_REFERRAL_IDS: {len(overlap)}/{len(FAST_TRACK_REFERRAL_IDS)}")
-    elif label == "diagnosis" and child_ids:
-        overlap = child_ids & CANCER_TYPE_IDS
-        print(f"    Overlap with CANCER_TYPE_IDS: {len(overlap)}/{len(CANCER_TYPE_IDS)}")
-    elif label == "specialist" and child_ids:
-        overlap = child_ids & SEEN_BY_SPECIALIST_IDS
-        print(f"    Overlap with SEEN_BY_SPECIALIST_IDS: {len(overlap)}/{len(SEEN_BY_SPECIALIST_IDS)}")
+    finally:
+        kg.close()
 
-# -- 3. Can we match patients via IS_A traversal? --
-print("\n" + "=" * 70)
-print("PATIENT MATCH VIA IS_A TRAVERSAL")
-print("=" * 70)
 
-for label, parent_id in PARENT_CONCEPTS.items():
-    rows = pg.run(
-        "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(child) "
-        "WHERE (child)-[:IS_A*0..5]->(:Disease {conceptId: $sid}) "
-        "   OR (child)-[:IS_A*0..5]->(:Procedure {conceptId: $sid}) "
-        "   OR (child)-[:IS_A*0..5]->(:Clinical_finding {conceptId: $sid}) "
-        "RETURN count(DISTINCT p) AS n",
-        sid=str(parent_id),
-    )
-    n = rows[0]["n"] if rows else 0
-    print(f"  {label} ({parent_id}): {n} patients via IS_A traversal")
-
-pg.close()
+if __name__ == "__main__":
+    main()

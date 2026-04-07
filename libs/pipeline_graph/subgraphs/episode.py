@@ -10,7 +10,9 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from services.analysis_worker.app.analyzers.anchor_detector import AnchorResult
-from services.analysis_worker.app.analyzers.episode_builder import build_episodes as build_patient_episodes
+from services.analysis_worker.app.analyzers.episode_builder import (
+    build_episodes as build_patient_episodes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +36,35 @@ def _to_anchor_result(state: EpisodeState) -> AnchorResult:
             referral_anchors=list(anchor_result.get("referral_anchors") or []),
             diagnosis_anchors=list(anchor_result.get("diagnosis_anchors") or []),
             treatment_anchors=list(anchor_result.get("treatment_anchors") or []),
-            specialist_visit_anchors=list(anchor_result.get("specialist_visit_anchors") or []),
+            specialist_visit_anchors=list(
+                anchor_result.get("specialist_visit_anchors") or []
+            ),
+            benign_closure_anchors=list(
+                anchor_result.get("benign_closure_anchors") or []
+            ),
+            specialist_outcome_letter_anchors=list(
+                anchor_result.get("specialist_outcome_letter_anchors") or []
+            ),
         )
     anchors = list(state.get("anchors") or [])
     return AnchorResult(
         patient_id=str(state.get("patient_id") or ""),
         referral_anchors=[a for a in anchors if a.get("milestone_type") == "referral"],
-        diagnosis_anchors=[a for a in anchors if a.get("milestone_type") == "diagnosis"],
-        treatment_anchors=[a for a in anchors if a.get("milestone_type") == "treatment_start"],
-        specialist_visit_anchors=[a for a in anchors if a.get("milestone_type") == "specialist_visit"],
+        diagnosis_anchors=[
+            a for a in anchors if a.get("milestone_type") == "diagnosis"
+        ],
+        treatment_anchors=[
+            a for a in anchors if a.get("milestone_type") == "treatment_start"
+        ],
+        specialist_visit_anchors=[
+            a for a in anchors if a.get("milestone_type") == "specialist_visit"
+        ],
+        benign_closure_anchors=[
+            a for a in anchors if a.get("milestone_type") == "benign_closure"
+        ],
+        specialist_outcome_letter_anchors=[
+            a for a in anchors if a.get("milestone_type") == "specialist_outcome_letter"
+        ],
     )
 
 

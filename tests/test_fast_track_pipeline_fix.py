@@ -6,6 +6,7 @@ VT-LEO-AI-084 -- TC-010 (IS_A expansion enriches ValueSet concept buckets)
 VT-LEO-AI-084 -- TC-011 (fast-track referral phrases preserved by splitter)
 VT-LEO-AI-084 -- TC-012 (fast-track referral notes classified as clinical)
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -20,7 +21,11 @@ import pytest
 def test_tc008_fast_track_line_preserved_through_filter():
     """Lines containing 'seen in fast track' must not be stripped even if the
     surrounding text matches a header-like pattern."""
-    from libs.nlp.sentence_splitter import SentenceChunk, filter_header_sentences, is_header_sentence
+    from libs.nlp.sentence_splitter import (
+        SentenceChunk,
+        filter_header_sentences,
+        is_header_sentence,
+    )
 
     # A line that starts with a timestamp (matches _HEADER_RE) but also has the phrase.
     # In practice, these are often template entries like:
@@ -41,13 +46,13 @@ def test_tc008_fast_track_line_preserved_through_filter():
     result = filter_header_sentences([chunk_with_fast_track, chunk_pure_header])
 
     # Fast-track chunk must survive
-    assert chunk_with_fast_track in result, (
-        "filter_header_sentences should preserve chunks containing 'seen in fast track'"
-    )
+    assert (
+        chunk_with_fast_track in result
+    ), "filter_header_sentences should preserve chunks containing 'seen in fast track'"
     # Pure header is removed
-    assert chunk_pure_header not in result, (
-        "filter_header_sentences should remove pure admin header chunks"
-    )
+    assert (
+        chunk_pure_header not in result
+    ), "filter_header_sentences should remove pure admin header chunks"
 
 
 def test_tc008_fast_track_case_insensitive():
@@ -94,9 +99,9 @@ def test_tc009_fast_track_text_classified_as_clinical():
         "Patient reviewed and onward management planned."
     )
     result = classify_text(text)
-    assert result == "clinical", (
-        f"Expected 'clinical' for fast-track note, got '{result}'"
-    )
+    assert (
+        result == "clinical"
+    ), f"Expected 'clinical' for fast-track note, got '{result}'"
 
 
 def test_tc009_seen_in_fast_track_short_note():
@@ -105,9 +110,7 @@ def test_tc009_seen_in_fast_track_short_note():
 
     text = "Seen in fast track suspected colorectal cancer clinic"
     result = classify_text(text)
-    assert result == "clinical", (
-        f"Expected 'clinical', got '{result}'"
-    )
+    assert result == "clinical", f"Expected 'clinical', got '{result}'"
 
 
 def test_tc009_2ww_clinic_classified_as_clinical():
@@ -116,9 +119,9 @@ def test_tc009_2ww_clinic_classified_as_clinical():
 
     text = "Seen in 2WW clinic for urology review"
     result = classify_text(text)
-    assert result == "clinical", (
-        f"Expected 'clinical' for '2WW clinic' note, got '{result}'"
-    )
+    assert (
+        result == "clinical"
+    ), f"Expected 'clinical' for '2WW clinic' note, got '{result}'"
 
 
 # ---------------------------------------------------------------------------
@@ -138,9 +141,7 @@ def test_tc010_isa_expansion_adds_children_to_valueset():
         "cancer_types": {
             "compose": {
                 "include": [
-                    {
-                        "concept": [{"code": parent_id, "display": "Malignant neoplasm"}]
-                    }
+                    {"concept": [{"code": parent_id, "display": "Malignant neoplasm"}]}
                 ]
             }
         }
@@ -215,9 +216,12 @@ def test_tc010_child_concept_matched_in_bucket():
         _make_concept(child_id),
     ]
 
-    from services.analysis_worker.app.analyzers.anchor_detector import _build_buckets, _classify_anchor_rows
+    from services.analysis_worker.app.analyzers.anchor_detector import (
+        _build_buckets,
+        _classify_anchor_rows,
+    )
 
-    buckets = _build_buckets(registry)
+    buckets, pathway_ids = _build_buckets(registry)
     rows = [
         {
             "encounter_id": "enc-001",
@@ -227,11 +231,18 @@ def test_tc010_child_concept_matched_in_bucket():
             "assertion": "present",
         }
     ]
-    referrals, diagnoses, treatments, specialists = _classify_anchor_rows(rows, buckets)
+    (
+        referrals,
+        diagnoses,
+        treatments,
+        specialists,
+        benign,
+        _letters,
+    ) = _classify_anchor_rows(rows, buckets, pathway_ids)
 
-    assert len(diagnoses) == 1, (
-        f"Child concept {child_id} should be classified as a diagnosis anchor"
-    )
+    assert (
+        len(diagnoses) == 1
+    ), f"Child concept {child_id} should be classified as a diagnosis anchor"
     assert diagnoses[0]["concept_id"] == int(child_id)
 
 
@@ -258,9 +269,9 @@ def test_tc011_fast_track_referral_line_preserved():
         end=68,
     )
     result = filter_header_sentences([referral_chunk, header_chunk])
-    assert referral_chunk in result, (
-        "filter_header_sentences should preserve 'fast track referral for suspected' chunks"
-    )
+    assert (
+        referral_chunk in result
+    ), "filter_header_sentences should preserve 'fast track referral for suspected' chunks"
     assert header_chunk not in result
 
 
@@ -292,9 +303,9 @@ def test_tc012_fast_track_referral_classified_clinical():
     ]
     for text in notes:
         result = classify_text(text)
-        assert result == "clinical", (
-            f"Expected 'clinical' for referral note, got '{result}': {text[:60]!r}"
-        )
+        assert (
+            result == "clinical"
+        ), f"Expected 'clinical' for referral note, got '{result}': {text[:60]!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -308,19 +319,34 @@ def test_tc013_screening_negatives_suppressed_by_guard():
     from libs.pipeline.post_processing import _suppress_screening_false_positives
 
     screening_false_positives = [
-        {"snomed_concept_id": "395100000", "text": "Negative cervical cytology. Normal recall."},
-        {"snomed_concept_id": "395100000", "text": "HPV Test: High risk HPV not detected"},
+        {
+            "snomed_concept_id": "395100000",
+            "text": "Negative cervical cytology. Normal recall.",
+        },
+        {
+            "snomed_concept_id": "395100000",
+            "text": "HPV Test: High risk HPV not detected",
+        },
         {"snomed_concept_id": "395100000", "text": "NEGATIVE FIT - No Further Action"},
         {"snomed_concept_id": "395100000", "text": "overall negative result"},
-        {"snomed_concept_id": "395100000", "text": "Sent following an overall negative result"},
+        {
+            "snomed_concept_id": "395100000",
+            "text": "Sent following an overall negative result",
+        },
         {"snomed_concept_id": "395100000", "text": "Cervical smear: negative"},
-        {"snomed_concept_id": "395100000", "text": "Bowel cancer screening programme: faecal occult blood"},
-        {"snomed_concept_id": "395100000", "text": "no detectable blood and the risk of CRC is less than 1 in 1000"},
+        {
+            "snomed_concept_id": "395100000",
+            "text": "Bowel cancer screening programme: faecal occult blood",
+        },
+        {
+            "snomed_concept_id": "395100000",
+            "text": "no detectable blood and the risk of CRC is less than 1 in 1000",
+        },
     ]
     result = _suppress_screening_false_positives(screening_false_positives)
-    assert result == [], (
-        f"Expected all screening FPs suppressed, got {len(result)} remaining: {result}"
-    )
+    assert (
+        result == []
+    ), f"Expected all screening FPs suppressed, got {len(result)} remaining: {result}"
 
 
 def test_tc013_legitimate_no_cancer_codings_preserved():
@@ -332,11 +358,14 @@ def test_tc013_legitimate_no_cancer_codings_preserved():
         {"snomed_concept_id": "395100000", "text": "No evidence of cancer found"},
         {"snomed_concept_id": "395100000", "text": "No evidence of malignancy"},
         {"snomed_concept_id": "395100000", "text": "no cancer on CT"},
-        {"snomed_concept_id": "395100000", "text": "No evidence of cancer was seen on this endoscopy"},
+        {
+            "snomed_concept_id": "395100000",
+            "text": "No evidence of cancer was seen on this endoscopy",
+        },
         {"snomed_concept_id": "395100000", "text": "benign on histology"},
         {"snomed_concept_id": "363358000", "text": "Malignant neoplasm of breast"},
     ]
     result = _suppress_screening_false_positives(legitimate)
-    assert len(result) == len(legitimate), (
-        f"Expected all {len(legitimate)} legitimate entities kept, got {len(result)}"
-    )
+    assert len(result) == len(
+        legitimate
+    ), f"Expected all {len(legitimate)} legitimate entities kept, got {len(result)}"

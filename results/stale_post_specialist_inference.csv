@@ -1,0 +1,45 @@
+episode_id,patient_id,cancer_type,referral_date,specialist_date,specialist_confirmed,private_letter,phase2_encounters,cancer_signal_count,benign_signal_count,cancer_signals,benign_signals,verdict
+d3d1af3682974b2d,4185994966,head_and_neck,2025-02-28,2025-02-28,True,False,80,1,0,pathology,,INFERRED_CANCER
+98bb3368435bb439,4202301609,unknown,2025-08-18,2025-09-02,True,False,121,5,19,chemotherapy; histology; oncology; pathology,discharged,INFERRED_BENIGN_WEAK
+9b6aac53426e42c2,4202339649,breast,2025-07-23,2025-08-20,True,False,34,0,2,,discharged,INFERRED_BENIGN
+fda1920c2fa659c0,4203796334,skin,2024-09-16,2024-09-16,True,False,5,0,0,,,HITL_REQUIRED
+9320a509ee719082,4209455806,head_and_neck,2025-07-04,2025-08-21,True,False,22,0,0,,,HITL_REQUIRED
+2aee0142f291e800,4220526579,breast,2025-01-27,2025-02-16,True,False,49,1,5,pathology,discharged,INFERRED_BENIGN_WEAK
+4d9f96e68372436b,4245132175,gynaecological,2025-03-28,2025-04-17,True,False,115,1,2,pathology,discharged,INFERRED_BENIGN_WEAK
+4141055116ebb405,4246627143,breast,2024-04-30,2024-05-05,True,False,38,1,0,pathology,,INFERRED_CANCER
+a5af4059bc363e2b,4246627143,breast,2025-06-16,2025-06-16,True,False,19,0,1,,discharged,INFERRED_BENIGN
+6b8ec668aeceebdf,4246870471,upper_gi,2025-06-27,2025-07-30,True,False,55,0,5,,discharged,INFERRED_BENIGN
+37fd7d933510e150,4246897485,breast,2025-07-24,2025-09-01,True,False,76,0,3,,AK; discharged,INFERRED_BENIGN
+96cd6fe4fa2a731b,4247682105,breast,2025-02-10,2025-02-23,True,False,4,0,0,,,HITL_REQUIRED
+579bb5eaf6bccd3a,4300102074,breast,2025-07-01,2025-08-09,True,False,31,0,0,,,HITL_REQUIRED
+e27fa08208683577,4563591157,skin,2024-09-12,2025-03-26,True,False,242,29,7,oncology; pathology; radiotherapy; staging,discharged; reassured,INFERRED_CANCER_WEAK
+45995b2bc270fa34,4587343129,breast,2025-05-30,2025-06-18,True,False,50,2,3,immunotherapy; pathology,discharged,INFERRED_BENIGN_WEAK
+f658ef37e3949501,4643293950,lower_gi,2024-01-18,2024-12-09,False,False,64,2,8,pathology; urgent follow-up,benign; discharged; reassured,INFERRED_BENIGN_WEAK
+f735ecf6f58e02b1,4644882798,urological,2025-07-24,2025-07-31,True,False,17,0,0,,,HITL_REQUIRED
+a5118c0d7f535139,4842019832,head_and_neck,2024-12-04,2025-01-07,True,False,43,2,2,excision,discharged,HITL_REQUIRED
+0896ed5e569fdaf5,4866772573,urological,2025-01-20,2025-03-12,True,False,59,1,0,pathology,,INFERRED_CANCER
+37ccc68d6169d9c0,4920262426,upper_gi,2025-08-12,2025-08-27,True,False,37,1,1,carcinoma,discharged,HITL_REQUIRED
+a2404a22655ff772,4920262426,breast,2025-10-13,2025-10-13,True,False,11,0,1,,discharged,INFERRED_BENIGN
+a73198115d54bdce,4926887169,lower_gi,2025-01-23,2025-03-14,True,False,68,1,0,pathology,,INFERRED_CANCER
+1df6a25ce0e3a1a6,4926916703,lung,2024-01-22,2024-01-31,True,False,151,2,11,pathology,discharged; reassured,INFERRED_BENIGN_WEAK
+8e76ae3ea227a0dd,4926916703,lower_gi,2025-05-22,2025-06-02,True,False,521,3,66,malignant; pathology,discharged,INFERRED_BENIGN_WEAK
+854d32e7ad6c0c1d,4926975998,head_and_neck,2025-05-01,2025-07-07,True,False,44,0,2,,discharged,INFERRED_BENIGN
+9864e851fa4dec45,4940120139,lower_gi,2025-10-27,2025-10-27,True,False,5,0,0,,,HITL_REQUIRED
+292881d74fd3e136,4983118659,breast,2025-07-31,2025-09-13,True,False,51,1,4,pathology,AK; discharged; reassured,INFERRED_BENIGN_WEAK
+86a9cee76e3d629d,4998540637,lung,2025-03-10,2025-03-31,True,False,39,1,0,pathology,,INFERRED_CANCER
+948db01a630e6af4,6012067550,breast,2025-08-20,2025-08-20,True,False,7,0,1,,discharged,INFERRED_BENIGN
+e294edcb53f49081,6268086643,breast,2025-05-12,2025-06-06,True,False,44,1,3,pathology,discharged,INFERRED_BENIGN_WEAK
+9894fd0c450a6bc3,6310920987,breast,2024-11-21,2024-12-05,True,False,177,13,3,malignant; pathology,discharged; reassured,INFERRED_CANCER_WEAK
+27f66e666887d9e7,6509504022,breast,2024-01-24,2024-01-24,True,False,47,3,0,lymph node; pathology,,INFERRED_CANCER
+71d9aba49bb2742c,6509504022,breast,2025-04-01,2025-04-01,True,False,39,0,2,,discharged,INFERRED_BENIGN
+384d7faad54c59bf,6517334858,skin,2025-05-12,2025-05-13,True,True,0,0,0,,,HITL_REQUIRED
+64dfc7fcf219a898,6519337463,breast,2024-04-09,2024-11-14,True,False,23,0,1,,discharged,INFERRED_BENIGN
+b4717c066ec99c13,6519337463,breast,2024-10-31,2025-01-20,True,False,13,0,2,,discharged,INFERRED_BENIGN
+397eb83b242b2d30,6519337463,skin,2024-10-31,2024-11-19,True,False,16,0,1,,discharged,INFERRED_BENIGN
+c21efdbe3c3382b9,7017599535,skin,2024-06-03,2024-06-20,True,True,85,3,6,excision; pathology,discharged; reassured,INFERRED_BENIGN_WEAK
+88772f66fa397897,7028414914,head_and_neck,2025-03-19,2025-05-06,True,False,14,0,3,,discharged,INFERRED_BENIGN
+d83970a864fce823,7313758405,breast,2025-01-15,2025-01-30,True,False,107,5,0,pathology,,INFERRED_CANCER
+856e1dd0993a14b9,7313758405,gynaecological,2025-10-10,2025-10-27,True,False,18,1,2,pathology,AK; discharged,INFERRED_BENIGN_WEAK
+69d9e3f861ef942a,7319972905,head_and_neck,2025-07-09,2025-07-09,True,False,99,11,1,pathology,reassured,INFERRED_CANCER_WEAK
+1f6bf62b7ed39f5a,7322946243,breast,2025-02-05,2025-03-06,True,False,11,1,2,excision,discharged,INFERRED_BENIGN_WEAK
+f85bcd6e22b24994,7330683205,upper_gi,2025-08-12,2025-08-12,True,False,126,0,6,,AK; discharged,INFERRED_BENIGN

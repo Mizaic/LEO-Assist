@@ -658,6 +658,19 @@ function ReviewAlert({ episode }: { episode: Episode }) {
             Confidence: {episode.confidence}%
           </Typography>
         )}
+        {episode.inferred_outcome && (
+          <Typography
+            variant="caption"
+            display="block"
+            sx={{ mt: 0.75, color: "#92400E", fontWeight: 600 }}
+            title={`Outcome inferred from post-clinic encounter text — not a coded diagnosis. Signals: ${episode.inference_signals ?? "none"}`}
+          >
+            ~ Inferred outcome: {episode.inferred_outcome}
+            {episode.inferred_confidence != null && ` (${Math.round(episode.inferred_confidence * 100)}% confidence)`}
+            {episode.inferred_outcome_date && ` from ${episode.inferred_outcome_date}`}
+            {" — review before acting on this"}
+          </Typography>
+        )}
       </Collapse>
     </Alert>
   );

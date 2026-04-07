@@ -1,0 +1,67 @@
+# -- DI-LEO-AI-087 -- Specialist outcome letter milestone and inferred benign completion
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-087"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-054"]
+  requirement: >
+    The episode detection system SHALL classify specialist correspondence
+    (clinic letters, record artifacts in the configured audit subdomain, and
+    document_transfer encounters with classification_encounter_purpose
+    containing clinic_letter) into a specialist_outcome_letter milestone bucket.
+    For referral-only open episodes where specialist_seen is true, a specialist
+    visit date is stored, at least one specialist_outcome_letter anchor falls on
+    or after the specialist visit date and within 60 days after it, on or after
+    the referral date, no treatment_start anchor occurs between the letter date
+    and 120 days after the letter date inclusive, and calendar days since the
+    specialist visit exceed the stale_post_specialist threshold (90 days), the
+    system SHALL persist the episode as status completed with hitl_flag true and
+    an explicit hitl_reason describing inferred benign completion. Otherwise
+    existing diagnosis-led and stale-close behaviour is unchanged.
+
+  rationale: >
+    Sparse filing-note text is the only machine-readable signal for many letters.
+    Closing such pathways reduces false stale_post_specialist counts while
+    keeping human review mandatory. Treatment in the post-letter window
+    suppresses inference to protect active cancer pathways.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "anchor_detector emits specialist_outcome_letter_anchors from coded concepts and from document_transfer + clinic_letter rows"
+      - type: "functional"
+        spec: "episode_builder writes completed + hitl_flag when inference rule fires; skips inference when treatment exists in the post-letter window"
+      - type: "safety"
+        spec: "Inference never runs before the post-specialist stale day threshold from the recorded specialist visit date"
+    constraints:
+      - type: "safety"
+        spec: "Inferred completions always set hitl_flag true for manual confirmation"
+    dependencies: ["DI-LEO-AI-086"]
+    downstream_impacts:
+      - "stale_post_specialist episode counts"
+      - "NCDA audit completed vs in-progress mix"
+      - "AnchorResult schema (LangGraph episode subgraph)"
+    technical_details:
+      language: "Python"
+      framework: "analysis_worker / anchor_detector / episode_builder"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+        - "services/analysis_worker/app/analyzers/episode_builder.py"
+        - "libs/pipeline_graph/subgraphs/anchor.py"
+        - "libs/pipeline_graph/subgraphs/episode.py"
+      estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in VT-LEO-AI-087 pass, covering milestone classification
+      and the inferred benign completion edge cases.
+    test_protocol: "VT-LEO-AI-087"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-061"]
+  tags:
+    - "episode-detection"
+    - "specialist-letter"
+    - "ncda-audit"

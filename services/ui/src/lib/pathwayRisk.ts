@@ -32,6 +32,10 @@ export interface Episode {
   referral_route?: string;
   place_of_presentation?: string;
   safety_netting_recorded?: boolean;
+  inferred_outcome?: 'cancer' | 'benign' | null;
+  inferred_outcome_date?: string | null;
+  inferred_confidence?: number | null;
+  inference_signals?: string | null;
 }
 
 export type RiskLevel = "breached" | "at-risk" | "on-track" | "completed" | "unknown";

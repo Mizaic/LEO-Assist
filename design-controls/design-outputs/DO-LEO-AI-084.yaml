@@ -1,0 +1,82 @@
+# -- DO-LEO-AI-084 -- Per-episode specialist claiming implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-084"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-086"]
+    user_needs: ["UN-LEO-AI-053"]
+    risks_addressed: ["R-LEO-AI-060"]
+    verification_tests: ["VT-LEO-AI-086"]
+
+  specification:
+    title: "Per-episode specialist visit claiming algorithm"
+    description: |
+      Replaces the global-per-site-key _group_specialists function with a
+      per-episode claiming algorithm implemented as _claim_specialists_for_episodes.
+
+      Algorithm:
+      1. Sort all specialist visit anchors ascending by encounter_date.
+      2. Build _EpisodeSpec for each episode (ep_id, site_key, ref_date, window_end).
+         - Closed episodes: window_end = diagnosis date (latest encounter in group).
+         - Open episodes: window_end = ref_date + 365 days.
+      3. Process episodes in ref_date ascending order.
+      4. For each episode, find the earliest unclaimed specialist visit where:
+         - site key is compatible (_site_keys_compatible)
+         - encounter_date >= ref_date
+         - encounter_date <= window_end
+      5. Claim the visit (mark index as used); store _SpecialistClaim on episode.
+      6. Episodes with no matching visit receive _SpecialistClaim(specialist_seen=False).
+
+      _write_episode now accepts a _SpecialistClaim directly instead of dicts,
+      eliminating the dict.get(site_key) lookup that previously allowed one dict
+      entry to supply data to multiple episodes.
+
+    acceptance_criteria:
+      - criterion: "No cross-contamination"
+        type: "safety"
+        measurement: "Test"
+        target: "test_no_cross_contamination_same_site_key passes: 2024 episode claims 2024 visit; 2025 episode gets specialist_seen=False"
+      - criterion: "Pre-referral visit excluded"
+        type: "safety"
+        measurement: "Test"
+        target: "test_visit_before_referral_is_not_claimed passes"
+      - criterion: "Each visit used once"
+        type: "functional"
+        measurement: "Test"
+        target: "test_each_episode_gets_its_own_visit passes: two visits, two episodes, no sharing"
+      - criterion: "Live data: zero date inversions"
+        type: "functional"
+        measurement: "Script"
+        target: "After rebuild: 0 EpisodeOfCare nodes with specialist_visit_date < referral_date"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder.py"
+        description: "_EpisodeSpec, _SpecialistClaim, _site_keys_compatible, _claim_specialists_for_episodes, _closed_episode_spec, _open_episode_spec; updated _write_episode, _build_closed_episode, _build_open_episode, build_episodes"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 120
+      key_functions:
+        - "_claim_specialists_for_episodes"
+        - "_site_keys_compatible"
+        - "_closed_episode_spec"
+        - "_open_episode_spec"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Ensures specialist_visit_date on EpisodeOfCare is temporally valid (>= referral_date)"
+      - "Prevents false stale_post_specialist episode closures caused by date inversion"
+    risk_control_measures:
+      - "Claiming algorithm enforces v_date >= spec.ref_date as a hard filter before any site-key check"
+      - "Each visit index is added to a claimed set immediately on claim; set is checked before any assignment"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
