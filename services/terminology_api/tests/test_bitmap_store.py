@@ -10,9 +10,10 @@ from pyroaring import BitMap
 
 from services.terminology_api.app.services.bitmap_store import (
     BitmapStore,
-    _CURRENT_KEY,
     _INTIDS_KEY,
     _INTIDS_NEXT,
+    _scoped_current_key,
+    _scoped_ruleset_key,
 )
 
 
@@ -135,6 +136,30 @@ def test_write_and_get_ruleset(store):
     assert result["version"] == "v1"
 
 
+def test_write_and_get_ruleset_scoped(store):
+    """Scoped rulesets are namespaced by scope token."""
+    ruleset = {"version": "v2", "rules": [{"rule_id": "r2"}]}
+
+    r = _make_redis_mock()
+    captured = {}
+
+    def fake_set(key, value):
+        captured[key] = value
+
+    r.set.side_effect = fake_set
+    r.get.side_effect = lambda k: captured.get(k)
+
+    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+        store.write_ruleset("v2", ruleset, scope_type="guideline", scope_id="NG12")
+        result = store.get_ruleset("v2", scope_type="guideline", scope_id="NG12")
+
+    assert result is not None
+    assert result["version"] == "v2"
+    assert result["scope_type"] == "guideline"
+    assert result["scope_id"] == "NG12"
+    assert _scoped_ruleset_key("v2", "guideline", "NG12") in captured
+
+
 def test_get_current_ruleset_returns_none_when_no_version_set(store):
     """get_current_ruleset returns None when no active version pointer exists."""
     r = _make_redis_mock(get_returns=None)
@@ -145,22 +170,39 @@ def test_get_current_ruleset_returns_none_when_no_version_set(store):
 
 
 def test_list_versions_excludes_current_key(store):
-    """list_versions does not include the current-version pointer key."""
+    """list_versions returns only versions for the requested scope."""
     r = _make_redis_mock()
-    r.keys.return_value = [b"ruleset:v1", b"ruleset:v2", b"ruleset:current"]
+    r.keys.return_value = [
+        b"ruleset:guideline:NG12:v1",
+        b"ruleset:guideline:NG12:v2",
+        b"ruleset:guideline:NG151:v3",
+    ]
 
     with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
-        versions = store.list_versions()
+        versions = store.list_versions(scope_type="guideline", scope_id="NG12")
 
     assert "v1" in versions
     assert "v2" in versions
-    assert "current" not in versions
+    assert "v3" not in versions
 
 
 def test_set_current_version_writes_pointer(store):
-    """set_current_version writes the version name to ruleset:current."""
+    """set_current_version writes the version name to scoped pointer key."""
     r = _make_redis_mock()
     with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
-        store.set_current_version("v20260308")
+        store.set_current_version("v20260308", scope_type="guideline", scope_id="NG12")
 
-    r.set.assert_called_once_with(_CURRENT_KEY, "v20260308")
+    r.set.assert_called_once_with(
+        _scoped_current_key("guideline", "NG12"),
+        "v20260308",
+    )
+
+
+def test_get_current_version_name_scoped(store):
+    """get_current_version_name reads scoped pointer key."""
+    r = _make_redis_mock(get_returns=b"v20260308")
+    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+        version = store.get_current_version_name(scope_type="guideline", scope_id="NG12")
+
+    assert version == "v20260308"
+    r.get.assert_called_with(_scoped_current_key("guideline", "NG12"))

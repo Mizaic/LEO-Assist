@@ -31,18 +31,30 @@ class AnchorState(TypedDict, total=False):
 
 _DOMAIN_VALUESET_QUERY = (
     "MATCH (d:AuditDomain {id: $domain_id})-[:HAS_SUBDOMAIN]->(v:ValueSet) "
-    "RETURN v.id AS id, v.rawJson AS raw_json"
+    "RETURN v.id AS id, v.rawJson AS raw_json, "
+    "       v.milestoneType AS milestone_type, "
+    "       v.assertionFilter AS assertion_filter, "
+    "       v.timeWindowMonths AS time_window_months, "
+    "       v.semanticTags AS semantic_tags"
 )
 
 _FALLBACK_VALUESET_QUERY = (
     "MATCH (d:AuditDomain)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
     "WHERE coalesce(d.episodeDetector, false) = true "
-    "RETURN v.id AS id, v.rawJson AS raw_json, d.id AS domain_id"
+    "RETURN v.id AS id, v.rawJson AS raw_json, d.id AS domain_id, "
+    "       v.milestoneType AS milestone_type, "
+    "       v.assertionFilter AS assertion_filter, "
+    "       v.timeWindowMonths AS time_window_months, "
+    "       v.semanticTags AS semantic_tags"
 )
 
 _LEGACY_VALUESET_QUERY = (
     "MATCH (v:ValueSet) WHERE v.id STARTS WITH 'ncda-' "
-    "RETURN v.id AS id, v.rawJson AS raw_json"
+    "RETURN v.id AS id, v.rawJson AS raw_json, "
+    "       v.milestoneType AS milestone_type, "
+    "       v.assertionFilter AS assertion_filter, "
+    "       v.timeWindowMonths AS time_window_months, "
+    "       v.semanticTags AS semantic_tags"
 )
 
 
@@ -143,9 +155,27 @@ def _load_registry(domain_id: str = ""):
             if not raw:
                 continue
             try:
-                valuesets[r["id"]] = json.loads(raw) if isinstance(raw, str) else raw
+                parsed = json.loads(raw) if isinstance(raw, str) else dict(raw)
             except Exception:
-                pass
+                continue
+
+            # The UI stores milestoneType, assertionFilter, timeWindowMonths,
+            # and semanticTags as flat KG node properties as well as inside
+            # rawJson.  If rawJson predates the UI update (e.g. the user set
+            # milestoneType via the settings page after the ValueSet was
+            # originally seeded), rawJson may be stale.  Flat KG properties
+            # always win over rawJson so the anchor detector sees the current
+            # configuration.
+            if r.get("milestone_type"):
+                parsed["milestoneType"] = r["milestone_type"]
+            if r.get("assertion_filter") is not None:
+                parsed["assertionFilter"] = r["assertion_filter"]
+            if r.get("time_window_months") is not None:
+                parsed["timeWindowMonths"] = r["time_window_months"]
+            if r.get("semantic_tags") is not None:
+                parsed["semanticTags"] = r["semantic_tags"]
+
+            valuesets[r["id"]] = parsed
 
         if not valuesets:
             hint = f" for domain '{domain_id}'" if domain_id else ""
@@ -206,6 +236,7 @@ def _flatten_anchor_result(anchor_result) -> list[dict[str, Any]]:
             "specialist_outcome_letter",
             anchor_result.specialist_outcome_letter_anchors,
         ),
+        ("first_presentation", anchor_result.first_presentation_anchors),
     )
     for milestone_type, rows in ms_pairs:
         for row in rows:
@@ -269,6 +300,9 @@ def detect_anchors(state: AnchorState) -> dict[str, Any]:
                 "benign_closure_anchors": anchor_result.benign_closure_anchors,
                 "specialist_outcome_letter_anchors": (
                     anchor_result.specialist_outcome_letter_anchors
+                ),
+                "first_presentation_anchors": (
+                    anchor_result.first_presentation_anchors
                 ),
                 "detection_method": anchor_result.detection_method,
                 "expanded_start": anchor_result.expanded_start,

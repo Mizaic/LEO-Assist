@@ -10,6 +10,8 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
+import Drawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -17,7 +19,10 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CloseIcon from "@mui/icons-material/Close";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -27,11 +32,32 @@ interface Criterion {
   preferred_term: string;
 }
 
+interface CriterionResult {
+  term: string;
+  snomed_concept_id: string | null;
+  preferred_term: string;
+  semantic_tag: string;
+  verification_status?: string;
+}
+
+interface LogicTreeNode {
+  kind: string;
+  node_id?: string;
+  children?: LogicTreeNode[];
+  min?: number;
+  criterion?: CriterionResult;
+  field?: string;
+  operator?: string;
+  value?: number | string | null;
+  unit?: string | null;
+}
+
 interface Rule {
   rule_id: string;
   name: string;
   status: string;
   strength: string;
+  schema_version?: number;
   guideline_id: string;
   guideline_version?: number;
   chapter_title?: string;
@@ -39,6 +65,8 @@ interface Rule {
   plain_english: string;
   present_criteria: Criterion[];
   absent_criteria: Criterion[];
+  logic_tree?: LogicTreeNode | null;
+  criteria_concepts?: CriterionResult[];
   has_predecessor: boolean;
   predecessor_id?: string;
 }
@@ -274,6 +302,325 @@ function DiffPanel({ ruleId }: { ruleId: string }) {
   );
 }
 
+// ---- Rule detail panel (rendered inline when a row is expanded) ---------------
+
+function SnomedChip({ item }: { item: CriterionResult }) {
+  const resolved = !!item.snomed_concept_id;
+  return (
+    <Tooltip
+      title={resolved ? `SNOMED: ${item.snomed_concept_id} | ${item.semantic_tag}` : "No SNOMED match found"}
+      arrow
+    >
+      <Chip
+        label={resolved ? item.preferred_term : `? ${item.term}`}
+        size="small"
+        color={resolved ? "success" : "warning"}
+        variant={resolved ? "filled" : "outlined"}
+        sx={{ height: 20, fontSize: "0.68rem", mr: 0.4, mb: 0.4 }}
+      />
+    </Tooltip>
+  );
+}
+
+function LogicNodePanel({ node, depth = 0 }: { node: LogicTreeNode; depth?: number }) {
+  const kind = String(node.kind || "").toUpperCase();
+
+  if (kind === "CONCEPT") {
+    if (node.criterion) return <SnomedChip item={node.criterion} />;
+    return (
+      <Chip
+        label="unknown concept"
+        size="small"
+        variant="outlined"
+        color="default"
+        sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+      />
+    );
+  }
+
+  if (kind === "DEMOGRAPHIC") {
+    const label = `${node.field ?? "?"} ${node.operator ?? "="} ${node.value ?? "?"}${node.unit ? ` ${node.unit}` : ""}`;
+    return (
+      <Chip
+        label={label}
+        size="small"
+        variant="filled"
+        color="secondary"
+        sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+      />
+    );
+  }
+
+  const title =
+    kind === "AND" ? "ALL of these"
+    : kind === "OR" ? "ANY of these"
+    : kind === "NOT" ? "NOT"
+    : `AT LEAST ${node.min ?? 1}`;
+
+  return (
+    <Box sx={{ ml: depth ? 1.5 : 0, mt: 0.5, pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
+      <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 0.4 }}>
+        {title}
+      </Typography>
+      <Box>
+        {(node.children ?? []).map((child, idx) => (
+          <LogicNodePanel key={child.node_id ?? `${kind}-${idx}`} node={child} depth={depth + 1} />
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+function V1CriteriaFallback({ present, absent }: { present: Criterion[]; absent: Criterion[] }) {
+  if (present.length === 0 && absent.length === 0) {
+    return (
+      <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.78rem", fontStyle: "italic" }}>
+        No criteria stored for this rule.
+      </Typography>
+    );
+  }
+  return (
+    <>
+      {present.length > 0 && (
+        <Box sx={{ mt: 0.5, pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 0.4 }}>
+            ANY of these
+          </Typography>
+          <Box>
+            {present.map((c) => (
+              <Tooltip key={c.concept_id} title={`${c.predicate} | ${c.concept_id}`} arrow>
+                <Chip label={c.preferred_term || c.concept_id} size="small" color="success" variant="outlined"
+                  sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }} />
+              </Tooltip>
+            ))}
+          </Box>
+        </Box>
+      )}
+      {absent.length > 0 && (
+        <Box sx={{ mt: 0.5, pl: 1, borderLeft: "2px solid", borderColor: "error.light" }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 0.4 }}>
+            NOT any of these
+          </Typography>
+          <Box>
+            {absent.map((c) => (
+              <Tooltip key={c.concept_id} title={`${c.predicate} | ${c.concept_id}`} arrow>
+                <Chip label={c.preferred_term || c.concept_id} size="small" color="error" variant="outlined"
+                  sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }} />
+              </Tooltip>
+            ))}
+          </Box>
+        </Box>
+      )}
+    </>
+  );
+}
+
+function RuleDetailPanel({ rule }: { rule: Rule }) {
+  const hasLogicTree = !!rule.logic_tree;
+
+  return (
+    <Box
+      sx={{
+        mt: 1.5,
+        p: 1.5,
+        bgcolor: "primary.50",
+        border: "1px solid",
+        borderColor: "primary.200",
+        borderRadius: 1,
+      }}
+    >
+      <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.dark", display: "block", mb: 1 }}>
+        Exact rule logic
+      </Typography>
+
+      {hasLogicTree ? (
+        <LogicNodePanel node={rule.logic_tree!} />
+      ) : (
+        <V1CriteriaFallback present={rule.present_criteria} absent={rule.absent_criteria} />
+      )}
+
+      {rule.strength && rule.strength !== "unspecified" && (
+        <Box sx={{ mt: 1.5 }}>
+          <Typography variant="caption" color="info.dark" sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
+            Recommended action
+          </Typography>
+          <Chip
+            label={rule.strength}
+            size="small"
+            variant="outlined"
+            color="info"
+            sx={{ fontSize: "0.68rem", height: 20 }}
+          />
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+// ---- Accordion rule card -----------------------------------------------------
+
+interface RuleAccordionCardProps {
+  rule: Rule;
+  expanded: boolean;
+  busy: string | null;
+  onToggle: () => void;
+  onApprove: () => void;
+  onEdit: () => void;
+  onReject: () => void;
+}
+
+function RuleAccordionCard({
+  rule,
+  expanded,
+  busy,
+  onToggle,
+  onApprove,
+  onEdit,
+  onReject,
+}: RuleAccordionCardProps) {
+  const isBusy = busy === rule.rule_id;
+
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        borderLeft: "4px solid",
+        borderLeftColor: "primary.main",
+        borderRadius: 2,
+      }}
+    >
+      {/* -- Row header (always visible) -- */}
+      <CardContent sx={{ py: 1.2, "&:last-child": { pb: 1.2 } }}>
+        <Stack
+          direction="row"
+          alignItems="flex-start"
+          spacing={1}
+          sx={{ cursor: "pointer" }}
+          onClick={onToggle}
+          role="button"
+          aria-expanded={expanded}
+          aria-label={`Toggle rule from ${rule.guideline_id}`}
+        >
+          {expanded ? (
+            <ExpandMoreIcon sx={{ color: "primary.main", mt: 0.3, flexShrink: 0, fontSize: 18 }} />
+          ) : (
+            <ChevronRightIcon sx={{ color: "text.disabled", mt: 0.3, flexShrink: 0, fontSize: 18 }} />
+          )}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap" sx={{ mb: 0.3 }}>
+              <Chip label={rule.guideline_id} size="small" color="primary" />
+              {rule.guideline_version && rule.guideline_version > 1 && (
+                <Chip label={`v${rule.guideline_version}`} size="small" color="warning" variant="outlined" />
+              )}
+              {rule.strength && (
+                <Chip label={rule.strength} size="small" variant="outlined" />
+              )}
+              {rule.has_predecessor && (
+                <Chip icon={<CompareArrowsIcon />} label="Updated" size="small" color="warning" variant="outlined" />
+              )}
+              {rule.chapter_title && (
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: "0.75rem" }}>
+                  {rule.chapter_title}
+                </Typography>
+              )}
+            </Stack>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                fontSize: "0.8rem",
+                fontStyle: "italic",
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitLineClamp: expanded ? undefined : 2,
+                WebkitBoxOrient: "vertical",
+              }}
+            >
+              {rule.recommendation_text || rule.plain_english}
+            </Typography>
+          </Box>
+        </Stack>
+
+        {/* -- Expanded body -- */}
+        <Collapse in={expanded}>
+          <Box sx={{ mt: 1.5, ml: 3 }}>
+            {/* Full NICE recommendation text */}
+            {rule.recommendation_text && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: "grey.50",
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "grey.200",
+                  mb: 0.5,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600, display: "block", mb: 0.5 }}
+                >
+                  NICE recommendation
+                </Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.7, fontStyle: "italic" }}>
+                  &ldquo;{rule.recommendation_text}&rdquo;
+                </Typography>
+              </Box>
+            )}
+
+            {/* Structured criteria */}
+            <RuleDetailPanel rule={rule} />
+
+            {/* Version diff */}
+            {rule.has_predecessor && (
+              <Box sx={{ mt: 1.5 }}>
+                <DiffPanel ruleId={rule.rule_id} />
+              </Box>
+            )}
+
+            {/* Action buttons */}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2 }}>
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                disabled={isBusy}
+                onClick={(e) => { e.stopPropagation(); onApprove(); }}
+                aria-label={`Approve rule ${rule.rule_id}`}
+              >
+                Looks right
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={isBusy}
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                aria-label={`Edit rule ${rule.rule_id}`}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                disabled={isBusy}
+                onClick={(e) => { e.stopPropagation(); onReject(); }}
+                aria-label={`Reject rule ${rule.rule_id}`}
+              >
+                Reject
+              </Button>
+              {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
+            </Stack>
+          </Box>
+        </Collapse>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---- Main section ------------------------------------------------------------
+
 export default function RuleReviewSection({ refreshKey }: Props) {
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -281,14 +628,20 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [internalKey, setInternalKey] = useState(0);
   const [approveAllOpen, setApproveAllOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<string | null>(null);
-  const [editReason, setEditReason] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [expandedRules, setExpandedRules] = useState<Record<string, boolean>>({});
 
+  // Edit drawer
+  const [editRule, setEditRule] = useState<Rule | null>(null);
+  const [editReason, setEditReason] = useState("");
+
+  // Promoted rules
   const [promoteConfirmRule, setPromoteConfirmRule] = useState<Rule | null>(null);
   const [promotedRules, setPromotedRules] = useState<Record<string, PromoteResult>>({});
   const [promoteBusy, setPromoteBusy] = useState<string | null>(null);
   const [promoteError, setPromoteError] = useState<string | null>(null);
+
+  const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
 
   useEffect(() => {
     setLoading(true);
@@ -300,7 +653,9 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       .finally(() => setLoading(false));
   }, [refreshKey, internalKey]);
 
-  const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
+  const toggleExpanded = useCallback((ruleId: string) => {
+    setExpandedRules((prev) => ({ ...prev, [ruleId]: !prev[ruleId] }));
+  }, []);
 
   const decide = useCallback(
     async (rule: Rule, action: "approve" | "reject" | "edit", reason = "Admin review") => {
@@ -319,8 +674,8 @@ export default function RuleReviewSection({ refreshKey }: Props) {
             { ...rule, status: "active" },
           ]);
         }
+        setEditRule((prev) => (prev?.rule_id === rule.rule_id ? null : prev));
         setInternalKey((n) => n + 1);
-        setEditingRule(null);
       } catch {
         setActionError("Could not save your decision. Please try again.");
       } finally {
@@ -390,6 +745,80 @@ export default function RuleReviewSection({ refreshKey }: Props) {
 
   return (
     <Box>
+      {/* ---- Edit drawer (edit-flow only) ---- */}
+      <Drawer
+        anchor="right"
+        open={!!editRule}
+        onClose={() => { setEditRule(null); setEditReason(""); }}
+        PaperProps={{
+          sx: { width: { xs: "100vw", sm: 480 }, display: "flex", flexDirection: "column" },
+        }}
+      >
+        <Box
+          sx={{
+            px: 2.5,
+            py: 1.5,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="subtitle2" sx={{ flex: 1 }}>
+              Edit rule
+            </Typography>
+            <IconButton
+              onClick={() => { setEditRule(null); setEditReason(""); }}
+              size="small"
+              aria-label="Close edit panel"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+          {editRule?.chapter_title && (
+            <Typography variant="caption" color="text.secondary">
+              {editRule.chapter_title}
+            </Typography>
+          )}
+        </Box>
+        <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
+          {editRule?.recommendation_text && (
+            <Box sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1, border: "1px solid", borderColor: "grey.200", mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
+                NICE recommendation
+              </Typography>
+              <Typography variant="body2" sx={{ lineHeight: 1.7, fontStyle: "italic" }}>
+                &ldquo;{editRule.recommendation_text}&rdquo;
+              </Typography>
+            </Box>
+          )}
+          {editRule && <RuleDetailPanel rule={editRule} />}
+        </Box>
+        <Box sx={{ px: 2.5, py: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Reason for edit"
+            value={editReason}
+            onChange={(e) => setEditReason(e.target.value)}
+            sx={{ mb: 1 }}
+            inputProps={{ "aria-label": "Reason for editing this rule" }}
+            autoFocus
+          />
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="contained"
+              disabled={busy === editRule?.rule_id || !editReason.trim()}
+              onClick={() => editRule && decide(editRule, "edit", editReason)}
+            >
+              Save edit
+            </Button>
+            <Button onClick={() => { setEditRule(null); setEditReason(""); }}>Cancel</Button>
+          </Stack>
+        </Box>
+      </Drawer>
+
+      {/* ---- Alerts ---- */}
       {actionError && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
           {actionError}
@@ -401,32 +830,35 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         </Alert>
       )}
 
-      {/* Approved rules from this session */}
+      {/* ---- Approved in this session ---- */}
       {sessionApproved.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ mb: 1, color: "success.main" }}>
             Approved in this session
           </Typography>
-          <Stack spacing={2}>
+          <Stack spacing={1}>
             {sessionApproved.map((rule) => (
-              <Card key={rule.rule_id} variant="outlined" sx={{ borderColor: "success.light" }}>
-                <CardContent>
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+              <Card
+                key={rule.rule_id}
+                variant="outlined"
+                sx={{ borderLeft: "4px solid", borderLeftColor: "success.main", borderRadius: 2 }}
+              >
+                <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                     <CheckCircleOutlineIcon color="success" fontSize="small" />
                     <Chip label={rule.guideline_id} size="small" color="success" variant="outlined" />
                     <Chip label="Approved" size="small" color="success" />
                   </Stack>
-                  <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500 }}>
+                  <Typography variant="body2" sx={{ mb: 1, color: "text.secondary", fontSize: "0.82rem" }}>
                     {rule.plain_english}
                   </Typography>
                   {promotedRules[rule.rule_id] ? (
                     <Alert severity="success" sx={{ py: 0.5 }}>
                       Added {promotedRules[rule.rule_id].concepts_added} code
                       {promotedRules[rule.rule_id].concepts_added !== 1 ? "s" : ""} to{" "}
-                      <Link href={`/admin/domains`} underline="hover">
+                      <Link href="/admin/domains" underline="hover">
                         {promotedRules[rule.rule_id].domain_name}
-                      </Link>
-                      .
+                      </Link>.
                     </Alert>
                   ) : (
                     <Button
@@ -437,7 +869,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                       onClick={() => setPromoteConfirmRule(rule)}
                       aria-label={`Add rule ${rule.rule_id} medical codes to domain`}
                     >
-                      {promoteBusy === rule.rule_id ? "Adding\u2026" : "Add to domain"}
+                      {promoteBusy === rule.rule_id ? "Adding..." : "Add to domain"}
                     </Button>
                   )}
                 </CardContent>
@@ -447,21 +879,16 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         </Box>
       )}
 
-      {/* Pending rules */}
+      {/* ---- Pending rules accordion list ---- */}
       {rules.length === 0 ? (
         <Typography color="text.secondary">
           No rules waiting for review. Load a guideline first, then generate rules.
         </Typography>
       ) : (
         <>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mb: 2 }}
-          >
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
             <Typography variant="body2" color="text.secondary">
-              {rules.length} rule{rules.length !== 1 ? "s" : ""} to check
+              {rules.length} rule{rules.length !== 1 ? "s" : ""} to check — click a row to read in full
             </Typography>
             <Button
               variant="outlined"
@@ -474,127 +901,18 @@ export default function RuleReviewSection({ refreshKey }: Props) {
             </Button>
           </Stack>
 
-          <Stack spacing={2}>
+          <Stack spacing={1}>
             {rules.map((rule) => (
-              <Card key={rule.rule_id} variant="outlined">
-                <CardContent>
-                  {/* Header chips */}
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mb: 1 }}>
-                    <Chip label={rule.guideline_id} size="small" color="primary" variant="outlined" />
-                    {rule.guideline_version && rule.guideline_version > 1 && (
-                      <Chip
-                        label={`v${rule.guideline_version}`}
-                        size="small"
-                        color="warning"
-                        variant="outlined"
-                        title={`This is version ${rule.guideline_version} of the guideline`}
-                      />
-                    )}
-                    {rule.chapter_title && (
-                      <Typography variant="caption" color="text.secondary">
-                        {rule.chapter_title}
-                      </Typography>
-                    )}
-                    {rule.strength && (
-                      <Chip label={rule.strength} size="small" variant="outlined" />
-                    )}
-                    {rule.has_predecessor && (
-                      <Chip
-                        icon={<CompareArrowsIcon />}
-                        label="Updated rule"
-                        size="small"
-                        color="warning"
-                        variant="outlined"
-                        title="This recommendation had a previous approved version"
-                      />
-                    )}
-                  </Stack>
-
-                  {/* Source recommendation text */}
-                  {rule.recommendation_text && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1, fontStyle: "italic", fontSize: "0.8rem" }}
-                    >
-                      &ldquo;{rule.recommendation_text.slice(0, 200)}
-                      {rule.recommendation_text.length > 200 ? "..." : ""}&rdquo;
-                    </Typography>
-                  )}
-
-                  {/* AI-generated plain-English rule */}
-                  <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500 }}>
-                    {rule.plain_english}
-                  </Typography>
-
-                  {/* Version diff panel — only shown when a predecessor exists */}
-                  {rule.has_predecessor && <DiffPanel ruleId={rule.rule_id} />}
-
-                  <Box sx={{ mt: 2 }}>
-                    {editingRule === rule.rule_id ? (
-                      <Box>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Reason for edit"
-                          value={editReason}
-                          onChange={(e) => setEditReason(e.target.value)}
-                          sx={{ mb: 1 }}
-                          inputProps={{ "aria-label": "Reason for editing this rule" }}
-                        />
-                        <Stack direction="row" spacing={1}>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            disabled={busy === rule.rule_id || !editReason.trim()}
-                            onClick={() => decide(rule, "edit", editReason)}
-                          >
-                            Save edit
-                          </Button>
-                          <Button size="small" onClick={() => setEditingRule(null)}>
-                            Cancel
-                          </Button>
-                        </Stack>
-                      </Box>
-                    ) : (
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="success"
-                          disabled={busy === rule.rule_id}
-                          onClick={() => decide(rule, "approve")}
-                          aria-label={`Approve rule ${rule.rule_id}`}
-                        >
-                          Looks right
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={busy === rule.rule_id}
-                          onClick={() => {
-                            setEditingRule(rule.rule_id);
-                            setEditReason("");
-                          }}
-                          aria-label={`Edit rule ${rule.rule_id}`}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          disabled={busy === rule.rule_id}
-                          onClick={() => decide(rule, "reject", "Rejected by reviewer")}
-                          aria-label={`Reject rule ${rule.rule_id}`}
-                        >
-                          Reject
-                        </Button>
-                      </Stack>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
+              <RuleAccordionCard
+                key={rule.rule_id}
+                rule={rule}
+                expanded={!!expandedRules[rule.rule_id]}
+                busy={busy}
+                onToggle={() => toggleExpanded(rule.rule_id)}
+                onApprove={() => decide(rule, "approve")}
+                onEdit={() => { setEditRule(rule); setEditReason(""); }}
+                onReject={() => decide(rule, "reject", "Rejected by reviewer")}
+              />
             ))}
           </Stack>
         </>

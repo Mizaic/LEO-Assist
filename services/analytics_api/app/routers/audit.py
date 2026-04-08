@@ -33,15 +33,25 @@ router = APIRouter()
 # Match templates
 # ---------------------------------------------------------------------------
 
+_EPISODE_EXCLUDE = (
+    "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+)
+
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {id: $org}) "
     "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
     "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
     "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
     "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    f"WHERE {_EPISODE_EXCLUDE}"
 )
 
-_ENGLAND_BASE = "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+# Sentinel WHERE clause means _add_date_filters and section helpers always
+# use AND. Episode exclusion is baked in here so all section queries inherit it.
+_ENGLAND_BASE = (
+    "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    f"WHERE {_EPISODE_EXCLUDE}"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +68,7 @@ def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]
         return _ENGLAND_BASE, {}
     return (
         "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-        f"WHERE {ORG_PATIENT_FILTER} ",
+        f"WHERE {ORG_PATIENT_FILTER} AND {_EPISODE_EXCLUDE}",
         scope.to_query_params(),
     )
 
@@ -66,7 +76,11 @@ def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]
 def _add_date_filters(
     base: str, params: dict, date_from: Optional[str], date_to: Optional[str]
 ) -> tuple[str, dict]:
-    """Append optional referral_date range filters."""
+    """Append optional referral_date range filters.
+
+    All base templates end with an active WHERE clause (WHERE true, or a real
+    predicate), so predicates are always joined with AND -- never a bare WHERE.
+    """
     clauses: list[str] = []
     if date_from:
         clauses.append("ep.referral_date >= $date_from")
@@ -75,8 +89,7 @@ def _add_date_filters(
         clauses.append("ep.referral_date <= $date_to")
         params = {**params, "date_to": date_to}
     if clauses:
-        connector = "AND " if ("WHERE " in base) else "WHERE "
-        base = base.rstrip() + f" {connector}" + " AND ".join(clauses) + " "
+        base = base.rstrip() + " AND " + " AND ".join(clauses) + " "
     return base, params
 
 
@@ -212,14 +225,16 @@ def _make_response(
 
 
 def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
+    # Show ALL referral pathways by cancer type -- not just diagnosed ones.
+    # This matches NCDA definitions: cancer type breakdown of all 2WW referrals.
+    # Read ep.cancer_type directly (canonical field written by episode builder).
+    # condition_type is a legacy alias; both are set to the same value so this
+    # change is backward-compatible with existing data.
     rows = client.run(
         f"{base}"
-        "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
-        "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
-        "WITH ep, count(diag_enc) AS diag_events "
-        "WHERE coalesce(ep.condition_type, ep.cancer_type) IS NOT NULL "
-        "  AND (diag_events > 0 OR coalesce(ep.status, '') IN ['confirmed','completed','closed']) "
-        "RETURN coalesce(ep.condition_type, ep.cancer_type) AS cancer_type, count(DISTINCT ep) AS n "
+        "AND ep.cancer_type IS NOT NULL "
+        "  AND ep.cancer_type <> 'unknown' "
+        "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS n "
         "ORDER BY n DESC",
         **params,
     )
@@ -230,7 +245,7 @@ def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
 def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> list:
     rows = client.run(
         f"{base}"
-        "WHERE ep.cancer_stage IS NOT NULL "
+        "AND ep.cancer_stage IS NOT NULL "
         "WITH ep, "
         "  CASE WHEN ep.cancer_stage IN ['0','1','2','I','II'] THEN 'early' "
         "       WHEN ep.cancer_stage IN ['3','4','III','IV'] THEN 'late' "
@@ -246,13 +261,13 @@ def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> list
 def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict:
     sex_rows = client.run(
         f"{base}"
-        "WHERE p.gender IS NOT NULL "
+        "AND p.gender IS NOT NULL "
         "RETURN p.gender AS gender, count(DISTINCT p) AS n ORDER BY n DESC",
         **params,
     )
     age_rows = client.run(
         f"{base}"
-        "WHERE p.birthDate IS NOT NULL AND ep.referral_date IS NOT NULL "
+        "AND p.birthDate IS NOT NULL AND ep.referral_date IS NOT NULL "
         "WITH p, ep, "
         "  duration.inDays(date(p.birthDate), date(toString(ep.referral_date))).days / 365 AS age_at_referral "
         "WITH age_at_referral, "
@@ -267,14 +282,14 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
     )
     age_vals_rows = client.run(
         f"{base}"
-        "WHERE p.birthDate IS NOT NULL AND ep.referral_date IS NOT NULL "
+        "AND p.birthDate IS NOT NULL AND ep.referral_date IS NOT NULL "
         "WITH duration.inDays(date(p.birthDate), date(toString(ep.referral_date))).days / 365 AS age "
         "RETURN age ORDER BY age",
         **params,
     )
     eth_rows = client.run(
         f"{base}"
-        "WHERE p.ethnicity IS NOT NULL "
+        "AND p.ethnicity IS NOT NULL "
         "RETURN p.ethnicity AS ethnicity, count(DISTINCT p) AS n ORDER BY n DESC",
         **params,
     )
@@ -306,9 +321,13 @@ def _q_place(base: str, params: dict, client: PatientGraphClient) -> list:
 
 
 def _q_consultations(base: str, params: dict, client: PatientGraphClient) -> dict:
+    # Use patient encounters (HAS_ENCOUNTER) in the referral window as a proxy
+    # for consultations when IS_PART_OF milestones are not available.
     rows = client.run(
         f"{base}"
-        "OPTIONAL MATCH (enc:Encounter)-[:IS_PART_OF]->(ep) "
+        "WITH ep, p "
+        "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
+        "  WHERE enc.date >= ep.referral_date AND enc.date <= coalesce(ep.end_date, ep.referral_date + duration('P180D')) "
         "WITH ep, count(enc) AS consult_count "
         "RETURN "
         "  sum(CASE WHEN consult_count < 3 THEN 1 ELSE 0 END) AS fewer_than_3, "
@@ -319,7 +338,9 @@ def _q_consultations(base: str, params: dict, client: PatientGraphClient) -> dic
     )
     per_ep = client.run(
         f"{base}"
-        "OPTIONAL MATCH (enc:Encounter)-[:IS_PART_OF]->(ep) "
+        "WITH ep, p "
+        "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
+        "  WHERE enc.date >= ep.referral_date AND enc.date <= coalesce(ep.end_date, ep.referral_date + duration('P180D')) "
         "WITH ep, count(enc) AS consult_count "
         "RETURN consult_count ORDER BY consult_count",
         **params,
@@ -397,73 +418,98 @@ _INFERRED_CANCER_DIAG_CASE = (
     "  WHEN diag_date IS NOT NULL THEN diag_date "
     "  WHEN ep.inferred_outcome = 'cancer' AND ep.inferred_outcome_date IS NOT NULL "
     "    THEN ep.inferred_outcome_date "
+    "  WHEN ep.status = 'completed' AND ep.end_date IS NOT NULL "
+    "    THEN toString(ep.end_date) "
     "  ELSE null "
+    "END"
+)
+
+# Use first_presentation_date only when we also have a presenting complaint.
+# If the date came from place/admin-only coding (no symptom complaint captured),
+# fall back to referral_date so PCI is not artificially inflated.
+_FP_DATE_EXPR = (
+    "CASE "
+    "  WHEN ep.first_presentation_date IS NOT NULL "
+    "   AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+    "    THEN ep.first_presentation_date "
+    "  ELSE toString(ep.referral_date) "
     "END"
 )
 
 
 def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
+    # Single aggregate query: n, mean, median, and IQR all computed server-side
+    # over the full episode set so they always refer to the same population.
     agg = client.run(
         f"{base}"
-        "WHERE ep.first_presentation_date IS NOT NULL "
-        "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
-        "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
-        "WITH ep, min(toString(diag_enc.date)) AS diag_date "
-        f"WITH ep, diag_date, {_INFERRED_CANCER_DIAG_CASE} AS effective_diag_date "
-        "RETURN "
-        "  sum(CASE WHEN ep.referral_date IS NOT NULL THEN 1 ELSE 0 END) AS pci_n, "
-        "  avg(CASE WHEN ep.referral_date IS NOT NULL "
-        "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
-        "      ELSE null END) AS mean_pci, "
-        "  sum(CASE WHEN effective_diag_date IS NOT NULL THEN 1 ELSE 0 END) AS di_n, "
-        "  avg(CASE WHEN effective_diag_date IS NOT NULL "
-        "      THEN duration.inDays(date(ep.first_presentation_date), date(effective_diag_date)).days "
-        "      ELSE null END) AS mean_di",
-        **params,
-    )
-    pts = client.run(
-        f"{base}"
-        "WHERE ep.first_presentation_date IS NOT NULL "
+        "AND ep.referral_date IS NOT NULL "
         "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
         "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
         "WITH ep, min(toString(diag_enc.date)) AS diag_date "
         f"WITH ep, diag_date, {_INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
+        f"{_FP_DATE_EXPR} AS fp_date "
+        "WITH "
+        "  CASE WHEN fp_date IS NOT NULL AND ep.referral_date IS NOT NULL "
+        "       THEN duration.inDays(date(fp_date), date(toString(ep.referral_date))).days "
+        "       ELSE null END AS pci_days, "
+        "  CASE WHEN effective_diag_date IS NOT NULL AND fp_date IS NOT NULL "
+        "       THEN duration.inDays(date(fp_date), date(effective_diag_date)).days "
+        "       ELSE null END AS di_days "
+        "RETURN "
+        "  sum(CASE WHEN pci_days IS NOT NULL THEN 1 ELSE 0 END) AS pci_n, "
+        "  avg(pci_days) AS mean_pci, "
+        "  percentileCont(pci_days, 0.5) AS median_pci, "
+        "  percentileCont(pci_days, 0.25) AS pci_q1, "
+        "  percentileCont(pci_days, 0.75) AS pci_q3, "
+        "  sum(CASE WHEN di_days IS NOT NULL THEN 1 ELSE 0 END) AS di_n, "
+        "  avg(di_days) AS mean_di, "
+        "  percentileCont(di_days, 0.5) AS median_di, "
+        "  percentileCont(di_days, 0.25) AS di_q1, "
+        "  percentileCont(di_days, 0.75) AS di_q3",
+        **params,
+    )
+    # Patient rows for the strip plot - capped for rendering performance only.
+    # Statistical summaries (n, median, IQR) come from agg above, not from this list.
+    pts = client.run(
+        f"{base}"
+        "AND ep.referral_date IS NOT NULL "
+        "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
+        "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+        "WITH ep, min(toString(diag_enc.date)) AS diag_date "
+        f"WITH ep, diag_date, {_INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
+        f"{_FP_DATE_EXPR} AS fp_date, "
         "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
         "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
         "RETURN "
-        "  ep.episode_id AS episode_id, ep.condition_type AS cancer_type, "
+        "  ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
         "  diag_is_inferred, "
-        "  CASE WHEN ep.referral_date IS NOT NULL "
-        "       THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
+        "  CASE WHEN fp_date IS NOT NULL AND ep.referral_date IS NOT NULL "
+        "       THEN duration.inDays(date(fp_date), date(toString(ep.referral_date))).days "
         "       ELSE null END AS pci_days, "
-        "  CASE WHEN effective_diag_date IS NOT NULL "
-        "       THEN duration.inDays(date(ep.first_presentation_date), date(effective_diag_date)).days "
+        "  CASE WHEN effective_diag_date IS NOT NULL AND fp_date IS NOT NULL "
+        "       THEN duration.inDays(date(fp_date), date(effective_diag_date)).days "
         "       ELSE null END AS di_days "
         "ORDER BY ep.referral_date LIMIT 500",
         **params,
     )
 
-    def _median(vals: list) -> Optional[float]:
-        if not vals:
-            return None
-        n = len(vals)
-        return vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
-
-    def _iqr(vals: list) -> tuple[Optional[float], Optional[float]]:
-        if not vals:
-            return None, None
-        n = len(vals)
-        return vals[n // 4], vals[3 * n // 4]
-
-    pci_vals = sorted([r["pci_days"] for r in pts if r.get("pci_days") is not None])
-    di_vals = sorted([r["di_days"] for r in pts if r.get("di_days") is not None])
-    pci_q1, pci_q3 = _iqr(pci_vals)
-    di_q1, di_q3 = _iqr(di_vals)
     s = agg[0] if agg else {}
 
     return {
-        "pci": {"n": s.get("pci_n"), "mean": s.get("mean_pci"), "median": _median(pci_vals), "q1": pci_q1, "q3": pci_q3},
-        "di": {"n": s.get("di_n"), "mean": s.get("mean_di"), "median": _median(di_vals), "q1": di_q1, "q3": di_q3},
+        "pci": {
+            "n": s.get("pci_n"),
+            "mean": s.get("mean_pci"),
+            "median": s.get("median_pci"),
+            "q1": s.get("pci_q1"),
+            "q3": s.get("pci_q3"),
+        },
+        "di": {
+            "n": s.get("di_n"),
+            "mean": s.get("mean_di"),
+            "median": s.get("median_di"),
+            "q1": s.get("di_q1"),
+            "q3": s.get("di_q3"),
+        },
         "patients": [
             {"episode_id": r["episode_id"], "cancer_type": r.get("cancer_type"),
              "pci_days": r.get("pci_days"), "di_days": r.get("di_days")}
@@ -603,11 +649,12 @@ def audit_summary(
             "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
             "WITH ep, min(toString(diag_enc.date)) AS diag_date "
             f"WITH ep, diag_date, {_INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
+            f"{_FP_DATE_EXPR} AS fp_date, "
             "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
             "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
             "OPTIONAL MATCH (enc2:Encounter)-[:IS_PART_OF]->(ep) "
             "WITH ep.status AS ep_status, "
-            "     ep.first_presentation_date AS fp_date, "
+            "     fp_date, "
             "     toString(ep.referral_date) AS ref_date, "
             "     ep.safety_netting_recorded AS sn, "
             "     effective_diag_date AS diag_date, "
@@ -617,7 +664,11 @@ def audit_summary(
             **params,
         )
 
-        _CLOSED = {"closed", "completed", "merged", "excluded"}
+        _CLOSED = {
+            "closed", "completed", "merged", "excluded",
+            "closed_benign", "closed_related", "closed_phantom",
+            "stale_no_diagnosis", "stale_post_specialist",
+        }
 
         def _safe_days(a: Any, b: Any) -> Optional[float]:
             try:
@@ -629,29 +680,38 @@ def audit_summary(
                 return None
 
         total = len(rows)
+        # Active = not in a terminal or stale-closed state
         active = sum(1 for r in rows if r.get("ep_status") not in _CLOSED)
+        # Confirmed = episode has an effective diagnosis date (coded, inferred, or completed)
         confirmed = sum(1 for r in rows if r.get("diag_date") is not None)
 
-        pci_vals = [
+        pci_vals = sorted(
             v for r in rows
             if (v := _safe_days(r.get("fp_date"), r.get("ref_date"))) is not None
-        ]
-        di_vals = [
+        )
+        di_vals = sorted(
             v for r in rows
             if (v := _safe_days(r.get("fp_date"), r.get("diag_date"))) is not None
-        ]
+        )
         consult_vals = [
             r["consultation_count"] for r in rows
             if r.get("consultation_count") is not None
         ]
         sn_count = sum(1 for r in rows if r.get("sn") is True)
 
+        def _median(vals: list) -> Optional[float]:
+            n = len(vals)
+            if not n:
+                return None
+            mid = n // 2
+            return float(vals[mid]) if n % 2 else (vals[mid - 1] + vals[mid]) / 2.0
+
         return {
             "total_episodes": total,
             "active_episodes": active,
             "confirmed_cancers": confirmed,
-            "median_pci_days": round(sum(pci_vals) / len(pci_vals), 1) if pci_vals else None,
-            "median_di_days": round(sum(di_vals) / len(di_vals), 1) if di_vals else None,
+            "median_pci_days": round(_median(pci_vals), 1) if pci_vals else None,
+            "median_di_days": round(_median(di_vals), 1) if di_vals else None,
             "avg_consultations": round(sum(consult_vals) / len(consult_vals), 1) if consult_vals else None,
             "safety_netting_pct": round(sn_count * 100.0 / total, 1) if total else None,
         }
@@ -975,6 +1035,10 @@ def _q_comorbidities(base: str, params: dict, client: PatientGraphClient) -> dic
     # Comorbidities are chronic conditions — we do NOT filter by documentation date.
     # The HAS_DISEASE path covers migrated legacy data + direct writes.
     # The DOCUMENTS path covers the NER pipeline output (any node label).
+    # Return patient ids per concept so we can deduplicate at group level in
+    # Python. A patient who has two SNOMED children of the same group (e.g.
+    # "Essential hypertension" AND "Hypertension") must only be counted once
+    # for that group; summing n-per-concept would double-count them.
     disease_rows = client.run(
         f"{base}"
         "WITH p "
@@ -985,19 +1049,21 @@ def _q_comorbidities(base: str, params: dict, client: PatientGraphClient) -> dic
         "WITH p, collect(DISTINCT d1.conceptId) + collect(DISTINCT d2.conceptId) AS cids "
         "UNWIND cids AS concept_id "
         "WITH p, concept_id WHERE concept_id IS NOT NULL "
-        "RETURN concept_id, count(DISTINCT p) AS n",
+        "RETURN concept_id, collect(DISTINCT toString(p.id)) AS patient_ids",
         **{**params, "concept_ids": all_ids},
     )
 
-    # Group by top-level term
-    counts: dict[str, int] = {term: 0 for term in concept_groups}
+    # Deduplicate patients per top-level group using set union.
+    group_patients: dict[str, set] = {term: set() for term in concept_groups}
     for row in disease_rows:
         cid_str = str(row.get("concept_id") or "")
         if not cid_str:
             continue
         top_term = id_to_term.get(cid_str)
-        if top_term and top_term in counts:
-            counts[top_term] += row["n"]
+        if top_term and top_term in group_patients:
+            group_patients[top_term].update(row.get("patient_ids") or [])
+
+    counts: dict[str, int] = {term: len(patients) for term, patients in group_patients.items()}
 
     comorbidities = sorted(
         [

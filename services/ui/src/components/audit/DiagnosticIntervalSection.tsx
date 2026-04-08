@@ -1,6 +1,7 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import SectionCard from "./SectionCard";
 import IntervalStripPlot from "./IntervalStripPlot";
 import SummaryStatsTable from "./SummaryStatsRow";
@@ -72,6 +73,12 @@ export default function DiagnosticIntervalSection({ result, loading, error, orgS
         allianceMedian={allianceMedian}
         maxDays={365}
       />
+      {(practice?.di?.n ?? 0) > (practice?.patients?.length ?? 0) && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
+          Showing {practice!.patients.length} of {practice!.di!.n} episodes in the chart.
+          Median and IQR are calculated from all {practice!.di!.n} episodes.
+        </Typography>
+      )}
       <Box sx={{ mt: 2 }}>
         <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Diagnostic interval statistics" />
       </Box>

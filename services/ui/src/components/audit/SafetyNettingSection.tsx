@@ -1,6 +1,7 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Alert from "@mui/material/Alert";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
@@ -46,6 +47,14 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
     },
   ];
 
+  // 0% with real episodes almost always means the field has not been captured,
+  // not that no safety netting occurred. Surface this distinction clearly.
+  const MIN_EPISODES_FOR_ZERO = 5;
+  const dataNotCaptured =
+    practice != null &&
+    practice.recorded_n === 0 &&
+    practice.total_episodes >= MIN_EPISODES_FOR_ZERO;
+
   return (
     <SectionCard
       id="section-safety-netting"
@@ -55,6 +64,13 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
       loading={loading}
       error={error}
     >
+      {dataNotCaptured && (
+        <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
+          Safety netting is recorded as 0% across {practice!.total_episodes} episodes.
+          This is likely because the pipeline has not yet extracted this field from clinical text,
+          not a clinical finding. Do not use this value in reporting until the pipeline is complete.
+        </Alert>
+      )}
       <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
       <ComparisonBarChart
         data={chartData}

@@ -25,6 +25,13 @@ router = APIRouter()
 
 # Cypher fragment that scopes patients to an org at any hierarchy level.
 # Variables introduced: _scope, gp  (p must already be in scope or follow).
+_EPISODE_EXCLUDE = (
+    "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+)
+_REFERRAL_LINK_EXISTS = (
+    "EXISTS { MATCH (:Encounter)-[rr:IS_PART_OF]->(ep) WHERE rr.milestone_type = 'referral' } "
+)
+
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {{id: ${p}}}) "
     "MATCH (p:Patient) "
@@ -33,6 +40,7 @@ _ORG_PATIENT_MATCH = (
     "WHERE (org.id = ${p}) OR (gp.id = ${p}) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
     "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
     "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    f"WHERE {_EPISODE_EXCLUDE}"
 )
 
 
@@ -48,10 +56,14 @@ def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]
     if effective_org:
         return _ORG_PATIENT_MATCH.format(p="org"), {"org": effective_org}
     if scope.is_admin:
-        return "MATCH (ep:EpisodeOfCare) ", {}
+        return (
+            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+            f"WHERE {_EPISODE_EXCLUDE}",
+            {},
+        )
     return (
         "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-        f"WHERE {ORG_PATIENT_FILTER} ",
+        f"WHERE {ORG_PATIENT_FILTER} AND {_EPISODE_EXCLUDE}",
         scope.to_query_params(),
     )
 
@@ -60,15 +72,26 @@ def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]
 def kpi_benchmarks(
     scope: CallerScope = Depends(get_caller_scope),
     org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
 ):
     """Aggregate KPI metrics across episodes, computed from IS_PART_OF milestones."""
     scope = _coerce_scope(scope)
     client = PatientGraphClient()
     base, params = _episode_base(org_id, scope)
+    date_clauses = []
+    if date_from:
+        date_clauses.append("ep.referral_date >= $date_from")
+        params["date_from"] = date_from
+    if date_to:
+        date_clauses.append("ep.referral_date <= $date_to")
+        params["date_to"] = date_to
+    date_frag = (" AND " + " AND ".join(date_clauses)) if date_clauses else ""
     try:
         return client.run(
             f"{base}"
-            "WHERE ep.referral_date IS NOT NULL "
+            f"AND ep.referral_date IS NOT NULL "
+            f"AND {_REFERRAL_LINK_EXISTS}{date_frag} "
             "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
             "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
             "OPTIONAL MATCH (treat_enc:Encounter)-[tr:IS_PART_OF]->(ep) "
@@ -79,20 +102,43 @@ def kpi_benchmarks(
             "    WHEN diag_date IS NOT NULL THEN diag_date "
             "    WHEN ep.inferred_outcome = 'cancer' AND ep.inferred_outcome_date IS NOT NULL "
             "      THEN ep.inferred_outcome_date "
+            "    WHEN ep.status = 'completed' AND ep.end_date IS NOT NULL "
+            "      THEN toString(ep.end_date) "
             "    ELSE null "
             "  END AS effective_diag_date, "
             "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
-            "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
+            "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred, "
+            "  CASE "
+            "    WHEN diag_date IS NOT NULL THEN diag_date "
+            "    WHEN ep.inferred_outcome = 'cancer' AND ep.inferred_outcome_date IS NOT NULL "
+            "      THEN ep.inferred_outcome_date "
+            "    ELSE null "
+            "  END AS confirmed_diag_date "
             "RETURN "
             "  avg(CASE WHEN ep.first_presentation_date IS NOT NULL "
-            "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
+            "      AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+            "      AND ep.referral_date IS NOT NULL "
+            "      THEN duration.inDays("
+            "        date(ep.first_presentation_date), "
+            "        date(toString(ep.referral_date))).days "
             "      ELSE null END) AS avg_days_to_referral, "
+            "  sum(CASE WHEN ep.first_presentation_date IS NOT NULL "
+            "      AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+            "      AND ep.referral_date IS NOT NULL "
+            "      THEN 1 ELSE 0 END) AS n_days_to_referral, "
             "  avg(CASE WHEN effective_diag_date IS NOT NULL "
             "      THEN duration.inDays(date(toString(ep.referral_date)), date(effective_diag_date)).days "
             "      ELSE null END) AS avg_days_to_diagnosis, "
-            "  avg(CASE WHEN effective_diag_date IS NOT NULL AND treat_date IS NOT NULL "
-            "      THEN duration.inDays(date(effective_diag_date), date(treat_date)).days "
-            "      ELSE null END) AS avg_days_to_treatment, "
+            "  sum(CASE WHEN effective_diag_date IS NOT NULL THEN 1 ELSE 0 END) AS n_days_to_diagnosis, "
+            "  avg(CASE "
+            "    WHEN confirmed_diag_date IS NOT NULL AND treat_date IS NOT NULL "
+            "         AND treat_date >= confirmed_diag_date "
+            "    THEN duration.inDays(date(confirmed_diag_date), date(treat_date)).days "
+            "    ELSE null END) AS avg_days_to_treatment, "
+            "  sum(CASE "
+            "    WHEN confirmed_diag_date IS NOT NULL AND treat_date IS NOT NULL "
+            "         AND treat_date >= confirmed_diag_date "
+            "    THEN 1 ELSE 0 END) AS n_days_to_treatment, "
             "  null AS avg_consultations, "
             "  count(ep) AS episode_count, "
             "  sum(CASE WHEN diag_is_inferred THEN 1 ELSE 0 END) AS inferred_diagnosis_count",
@@ -129,6 +175,7 @@ def peer_comparison(
             "MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:GPPractice) "
             "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             "WHERE ep.referral_date IS NOT NULL "
+            f"  AND {_REFERRAL_LINK_EXISTS}"
             "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
             "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
             "OPTIONAL MATCH (treat_enc:Encounter)-[tr:IS_PART_OF]->(ep) "
@@ -136,6 +183,8 @@ def peer_comparison(
             "WITH gp, ep, min(toString(diag_enc.date)) AS diag_date, min(toString(treat_enc.date)) AS treat_date "
             "WITH gp, "
             "  CASE WHEN ep.first_presentation_date IS NOT NULL "
+            "       AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+            "       AND ep.referral_date IS NOT NULL "
             "       THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
             "       ELSE null END AS days_to_referral, "
             "  CASE WHEN diag_date IS NOT NULL "
@@ -181,7 +230,8 @@ def kpi_trends(
     try:
         return client.run(
             f"{base}"
-            "WHERE ep.referral_date IS NOT NULL "
+            "AND ep.referral_date IS NOT NULL "
+            f"AND {_REFERRAL_LINK_EXISTS}"
             "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
             "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
             "OPTIONAL MATCH (treat_enc:Encounter)-[tr:IS_PART_OF]->(ep) "
@@ -190,6 +240,8 @@ def kpi_trends(
             "     substring(toString(ep.referral_date), 0, 7) AS month "
             "WITH month, "
             "  avg(CASE WHEN ep.first_presentation_date IS NOT NULL "
+            "      AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+            "      AND ep.referral_date IS NOT NULL "
             "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
             "      ELSE null END) AS avg_days_to_referral, "
             "  avg(CASE WHEN diag_date IS NOT NULL "

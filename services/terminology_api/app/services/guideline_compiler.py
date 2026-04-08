@@ -33,8 +33,9 @@ import copy
 import json
 import logging
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from neo4j import GraphDatabase
 
@@ -42,10 +43,41 @@ from services.terminology_api.app.services.bitmap_store import BitmapStore
 
 logger = logging.getLogger(__name__)
 
+ScopeType = Literal["global", "guideline", "domain", "subdomain", "custom"]
+
+
+@dataclass(frozen=True)
+class CompileScope:
+    scope_type: ScopeType = "global"
+    scope_id: str = "default"
+
+    @classmethod
+    def from_values(
+        cls,
+        scope_type: str | None = None,
+        scope_id: str | None = None,
+    ) -> "CompileScope":
+        st = str(scope_type or "global").strip().lower()
+        sid = str(scope_id or "default").strip() or "default"
+        if st not in {"global", "guideline", "domain", "subdomain", "custom"}:
+            st = "global"
+            sid = "default"
+        if st == "global" and not sid:
+            sid = "default"
+        return cls(scope_type=st, scope_id=sid)
+
+
+@dataclass(frozen=True)
+class CompilePolicy:
+    mode: Literal["advisory", "strict"] = "advisory"
+    allowed_concept_ids: frozenset[str] = frozenset()
+    enforce_action_scope: bool = False
+
 _FETCH_ACTIVE_RULES = """
 MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)
     -[:HAS_RULE]->(rule:AppropriatenessRule {status: 'active'})
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (g)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
 OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc:Procedure)
@@ -58,6 +90,7 @@ RETURN
     rule.actionJson      AS action_json,
     g.id                 AS guideline_id,
     g.title              AS guideline_title,
+    dom.id               AS guideline_domain_id,
     ch.title             AS chapter_title,
     rec.verbatim         AS recommendation_verbatim,
     grp.id               AS group_id,
@@ -77,8 +110,10 @@ ORDER BY rule.id, grp.id, concept.conceptId
 # compile run and merged into the compiled rules by rule_id.
 _FETCH_APPLIES_TO = """
 MATCH (rule:AppropriatenessRule {status: 'active'})-[at:APPLIES_TO]->(concept:SnomedConcept)
+OPTIONAL MATCH (:Recommendation)-[:HAS_RULE]->(rule)<-[:HAS_RECOMMENDATION]-(:Guideline)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 RETURN
     rule.id              AS rule_id,
+    dom.id               AS guideline_domain_id,
     concept.conceptId    AS concept_id,
     concept.term         AS preferred_term,
     concept.semanticTag  AS semantic_tag,
@@ -88,24 +123,6 @@ RETURN
     at.unit              AS unit
 ORDER BY rule.id, concept.conceptId
 """
-
-# SNOMED IS_A closure query — returns the target concept plus all descendants
-# within ``d_child`` hops and all ancestors within ``d_parent`` hops.
-# Gracefully returns only the target if no IS_A relationships are present.
-_SNOMED_CLOSURE = """
-MATCH (t:SnomedConcept {conceptId: $concept_id})
-WITH t
-OPTIONAL MATCH (d:SnomedConcept)-[:IS_A*1..%(dc)d]->(t)
-OPTIONAL MATCH (t)-[:IS_A*1..%(dp)d]->(a:SnomedConcept)
-WITH
-    collect(DISTINCT t.conceptId) +
-    collect(DISTINCT d.conceptId) +
-    collect(DISTINCT a.conceptId) AS ids
-UNWIND ids AS x
-WITH DISTINCT x WHERE x IS NOT NULL
-RETURN x AS concept_id
-"""
-
 
 def _kg_driver():
     """Return a synchronous Neo4j driver for the knowledge graph."""
@@ -128,8 +145,23 @@ class GuidelineCompiler:
         # Cache closure results so each (concept_id, d_child, d_parent) triple
         # is only queried once per compilation run.
         self._closure_cache: dict[tuple, list[str]] = {}
+        self._compile_stats: dict[str, Any] = {}
 
-    async def compile_and_store(self, version: str) -> dict:
+    async def compile_and_store(
+        self,
+        version: str,
+        *,
+        scope: CompileScope | None = None,
+        policy_mode: Literal["advisory", "strict"] = "advisory",
+        include_rule_statuses: list[str] | None = None,
+        policy_domain_id: str | None = None,
+        policy_subdomain_name: str | None = None,
+        policy_include_descendants: bool = True,
+        policy_depth: int = 3,
+        enforce_action_scope: bool = False,
+        distance_child_override: int | None = None,
+        distance_parent_override: int | None = None,
+    ) -> dict:
         """Compile all active rules and store as a versioned ruleset.
 
         CPU-bound work runs in a thread pool to avoid blocking the event loop.
@@ -140,31 +172,265 @@ class GuidelineCompiler:
         Returns:
             Summary dict with ``version``, ``rule_count``, and ``compile_timestamp``.
         """
+        scope = scope or CompileScope()
+        statuses = include_rule_statuses or ["active"]
         self._closure_cache.clear()
-        ruleset = await asyncio.to_thread(self._compile_ruleset)
+        self._compile_stats = {
+            "rules_seen": 0,
+            "rules_included": 0,
+            "rules_excluded": 0,
+            "policy_violations": 0,
+            "out_of_scope_concepts": 0,
+            "out_of_scope_actions": 0,
+        }
+
+        ruleset = await asyncio.to_thread(
+            self._compile_ruleset,
+            scope,
+            statuses,
+            policy_mode,
+            policy_domain_id,
+            policy_subdomain_name,
+            policy_include_descendants,
+            policy_depth,
+            enforce_action_scope,
+            distance_child_override,
+            distance_parent_override,
+        )
         ruleset["version"] = version
         ruleset["compile_timestamp"] = datetime.now(timezone.utc).isoformat()
-        self._store.write_ruleset(version, ruleset)
-        self._store.set_current_version(version)
+        ruleset["scope_type"] = scope.scope_type
+        ruleset["scope_id"] = scope.scope_id
+        ruleset["policy_mode"] = policy_mode
+        ruleset["compile_stats"] = dict(self._compile_stats)
+
+        self._store.write_ruleset(
+            version,
+            ruleset,
+            scope_type=scope.scope_type,
+            scope_id=scope.scope_id,
+        )
+        self._store.set_current_version(
+            version,
+            scope_type=scope.scope_type,
+            scope_id=scope.scope_id,
+        )
         logger.info(
-            "Compiled ruleset %s: %d rules", version, len(ruleset.get("rules", []))
+            "Compiled ruleset %s scope=%s/%s policy=%s: %d rules",
+            version,
+            scope.scope_type,
+            scope.scope_id,
+            policy_mode,
+            len(ruleset.get("rules", [])),
         )
         return {
             "version": version,
             "rule_count": len(ruleset.get("rules", [])),
             "compile_timestamp": ruleset["compile_timestamp"],
+            "scope_type": scope.scope_type,
+            "scope_id": scope.scope_id,
+            "policy_mode": policy_mode,
+            "compile_stats": dict(self._compile_stats),
         }
 
-    def _compile_ruleset(self) -> dict:
+    def _compile_ruleset(
+        self,
+        scope: CompileScope,
+        statuses: list[str],
+        policy_mode: Literal["advisory", "strict"],
+        policy_domain_id: str | None,
+        policy_subdomain_name: str | None,
+        policy_include_descendants: bool,
+        policy_depth: int,
+        enforce_action_scope: bool,
+        distance_child_override: int | None,
+        distance_parent_override: int | None,
+    ) -> dict:
         """Synchronous ruleset compilation -- runs in thread pool."""
         driver = _kg_driver()
         try:
             with driver.session() as session:
-                records = list(session.run(_FETCH_ACTIVE_RULES))
-                applies_to_records = list(session.run(_FETCH_APPLIES_TO))
-                return self._build_ruleset(records, session, applies_to_records)
+                records = list(
+                    session.run(
+                        self._build_fetch_active_rules_query(scope),
+                        statuses=statuses,
+                        scope_id=scope.scope_id,
+                        scope_domain_id=scope.scope_id.split(":", 1)[0] if scope.scope_type == "subdomain" else scope.scope_id,
+                    )
+                )
+                applies_to_records = list(
+                    session.run(
+                        self._build_fetch_applies_to_query(scope),
+                        statuses=statuses,
+                        scope_id=scope.scope_id,
+                        scope_domain_id=scope.scope_id.split(":", 1)[0] if scope.scope_type == "subdomain" else scope.scope_id,
+                    )
+                )
+                policy = self._build_policy(
+                    session,
+                    scope,
+                    policy_mode=policy_mode,
+                    policy_domain_id=policy_domain_id,
+                    policy_subdomain_name=policy_subdomain_name,
+                    include_descendants=policy_include_descendants,
+                    depth=policy_depth,
+                    enforce_action_scope=enforce_action_scope,
+                )
+                return self._build_ruleset(
+                    records,
+                    session,
+                    applies_to_records,
+                    policy=policy,
+                    distance_child_override=distance_child_override,
+                    distance_parent_override=distance_parent_override,
+                )
         finally:
             driver.close()
+
+    def _build_fetch_active_rules_query(self, scope: CompileScope) -> str:
+        where = ["coalesce(rule.status, 'active') IN $statuses"]
+        if scope.scope_type == "guideline":
+            where.append("g.id = $scope_id")
+        elif scope.scope_type in {"domain", "subdomain"}:
+            where.append("dom.id = $scope_domain_id")
+        where_clause = " AND ".join(where)
+        return f"""
+MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)-[:HAS_RULE]->(rule:AppropriatenessRule)
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (g)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
+OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
+OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc:Procedure)
+WITH g, rec, rule, ch, dom, grp, hc, concept, ag, ha, proc
+WHERE {where_clause}
+RETURN
+    rule.id              AS rule_id,
+    rule.name            AS name,
+    rule.strength        AS strength,
+    coalesce(rule.schemaVersion, 1) AS schema_version,
+    rule.logicJson       AS logic_json,
+    rule.actionJson      AS action_json,
+    g.id                 AS guideline_id,
+    g.title              AS guideline_title,
+    dom.id               AS guideline_domain_id,
+    ch.title             AS chapter_title,
+    rec.verbatim         AS recommendation_verbatim,
+    grp.id               AS group_id,
+    coalesce(grp.type, 'ALL') AS group_mode,
+    hc.predicate         AS predicate,
+    concept.conceptId    AS concept_id,
+    coalesce(hc.distanceChild,  0) AS distance_child,
+    coalesce(hc.distanceParent, 0) AS distance_parent,
+    proc.conceptId       AS action_concept_id,
+    proc.term            AS action_name,
+    ha.priority          AS action_priority,
+    ha.dueDays           AS action_due_days
+ORDER BY rule.id, grp.id, concept.conceptId
+"""
+
+    def _build_fetch_applies_to_query(self, scope: CompileScope) -> str:
+        where = ["coalesce(rule.status, 'active') IN $statuses"]
+        if scope.scope_type == "guideline":
+            where.append("g.id = $scope_id")
+        elif scope.scope_type in {"domain", "subdomain"}:
+            where.append("dom.id = $scope_domain_id")
+        where_clause = " AND ".join(where)
+        return f"""
+MATCH (rule:AppropriatenessRule)-[at:APPLIES_TO]->(concept:SnomedConcept)
+OPTIONAL MATCH (rec:Recommendation)-[:HAS_RULE]->(rule)<-[:HAS_RECOMMENDATION]-(g:Guideline)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
+WITH rule, at, concept, dom, g
+WHERE {where_clause}
+RETURN
+    rule.id              AS rule_id,
+    dom.id               AS guideline_domain_id,
+    concept.conceptId    AS concept_id,
+    concept.term         AS preferred_term,
+    concept.semanticTag  AS semantic_tag,
+    at.rawTerm           AS raw_term,
+    at.operator          AS operator,
+    at.value             AS value,
+    at.unit              AS unit
+ORDER BY rule.id, concept.conceptId
+"""
+
+    def _build_policy(
+        self,
+        session,
+        scope: CompileScope,
+        *,
+        policy_mode: Literal["advisory", "strict"],
+        policy_domain_id: str | None,
+        policy_subdomain_name: str | None,
+        include_descendants: bool,
+        depth: int,
+        enforce_action_scope: bool,
+    ) -> CompilePolicy:
+        domain_id = policy_domain_id
+        subdomain_name = policy_subdomain_name
+        if scope.scope_type == "subdomain":
+            parts = scope.scope_id.split(":", 1)
+            if len(parts) == 2:
+                domain_id = domain_id or parts[0]
+                subdomain_name = subdomain_name or parts[1]
+        if policy_mode == "advisory" and not domain_id:
+            return CompilePolicy(mode="advisory", allowed_concept_ids=frozenset(), enforce_action_scope=False)
+        if not domain_id or not subdomain_name:
+            return CompilePolicy(mode=policy_mode, allowed_concept_ids=frozenset(), enforce_action_scope=False)
+        allowed = self._load_allowed_concepts(
+            session,
+            domain_id,
+            subdomain_name,
+            include_descendants=include_descendants,
+            depth=depth,
+        )
+        return CompilePolicy(
+            mode=policy_mode,
+            allowed_concept_ids=frozenset(allowed),
+            enforce_action_scope=bool(enforce_action_scope),
+        )
+
+    def _load_allowed_concepts(
+        self,
+        session,
+        domain_id: str,
+        subdomain_name: str,
+        *,
+        include_descendants: bool,
+        depth: int,
+    ) -> set[str]:
+        vs_id = f"ncda-{subdomain_name.replace('_', '-')}"
+        rows = session.run(
+            "MATCH (d:AuditDomain {id: $domain_id})-[:HAS_SUBDOMAIN]->(v:ValueSet {id: $vs_id}) "
+            "RETURN v.rawJson AS raw_json",
+            {"domain_id": domain_id, "vs_id": vs_id},
+        )
+        row = rows.single()
+        if not row:
+            logger.warning(
+                "Compile policy source not found for domain=%s subdomain=%s; no allowlist loaded.",
+                domain_id,
+                subdomain_name,
+            )
+            return set()
+        raw_json = row.get("raw_json")
+        if not raw_json:
+            return set()
+        try:
+            data = json.loads(raw_json) if isinstance(raw_json, str) else raw_json
+        except Exception:
+            logger.warning("Invalid rawJson on ValueSet %s", vs_id)
+            return set()
+        allowed: set[str] = set()
+        for include in (data.get("compose") or {}).get("include") or []:
+            for concept in include.get("concept") or []:
+                code = str(concept.get("code") or "").strip()
+                if not code:
+                    continue
+                allowed.add(code)
+                if include_descendants:
+                    for cid in self._closure_ids(session, code, max(0, int(depth or 0)), 0):
+                        allowed.add(str(cid))
+        return allowed
 
     def _closure_ids(
         self,
@@ -242,6 +508,10 @@ class GuidelineCompiler:
         records: list[Any],
         session,
         applies_to_records: list[Any] | None = None,
+        *,
+        policy: CompilePolicy | None = None,
+        distance_child_override: int | None = None,
+        distance_parent_override: int | None = None,
     ) -> dict:
         """Transform raw Neo4j records into a serialisable ruleset.
 
@@ -270,8 +540,10 @@ class GuidelineCompiler:
             session: Active Neo4j session (for SNOMED closure queries).
             applies_to_records: Raw records from ``_FETCH_APPLIES_TO``.
         """
+        policy = policy or CompilePolicy()
         by_rule: dict[str, dict] = {}
         by_group: dict[str, dict] = {}  # group_id → {rule_id, mode, int_ids}
+        self._compile_stats["rules_seen"] = len({str(r["rule_id"]) for r in records if r.get("rule_id")})
 
         for row in records:
             rule_id = str(row["rule_id"])
@@ -297,6 +569,7 @@ class GuidelineCompiler:
                     "action_name":       row.get("action_name"),
                     "action_priority":   row.get("action_priority", "routine"),
                     "action_due_days":   row.get("action_due_days"),
+                    "guideline_domain_id": row.get("guideline_domain_id"),
                 }
             else:
                 rule = by_rule[rule_id]
@@ -324,9 +597,23 @@ class GuidelineCompiler:
             if not concept_id:
                 continue
 
-            d_child  = int(row.get("distance_child")  or 0)
-            d_parent = int(row.get("distance_parent") or 0)
+            if policy.allowed_concept_ids and str(concept_id) not in policy.allowed_concept_ids:
+                self._compile_stats["policy_violations"] += 1
+                self._compile_stats["out_of_scope_concepts"] += 1
+                if policy.mode == "strict":
+                    continue
+
+            d_child  = int(distance_child_override if distance_child_override is not None else row.get("distance_child") or 0)
+            d_parent = int(distance_parent_override if distance_parent_override is not None else row.get("distance_parent") or 0)
             closure  = self._closure_ids(session, str(concept_id), d_child, d_parent)
+            if policy.allowed_concept_ids:
+                closure = [cid for cid in closure if str(cid) in policy.allowed_concept_ids]
+                if not closure:
+                    self._compile_stats["policy_violations"] += 1
+                    self._compile_stats["out_of_scope_concepts"] += 1
+                    if policy.mode == "strict":
+                        continue
+                    closure = [str(concept_id)]
             int_ids  = [self._store.get_or_assign_int_id(cid) for cid in closure]
             by_group[group_id]["int_ids"].extend(int_ids)
 
@@ -353,7 +640,13 @@ class GuidelineCompiler:
         compiled_rules = []
         for rule_data in by_rule.values():
             if int(rule_data.get("schema_version") or 1) == 2 and rule_data.get("logic_json"):
-                compiled = self._compile_schema_v2_rule(rule_data, session)
+                compiled = self._compile_schema_v2_rule(
+                    rule_data,
+                    session,
+                    policy=policy,
+                    distance_child_override=distance_child_override,
+                    distance_parent_override=distance_parent_override,
+                )
                 if compiled is not None:
                     compiled_rules.append(compiled)
                 continue
@@ -367,7 +660,13 @@ class GuidelineCompiler:
                     groups.append({"mode": g["mode"], "bitmap_id": bitmap_id})
 
             if groups or rule_data["applies_to"]:
-                compiled_rules.append(self._compile_one_rule(rule_data, groups))
+                compiled_rules.append(
+                    self._compile_one_rule(
+                        rule_data,
+                        groups,
+                        policy=policy,
+                    )
+                )
             else:
                 logger.error(
                     "Active rule %r (%s, guideline=%s) has NO bitmap groups AND no "
@@ -381,9 +680,22 @@ class GuidelineCompiler:
                     rule_data.get("guideline_id", ""),
                 )
 
+        self._compile_stats["rules_included"] = len(compiled_rules)
+        self._compile_stats["rules_excluded"] = max(
+            0,
+            int(self._compile_stats.get("rules_seen") or 0) - len(compiled_rules),
+        )
         return {"rules": compiled_rules}
 
-    def _compile_logic_tree_node(self, node: dict[str, Any] | None, session) -> dict[str, Any] | None:
+    def _compile_logic_tree_node(
+        self,
+        node: dict[str, Any] | None,
+        session,
+        *,
+        policy: CompilePolicy,
+        distance_child_override: int | None = None,
+        distance_parent_override: int | None = None,
+    ) -> dict[str, Any] | None:
         if not node:
             return None
         kind = str(node.get("kind") or "").lower()
@@ -396,12 +708,23 @@ class GuidelineCompiler:
                     criterion.get("node_id"),
                 )
                 return None
+            if policy.allowed_concept_ids and str(concept_id) not in policy.allowed_concept_ids:
+                self._compile_stats["policy_violations"] += 1
+                self._compile_stats["out_of_scope_concepts"] += 1
+                if policy.mode == "strict":
+                    return None
             closure = self._closure_ids(
                 session,
                 str(concept_id),
-                int(criterion.get("distance_child") or 3),
-                int(criterion.get("distance_parent") or 0),
+                int(distance_child_override if distance_child_override is not None else criterion.get("distance_child") or 3),
+                int(distance_parent_override if distance_parent_override is not None else criterion.get("distance_parent") or 0),
             )
+            if policy.allowed_concept_ids:
+                closure = [cid for cid in closure if str(cid) in policy.allowed_concept_ids]
+                if not closure and policy.mode == "strict":
+                    return None
+                if not closure:
+                    closure = [str(concept_id)]
             int_ids = [self._store.get_or_assign_int_id(cid) for cid in closure]
             return {
                 "kind": "concept",
@@ -427,7 +750,13 @@ class GuidelineCompiler:
 
         children = []
         for child in node.get("children") or []:
-            compiled_child = self._compile_logic_tree_node(child, session)
+            compiled_child = self._compile_logic_tree_node(
+                child,
+                session,
+                policy=policy,
+                distance_child_override=distance_child_override,
+                distance_parent_override=distance_parent_override,
+            )
             if compiled_child is None:
                 return None
             children.append(compiled_child)
@@ -438,13 +767,27 @@ class GuidelineCompiler:
             "children": children,
         }
 
-    def _compile_schema_v2_rule(self, rule_data: dict[str, Any], session) -> dict[str, Any] | None:
+    def _compile_schema_v2_rule(
+        self,
+        rule_data: dict[str, Any],
+        session,
+        *,
+        policy: CompilePolicy,
+        distance_child_override: int | None = None,
+        distance_parent_override: int | None = None,
+    ) -> dict[str, Any] | None:
         try:
             logic_tree = json.loads(rule_data["logic_json"]) if isinstance(rule_data.get("logic_json"), str) else rule_data.get("logic_json")
         except Exception as exc:
             logger.error("Invalid schema v2 logicJson for rule %s: %s", rule_data["rule_id"], exc)
             return None
-        compiled_tree = self._compile_logic_tree_node(logic_tree, session)
+        compiled_tree = self._compile_logic_tree_node(
+            logic_tree,
+            session,
+            policy=policy,
+            distance_child_override=distance_child_override,
+            distance_parent_override=distance_parent_override,
+        )
         if compiled_tree is None:
             logger.error(
                 "Schema v2 rule %s could not be compiled because one or more leaf concepts were unresolved.",
@@ -454,12 +797,26 @@ class GuidelineCompiler:
 
         action = None
         if rule_data.get("action_concept_id"):
-            action = {
-                "concept_id": rule_data["action_concept_id"],
-                "name": rule_data.get("action_name"),
-                "priority": rule_data.get("action_priority") or "routine",
-                "due_days": rule_data.get("action_due_days"),
-            }
+            if (
+                policy.allowed_concept_ids
+                and policy.enforce_action_scope
+                and str(rule_data["action_concept_id"]) not in policy.allowed_concept_ids
+            ):
+                self._compile_stats["policy_violations"] += 1
+                self._compile_stats["out_of_scope_actions"] += 1
+                if policy.mode != "strict":
+                    logger.warning(
+                        "Action concept %s for rule %s is outside policy scope.",
+                        rule_data["action_concept_id"],
+                        rule_data["rule_id"],
+                    )
+            else:
+                action = {
+                    "concept_id": rule_data["action_concept_id"],
+                    "name": rule_data.get("action_name"),
+                    "priority": rule_data.get("action_priority") or "routine",
+                    "due_days": rule_data.get("action_due_days"),
+                }
         elif rule_data.get("action_json"):
             action_json = dict(rule_data["action_json"])
             if action_json.get("snomed_concept_id"):
@@ -477,13 +834,20 @@ class GuidelineCompiler:
             "schema_version": 2,
             "guideline_id": rule_data["guideline_id"],
             "guideline_title": rule_data["guideline_title"],
+            "guideline_domain_id": rule_data.get("guideline_domain_id"),
             "chapter_title": rule_data.get("chapter_title"),
             "recommendation_verbatim": rule_data["recommendation_verbatim"],
             "logic_tree": compiled_tree,
             "action": action,
         }
 
-    def _compile_one_rule(self, rule_data: dict, groups: list[dict]) -> dict:
+    def _compile_one_rule(
+        self,
+        rule_data: dict,
+        groups: list[dict],
+        *,
+        policy: CompilePolicy,
+    ) -> dict:
         """Build the compiled rule dict for a single rule.
 
         Args:
@@ -496,12 +860,20 @@ class GuidelineCompiler:
         """
         action: dict | None = None
         if rule_data.get("action_concept_id"):
-            action = {
-                "concept_id": rule_data["action_concept_id"],
-                "name":       rule_data.get("action_name"),
-                "priority":   rule_data.get("action_priority") or "routine",
-                "due_days":   rule_data.get("action_due_days"),
-            }
+            if (
+                policy.allowed_concept_ids
+                and policy.enforce_action_scope
+                and str(rule_data["action_concept_id"]) not in policy.allowed_concept_ids
+            ):
+                self._compile_stats["policy_violations"] += 1
+                self._compile_stats["out_of_scope_actions"] += 1
+            else:
+                action = {
+                    "concept_id": rule_data["action_concept_id"],
+                    "name":       rule_data.get("action_name"),
+                    "priority":   rule_data.get("action_priority") or "routine",
+                    "due_days":   rule_data.get("action_due_days"),
+                }
 
         return {
             "rule_id":                 rule_data["rule_id"],
@@ -510,6 +882,7 @@ class GuidelineCompiler:
             "schema_version":          1,
             "guideline_id":            rule_data["guideline_id"],
             "guideline_title":         rule_data["guideline_title"],
+            "guideline_domain_id":     rule_data.get("guideline_domain_id"),
             "chapter_title":           rule_data.get("chapter_title"),
             "recommendation_verbatim": rule_data["recommendation_verbatim"],
             "criteria_groups":         groups,

@@ -1,0 +1,66 @@
+# -- DI-LEO-AI-090 -- Cancer Type Dumbbell Chart Component
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-090"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-057"]
+  requirement: >
+    The system SHALL provide a CancerTypeDumbbellChart React component that
+    renders a horizontal dumbbell (connected dot) chart for the cancer type
+    section of the NCDA audit report, with one row per cancer type showing
+    today's proportion (filled circle) and the 2018 national benchmark
+    (hollow diamond), connected by a coloured line whose length represents
+    the deviation from benchmark. The x-axis SHALL be auto-fitted to the
+    data range. Labels SHALL be human-readable title case. A percentage-point
+    delta annotation SHALL appear at the end of each line. The component SHALL
+    replace ComparisonBarChart as the default chart in CancerTypeSection.
+  rationale: >
+    The previous grouped bar chart used a fixed 0-100% y-axis causing all
+    values to appear tiny (max ~30%), making benchmark deviations invisible
+    at a glance. The dumbbell chart makes the gap the primary visual element,
+    reduces cognitive load for clinical audit staff, and eliminates the need
+    for rotated labels and mental arithmetic.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "Component renders one row per cancer type with two dots connected by a line"
+      - type: "functional"
+        spec: "X-axis domain is max(all values) rounded up to nearest 5, not hardcoded to 100"
+      - type: "functional"
+        spec: "Line is green when today > benchmark, amber when today < benchmark, grey when no benchmark"
+      - type: "functional"
+        spec: "Delta label shows +Xpp / -Xpp at end of line; no label when benchmark is absent"
+      - type: "functional"
+        spec: "Cancer type label humanises underscore keys: lower_gi -> Lower GI, head_and_neck -> Head and Neck"
+      - type: "functional"
+        spec: "Component renders empty state with explanatory text when data array is empty"
+    constraints:
+      - type: "usability"
+        spec: "Chart must be readable at default card width (~800px) without horizontal scrolling"
+      - type: "code_quality"
+        spec: "Uses Recharts ComposedChart; no SVG manipulation outside Recharts API"
+    dependencies: ["DI-LEO-AI-028"]
+    downstream_impacts:
+      - "services/ui -- CancerTypeSection uses this chart as default"
+
+  technical_details:
+    language: "TypeScript"
+    framework: "Next.js / React"
+    libraries: ["recharts", "@mui/material"]
+    file_structure:
+      - "services/ui/src/components/audit/CancerTypeDumbbellChart.tsx"
+      - "services/ui/src/components/audit/CancerTypeSection.tsx"
+    estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in VT-LEO-AI-090 pass: correct render, empty state,
+      colour logic, delta label, and human label formatting.
+    test_protocol: "VT-LEO-AI-090"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-064"]
+  tags: ["audit-report", "visualisation", "cancer-type", "ui", "recharts"]

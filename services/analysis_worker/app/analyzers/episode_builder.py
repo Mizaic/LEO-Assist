@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import re
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -177,6 +179,52 @@ _GENERIC_CANCER_TERMS = (
     "suspected cancer",
 )
 
+# Fast-track referral/specialist concept IDs -> canonical cancer site.
+# This keeps site detection robust when concept_name is blank or code-like.
+_SITE_BY_CONCEPT_ID: dict[str, str] = {
+    # Referrals
+    "276581000000102": "brain",
+    "276341000000100": "breast",
+    "1556551000000104": "non_site_specific",
+    "276371000000106": "childrens_tumour",
+    "276401000000108": "lower_gi",
+    "892201000000106": "lower_gi",
+    "276311000000101": "gynaecological",
+    "276461000000107": "haematological",
+    "280521000000108": "head_and_neck",
+    "276491000000101": "lung",
+    "276521000000103": "sarcoma",
+    "276281000000104": "skin",
+    "276551000000108": "upper_gi",
+    "276431000000102": "urological",
+    # Specialist clinics
+    "382401000000109": "brain",
+    "382431000000103": "breast",
+    "383201000000101": "childrens_tumour",
+    "382651000000108": "lower_gi",
+    "382511000000105": "gynaecological",
+    "382581000000103": "haematological",
+    "382621000000103": "head_and_neck",
+    "382681000000102": "lung",
+    "382361000000100": "sarcoma",
+    "382711000000103": "skin",
+    "382811000000108": "upper_gi",
+    "382841000000109": "urological",
+    "382761000000101": "non_site_specific",
+}
+
+
+def _referral_route_from_concept(concept_name: str) -> str:
+    """Map a referral concept name to the NCDA referral_route value."""
+    name = concept_name.lower()
+    if any(k in name for k in ("fast track", "fast-track", "2ww", "two week", "urgent suspected")):
+        return "two_week_wait"
+    if any(k in name for k in ("emergency", "a&e", "accident", "ae ", "a & e")):
+        return "emergency"
+    if any(k in name for k in ("routine", "elective", "non-urgent")):
+        return "routine"
+    return "other"
+
 
 def _extract_condition_key(concept_name: str) -> str:
     """Map a SNOMED concept name to a canonical cancer-site key.
@@ -194,6 +242,14 @@ def _extract_condition_key(concept_name: str) -> str:
     if any(term in name for term in _GENERIC_CANCER_TERMS):
         return "non_site_specific"
     return "unknown"
+
+
+def _extract_condition_key_from_anchor(anchor: dict[str, Any]) -> str:
+    """Resolve site key from anchor, preferring concept_id when available."""
+    concept_id = str(anchor.get("concept_id") or "").strip()
+    if concept_id and concept_id in _SITE_BY_CONCEPT_ID:
+        return _SITE_BY_CONCEPT_ID[concept_id]
+    return _extract_condition_key(str(anchor.get("concept_name") or ""))
 
 
 def _parse_date(val: Any) -> date | None:
@@ -309,7 +365,7 @@ def _claim_specialists_for_episodes(
                 continue
             if v_date < spec.ref_date or v_date > spec.window_end:
                 continue
-            v_key = _extract_condition_key(str(visit.get("concept_name") or ""))
+            v_key = _extract_condition_key_from_anchor(visit)
             if not _site_keys_compatible(spec.site_key, v_key):
                 continue
             # Earliest valid unclaimed visit wins
@@ -346,7 +402,7 @@ def _find_best_referral(
         gap = diag_date - r_date
         if gap < timedelta(0) or gap > timedelta(days=_DIAG_LOOKBACK_DAYS):
             continue
-        ref_key = _extract_condition_key(str(ref.get("concept_name") or ""))
+        ref_key = _extract_condition_key_from_anchor(ref)
         # "unknown" diag_key = generic concept (e.g. adenocarcinoma) -> match any referral.
         # NSS referrals also match any specific cancer site.
         if (
@@ -383,7 +439,7 @@ def _claim_window_referrals(
         r_date = _parse_date(ref.get("encounter_date"))
         if not r_date:
             continue
-        ref_key = _extract_condition_key(str(ref.get("concept_name") or ""))
+        ref_key = _extract_condition_key_from_anchor(ref)
         site_match = (
             diag_key == "unknown"
             or ref_key == diag_key
@@ -407,7 +463,7 @@ def _group_open_referrals(
     """
     by_site: dict[str, list[dict[str, Any]]] = {}
     for ref in unclaimed:
-        key = _extract_condition_key(str(ref.get("concept_name") or ""))
+        key = _extract_condition_key_from_anchor(ref)
         by_site.setdefault(key, []).append(ref)
     groups: list[tuple[str, list[dict[str, Any]]]] = []
     for site_key, refs in by_site.items():
@@ -459,21 +515,27 @@ def _build_diagnosis_led_groups(
         d_date = _parse_date(diag.get("encounter_date"))
         if not d_date:
             continue
-        diag_key = _extract_condition_key(str(diag.get("concept_name") or ""))
+        diag_key = _extract_condition_key_from_anchor(diag)
         match = _find_best_referral(d_date, diag_key, sorted_ref, claimed)
         if match:
             primary_idx, _ = match
             refs = _claim_window_referrals(
                 sorted_ref, claimed, diag_key, d_date, primary_idx
             )
+            # Prefer referral-derived site for referral-linked episodes.
+            # Diagnosis terms are often generic ("malignancy", "adenocarcinoma"),
+            # which can collapse to unknown despite a clear referral pathway type.
+            site_key = _extract_condition_key_from_anchor(refs[0]) if refs else diag_key
+            if site_key == "unknown":
+                site_key = diag_key
             # Merge diagnoses that share the same primary referral into one episode
             ref_anchor_date = str(refs[0].get("encounter_date") or "")
-            group_key = f"{diag_key}|{ref_anchor_date}"
+            group_key = f"{site_key}|{ref_anchor_date}"
             if group_key in ref_keyed:
                 sk, existing_refs, existing_diags = ref_keyed[group_key]
                 ref_keyed[group_key] = (sk, existing_refs, existing_diags + [diag])
             else:
-                ref_keyed[group_key] = (diag_key, refs, [diag])
+                ref_keyed[group_key] = (site_key, refs, [diag])
         else:
             # No referral found -- bucket by site for later deduplication
             floating.setdefault(diag_key, []).append(diag)
@@ -560,23 +622,44 @@ _BENIGN_CLOSURE_QUERY = (
 )
 
 _MERGE_EPISODE = (
+    "MATCH (p:Patient) WHERE toString(p.id) = $patient_id "
     "MERGE (ep:EpisodeOfCare {episode_id: $episode_id}) "
-    "SET ep.patient_id            = $patient_id, "
-    "    ep.domain_id             = $domain_id, "
-    "    ep.condition_type        = $condition_type, "
-    "    ep.cancer_type           = $cancer_type, "
-    "    ep.referral_date         = $referral_date, "
-    "    ep.end_date              = $end_date, "
-    "    ep.specialist_seen       = $specialist_seen, "
-    "    ep.specialist_visit_date = $specialist_visit_date, "
-    "    ep.referral_site         = $referral_site, "
-    "    ep.status                = $status, "
-    "    ep.auto_closed           = $auto_closed, "
-    "    ep.auto_close_reason     = $auto_close_reason, "
-    "    ep.hitl_flag             = $hitl_flag, "
-    "    ep.hitl_reason           = $hitl_reason, "
-    "    ep.updated_at            = datetime() "
+    "SET ep.patient_id              = $patient_id, "
+    "    ep.domain_id               = $domain_id, "
+    "    ep.condition_type          = $condition_type, "
+    "    ep.cancer_type             = $cancer_type, "
+    "    ep.referral_date           = $referral_date, "
+    "    ep.end_date                = $end_date, "
+    "    ep.specialist_seen         = $specialist_seen, "
+    "    ep.specialist_visit_date   = $specialist_visit_date, "
+    "    ep.referral_site           = $referral_site, "
+    "    ep.referral_route          = $referral_route, "
+    "    ep.place_of_presentation   = $place_of_presentation, "
+    "    ep.first_presentation_date = $first_presentation_date, "
+    "    ep.presenting_complaint    = $presenting_complaint, "
+    "    ep.status                  = $status, "
+    "    ep.auto_closed             = $auto_closed, "
+    "    ep.auto_close_reason       = $auto_close_reason, "
+    "    ep.hitl_flag               = $hitl_flag, "
+    "    ep.hitl_reason             = $hitl_reason, "
+    "    ep.letter_inferred_benign  = $letter_inferred_benign, "
+    "    ep.updated_at              = datetime() "
+    "MERGE (p)-[:HAS_EPISODE_OF_CARE]->(ep) "
     "RETURN ep"
+)
+
+# Creates IS_PART_OF edges from Encounter nodes to an EpisodeOfCare.
+# Encounter nodes are matched by their string id; missing encounters are
+# silently skipped (OPTIONAL MATCH) so a bad id never blocks the write.
+_LINK_ENCOUNTERS = (
+    "UNWIND $encounters AS e "
+    "OPTIONAL MATCH (enc:Encounter {id: e.encounter_id}) "
+    "WITH enc, e WHERE enc IS NOT NULL "
+    "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
+    "MERGE (enc)-[r:IS_PART_OF]->(ep) "
+    "ON CREATE SET r.milestone_type = e.milestone_type, "
+    "              r.linked_by = 'episode_builder', "
+    "              r.linked_at = datetime() "
 )
 
 # Stale and cross-domain auto-close applied as a second pass.
@@ -671,27 +754,58 @@ SET ep.inferred_outcome      = $inferred_outcome,
 
 _INFERENCE_POST_WINDOW_DAYS = 180
 
-# Close NSS in_progress episodes when a sibling completed episode exists nearby.
+# Close NSS episodes (any status except already-closed) when a sibling
+# specific-site episode exists nearby. Expanded from the original which only
+# matched in_progress NSS -- completed NSS companions also need closing.
 _RELATED_CLOSE_Q = """
 MATCH (ep:EpisodeOfCare)
 WHERE ep.patient_id = $patient_id
   AND ep.episode_id IN $episode_ids
-  AND ep.status = 'in_progress'
   AND ep.cancer_type = 'non_site_specific'
+  AND NOT ep.status IN ['closed_related', 'closed_phantom', 'merged']
   AND ep.auto_closed <> true
 WITH ep
 MATCH (other:EpisodeOfCare)
 WHERE other.patient_id = $patient_id
-  AND other.status = 'completed'
+  AND other.cancer_type <> 'non_site_specific'
   AND other.episode_id <> ep.episode_id
+  AND NOT other.status IN ['merged', 'closed_phantom']
   AND abs(duration.inDays(date(other.referral_date), date(ep.referral_date)).days) <= $window_days
 SET ep.status          = 'closed_related',
     ep.auto_closed     = true,
     ep.auto_close_reason = 'auto_related_cancer_found_other_pathway',
     ep.hitl_flag       = true,
-    ep.hitl_reason     = 'Auto-closed: cancer confirmed via ' + other.cancer_type +
-                         ' pathway. Verify these are the same investigation.'
+    ep.hitl_reason     = 'Auto-closed: specific-site episode (' + other.cancer_type +
+                         ') exists within window. NSS companion pathway closed.'
 """
+
+# Fetch all non-merged episodes for a patient so the Python merge pass can
+# inspect them and decide which to collapse.
+_FETCH_EPISODES_FOR_MERGE_Q = (
+    "MATCH (ep:EpisodeOfCare {patient_id: $patient_id}) "
+    "WHERE NOT ep.status IN ['merged', 'closed_phantom'] "
+    "  AND ep.cancer_type IS NOT NULL "
+    "  AND ep.referral_date IS NOT NULL "
+    "RETURN ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
+    "       toString(ep.referral_date) AS referral_date, ep.status AS status"
+)
+
+# Mark one episode as merged into another and move IS_PART_OF edges.
+_MARK_MERGED_Q = (
+    "MATCH (dup:EpisodeOfCare {episode_id: $dup_id}) "
+    "MATCH (primary:EpisodeOfCare {episode_id: $primary_id}) "
+    "SET dup.status          = 'merged', "
+    "    dup.merged_into     = $primary_id, "
+    "    dup.merged_at       = datetime(), "
+    "    dup.merge_reasoning = $reasoning "
+    "WITH dup, primary "
+    "OPTIONAL MATCH (enc:Encounter)-[r:IS_PART_OF]->(dup) "
+    "WITH enc, r, primary WHERE enc IS NOT NULL "
+    "MERGE (enc)-[r2:IS_PART_OF]->(primary) "
+    "ON CREATE SET r2.milestone_type = r.milestone_type, "
+    "              r2.linked_by = 'episode_builder_merge', "
+    "              r2.linked_at = datetime()"
+)
 
 
 def _benign_closure_for_episode(
@@ -726,6 +840,38 @@ def _benign_closure_for_episode(
         return min(clean) if clean else None
     except Exception:
         return None
+
+
+def _link_encounters_to_episode(
+    patient_client,
+    episode_id: str,
+    anchors_by_type: list[tuple[list[dict[str, Any]], str]],
+) -> None:
+    """Create IS_PART_OF edges between Encounter nodes and an EpisodeOfCare.
+
+    anchors_by_type: list of (anchor_list, milestone_type) pairs.
+    Silently skips if no encounters or episode_id is blank.
+    """
+    if not episode_id:
+        return
+    encounter_links: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for anchor_list, milestone_type in anchors_by_type:
+        for anchor in anchor_list:
+            eid = str(anchor.get("encounter_id") or "")
+            if eid and eid not in seen:
+                encounter_links.append({"encounter_id": eid, "milestone_type": milestone_type})
+                seen.add(eid)
+    if not encounter_links:
+        return
+    try:
+        patient_client.run(
+            _LINK_ENCOUNTERS,
+            episode_id=episode_id,
+            encounters=encounter_links,
+        )
+    except Exception:
+        pass
 
 
 def _has_confirmed_diagnosis(diag_anchors: list[dict[str, Any]]) -> bool:
@@ -840,6 +986,352 @@ def _determine_episode_status(
     return ("in_progress", False, None)
 
 
+# Domains whose ValueSet ids are place-of-presentation concepts.
+# These are stored with milestone_type="first_presentation" alongside symptoms
+# and signs, so we distinguish them by semantic_tag to extract the place label
+# separately from the clinical complaint.
+_PLACE_SEMANTIC_TAGS: frozenset[str] = frozenset(
+    {"environment", "place", "physical_object"}
+)
+
+# Semantic tags that should never drive a presenting complaint date.
+_NON_COMPLAINT_SEMANTIC_TAGS: frozenset[str] = frozenset(
+    {
+        "procedure",
+        "qualifier value",
+        "record artifact",
+        "event",
+        "observable entity",
+    }
+)
+
+# Name patterns that indicate location/admin context, not a symptom/sign complaint.
+_NON_COMPLAINT_NAME_RE = re.compile(
+    r"\b("
+    r"seen in|seen by|consultation|appointment|outpatient|"
+    r"screening|programme|program|clinic|service|"
+    r"general practitioner surgery|primary care establishment|"
+    r"accident and emergency|emergency department"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Catches fallback names that are just concept IDs (for example "386472008"),
+# which should never be treated as a clinical complaint phrase.
+_CODE_LIKE_NAME_RE = re.compile(r"^[0-9,\s]+$")
+
+# Maximum days to look back from referral date for first presentation anchors.
+_FIRST_PRESENTATION_LOOKBACK_DAYS = 90
+# When symptom/sign appears before referral, require referral soon after.
+_MAX_DAYS_PRESENTATION_TO_REFERRAL = 14
+_FALLBACK_REASON_WINDOW_DAYS_BEFORE = 21
+_FALLBACK_REASON_WINDOW_DAYS_AFTER = 3
+
+_INVESTIGATION_NAME_RE = re.compile(
+    r"\b("
+    r"test|scan|ct|mri|ultrasound|xray|x-ray|biopsy|histology|"
+    r"colonoscopy|gastroscopy|endoscopy|psa|cea|ca125|investigation|imaging"
+    r")\b",
+    re.IGNORECASE,
+)
+_SYMPTOM_TEXT_RE = re.compile(
+    r"\b("
+    r"pain|bleed|bleeding|lump|mass|weight loss|fatigue|tired|"
+    r"haematuria|hematuria|dysphagia|night sweat|cough|bowel|"
+    r"headache|nausea|vomit|skin lesion|mole|hoarseness|jaundice"
+    r")\b",
+    re.IGNORECASE,
+)
+_INVESTIGATION_TEXT_RE = re.compile(
+    r"\b("
+    r"test|scan|ct|mri|ultrasound|xray|x-ray|biopsy|histology|"
+    r"colonoscopy|gastroscopy|endoscopy|psa|cea|ca125|investigation|imaging"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_REFERRAL_CONTEXT_TEXT_Q = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id
+  AND toString(e.date) >= $start_date
+  AND toString(e.date) <= $end_date
+  AND e.text IS NOT NULL
+RETURN toString(e.date) AS encounter_date, e.text AS text
+ORDER BY encounter_date
+"""
+
+
+def _first_presentation_from_anchors(
+    anchors: AnchorResult,
+    ref_date: date | None,
+    referral_dates: list[date] | None = None,
+) -> tuple[str | None, str | None, str | None, str | None]:
+    """Return (first_presentation_date, presenting_complaint, place, aligned_referral_date).
+
+    Filters first_presentation_anchors to those strictly before the referral
+    date and within the 90-day lookback window.  The earliest qualifying
+    encounter date becomes first_presentation_date.  Concept names from that
+    encounter are joined as the presenting complaint, with place-of-presentation
+    concepts separated out.  Returns (None, None, None) when no anchors qualify.
+    """
+    if not anchors.first_presentation_anchors or ref_date is None:
+        return None, None, None, None
+
+    window_start = ref_date - timedelta(days=_FIRST_PRESENTATION_LOOKBACK_DAYS)
+
+    qualifying = [
+        a for a in anchors.first_presentation_anchors
+        if _anchor_in_pre_referral_window(a, ref_date, window_start)
+    ]
+    if not qualifying:
+        return None, None, None, None
+
+    def _is_present(a: dict[str, Any]) -> bool:
+        return str(a.get("assertion") or "present").strip().lower() in ("", "present")
+
+    def _semantic_tag(a: dict[str, Any]) -> str:
+        return str(a.get("semantic_tag") or "").strip().lower().replace("_", " ")
+
+    def _is_place_anchor(a: dict[str, Any]) -> bool:
+        tag = _semantic_tag(a)
+        return tag in _PLACE_SEMANTIC_TAGS
+
+    def _is_complaint_anchor(a: dict[str, Any]) -> bool:
+        if not _is_present(a):
+            return False
+        name = str(a.get("concept_name") or "").strip()
+        if not name:
+            return False
+        if _CODE_LIKE_NAME_RE.fullmatch(name):
+            return False
+        tag = _semantic_tag(a)
+        if tag in _PLACE_SEMANTIC_TAGS or tag in _NON_COMPLAINT_SEMANTIC_TAGS:
+            return False
+        if _NON_COMPLAINT_NAME_RE.search(name):
+            return False
+        return True
+
+    complaint_candidates = [a for a in qualifying if _is_complaint_anchor(a)]
+    if not complaint_candidates:
+        return None, None, None, None
+
+    candidate_days = sorted(
+        {
+            date.fromisoformat(str(a.get("encounter_date") or "")[:10])
+            for a in complaint_candidates
+            if str(a.get("encounter_date") or "")
+        }
+    )
+    ref_days = sorted(set(referral_dates or [ref_date]))
+
+    selected_fp_day: date | None = None
+    selected_ref_day: date | None = None
+    for day in candidate_days:
+        valid_refs = [
+            rd for rd in ref_days
+            if 0 <= (rd - day).days <= _MAX_DAYS_PRESENTATION_TO_REFERRAL
+        ]
+        if valid_refs:
+            selected_fp_day = day
+            selected_ref_day = min(valid_refs)
+            break
+
+    # If no referral occurs within the expected short window after symptom/sign
+    # presentation, do not set first_presentation_date for this episode.
+    # This avoids inflating PCI with unrelated historic symptoms.
+    if selected_fp_day is None:
+        return None, None, None, None
+
+    earliest_date = selected_fp_day.isoformat()
+    at_earliest = [a for a in qualifying if str(a.get("encounter_date") or "").startswith(earliest_date)]
+
+    complaint_parts: list[str] = []
+    place_parts: list[str] = []
+    for a in at_earliest:
+        if not _is_present(a):
+            continue
+        name = str(a.get("concept_name") or "").strip()
+        if not name:
+            continue
+        if _is_place_anchor(a):
+            place_parts.append(name)
+        elif _is_complaint_anchor(a):
+            complaint_parts.append(name)
+
+    place_str = place_parts[0] if place_parts else None
+    complaint_str = ", ".join(dict.fromkeys(complaint_parts)) or None
+    if not complaint_str:
+        return None, None, None, None
+    aligned_ref = selected_ref_day.isoformat() if selected_ref_day else None
+    return earliest_date, complaint_str, place_str, aligned_ref
+
+
+def _anchor_is_present(anchor: dict[str, Any]) -> bool:
+    return str(anchor.get("assertion") or "present").strip().lower() in ("", "present")
+
+
+def _anchor_tag(anchor: dict[str, Any]) -> str:
+    return str(anchor.get("semantic_tag") or "").strip().lower().replace("_", " ")
+
+
+def _anchor_is_place(anchor: dict[str, Any]) -> bool:
+    return _anchor_tag(anchor) in _PLACE_SEMANTIC_TAGS
+
+
+def _anchor_is_complaint(anchor: dict[str, Any]) -> bool:
+    if not _anchor_is_present(anchor):
+        return False
+    name = str(anchor.get("concept_name") or "").strip()
+    if not name or _CODE_LIKE_NAME_RE.fullmatch(name):
+        return False
+    tag = _anchor_tag(anchor)
+    if tag in _PLACE_SEMANTIC_TAGS or tag in _NON_COMPLAINT_SEMANTIC_TAGS:
+        return False
+    if _NON_COMPLAINT_NAME_RE.search(name):
+        return False
+    return True
+
+
+def _anchor_is_investigation(anchor: dict[str, Any]) -> bool:
+    if not _anchor_is_present(anchor):
+        return False
+    tag = _anchor_tag(anchor)
+    name = str(anchor.get("concept_name") or "").strip()
+    if not name or _CODE_LIKE_NAME_RE.fullmatch(name):
+        return False
+    if tag == "procedure":
+        return bool(_INVESTIGATION_NAME_RE.search(name))
+    return False
+
+
+def _first_presentation_from_referral_context(
+    patient_id: str,
+    ref_date: date | None,
+    anchors: AnchorResult,
+    patient_client,
+) -> tuple[str | None, str | None, str | None]:
+    """Fallback: infer first presentation from encounter context near referral.
+
+    Looks across all same-day encounter entries in [-21d, +3d] around referral,
+    unions symptom/investigation clues per day, then picks:
+      1) earliest day with symptom clues (on/before referral), else
+      2) earliest day with investigation clues (on/before referral), else
+      3) if clues appear only after referral (+3d), use referral day.
+    """
+    if not patient_id or ref_date is None:
+        return None, None, None
+
+    start_day = ref_date - timedelta(days=_FALLBACK_REASON_WINDOW_DAYS_BEFORE)
+    end_day = ref_date + timedelta(days=_FALLBACK_REASON_WINDOW_DAYS_AFTER)
+
+    day_clues: dict[date, dict[str, set[str]]] = defaultdict(
+        lambda: {"symptoms": set(), "investigations": set(), "places": set()}
+    )
+
+    for a in anchors.first_presentation_anchors:
+        d = _parse_date(a.get("encounter_date"))
+        if not d or d < start_day or d > end_day:
+            continue
+        name = str(a.get("concept_name") or "").strip()
+        if not name:
+            continue
+        if _anchor_is_place(a):
+            day_clues[d]["places"].add(name)
+        elif _anchor_is_complaint(a):
+            day_clues[d]["symptoms"].add(name)
+        elif _anchor_is_investigation(a):
+            day_clues[d]["investigations"].add(name)
+
+    try:
+        text_rows = patient_client.run(
+            _REFERRAL_CONTEXT_TEXT_Q,
+            patient_id=patient_id,
+            start_date=start_day.isoformat(),
+            end_date=end_day.isoformat(),
+        ) or []
+    except Exception:
+        text_rows = []
+
+    for row in text_rows:
+        d = _parse_date(row.get("encounter_date"))
+        if not d:
+            continue
+        txt = str(row.get("text") or "")
+        for m in _SYMPTOM_TEXT_RE.finditer(txt):
+            day_clues[d]["symptoms"].add(m.group(0).lower())
+        for m in _INVESTIGATION_TEXT_RE.finditer(txt):
+            day_clues[d]["investigations"].add(m.group(0).lower())
+
+    if not day_clues:
+        return None, None, None
+
+    ordered_days = sorted(day_clues.keys())
+    pre_or_same_days = [d for d in ordered_days if d <= ref_date]
+    post_days = [d for d in ordered_days if d > ref_date]
+
+    chosen_day: date | None = None
+    clue_kind: str | None = None
+    clue_source_day: date | None = None
+
+    for d in pre_or_same_days:
+        if day_clues[d]["symptoms"]:
+            chosen_day = d
+            clue_kind = "symptoms"
+            clue_source_day = d
+            break
+    if chosen_day is None:
+        for d in pre_or_same_days:
+            if day_clues[d]["investigations"]:
+                chosen_day = d
+                clue_kind = "investigations"
+                clue_source_day = d
+                break
+    if chosen_day is None and post_days:
+        # Documentation can land shortly after referral; keep interval non-negative.
+        for d in post_days:
+            if day_clues[d]["symptoms"]:
+                chosen_day = ref_date
+                clue_kind = "symptoms"
+                clue_source_day = d
+                break
+        if chosen_day is None:
+            for d in post_days:
+                if day_clues[d]["investigations"]:
+                    chosen_day = ref_date
+                    clue_kind = "investigations"
+                    clue_source_day = d
+                    break
+
+    if chosen_day is None or clue_kind is None or clue_source_day is None:
+        return None, None, None
+
+    complaint_parts = sorted(day_clues[clue_source_day][clue_kind])
+    if not complaint_parts:
+        return None, None, None
+    place = sorted(day_clues[clue_source_day]["places"])
+    return (
+        chosen_day.isoformat(),
+        ", ".join(complaint_parts),
+        place[0] if place else None,
+    )
+
+
+def _anchor_in_pre_referral_window(
+    anchor: dict[str, Any],
+    ref_date: date,
+    window_start: date,
+) -> bool:
+    """True if the anchor date is within (window_start, ref_date) exclusive."""
+    raw = str(anchor.get("encounter_date") or "")
+    if not raw:
+        return False
+    try:
+        anchor_date = date.fromisoformat(raw[:10])
+    except ValueError:
+        return False
+    return window_start <= anchor_date < ref_date
+
+
 def _write_episode(
     patient_client,
     patient_id: str,
@@ -854,6 +1346,11 @@ def _write_episode(
     hitl_reason: str | None,
     result: EpisodeBuildResult,
     episode_ids: list[str],
+    referral_route: str = "two_week_wait",
+    place_of_presentation: str = "GP surgery",
+    letter_inferred_benign: bool = False,
+    first_presentation_date: str | None = None,
+    presenting_complaint: str | None = None,
 ) -> None:
     """Persist one episode node; updates result counters on success."""
     auto_closed = status in (
@@ -878,15 +1375,71 @@ def _write_episode(
             specialist_seen=claim.specialist_seen,
             specialist_visit_date=claim.specialist_visit_date,
             referral_site=claim.referral_site_name,
+            referral_route=referral_route,
+            place_of_presentation=place_of_presentation,
+            first_presentation_date=first_presentation_date,
+            presenting_complaint=presenting_complaint,
             status=status,
             auto_closed=auto_closed,
             auto_close_reason=auto_close_reason,
             hitl_flag=hitl_flag,
             hitl_reason=hitl_reason,
+            letter_inferred_benign=letter_inferred_benign,
         )
         episode_ids.append(ep_id)
     except Exception as exc:  # noqa: BLE001
         result.errors.append(str(exc))
+
+
+def _merge_same_site_duplicates(patient_id: str, patient_client) -> None:
+    """Collapse same-site episodes whose referral_dates are within _SAME_EPISODE_DAYS.
+
+    Over-splitting occurs when multiple diagnosis anchors from follow-up
+    encounters each independently claim a nearby referral anchor, producing
+    several short-interval episodes for the same cancer site. The earliest
+    episode (by referral_date) per site cluster is kept as primary; later
+    duplicates are merged into it and their IS_PART_OF edges are moved.
+    """
+    try:
+        rows = patient_client.run(
+            _FETCH_EPISODES_FOR_MERGE_Q, patient_id=patient_id
+        )
+    except Exception:
+        return
+
+    by_site: dict[str, list[dict]] = {}
+    for r in rows:
+        ctype = r.get("cancer_type") or ""
+        if ctype == "non_site_specific":
+            continue
+        by_site.setdefault(ctype, []).append(r)
+
+    for ctype, eps in by_site.items():
+        if len(eps) < 2:
+            continue
+        eps_sorted = sorted(eps, key=lambda e: str(e.get("referral_date") or ""))
+        primary = eps_sorted[0]
+        primary_date = _parse_date(primary["referral_date"])
+        if not primary_date:
+            continue
+        for dup in eps_sorted[1:]:
+            dup_date = _parse_date(dup["referral_date"])
+            if not dup_date:
+                continue
+            gap = (dup_date - primary_date).days
+            if 0 <= gap <= _SAME_EPISODE_DAYS:
+                try:
+                    patient_client.run(
+                        _MARK_MERGED_Q,
+                        dup_id=dup["episode_id"],
+                        primary_id=primary["episode_id"],
+                        reasoning=(
+                            f"Auto-merged: same cancer type ({ctype}) within "
+                            f"{gap} days of {primary['episode_id']}"
+                        ),
+                    )
+                except Exception:
+                    pass
 
 
 def _apply_auto_close_rules(
@@ -894,19 +1447,28 @@ def _apply_auto_close_rules(
     episode_ids: list[str],
     patient_client,
 ) -> None:
-    """Second-pass Cypher updates: stale and cross-domain closure with HITL flags."""
+    """Second-pass updates: same-site dedup, NSS closure, stale-close.
+
+    Order matters:
+    1. Merge same-site duplicates (Python-driven, uses fetch + mark queries).
+    2. Close NSS companion episodes when a specific-site sibling exists.
+    3. Stale-close remaining in_progress episodes.
+    """
     if not episode_ids:
         return
+
+    # Pass 1: merge same-site over-split episodes in Python
+    _merge_same_site_duplicates(patient_id, patient_client)
+
     try:
-        # Related-close FIRST: NSS episodes with a completed sibling must be
-        # resolved before stale-close fires -- otherwise the NSS episode
-        # becomes stale_no_diagnosis and is no longer in_progress to match.
+        # Pass 2: close NSS companions
         patient_client.run(
             _RELATED_CLOSE_Q,
             patient_id=patient_id,
             episode_ids=episode_ids,
             window_days=_PHANTOM_COMPLETED_WINDOW,
         )
+        # Pass 3: stale-close
         patient_client.run(
             _STALE_CLOSE_Q,
             patient_id=patient_id,
@@ -1060,12 +1622,33 @@ def _build_closed_episode(
     has_diag = _has_confirmed_diagnosis(diag_anchors) or bool(
         diag_anchors and not _has_possible_only_diagnosis(diag_anchors)
     )
+    ref_dates = [
+        d for d in (
+            _parse_date(str(a.get("encounter_date") or ""))
+            for a in ref_anchors
+        )
+        if d is not None
+    ]
     ref_date = _parse_date(referral_date)
+    fp_date, complaint, place, aligned_ref_date = _first_presentation_from_anchors(
+        anchors, ref_date, ref_dates
+    )
+    if aligned_ref_date:
+        referral_date = aligned_ref_date
+        ref_date = _parse_date(referral_date)
+    if not fp_date and ref_date:
+        fb_date, fb_complaint, fb_place = _first_presentation_from_referral_context(
+            patient_id, ref_date, anchors, patient_client
+        )
+        if fb_date and fb_complaint:
+            fp_date, complaint, place = fb_date, fb_complaint, (fb_place or place)
+
     is_phantom = site_key in phantom_sites
     status, hitl_flag, hitl_reason = _determine_episode_status(
         has_diag, diag_anchors, None, anchors.treatment_anchors, ref_date, is_phantom
     )
     end_date = max(all_dates_str) if all_dates_str else None
+    ref_concept = str(ref_anchors[0].get("concept_name") or "") if ref_anchors else ""
     _write_episode(
         patient_client,
         patient_id,
@@ -1080,7 +1663,20 @@ def _build_closed_episode(
         hitl_reason,
         result,
         episode_ids,
+        referral_route=_referral_route_from_concept(ref_concept),
+        place_of_presentation=place or "GP surgery",
+        first_presentation_date=fp_date,
+        presenting_complaint=complaint,
     )
+    # Link all contributing encounters to the episode as IS_PART_OF edges.
+    diag_milestone = "diagnosis_confirmed" if _has_confirmed_diagnosis(diag_anchors) else "diagnosis"
+    fp_anchors = anchors.first_presentation_anchors if anchors else []
+    _link_encounters_to_episode(patient_client, ep_id, [
+        (ref_anchors, "referral"),
+        (diag_anchors, diag_milestone),
+        (anchors.treatment_anchors if anchors else [], "treatment_started"),
+        (fp_anchors, "first_presentation"),
+    ])
 
 
 def _build_open_episode(
@@ -1104,6 +1700,26 @@ def _build_open_episode(
         {str(r.get("encounter_id") or "") for r in group if r.get("encounter_id")}
     )
     ref_date = _parse_date(group[0].get("encounter_date"))
+    ref_dates = [
+        d for d in (
+            _parse_date(str(a.get("encounter_date") or ""))
+            for a in group
+        )
+        if d is not None
+    ]
+    fp_date, complaint, place, aligned_ref_date = _first_presentation_from_anchors(
+        anchors, ref_date, ref_dates
+    )
+    if aligned_ref_date:
+        earliest_str = aligned_ref_date
+        ref_date = _parse_date(earliest_str)
+    if not fp_date and ref_date:
+        fb_date, fb_complaint, fb_place = _first_presentation_from_referral_context(
+            patient_id, ref_date, anchors, patient_client
+        )
+        if fb_date and fb_complaint:
+            fp_date, complaint, place = fb_date, fb_complaint, (fb_place or place)
+
     is_phantom = site_key in phantom_sites
     benign_date: date | None = None
     if not is_phantom and ref_date:
@@ -1116,9 +1732,11 @@ def _build_open_episode(
         anchors.treatment_anchors,
         ref_date,
     )
+    letter_inferred_benign = False
     if letter_end:
         status, hitl_flag, hitl_reason = "completed", True, letter_reason
         end_date = letter_end.isoformat()
+        letter_inferred_benign = True
     else:
         status, hitl_flag, hitl_reason = _determine_episode_status(
             False, [], benign_date, anchors.treatment_anchors, ref_date, is_phantom
@@ -1129,6 +1747,7 @@ def _build_open_episode(
             end_date = earliest_str
         else:
             end_date = None
+    ref_concept = str(group[0].get("concept_name") or "") if group else ""
     _write_episode(
         patient_client,
         patient_id,
@@ -1143,7 +1762,18 @@ def _build_open_episode(
         hitl_reason,
         result,
         episode_ids,
+        referral_route=_referral_route_from_concept(ref_concept),
+        place_of_presentation=place or "GP surgery",
+        letter_inferred_benign=letter_inferred_benign,
+        first_presentation_date=fp_date,
+        presenting_complaint=complaint,
     )
+    # Link referral and first-presentation encounters as IS_PART_OF edges.
+    fp_anchors = anchors.first_presentation_anchors if anchors else []
+    _link_encounters_to_episode(patient_client, ep_id, [
+        (group, "referral"),
+        (fp_anchors, "first_presentation"),
+    ])
 
 
 async def build_episodes(
@@ -1166,7 +1796,7 @@ async def build_episodes(
     # Phantom detection requires the full referral set grouped by site
     referrals_by_site: dict[str, list[dict[str, Any]]] = {}
     for anchor in anchors.referral_anchors:
-        key = _extract_condition_key(str(anchor.get("concept_name") or ""))
+        key = _extract_condition_key_from_anchor(anchor)
         referrals_by_site.setdefault(key, []).append(anchor)
     phantom_sites = _detect_phantom_sites(referrals_by_site)
 

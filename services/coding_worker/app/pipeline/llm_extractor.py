@@ -194,6 +194,12 @@ _ASSERTION_TO_CONTEXT: dict[str, dict[str, bool]] = {
     "cancelled": {"negated": False, "declined": False, "cancelled": True},
 }
 
+_TNM_TRIPLET_RE = re.compile(
+    r"\b(?:[cpyr]?t[0-4](?:[a-c])?)\s*(?:[cpyr]?n[0-3](?:[a-c])?)\s*(?:[cpyr]?m[0-1](?:[a-c])?)\b",
+    re.IGNORECASE,
+)
+_TNM_COMPONENT_RE = re.compile(r"[cpyr]?[tnm][0-4](?:[a-c])?", re.IGNORECASE)
+
 
 @dataclass(frozen=True)
 class ExtractedTerm:
@@ -333,7 +339,59 @@ class LLMExtractor:
                     modifiers=dict(term.get("modifiers") or {}),
                 )
             )
+            # Deterministic TNM split:
+            # If the model outputs a single staging-scale token like T2N1M0,
+            # also emit T/N/M component entities so terminology resolution can
+            # map each axis independently.
+            results.extend(
+                self._split_tnm_components(
+                    sentence_id=sentence_id or "s0",
+                    text=text,
+                    semantic_tag=str(term.get("semantic_tag") or ""),
+                    assertion=assertion,
+                )
+            )
         return results
+
+    @staticmethod
+    def _split_tnm_components(
+        *,
+        sentence_id: str,
+        text: str,
+        semantic_tag: str,
+        assertion: str,
+    ) -> list[ExtractedTerm]:
+        tag = semantic_tag.strip().lower()
+        if tag != "staging scale":
+            return []
+        if not _TNM_TRIPLET_RE.search(text):
+            return []
+        components = [m.group(0).upper() for m in _TNM_COMPONENT_RE.finditer(text)]
+        if len(components) < 3:
+            return []
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for comp in components:
+            key = comp.lower()
+            axis = key[0] if key[0] in {"t", "n", "m"} else key[1]
+            if axis in seen:
+                continue
+            seen.add(axis)
+            deduped.append(comp)
+        out: list[ExtractedTerm] = []
+        for comp in deduped:
+            out.append(
+                ExtractedTerm(
+                    sentence_id=sentence_id,
+                    text=comp,
+                    lookup_term=comp,
+                    semantic_tag="observable entity",
+                    assertion=assertion,
+                    context=dict(_ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"])),
+                    modifiers={"derived_from_tnm_triplet": text},
+                )
+            )
+        return out
 
 
 def maybe_create_surface_form_tasks(

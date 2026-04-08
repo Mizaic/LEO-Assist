@@ -26,7 +26,12 @@ import DiagnosedByTypeChart from "@/components/dashboard/DiagnosedByTypeChart";
 import SafetyNetAlertsSummary from "@/components/dashboard/SafetyNetAlertsSummary";
 import LLMSpendPanel from "@/components/dashboard/LLMSpendPanel";
 
-const TERMINAL_STATUSES = new Set(["closed", "completed", "merged", "excluded"]);
+// Auto-closed stale statuses are NOT being tracked - exclude from active count.
+const TERMINAL_STATUSES = new Set([
+  "closed", "completed", "merged", "excluded",
+  "closed_benign", "closed_related", "closed_phantom",
+  "stale_no_diagnosis", "stale_post_specialist",
+]);
 
 export default function DashboardPage() {
   const orgId = useOrgId();
@@ -48,11 +53,17 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     setSectionErrors({});
+    // Clear previous data before loading to prevent stale sections mixing with fresh ones
+    // when only some requests succeed on a re-fetch.
+    setEpisodes([]);
+    setDiagnosed([]);
+    setKpis(null);
+    setAlerts([]);
     try {
       const [epResult, diagResult, kpiResult, alertResult] = await Promise.allSettled([
         fetchEpisodeSummary(orgId, from, to),
         fetchDiagnosedSummary(orgId, from, to),
-        fetchKPIBenchmarks(orgId),
+        fetchKPIBenchmarks(orgId, from, to),
         fetchSafetyNetAlerts(orgId),
       ]);
       const errors: Record<string, string> = {};
@@ -82,8 +93,15 @@ export default function DashboardPage() {
   };
 
   const handleAlertAction = useCallback(async (alertId: string, actioned: boolean) => {
-    await actionSafetyNetAlert(alertId, actioned);
-    setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, actioned } : a)));
+    try {
+      await actionSafetyNetAlert(alertId, actioned);
+      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, actioned } : a)));
+    } catch {
+      setSectionErrors((prev) => ({
+        ...prev,
+        alerts: "Could not update the alert. Please try again.",
+      }));
+    }
   }, []);
 
   const handleClear = () => {
@@ -174,7 +192,7 @@ export default function DashboardPage() {
         )}
         {isFiltered && (
           <Chip
-            label={`${appliedFrom ?? "Any date"} to ${appliedTo ?? "today"}`}
+            label={`${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}`}
             size="small"
             color="primary"
             variant="outlined"
@@ -311,6 +329,9 @@ export default function DashboardPage() {
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: "0.8rem" }}>
                 Patients who may need follow-up based on clinical guidelines
+                {isFiltered && (
+                  <> &mdash; shown regardless of the referral date filter above</>
+                )}
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={200} aria-label="Loading safety alerts" />
@@ -318,7 +339,7 @@ export default function DashboardPage() {
                 <Alert severity="error">{sectionErrors.alerts}</Alert>
               ) : alerts.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
-                  No safety alerts for the selected period.
+                  No open safety alerts.
                 </Typography>
               ) : (
                 <SafetyNetAlertsSummary alerts={alerts.slice(0, 8)} onAction={handleAlertAction} />

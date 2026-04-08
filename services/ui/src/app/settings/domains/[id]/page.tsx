@@ -58,6 +58,9 @@ const MILESTONE_OPTIONS = [
   "diagnosis",
   "treatment_start",
   "specialist_visit",
+  "first_presentation",
+  "benign_closure",
+  "specialist_outcome_letter",
 ] as const;
 
 const ASSERTION_OPTIONS = [
@@ -440,8 +443,8 @@ export default function DomainDetailPage() {
             </Typography>
           ) : (
             <List disablePadding>
-              {domain.subdomains.map((sub) => (
-                <Card key={sub.name} sx={{ mb: 1 }}>
+              {domain.subdomains.map((sub, idx) => (
+                <Card key={`${sub.name}-${idx}`} sx={{ mb: 1 }}>
                   <CardContent
                     sx={{
                       display: "flex",

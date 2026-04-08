@@ -26,6 +26,7 @@ from libs.cypher.model_config_queries import (
     DELETE_MODEL_CONFIG,
     GET_MODEL_CONFIG,
     GET_AUDIT_EVENT_SPEND,
+    GET_AUDIT_EVENT_SPEND_TOTALS,
     GET_PATIENT_LLM_SPEND,
     LIST_MODEL_CONFIGS,
     UPDATE_MODEL_CONFIG,
@@ -311,24 +312,40 @@ def run_llm_spend(
     limit: int = Query(100, le=500),
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    """Return per-pipeline-run LLM token spend from AuditEvent nodes."""
+    """Return per-pipeline-run LLM token spend from AuditEvent nodes.
+
+    Totals are computed from the full date range (no limit) so they are
+    never under-counted when the run list is capped. Org scoping restricts
+    results to patients in the caller's org hierarchy.
+    """
+    is_admin = scope.is_admin
+    org_ids = scope.org_ids or []
+
+    shared_params: dict = {
+        "patient_id": patient_id,
+        "from_date": from_date,
+        "to_date": to_date,
+        "is_admin": is_admin,
+        "org_ids": org_ids,
+    }
+
     client = PatientGraphClient()
     try:
         with client.session() as session:
             rows = session.run(
                 GET_AUDIT_EVENT_SPEND,
-                patient_id=patient_id,
-                from_date=from_date,
-                to_date=to_date,
+                **shared_params,
                 limit=limit,
+            ).data()
+            agg_rows = session.run(
+                GET_AUDIT_EVENT_SPEND_TOTALS,
+                **shared_params,
             ).data()
     finally:
         client.close()
 
-    runs = []
-    total_input = total_output = total_cached = total_cost = 0
-    for row in rows:
-        run = {
+    runs = [
+        {
             "runId":        row.get("runId", ""),
             "patientId":    row.get("patientId", ""),
             "encounterId":  row.get("encounterId", ""),
@@ -340,16 +357,20 @@ def run_llm_spend(
             "costUsd":      float(row.get("costUsd") or 0),
             "createdAt":    str(row.get("createdAt") or ""),
         }
-        runs.append(run)
-        total_input   += run["inputTokens"]
-        total_output  += run["outputTokens"]
-        total_cached  += run["cachedTokens"]
-        total_cost    += run["costUsd"]
+        for row in rows
+    ]
+
+    agg = agg_rows[0] if agg_rows else {}
+    total_input   = int(agg.get("inputTokens") or 0)
+    total_output  = int(agg.get("outputTokens") or 0)
+    total_cached  = int(agg.get("cachedTokens") or 0)
+    total_cost    = float(agg.get("costUsd") or 0)
+    run_count     = int(agg.get("runCount") or 0)
 
     return {
         "runs": runs,
         "totals": {
-            "runCount":     len(runs),
+            "runCount":     run_count,
             "inputTokens":  total_input,
             "outputTokens": total_output,
             "cachedTokens": total_cached,

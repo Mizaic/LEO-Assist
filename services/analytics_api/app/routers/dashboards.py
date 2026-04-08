@@ -291,11 +291,26 @@ def episode_summary(
     date_from: Optional[str] = Query(default=None),
     date_to: Optional[str] = Query(default=None),
 ):
-    """Aggregate episode counts by status and cancer type, with optional date range filter."""
+    """Aggregate episode counts by status and cancer type, with optional date range filter.
+
+    Excludes:
+      - merged: absorbed into a primary same-site episode (over-split dedup)
+      - closed_phantom: phantom episode from a multi-referral coding encounter
+      - closed_related: NSS companion episode closed because a specific-site
+        episode exists for the same pathway
+      - episodes with no referral milestone link (diagnosis-only pathways)
+    These are all internal housekeeping statuses that do not represent
+    independent referral pathways.
+    """
     scope = _coerce_scope(scope)
     client = PatientGraphClient()
     date_frag, date_params = _date_where(date_from, date_to)
     scope_frag, scope_params = _scope_filter(scope)
+    # Exclude housekeeping statuses that are not real referral pathways.
+    exclude_frag = (
+        " AND NOT ep.status IN "
+        "['merged', 'closed_phantom', 'closed_related'] "
+    )
     try:
         effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
         if effective_org:
@@ -307,14 +322,22 @@ def episode_summary(
                 "WHERE (orgNode.id = $org) OR (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
                 "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-                f"WHERE ep.referral_date IS NOT NULL{date_frag} "
+                f"WHERE ep.referral_date IS NOT NULL{date_frag}{exclude_frag} "
+                "  AND EXISTS { "
+                "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
+                "    WHERE r.milestone_type = 'referral' "
+                "  } "
                 "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(ep) AS count "
                 "ORDER BY count DESC",
                 org=effective_org, **date_params,
             )
         return client.run(
-            "MATCH (ep:EpisodeOfCare) "
-            f"WHERE ep.referral_date IS NOT NULL {scope_frag}{date_frag} "
+            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+            f"WHERE ep.referral_date IS NOT NULL {scope_frag}{date_frag}{exclude_frag} "
+            "  AND EXISTS { "
+            "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
+            "    WHERE r.milestone_type = 'referral' "
+            "  } "
             "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(ep) AS count "
             "ORDER BY count DESC",
             **date_params, **scope_params,
@@ -330,7 +353,10 @@ def episode_diagnosed(
     date_from: Optional[str] = Query(default=None),
     date_to: Optional[str] = Query(default=None),
 ):
-    """Confirmed diagnoses grouped by cancer type, with optional date range and org filters."""
+    """Confirmed diagnoses grouped by cancer type, with optional date range and org filters.
+
+    Only includes pathways that have a linked referral milestone.
+    """
     scope = _coerce_scope(scope)
     client = PatientGraphClient()
     date_frag, date_params = _date_where(date_from, date_to)
@@ -346,14 +372,26 @@ def episode_diagnosed(
                 "WHERE (orgNode.id = $org) OR (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
                 "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-                f"WHERE ep.status = 'confirmed' AND ep.referral_date IS NOT NULL{date_frag} "
+                f"WHERE ep.status = 'completed' AND ep.referral_date IS NOT NULL "
+                "  AND coalesce(ep.letter_inferred_benign, false) = false "
+                "  AND EXISTS { "
+                "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
+                "    WHERE r.milestone_type = 'referral' "
+                "  } "
+                f"{date_frag} "
                 "RETURN ep.cancer_type AS cancer_type, count(ep) AS count "
                 "ORDER BY count DESC",
                 org=effective_org, **date_params,
             )
         return client.run(
             "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            f"WHERE ep.status = 'confirmed' AND ep.referral_date IS NOT NULL {scope_frag}{date_frag} "
+            f"WHERE ep.status = 'completed' AND ep.referral_date IS NOT NULL "
+            "  AND coalesce(ep.letter_inferred_benign, false) = false "
+            "  AND EXISTS { "
+            "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
+            "    WHERE r.milestone_type = 'referral' "
+            "  } "
+            f"{scope_frag}{date_frag} "
             "RETURN ep.cancer_type AS cancer_type, count(ep) AS count "
             "ORDER BY count DESC",
             **date_params, **scope_params,

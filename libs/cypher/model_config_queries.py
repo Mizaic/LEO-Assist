@@ -136,14 +136,22 @@ RETURN c.extraction_model_name AS modelName,
        sum(toFloat(apoc.convert.fromJsonMap(c.llm_usage_json).cost_usd))               AS totalCostUsd
 """
 
-GET_AUDIT_EVENT_SPEND = """
-MATCH (ae:AuditEvent)
+_AUDIT_EVENT_WHERE = """
 WHERE ae.type = 'PipelineRun'
   AND ae.llm_input_tokens IS NOT NULL
   AND ($patient_id IS NULL OR ae.patient_id = $patient_id)
   AND ($from_date  IS NULL OR ae.created_at >= datetime($from_date))
   AND ($to_date    IS NULL OR ae.created_at <= datetime($to_date))
-RETURN ae.run_id             AS runId,
+  AND ($is_admin = true OR EXISTS {
+    MATCH (ae_p:Patient {id: ae.patient_id})-[:HAS_GENERAL_PRACTITIONER]->(ae_gp)
+    WHERE ae_gp.id IN $org_ids
+  })
+"""
+
+GET_AUDIT_EVENT_SPEND = (
+    "MATCH (ae:AuditEvent) "
+    + _AUDIT_EVENT_WHERE
+    + """RETURN ae.run_id             AS runId,
        ae.patient_id         AS patientId,
        ae.encounter_id       AS encounterId,
        ae.status             AS status,
@@ -156,3 +164,16 @@ RETURN ae.run_id             AS runId,
 ORDER BY ae.created_at DESC
 LIMIT $limit
 """
+)
+
+# Full-period aggregate for totals -- no LIMIT so totals are never under-counted.
+GET_AUDIT_EVENT_SPEND_TOTALS = (
+    "MATCH (ae:AuditEvent) "
+    + _AUDIT_EVENT_WHERE
+    + """RETURN count(ae)                      AS runCount,
+       sum(ae.llm_input_tokens)          AS inputTokens,
+       sum(ae.llm_output_tokens)         AS outputTokens,
+       sum(coalesce(ae.llm_cached_tokens, 0)) AS cachedTokens,
+       sum(coalesce(ae.llm_cost_usd, 0)) AS costUsd
+"""
+)

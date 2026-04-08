@@ -494,3 +494,30 @@ class TestParseConceptsFromRaw:
 
         raw = json.dumps({"compose": {"include": []}})
         assert _count_concepts_from_raw(raw) == 0
+
+    def test_extracts_stage_of_diagnosis_concepts(self):
+        from services.analytics_api.app.routers.domains import _parse_concepts_from_raw
+
+        raw = json.dumps({
+            "compose": {
+                "include": [{
+                    "system": "http://snomed.info/sct",
+                    "concept": [
+                        {
+                            "code": "254372002",
+                            "display": "Ann Arbor lymphoma staging system (tumor staging)",
+                            "designation": [
+                                {"use": {"code": "synonym"}, "value": "Ann Arbor stage"},
+                                {"use": {"code": "benchmark_key"}, "value": "ann_arbor_lymphoma_staging_system"},
+                            ],
+                        },
+                    ],
+                }],
+            },
+        })
+
+        concepts = _parse_concepts_from_raw(raw)
+        assert len(concepts) == 1
+        assert concepts[0]["concept_id"] == 254372002
+        assert "Ann Arbor stage" in concepts[0]["guideline_synonyms"]
+        assert concepts[0]["benchmark_key"] == "ann_arbor_lymphoma_staging_system"

@@ -57,11 +57,14 @@ export default function DiagnosedByTypeChart({ data }: { data: DataItem[] }) {
     );
   }
 
+  const MAX_BARS = 15;
+  const hidden = data.slice(MAX_BARS);
   const chartData = data
-    .slice(0, 12)
+    .slice(0, MAX_BARS)
     .map((d) => ({ ...d, label: formatLabel(d.cancer_type) }));
 
-  const total = chartData.reduce((s, d) => s + d.count, 0);
+  const grandTotal = data.reduce((s, d) => s + d.count, 0);
+  const hiddenTotal = hidden.reduce((s, d) => s + d.count, 0);
   const summary = chartData
     .slice(0, 3)
     .map((d) => `${d.label} (${d.count})`)
@@ -71,7 +74,7 @@ export default function DiagnosedByTypeChart({ data }: { data: DataItem[] }) {
     <Box sx={{ position: "relative" }}>
       <Box
         role="img"
-        aria-label={`Bar chart: Confirmed cancers by type. Total ${total} confirmed diagnoses. Top types: ${summary}.`}
+        aria-label={`Bar chart: Confirmed cancers by type. Total ${grandTotal} confirmed diagnoses. Top types: ${summary}.`}
         sx={{ overflow: "hidden" }}
       >
         <ResponsiveContainer width="99%" height={280}>
@@ -94,7 +97,12 @@ export default function DiagnosedByTypeChart({ data }: { data: DataItem[] }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </Box>
+        </Box>
+      {hidden.length > 0 && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
+          {`+${hiddenTotal} diagnosis${hiddenTotal !== 1 ? "es" : ""} across ${hidden.length} more type${hidden.length !== 1 ? "s" : ""} not shown`}
+        </Typography>
+      )}
     </Box>
   );
 }

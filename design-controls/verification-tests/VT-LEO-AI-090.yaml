@@ -1,0 +1,123 @@
+- id: "VT-LEO-AI-090"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-090"]
+    risks: ["R-LEO-AI-064"]
+
+  metadata:
+    title: "CancerTypeDumbbellChart rendering, colour logic, label formatting, and empty state"
+    description: >
+      Verifies that the CancerTypeDumbbellChart component correctly renders rows
+      per cancer type, applies direction colour logic (green above / amber below /
+      grey no-benchmark), shows delta labels, humanises key strings, auto-fits
+      the x-axis, and renders an accessible empty state when data is absent.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/components/audit/__tests__/CancerTypeDumbbellChart.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-090-TC-001"
+      case_name: "Renders one row per cancer type"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render component with rows for breast (30.2%, benchmark 15.3%) and lung (2.5%, benchmark 13.2%)"
+          expected_result: "Two row labels appear: 'Breast' and 'Lung'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "getByText('Breast') resolves without error"
+        - "getByText('Lung') resolves without error"
+
+    - case_id: "VT-090-TC-002"
+      case_name: "Empty state renders explanatory text"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render component with empty rows array"
+          expected_result: "Typography with 'No cancer type data' text is visible"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "getByText(/no cancer type data/i) resolves without error"
+
+    - case_id: "VT-090-TC-003"
+      case_name: "Humanises underscore key strings in labels"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render with cancer_type keys: lower_gi, head_and_neck, non_site_specific"
+          expected_result: "Labels read 'Lower GI', 'Head and Neck', 'Non Site Specific'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "getByText('Lower GI') present"
+        - "getByText('Head and Neck') present"
+        - "getByText('Non Site Specific') present"
+
+    - case_id: "VT-090-TC-004"
+      case_name: "Delta label shows +pp when today exceeds benchmark"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render with breast: practice=30.2, national=15.3"
+          expected_result: "Delta label showing '+14.9pp' or '+15pp' is present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "getByText(/\\+1[45]/) present in rendered output"
+
+    - case_id: "VT-090-TC-005"
+      case_name: "Delta label shows -pp when today is below benchmark"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render with lung: practice=2.5, national=13.2"
+          expected_result: "Delta label showing '-10.7pp' or '-11pp' is present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "getByText(/-1[01]/) present in rendered output"
+
+    - case_id: "VT-090-TC-006"
+      case_name: "No delta label when benchmark is absent"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render with a row where national is null"
+          expected_result: "No pp label rendered for that row"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No element matching /pp/ is in the rendered output for the null-benchmark row"
+
+    - case_id: "VT-090-TC-007"
+      case_name: "Renders without error when all benchmarks are null"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render with rows that all have national=null"
+          expected_result: "Component renders without throwing; labels visible; no pp annotations"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Component renders without throwing"
+        - "Row labels are present"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-090/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

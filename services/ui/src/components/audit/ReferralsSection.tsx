@@ -1,6 +1,7 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
@@ -39,7 +40,10 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
     ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
-  const chartData: ComparisonDataRow[] = practice.slice(0, 8).map((row) => {
+  const MAX_ROUTE_BARS = 8;
+  const hiddenRouteCount = Math.max(0, practice.length - MAX_ROUTE_BARS);
+
+  const chartData: ComparisonDataRow[] = practice.slice(0, MAX_ROUTE_BARS).map((row) => {
     const label = formatRoute(row.referral_route);
     const aRow = allianceLive?.find((r) => formatRoute(r.referral_route) === label);
     const eRow = englandLive?.find((r) => formatRoute(r.referral_route) === label);
@@ -91,13 +95,20 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
       error={error}
     >
       <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
-      <ComparisonBarChart
-        data={chartData}
-        unit="percent"
-        visibleKeys={visibleKeys}
-        orgSelected={orgSelected}
-        ariaLabel="Referral routes compared to alliance and national benchmarks"
-      />
+      <Box>
+        <ComparisonBarChart
+          data={chartData}
+          unit="percent"
+          visibleKeys={visibleKeys}
+          orgSelected={orgSelected}
+          ariaLabel="Referral routes compared to alliance and national benchmarks"
+        />
+        {hiddenRouteCount > 0 && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
+            {`+${hiddenRouteCount} less common route${hiddenRouteCount !== 1 ? "s" : ""} not shown`}
+          </Typography>
+        )}
+      </Box>
       <Box sx={{ mt: 2 }}>
         <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Key referral route comparisons" />
       </Box>

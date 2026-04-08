@@ -152,6 +152,47 @@ class TestParseTerms:
         result = ext._parse_terms(payload, sentences)
         assert result == []
 
+    def test_splits_tnm_triplet_into_tnm_components(self):
+        ext = self._make_extractor()
+        sentences = [MagicMock(sentence_id="s0")]
+        payload = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "T2N1M0",
+                    "lookup_term": "TNM staging",
+                    "semantic_tag": "staging scale",
+                    "assertion": "present",
+                }
+            ]
+        }
+        result = ext._parse_terms(payload, sentences)
+        texts = [r.text for r in result]
+        assert "T2N1M0" in texts
+        assert "T2" in texts
+        assert "N1" in texts
+        assert "M0" in texts
+        split_items = [r for r in result if r.text in {"T2", "N1", "M0"}]
+        assert all(r.semantic_tag == "observable entity" for r in split_items)
+
+    def test_does_not_split_non_tnm_staging_scale(self):
+        ext = self._make_extractor()
+        sentences = [MagicMock(sentence_id="s0")]
+        payload = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "Stage IIIA",
+                    "lookup_term": "FIGO staging",
+                    "semantic_tag": "staging scale",
+                    "assertion": "present",
+                }
+            ]
+        }
+        result = ext._parse_terms(payload, sentences)
+        texts = [r.text for r in result]
+        assert texts == ["Stage IIIA"]
+
 
 class TestBuildUserPrompt:
 

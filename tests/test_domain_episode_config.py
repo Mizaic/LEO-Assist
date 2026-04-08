@@ -221,3 +221,16 @@ class TestNCDADomainAssertionFilter:
         vs = {"description": "Test", "extension": []}
         result = DomainRegistry._parse_domain_config(vs, "cancer_types")
         assert result.assertion_filter == []
+
+
+class TestStageOfDiagnosisDomainConfig:
+    """Stage-of-diagnosis subdomain is available in fallback defaults."""
+
+    def test_stage_of_diagnosis_exists_in_defaults(self):
+        from libs.domain_config.registry import NCDA_DOMAIN_CONFIGS
+
+        assert "stage_of_diagnosis" in NCDA_DOMAIN_CONFIGS
+        cfg = NCDA_DOMAIN_CONFIGS["stage_of_diagnosis"]
+        assert cfg.file == "snomed_ncda_stage_of_diagnosis_mapping.json"
+        assert cfg.milestone_type == "diagnosis"
+        assert "Tumor_staging" in cfg.semantic_tags

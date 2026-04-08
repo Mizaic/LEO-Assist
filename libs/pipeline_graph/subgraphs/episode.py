@@ -45,6 +45,9 @@ def _to_anchor_result(state: EpisodeState) -> AnchorResult:
             specialist_outcome_letter_anchors=list(
                 anchor_result.get("specialist_outcome_letter_anchors") or []
             ),
+            first_presentation_anchors=list(
+                anchor_result.get("first_presentation_anchors") or []
+            ),
         )
     anchors = list(state.get("anchors") or [])
     return AnchorResult(
@@ -64,6 +67,9 @@ def _to_anchor_result(state: EpisodeState) -> AnchorResult:
         ],
         specialist_outcome_letter_anchors=[
             a for a in anchors if a.get("milestone_type") == "specialist_outcome_letter"
+        ],
+        first_presentation_anchors=[
+            a for a in anchors if a.get("milestone_type") == "first_presentation"
         ],
     )
 

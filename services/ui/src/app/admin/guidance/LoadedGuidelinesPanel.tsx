@@ -12,7 +12,7 @@
  * Reading age 11 copy. No silent errors.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -96,6 +96,10 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
   const [generating, setGenerating] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [confirmCode, setConfirmCode] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cancel any in-flight poll on unmount
+  useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
 
   // Subgraph inspect drawer
   const [inspectCode, setInspectCode] = useState<string | null>(null);
@@ -123,6 +127,10 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
       setConfirmCode(null);
       setGenerating(code);
       setGenerateError(null);
+      if (pollRef.current) clearTimeout(pollRef.current);
+
+      // Start the generation job
+      let jobId: string;
       try {
         const r = await fetch("/api/guidance/rules/generate", {
           method: "POST",
@@ -130,19 +138,55 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
           body: JSON.stringify({ guideline_id: code }),
         });
         if (!r.ok) {
-          const detail = await r.json().catch(() => ({ detail: r.statusText }));
-          throw new Error(detail.detail || r.statusText);
+          const body = await r.json().catch(() => ({ detail: r.statusText }));
+          throw new Error(body.detail || r.statusText);
         }
-        // Refresh counts once generation kicks off (it runs in background)
-        await fetchLoaded();
-        onRulesGenerated?.();
+        jobId = (await r.json()).job_id;
       } catch (e) {
         setGenerateError(
           e instanceof Error ? e.message : "Could not start rule generation. Please try again."
         );
-      } finally {
         setGenerating(null);
+        return;
       }
+
+      // Poll until the background job finishes or fails.
+      // Keeps the "Generating..." spinner accurate instead of resetting on 202.
+      async function poll() {
+        try {
+          const r = await fetch(`/api/guidance/rules/generate/${jobId}`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const job = await r.json();
+
+          if (job.status === "done") {
+            await fetchLoaded();
+            onRulesGenerated?.();
+            setGenerating(null);
+            return;
+          }
+
+          if (job.status === "error") {
+            setGenerateError(job.error || "Rule generation failed. Check the pipeline worker logs.");
+            await fetchLoaded();
+            setGenerating(null);
+            return;
+          }
+
+          // Still running -- check again in 5 s
+          pollRef.current = setTimeout(poll, 5000);
+        } catch {
+          // Network hiccup -- warn but don't leave the button stuck forever.
+          setGenerateError(
+            "Lost contact with the server while checking generation progress. Check the review queue to see if rules were created."
+          );
+          await fetchLoaded();
+          onRulesGenerated?.();
+          setGenerating(null);
+        }
+      }
+
+      // First poll after a short delay to give the thread time to start
+      pollRef.current = setTimeout(poll, 3000);
     },
     [fetchLoaded, onRulesGenerated]
   );

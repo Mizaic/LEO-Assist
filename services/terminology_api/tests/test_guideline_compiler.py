@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from services.terminology_api.app.services.guideline_compiler import GuidelineCompiler
+from services.terminology_api.app.services.guideline_compiler import CompilePolicy, CompileScope, GuidelineCompiler
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 
 
@@ -103,6 +103,16 @@ def test_cypher_returns_action_fields(compiler):
     assert "action_concept_id" in _FETCH_ACTIVE_RULES
 
 
+def test_scope_query_includes_guideline_filter(compiler):
+    query = compiler._build_fetch_active_rules_query(CompileScope(scope_type="guideline", scope_id="NG12"))
+    assert "g.id = $scope_id" in query
+
+
+def test_scope_query_includes_domain_filter_for_subdomain_scope(compiler):
+    query = compiler._build_fetch_active_rules_query(CompileScope(scope_type="subdomain", scope_id="cancer_audit:symptoms"))
+    assert "dom.id = $scope_domain_id" in query
+
+
 # ── Core compilation ─────────────────────────────────────────────────────────
 
 def test_build_ruleset_groups_present_into_all_group(compiler, store, mock_session):
@@ -152,6 +162,26 @@ def test_build_ruleset_skips_rows_with_no_concept(compiler, store, mock_session)
     ruleset = compiler._build_ruleset(rows, mock_session)
 
     assert len(ruleset["rules"]) == 0
+
+
+def test_build_ruleset_strict_policy_excludes_out_of_scope_concepts(compiler, store, mock_session):
+    rows = [_make_row(predicate="PRESENT", group_mode="ALL", concept_id="111")]
+    ruleset = compiler._build_ruleset(
+        rows,
+        mock_session,
+        policy=CompilePolicy(mode="strict", allowed_concept_ids=frozenset({"999"})),
+    )
+    assert len(ruleset["rules"]) == 0
+
+
+def test_build_ruleset_advisory_policy_keeps_rule(compiler, store, mock_session):
+    rows = [_make_row(predicate="PRESENT", group_mode="ALL", concept_id="111")]
+    ruleset = compiler._build_ruleset(
+        rows,
+        mock_session,
+        policy=CompilePolicy(mode="advisory", allowed_concept_ids=frozenset({"999"})),
+    )
+    assert len(ruleset["rules"]) == 1
 
 
 def test_build_ruleset_handles_mixed_groups(compiler, store, mock_session):

@@ -80,7 +80,11 @@ export default function DemographicsSection({ result, comorbidities, loading, er
     ageChart.some((r) => r[k] != null),
   );
 
-  const ethChart: ComparisonDataRow[] = (practice?.ethnicity ?? []).slice(0, 6).map((row) => {
+  const MAX_ETHNICITY_BARS = 8;
+  const allEthnicity = practice?.ethnicity ?? [];
+  const hiddenEthnicityCount = Math.max(0, allEthnicity.length - MAX_ETHNICITY_BARS);
+
+  const ethChart: ComparisonDataRow[] = allEthnicity.slice(0, MAX_ETHNICITY_BARS).map((row) => {
     const aRow = allianceLive?.ethnicity.find((r) => r.ethnicity === row.ethnicity);
     const eRow = englandLive?.ethnicity.find((r) => r.ethnicity === row.ethnicity);
     const isWhite = row.ethnicity?.toLowerCase().startsWith("white");
@@ -186,11 +190,23 @@ export default function DemographicsSection({ result, comorbidities, loading, er
         </Box>
       )}
 
-      {ethChart.length > 0 && (
+      {ethChart.length > 0 ? (
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>Ethnicity</Typography>
           <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
           <ComparisonBarChart data={ethChart} unit="percent" height={240} visibleKeys={visibleKeys} orgSelected={orgSelected} ariaLabel="Ethnicity distribution compared to benchmarks" />
+          {hiddenEthnicityCount > 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
+              {`+${hiddenEthnicityCount} less common ethnicit${hiddenEthnicityCount !== 1 ? "ies" : "y"} not shown`}
+            </Typography>
+          )}
+        </Box>
+      ) : (
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>Ethnicity</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ py: 1.5, fontSize: "0.82rem" }}>
+            Ethnicity data is not yet linked to patient records. This section will populate once the patient registry integration is complete.
+          </Typography>
         </Box>
       )}
 

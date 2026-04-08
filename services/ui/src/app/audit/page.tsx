@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -121,13 +121,31 @@ export default function AuditPage() {
 
   // 0 = Report (View 1), 1 = Snapshot (View 2)
   const [activeTab, setActiveTab] = useState(0);
+  const pendingScrollRef = useRef<string | null>(null);
+
+  // Scroll to a report section after the tab panel has been mounted.
+  // Using a ref avoids the fragile setTimeout(100) pattern which fails on
+  // slow devices or when React batches the state update differently.
+  useEffect(() => {
+    if (activeTab !== 1 || !pendingScrollRef.current) return;
+    const sectionId = pendingScrollRef.current;
+    pendingScrollRef.current = null;
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      // Retry once on the next animation frame in case the section rendered
+      // slightly after the effect ran (lazy / deferred content).
+      requestAnimationFrame(() => {
+        const retryEl = document.getElementById(sectionId);
+        if (retryEl) retryEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [activeTab]);
 
   const handleViewInReport = (sectionId: string) => {
-    setActiveTab(1); // Report is now tab index 1
-    setTimeout(() => {
-      const el = document.getElementById(sectionId);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+    pendingScrollRef.current = sectionId;
+    setActiveTab(1);
   };
 
   const [dateFrom, setDateFrom] = useState("");
@@ -321,7 +339,7 @@ export default function AuditPage() {
         )}
         {isFiltered && (
           <Chip
-            label={`${appliedFrom ?? "Any date"} to ${appliedTo ?? "today"}`}
+            label={`${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}`}
             size="small"
             color="primary"
             variant="outlined"
@@ -424,7 +442,7 @@ export default function AuditPage() {
           loading={loading.summary}
           error={errors.summary}
           totalCases={summary?.total_episodes}
-          auditPeriod={isFiltered ? `${appliedFrom ?? "Any date"} to ${appliedTo ?? "today"}` : undefined}
+          auditPeriod={isFiltered ? `${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}` : undefined}
         />
 
         <CancerTypeSection
@@ -445,7 +463,7 @@ export default function AuditPage() {
           result={demographics}
           comorbidities={comorbidities}
           loading={loading.demographics || loading.comorbidities}
-          error={errors.demographics}
+          error={errors.demographics ?? errors.comorbidities ?? null}
           orgSelected={orgSelected}
         />
 

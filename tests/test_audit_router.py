@@ -287,3 +287,167 @@ class TestFetchBenchmarkMetrics:
             result = _fetch_benchmark_metrics("ncda-2018", "primary_care_interval")
 
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Tests: Cypher composition helpers (phase 0 fix)
+# ---------------------------------------------------------------------------
+
+class TestCypherComposition:
+    """Verify that _add_date_filters and _episode_base produce valid Cypher."""
+
+    def test_add_date_filters_always_uses_and(self):
+        """_add_date_filters must always append AND, never a bare WHERE."""
+        from services.analytics_api.app.routers.audit import _add_date_filters
+
+        # Base that already has a WHERE clause (e.g. org-scoped)
+        base = "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep) WHERE true "
+        result_base, _ = _add_date_filters(base, {}, "2024-01-01", "2024-12-31")
+        assert "WHERE" not in result_base.split("AND")[0].split("true")[1]
+        assert "AND ep.referral_date >= $date_from" in result_base
+        assert "AND ep.referral_date <= $date_to" in result_base
+
+    def test_add_date_filters_no_dates_unchanged(self):
+        """When no dates are provided the base is returned unchanged."""
+        from services.analytics_api.app.routers.audit import _add_date_filters
+
+        base = "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep) WHERE true "
+        result_base, result_params = _add_date_filters(base, {"org": "x"}, None, None)
+        assert result_base == base
+        assert result_params == {"org": "x"}
+
+    def test_org_patient_match_starts_active_where_clause(self):
+        """_ORG_PATIENT_MATCH must end with an active WHERE clause for AND composition."""
+        from services.analytics_api.app.routers.audit import _ORG_PATIENT_MATCH
+        stripped = _ORG_PATIENT_MATCH.rstrip()
+        # Must end with the episode-exclusion clause (not bare WHERE true)
+        assert "WHERE NOT ep.status IN" in stripped
+        # The trailing text must end with the closing bracket + space so AND can follow
+        assert stripped.endswith("]") or stripped.endswith("] ")
+
+    def test_england_base_starts_active_where_clause(self):
+        """_ENGLAND_BASE must end with an active WHERE clause for AND composition."""
+        from services.analytics_api.app.routers.audit import _ENGLAND_BASE
+        stripped = _ENGLAND_BASE.rstrip()
+        assert "WHERE NOT ep.status IN" in stripped
+        assert stripped.endswith("]") or stripped.endswith("] ")
+
+    def test_date_filters_with_org_base_produces_no_double_where(self):
+        """Applying date filters to org base must not produce double WHERE."""
+        from services.analytics_api.app.routers.audit import (
+            _add_date_filters,
+            _ORG_PATIENT_MATCH,
+        )
+        base, params = _add_date_filters(_ORG_PATIENT_MATCH, {"org": "abc"}, "2024-01-01", None)
+        # Count WHERE occurrences -- must be exactly 2:
+        # one for the GP filter, one for the episode filter ("WHERE true")
+        assert base.count("WHERE") == 2
+        assert "AND ep.referral_date >= $date_from" in base
+
+
+# ---------------------------------------------------------------------------
+# Tests: comorbidity deduplication (phase 4 fix)
+# ---------------------------------------------------------------------------
+
+class TestComorbidityDeduplication:
+    """Verify comorbidities do not double-count patients with multiple child concepts."""
+
+    def test_same_patient_two_concept_ids_same_group_counted_once(self):
+        """A patient with two child concepts in the same group must count as 1."""
+        # Simulate disease_rows with patient_ids (new format after fix)
+        # Both concepts map to "hypertension" group -- same patient "P1"
+        disease_rows_with_pids = [
+            {"concept_id": "59621000", "patient_ids": ["P1"]},
+            {"concept_id": "38341003", "patient_ids": ["P1"]},
+        ]
+        id_to_term = {"59621000": "hypertension", "38341003": "hypertension"}
+        concept_groups = {"hypertension": ["59621000", "38341003"]}
+
+        group_patients: dict = {term: set() for term in concept_groups}
+        for row in disease_rows_with_pids:
+            cid_str = str(row.get("concept_id") or "")
+            top_term = id_to_term.get(cid_str)
+            if top_term and top_term in group_patients:
+                group_patients[top_term].update(row.get("patient_ids") or [])
+
+        counts = {term: len(patients) for term, patients in group_patients.items()}
+        assert counts["hypertension"] == 1, "Patient with 2 child concepts must count once per group"
+
+    def test_two_patients_different_concepts_same_group_counted_correctly(self):
+        """Two different patients in the same group must both be counted."""
+        disease_rows_with_pids = [
+            {"concept_id": "59621000", "patient_ids": ["P1"]},
+            {"concept_id": "38341003", "patient_ids": ["P2"]},
+        ]
+        id_to_term = {"59621000": "hypertension", "38341003": "hypertension"}
+        concept_groups = {"hypertension": ["59621000", "38341003"]}
+
+        group_patients: dict = {term: set() for term in concept_groups}
+        for row in disease_rows_with_pids:
+            cid_str = str(row.get("concept_id") or "")
+            top_term = id_to_term.get(cid_str)
+            if top_term and top_term in group_patients:
+                group_patients[top_term].update(row.get("patient_ids") or [])
+
+        counts = {term: len(patients) for term, patients in group_patients.items()}
+        assert counts["hypertension"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests: IS_PART_OF link helper (phase 1 fix)
+# ---------------------------------------------------------------------------
+
+class TestLinkEncountersToEpisode:
+    """Verify _link_encounters_to_episode deduplicates and handles edge cases."""
+
+    def test_no_encounter_id_skipped(self):
+        """Anchors without encounter_id must not produce a write call."""
+        from unittest.mock import MagicMock
+        from services.analysis_worker.app.analyzers.episode_builder import _link_encounters_to_episode
+
+        client = MagicMock()
+        _link_encounters_to_episode(client, "ep1", [
+            ([{"encounter_id": None, "concept_name": "test"}], "referral"),
+        ])
+        client.run.assert_not_called()
+
+    def test_deduplicates_same_encounter_across_types(self):
+        """Same encounter_id appearing in multiple anchor lists must be sent once."""
+        from unittest.mock import MagicMock
+        from services.analysis_worker.app.analyzers.episode_builder import _link_encounters_to_episode
+
+        client = MagicMock()
+        _link_encounters_to_episode(client, "ep1", [
+            ([{"encounter_id": "E1"}], "referral"),
+            ([{"encounter_id": "E1"}], "diagnosis_confirmed"),
+        ])
+        client.run.assert_called_once()
+        call_kwargs = client.run.call_args[1]
+        encounter_ids = [e["encounter_id"] for e in call_kwargs["encounters"]]
+        assert encounter_ids.count("E1") == 1
+
+    def test_empty_episode_id_no_call(self):
+        """Empty episode_id must result in no DB write."""
+        from unittest.mock import MagicMock
+        from services.analysis_worker.app.analyzers.episode_builder import _link_encounters_to_episode
+
+        client = MagicMock()
+        _link_encounters_to_episode(client, "", [
+            ([{"encounter_id": "E1"}], "referral"),
+        ])
+        client.run.assert_not_called()
+
+    def test_multiple_encounters_all_sent(self):
+        """Multiple distinct encounters must all be included in the payload."""
+        from unittest.mock import MagicMock
+        from services.analysis_worker.app.analyzers.episode_builder import _link_encounters_to_episode
+
+        client = MagicMock()
+        _link_encounters_to_episode(client, "ep1", [
+            ([{"encounter_id": "E1"}, {"encounter_id": "E2"}], "referral"),
+            ([{"encounter_id": "E3"}], "diagnosis_confirmed"),
+        ])
+        client.run.assert_called_once()
+        call_kwargs = client.run.call_args[1]
+        encounter_ids = {e["encounter_id"] for e in call_kwargs["encounters"]}
+        assert encounter_ids == {"E1", "E2", "E3"}

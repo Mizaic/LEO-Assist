@@ -1,0 +1,870 @@
+{
+  "summary": {
+    "episodes_scanned": 305,
+    "patient_referral_pairs": 282,
+    "encounters_scanned": 16351,
+    "symptom_labels_found": 34,
+    "place_labels_found": 10
+  },
+  "symptoms": [
+    {
+      "category": "symptom",
+      "label": "breathlessness",
+      "total_occurrences": 464,
+      "surface_forms": {
+        "sob": 245,
+        "breathlessness": 121,
+        "dyspnoea": 51,
+        "shortness of breath": 47
+      },
+      "cancer_types": {
+        "non_site_specific": 129,
+        "lower_gi": 101,
+        "skin": 72,
+        "breast": 58,
+        "urological": 48,
+        "head_and_neck": 20,
+        "gynaecological": 13,
+        "haematological": 8,
+        "lung": 7,
+        "upper_gi": 5,
+        "brain": 2,
+        "unknown": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "unexplained weight loss",
+      "total_occurrences": 458,
+      "surface_forms": {
+        "weight loss": 450,
+        "unexplained weight loss": 4,
+        "losing weight": 4
+      },
+      "cancer_types": {
+        "non_site_specific": 138,
+        "lower_gi": 87,
+        "breast": 55,
+        "upper_gi": 51,
+        "head_and_neck": 38,
+        "skin": 33,
+        "urological": 23,
+        "haematological": 13,
+        "gynaecological": 9,
+        "unknown": 7,
+        "lung": 4
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "loose stools / diarrhoea",
+      "total_occurrences": 300,
+      "surface_forms": {
+        "diarrhoea": 230,
+        "loose stools": 55,
+        "loose stool": 10,
+        "diarrhea": 5
+      },
+      "cancer_types": {
+        "lower_gi": 106,
+        "non_site_specific": 80,
+        "upper_gi": 34,
+        "haematological": 27,
+        "breast": 21,
+        "head_and_neck": 13,
+        "urological": 9,
+        "skin": 5,
+        "lung": 3,
+        "unknown": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "chest pain",
+      "total_occurrences": 299,
+      "surface_forms": {
+        "chest pain": 267,
+        "chest tightness": 20,
+        "chest discomfort": 12
+      },
+      "cancer_types": {
+        "breast": 56,
+        "lower_gi": 53,
+        "non_site_specific": 47,
+        "gynaecological": 45,
+        "skin": 41,
+        "urological": 22,
+        "head_and_neck": 17,
+        "lung": 8,
+        "brain": 5,
+        "upper_gi": 2,
+        "haematological": 2,
+        "unknown": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "skin lesion",
+      "total_occurrences": 202,
+      "surface_forms": {
+        "melanoma": 108,
+        "skin lesion": 94
+      },
+      "cancer_types": {
+        "skin": 136,
+        "non_site_specific": 39,
+        "lower_gi": 8,
+        "breast": 7,
+        "upper_gi": 4,
+        "head_and_neck": 4,
+        "urological": 2,
+        "brain": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "haematuria",
+      "total_occurrences": 181,
+      "surface_forms": {
+        "haematuria": 126,
+        "blood in urine": 41,
+        "blood in the urine": 14
+      },
+      "cancer_types": {
+        "urological": 90,
+        "breast": 30,
+        "non_site_specific": 17,
+        "lower_gi": 13,
+        "unknown": 11,
+        "haematological": 8,
+        "skin": 7,
+        "head_and_neck": 3,
+        "gynaecological": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "unexplained fatigue",
+      "total_occurrences": 170,
+      "surface_forms": {
+        "fatigue": 142,
+        "tiredness": 28
+      },
+      "cancer_types": {
+        "non_site_specific": 70,
+        "lower_gi": 36,
+        "head_and_neck": 23,
+        "breast": 11,
+        "gynaecological": 11,
+        "urological": 9,
+        "unknown": 4,
+        "haematological": 2,
+        "upper_gi": 2,
+        "skin": 1,
+        "lung": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "anaemia / pallor",
+      "total_occurrences": 150,
+      "surface_forms": {
+        "anaemia": 110,
+        "pallor": 35,
+        "low hb": 3,
+        "anemia": 2
+      },
+      "cancer_types": {
+        "non_site_specific": 53,
+        "breast": 32,
+        "lower_gi": 25,
+        "haematological": 16,
+        "head_and_neck": 9,
+        "skin": 4,
+        "upper_gi": 4,
+        "urological": 3,
+        "lung": 3,
+        "gynaecological": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "lower urinary tract symptoms",
+      "total_occurrences": 140,
+      "surface_forms": {
+        "luts": 88,
+        "nocturia": 22,
+        "dribbling": 22,
+        "hesitancy": 5,
+        "urinary frequency": 3
+      },
+      "cancer_types": {
+        "urological": 33,
+        "breast": 26,
+        "non_site_specific": 26,
+        "head_and_neck": 15,
+        "upper_gi": 14,
+        "lower_gi": 11,
+        "skin": 10,
+        "haematological": 5
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "night sweats",
+      "total_occurrences": 125,
+      "surface_forms": {
+        "night sweats": 121,
+        "night sweat": 4
+      },
+      "cancer_types": {
+        "breast": 21,
+        "non_site_specific": 20,
+        "urological": 18,
+        "lower_gi": 18,
+        "head_and_neck": 10,
+        "haematological": 10,
+        "gynaecological": 9,
+        "skin": 7,
+        "lung": 5,
+        "upper_gi": 4,
+        "unknown": 3
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "abdominal pain",
+      "total_occurrences": 103,
+      "surface_forms": {
+        "abdominal pain": 94,
+        "stomach pain": 9
+      },
+      "cancer_types": {
+        "lower_gi": 36,
+        "non_site_specific": 30,
+        "upper_gi": 10,
+        "haematological": 8,
+        "breast": 7,
+        "gynaecological": 5,
+        "skin": 3,
+        "urological": 2,
+        "unknown": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "rectal bleeding",
+      "total_occurrences": 100,
+      "surface_forms": {
+        "pr bleeding": 30,
+        "blood in the stool": 23,
+        "blood in stool": 21,
+        "pr bleed": 14,
+        "rectal bleeding": 12
+      },
+      "cancer_types": {
+        "lower_gi": 41,
+        "non_site_specific": 30,
+        "upper_gi": 7,
+        "head_and_neck": 5,
+        "breast": 5,
+        "haematological": 5,
+        "skin": 3,
+        "unknown": 2,
+        "urological": 1,
+        "lung": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "breast lump",
+      "total_occurrences": 98,
+      "surface_forms": {
+        "breast lump": 91,
+        "lump in the breast": 4,
+        "palpable lump": 2,
+        "breast mass": 1
+      },
+      "cancer_types": {
+        "breast": 81,
+        "non_site_specific": 12,
+        "lower_gi": 4,
+        "skin": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "dysphagia",
+      "total_occurrences": 88,
+      "surface_forms": {
+        "dysphagia": 62,
+        "difficulty swallowing": 24,
+        "difficulty swallow": 2
+      },
+      "cancer_types": {
+        "breast": 25,
+        "non_site_specific": 22,
+        "head_and_neck": 18,
+        "lower_gi": 13,
+        "upper_gi": 8,
+        "lung": 1,
+        "unknown": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "headache",
+      "total_occurrences": 86,
+      "surface_forms": {
+        "headache": 80,
+        "severe headache": 4,
+        "worsening headache": 2
+      },
+      "cancer_types": {
+        "non_site_specific": 45,
+        "lower_gi": 16,
+        "haematological": 7,
+        "head_and_neck": 6,
+        "upper_gi": 4,
+        "breast": 4,
+        "urological": 2,
+        "unknown": 1,
+        "lung": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "haemoptysis",
+      "total_occurrences": 81,
+      "surface_forms": {
+        "haemoptysis": 80,
+        "coughing blood": 1
+      },
+      "cancer_types": {
+        "lower_gi": 31,
+        "breast": 25,
+        "non_site_specific": 9,
+        "urological": 6,
+        "lung": 4,
+        "skin": 3,
+        "head_and_neck": 2,
+        "upper_gi": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "unexplained bruising",
+      "total_occurrences": 60,
+      "surface_forms": {
+        "bruising": 60
+      },
+      "cancer_types": {
+        "lower_gi": 24,
+        "unknown": 17,
+        "non_site_specific": 7,
+        "skin": 4,
+        "urological": 3,
+        "gynaecological": 2,
+        "head_and_neck": 1,
+        "upper_gi": 1,
+        "breast": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "change in bowel habit",
+      "total_occurrences": 50,
+      "surface_forms": {
+        "change in bowel habit": 47,
+        "altered bowel habit": 3
+      },
+      "cancer_types": {
+        "lower_gi": 27,
+        "non_site_specific": 10,
+        "breast": 4,
+        "unknown": 3,
+        "gynaecological": 2,
+        "upper_gi": 2,
+        "skin": 1,
+        "haematological": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "persistent cough",
+      "total_occurrences": 48,
+      "surface_forms": {
+        "persistent cough": 39,
+        "chronic cough": 9
+      },
+      "cancer_types": {
+        "unknown": 19,
+        "breast": 12,
+        "non_site_specific": 5,
+        "urological": 3,
+        "lung": 3,
+        "lower_gi": 3,
+        "haematological": 2,
+        "head_and_neck": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "breast pain",
+      "total_occurrences": 47,
+      "surface_forms": {
+        "breast pain": 39,
+        "breast discomfort": 8
+      },
+      "cancer_types": {
+        "head_and_neck": 23,
+        "non_site_specific": 12,
+        "urological": 5,
+        "lung": 5,
+        "breast": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "raised PSA",
+      "total_occurrences": 37,
+      "surface_forms": {
+        "raised psa": 21,
+        "high psa": 7,
+        "psa high": 4,
+        "psa raised": 3,
+        "psa elevated": 2
+      },
+      "cancer_types": {
+        "urological": 28,
+        "non_site_specific": 7,
+        "breast": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "neck lump",
+      "total_occurrences": 35,
+      "surface_forms": {
+        "neck lump": 26,
+        "lump in neck": 4,
+        "cervical lymphadenopathy": 3,
+        "lymph node swelling": 2
+      },
+      "cancer_types": {
+        "head_and_neck": 9,
+        "non_site_specific": 9,
+        "haematological": 6,
+        "breast": 5,
+        "lower_gi": 4,
+        "urological": 1,
+        "lung": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "seizure",
+      "total_occurrences": 28,
+      "surface_forms": {
+        "epilepsy": 24,
+        "seizure": 4
+      },
+      "cancer_types": {
+        "lower_gi": 8,
+        "non_site_specific": 6,
+        "upper_gi": 6,
+        "urological": 2,
+        "haematological": 2,
+        "head_and_neck": 2,
+        "gynaecological": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "vaginal bleeding",
+      "total_occurrences": 27,
+      "surface_forms": {
+        "vaginal bleeding": 13,
+        "pv bleeding": 10,
+        "pv bleed": 3,
+        "vaginal bleed": 1
+      },
+      "cancer_types": {
+        "gynaecological": 18,
+        "breast": 4,
+        "urological": 3,
+        "unknown": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "postmenopausal bleeding",
+      "total_occurrences": 26,
+      "surface_forms": {
+        "postmenopausal bleeding": 16,
+        "pmb": 10
+      },
+      "cancer_types": {
+        "gynaecological": 8,
+        "breast": 4,
+        "head_and_neck": 4,
+        "non_site_specific": 3,
+        "urological": 2,
+        "lung": 2,
+        "lower_gi": 2,
+        "unknown": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "nipple discharge",
+      "total_occurrences": 25,
+      "surface_forms": {
+        "nipple discharge": 20,
+        "discharge from nipple": 5
+      },
+      "cancer_types": {
+        "breast": 23,
+        "lower_gi": 1,
+        "non_site_specific": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "hoarseness",
+      "total_occurrences": 23,
+      "surface_forms": {
+        "hoarse voice": 17,
+        "hoarseness": 6
+      },
+      "cancer_types": {
+        "head_and_neck": 17,
+        "lower_gi": 3,
+        "breast": 3
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "persistent earache",
+      "total_occurrences": 12,
+      "surface_forms": {
+        "ear pain": 10,
+        "earache": 2
+      },
+      "cancer_types": {
+        "breast": 4,
+        "lung": 3,
+        "skin": 2,
+        "urological": 2,
+        "non_site_specific": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "intermenstrual bleeding",
+      "total_occurrences": 7,
+      "surface_forms": {
+        "imb": 7
+      },
+      "cancer_types": {
+        "breast": 3,
+        "gynaecological": 2,
+        "unknown": 1,
+        "lower_gi": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "non-healing lesion",
+      "total_occurrences": 7,
+      "surface_forms": {
+        "chronic wound": 4,
+        "non-healing wound": 3
+      },
+      "cancer_types": {
+        "skin": 2,
+        "lower_gi": 2,
+        "non_site_specific": 2,
+        "head_and_neck": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "nipple inversion",
+      "total_occurrences": 5,
+      "surface_forms": {
+        "nipple inversion": 4,
+        "inverted nipple": 1
+      },
+      "cancer_types": {
+        "breast": 3,
+        "non_site_specific": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "pelvic pain",
+      "total_occurrences": 4,
+      "surface_forms": {
+        "pelvic pain": 2,
+        "lower abdominal pain": 2
+      },
+      "cancer_types": {
+        "urological": 1,
+        "non_site_specific": 1,
+        "breast": 1,
+        "haematological": 1
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "suspicious mole / changing lesion",
+      "total_occurrences": 4,
+      "surface_forms": {
+        "changing mole": 4
+      },
+      "cancer_types": {
+        "lower_gi": 2,
+        "non_site_specific": 2
+      }
+    },
+    {
+      "category": "symptom",
+      "label": "haematemesis",
+      "total_occurrences": 2,
+      "surface_forms": {
+        "haematemesis": 2
+      },
+      "cancer_types": {
+        "lower_gi": 1,
+        "non_site_specific": 1
+      }
+    }
+  ],
+  "places_of_presentation": [
+    {
+      "category": "place_of_presentation",
+      "label": "pharmacy",
+      "total_occurrences": 705,
+      "surface_forms": {
+        "pharmacist": 473,
+        "pharmacy": 223,
+        "chemist": 9
+      },
+      "cancer_types": {
+        "lower_gi": 135,
+        "non_site_specific": 122,
+        "breast": 113,
+        "skin": 88,
+        "upper_gi": 57,
+        "head_and_neck": 56,
+        "urological": 46,
+        "gynaecological": 38,
+        "haematological": 22,
+        "brain": 18,
+        "unknown": 6,
+        "lung": 4
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "walk-in / urgent care centre",
+      "total_occurrences": 537,
+      "surface_forms": {
+        "urgent treatment centre": 377,
+        "walk in centre": 76,
+        "urgent care centre": 44,
+        "ucc": 40
+      },
+      "cancer_types": {
+        "non_site_specific": 122,
+        "lower_gi": 112,
+        "skin": 95,
+        "urological": 80,
+        "breast": 33,
+        "upper_gi": 33,
+        "haematological": 32,
+        "unknown": 21,
+        "head_and_neck": 4,
+        "gynaecological": 3,
+        "lung": 2
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "hospital outpatient clinic",
+      "total_occurrences": 440,
+      "surface_forms": {
+        "opd": 400,
+        "outpatient appointment": 25,
+        "clinic appointment": 14,
+        "hospital outpatient": 1
+      },
+      "cancer_types": {
+        "breast": 128,
+        "non_site_specific": 81,
+        "skin": 50,
+        "lower_gi": 44,
+        "urological": 38,
+        "head_and_neck": 28,
+        "gynaecological": 25,
+        "upper_gi": 20,
+        "haematological": 18,
+        "lung": 6,
+        "unknown": 2
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "GP surgery",
+      "total_occurrences": 388,
+      "surface_forms": {
+        "primary care": 169,
+        "gp surgery": 132,
+        "gp appointment": 38,
+        "general practice": 26,
+        "gp practice": 17,
+        "seen by gp": 6
+      },
+      "cancer_types": {
+        "lower_gi": 72,
+        "non_site_specific": 67,
+        "breast": 60,
+        "skin": 38,
+        "urological": 35,
+        "head_and_neck": 28,
+        "lung": 21,
+        "haematological": 20,
+        "upper_gi": 20,
+        "gynaecological": 14,
+        "unknown": 12,
+        "brain": 1
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "remote / online consultation",
+      "total_occurrences": 272,
+      "surface_forms": {
+        "telephone consultation": 238,
+        "online consultation": 17,
+        "telephone appointment": 10,
+        "video consultation": 7
+      },
+      "cancer_types": {
+        "breast": 69,
+        "non_site_specific": 66,
+        "lower_gi": 50,
+        "skin": 28,
+        "upper_gi": 17,
+        "head_and_neck": 15,
+        "gynaecological": 11,
+        "urological": 7,
+        "haematological": 4,
+        "lung": 3,
+        "unknown": 2
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "screening programme",
+      "total_occurrences": 200,
+      "surface_forms": {
+        "smear": 108,
+        "screening programme": 45,
+        "cervical screening": 23,
+        "breast screening": 14,
+        "bowel screening": 10
+      },
+      "cancer_types": {
+        "breast": 72,
+        "non_site_specific": 48,
+        "gynaecological": 25,
+        "urological": 17,
+        "lower_gi": 12,
+        "haematological": 9,
+        "head_and_neck": 5,
+        "unknown": 5,
+        "upper_gi": 4,
+        "lung": 3
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "accident and emergency",
+      "total_occurrences": 179,
+      "surface_forms": {
+        "a&e": 138,
+        "accident and emergency": 35,
+        "emergency department": 6
+      },
+      "cancer_types": {
+        "non_site_specific": 50,
+        "lower_gi": 39,
+        "urological": 25,
+        "skin": 17,
+        "breast": 13,
+        "head_and_neck": 9,
+        "haematological": 8,
+        "upper_gi": 7,
+        "unknown": 4,
+        "brain": 4,
+        "lung": 3
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "self-referral",
+      "total_occurrences": 39,
+      "surface_forms": {
+        "self-refer": 13,
+        "self refer": 9,
+        "self-referral": 8,
+        "self referral": 7,
+        "self referred": 2
+      },
+      "cancer_types": {
+        "non_site_specific": 14,
+        "lower_gi": 6,
+        "unknown": 4,
+        "upper_gi": 4,
+        "urological": 4,
+        "skin": 3,
+        "gynaecological": 3,
+        "breast": 1
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "diagnostic / radiology centre",
+      "total_occurrences": 37,
+      "surface_forms": {
+        "radiology": 37
+      },
+      "cancer_types": {
+        "non_site_specific": 12,
+        "lower_gi": 6,
+        "skin": 6,
+        "breast": 5,
+        "upper_gi": 3,
+        "urological": 2,
+        "gynaecological": 2,
+        "haematological": 1
+      }
+    },
+    {
+      "category": "place_of_presentation",
+      "label": "private clinic",
+      "total_occurrences": 13,
+      "surface_forms": {
+        "private clinic": 7,
+        "private sector": 6
+      },
+      "cancer_types": {
+        "skin": 10,
+        "non_site_specific": 2,
+        "gynaecological": 1
+      }
+    }
+  ]
+}

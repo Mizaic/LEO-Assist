@@ -25,6 +25,7 @@ class AnchorResult:
     specialist_outcome_letter_anchors: list[dict[str, Any]] = field(
         default_factory=list
     )
+    first_presentation_anchors: list[dict[str, Any]] = field(default_factory=list)
     detection_method: str = "none"
     expanded_start: str | None = None
     expanded_end: str | None = None
@@ -48,6 +49,7 @@ _MILESTONE_TYPE_TO_BUCKET_KEY = {
     "specialist_visit": "specialist_visit_anchors",
     "benign_closure": "benign_closure_anchors",
     "specialist_outcome_letter": "specialist_outcome_letter_anchors",
+    "first_presentation": "first_presentation_anchors",
 }
 
 
@@ -63,7 +65,31 @@ def _dedupe_by_encounter(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _dedupe_first_presentation(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Dedupe first-presentation anchors by encounter+concept, not encounter only.
+
+    A single encounter can DOCUMENT multiple relevant concepts (symptom + place +
+    sign). Keeping only one row per encounter loses signal and can incorrectly
+    drop symptom evidence when a place/procedure concept appears first.
+    """
+    seen: set[tuple[str, str, str]] = set()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        encounter_id = str(row.get("encounter_id") or "")
+        concept_id = str(row.get("concept_id") or row.get("concept_name") or "")
+        assertion = str(row.get("assertion") or "present")
+        if not encounter_id or not concept_id:
+            continue
+        key = (encounter_id, concept_id, assertion)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(dict(row))
+    return out
+
+
 _AnchorBuckets = tuple[
+    list[dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],
@@ -78,6 +104,37 @@ _AnchorBuckets = tuple[
 # episode builder processes them after cancer diagnoses, ensuring cancer
 # concepts claim referrals first.
 _PATHWAY_COMPLETION_DOMAINS: frozenset[str] = frozenset({"no_cancer_discharge"})
+
+# -- first_presentation quality gates --------------------------------------
+# Keep symptom/sign and investigation evidence, drop place/admin-only noise.
+_FP_EXCLUDE_NAME_RE = re.compile(
+    r"\b("
+    r"seen in|seen by|consultation|appointment|outpatient|"
+    r"clinic|service|general practitioner surgery|primary care establishment"
+    r")\b",
+    re.IGNORECASE,
+)
+_FP_INVESTIGATION_NAME_RE = re.compile(
+    r"\b("
+    r"test|scan|ct|mri|ultrasound|xray|x-ray|biopsy|histology|"
+    r"colonoscopy|gastroscopy|endoscopy|psa|cea|ca125|investigation|imaging"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _is_first_presentation_row(row: dict[str, Any]) -> bool:
+    tag = str(row.get("semantic_tag") or "").strip().lower().replace("_", " ")
+    name = str(row.get("concept_name") or "").strip()
+    if not name:
+        return False
+    if tag in {"environment", "place", "physical_object"}:
+        return False
+    if _FP_EXCLUDE_NAME_RE.search(name):
+        return False
+    if tag == "procedure":
+        return bool(_FP_INVESTIGATION_NAME_RE.search(name))
+    return True
 
 
 def _build_buckets(
@@ -142,6 +199,7 @@ def _classify_anchor_rows(
     specialists: list[dict[str, Any]] = []
     benign_closures: list[dict[str, Any]] = []
     specialist_letters: list[dict[str, Any]] = []
+    first_presentations: list[dict[str, Any]] = []
 
     bucket_lists = {
         "referral": referrals,
@@ -150,6 +208,7 @@ def _classify_anchor_rows(
         "specialist_visit": specialists,
         "benign_closure": benign_closures,
         "specialist_outcome_letter": specialist_letters,
+        "first_presentation": first_presentations,
     }
 
     for row in rows:
@@ -168,6 +227,9 @@ def _classify_anchor_rows(
             if target is None:
                 continue
             row_copy = dict(row)
+            if milestone_type == "first_presentation":
+                if not _is_first_presentation_row(row_copy):
+                    continue
             if milestone_type == "diagnosis" and concept_id in pathway_completion_ids:
                 row_copy["is_pathway_completion"] = True
             target.append(row_copy)
@@ -179,6 +241,7 @@ def _classify_anchor_rows(
         _dedupe_by_encounter(specialists),
         _dedupe_by_encounter(benign_closures),
         _dedupe_by_encounter(specialist_letters),
+        _dedupe_first_presentation(first_presentations),
     )
 
 
@@ -321,6 +384,10 @@ def _classify_text_encounters(
 
     document_transfer encounters tagged ``clinic_letter`` are always scanned;
     filing-note text may be very short.
+
+    first_presentation anchors are NOT detected via text search -- symptom and
+    sign detection requires the coded SNOMED path (via surface forms in the
+    terminology server) to handle assertion and negation correctly.
     """
     referrals: list[dict[str, Any]] = []
     diagnoses: list[dict[str, Any]] = []
@@ -328,6 +395,7 @@ def _classify_text_encounters(
     specialists: list[dict[str, Any]] = []
     benign_closures: list[dict[str, Any]] = []
     specialist_letters: list[dict[str, Any]] = []
+    first_presentations: list[dict[str, Any]] = []
 
     for row in text_rows:
         enc_id = row.get("encounter_id") or ""
@@ -397,6 +465,7 @@ def _classify_text_encounters(
         _dedupe_by_encounter(specialists),
         _dedupe_by_encounter(benign_closures),
         _dedupe_by_encounter(specialist_letters),
+        first_presentations,  # always empty -- coded path only
     )
 
 
@@ -438,6 +507,7 @@ def detect_anchors(
         specialists,
         benign_closures,
         specialist_letters,
+        first_presentations,
     ) = _classify_anchor_rows(coded_rows, buckets, pathway_completion_ids)
 
     # -- Layer 2: encounter text (uncoded + all encounters) --
@@ -459,6 +529,7 @@ def detect_anchors(
             t_specs,
             t_benign,
             t_letters,
+            _t_fp,  # always empty; first_presentation is coded-path only
         ) = _classify_text_encounters(text_rows, already_coded_ids)
         # Merge: coded anchors first, then text-derived for encounters not
         # already represented in the coded set.
@@ -485,6 +556,7 @@ def detect_anchors(
             specialists,
             benign_closures,
             specialist_letters,
+            first_presentations,
         )
     )
     detection_method = "concept+text" if has_anchors else "none"
@@ -499,6 +571,7 @@ def detect_anchors(
         specialist_visit_anchors=_dedupe_by_encounter(specialists),
         benign_closure_anchors=_dedupe_by_encounter(benign_closures),
         specialist_outcome_letter_anchors=_dedupe_by_encounter(specialist_letters),
+        first_presentation_anchors=_dedupe_first_presentation(first_presentations),
         detection_method=detection_method,
     )
     all_refs = result.referral_anchors

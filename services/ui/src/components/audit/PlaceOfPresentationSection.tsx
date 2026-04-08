@@ -1,5 +1,7 @@
 "use client";
 
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
@@ -37,7 +39,10 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
     ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
-  const chartData: ComparisonDataRow[] = practice.slice(0, 8).map((row) => {
+  const MAX_PLACE_BARS = 8;
+  const hiddenPlaceCount = Math.max(0, practice.length - MAX_PLACE_BARS);
+
+  const chartData: ComparisonDataRow[] = practice.slice(0, MAX_PLACE_BARS).map((row) => {
     const label = formatPlace(row.place);
     const aRow = allianceLive?.find((r) => formatPlace(r.place) === label);
     const eRow = englandLive?.find((r) => formatPlace(r.place) === label);
@@ -89,13 +94,20 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
       error={error}
     >
       <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
-      <ComparisonBarChart
-        data={chartData}
-        unit="percent"
-        visibleKeys={visibleKeys}
-        orgSelected={orgSelected}
-        ariaLabel="Place of first presentation compared to alliance and national benchmarks"
-      />
+      <Box>
+        <ComparisonBarChart
+          data={chartData}
+          unit="percent"
+          visibleKeys={visibleKeys}
+          orgSelected={orgSelected}
+          ariaLabel="Place of first presentation compared to alliance and national benchmarks"
+        />
+        {hiddenPlaceCount > 0 && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
+            {`+${hiddenPlaceCount} less common place${hiddenPlaceCount !== 1 ? "s" : ""} not shown`}
+          </Typography>
+        )}
+      </Box>
       <SummaryStatsTable
         rows={tableRows}
         visibleKeys={visibleKeys}

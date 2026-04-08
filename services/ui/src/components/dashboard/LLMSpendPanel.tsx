@@ -121,7 +121,9 @@ export default function LLMSpendPanel() {
             <Typography variant="h6" component="h2" sx={{ fontSize: "1rem", fontWeight: 700 }}>
               AI model spend
             </Typography>
-            <Typography variant="caption" color="text.disabled">(this organisation)</Typography>
+            <Typography variant="caption" color="text.disabled">
+              {isAdmin ? "(all organisations)" : "(your organisation)"}
+            </Typography>
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             {isAdmin && (
@@ -187,7 +189,7 @@ export default function LLMSpendPanel() {
             {runs.length > 0 && (
               <Box>
                 <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
-                  RECENT RUNS ({runs.length})
+                  RECENT RUNS (showing {Math.min(runs.length, 50)} of {totals.runCount ?? runs.length})
                 </Typography>
                 <Box sx={{ maxHeight: 240, overflow: "auto" }}>
                   {runs.slice(0, 50).map((run) => (

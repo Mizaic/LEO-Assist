@@ -1,0 +1,88 @@
+# -- UN-LEO-AI-057 -- Audit Report Benchmark Visualisation
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-057"
+  title: "Clinical audit teams need clear, interpretable charts comparing their patient mix to national benchmarks in the audit report"
+  description: |
+    Clinical audit teams reviewing the NCDA audit report need visualisations
+    that make benchmark comparisons immediately readable at a glance, without
+    clinical informatics expertise. Charts must show which cancer types are
+    over-represented or under-represented in the practice population compared
+    to the 2018 national baseline, with differences (deviation from benchmark)
+    being the primary visual signal rather than raw proportions.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Team Member / GP / Cancer Lead"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "SHOULD"
+
+  rationale: |
+    The current grouped bar chart forces users to compare adjacent bars by
+    height with a 0-100% y-axis, making differences hard to see when all
+    values are below 30%. Users may misread the chart and draw incorrect
+    conclusions about their patient mix. Clear benchmark deviation visualisation
+    is essential to avoid misinterpretation of population-level cancer type
+    distribution, which could influence referral pathway prioritisation.
+
+  benefit: "Reduces chart misinterpretation risk; deviation from benchmark is shown as the primary signal, not obscured in raw proportions"
+
+  use_case: |
+    1. Clinical audit lead opens the NCDA Audit Report and navigates to the
+       Cancer Type section.
+    2. System displays a horizontal dumbbell chart: one row per cancer type,
+       two dots per row connected by a line showing today's proportion vs
+       the 2018 national baseline.
+    3. Line colour indicates direction: green for types more prevalent today,
+       amber for types less prevalent.
+    4. The x-axis is auto-fitted to the data range, not forced to 0-100%.
+    5. Human-readable labels replace raw key strings (e.g. "Lower GI" not
+       "lower_gi").
+    6. Audit lead immediately identifies the two or three types with the
+       largest deviation and discusses with the clinical team.
+
+  current_solution: |
+    Vertical grouped bar chart with 0-100% y-axis and rotated tick labels.
+    Differences are not visually prominent; users must read table values.
+
+  pain_points:
+    - "0-100% y-axis makes all bars look tiny when max value is around 30%"
+    - "Grouped bars require mental comparison of adjacent bar heights"
+    - "Rotated x-axis labels are hard to read with 15+ categories"
+    - "Raw key strings (lower_gi, cns) are displayed instead of human labels"
+    - "The gap from benchmark (the clinical signal) is not the primary visual element"
+
+  acceptance_criteria:
+    - "Chart shall display a horizontal dumbbell (dot-to-dot) row per cancer type"
+    - "X-axis domain shall be fitted to data, not fixed at 0-100%"
+    - "Line colour shall indicate direction vs benchmark (green = above, amber = below, grey = no benchmark)"
+    - "Cancer type labels shall be human-readable (title case, no underscores)"
+    - "A percentage-point delta label shall appear at the end of each connecting line"
+    - "Chart renders correctly when benchmark values are absent for some types"
+
+  success_metrics:
+    - metric: "Benchmark deviation visual prominence"
+      target: "Gap magnitude is the primary visual element without needing to read table values"
+      baseline: "Current: table read required; bar height comparison is error-prone"
+
+  regulatory_impact: "low"
+  safety_impact: "low"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1 (NCDA launch configuration)"
+    - "NHS NCDA audit report usability requirement"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-04-08"
+    status: "draft"
+
+  design_inputs: ["DI-LEO-AI-090"]
+  validation_tests: []
+
+  tags: ["audit-report", "visualisation", "cancer-type", "benchmark", "ncda", "ui"]

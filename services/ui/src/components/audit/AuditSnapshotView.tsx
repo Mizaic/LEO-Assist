@@ -740,7 +740,7 @@ export default function AuditSnapshotView({
                   onView={() => onViewInReport("section-demographics")}
                   rows={[
                     { label: "Male / female", practice: sexMaleLive != null ? `${Math.round(sexMaleLive)}% / ${Math.round(100 - sexMaleLive)}%` : "—", england: sexMaleBm != null ? `${sexMaleBm}% / ${100 - sexMaleBm}%` : "—" },
-                    { label: "Median age", practice: "—", england: medAgeBm != null ? `${medAgeBm} years` : "—" },
+                    { label: "Median age", practice: demPractice?.median_age != null ? `${demPractice.median_age} years` : "—", england: medAgeBm != null ? `${medAgeBm} years` : "—" },
                     { label: "White ethnicity", practice: fmtPct(ethnicLive), england: fmtPct(ethnicBm) },
                   ]}
                 />

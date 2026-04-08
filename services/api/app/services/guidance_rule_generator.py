@@ -83,6 +83,8 @@ ON CREATE SET
     rule.generatedBy       = 'llm_consensus',
     rule.promptConfigName  = 'guidance_rule_extraction',
     rule.promptConfigVer   = 1,
+    rule.compileScopeType  = 'guideline',
+    rule.compileScopeId    = $compile_scope_id,
     rule.schemaVersion     = $schema_version,
     rule.logicJson         = $logic_json,
     rule.rawLogicJson      = $raw_logic_json,
@@ -90,6 +92,8 @@ ON CREATE SET
     rule.actionJson        = $action_json,
     rule.createdAt         = datetime()
 ON MATCH SET
+    rule.compileScopeType  = 'guideline',
+    rule.compileScopeId    = $compile_scope_id,
     rule.schemaVersion     = $schema_version,
     rule.logicJson         = $logic_json,
     rule.rawLogicJson      = $raw_logic_json,
@@ -430,6 +434,7 @@ class GuidanceRuleGenerator:
                 rule_id=rule_id,
                 name=f"Rule: {(rec.get('title') or '')[:80]}",
                 strength=rec.get("strength", "unspecified"),
+                compile_scope_id=guideline_id,
                 schema_version=int(coded.get("schema_version") or 1),
                 logic_json=json.dumps(coded.get("logic_tree")) if coded.get("logic_tree") is not None else None,
                 raw_logic_json=json.dumps((raw or {}).get("logic_tree")) if (raw or {}).get("logic_tree") is not None else None,

@@ -1,0 +1,80 @@
+# -- DO-LEO-AI-088 -- Cancer Type Dumbbell Chart Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-088"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-090"]
+    user_needs: ["UN-LEO-AI-057"]
+    risks_addressed: ["R-LEO-AI-064"]
+    verification_tests: ["VT-LEO-AI-090"]
+
+  specification:
+    title: "CancerTypeDumbbellChart - Horizontal dumbbell chart for cancer type benchmark comparison"
+    description: |
+      A Recharts ComposedChart rendered horizontally with one bar row per cancer
+      type. Two scatter points per row (today = filled blue circle, 2018 benchmark
+      = hollow amber diamond) are overlaid on a transparent bar that spans between
+      them, creating the dumbbell effect. The bar colour encodes direction: green
+      when today > benchmark, amber when today < benchmark, grey when no benchmark
+      is available. A custom label at the end of each row shows the pp delta.
+      The x-axis domain auto-fits to ceil(max(all values) / 5) * 5. Cancer type
+      key strings are humanised via a lookup table and a generic capitalise fallback.
+    acceptance_criteria:
+      - criterion: "Row per type"
+        type: "functional"
+        measurement: "Test"
+        target: "One row rendered per unique cancer_type key in input data"
+      - criterion: "Auto-fitted axis"
+        type: "functional"
+        measurement: "Test"
+        target: "X-axis max <= ceil(max_value / 5) * 5 + 5 when data present"
+      - criterion: "Colour direction logic"
+        type: "functional"
+        measurement: "Test"
+        target: "Line renders green for today > benchmark; amber for today < benchmark; grey otherwise"
+      - criterion: "Delta label"
+        type: "functional"
+        measurement: "Test"
+        target: "+Xpp / -Xpp label shown when benchmark exists; absent when benchmark is null"
+      - criterion: "Human labels"
+        type: "functional"
+        measurement: "Test"
+        target: "lower_gi -> Lower GI; head_and_neck -> Head and Neck; breast -> Breast"
+      - criterion: "Empty state"
+        type: "functional"
+        measurement: "Test"
+        target: "Explanatory Typography rendered when data array is empty"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/audit/CancerTypeDumbbellChart.tsx"
+        description: "CancerTypeDumbbellChart component; humaniseCancerLabel helper; DumbbellRow type"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/audit/CancerTypeSection.tsx"
+        description: "Modified to import and render CancerTypeDumbbellChart instead of ComparisonBarChart"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 120
+      key_functions:
+        - "CancerTypeDumbbellChart"
+        - "humaniseCancerLabel"
+        - "buildDumbbellRows"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Presentation of cancer type distribution data to clinical audit staff"
+    risk_control_measures:
+      - "Auto-fitted axis prevents misleading empty space that could cause under-estimation of differences"
+      - "Direction colour coding reduces misinterpretation risk for non-technical clinical users"
+      - "Delta labels provide exact numerical values alongside visual encoding"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

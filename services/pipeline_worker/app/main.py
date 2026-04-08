@@ -783,6 +783,18 @@ def _run_guidance_generation(job_id: str, guideline_id: str) -> None:
 
 @app.post("/guidance/generate", status_code=202)
 async def guidance_generate(body: GuidanceGenerateRequest) -> dict[str, Any]:
+    # Reject a second concurrent request for the same guideline to prevent
+    # duplicate rule writes or conflicting Neo4j transactions.
+    for job in _guidance_generate_jobs.values():
+        if job["guideline_id"] == body.guideline_id and job["status"] == "running":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Rule generation for '{body.guideline_id}' is already running "
+                    f"(job {job['job_id']!r}). Wait for it to finish before re-generating."
+                ),
+            )
+
     job_id = str(uuid.uuid4())
     _guidance_generate_jobs[job_id] = {
         "job_id": job_id,
@@ -800,6 +812,18 @@ async def guidance_generate(body: GuidanceGenerateRequest) -> dict[str, Any]:
     )
     thread.start()
     return {"job_id": job_id}
+
+
+@app.get("/guidance/generate/{job_id}")
+async def guidance_generate_status(job_id: str) -> dict[str, Any]:
+    """Poll the status of a rule generation job started by POST /guidance/generate."""
+    job = _guidance_generate_jobs.get(job_id)
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Generation job '{job_id}' not found. It may have been cleared after a worker restart.",
+        )
+    return job
 
 
 @app.get("/health")

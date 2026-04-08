@@ -53,7 +53,9 @@ class TestEpisodeSummary:
         episode_summary(org_id=None)
         query = MockPG.return_value.run.call_args[0][0]
         assert "REGISTERED_AT" not in query
-        assert "MATCH (ep:EpisodeOfCare)" in query
+        # No-org admin path uses patient-linked match (not orphan-inclusive)
+        assert "HAS_EPISODE_OF_CARE" in query
+        assert "EpisodeOfCare" in query
 
 
 class TestDateFilter:

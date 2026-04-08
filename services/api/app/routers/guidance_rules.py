@@ -14,6 +14,7 @@ All endpoints require the ai.admin role.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -281,19 +282,25 @@ RETURN r.id          AS id,
 """
 
 
+_EXTRACTION_TIMEOUT_S = int(os.getenv("RULE_EXTRACTION_TIMEOUT_S", "120"))
+
+
 @router.post("/rules/test/{recommendation_id:path}", status_code=200)
-def test_rule_extraction(
+async def test_rule_extraction(
     recommendation_id: str,
     scope: CallerScope = Depends(require_admin),
 ) -> dict:
     """Dry-run the rule extraction pipeline on a single recommendation.
 
-    Runs the full ``guidance_rule_extraction`` LangGraph subgraph — prompt
-    resolution, dual-model consensus LLM, Terminology API SNOMED coding —
+    Runs the full ``guidance_rule_extraction`` LangGraph subgraph -- prompt
+    resolution, dual-model consensus LLM, Terminology API SNOMED coding --
     but does **not** write anything to Neo4j or Redis.
 
     Use this to preview what criteria and action the AI would extract before
     committing to a full rule generation run.
+
+    Times out after ``RULE_EXTRACTION_TIMEOUT_S`` seconds (default 120) and
+    returns HTTP 504 so callers are never left waiting indefinitely.
 
     Args:
         recommendation_id: Neo4j Recommendation node ID
@@ -301,15 +308,20 @@ def test_rule_extraction(
 
     Returns:
         ``{recommendation, raw_criteria, coded_criteria, errors}`` where:
-        - ``recommendation`` — the stored verbatim text and metadata
-        - ``raw_criteria`` — plain-text LLM output ``{criteria_groups, action}``
-        - ``coded_criteria`` — SNOMED-resolved ``{criteria_groups, action, applies_to}``
+        - ``recommendation`` -- the stored verbatim text and metadata
+        - ``raw_criteria`` -- plain-text LLM output ``{criteria_groups, action}``
+        - ``coded_criteria`` -- SNOMED-resolved ``{criteria_groups, action, applies_to}``
           ``{present: [{term, snomed_concept_id, preferred_term, semantic_tag}], ...}``
-        - ``errors`` — any pipeline warnings
+        - ``errors`` -- any pipeline warnings
     """
+    loop = asyncio.get_running_loop()
+
     client = _kg_client()
     try:
-        rows = client.run(_FETCH_SINGLE_RECOMMENDATION, rec_id=recommendation_id)
+        rows = await loop.run_in_executor(
+            None,
+            lambda: client.run(_FETCH_SINGLE_RECOMMENDATION, rec_id=recommendation_id),
+        )
     finally:
         client.close()
 
@@ -334,7 +346,7 @@ def test_rule_extraction(
     if not rec["verbatim"]:
         raise HTTPException(
             status_code=422,
-            detail="Recommendation has no verbatim text stored — re-ingest the guideline first.",
+            detail="Recommendation has no verbatim text stored -- re-ingest the guideline first.",
         )
 
     if not row.get("is_normative"):
@@ -347,13 +359,33 @@ def test_rule_extraction(
             ),
         )
 
-    # Run the subgraph dry-run (no writes)
+    # Run the subgraph dry-run in a thread so the event loop stays free, and
+    # cap execution time so a slow LLM or Terminology API cannot block the
+    # server indefinitely.
     try:
         subgraph = get_registry().build("guidance_rule_extraction")
-        result = subgraph.invoke({
-            "recommendation": rec,
-            "guideline_id": guideline_id,
-        })
+        result = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: subgraph.invoke({
+                    "recommendation": rec,
+                    "guideline_id": guideline_id,
+                }),
+            ),
+            timeout=float(_EXTRACTION_TIMEOUT_S),
+        )
+    except asyncio.TimeoutError:
+        logger.error(
+            "Rule extraction test timed out after %ss for %s",
+            _EXTRACTION_TIMEOUT_S, recommendation_id,
+        )
+        raise HTTPException(
+            status_code=504,
+            detail=(
+                f"Rule extraction timed out after {_EXTRACTION_TIMEOUT_S}s. "
+                "The LLM or Terminology API may be overloaded -- try again shortly."
+            ),
+        )
     except Exception as exc:
         logger.exception("Rule extraction test failed for %s", recommendation_id)
         raise HTTPException(status_code=500, detail=f"Extraction pipeline error: {exc}")
@@ -416,6 +448,7 @@ async def generate_rules(
 
     Returns a job ID immediately. Rule generation runs in the background.
     Rules will appear in the review queue once complete.
+    Poll GET /rules/generate/{job_id} to track progress.
     """
     _ = scope
     return await _proxy_pipeline_worker_json(
@@ -423,6 +456,20 @@ async def generate_rules(
         "/guidance/generate",
         json_body=req.model_dump(),
     )
+
+
+@router.get("/rules/generate/{job_id}")
+async def get_generate_job_status(
+    job_id: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Poll the status of a rule generation job.
+
+    Returns ``{job_id, guideline_id, status, started_at, completed_at, rule_ids, error}``
+    where ``status`` is one of ``running | done | error``.
+    """
+    _ = scope
+    return await _proxy_pipeline_worker_json("GET", f"/guidance/generate/{job_id}")
 
 
 @router.get("/rules/review")

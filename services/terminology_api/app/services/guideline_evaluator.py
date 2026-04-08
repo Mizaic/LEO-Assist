@@ -45,6 +45,10 @@ class GuidelineEvaluator:
         pathway_filter: str | None = None,
         patient_age: float | None = None,
         patient_sex: str | None = None,
+        *,
+        scope_type: str | None = None,
+        scope_id: str | None = None,
+        ruleset_version: str | None = None,
     ) -> dict[str, Any]:
         """Evaluate patient SNOMED codes against the active bitmap ruleset.
 
@@ -61,7 +65,17 @@ class GuidelineEvaluator:
         Returns:
             Dict with ``matched_rules`` list and ``active_version`` string.
         """
-        ruleset = self._store.get_current_ruleset()
+        if ruleset_version:
+            ruleset = self._store.get_ruleset(
+                ruleset_version,
+                scope_type=scope_type,
+                scope_id=scope_id,
+            )
+        else:
+            ruleset = self._store.get_current_ruleset(
+                scope_type=scope_type,
+                scope_id=scope_id,
+            )
         if not ruleset:
             logger.warning(
                 "GuidelineEvaluator: no active ruleset found in Redis — "
@@ -72,6 +86,8 @@ class GuidelineEvaluator:
                 "matched_rules": [],
                 "active_version": None,
                 "message": "No active ruleset compiled yet.",
+                "scope_type": scope_type or "global",
+                "scope_id": scope_id or "default",
             }
 
         # Inject sex SNOMED concept if caller supplies it as a string
@@ -95,6 +111,8 @@ class GuidelineEvaluator:
             "matched_rules": matches,
             "active_version": ruleset.get("version"),
             "compile_timestamp": ruleset.get("compile_timestamp"),
+            "scope_type": ruleset.get("scope_type") or scope_type or "global",
+            "scope_id": ruleset.get("scope_id") or scope_id or "default",
         }
 
     def _build_patient_bitmap(self, concept_ids: list[str]) -> BitMap:

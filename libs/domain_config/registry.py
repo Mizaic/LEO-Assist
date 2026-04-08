@@ -126,6 +126,7 @@ NCDA_DOMAIN_CONFIGS: Dict[str, NCDADomain] = {
     "seen_by_specialist": NCDADomain(name="seen_by_specialist", file="snomed_ncda_seen_by_specialist_mapping.json", description="Seen by specialist encounters", semantic_tags=["Procedure"], milestone_type="specialist_visit"),
     "referral_outcomes": NCDADomain(name="referral_outcomes", file="snomed_ncda_referral_outcomes_mapping.json", description="Referral outcome codes", semantic_tags=["Situation"]),
     "no_cancer_discharge": NCDADomain(name="no_cancer_discharge", file="snomed_ncda_no_cancer_discharge_mapping.json", description="No evidence of cancer found -- explicit pathway-level discharge (benign biopsy, histopathology, clinic discharge letter). Closes an episode as benign without a cancer diagnosis.", semantic_tags=["Clinical_finding", "Situation"], milestone_type="benign_closure"),
+    "stage_of_diagnosis": NCDADomain(name="stage_of_diagnosis", file="snomed_ncda_stage_of_diagnosis_mapping.json", description="Cancer stage at diagnosis including staging systems and stage findings used in cancer audit reporting.", semantic_tags=["Clinical_finding", "Tumor_staging"], milestone_type="diagnosis"),
     "screening": NCDADomain(name="screening", file="snomed_ncda_screening_mapping.json", description="NHS cancer screening programmes — offered/declined/completed situations, FIT/FOB/sigmoidoscopy results, lung/bowel/breast/cervical programme findings, DNA events, eligibility", semantic_tags=["Procedure", "Situation", "Clinical_finding"]),
     "observable_entities": NCDADomain(name="observable_entities", file="snomed_ncda_observable_entities_mapping.json", description="Observable entity measurements", semantic_tags=["Observable_entity"]),
     "ethnicity": NCDADomain(name="ethnicity", file="snomed_ncda_ethnicity_mapping.json", description="Ethnicity codes", semantic_tags=["Ethnic_group"]),
@@ -269,6 +270,23 @@ class DomainRegistry:
                         tag = sub.get("valueString")
                         if tag:
                             semantic_tags.append(tag)
+
+        # Flat top-level keys (written by the UI settings page and injected
+        # by _load_registry from KG node properties) take precedence over
+        # whatever was stored in the FHIR extension blob.
+        if vs.get("milestoneType"):
+            milestone_type = str(vs["milestoneType"])
+        if vs.get("timeWindowMonths") is not None:
+            try:
+                time_window_months = int(vs["timeWindowMonths"])
+            except (TypeError, ValueError):
+                pass
+        if vs.get("semanticTags"):
+            tags = vs["semanticTags"]
+            if isinstance(tags, list):
+                semantic_tags = [str(t) for t in tags if t]
+            elif isinstance(tags, str) and tags:
+                semantic_tags = [tags]
 
         assertion_filter = list(vs.get("assertionFilter") or [])
 

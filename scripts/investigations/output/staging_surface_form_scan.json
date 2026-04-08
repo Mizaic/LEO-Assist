@@ -1,0 +1,743 @@
+{
+  "summary": {
+    "diagnosis_anchor_windows": 253,
+    "encounters_scanned": 22341,
+    "unique_surface_forms_found": 19,
+    "covered_forms": 0,
+    "missed_forms": 19,
+    "window_before_days": 30,
+    "window_after_days": 90
+  },
+  "covered": [],
+  "missed": [
+    {
+      "surface_form": "t4",
+      "count": 56,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "6509504022",
+          "episode_id": "0ff8bd1459fce781",
+          "diagnosis_date": "2024-01-03",
+          "encounter_id": "0bc28778-ddea-4962-8a18-0171340b78d5",
+          "encounter_date": "2024-01-04"
+        },
+        {
+          "patient_id": "6509504022",
+          "episode_id": "f5c2fad7db5078f8",
+          "diagnosis_date": "2024-01-03",
+          "encounter_id": "0bc28778-ddea-4962-8a18-0171340b78d5",
+          "encounter_date": "2024-01-04"
+        },
+        {
+          "patient_id": "4200797127",
+          "episode_id": "8325d4795438f17b",
+          "diagnosis_date": "2024-04-20",
+          "encounter_id": "9c8b6250-325f-48df-822f-c698f99a2c32",
+          "encounter_date": "2024-04-04"
+        },
+        {
+          "patient_id": "4640519532",
+          "episode_id": "be14e7b715082c79",
+          "diagnosis_date": "2024-04-22",
+          "encounter_id": "187c09fb-22b4-438f-9ac6-21aee348ebfc",
+          "encounter_date": "2024-07-10"
+        },
+        {
+          "patient_id": "7306752529",
+          "episode_id": "a543a1516fa4cd5e",
+          "diagnosis_date": "2024-05-02",
+          "encounter_id": "3afda28a-038f-46f4-871a-0982967ea0c0",
+          "encounter_date": "2024-04-02"
+        },
+        {
+          "patient_id": "7306752529",
+          "episode_id": "b28fb4c9b87639e5",
+          "diagnosis_date": "2024-06-12",
+          "encounter_id": "a832713c-796c-4581-819e-c7b4ced421e1",
+          "encounter_date": "2024-08-27"
+        },
+        {
+          "patient_id": "7306752529",
+          "episode_id": "b28fb4c9b87639e5",
+          "diagnosis_date": "2024-06-12",
+          "encounter_id": "fa700440-4a4e-488b-8ae9-8db4f209c29f",
+          "encounter_date": "2024-08-28"
+        },
+        {
+          "patient_id": "7306752529",
+          "episode_id": "b28fb4c9b87639e5",
+          "diagnosis_date": "2024-06-12",
+          "encounter_id": "85bd9637-a446-4601-9dd2-ce5f1914605d",
+          "encounter_date": "2024-08-28"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "stage 3",
+      "count": 14,
+      "pattern_labels": [
+        "generic_stage_token"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4505618269",
+          "episode_id": "e0141c603954c3a1",
+          "diagnosis_date": "2024-03-15",
+          "encounter_id": "a416b48e-0619-4d41-9536-822e4af15644",
+          "encounter_date": "2024-03-04"
+        },
+        {
+          "patient_id": "4505618269",
+          "episode_id": "4d873a62a972f4a8",
+          "diagnosis_date": "2024-03-21",
+          "encounter_id": "a416b48e-0619-4d41-9536-822e4af15644",
+          "encounter_date": "2024-03-04"
+        },
+        {
+          "patient_id": "4640519532",
+          "episode_id": "be14e7b715082c79",
+          "diagnosis_date": "2024-04-22",
+          "encounter_id": "bd5fc975-db5f-4fb8-bcdd-7a793818b4a3",
+          "encounter_date": "2024-07-11"
+        },
+        {
+          "patient_id": "4921442355",
+          "episode_id": "e47e4df5e37fa748",
+          "diagnosis_date": "2024-10-30",
+          "encounter_id": "3e80acf0-fbc9-48bf-ab3b-0ab37393ef9b",
+          "encounter_date": "2024-11-18"
+        },
+        {
+          "patient_id": "6283876811",
+          "episode_id": "08955479a2ec4e3b",
+          "diagnosis_date": "2024-11-11",
+          "encounter_id": "7152b99f-baeb-43ad-a8d0-6a4efe5c89fe",
+          "encounter_date": "2024-12-06"
+        },
+        {
+          "patient_id": "4587343129",
+          "episode_id": "a4c78ef2086bb2b1",
+          "diagnosis_date": "2024-12-19",
+          "encounter_id": "621c418c-7433-4b1d-9fe5-ebf55b5f9093",
+          "encounter_date": "2025-02-28"
+        },
+        {
+          "patient_id": "6283876811",
+          "episode_id": "82374513322a736a",
+          "diagnosis_date": "2024-12-19",
+          "encounter_id": "7152b99f-baeb-43ad-a8d0-6a4efe5c89fe",
+          "encounter_date": "2024-12-06"
+        },
+        {
+          "patient_id": "4921442355",
+          "episode_id": "e23a613c993bac92",
+          "diagnosis_date": "2025-01-28",
+          "encounter_id": "84880578-3c09-4346-9e47-2e24ea9c3d42",
+          "encounter_date": "2025-02-03"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "stage 4",
+      "count": 11,
+      "pattern_labels": [
+        "generic_stage_token"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4802297327",
+          "episode_id": "5dea20c7eb4dea6f",
+          "diagnosis_date": "2025-02-07",
+          "encounter_id": "6972320e-1375-49f1-9291-ef7a7f30e16c",
+          "encounter_date": "2025-02-28"
+        },
+        {
+          "patient_id": "4802297327",
+          "episode_id": "c1e48c7cf6e1e0fd",
+          "diagnosis_date": "2025-02-11",
+          "encounter_id": "6972320e-1375-49f1-9291-ef7a7f30e16c",
+          "encounter_date": "2025-02-28"
+        },
+        {
+          "patient_id": "4802297327",
+          "episode_id": "9778ec5c9155e968",
+          "diagnosis_date": "2025-02-12",
+          "encounter_id": "6972320e-1375-49f1-9291-ef7a7f30e16c",
+          "encounter_date": "2025-02-28"
+        },
+        {
+          "patient_id": "4802297327",
+          "episode_id": "43fe0d73e22d0cee",
+          "diagnosis_date": "2025-02-13",
+          "encounter_id": "6972320e-1375-49f1-9291-ef7a7f30e16c",
+          "encounter_date": "2025-02-28"
+        },
+        {
+          "patient_id": "4940120139",
+          "episode_id": "eed48901d8818abb",
+          "diagnosis_date": "2025-07-04",
+          "encounter_id": "7d8380a2-1833-4c2c-b78e-42cea780019e",
+          "encounter_date": "2025-08-05"
+        },
+        {
+          "patient_id": "4940120139",
+          "episode_id": "631a98a2c716fc22",
+          "diagnosis_date": "2025-07-22",
+          "encounter_id": "7d8380a2-1833-4c2c-b78e-42cea780019e",
+          "encounter_date": "2025-08-05"
+        },
+        {
+          "patient_id": "4940120139",
+          "episode_id": "7178784166812c68",
+          "diagnosis_date": "2025-07-22",
+          "encounter_id": "7d8380a2-1833-4c2c-b78e-42cea780019e",
+          "encounter_date": "2025-08-05"
+        },
+        {
+          "patient_id": "4940120139",
+          "episode_id": "40ed738bde36f506",
+          "diagnosis_date": "2025-07-22",
+          "encounter_id": "7d8380a2-1833-4c2c-b78e-42cea780019e",
+          "encounter_date": "2025-08-05"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "t3",
+      "count": 8,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "6261656266",
+          "episode_id": "7cabd26cd2fb991d",
+          "diagnosis_date": "2024-09-17",
+          "encounter_id": "64a7bee5-de05-4e47-be76-b4cf318d4038",
+          "encounter_date": "2024-10-24"
+        },
+        {
+          "patient_id": "6261656266",
+          "episode_id": "c13acc28e2d8ceef",
+          "diagnosis_date": "2024-10-12",
+          "encounter_id": "64a7bee5-de05-4e47-be76-b4cf318d4038",
+          "encounter_date": "2024-10-24"
+        },
+        {
+          "patient_id": "6261656266",
+          "episode_id": "8984648507ee806c",
+          "diagnosis_date": "2024-11-12",
+          "encounter_id": "64a7bee5-de05-4e47-be76-b4cf318d4038",
+          "encounter_date": "2024-10-24"
+        },
+        {
+          "patient_id": "4469113522",
+          "episode_id": "9fd5210e7da45dfb",
+          "diagnosis_date": "2025-01-14",
+          "encounter_id": "5b1f2f37-bc5a-4db4-b246-3e78122b7d8c",
+          "encounter_date": "2025-01-06"
+        },
+        {
+          "patient_id": "4822890058",
+          "episode_id": "d8dfb71407676299",
+          "diagnosis_date": "2025-02-10",
+          "encounter_id": "6de52939-4304-4d54-97d6-c32c91895004",
+          "encounter_date": "2025-01-16"
+        },
+        {
+          "patient_id": "4822890058",
+          "episode_id": "d8dfb71407676299",
+          "diagnosis_date": "2025-02-10",
+          "encounter_id": "75ddd992-4974-4dbb-a948-3ba5114c5f14",
+          "encounter_date": "2025-01-21"
+        },
+        {
+          "patient_id": "4822890058",
+          "episode_id": "d8dfb71407676299",
+          "diagnosis_date": "2025-02-10",
+          "encounter_id": "44b0d0b9-8233-4894-b931-5494a6701a9c",
+          "encounter_date": "2025-01-21"
+        },
+        {
+          "patient_id": "7319972905",
+          "episode_id": "948f045ad76bdca4",
+          "diagnosis_date": "2025-06-25",
+          "encounter_id": "a2f578a9-0de7-4945-aa44-962a62c3d15f",
+          "encounter_date": "2025-08-04"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "pt3b",
+      "count": 8,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "7324271383",
+          "episode_id": "7e25dbc2c0ef874d",
+          "diagnosis_date": "2025-08-22",
+          "encounter_id": "61cc990d-fa08-4b54-b85e-43bea13f5793",
+          "encounter_date": "2025-08-29"
+        },
+        {
+          "patient_id": "7324271383",
+          "episode_id": "7e25dbc2c0ef874d",
+          "diagnosis_date": "2025-08-22",
+          "encounter_id": "48e5022e-cf15-4382-a4dd-d083ebcc4e0b",
+          "encounter_date": "2025-08-29"
+        },
+        {
+          "patient_id": "7324271383",
+          "episode_id": "15299a43bfa66252",
+          "diagnosis_date": "2025-08-29",
+          "encounter_id": "61cc990d-fa08-4b54-b85e-43bea13f5793",
+          "encounter_date": "2025-08-29"
+        },
+        {
+          "patient_id": "7324271383",
+          "episode_id": "15299a43bfa66252",
+          "diagnosis_date": "2025-08-29",
+          "encounter_id": "48e5022e-cf15-4382-a4dd-d083ebcc4e0b",
+          "encounter_date": "2025-08-29"
+        },
+        {
+          "patient_id": "7324271383",
+          "episode_id": "15299a43bfa66252",
+          "diagnosis_date": "2025-08-29",
+          "encounter_id": "60d51cc3-2492-4e75-8a05-47577e14414c",
+          "encounter_date": "2025-11-26"
+        },
+        {
+          "patient_id": "7324271383",
+          "episode_id": "8a4b1abf48fc0e4e",
+          "diagnosis_date": "2025-08-29",
+          "encounter_id": "61cc990d-fa08-4b54-b85e-43bea13f5793",
+          "encounter_date": "2025-08-29"
+        },
+        {
+          "patient_id": "7324271383",
+          "episode_id": "8a4b1abf48fc0e4e",
+          "diagnosis_date": "2025-08-29",
+          "encounter_id": "48e5022e-cf15-4382-a4dd-d083ebcc4e0b",
+          "encounter_date": "2025-08-29"
+        },
+        {
+          "patient_id": "7324271383",
+          "episode_id": "8a4b1abf48fc0e4e",
+          "diagnosis_date": "2025-08-29",
+          "encounter_id": "60d51cc3-2492-4e75-8a05-47577e14414c",
+          "encounter_date": "2025-11-26"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "t4n1m1",
+      "count": 6,
+      "pattern_labels": [
+        "tnm_triplet"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "6142203497",
+          "episode_id": "a12a9b6e9842e1d8",
+          "diagnosis_date": "2024-07-29",
+          "encounter_id": "04c0f659-0e49-4dd3-b210-afd6b4912d0e",
+          "encounter_date": "2024-08-29"
+        },
+        {
+          "patient_id": "6142203497",
+          "episode_id": "a12a9b6e9842e1d8",
+          "diagnosis_date": "2024-07-29",
+          "encounter_id": "d562d558-71b7-4123-8fc1-56c7c94671a9",
+          "encounter_date": "2024-09-26"
+        },
+        {
+          "patient_id": "6142203497",
+          "episode_id": "7bb4caf8312fb5cb",
+          "diagnosis_date": "2024-07-30",
+          "encounter_id": "04c0f659-0e49-4dd3-b210-afd6b4912d0e",
+          "encounter_date": "2024-08-29"
+        },
+        {
+          "patient_id": "6142203497",
+          "episode_id": "7bb4caf8312fb5cb",
+          "diagnosis_date": "2024-07-30",
+          "encounter_id": "d562d558-71b7-4123-8fc1-56c7c94671a9",
+          "encounter_date": "2024-09-26"
+        },
+        {
+          "patient_id": "6142203497",
+          "episode_id": "32b21061a5d0f86c",
+          "diagnosis_date": "2024-08-27",
+          "encounter_id": "04c0f659-0e49-4dd3-b210-afd6b4912d0e",
+          "encounter_date": "2024-08-29"
+        },
+        {
+          "patient_id": "6142203497",
+          "episode_id": "32b21061a5d0f86c",
+          "diagnosis_date": "2024-08-27",
+          "encounter_id": "d562d558-71b7-4123-8fc1-56c7c94671a9",
+          "encounter_date": "2024-09-26"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "t1",
+      "count": 5,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4926916703",
+          "episode_id": "e7457c25d03d8077",
+          "diagnosis_date": "2024-10-03",
+          "encounter_id": "627cf0f7-e942-41ed-bf56-46a75cd6a240",
+          "encounter_date": "2024-10-23"
+        },
+        {
+          "patient_id": "4926916703",
+          "episode_id": "c5cacfecd2d240d7",
+          "diagnosis_date": "2024-12-08",
+          "encounter_id": "35342626-748a-4382-99b8-c21420ab7b27",
+          "encounter_date": "2025-01-22"
+        },
+        {
+          "patient_id": "4926916703",
+          "episode_id": "b1a4de375a5e0989",
+          "diagnosis_date": "2025-05-14",
+          "encounter_id": "21480df5-3141-46dc-9f44-a85aa8e7e4e1",
+          "encounter_date": "2025-05-14"
+        },
+        {
+          "patient_id": "4983118659",
+          "episode_id": "008ff38f65e70b40",
+          "diagnosis_date": "2025-08-01",
+          "encounter_id": "a9c45902-3b06-478a-be69-41a3ac1c61e5",
+          "encounter_date": "2025-09-15"
+        },
+        {
+          "patient_id": "4983118659",
+          "episode_id": "615b5de1ca921746",
+          "diagnosis_date": "2025-09-13",
+          "encounter_id": "a9c45902-3b06-478a-be69-41a3ac1c61e5",
+          "encounter_date": "2025-09-15"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "stage 3a",
+      "count": 4,
+      "pattern_labels": [
+        "generic_stage_token"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4640519532",
+          "episode_id": "be14e7b715082c79",
+          "diagnosis_date": "2024-04-22",
+          "encounter_id": "bd5fc975-db5f-4fb8-bcdd-7a793818b4a3",
+          "encounter_date": "2024-07-11"
+        },
+        {
+          "patient_id": "6283876811",
+          "episode_id": "08955479a2ec4e3b",
+          "diagnosis_date": "2024-11-11",
+          "encounter_id": "7152b99f-baeb-43ad-a8d0-6a4efe5c89fe",
+          "encounter_date": "2024-12-06"
+        },
+        {
+          "patient_id": "4587343129",
+          "episode_id": "a4c78ef2086bb2b1",
+          "diagnosis_date": "2024-12-19",
+          "encounter_id": "621c418c-7433-4b1d-9fe5-ebf55b5f9093",
+          "encounter_date": "2025-02-28"
+        },
+        {
+          "patient_id": "6283876811",
+          "episode_id": "82374513322a736a",
+          "diagnosis_date": "2024-12-19",
+          "encounter_id": "7152b99f-baeb-43ad-a8d0-6a4efe5c89fe",
+          "encounter_date": "2024-12-06"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "t2",
+      "count": 4,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "6243439488",
+          "episode_id": "d3bf16cd7b73fbb4",
+          "diagnosis_date": "2024-06-24",
+          "encounter_id": "f4025b49-c6b2-42d0-9fb6-a5c376a3fb13",
+          "encounter_date": "2024-08-13"
+        },
+        {
+          "patient_id": "4245896566",
+          "episode_id": "caf34c72f08693b4",
+          "diagnosis_date": "2025-01-22",
+          "encounter_id": "355d6a32-f900-4840-9d58-80f922bc54c0",
+          "encounter_date": "2025-02-26"
+        },
+        {
+          "patient_id": "4245896566",
+          "episode_id": "aa0b70646ee814ad",
+          "diagnosis_date": "2025-02-28",
+          "encounter_id": "355d6a32-f900-4840-9d58-80f922bc54c0",
+          "encounter_date": "2025-02-26"
+        },
+        {
+          "patient_id": "4983118659",
+          "episode_id": "615b5de1ca921746",
+          "diagnosis_date": "2025-09-13",
+          "encounter_id": "96a500fc-c69a-4913-851e-21454083bff6",
+          "encounter_date": "2025-11-10"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "pt1",
+      "count": 4,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "6261656266",
+          "episode_id": "7cabd26cd2fb991d",
+          "diagnosis_date": "2024-09-17",
+          "encounter_id": "64a7bee5-de05-4e47-be76-b4cf318d4038",
+          "encounter_date": "2024-10-24"
+        },
+        {
+          "patient_id": "6261656266",
+          "episode_id": "c13acc28e2d8ceef",
+          "diagnosis_date": "2024-10-12",
+          "encounter_id": "64a7bee5-de05-4e47-be76-b4cf318d4038",
+          "encounter_date": "2024-10-24"
+        },
+        {
+          "patient_id": "6261656266",
+          "episode_id": "8984648507ee806c",
+          "diagnosis_date": "2024-11-12",
+          "encounter_id": "64a7bee5-de05-4e47-be76-b4cf318d4038",
+          "encounter_date": "2024-10-24"
+        },
+        {
+          "patient_id": "6040304227",
+          "episode_id": "c722d754d4ead07f",
+          "diagnosis_date": "2025-03-10",
+          "encounter_id": "76ed8475-99b8-4842-929e-c354b937cabc",
+          "encounter_date": "2025-03-10"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "pt2",
+      "count": 3,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "6040304227",
+          "episode_id": "8b89ddbd39bdbf05",
+          "diagnosis_date": "2024-09-26",
+          "encounter_id": "cf2fe376-1835-429b-981e-263616734ace",
+          "encounter_date": "2024-12-05"
+        },
+        {
+          "patient_id": "6040304227",
+          "episode_id": "069e88c5e351400d",
+          "diagnosis_date": "2024-11-13",
+          "encounter_id": "cf2fe376-1835-429b-981e-263616734ace",
+          "encounter_date": "2024-12-05"
+        },
+        {
+          "patient_id": "6040304227",
+          "episode_id": "c61785e618fefd1a",
+          "diagnosis_date": "2024-11-18",
+          "encounter_id": "cf2fe376-1835-429b-981e-263616734ace",
+          "encounter_date": "2024-12-05"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "pt1a",
+      "count": 2,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4921442355",
+          "episode_id": "e47e4df5e37fa748",
+          "diagnosis_date": "2024-10-30",
+          "encounter_id": "42026abb-1ae6-4890-8f3a-bef6b401c742",
+          "encounter_date": "2025-01-28"
+        },
+        {
+          "patient_id": "4921442355",
+          "episode_id": "e23a613c993bac92",
+          "diagnosis_date": "2025-01-28",
+          "encounter_id": "42026abb-1ae6-4890-8f3a-bef6b401c742",
+          "encounter_date": "2025-01-28"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "stage 2",
+      "count": 2,
+      "pattern_labels": [
+        "generic_stage_token"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "7011988319",
+          "episode_id": "46823c18707d9614",
+          "diagnosis_date": "2025-03-26",
+          "encounter_id": "fb071e44-8948-4416-92d5-6164c4eceec2",
+          "encounter_date": "2025-06-23"
+        },
+        {
+          "patient_id": "7011988319",
+          "episode_id": "9a0828cf1be10154",
+          "diagnosis_date": "2025-06-23",
+          "encounter_id": "fb071e44-8948-4416-92d5-6164c4eceec2",
+          "encounter_date": "2025-06-23"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "pt1b",
+      "count": 2,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4200186896",
+          "episode_id": "ecd9195fafb07f60",
+          "diagnosis_date": "2025-05-12",
+          "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+          "encounter_date": "2025-05-12"
+        },
+        {
+          "patient_id": "4200186896",
+          "episode_id": "c3c18c882cafafd7",
+          "diagnosis_date": "2025-05-12",
+          "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+          "encounter_date": "2025-05-12"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "n0",
+      "count": 1,
+      "pattern_labels": [
+        "tnm_n_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "6243439488",
+          "episode_id": "d3bf16cd7b73fbb4",
+          "diagnosis_date": "2024-06-24",
+          "encounter_id": "f4025b49-c6b2-42d0-9fb6-a5c376a3fb13",
+          "encounter_date": "2024-08-13"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "n2",
+      "count": 1,
+      "pattern_labels": [
+        "tnm_n_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4822977102",
+          "episode_id": "ab2b6f1bc3949575",
+          "diagnosis_date": "2024-10-18",
+          "encounter_id": "91aea13e-35c3-435f-b4b9-70f4b21360dd",
+          "encounter_date": "2024-10-05"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "m0",
+      "count": 1,
+      "pattern_labels": [
+        "tnm_m_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4822977102",
+          "episode_id": "ab2b6f1bc3949575",
+          "diagnosis_date": "2024-10-18",
+          "encounter_id": "91aea13e-35c3-435f-b4b9-70f4b21360dd",
+          "encounter_date": "2024-10-05"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "t4a",
+      "count": 1,
+      "pattern_labels": [
+        "tnm_t_component"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4822977102",
+          "episode_id": "ab2b6f1bc3949575",
+          "diagnosis_date": "2024-10-18",
+          "encounter_id": "91aea13e-35c3-435f-b4b9-70f4b21360dd",
+          "encounter_date": "2024-10-05"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    },
+    {
+      "surface_form": "stage i",
+      "count": 1,
+      "pattern_labels": [
+        "generic_stage_token"
+      ],
+      "sample_hits": [
+        {
+          "patient_id": "4926916703",
+          "episode_id": "b1a4de375a5e0989",
+          "diagnosis_date": "2025-05-14",
+          "encounter_id": "21480df5-3141-46dc-9f44-a85aa8e7e4e1",
+          "encounter_date": "2025-05-14"
+        }
+      ],
+      "in_stage_mapping_terms": false
+    }
+  ]
+}

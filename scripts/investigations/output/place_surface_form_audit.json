@@ -1,0 +1,1511 @@
+[
+  {
+    "concept_id": "4525004",
+    "label": "Emergency department patient visit",
+    "in_kg": true,
+    "fsn": "Emergency department patient visit (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "emergency department patient visit",
+      "seen by casualty - service",
+      "seen by accident and emergency service"
+    ],
+    "existing_surface_forms": [],
+    "descendants": [],
+    "candidates": {
+      "already_covered": [],
+      "missing": [
+        {
+          "form": "a&e"
+        },
+        {
+          "form": "ae"
+        },
+        {
+          "form": "accident and emergency"
+        },
+        {
+          "form": "emergency department"
+        },
+        {
+          "form": "emergency room"
+        },
+        {
+          "form": "a and e"
+        },
+        {
+          "form": "a+e"
+        },
+        {
+          "form": "a & e"
+        },
+        {
+          "form": "casualty"
+        },
+        {
+          "form": "emergency dept"
+        },
+        {
+          "form": "attended a&e"
+        },
+        {
+          "form": "seen in a&e"
+        },
+        {
+          "form": "went to a&e"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "accident & emergency",
+          "mapped_to": "393357004",
+          "fsn": "Accident & emergency (qualifier value)"
+        },
+        {
+          "form": "ed",
+          "mapped_to": "860914002",
+          "fsn": "Erectile dysfunction (disorder)"
+        },
+        {
+          "form": "er",
+          "mapped_to": "416053008",
+          "fsn": "Estrogen receptor positive tumor (disorder)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "185202000",
+    "label": "Seen in general practitioner surgery",
+    "in_kg": true,
+    "fsn": "Seen in general practitioner surgery (finding)",
+    "preferred_term": "",
+    "existing_terms": [
+      "seen in gp's surgery",
+      "seen in general practitioner surgery"
+    ],
+    "existing_surface_forms": [
+      "seen in gp s surgery finding",
+      "seen in gp s surgery",
+      "seen in general practitioner surgery finding",
+      "seen in general practitioner surgery"
+    ],
+    "descendants": [],
+    "candidates": {
+      "already_covered": [],
+      "missing": [
+        {
+          "form": "gp appointment"
+        },
+        {
+          "form": "gp visit"
+        },
+        {
+          "form": "gp clinic"
+        },
+        {
+          "form": "seen at gp"
+        },
+        {
+          "form": "attended gp"
+        },
+        {
+          "form": "primary care"
+        },
+        {
+          "form": "gp consultation"
+        },
+        {
+          "form": "gp review"
+        },
+        {
+          "form": "surgery appointment"
+        },
+        {
+          "form": "seen in surgery"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "gp surgery",
+          "mapped_to": "264358009",
+          "fsn": "General practice premises (environment)"
+        },
+        {
+          "form": "gp practice",
+          "mapped_to": "1101191000000106",
+          "fsn": "General practitioner practice (qualifier value)"
+        },
+        {
+          "form": "seen by gp",
+          "mapped_to": "185278000",
+          "fsn": "Seen by general practitioner (finding)"
+        },
+        {
+          "form": "general practitioner",
+          "mapped_to": "62247001",
+          "fsn": "Family medicine specialist (occupation)"
+        },
+        {
+          "form": "general practice",
+          "mapped_to": "1101131000000105",
+          "fsn": "General practice (organisation) (qualifier value)"
+        },
+        {
+          "form": "family doctor",
+          "mapped_to": "62247001",
+          "fsn": "Family medicine specialist (occupation)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "386472008",
+    "label": "Telephone consultation",
+    "in_kg": true,
+    "fsn": "Telephone consultation (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "telephone consultation"
+    ],
+    "existing_surface_forms": [
+      "telephone consultation procedure",
+      "telephone consultation",
+      "telephone consult"
+    ],
+    "descendants": [
+      {
+        "concept_id": "520141000000108",
+        "preferred_term": null,
+        "fsn": "Telephone consultation for suspected influenza A virus subtype H1N1 (procedure)"
+      },
+      {
+        "concept_id": "1240451000000106",
+        "preferred_term": null,
+        "fsn": "Telephone consultation for suspected severe acute respiratory syndrome coronavirus 2 (procedure)"
+      },
+      {
+        "concept_id": "314849005",
+        "preferred_term": null,
+        "fsn": "Telephone contact by consultant (procedure)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "telephone consultation",
+          "via": "surface_form"
+        },
+        {
+          "form": "telephone consult",
+          "via": "surface_form"
+        }
+      ],
+      "missing": [
+        {
+          "form": "telephone appointment"
+        },
+        {
+          "form": "phone consultation"
+        },
+        {
+          "form": "phone call"
+        },
+        {
+          "form": "telephone call"
+        },
+        {
+          "form": "tel consult"
+        },
+        {
+          "form": "phone appointment"
+        },
+        {
+          "form": "telephone review"
+        },
+        {
+          "form": "phone review"
+        },
+        {
+          "form": "spoke by phone"
+        },
+        {
+          "form": "called by phone"
+        },
+        {
+          "form": "telephone advice"
+        }
+      ],
+      "mapped_to_other_concept": []
+    }
+  },
+  {
+    "concept_id": "439708006",
+    "label": "Home visit",
+    "in_kg": true,
+    "fsn": "Home visit (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "home visit"
+    ],
+    "existing_surface_forms": [
+      "home visit procedure",
+      "home visit",
+      "home visit requested",
+      "domiciliary visit",
+      "domiciliary visit requested",
+      "house call"
+    ],
+    "descendants": [
+      {
+        "concept_id": "889311000000109",
+        "preferred_term": null,
+        "fsn": "Care home visit (procedure)"
+      },
+      {
+        "concept_id": "889351000000108",
+        "preferred_term": null,
+        "fsn": "Care home visit for follow-up patient review (procedure)"
+      },
+      {
+        "concept_id": "889331000000101",
+        "preferred_term": null,
+        "fsn": "Care home visit for initial patient assessment (procedure)"
+      },
+      {
+        "concept_id": "841681000000103",
+        "preferred_term": null,
+        "fsn": "Community nurse first visit (procedure)"
+      },
+      {
+        "concept_id": "408482001",
+        "preferred_term": null,
+        "fsn": "District nurse follow up (procedure)"
+      },
+      {
+        "concept_id": "408483006",
+        "preferred_term": null,
+        "fsn": "District nurse initial visit (procedure)"
+      },
+      {
+        "concept_id": "185469009",
+        "preferred_term": null,
+        "fsn": "District nurse visit (procedure)"
+      },
+      {
+        "concept_id": "210098006",
+        "preferred_term": null,
+        "fsn": "Domiciliary or rest home patient evaluation and management (procedure)"
+      },
+      {
+        "concept_id": "50357006",
+        "preferred_term": null,
+        "fsn": "Evaluation and management of patient at home (procedure)"
+      },
+      {
+        "concept_id": "310587004",
+        "preferred_term": null,
+        "fsn": "First annual visit by district nurse (procedure)"
+      },
+      {
+        "concept_id": "1052791000000100",
+        "preferred_term": null,
+        "fsn": "First annual visit by health visitor (procedure)"
+      },
+      {
+        "concept_id": "956721000000106",
+        "preferred_term": null,
+        "fsn": "Health visitor 3 to 4 month contact with family (procedure)"
+      },
+      {
+        "concept_id": "884201000000100",
+        "preferred_term": null,
+        "fsn": "Health visitor antenatal visit (procedure)"
+      },
+      {
+        "concept_id": "492801000000100",
+        "preferred_term": null,
+        "fsn": "Health visitor child 24 to 28 month contact (procedure)"
+      },
+      {
+        "concept_id": "492791000000104",
+        "preferred_term": null,
+        "fsn": "Health visitor child 3 month contact (procedure)"
+      },
+      {
+        "concept_id": "1052881000000106",
+        "preferred_term": null,
+        "fsn": "Health visitor child 4 month contact (procedure)"
+      },
+      {
+        "concept_id": "492771000000103",
+        "preferred_term": null,
+        "fsn": "Health visitor child 6 weeks of age contact (procedure)"
+      },
+      {
+        "concept_id": "492781000000101",
+        "preferred_term": null,
+        "fsn": "Health visitor child 9 to 12 month contact (procedure)"
+      },
+      {
+        "concept_id": "196991000000104",
+        "preferred_term": null,
+        "fsn": "Health visitor child health review (procedure)"
+      },
+      {
+        "concept_id": "196931000000100",
+        "preferred_term": null,
+        "fsn": "Health visitor child wellbeing visit (procedure)"
+      },
+      {
+        "concept_id": "1064931000000102",
+        "preferred_term": null,
+        "fsn": "Health visitor contact using Family Partnership Model Antenatal Promotional Guide (procedure)"
+      },
+      {
+        "concept_id": "1064921000000104",
+        "preferred_term": null,
+        "fsn": "Health visitor contact using Family Partnership Model Postnatal Promotional Guide (procedure)"
+      },
+      {
+        "concept_id": "408487007",
+        "preferred_term": null,
+        "fsn": "Health visitor follow up (procedure)"
+      },
+      {
+        "concept_id": "1052831000000107",
+        "preferred_term": null,
+        "fsn": "Health visitor initial visit (procedure)"
+      },
+      {
+        "concept_id": "755041000000102",
+        "preferred_term": null,
+        "fsn": "Health visitor new birth visit (procedure)"
+      },
+      {
+        "concept_id": "68341005",
+        "preferred_term": null,
+        "fsn": "Hemodialysis, supervision at home (procedure)"
+      },
+      {
+        "concept_id": "185470005",
+        "preferred_term": null,
+        "fsn": "Home visit elderly assessment (procedure)"
+      },
+      {
+        "concept_id": "185467006",
+        "preferred_term": null,
+        "fsn": "Home visit for acute condition (procedure)"
+      },
+      {
+        "concept_id": "704126008",
+        "preferred_term": null,
+        "fsn": "Home visit for anticoagulant drug monitoring (procedure)"
+      },
+      {
+        "concept_id": "440146002",
+        "preferred_term": null,
+        "fsn": "Home visit for care and maintenance of colostomy (procedure)"
+      },
+      {
+        "concept_id": "439058005",
+        "preferred_term": null,
+        "fsn": "Home visit for care and maintenance of urinary catheter (procedure)"
+      },
+      {
+        "concept_id": "185468001",
+        "preferred_term": null,
+        "fsn": "Home visit for chronic condition (procedure)"
+      },
+      {
+        "concept_id": "441244001",
+        "preferred_term": null,
+        "fsn": "Home visit for cystostomy care and maintenance (procedure)"
+      },
+      {
+        "concept_id": "440696002",
+        "preferred_term": null,
+        "fsn": "Home visit for intramuscular injection (procedure)"
+      },
+      {
+        "concept_id": "440611006",
+        "preferred_term": null,
+        "fsn": "Home visit for marriage counseling (procedure)"
+      },
+      {
+        "concept_id": "439887005",
+        "preferred_term": null,
+        "fsn": "Home visit for mechanical ventilation care (procedure)"
+      },
+      {
+        "concept_id": "440068009",
+        "preferred_term": null,
+        "fsn": "Home visit for newborn care and assessment (procedure)"
+      },
+      {
+        "concept_id": "440085006",
+        "preferred_term": null,
+        "fsn": "Home visit for postpartum care and assessment (procedure)"
+      },
+      {
+        "concept_id": "698704008",
+        "preferred_term": null,
+        "fsn": "Home visit for rheumatology service (procedure)"
+      },
+      {
+        "concept_id": "185466002",
+        "preferred_term": null,
+        "fsn": "Home visit for urgent condition (procedure)"
+      },
+      {
+        "concept_id": "910281000000105",
+        "preferred_term": null,
+        "fsn": "Home visit request by district nurse (procedure)"
+      },
+      {
+        "concept_id": "185462000",
+        "preferred_term": null,
+        "fsn": "Home visit request by relative (procedure)"
+      },
+      {
+        "concept_id": "751801000000106",
+        "preferred_term": null,
+        "fsn": "Home visit request by residential institution (procedure)"
+      },
+      {
+        "concept_id": "225929007",
+        "preferred_term": null,
+        "fsn": "Joint home visit (procedure)"
+      },
+      {
+        "concept_id": "196941000000109",
+        "preferred_term": null,
+        "fsn": "Post hospital discharge visit (procedure)"
+      },
+      {
+        "concept_id": "883501000000100",
+        "preferred_term": null,
+        "fsn": "Postnatal listening visit (procedure)"
+      },
+      {
+        "concept_id": "522051000000109",
+        "preferred_term": null,
+        "fsn": "Rheumatology service home visit (procedure)"
+      },
+      {
+        "concept_id": "310588009",
+        "preferred_term": null,
+        "fsn": "Visit by health visitor (procedure)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "home visit",
+          "via": "surface_form"
+        },
+        {
+          "form": "domiciliary visit",
+          "via": "surface_form"
+        },
+        {
+          "form": "house call",
+          "via": "surface_form"
+        }
+      ],
+      "missing": [
+        {
+          "form": "home call"
+        },
+        {
+          "form": "visited at home"
+        },
+        {
+          "form": "seen at home"
+        },
+        {
+          "form": "housecall"
+        },
+        {
+          "form": "home consultation"
+        },
+        {
+          "form": "visited patient at home"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "domiciliary",
+          "mapped_to": "113173007",
+          "fsn": "Domiciliary (environment)"
+        },
+        {
+          "form": "home assessment",
+          "mapped_to": "302282006",
+          "fsn": "Home assessment (procedure)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "185463005",
+    "label": "Visit out of hours",
+    "in_kg": true,
+    "fsn": "Visit out of hours (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "visit out of hours"
+    ],
+    "existing_surface_forms": [
+      "ooh"
+    ],
+    "descendants": [
+      {
+        "concept_id": "315205008",
+        "preferred_term": null,
+        "fsn": "Bank holiday home visit (procedure)"
+      },
+      {
+        "concept_id": "185464004",
+        "preferred_term": null,
+        "fsn": "Out of hours visit - not night visit (procedure)"
+      },
+      {
+        "concept_id": "185465003",
+        "preferred_term": null,
+        "fsn": "Weekend visit (procedure)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "ooh",
+          "via": "surface_form"
+        }
+      ],
+      "missing": [
+        {
+          "form": "out of hours"
+        },
+        {
+          "form": "out-of-hours"
+        },
+        {
+          "form": "out of hours visit"
+        },
+        {
+          "form": "ooh visit"
+        },
+        {
+          "form": "out of hours gp"
+        },
+        {
+          "form": "ooh gp"
+        },
+        {
+          "form": "ooh service"
+        },
+        {
+          "form": "nhs 111"
+        },
+        {
+          "form": "evening appointment"
+        },
+        {
+          "form": "weekend appointment"
+        },
+        {
+          "form": "urgent out of hours"
+        },
+        {
+          "form": "out of hours consultation"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "111",
+          "mapped_to": "1222750006",
+          "fsn": "American Joint Committee on Cancer stage I:11 (qualifier value)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "557761000005104",
+    "label": "E-mail consultation",
+    "in_kg": true,
+    "fsn": "E-mail consultation (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "e-mail consultation",
+      "email consultation"
+    ],
+    "existing_surface_forms": [
+      "e mail consultation",
+      "email consultation",
+      "e mail consultation procedure"
+    ],
+    "descendants": [],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "email consultation",
+          "via": "surface_form"
+        },
+        {
+          "form": "e-mail consultation",
+          "via": "term"
+        }
+      ],
+      "missing": [
+        {
+          "form": "email consult"
+        },
+        {
+          "form": "e-consult"
+        },
+        {
+          "form": "econsult"
+        },
+        {
+          "form": "online form"
+        },
+        {
+          "form": "askmygp"
+        },
+        {
+          "form": "emailed gp"
+        },
+        {
+          "form": "electronic consultation"
+        },
+        {
+          "form": "online consultation request"
+        },
+        {
+          "form": "sent message to gp"
+        },
+        {
+          "form": "accubook"
+        },
+        {
+          "form": "patchs"
+        }
+      ],
+      "mapped_to_other_concept": []
+    }
+  },
+  {
+    "concept_id": "719410009",
+    "label": "Consultation via video conference",
+    "in_kg": true,
+    "fsn": "Consultation via video conference (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "consultation via video conference",
+      "video consultation"
+    ],
+    "existing_surface_forms": [
+      "consultation via video conference",
+      "video consultation",
+      "consultation via video conference procedure"
+    ],
+    "descendants": [
+      {
+        "concept_id": "2365631000000109",
+        "preferred_term": null,
+        "fsn": "Consultation via video conference with third party (procedure)"
+      },
+      {
+        "concept_id": "1323941000000101",
+        "preferred_term": null,
+        "fsn": "Group consultation via video conference (procedure)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "video consultation",
+          "via": "surface_form"
+        }
+      ],
+      "missing": [
+        {
+          "form": "video call"
+        },
+        {
+          "form": "video appointment"
+        },
+        {
+          "form": "video conference"
+        },
+        {
+          "form": "video consult"
+        },
+        {
+          "form": "online video"
+        },
+        {
+          "form": "microsoft teams consultation"
+        },
+        {
+          "form": "teams call"
+        },
+        {
+          "form": "zoom consultation"
+        },
+        {
+          "form": "attend anywhere"
+        },
+        {
+          "form": "video review"
+        },
+        {
+          "form": "remote video consultation"
+        },
+        {
+          "form": "online consultation"
+        },
+        {
+          "form": "virtual consultation"
+        },
+        {
+          "form": "virtual appointment"
+        }
+      ],
+      "mapped_to_other_concept": []
+    }
+  },
+  {
+    "concept_id": "286901000000107",
+    "label": "Bowel cancer screening programme",
+    "in_kg": true,
+    "fsn": "Bowel cancer screening programme (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "bowel cancer screening programme"
+    ],
+    "existing_surface_forms": [
+      "bowel cancer screening",
+      "bowel screening",
+      "bcsp",
+      "nhs bowel cancer screening"
+    ],
+    "descendants": [
+      {
+        "concept_id": "884521000000106",
+        "preferred_term": null,
+        "fsn": "Bowel cancer screening programme bowel scope screening test (procedure)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "bowel cancer screening",
+          "via": "surface_form"
+        },
+        {
+          "form": "bowel screening",
+          "via": "surface_form"
+        },
+        {
+          "form": "nhs bowel cancer screening",
+          "via": "surface_form"
+        }
+      ],
+      "missing": [
+        {
+          "form": "colorectal screening"
+        },
+        {
+          "form": "bowel scope"
+        },
+        {
+          "form": "colonoscopy screening"
+        },
+        {
+          "form": "bowel cancer check"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "fit test",
+          "mapped_to": "1049361000000101",
+          "fsn": "Quantitative faecal immunochemical test (observable entity)"
+        },
+        {
+          "form": "faecal immunochemical test",
+          "mapped_to": "1049361000000101",
+          "fsn": "Quantitative faecal immunochemical test (observable entity)"
+        },
+        {
+          "form": "fobt",
+          "mapped_to": "104435004",
+          "fsn": "Screening for occult blood in feces (procedure)"
+        },
+        {
+          "form": "faecal occult blood test",
+          "mapped_to": "104435004",
+          "fsn": "Screening for occult blood in feces (procedure)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "268547008",
+    "label": "Screening for malignant neoplasm of breast",
+    "in_kg": true,
+    "fsn": "Screening for malignant neoplasm of breast (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "breast neoplasm screening",
+      "screening for malignant neoplasm of breast",
+      "breast cancer screening",
+      "screening for breast cancer"
+    ],
+    "existing_surface_forms": [],
+    "descendants": [
+      {
+        "concept_id": "609223006",
+        "preferred_term": null,
+        "fsn": "Magnetic resonance imaging of breast for screening for malignant neoplasm (procedure)"
+      },
+      {
+        "concept_id": "716035006",
+        "preferred_term": null,
+        "fsn": "Scintimammography for malignant neoplasm screening (procedure)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "breast cancer screening",
+          "via": "term"
+        }
+      ],
+      "missing": [
+        {
+          "form": "breast screening"
+        },
+        {
+          "form": "nhs breast screening"
+        },
+        {
+          "form": "breast check"
+        },
+        {
+          "form": "mammogram appointment"
+        },
+        {
+          "form": "breast x-ray"
+        },
+        {
+          "form": "breast screening appointment"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "mammogram",
+          "mapped_to": "71651007",
+          "fsn": "Mammography (procedure)"
+        },
+        {
+          "form": "mammography",
+          "mapped_to": "71651007",
+          "fsn": "Mammography (procedure)"
+        },
+        {
+          "form": "screening mammogram",
+          "mapped_to": "71651007",
+          "fsn": "Mammography (procedure)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "171149006",
+    "label": "Screening for malignant neoplasm of cervix",
+    "in_kg": true,
+    "fsn": "Screening for malignant neoplasm of cervix (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "cervical neoplasia screening",
+      "cervical cytology screening",
+      "screening for malignant neoplasm of cervix"
+    ],
+    "existing_surface_forms": [],
+    "descendants": [],
+    "candidates": {
+      "already_covered": [],
+      "missing": [
+        {
+          "form": "cervical screening"
+        },
+        {
+          "form": "smear test"
+        },
+        {
+          "form": "cervical cancer screening"
+        },
+        {
+          "form": "nhs cervical screening"
+        },
+        {
+          "form": "hpv test"
+        },
+        {
+          "form": "cervical check"
+        },
+        {
+          "form": "routine smear"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "smear",
+          "mapped_to": "258486007",
+          "fsn": "Smear (specimen)"
+        },
+        {
+          "form": "cervical smear",
+          "mapped_to": "119252009",
+          "fsn": "Papanicolaou smear test (procedure)"
+        },
+        {
+          "form": "pap smear",
+          "mapped_to": "119252009",
+          "fsn": "Papanicolaou smear test (procedure)"
+        },
+        {
+          "form": "pap test",
+          "mapped_to": "119252009",
+          "fsn": "Papanicolaou smear test (procedure)"
+        },
+        {
+          "form": "colposcopy",
+          "mapped_to": "392003006",
+          "fsn": "Colposcopy (procedure)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "275981009",
+    "label": "Screening for malignant neoplasm of lung",
+    "in_kg": true,
+    "fsn": "Screening for malignant neoplasm of lung (procedure)",
+    "preferred_term": "",
+    "existing_terms": [
+      "screening for malignant neoplasm of lung",
+      "lung cancer screening"
+    ],
+    "existing_surface_forms": [],
+    "descendants": [],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "lung cancer screening",
+          "via": "term"
+        }
+      ],
+      "missing": [
+        {
+          "form": "lung screening"
+        },
+        {
+          "form": "ldct"
+        },
+        {
+          "form": "low dose ct scan"
+        },
+        {
+          "form": "lung check"
+        },
+        {
+          "form": "chest ct screening"
+        },
+        {
+          "form": "targeted lung health check"
+        },
+        {
+          "form": "tlhc"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "lung health check",
+          "mapped_to": "2489381000000106",
+          "fsn": "Lung health check (procedure)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "307778003",
+    "label": "Seen in primary care establishment",
+    "in_kg": true,
+    "fsn": "Seen in primary care establishment (finding)",
+    "preferred_term": "",
+    "existing_terms": [
+      "seen in primary care establishment"
+    ],
+    "existing_surface_forms": [
+      "seen in primary care establishment finding",
+      "seen in primary care establishment"
+    ],
+    "descendants": [
+      {
+        "concept_id": "185236006",
+        "preferred_term": null,
+        "fsn": "Seen at doctors house (finding)"
+      },
+      {
+        "concept_id": "185203005",
+        "preferred_term": null,
+        "fsn": "Seen in Health Center (finding)"
+      },
+      {
+        "concept_id": "788351000000104",
+        "preferred_term": null,
+        "fsn": "Seen in community treatment room (finding)"
+      },
+      {
+        "concept_id": "185202000",
+        "preferred_term": null,
+        "fsn": "Seen in general practitioner surgery (finding)"
+      },
+      {
+        "concept_id": "314803001",
+        "preferred_term": null,
+        "fsn": "Seen in open access nurse clinic (finding)"
+      },
+      {
+        "concept_id": "314774003",
+        "preferred_term": null,
+        "fsn": "Seen in open access surgery (finding)"
+      },
+      {
+        "concept_id": "185511000000107",
+        "preferred_term": null,
+        "fsn": "Seen in out of hours centre (finding)"
+      },
+      {
+        "concept_id": "185175005",
+        "preferred_term": null,
+        "fsn": "Seen in primary care center (finding)"
+      },
+      {
+        "concept_id": "305906009",
+        "preferred_term": null,
+        "fsn": "Seen in primary health care clinic (finding)"
+      },
+      {
+        "concept_id": "287721000000104",
+        "preferred_term": null,
+        "fsn": "Seen in walk in centre (finding)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [],
+      "missing": [
+        {
+          "form": "primary care"
+        },
+        {
+          "form": "primary care visit"
+        },
+        {
+          "form": "seen in primary care"
+        },
+        {
+          "form": "seen at primary care"
+        },
+        {
+          "form": "primary care appointment"
+        },
+        {
+          "form": "gp led"
+        },
+        {
+          "form": "community health centre"
+        },
+        {
+          "form": "utc"
+        },
+        {
+          "form": "ucc"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "community care",
+          "mapped_to": "723541000000106",
+          "fsn": "Community care (qualifier value)"
+        },
+        {
+          "form": "health centre",
+          "mapped_to": "394269000",
+          "fsn": "Health centre (environment)"
+        },
+        {
+          "form": "walk-in centre",
+          "mapped_to": "81234003",
+          "fsn": "Walk-in clinic (environment)"
+        },
+        {
+          "form": "minor injuries unit",
+          "mapped_to": "312411000000109",
+          "fsn": "Minor injuries unit (environment)"
+        },
+        {
+          "form": "urgent treatment centre",
+          "mapped_to": "1955881000000107",
+          "fsn": "Urgent treatment centre service (qualifier value)"
+        },
+        {
+          "form": "miu",
+          "mapped_to": "258999001",
+          "fsn": "milliinternational unit (qualifier value)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "185211000",
+    "label": "Seen in hospital outpatient department",
+    "in_kg": true,
+    "fsn": "Seen in hospital outpatient department (finding)",
+    "preferred_term": "",
+    "existing_terms": [
+      "seen in hospital outpatient department"
+    ],
+    "existing_surface_forms": [
+      "seen in hospital outpatient department",
+      "seen in hospital outpatient department finding",
+      "seen in hospital out pat",
+      "seen in hospital out pat finding"
+    ],
+    "descendants": [],
+    "candidates": {
+      "already_covered": [],
+      "missing": [
+        {
+          "form": "outpatients"
+        },
+        {
+          "form": "opd"
+        },
+        {
+          "form": "outpatient department"
+        },
+        {
+          "form": "outpatient appointment"
+        },
+        {
+          "form": "outpatient clinic"
+        },
+        {
+          "form": "outpatient visit"
+        },
+        {
+          "form": "hospital outpatient"
+        },
+        {
+          "form": "seen in outpatients"
+        },
+        {
+          "form": "clinic appointment"
+        },
+        {
+          "form": "attended outpatients"
+        },
+        {
+          "form": "seen at hospital"
+        },
+        {
+          "form": "hospital appointment"
+        },
+        {
+          "form": "specialist outpatient"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "outpatient",
+          "mapped_to": "831371000000109",
+          "fsn": "Outpatient"
+        },
+        {
+          "form": "hospital clinic",
+          "mapped_to": "310390009",
+          "fsn": "Hospital clinic (environment)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "185289007",
+    "label": "Seen by dental surgeon",
+    "in_kg": true,
+    "fsn": "Seen by dental surgeon (finding)",
+    "preferred_term": "",
+    "existing_terms": [
+      "seen by dental surgeon",
+      "seen by dentist"
+    ],
+    "existing_surface_forms": [
+      "seen by dental surgeon finding",
+      "seen by dentist",
+      "seen by dental surgeon"
+    ],
+    "descendants": [
+      {
+        "concept_id": "306738001",
+        "preferred_term": null,
+        "fsn": "Seen by general dental surgeon (finding)"
+      },
+      {
+        "concept_id": "305722000",
+        "preferred_term": null,
+        "fsn": "Seen by oral surgeon (finding)"
+      },
+      {
+        "concept_id": "305707005",
+        "preferred_term": null,
+        "fsn": "Seen by orthodontist (finding)"
+      },
+      {
+        "concept_id": "305708000",
+        "preferred_term": null,
+        "fsn": "Seen by pediatric dentist (finding)"
+      },
+      {
+        "concept_id": "305709008",
+        "preferred_term": null,
+        "fsn": "Seen by restorative dentist (finding)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [
+        {
+          "form": "seen by dentist",
+          "via": "surface_form"
+        }
+      ],
+      "missing": [
+        {
+          "form": "dental appointment"
+        },
+        {
+          "form": "dental visit"
+        },
+        {
+          "form": "dental consultation"
+        },
+        {
+          "form": "seen at dentist"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "dental",
+          "mapped_to": "372449004",
+          "fsn": "Dental route (qualifier value)"
+        },
+        {
+          "form": "dentist",
+          "mapped_to": "134921008",
+          "fsn": "Dentist (occupation)"
+        },
+        {
+          "form": "dental surgeon",
+          "mapped_to": "106289002",
+          "fsn": "Dentist (occupation)"
+        },
+        {
+          "form": "oral surgeon",
+          "mapped_to": "49993003",
+          "fsn": "Oral surgeon (occupation)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "305856003",
+    "label": "Seen by optometry service",
+    "in_kg": true,
+    "fsn": "Seen by optometry service (finding)",
+    "preferred_term": "",
+    "existing_terms": [
+      "seen by optometry service"
+    ],
+    "existing_surface_forms": [],
+    "descendants": [],
+    "candidates": {
+      "already_covered": [],
+      "missing": [
+        {
+          "form": "optometry"
+        },
+        {
+          "form": "eye test"
+        },
+        {
+          "form": "eye appointment"
+        },
+        {
+          "form": "optics appointment"
+        },
+        {
+          "form": "vision test"
+        },
+        {
+          "form": "seen at optician"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "optician",
+          "mapped_to": "135450000",
+          "fsn": "Optician (occupation)"
+        },
+        {
+          "form": "seen by optician",
+          "mapped_to": "185307008",
+          "fsn": "Seen by optometrist (finding)"
+        },
+        {
+          "form": "optometrist",
+          "mapped_to": "28229004",
+          "fsn": "Optometrist (occupation)"
+        },
+        {
+          "form": "eye examination",
+          "mapped_to": "36228007",
+          "fsn": "Ophthalmic examination and evaluation (procedure)"
+        }
+      ]
+    }
+  },
+  {
+    "concept_id": "305751001",
+    "label": "Seen by community-based nurse",
+    "in_kg": true,
+    "fsn": "Seen by community-based nurse (finding)",
+    "preferred_term": "",
+    "existing_terms": [
+      "seen by community nurse",
+      "seen by community-based nurse"
+    ],
+    "existing_surface_forms": [
+      "seen by community based nurse finding",
+      "seen by community nurse",
+      "seen by community based nurse"
+    ],
+    "descendants": [
+      {
+        "concept_id": "946001000000101",
+        "preferred_term": null,
+        "fsn": "School nurse encounter following relocation (finding)"
+      },
+      {
+        "concept_id": "417359009",
+        "preferred_term": null,
+        "fsn": "Seen by community heart failure nurse (finding)"
+      },
+      {
+        "concept_id": "862191000000107",
+        "preferred_term": null,
+        "fsn": "Seen by community human immunodeficiency virus nurse (finding)"
+      },
+      {
+        "concept_id": "283191000000108",
+        "preferred_term": null,
+        "fsn": "Seen by community nurse for older people (finding)"
+      },
+      {
+        "concept_id": "312456007",
+        "preferred_term": null,
+        "fsn": "Seen by community pediatric nurse (finding)"
+      },
+      {
+        "concept_id": "305752008",
+        "preferred_term": null,
+        "fsn": "Seen by community psychiatric nurse (finding)"
+      },
+      {
+        "concept_id": "305753003",
+        "preferred_term": null,
+        "fsn": "Seen by company nurse (finding)"
+      },
+      {
+        "concept_id": "185281005",
+        "preferred_term": null,
+        "fsn": "Seen by district nurse (finding)"
+      },
+      {
+        "concept_id": "185279008",
+        "preferred_term": null,
+        "fsn": "Seen by practice nurse (finding)"
+      },
+      {
+        "concept_id": "305755005",
+        "preferred_term": null,
+        "fsn": "Seen by school nurse (finding)"
+      }
+    ],
+    "candidates": {
+      "already_covered": [],
+      "missing": [
+        {
+          "form": "nurse visit"
+        },
+        {
+          "form": "nurse appointment"
+        },
+        {
+          "form": "community health nurse"
+        },
+        {
+          "form": "nurse consultation"
+        },
+        {
+          "form": "nursing visit"
+        },
+        {
+          "form": "nurse review"
+        },
+        {
+          "form": "seen at nurse clinic"
+        }
+      ],
+      "mapped_to_other_concept": [
+        {
+          "form": "community nurse",
+          "mapped_to": "224540001",
+          "fsn": "Community nurse (occupation)"
+        },
+        {
+          "form": "district nurse",
+          "mapped_to": "135164007",
+          "fsn": "District nurse (occupation)"
+        },
+        {
+          "form": "community nursing",
+          "mapped_to": "720521000000108",
+          "fsn": "Community nursing (qualifier value)"
+        },
+        {
+          "form": "seen by nurse",
+          "mapped_to": "831481000000101",
+          "fsn": "Seen by nurse"
+        },
+        {
+          "form": "practice nurse",
+          "mapped_to": "135219004",
+          "fsn": "Practice nurse (occupation)"
+        }
+      ]
+    }
+  }
+]

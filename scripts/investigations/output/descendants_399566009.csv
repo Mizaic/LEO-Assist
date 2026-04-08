@@ -1,0 +1,30 @@
+concept_id,preferred_term,fsn,semantic_tag
+399437009,Integrated M category (observable entity),Integrated M category (observable entity),observable entity
+399458003,Integrated N category (observable entity),Integrated N category (observable entity),observable entity
+399556001,Integrated T category (observable entity),Integrated T category (observable entity),observable entity
+399703000,Integrated TNM category (observable entity),Integrated TNM category (observable entity),observable entity
+277208005,M category (observable entity),M category (observable entity),observable entity
+277206009,N category (observable entity),N category (observable entity),observable entity
+78873005,T category (observable entity),T category (observable entity),observable entity
+106249008,Tumor-node-metastasis (TNM) classification of malignant tumor after operation (observable entity),Tumor-node-metastasis (TNM) classification of malignant tumor after operation (observable entity),observable entity
+106248000,Tumor-node-metastasis (TNM) classification of malignant tumor before any treatment (observable entity),Tumor-node-metastasis (TNM) classification of malignant tumor before any treatment (observable entity),observable entity
+399387003,cM category (observable entity),cM category (observable entity),observable entity
+399534004,cN category (observable entity),cN category (observable entity),observable entity
+399504009,cT category (observable entity),cT category (observable entity),observable entity
+371497001,pM category (observable entity),pM category (observable entity),observable entity
+371494008,pN category (observable entity),pN category (observable entity),observable entity
+399698006,"pN category, nasopharynx (observable entity)","pN category, nasopharynx (observable entity)",observable entity
+384625004,pT category (observable entity),pT category (observable entity),observable entity
+399583000,"pT category, ciliary body and choroid (observable entity)","pT category, ciliary body and choroid (observable entity)",observable entity
+399535003,"pT category, glottis (observable entity)","pT category, glottis (observable entity)",observable entity
+399743005,"pT category, hypopharynx (observable entity)","pT category, hypopharynx (observable entity)",observable entity
+399450005,"pT category, iris (observable entity)","pT category, iris (observable entity)",observable entity
+399549007,"pT category, lip and oral cavity (observable entity)","pT category, lip and oral cavity (observable entity)",observable entity
+399513006,"pT category, maxillary sinus (observable entity)","pT category, maxillary sinus (observable entity)",observable entity
+399722009,"pT category, nasal cavity and ethmoid sinus (observable entity)","pT category, nasal cavity and ethmoid sinus (observable entity)",observable entity
+399716000,"pT category, nasopharynx (observable entity)","pT category, nasopharynx (observable entity)",observable entity
+399628003,"pT category, oropharynx (observable entity)","pT category, oropharynx (observable entity)",observable entity
+409744002,"pT category, primary extraosseous tumor (observable entity)","pT category, primary extraosseous tumor (observable entity)",observable entity
+409743008,"pT category, primary osseous tumor (observable entity)","pT category, primary osseous tumor (observable entity)",observable entity
+399539009,"pT category, subglottis (observable entity)","pT category, subglottis (observable entity)",observable entity
+399376006,"pT category, supraglottis (observable entity)","pT category, supraglottis (observable entity)",observable entity

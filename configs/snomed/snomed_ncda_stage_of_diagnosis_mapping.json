@@ -1,0 +1,331 @@
+{
+  "metadata": {
+    "domain": "stage_of_diagnosis",
+    "total_terms": 27,
+    "successful_mappings": 27,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2026-04-08T00:00:00Z",
+    "focus": "Cancer staging systems and stage findings used at diagnosis",
+    "source_note": "Codes compiled from NHS Data Dictionary staging attributes and HL7 mCODE value set expansions that include SNOMED CT concepts.",
+    "unmapped_requested_systems": [
+      "Murphy St Jude staging system for CTYA non-Hodgkin lymphoma",
+      "Royal Marsden staging system for testis"
+    ]
+  },
+  "mappings": {
+    "ann_arbor_lymphoma_staging_system": {
+      "concept_id": 254372002,
+      "preferred_term": "Ann Arbor lymphoma staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ann Arbor stage",
+        "Ann Arbor staging system",
+        "Lymphoma Ann Arbor stage"
+      ],
+      "guideline_name": "Ann Arbor lymphoma staging system"
+    },
+    "ann_arbor_hodgkin_staging_system": {
+      "concept_id": 254373007,
+      "preferred_term": "Ann Arbor Hodgkin's disease tumor staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ann Arbor Hodgkin stage"
+      ],
+      "guideline_name": "Ann Arbor Hodgkin staging system"
+    },
+    "ann_arbor_non_hodgkin_staging_system": {
+      "concept_id": 254374001,
+      "preferred_term": "Ann Arbor non-Hodgkin's lymphoma tumor staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ann Arbor NHL stage",
+        "Ann Arbor non-Hodgkin stage"
+      ],
+      "guideline_name": "Ann Arbor non-Hodgkin staging system"
+    },
+    "ann_arbor_stage_i": {
+      "concept_id": 30440004,
+      "preferred_term": "Lymphoma stage I",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ann Arbor I",
+        "Stage I lymphoma"
+      ],
+      "guideline_name": "Lymphoma stage I"
+    },
+    "ann_arbor_stage_ii": {
+      "concept_id": 76422004,
+      "preferred_term": "Lymphoma stage II",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ann Arbor II",
+        "Stage II lymphoma"
+      ],
+      "guideline_name": "Lymphoma stage II"
+    },
+    "ann_arbor_stage_iii": {
+      "concept_id": 56944001,
+      "preferred_term": "Lymphoma stage III",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ann Arbor III",
+        "Stage III lymphoma"
+      ],
+      "guideline_name": "Lymphoma stage III"
+    },
+    "ann_arbor_stage_iv": {
+      "concept_id": 66445009,
+      "preferred_term": "Lymphoma stage IV",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ann Arbor IV",
+        "Stage IV lymphoma"
+      ],
+      "guideline_name": "Lymphoma stage IV"
+    },
+    "binet_staging_system_for_cll": {
+      "concept_id": 1149099005,
+      "preferred_term": "Binet staging classification for chronic lymphocytic leukemia (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Binet stage",
+        "Binet staging",
+        "CLL Binet stage"
+      ],
+      "guideline_name": "Binet staging classification for chronic lymphocytic leukemia"
+    },
+    "chang_staging_system": {
+      "concept_id": 1343302008,
+      "preferred_term": "Chang staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Chang stage",
+        "Modified Chang staging system for medulloblastoma"
+      ],
+      "guideline_name": "Chang staging system"
+    },
+    "figo_staging_system_general": {
+      "concept_id": 254383006,
+      "preferred_term": "International Federation of Gynecology and Obstetrics staging system of gynecological malignancy (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO stage",
+        "FIGO staging system"
+      ],
+      "guideline_name": "FIGO staging system of gynecological malignancy"
+    },
+    "figo_staging_endometrial": {
+      "concept_id": 106244003,
+      "preferred_term": "International Federation of Gynecology and Obstetrics staging system for endometrial carcinoma (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO endometrial stage"
+      ],
+      "guideline_name": "FIGO staging system for endometrial carcinoma"
+    },
+    "figo_staging_vulvar_carcinoma": {
+      "concept_id": 106245002,
+      "preferred_term": "International Federation of Gynecology and Obstetrics staging system for vulvar carcinoma (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO vulvar carcinoma stage"
+      ],
+      "guideline_name": "FIGO staging system for vulvar carcinoma"
+    },
+    "figo_staging_vulvar_melanoma": {
+      "concept_id": 106246001,
+      "preferred_term": "International Federation of Gynecology and Obstetrics staging system for vulvar melanoma (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO vulvar melanoma stage"
+      ],
+      "guideline_name": "FIGO staging system for vulvar melanoma"
+    },
+    "figo_staging_epithelial_ovary": {
+      "concept_id": 106247005,
+      "preferred_term": "International Federation of Gynecology and Obstetrics staging system for epithelial tumor of ovary (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO epithelial ovarian stage"
+      ],
+      "guideline_name": "FIGO staging system for epithelial tumor of ovary"
+    },
+    "figo_staging_cervical_carcinoma": {
+      "concept_id": 106250008,
+      "preferred_term": "International Federation of Gynecology and Obstetrics staging system for cervical carcinoma (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO cervical stage"
+      ],
+      "guideline_name": "FIGO staging system for cervical carcinoma"
+    },
+    "figo_staging_vaginal_tumor": {
+      "concept_id": 254384000,
+      "preferred_term": "International Federation of Gynecology and Obstetrics vaginal tumor staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO vaginal stage"
+      ],
+      "guideline_name": "FIGO vaginal tumor staging system"
+    },
+    "figo_staging_uterine_tumor": {
+      "concept_id": 254385004,
+      "preferred_term": "International Federation of Gynecology and Obstetrics uterine tumor staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO uterine stage",
+        "FIGO corpus uteri stage"
+      ],
+      "guideline_name": "FIGO uterine tumor staging system"
+    },
+    "figo_staging_ovarian_tumor": {
+      "concept_id": 254386003,
+      "preferred_term": "International Federation of Gynecology and Obstetrics ovarian tumor staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIGO ovarian stage"
+      ],
+      "guideline_name": "FIGO ovarian tumor staging system"
+    },
+    "inrg_staging_system": {
+      "concept_id": 1287643004,
+      "preferred_term": "International Neuroblastoma Risk Group staging system (tumor staging)",
+      "semantic_tag": "Tumor_staging",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "INRG stage",
+        "INRGSS",
+        "International Neuroblastoma Risk Group staging"
+      ],
+      "guideline_name": "International Neuroblastoma Risk Group staging system"
+    },
+    "revised_iss_staging_system_for_multiple_myeloma": {
+      "concept_id": 1149163003,
+      "preferred_term": "Revised International Staging System for multiple myeloma (staging scale)",
+      "semantic_tag": "Staging_scale",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "R-ISS stage",
+        "Revised ISS stage"
+      ],
+      "guideline_name": "Revised International Staging System for multiple myeloma"
+    },
+    "international_iss_staging_system_for_multiple_myeloma": {
+      "concept_id": 1149162008,
+      "preferred_term": "International Staging System for multiple myeloma (staging scale)",
+      "semantic_tag": "Staging_scale",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "ISS stage myeloma"
+      ],
+      "guideline_name": "International Staging System for multiple myeloma"
+    },
+    "wilms_study_group_stage_finding_parent": {
+      "concept_id": 405971004,
+      "preferred_term": "National Wilms Tumor Study Group Stage finding (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Wilms tumour stage",
+        "NWTSG stage"
+      ],
+      "guideline_name": "National Wilms Tumor Study Group Stage finding"
+    },
+    "wilms_stage_i": {
+      "concept_id": 405975008,
+      "preferred_term": "National Wilms Tumor Study Group Stage I (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Wilms stage 1"
+      ],
+      "guideline_name": "National Wilms Tumor Study Group Stage I"
+    },
+    "wilms_stage_ii": {
+      "concept_id": 405974007,
+      "preferred_term": "National Wilms Tumor Study Group Stage II (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Wilms stage 2"
+      ],
+      "guideline_name": "National Wilms Tumor Study Group Stage II"
+    },
+    "wilms_stage_iii": {
+      "concept_id": 405973001,
+      "preferred_term": "National Wilms Tumor Study Group Stage III (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Wilms stage 3"
+      ],
+      "guideline_name": "National Wilms Tumor Study Group Stage III"
+    },
+    "wilms_stage_iv": {
+      "concept_id": 405972006,
+      "preferred_term": "National Wilms Tumor Study Group Stage IV (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Wilms stage 4"
+      ],
+      "guideline_name": "National Wilms Tumor Study Group Stage IV"
+    },
+    "wilms_stage_v": {
+      "concept_id": 405970003,
+      "preferred_term": "National Wilms Tumor Study Group Stage V (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Wilms stage 5"
+      ],
+      "guideline_name": "National Wilms Tumor Study Group Stage V"
+    }
+  }
+}

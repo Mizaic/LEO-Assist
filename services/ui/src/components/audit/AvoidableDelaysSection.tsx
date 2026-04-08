@@ -1,6 +1,7 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Alert from "@mui/material/Alert";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
@@ -94,6 +95,14 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
     },
   ];
 
+  // 0% with real episodes means the GP-hindsight field has not been filled in,
+  // not that there were genuinely no avoidable delays.
+  const MIN_EPISODES_FOR_ZERO = 5;
+  const dataNotCaptured =
+    practice != null &&
+    practice.avoidable_delay_n === 0 &&
+    practice.total_episodes >= MIN_EPISODES_FOR_ZERO;
+
   return (
     <SectionCard
       id="section-avoidable-delays"
@@ -103,6 +112,12 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
       loading={loading}
       error={error}
     >
+      {dataNotCaptured && (
+        <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
+          Avoidable delay is recorded as 0% across {practice!.total_episodes} episodes.
+          This field requires GP data entry and has not been completed. The 0% value is not a clinical finding.
+        </Alert>
+      )}
       <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
       <ComparisonBarChart
         data={mainChart}

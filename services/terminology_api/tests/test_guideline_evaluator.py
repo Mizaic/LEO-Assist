@@ -15,6 +15,7 @@ def _make_store(current_ruleset=None, int_id_map=None, bitmaps=None):
     """Build a mock BitmapStore with configurable state."""
     store = MagicMock(spec=BitmapStore)
     store.get_current_ruleset.return_value = current_ruleset
+    store.get_ruleset.return_value = current_ruleset
     int_id_map = int_id_map or {}
     store.get_int_id.side_effect = lambda cid: int_id_map.get(cid)
     bitmaps = bitmaps or {}
@@ -44,6 +45,28 @@ class TestNoActiveRuleset:
         assert result["matched_rules"] == []
         assert result["active_version"] is None
         assert "No active ruleset" in result.get("message", "")
+
+
+def test_evaluator_uses_scoped_ruleset_when_version_requested(evaluator_factory):
+    bm = BitMap([1])
+    ruleset = {"version": "vScope", "rules": [_make_rule(criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])]}
+    ev = evaluator_factory(
+        current_ruleset=ruleset,
+        int_id_map={"443416000": 1},
+        bitmaps={"bm1": bm},
+    )
+    result = ev.evaluate_patient(
+        ["443416000"],
+        scope_type="guideline",
+        scope_id="NG12",
+        ruleset_version="vScope",
+    )
+    assert len(result["matched_rules"]) == 1
+    ev._store.get_ruleset.assert_called_once_with(
+        "vScope",
+        scope_type="guideline",
+        scope_id="NG12",
+    )
 
 
 def _make_rule(rule_id="r1", guideline_id="NG151", criteria_groups=None, applies_to=None):

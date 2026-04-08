@@ -167,7 +167,7 @@ async function runExtractionTest(recId: string): Promise<ExtractionTestResult> {
   const encoded = encodeURIComponent(recId);
   const res = await fetch(`/api/guidance/rules/test/${encoded}`, { method: "POST" });
 
-  // 422 = pipeline returned partial results (some terms failed) — parse body and
+  // 422 = pipeline returned partial results (some terms failed) -- parse body and
   // surface it in the UI with warnings rather than throwing and showing nothing.
   if (res.status === 422 || res.ok) {
     const body = await res.json().catch(() => null);
@@ -178,7 +178,11 @@ async function runExtractionTest(recId: string): Promise<ExtractionTestResult> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body?.detail ?? body?.errors?.[0] ?? `HTTP ${res.status}`);
+    const detail = body?.detail ?? body?.errors?.[0];
+    if (res.status === 504) {
+      throw new Error(detail ?? "Extraction timed out -- the LLM or Terminology API is slow. Try again.");
+    }
+    throw new Error(detail ?? `HTTP ${res.status}`);
   }
   return res.json();
 }
@@ -836,8 +840,14 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
     setTestAllResults({});
     setTestAllProgress({ done: 0, total: normativeRecs.length });
 
-    await Promise.all(
-      normativeRecs.map(async (rec) => {
+    // Process at most 3 recommendations at a time to avoid exhausting the
+    // server thread pool. Worker functions race over a shared index counter.
+    const TEST_CONCURRENCY = 3;
+    let nextIdx = 0;
+
+    async function worker() {
+      while (nextIdx < normativeRecs.length) {
+        const rec = normativeRecs[nextIdx++];
         try {
           const result = await runExtractionTest(rec.rec_id);
           setTestAllResults((prev) => ({ ...prev, [rec.rec_id]: { result } }));
@@ -848,9 +858,10 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
           }));
         }
         setTestAllProgress((prev) => prev ? { done: prev.done + 1, total: prev.total } : prev);
-      })
-    );
+      }
+    }
 
+    await Promise.all(Array.from({ length: TEST_CONCURRENCY }, worker));
     setTestAllRunning(false);
   }
 

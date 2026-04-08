@@ -1,8 +1,8 @@
 "use client";
 
 import SectionCard from "./SectionCard";
-import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
+import CancerTypeDumbbellChart from "./CancerTypeDumbbellChart";
+import { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import Typography from "@mui/material/Typography";
 import type { AuditCancerTypeRow, AuditSectionResult } from "@/lib/analyticsApi";
@@ -25,8 +25,7 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
     : (["practice", "national"] as const);
 
   // Build the full type list as a union of live data + 2018 benchmark types so that
-  // types present in 2018 but absent from today's patient data are still shown
-  // (they'll render a 2018 bar with no live bar — a meaningful signal in itself).
+  // types present in 2018 but absent from today's patient data are still shown.
   const liveTypes = new Set(practice.map((r) => r.cancer_type).filter(Boolean));
 
   const bmTypes: string[] = bm
@@ -36,23 +35,18 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
     : [];
 
   const allTypes = Array.from(new Set([...liveTypes, ...bmTypes]))
-    // Sort by live practice proportion descending; benchmark-only types fall to the end
     .sort((a, b) => {
       const pa = practice.find((r) => r.cancer_type === a)?.pct ?? -1;
       const pb = practice.find((r) => r.cancer_type === b)?.pct ?? -1;
       return pb - pa;
     });
 
-  const chartData: ComparisonDataRow[] = allTypes.map((type) => {
+  const dumbbellRows = allTypes.map((type) => {
     const pRow = practice.find((r) => r.cancer_type === type);
-    const aRow = allianceLive?.find((r) => r.cancer_type === type);
-    const eRow = englandLive?.find((r) => r.cancer_type === type);
     const metricKey = `condition_type.${type.toLowerCase()}`;
     return {
-      category: type,
+      cancer_type: type,
       practice: pRow?.pct ?? null,
-      similar: aRow?.pct ?? null,
-      alliance: eRow?.pct ?? null,
       national: resolveBenchmarkValue(bm, metricKey, orgSelected),
     };
   });
@@ -76,7 +70,7 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
     <SectionCard
       id="section-cancer-type"
       title="Cancer Type"
-      description="Distribution of cancer types among patients in this audit, compared to Cancer Alliance and national benchmarks."
+      description="Distribution of cancer types among patients in this audit, compared to the 2018 national baseline. The chart shows where your patient mix differs from the benchmark."
       availability="ready"
       loading={loading}
       error={error}
@@ -87,15 +81,7 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
         </Typography>
       ) : (
         <>
-          <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
-          <ComparisonBarChart
-            data={chartData}
-            unit="percent"
-            height={Math.max(280, allTypes.length * 30 + 80)}
-            visibleKeys={visibleKeys}
-            orgSelected={orgSelected}
-            ariaLabel="Cancer type distribution compared to alliance and national benchmarks"
-          />
+          <CancerTypeDumbbellChart rows={dumbbellRows} orgSelected={orgSelected} />
           <SummaryStatsTable
             rows={tableRows}
             visibleKeys={visibleKeys}

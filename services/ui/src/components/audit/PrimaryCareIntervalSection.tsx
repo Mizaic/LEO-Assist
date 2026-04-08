@@ -1,6 +1,7 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import SectionCard from "./SectionCard";
 import IntervalStripPlot from "./IntervalStripPlot";
 import SummaryStatsTable from "./SummaryStatsRow";
@@ -72,6 +73,12 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
         allianceMedian={allianceMedian}
         maxDays={180}
       />
+      {(practice?.pci?.n ?? 0) > (practice?.patients?.length ?? 0) && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
+          Showing {practice!.patients.length} of {practice!.pci!.n} episodes in the chart.
+          Median and IQR are calculated from all {practice!.pci!.n} episodes.
+        </Typography>
+      )}
       <Box sx={{ mt: 2 }}>
         <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Primary care interval statistics" />
       </Box>

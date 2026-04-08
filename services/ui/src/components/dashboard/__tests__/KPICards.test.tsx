@@ -4,19 +4,22 @@ import KPICards from "../KPICards";
 
 const sampleKPIs = {
   avg_days_to_referral: 10.23,
+  n_days_to_referral: 30,
   avg_days_to_diagnosis: 35.7,
+  n_days_to_diagnosis: 35,
   avg_days_to_treatment: 25,
+  n_days_to_treatment: 12,
   avg_consultations: 2.1,
   episode_count: 42,
 };
 
 describe("KPICards", () => {
-  it("renders all 4 KPI rows", () => {
+  it("renders all 3 KPI rows", () => {
     render(<KPICards kpis={sampleKPIs} />);
-    expect(screen.getByText(/First appointment to referral/)).toBeInTheDocument();
+    expect(screen.getByText(/First presentation to referral/)).toBeInTheDocument();
     expect(screen.getByText(/Referral to diagnosis/)).toBeInTheDocument();
     expect(screen.getByText(/Diagnosis to treatment start/)).toBeInTheDocument();
-    expect(screen.getByText(/GP visits before referral/)).toBeInTheDocument();
+    // avg_consultations is returned by the API but not displayed in KPICards
   });
 
   it("shows rounded values with units", () => {
@@ -36,7 +39,7 @@ describe("KPICards", () => {
 
   it("shows episode count", () => {
     render(<KPICards kpis={sampleKPIs} />);
-    expect(screen.getByText(/42 referral pathways/)).toBeInTheDocument();
+    expect(screen.getByText(/Cohort size: 42 referral pathways/)).toBeInTheDocument();
   });
 
   it("shows empty message when kpis is null", () => {

@@ -10,7 +10,12 @@ interface DataItem {
   count: number;
 }
 
-const TERMINAL = new Set(["closed", "completed", "merged", "excluded"]);
+// Must match TERMINAL_STATUSES in dashboard/page.tsx exactly
+const TERMINAL = new Set([
+  "closed", "completed", "merged", "excluded",
+  "closed_benign", "closed_related", "closed_phantom",
+  "stale_no_diagnosis", "stale_post_specialist",
+]);
 
 // #0D7C6F passes WCAG 3:1 against white and light-grey backgrounds
 const COLOUR_OPEN = "#0D7C6F";
@@ -71,12 +76,15 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
     grouped.set(key, entry);
   }
 
-  const chartData = Array.from(grouped.values())
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 12)
+  const sorted = Array.from(grouped.values()).sort((a, b) => b.total - a.total);
+  const MAX_BARS = 15;
+  const hidden = sorted.slice(MAX_BARS);
+  const chartData = sorted
+    .slice(0, MAX_BARS)
     .map((d) => ({ ...d, condition_type: formatLabel(d.condition_type) }));
 
-  const total = chartData.reduce((s, d) => s + d.total, 0);
+  const grandTotal = sorted.reduce((s, d) => s + d.total, 0);
+  const hiddenTotal = hidden.reduce((s, d) => s + d.total, 0);
   const summary = chartData
     .slice(0, 3)
     .map((d) => `${d.condition_type} (${d.total})`)
@@ -86,7 +94,7 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
     <Box sx={{ position: "relative" }}>
       <Box
         role="img"
-        aria-label={`Bar chart: Referrals by cancer type. Total ${total} referrals. Top types: ${summary}.`}
+        aria-label={`Bar chart: Referrals by cancer type. Total ${grandTotal} referrals. Top types: ${summary}.`}
         sx={{ overflow: "hidden" }}
       >
         <ResponsiveContainer width="99%" height={280}>
@@ -113,7 +121,12 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
             <Bar dataKey="closed" fill={COLOUR_CLOSED} name="closed" stackId="a" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </Box>
+        </Box>
+      {hidden.length > 0 && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
+          {`+${hiddenTotal} referral${hiddenTotal !== 1 ? "s" : ""} across ${hidden.length} more type${hidden.length !== 1 ? "s" : ""} not shown`}
+        </Typography>
+      )}
     </Box>
   );
 }

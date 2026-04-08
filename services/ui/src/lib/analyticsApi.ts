@@ -241,17 +241,25 @@ export async function fetchPatientCCI(patientId: string) {
 
 // ── Analytics: Benchmarks ──
 
-export async function fetchKPIBenchmarks(orgId?: string) {
-  const params = orgId ? `?org_id=${orgId}` : "";
+export async function fetchKPIBenchmarks(orgId?: string, dateFrom?: string, dateTo?: string) {
+  const p = new URLSearchParams();
+  if (orgId) p.set("org_id", orgId);
+  if (dateFrom) p.set("date_from", dateFrom);
+  if (dateTo) p.set("date_to", dateTo);
+  const qs = p.toString();
   return fetchJson<
     Array<{
       avg_days_to_referral: number | null;
+      n_days_to_referral?: number | null;
       avg_days_to_diagnosis: number | null;
+      n_days_to_diagnosis?: number | null;
       avg_days_to_treatment: number | null;
+      n_days_to_treatment?: number | null;
       avg_consultations: number | null;
       episode_count: number;
+      inferred_diagnosis_count: number | null;
     }>
-  >(`${ANALYTICS_BASE}/analytics/benchmarks/kpis${params}`);
+  >(`${ANALYTICS_BASE}/analytics/benchmarks/kpis${qs ? `?${qs}` : ""}`);
 }
 
 export async function fetchKPITrends(metric?: string, orgId?: string) {
@@ -565,7 +573,7 @@ export async function exportSubdomain(
 
 export async function fetchPatientCodingTimeline(patientId: string): Promise<TimelineEvent[]> {
   return fetchJson<TimelineEvent[]>(
-    `${PROXY_BASE}/patients/${encodeURIComponent(patientId)}/timeline`,
+    `${API_BASE}/api/patients/${encodeURIComponent(patientId)}/timeline`,
   );
 }
 
