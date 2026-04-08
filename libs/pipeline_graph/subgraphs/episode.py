@@ -84,35 +84,26 @@ def build_episodes(state: EpisodeState) -> dict[str, Any]:
 
     domain_id = state.get("domain_id") or ""
 
+    from libs.neo4j_client.client import PatientGraphClient
+
+    client = PatientGraphClient()
     try:
-        from libs.neo4j_client.client import PatientGraphClient
-
-        client = PatientGraphClient()
-        try:
-            result = asyncio_run(
-                build_patient_episodes(
-                    patient_id=patient_id,
-                    anchors=_to_anchor_result(state),
-                    patient_client=client,
-                    domain_id=domain_id,
-                )
-            )
-        finally:
-            client.close()
-    except Exception:
-        # Fall back to a no-op persistence client for dry-runs/tests.
-        class _Client:
-            def run(self, *_args, **_kwargs):
-                return []
-
         result = asyncio_run(
             build_patient_episodes(
                 patient_id=patient_id,
                 anchors=_to_anchor_result(state),
-                patient_client=_Client(),
+                patient_client=client,
                 domain_id=domain_id,
             )
         )
+    except Exception:
+        logger.exception(
+            "Episode build failed for patient %s -- propagating error",
+            patient_id,
+        )
+        raise
+    finally:
+        client.close()
 
     episodes = [
         {

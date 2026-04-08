@@ -11,20 +11,22 @@ load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
 load_keyvault_secrets()
 
-from libs.neo4j_client.client import PatientGraphClient
+from libs.neo4j_client.client import KnowledgeGraphClient
 
 
 def main() -> None:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
 
     rows = client.run(
-        "MATCH (bs:BenchmarkSet)-[:HAS_VALUE]->(bv:BenchmarkValue) "
-        "WHERE bv.metric_id CONTAINS 'cancer_type' "
-        "RETURN bs.id AS set_id, bv.metric_id AS metric, bv.value AS val "
-        "ORDER BY bs.id, bv.metric_id"
+        "MATCH (bv:BenchmarkValue) "
+        "WHERE bv.audit_id = 'ncda-2018' AND bv.category = 'condition_type' "
+        "RETURN bv.metric_id AS metric, bv.scope_type AS scope, bv.value AS val "
+        "ORDER BY bv.metric_id, bv.scope_type"
     )
+    print(f"{'Metric':<45} {'Scope':<20} {'Value'}")
+    print("-" * 70)
     for r in rows:
-        print(f"{str(r['set_id']):<20} {str(r['metric']):<50} {r['val']}")
+        print(f"{str(r['metric']):<45} {str(r['scope']):<20} {r['val']}")
 
     print()
     print("--- All BenchmarkSets ---")

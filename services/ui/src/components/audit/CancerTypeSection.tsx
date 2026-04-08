@@ -28,9 +28,22 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
   // types present in 2018 but absent from today's patient data are still shown.
   const liveTypes = new Set(practice.map((r) => r.cancer_type).filter(Boolean));
 
+  // Old 2WW pathway-group keys kept in the KG for backward compat but replaced
+  // by specific subtypes.  Suppress them from the benchmark-driven type list so
+  // the chart only shows the specific NCDA types.
+  const GROUPED_BM_KEYS = new Set([
+    "urological", "haematological", "upper_gi", "gynaecological",
+    "head_and_neck", "cns", "skin", "non_site_specific",
+  ]);
+
   const bmTypes: string[] = bm
     ? Object.keys(bm)
-        .filter((k) => k.startsWith("condition_type.") && k.split(".").length === 2)
+        .filter(
+          (k) =>
+            k.startsWith("condition_type.") &&
+            k.split(".").length === 2 &&
+            !GROUPED_BM_KEYS.has(k.replace("condition_type.", ""))
+        )
         .map((k) => k.replace("condition_type.", ""))
     : [];
 
