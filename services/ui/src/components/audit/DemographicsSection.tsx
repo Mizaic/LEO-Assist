@@ -151,7 +151,7 @@ export default function DemographicsSection({ result, comorbidities, loading, er
     <SectionCard
       id="section-demographics"
       title="Demographics"
-      description="Sex, age at diagnosis, ethnicity and comorbidities of audited patients."
+      description="Patient characteristics: sex, age at diagnosis, ethnicity, and other health conditions (comorbidities) of audited patients."
       availability="ready"
       loading={loading}
       error={error}
@@ -205,7 +205,7 @@ export default function DemographicsSection({ result, comorbidities, loading, er
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>Ethnicity</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ py: 1.5, fontSize: "0.82rem" }}>
-            Ethnicity data is not yet linked to patient records. This section will populate once the patient registry integration is complete.
+            Ethnicity data has not been linked to patient records yet. This section will fill in once the patient registry connection is set up.
           </Typography>
         </Box>
       )}
@@ -215,7 +215,7 @@ export default function DemographicsSection({ result, comorbidities, loading, er
           <Divider sx={{ my: 2 }} />
           <Box>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>
-              Comorbidities
+              Other health conditions (comorbidities)
             </Typography>
             <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
             <ComparisonBarChart

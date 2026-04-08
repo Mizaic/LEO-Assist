@@ -35,24 +35,24 @@ const AVAILABILITY_CONFIG: Record<
     icon: <StorageOutlinedIcon fontSize="small" />,
   },
   pipeline_pending: {
-    label: "Extraction in progress",
+    label: "Reading records",
     severity: "info",
     message:
-      "Data extraction is in progress. Values shown may be partial until the pipeline completes.",
+      "We are still reading through the clinical records. The numbers shown may change when this is done.",
     icon: <HourglassEmptyOutlinedIcon fontSize="small" />,
   },
   manual_entry: {
-    label: "Requires data entry",
+    label: "Needs data entry",
     severity: "warning",
     message:
-      "This section requires structured data entry by the audit team. Benchmark comparisons are shown; practice data is not yet available.",
+      "A team member needs to add data for this section. We show national comparison figures for now, but your practice data is not yet included.",
     icon: <EditNoteOutlinedIcon fontSize="small" />,
   },
   external_feed: {
-    label: "Requires external feed",
+    label: "Needs external data",
     severity: "warning",
     message:
-      "This section requires an external data feed (e.g. Cancer Outcomes and Services Dataset — COSD). Benchmark data is shown for reference.",
+      "This section needs data from an outside source (for example the Cancer Outcomes and Services Dataset, COSD). National comparison figures are shown for reference.",
     icon: <CloudDownloadOutlinedIcon fontSize="small" />,
   },
 };

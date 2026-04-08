@@ -70,7 +70,7 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
     <SectionCard
       id="section-cancer-type"
       title="Cancer Type"
-      description="Distribution of cancer types among patients in this audit, compared to the 2018 national baseline. The chart shows where your patient mix differs from the benchmark."
+      description="Which types of cancer your audited patients have, compared to the 2018 England average. Each dot shows your practice figure. A diamond shows the 2018 benchmark."
       availability="ready"
       loading={loading}
       error={error}

@@ -54,8 +54,8 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
   return (
     <SectionCard
       id="section-pci"
-      title="Primary Care Interval (PCI)"
-      description="Days from when the patient first presented with cancer-related symptoms to the date of first referral from primary care."
+      title="Time to Referral (Primary Care Interval, PCI)"
+      description="How many days passed from when the patient first saw their GP with possible cancer symptoms to when they were referred for tests."
       availability="ready"
       loading={loading}
       error={error}

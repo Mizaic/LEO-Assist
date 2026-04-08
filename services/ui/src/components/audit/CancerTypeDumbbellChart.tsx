@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { BENCHMARK_COLOURS, getBenchmarkLabels } from "./BenchmarkLegend";
@@ -10,16 +11,44 @@ export interface DumbbellRow {
   national: number | null;
 }
 
-// Special-case display names for well-known multi-word type keys.
+// Display names for NCDA cancer type keys and pathway-level fallback groups.
 const LABEL_MAP: Record<string, string> = {
-  lower_gi: "Lower GI",
+  // NCDA specific types
+  colorectal: "Colorectal",
+  oesophageal: "Oesophageal",
+  stomach: "Stomach",
+  pancreatic: "Pancreatic",
+  liver: "Liver",
+  gallbladder: "Gallbladder",
+  small_intestine: "Small Intestine",
+  oropharyngeal: "Oropharyngeal",
+  laryngeal: "Laryngeal",
+  thyroid: "Thyroid",
+  leukaemia: "Leukaemia",
+  lymphoma: "Lymphoma",
+  myeloma: "Myeloma",
+  ovarian: "Ovarian",
+  endometrial: "Endometrial",
+  cervical: "Cervical",
+  vulval: "Vulval",
+  prostate: "Prostate",
+  bladder: "Bladder",
+  renal: "Renal",
+  testicular: "Testicular",
+  mesothelioma: "Mesothelioma",
+  melanoma: "Melanoma",
+  // Pathway-level fallbacks (2WW referrals without specific diagnosis)
   upper_gi: "Upper GI",
+  lower_gi: "Lower GI",
   head_and_neck: "Head and Neck",
+  gynaecological: "Gynaecological",
+  urological: "Urological",
+  haematological: "Haematological",
+  // Other categories
   non_site_specific: "Non Site Specific",
-  cns: "CNS",
-  non_hodgkin: "Non-Hodgkin",
-  cris: "CRiS",
+  unknown_primary: "Unknown Primary",
   childrens_tumour: "Children's Tumour",
+  cns: "CNS",
 };
 
 export function humaniseCancerLabel(key: string): string {
@@ -34,26 +63,27 @@ const COLOUR_ABOVE = "#16A34A";
 const COLOUR_BELOW = "#D97706";
 const COLOUR_NONE  = "#9CA3AF";
 
-const LABEL_W  = 120;
-const ROW_H    = 34;
-const PLOT_W   = 380;
-const DELTA_W  = 52;
-const MARGIN_L = 8;
-const MARGIN_R = 4;
+// Fixed layout constants (px in SVG coordinate space)
+const LABEL_W   = 120;
+const ROW_H     = 34;
+const DELTA_W   = 54;   // reserved width for the +/-Xpp label after the rightmost dot
+const MARGIN_L  = 0;    // gap between label column and plot
+const MARGIN_R  = 4;
+const AXIS_H    = 24;
 
-function plotX(value: number, maxVal: number): number {
-  return MARGIN_L + (value / maxVal) * PLOT_W;
+function px(value: number, maxVal: number, plotW: number): number {
+  return MARGIN_L + (value / maxVal) * plotW;
 }
 
-interface RowProps {
+interface RowSvgProps {
   row: DumbbellRow;
-  y: number;
+  rowY: number;
   maxVal: number;
-  orgSelected: boolean;
+  plotW: number;
 }
 
-function DumbbellRowSvg({ row, y, maxVal }: RowProps) {
-  const cy = y + ROW_H / 2;
+function DumbbellRowSvg({ row, rowY, maxVal, plotW }: RowSvgProps) {
+  const cy = rowY + ROW_H / 2;
   const p = row.practice;
   const n = row.national;
 
@@ -64,24 +94,26 @@ function DumbbellRowSvg({ row, y, maxVal }: RowProps) {
     : delta < 0   ? COLOUR_BELOW
     :               COLOUR_NONE;
 
-  const px = p != null ? plotX(p, maxVal) : null;
-  const nx = n != null ? plotX(n, maxVal) : null;
+  const dotPx = p != null ? px(p, maxVal, plotW) : null;
+  const dotNx = n != null ? px(n, maxVal, plotW) : null;
 
+  // Only show the delta annotation when there is a meaningful difference.
+  // Suppress the label when delta is zero (dots overlap) to avoid visual clutter.
   const deltaLabel =
-    delta != null
+    delta != null && delta !== 0
       ? `${delta > 0 ? "+" : ""}${delta}pp`
       : null;
 
-  const diamondSize = 5;
+  const ds = 5; // diamond half-size
 
   return (
     <g>
-      {/* connecting line */}
-      {px != null && nx != null && (
+      {/* connecting line between the two dots */}
+      {dotPx != null && dotNx != null && delta !== 0 && (
         <line
-          x1={Math.min(px, nx)}
+          x1={Math.min(dotPx, dotNx)}
           y1={cy}
-          x2={Math.max(px, nx)}
+          x2={Math.max(dotPx, dotNx)}
           y2={cy}
           stroke={lineColour}
           strokeWidth={2.5}
@@ -90,25 +122,18 @@ function DumbbellRowSvg({ row, y, maxVal }: RowProps) {
       )}
 
       {/* today dot (filled circle) */}
-      {px != null && (
-        <circle
-          cx={px}
-          cy={cy}
-          r={6}
-          fill={BENCHMARK_COLOURS.practice}
-          stroke="#fff"
-          strokeWidth={1.5}
-        />
+      {dotPx != null && (
+        <circle cx={dotPx} cy={cy} r={6} fill={BENCHMARK_COLOURS.practice} stroke="#fff" strokeWidth={1.5} />
       )}
 
-      {/* 2018 benchmark (hollow diamond) */}
-      {nx != null && (
+      {/* 2018 benchmark dot (hollow diamond) */}
+      {dotNx != null && (
         <polygon
           points={[
-            `${nx},${cy - diamondSize}`,
-            `${nx + diamondSize},${cy}`,
-            `${nx},${cy + diamondSize}`,
-            `${nx - diamondSize},${cy}`,
+            `${dotNx},${cy - ds}`,
+            `${dotNx + ds},${cy}`,
+            `${dotNx},${cy + ds}`,
+            `${dotNx - ds},${cy}`,
           ].join(" ")}
           fill="#fff"
           stroke={BENCHMARK_COLOURS.national}
@@ -116,11 +141,11 @@ function DumbbellRowSvg({ row, y, maxVal }: RowProps) {
         />
       )}
 
-      {/* delta label to the right of the rightmost point */}
-      {deltaLabel != null && (px != null || nx != null) && (
+      {/* delta annotation to the right of the rightmost point */}
+      {deltaLabel != null && (dotPx != null || dotNx != null) && (
         <text
-          x={(Math.max(px ?? 0, nx ?? 0)) + 8}
-          y={cy + 4}
+          x={Math.max(dotPx ?? 0, dotNx ?? 0) + 9}
+          y={cy}
           fontSize={9.5}
           fill={lineColour}
           dominantBaseline="middle"
@@ -132,45 +157,39 @@ function DumbbellRowSvg({ row, y, maxVal }: RowProps) {
   );
 }
 
-function XAxisTicks({ maxVal, svgWidth }: { maxVal: number; svgWidth: number }) {
-  const ticks: number[] = [];
+interface AxisProps {
+  maxVal: number;
+  plotW: number;
+  totalRows: number;
+}
+
+function XAxisTicks({ maxVal, plotW, totalRows }: AxisProps) {
   const step = maxVal <= 20 ? 5 : 10;
+  const ticks: number[] = [];
   for (let v = 0; v <= maxVal; v += step) ticks.push(v);
+  const totalH = totalRows * ROW_H;
 
   return (
     <g>
+      {/* vertical gridlines extending through all rows */}
       {ticks.map((v) => {
-        const x = LABEL_W + MARGIN_L + (v / maxVal) * PLOT_W;
+        const x = LABEL_W + MARGIN_L + (v / maxVal) * plotW;
+        return (
+          <line key={`grid-${v}`} x1={x} y1={0} x2={x} y2={totalH} stroke="#F3F4F6" strokeWidth={1} />
+        );
+      })}
+      {/* baseline */}
+      <line x1={LABEL_W + MARGIN_L} y1={0} x2={LABEL_W + MARGIN_L + plotW} y2={0} stroke="#E5E7EB" strokeWidth={1} />
+      {/* tick marks and labels (drawn above the baseline using negative y) */}
+      {ticks.map((v) => {
+        const x = LABEL_W + MARGIN_L + (v / maxVal) * plotW;
         return (
           <g key={v}>
-            <line x1={x} y1={0} x2={x} y2={-6} stroke="#D1D5DB" strokeWidth={1} />
-            <text x={x} y={-9} textAnchor="middle" fontSize={9} fill="#6B7280">
+            <line x1={x} y1={0} x2={x} y2={-5} stroke="#D1D5DB" strokeWidth={1} />
+            <text x={x} y={-8} textAnchor="middle" fontSize={9} fill="#6B7280">
               {v}%
             </text>
           </g>
-        );
-      })}
-      <line
-        x1={LABEL_W + MARGIN_L}
-        y1={0}
-        x2={LABEL_W + MARGIN_L + PLOT_W + MARGIN_R}
-        y2={0}
-        stroke="#E5E7EB"
-        strokeWidth={1}
-      />
-      {/* vertical gridlines */}
-      {ticks.map((v) => {
-        const x = LABEL_W + MARGIN_L + (v / maxVal) * PLOT_W;
-        return (
-          <line
-            key={`grid-${v}`}
-            x1={x}
-            y1={0}
-            x2={x}
-            y2={9999}
-            stroke="#F3F4F6"
-            strokeWidth={1}
-          />
         );
       })}
     </g>
@@ -184,6 +203,18 @@ interface Props {
 
 export default function CancerTypeDumbbellChart({ rows, orgSelected = false }: Props) {
   const labels = getBenchmarkLabels(orgSelected);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerW, setContainerW] = useState(640);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerW(entry.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   if (!rows || rows.length === 0) {
     return (
@@ -199,12 +230,13 @@ export default function CancerTypeDumbbellChart({ rows, orgSelected = false }: P
   const rawMax = allValues.length > 0 ? Math.max(...allValues) : 40;
   const maxVal = Math.ceil((rawMax + 3) / 5) * 5;
 
-  const AXIS_H   = 24;
-  const svgWidth = LABEL_W + MARGIN_L + PLOT_W + DELTA_W + MARGIN_R;
-  const svgHeight = AXIS_H + rows.length * ROW_H + 8;
+  // plotW fills the container; minimum 180 px so the chart stays readable.
+  const plotW = Math.max(180, containerW - LABEL_W - MARGIN_L - DELTA_W - MARGIN_R);
+  const svgW  = containerW;
+  const svgH  = AXIS_H + rows.length * ROW_H + 4;
 
   return (
-    <Box>
+    <Box ref={containerRef}>
       {/* Legend */}
       <Box sx={{ display: "flex", gap: 3, mb: 1.5, flexWrap: "wrap" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
@@ -245,57 +277,50 @@ export default function CancerTypeDumbbellChart({ rows, orgSelected = false }: P
         </Box>
       </Box>
 
-      <Box sx={{ overflowX: "auto" }}>
-        <svg
-          role="img"
-          aria-label={`Dumbbell chart: cancer type distribution vs ${labels.national}. ${rows.length} cancer types shown.`}
-          width={svgWidth}
-          height={svgHeight}
-          style={{ display: "block", minWidth: svgWidth }}
-        >
-          {/* Axis tick area */}
-          <g transform={`translate(0, ${AXIS_H})`}>
-            <XAxisTicks maxVal={maxVal} svgWidth={svgWidth} />
-          </g>
+      <svg
+        role="img"
+        aria-label={`Dumbbell chart: cancer type distribution vs ${labels.national}. ${rows.length} cancer types shown.`}
+        width={svgW}
+        height={svgH}
+        style={{ display: "block", overflow: "visible" }}
+      >
+        {/* Axis (positioned at AXIS_H so tick labels sit above row 0) */}
+        <g transform={`translate(0, ${AXIS_H})`}>
+          <XAxisTicks maxVal={maxVal} plotW={plotW} totalRows={rows.length} />
+        </g>
 
-          {/* Rows */}
-          {rows.map((row, i) => {
-            const rowY = AXIS_H + i * ROW_H;
-            const cy = rowY + ROW_H / 2;
+        {/* Rows */}
+        {rows.map((row, i) => {
+          const rowY = AXIS_H + i * ROW_H;
+          const cy   = rowY + ROW_H / 2;
 
-            return (
-              <g key={row.cancer_type}>
-                {/* row stripe (alternating) */}
-                {i % 2 === 1 && (
-                  <rect x={0} y={rowY} width={svgWidth} height={ROW_H} fill="#F9FAFB" />
-                )}
+          return (
+            <g key={row.cancer_type}>
+              {/* alternating stripe fills full SVG width */}
+              {i % 2 === 1 && (
+                <rect x={0} y={rowY} width={svgW} height={ROW_H} fill="#F9FAFB" />
+              )}
 
-                {/* cancer type label */}
-                <text
-                  x={LABEL_W - 8}
-                  y={cy + 4}
-                  textAnchor="end"
-                  fontSize={11}
-                  fill="#374151"
-                  dominantBaseline="middle"
-                >
-                  {humaniseCancerLabel(row.cancer_type)}
-                </text>
+              {/* cancer type label — right-aligned flush against the plot edge */}
+              <text
+                x={LABEL_W - 6}
+                y={cy}
+                textAnchor="end"
+                fontSize={11}
+                fill="#374151"
+                dominantBaseline="middle"
+              >
+                {humaniseCancerLabel(row.cancer_type)}
+              </text>
 
-                {/* dumbbell (plot area starts at LABEL_W) */}
-                <g transform={`translate(${LABEL_W}, 0)`}>
-                  <DumbbellRowSvg
-                    row={row}
-                    y={rowY}
-                    maxVal={maxVal}
-                    orgSelected={orgSelected}
-                  />
-                </g>
+              {/* dumbbell elements (plot area starts at LABEL_W) */}
+              <g transform={`translate(${LABEL_W}, 0)`}>
+                <DumbbellRowSvg row={row} rowY={rowY} maxVal={maxVal} plotW={plotW} />
               </g>
-            );
-          })}
-        </svg>
-      </Box>
+            </g>
+          );
+        })}
+      </svg>
     </Box>
   );
 }

@@ -59,16 +59,16 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
     <SectionCard
       id="section-safety-netting"
       title="Safety Netting"
-      description="Whether there was evidence in the clinical record that safety netting was recorded at any stage of the patient's diagnostic process."
+      description="Whether a follow-up plan (safety netting) was written in the clinical record at any point during the patient's diagnostic journey. Safety netting means agreeing what to do if symptoms do not improve."
       availability="pipeline_pending"
       loading={loading}
       error={error}
     >
       {dataNotCaptured && (
         <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
-          Safety netting is recorded as 0% across {practice!.total_episodes} episodes.
-          This is likely because the pipeline has not yet extracted this field from clinical text,
-          not a clinical finding. Do not use this value in reporting until the pipeline is complete.
+          Safety netting shows as 0% across {practice!.total_episodes} cases.
+          This is most likely because the system has not yet read this information from the clinical records.
+          Do not use this figure in reports until the reading process is complete.
         </Alert>
       )}
       <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />

@@ -69,7 +69,7 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
     <SectionCard
       id="section-consultations"
       title="Consultations"
-      description="Number of consultations for cancer-related symptoms in the year before the referral leading to diagnosis."
+      description="How many times patients saw a GP for possible cancer symptoms in the year before being referred for tests that led to their diagnosis."
       availability="ready"
       loading={loading}
       error={error}

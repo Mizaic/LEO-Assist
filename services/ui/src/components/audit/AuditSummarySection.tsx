@@ -9,6 +9,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Divider from "@mui/material/Divider";
 import SectionCard from "./SectionCard";
 import type { AuditSummary } from "@/lib/analyticsApi";
+import { BENCHMARK_COLOURS } from "./BenchmarkLegend";
 
 interface Props {
   summary: AuditSummary | null;
@@ -26,7 +27,7 @@ interface StatTileProps {
   color?: string;
 }
 
-function StatTile({ label, value, sub, color = "#1D4ED8" }: StatTileProps) {
+function StatTile({ label, value, sub, color = BENCHMARK_COLOURS.practice }: StatTileProps) {
   return (
     <Card variant="outlined" sx={{ height: "100%" }}>
       <CardContent sx={{ py: 1.5, px: 2, "&:last-child": { pb: 1.5 } }}>
@@ -58,7 +59,7 @@ export default function AuditSummarySection({ summary, loading, error, orgName, 
     <SectionCard
       id="section-summary"
       title="Summary of Results"
-      description={`Key metrics for ${orgName ?? "this organisation"}.${auditPeriod ? ` Audit period: ${auditPeriod}.` : ""}`}
+      description={`Key figures for ${orgName ?? "this organisation"}.${auditPeriod ? ` Audit period: ${auditPeriod}.` : ""}`}
       availability="ready"
       loading={loading}
       error={error}
@@ -75,35 +76,33 @@ export default function AuditSummarySection({ summary, loading, error, orgName, 
           )}
           <Grid container spacing={1.5} sx={{ mb: 2 }}>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-              <StatTile label="Total Pathways" value={summary.total_episodes?.toLocaleString("en-GB")} color="#1D4ED8" />
+              <StatTile label="Cancer pathways" value={summary.total_episodes?.toLocaleString("en-GB")} sub="Total audited" />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-              <StatTile label="Active" value={summary.active_episodes?.toLocaleString("en-GB")} color="#0D7C6F" />
+              <StatTile label="Active" value={summary.active_episodes?.toLocaleString("en-GB")} sub="Still in progress" />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-              <StatTile label="Confirmed" value={summary.confirmed_cancers?.toLocaleString("en-GB")} color="#15803D" />
+              <StatTile label="Confirmed cancer" value={summary.confirmed_cancers?.toLocaleString("en-GB")} color="#15803D" />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
               <StatTile
-                label="Median PCI"
+                label="Time to referral"
                 value={fmt(summary.median_pci_days) != null ? `${fmt(summary.median_pci_days)} days` : "—"}
-                sub="First presentation to referral"
-                color="#7C3AED"
+                sub="Median — first contact to referral (PCI)"
               />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
               <StatTile
-                label="Median DI"
+                label="Time to diagnosis"
                 value={fmt(summary.median_di_days) != null ? `${fmt(summary.median_di_days)} days` : "—"}
-                sub="First presentation to diagnosis"
-                color="#92400E"
+                sub="Median — first contact to diagnosis (DI)"
               />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
               <StatTile
-                label="Safety Netting"
+                label="Safety netting"
                 value={fmt(summary.safety_netting_pct) != null ? `${fmt(summary.safety_netting_pct)}%` : "—"}
-                sub="Cases with safety netting recorded"
+                sub="Cases with a follow-up plan recorded"
                 color="#C2410C"
               />
             </Grid>
@@ -112,8 +111,8 @@ export default function AuditSummarySection({ summary, loading, error, orgName, 
           <Divider sx={{ mb: 2 }} />
 
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-            Use the sections below to review each NCDA audit domain in detail. Each section compares your practice or organisation
-            against similar practices, the Cancer Alliance, and national (England) benchmarks.
+            Use the sections below to explore each area of the National Cancer Diagnosis Audit (NCDA). Each section compares
+            your practice against the Cancer Alliance and national (England) figures.
           </Typography>
         </>
       )}

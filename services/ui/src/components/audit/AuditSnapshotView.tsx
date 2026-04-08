@@ -49,7 +49,7 @@ import { resolveBenchmarkValue } from "./BenchmarkLegend";
 import type {
   AuditSummary,
   AuditSectionResult,
-  AuditCancerStageRow,
+  AuditCancerStageSummary,
   AuditCancerTypeRow,
   AuditConsultations,
   AuditDemographics,
@@ -148,7 +148,7 @@ interface Props {
   loading: boolean;
   summary:             AuditSummary | null;
   cancerType:          AuditSectionResult<AuditCancerTypeRow[]>   | null;
-  cancerStage:         AuditSectionResult<AuditCancerStageRow[]>  | null;
+  cancerStage:         AuditSectionResult<AuditCancerStageSummary> | null;
   demographics:        AuditSectionResult<AuditDemographics>      | null;
   placeOfPresentation: AuditSectionResult<AuditPlaceRow[]>        | null;
   consultations:       AuditSectionResult<AuditConsultations>     | null;
@@ -172,7 +172,8 @@ function deriveMetrics(
   bm: BmRecord | null,
   orgSelected: boolean,
 ): MetricDef[] {
-  const earlyRow        = cancerStage?.scopes.practice?.find((r) => r.stage_group === "early");
+  const stageRows       = cancerStage?.scopes.practice?.rows ?? [];
+  const earlyRow        = stageRows.find((r) => r.stage_group === "early");
   const consultPractice = consultations?.scopes.practice;
   const refPractice     = referrals?.scopes.practice ?? [];
   const twwRow          = refPractice.find((r) => { const rr = r.referral_route?.toLowerCase() ?? ""; return rr === "tww" || rr.includes("two_week") || rr.includes("two-week"); });
@@ -186,8 +187,8 @@ function deriveMetrics(
     { id: "fewer_than_3",       label: "Fewer than 3 consultations",  unit: "%",     sectionId: "section-consultations",    higherIsBetter: true,  live: consultPractice?.fewer_than_3_pct ?? null, baseline: resolveBenchmarkValue(bm, "consultations.fewer_than_3_pct", orgSelected) },
     { id: "tww_referral",       label: "TWW referral rate",           unit: "%",     sectionId: "section-referrals",        higherIsBetter: true,  live: twwRow?.pct ?? null,                       baseline: resolveBenchmarkValue(bm, "referrals.tww_pct", orgSelected) },
     { id: "emergency_referral", label: "Emergency referral rate",     unit: "%",     sectionId: "section-referrals",        higherIsBetter: false, live: emgRow?.pct ?? null,                       baseline: resolveBenchmarkValue(bm, "referrals.emergency_pct", orgSelected) },
-    { id: "pci_days",           label: "Median primary care interval",unit: " days", sectionId: "section-pci",              higherIsBetter: false, threshold: 1, live: intervalPractice?.pci.median ?? null, baseline: resolveBenchmarkValue(bm, "primary_care_interval.median_pci_days", orgSelected) },
-    { id: "di_days",            label: "Median diagnostic interval",  unit: " days", sectionId: "section-di",               higherIsBetter: false, threshold: 3, live: intervalPractice?.di.median ?? null,  baseline: resolveBenchmarkValue(bm, "diagnostic_interval.median_di_days", orgSelected) },
+    { id: "pci_days",           label: "Median time to referral",     unit: " days", sectionId: "section-pci",              higherIsBetter: false, threshold: 1, live: intervalPractice?.pci.median ?? null, baseline: resolveBenchmarkValue(bm, "primary_care_interval.median_pci_days", orgSelected) },
+    { id: "di_days",            label: "Median time to diagnosis",    unit: " days", sectionId: "section-di",               higherIsBetter: false, threshold: 3, live: intervalPractice?.di.median ?? null,  baseline: resolveBenchmarkValue(bm, "diagnostic_interval.median_di_days", orgSelected) },
     { id: "safety_netting",     label: "Safety netting recorded",     unit: "%",     sectionId: "section-safety-netting",   higherIsBetter: true,  live: snPractice?.recorded_pct ?? null,          baseline: resolveBenchmarkValue(bm, "safety_netting.recorded_pct", orgSelected) },
     { id: "avoidable_delay",    label: "GP-assessed avoidable delay", unit: "%",     sectionId: "section-avoidable-delays", higherIsBetter: false, live: delayPractice?.avoidable_delay_pct ?? null, baseline: resolveBenchmarkValue(bm, "avoidable_delays.avoidable_delay_pct", orgSelected) },
   ];
@@ -268,7 +269,7 @@ function ScorecardCard({
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: "text.disabled", display: "block", mt: 0.75, fontSize: "0.7rem" }}>
-              Excluded from trend analysis
+              Not included in the trend table
             </Typography>
           </>
         ) : quality === "suspect" ? (
@@ -281,11 +282,11 @@ function ScorecardCard({
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1 }}>
               <WarningAmberIcon sx={{ fontSize: "0.9rem", color: "warning.main" }} />
               <Typography variant="caption" sx={{ color: "warning.main", fontWeight: 600, fontSize: "0.7rem" }}>
-                Check data capture
+                Check data recording
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: "text.disabled", display: "block", mt: 0.5, fontSize: "0.7rem" }}>
-              2018 baseline: {fmtVal(metric.baseline)} — excluded from priorities
+              2018 baseline: {fmtVal(metric.baseline)} — not included in priority list
             </Typography>
           </>
         ) : (
@@ -415,7 +416,7 @@ function DeviationTable({
   if (sorted.length === 0) {
     return (
       <Alert severity="info" sx={{ mt: 2 }}>
-        No live data available to compare against the 2018 baseline. Ensure audit data is loaded and a benchmark set is selected.
+        No live data is available to compare against the 2018 figures. Make sure audit data has been loaded and a benchmark set is selected.
       </Alert>
     );
   }
@@ -427,10 +428,10 @@ function DeviationTable({
       <Table size="small" aria-label="Deviation from 2018 baseline, ranked by largest difference">
         <TableHead>
           <TableRow sx={{ bgcolor: "grey.50" }}>
-            <TableCell sx={{ fontWeight: 700, fontSize: "0.76rem" }}>Metric</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: "0.76rem" }}>Measure</TableCell>
             <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.76rem" }}>Today</TableCell>
             <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.76rem" }}>2018</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.76rem" }}>Drift</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.76rem" }}>Change</TableCell>
             <TableCell align="center" sx={{ fontWeight: 700, fontSize: "0.76rem" }}>Direction</TableCell>
           </TableRow>
         </TableHead>
@@ -458,12 +459,12 @@ function DeviationTable({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                     {m.label}
                     {quality === "suspect" && (
-                      <Tooltip title="Value is 0% — verify data capture before treating as a clinical signal">
+                      <Tooltip title="Value is 0% — check that data has been recorded before treating this as a clinical finding">
                         <WarningAmberIcon sx={{ fontSize: "0.9rem", color: "warning.main" }} />
                       </Tooltip>
                     )}
                     {quality === "ok" && isLargeDrift && (
-                      <Tooltip title="Large deviation — verify data capture alongside clinical review">
+                      <Tooltip title="Large change from 2018 — check data recording alongside clinical review">
                         <WarningAmberIcon sx={{ fontSize: "0.9rem", color: "warning.light" }} />
                       </Tooltip>
                     )}
@@ -535,7 +536,7 @@ function ActionCard({
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1, p: 1, borderRadius: 1, bgcolor: "rgba(217,119,6,0.07)", border: "1px solid", borderColor: "warning.light" }}>
               <WarningAmberIcon sx={{ fontSize: "0.9rem", color: "warning.main", flexShrink: 0 }} />
               <Typography variant="caption" sx={{ color: "warning.dark", fontSize: "0.75rem", lineHeight: 1.4 }}>
-                <strong>Large deviation from baseline.</strong> Verify data capture completeness before treating this as a confirmed clinical signal.
+                <strong>Large change from the 2018 figure.</strong> Check that data recording is complete before treating this as a confirmed finding.
               </Typography>
             </Box>
           )}
@@ -634,13 +635,13 @@ export default function AuditSnapshotView({
     <Box sx={{ mt: 1 }}>
       {!hasBaseline && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          No 2018 benchmark data loaded. Select a benchmark set in the filter bar above to enable baseline comparisons.
+          No 2018 comparison data loaded. Choose a benchmark set in the filter bar above to compare your figures against the 2018 baseline.
         </Alert>
       )}
 
       {totalEpisodes != null && (
         <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-          <Chip label={`${totalEpisodes} episode${totalEpisodes !== 1 ? "s" : ""} audited`} size="small" color="primary" variant="outlined" />
+          <Chip label={`${totalEpisodes} pathway${totalEpisodes !== 1 ? "s" : ""} audited`} size="small" color="primary" variant="outlined" />
           {hasBaseline && betterCount > 0 && <Chip label={`${betterCount} improved`} size="small" color="success" variant="outlined" />}
           {hasBaseline && worseCount > 0 && <Chip label={`${worseCount} worsened`} size="small" color="error" variant="outlined" />}
         </Box>
@@ -650,8 +651,8 @@ export default function AuditSnapshotView({
 
       <ZoneHeader
         zone={1}
-        title="Awareness — Where do I stand?"
-        subtitle="Key metrics compared to the NCDA 2018 baseline. Green = improved, red = worsened."
+        title="Awareness — How am I doing?"
+        subtitle="Key measures compared to the 2018 National Cancer Diagnosis Audit (NCDA) baseline. Green = improved, red = worsened."
         icon={<VisibilityOutlinedIcon fontSize="small" />}
       />
 
@@ -667,8 +668,8 @@ export default function AuditSnapshotView({
 
       <ZoneHeader
         zone={2}
-        title="Diagnosis — What's changed?"
-        subtitle="Metrics ranked by drift from the 2018 baseline. Metrics without data are excluded. Click any row to open the full section."
+        title="What has changed?"
+        subtitle="Measures ranked by how much they have changed since 2018. Measures with no data are hidden. Click any row to open the full section."
         icon={<TroubleshootOutlinedIcon fontSize="small" />}
       />
 
@@ -689,11 +690,11 @@ export default function AuditSnapshotView({
           <>
             <ZoneHeader
               zone={3}
-              title="Action — Where should I focus?"
+              title="Action — What needs attention?"
               subtitle={
                 actionMetrics.length > 0
-                  ? `${actionMetrics.length} confirmed metric${actionMetrics.length !== 1 ? "s have" : " has"} worsened since 2018. Suspect values excluded.`
-                  : "No confirmed metrics have worsened since 2018."
+                  ? `${actionMetrics.length} confirmed measure${actionMetrics.length !== 1 ? "s have" : " has"} worsened since 2018. Figures where data recording may be incomplete are excluded.`
+                  : "No confirmed measures have worsened since 2018."
               }
               icon={<TrackChangesOutlinedIcon fontSize="small" />}
             />
@@ -708,7 +709,7 @@ export default function AuditSnapshotView({
               </Box>
             ) : (
               <Alert severity="success" sx={{ mt: 1 }}>
-                All confirmed metrics are at or above the 2018 baseline. No immediate action items identified.
+                All confirmed measures are at or above the 2018 level. No areas need immediate attention.
               </Alert>
             )}
           </>
@@ -728,7 +729,7 @@ export default function AuditSnapshotView({
           }
           sx={{ textTransform: "none", fontSize: "0.78rem", color: "text.secondary", fontWeight: 600, px: 1 }}
         >
-          {detailOpen ? "Hide" : "Show"} NCDA report summary
+          {detailOpen ? "Hide" : "Show"} full audit summary (NCDA)
         </Button>
         <Collapse in={detailOpen}>
           <Box sx={{ mt: 1.5 }}>
@@ -796,12 +797,12 @@ export default function AuditSnapshotView({
                   ]}
                 />
                 <SummaryCard
-                  title="Intervals"
+                  title="Time Intervals"
                   practiceLabel={practiceLabel} englandLabel={englandLabel}
                   onView={() => onViewInReport("section-pci")}
                   rows={[
-                    { label: "Primary care interval (median)", practice: intPractice?.pci.median != null ? `${Math.round(intPractice.pci.median)} days` : "—", england: (() => { const v = resolveBenchmarkValue(bm, "primary_care_interval.median_pci_days", orgSelected); return v != null ? `${v} days` : "—"; })() },
-                    { label: "Diagnostic interval (median)", practice: intPractice?.di.median != null ? `${Math.round(intPractice.di.median)} days` : "—", england: (() => { const v = resolveBenchmarkValue(bm, "diagnostic_interval.median_di_days", orgSelected); return v != null ? `${v} days` : "—"; })() },
+                    { label: "Time to referral (PCI, median)", practice: intPractice?.pci.median != null ? `${Math.round(intPractice.pci.median)} days` : "—", england: (() => { const v = resolveBenchmarkValue(bm, "primary_care_interval.median_pci_days", orgSelected); return v != null ? `${v} days` : "—"; })() },
+                    { label: "Time to diagnosis (DI, median)", practice: intPractice?.di.median != null ? `${Math.round(intPractice.di.median)} days` : "—", england: (() => { const v = resolveBenchmarkValue(bm, "diagnostic_interval.median_di_days", orgSelected); return v != null ? `${v} days` : "—"; })() },
                   ]}
                 />
                 <SummaryCard

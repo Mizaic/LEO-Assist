@@ -5,8 +5,9 @@ import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
+import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import type { AuditCancerStageRow, AuditSectionResult } from "@/lib/analyticsApi";
+import type { AuditCancerStageSummary, AuditSectionResult } from "@/lib/analyticsApi";
 
 const LABELS: Record<string, string> = {
   early: "Early (stage 0/1/2)",
@@ -15,16 +16,21 @@ const LABELS: Record<string, string> = {
 };
 
 interface Props {
-  result: AuditSectionResult<AuditCancerStageRow[]> | null;
+  result: AuditSectionResult<AuditCancerStageSummary> | null;
   loading: boolean;
   error?: string | null;
   orgSelected?: boolean;
 }
 
 export default function CancerStageSection({ result, loading, error, orgSelected = false }: Props) {
-  const practice = result?.scopes.practice ?? [];
+  const practice = result?.scopes.practice?.rows ?? [];
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
+  const practiceBySource = result?.scopes.practice?.by_source ?? [];
+  const practiceCoverage = result?.scopes.practice?.coverage_pct ?? 0;
+  const practiceCoverageN = result?.scopes.practice?.coverage_numerator ?? 0;
+  const practiceCoverageD = result?.scopes.practice?.coverage_denominator ?? 0;
+  const stageDetail = result?.scopes.practice?.by_stage_group_detail ?? [];
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
@@ -33,8 +39,8 @@ export default function CancerStageSection({ result, loading, error, orgSelected
 
   const chartData: ComparisonDataRow[] = ["early", "late"].map((group) => {
     const pRow = practice.find((r) => r.stage_group === group);
-    const aRow = allianceLive?.find((r) => r.stage_group === group);
-    const eRow = englandLive?.find((r) => r.stage_group === group);
+    const aRow = allianceLive?.rows?.find((r) => r.stage_group === group);
+    const eRow = englandLive?.rows?.find((r) => r.stage_group === group);
     const metricKey = `cancer_stage.${group}_stage_pct`;
     return {
       category: LABELS[group],
@@ -47,8 +53,8 @@ export default function CancerStageSection({ result, loading, error, orgSelected
 
   const tableRows = ["early", "late"].map((group) => {
     const pRow = practice.find((r) => r.stage_group === group);
-    const aRow = allianceLive?.find((r) => r.stage_group === group);
-    const eRow = englandLive?.find((r) => r.stage_group === group);
+    const aRow = allianceLive?.rows?.find((r) => r.stage_group === group);
+    const eRow = englandLive?.rows?.find((r) => r.stage_group === group);
     const metricKey = `cancer_stage.${group}_stage_pct`;
     return {
       label: LABELS[group],
@@ -64,17 +70,25 @@ export default function CancerStageSection({ result, loading, error, orgSelected
     <SectionCard
       id="section-cancer-stage"
       title="Cancer Stage at Diagnosis"
-      description="Early (stage 0/1/2) vs late (stage 3/4) stage at diagnosis. Requires external COSD/cancer registry data feed."
-      availability="external_feed"
+      description="Whether cancer was found early (stage 0, 1, or 2) or late (stage 3 or 4). Finding cancer early usually leads to better outcomes."
+      availability="ready"
       loading={loading}
       error={error}
     >
       <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
       {practice.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-          Practice-level stage data is not yet available. Connect the Cancer Outcomes and Services Dataset (COSD) feed to populate this section.
+          No stage data is available yet for the selected filters.
         </Typography>
       )}
+      <Box sx={{ mb: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Stage recorded for {practiceCoverage}% of confirmed cases ({practiceCoverageN} of {practiceCoverageD})
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Data sources: {practiceBySource.map((s) => `${s.staging_source} (${s.n})`).join(", ") || "none"}
+        </Typography>
+      </Box>
       <ComparisonBarChart
         data={chartData}
         unit="percent"
@@ -89,6 +103,16 @@ export default function CancerStageSection({ result, loading, error, orgSelected
         orgSelected={orgSelected}
         caption="Stage at diagnosis — % of audited cases"
       />
+      {stageDetail.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+            Stage group detail
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {stageDetail.map((r) => `${r.cancer_stage_group}: ${r.n}`).join(" | ")}
+          </Typography>
+        </Box>
+      )}
       <CancerTypeBenchmarkGrid
         bm={bm}
         section="cancer_stage"

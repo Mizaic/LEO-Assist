@@ -3,6 +3,18 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
+/**
+ * Canonical benchmark colour map for all audit charts, legends, and tables.
+ *
+ * Key -> meaning (never reassign a key to a different comparator):
+ *   practice  -> This Practice / All Patients (today) when no org selected  (blue)
+ *   similar   -> Cancer Alliance (today)                                     (teal)
+ *   alliance  -> All Patients (today) / England-wide                         (purple)
+ *   national  -> 2018 NCDA baseline (practice-level or national)             (brown)
+ *
+ * IMPORTANT: Cancer Alliance MUST use `similar` (teal). Never map Cancer
+ * Alliance to `alliance` (purple) -- that key represents All Patients (today).
+ */
 export const BENCHMARK_COLOURS = {
   practice: "#1D4ED8",
   similar: "#0D7C6F",

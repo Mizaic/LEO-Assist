@@ -144,7 +144,7 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
     <SectionCard
       id="section-investigations"
       title="Investigations"
-      description="Primary care–led investigations ordered as part of the diagnostic assessment prior to referral."
+      description="Tests ordered by the GP (family doctor) before referring the patient to a specialist."
       availability="pipeline_pending"
       loading={loading}
       error={error}

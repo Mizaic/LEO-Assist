@@ -12,6 +12,7 @@ import {
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
+import { BENCHMARK_COLOURS } from "./BenchmarkLegend";
 
 export interface PatientInterval {
   episode_id: string;
@@ -91,7 +92,7 @@ export default function IntervalStripPlot({
           <Chip
             label={`Median: ${median} ${unit}`}
             size="small"
-            sx={{ bgcolor: "#1D4ED8", color: "white", fontWeight: 700 }}
+            sx={{ bgcolor: BENCHMARK_COLOURS.practice, color: "white", fontWeight: 700 }}
           />
         )}
         {q1 != null && q3 != null && (
@@ -105,14 +106,14 @@ export default function IntervalStripPlot({
           <Chip
             label={`${nationalLabel}: ${nationalMedian} ${unit}`}
             size="small"
-            sx={{ bgcolor: "#92400E", color: "white" }}
+            sx={{ bgcolor: BENCHMARK_COLOURS.national, color: "white" }}
           />
         )}
         {allianceMedian != null && (
           <Chip
             label={`Cancer Alliance median: ${allianceMedian} ${unit}`}
             size="small"
-            sx={{ bgcolor: "#7C3AED", color: "white" }}
+            sx={{ bgcolor: BENCHMARK_COLOURS.similar, color: "white" }}
           />
         )}
       </Box>
@@ -140,15 +141,15 @@ export default function IntervalStripPlot({
               <YAxis type="number" dataKey="y" hide domain={[0, 1.4]} />
               <Tooltip cursor={false} content={tooltipContent} />
               {median != null && (
-                <ReferenceLine x={median} stroke="#1D4ED8" strokeWidth={2} strokeDasharray="6 3" label={{ value: "Median", fill: "#1D4ED8", fontSize: 10, position: "top" }} />
+                <ReferenceLine x={median} stroke={BENCHMARK_COLOURS.practice} strokeWidth={2} strokeDasharray="6 3" label={{ value: "Median", fill: BENCHMARK_COLOURS.practice, fontSize: 10, position: "top" }} />
               )}
               {nationalMedian != null && (
-                <ReferenceLine x={nationalMedian} stroke="#92400E" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: nationalLabel, fill: "#92400E", fontSize: 10, position: "insideTopRight" }} />
+                <ReferenceLine x={nationalMedian} stroke={BENCHMARK_COLOURS.national} strokeWidth={1.5} strokeDasharray="4 2" label={{ value: nationalLabel, fill: BENCHMARK_COLOURS.national, fontSize: 10, position: "insideTopRight" }} />
               )}
               {allianceMedian != null && (
-                <ReferenceLine x={allianceMedian} stroke="#7C3AED" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: "Cancer Alliance", fill: "#7C3AED", fontSize: 10, position: "insideTopLeft" }} />
+                <ReferenceLine x={allianceMedian} stroke={BENCHMARK_COLOURS.similar} strokeWidth={1.5} strokeDasharray="4 2" label={{ value: "Cancer Alliance", fill: BENCHMARK_COLOURS.similar, fontSize: 10, position: "insideTopLeft" }} />
               )}
-              <Scatter data={confirmedPoints} fill="#1D4ED8" fillOpacity={0.55} r={4} name="Confirmed" />
+              <Scatter data={confirmedPoints} fill={BENCHMARK_COLOURS.practice} fillOpacity={0.55} r={4} name="Confirmed" />
               <Scatter data={inferredPoints} fill="#D97706" fillOpacity={0.75} r={4} name="Inferred" />
             </ScatterChart>
           </ResponsiveContainer>

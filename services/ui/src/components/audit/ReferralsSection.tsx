@@ -89,7 +89,7 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
     <SectionCard
       id="section-referrals"
       title="Referrals"
-      description="Type of referral that led most directly to a cancer diagnosis. TWW = Two Week Wait for suspected cancer."
+      description="How patients were referred for tests that led to their diagnosis. TWW (Two Week Wait) is an urgent referral when cancer is suspected."
       availability="pipeline_pending"
       loading={loading}
       error={error}

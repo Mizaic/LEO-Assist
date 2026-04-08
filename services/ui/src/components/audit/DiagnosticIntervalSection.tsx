@@ -54,8 +54,8 @@ export default function DiagnosticIntervalSection({ result, loading, error, orgS
   return (
     <SectionCard
       id="section-di"
-      title="Diagnostic Interval (DI)"
-      description="Days from when the patient first presented with cancer-related symptoms to the date of cancer diagnosis."
+      title="Time to Diagnosis (Diagnostic Interval, DI)"
+      description="How many days passed from when the patient first saw their GP with possible cancer symptoms to when cancer was confirmed."
       availability="ready"
       loading={loading}
       error={error}

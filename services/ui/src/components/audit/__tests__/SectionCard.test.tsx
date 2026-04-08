@@ -46,7 +46,7 @@ describe("SectionCard", () => {
         <div />
       </SectionCard>,
     );
-    expect(screen.getByText(/Extraction in progress/)).toBeInTheDocument();
+    expect(screen.getByText(/Reading records/)).toBeInTheDocument();
   });
 
   it("shows manual_entry chip and alert", () => {
@@ -55,8 +55,8 @@ describe("SectionCard", () => {
         <div />
       </SectionCard>,
     );
-    expect(screen.getByText(/Requires data entry/)).toBeInTheDocument();
-    expect(screen.getByText(/structured data entry/i)).toBeInTheDocument();
+    expect(screen.getByText(/Needs data entry/)).toBeInTheDocument();
+    expect(screen.getByText(/team member needs to add data/i)).toBeInTheDocument();
   });
 
   it("shows external_feed chip and alert", () => {
@@ -65,6 +65,6 @@ describe("SectionCard", () => {
         <div />
       </SectionCard>,
     );
-    expect(screen.getByText(/Requires external feed/)).toBeInTheDocument();
+    expect(screen.getByText(/Needs external data/)).toBeInTheDocument();
   });
 });
