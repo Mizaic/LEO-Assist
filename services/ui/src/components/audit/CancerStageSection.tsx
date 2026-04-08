@@ -126,12 +126,22 @@ export default function CancerStageSection({ result, loading, error, orgSelected
       />
       {stageDetail.length > 0 && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-            Stage group detail
+          <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>
+            Number of patients at each stage
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {stageDetail.map((r) => `${r.cancer_stage_group}: ${r.n}`).join(" | ")}
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+            Stage 1 and 2 = early; Stage 3 and 4 = late. Some cancer types use Roman numerals (I, II, III, IV) instead.
           </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+            {stageDetail.map((r) => (
+              <Chip
+                key={r.cancer_stage_group}
+                label={`Stage ${r.cancer_stage_group}: ${r.n} patient${r.n !== 1 ? "s" : ""}`}
+                size="small"
+                variant="outlined"
+              />
+            ))}
+          </Box>
         </Box>
       )}
       <CancerTypeBenchmarkGrid
