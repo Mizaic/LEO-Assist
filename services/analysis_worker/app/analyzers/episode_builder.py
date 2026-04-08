@@ -1807,6 +1807,20 @@ def _build_closed_episode(
         if ref_anchors
         else earliest_str
     )
+    # Last-chance site resolution: if the site is still unknown, check the
+    # first_presentation and referral anchors for cancer_types concept IDs.
+    # This catches cases where the GP coded a cancer diagnosis at the referral
+    # or first presentation encounter rather than a separate "confirmed" encounter,
+    # causing the cancer concept to land in the FP bucket instead of the diagnosis
+    # bucket.  Non-specific keys (non_site_specific, unknown) are not promoted.
+    if site_key in ("unknown", "non_site_specific") and anchors:
+        fp_and_ref = (anchors.first_presentation_anchors or []) + ref_anchors
+        for fp_anchor in fp_and_ref:
+            candidate = _extract_condition_key_from_anchor(fp_anchor)
+            if candidate not in ("unknown", "non_site_specific"):
+                site_key = candidate
+                break
+
     ep_id = _episode_id(patient_id, site_key, earliest_str)
     result.episode_ids.append(ep_id)
     result.episodes_created += 1
