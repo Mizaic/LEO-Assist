@@ -1052,18 +1052,34 @@ def _link_encounters_to_episode(
         pass
 
 
+def _cancer_diag_anchors(diag_anchors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return only non-pathway-completion anchors.
+
+    Pathway-completion anchors (is_pathway_completion=True) represent benign
+    no-cancer-discharge codes.  They should not be treated as cancer diagnoses
+    even though they share the 'diagnosis' milestone bucket.
+    """
+    return [a for a in diag_anchors if not a.get("is_pathway_completion")]
+
+
 def _has_confirmed_diagnosis(diag_anchors: list[dict[str, Any]]) -> bool:
-    """True if at least one diagnosis anchor has assertion = 'present'."""
+    """True if at least one non-pathway-completion anchor has assertion='present'.
+
+    Pathway-completion (no_cancer_discharge) anchors are explicitly excluded:
+    they signal a benign pathway closure, not a cancer diagnosis.
+    """
     return any(
-        str(a.get("assertion", "present")) in ("present", "") for a in diag_anchors
+        str(a.get("assertion", "present")) in ("present", "")
+        for a in _cancer_diag_anchors(diag_anchors)
     )
 
 
 def _has_possible_only_diagnosis(diag_anchors: list[dict[str, Any]]) -> bool:
-    """True if ALL diagnosis anchors are [possible] -- none are confirmed present."""
-    if not diag_anchors:
+    """True if ALL non-pathway-completion anchors are [possible] -- none confirmed present."""
+    cancer_diags = _cancer_diag_anchors(diag_anchors)
+    if not cancer_diags:
         return False
-    return all(str(a.get("assertion", "present")) == "possible" for a in diag_anchors)
+    return all(str(a.get("assertion", "present")) == "possible" for a in cancer_diags)
 
 
 def _treatment_after_referral(
@@ -1797,8 +1813,9 @@ def _build_closed_episode(
     result.encounters_linked += len(
         {str(a.get("encounter_id") or "") for a in all_anchors if a.get("encounter_id")}
     )
+    cancer_diags = _cancer_diag_anchors(diag_anchors)
     has_diag = _has_confirmed_diagnosis(diag_anchors) or bool(
-        diag_anchors and not _has_possible_only_diagnosis(diag_anchors)
+        cancer_diags and not _has_possible_only_diagnosis(diag_anchors)
     )
     ref_dates = [
         d for d in (
@@ -1825,6 +1842,16 @@ def _build_closed_episode(
     status, hitl_flag, hitl_reason = _determine_episode_status(
         has_diag, diag_anchors, None, anchors.treatment_anchors, ref_date, is_phantom
     )
+    # Safety net: completed episodes where cancer type could not be resolved
+    # need human review.  The diagnosis SNOMED concept was coded but its name
+    # in the graph is unresolved (numeric string), and the concept ID is not in
+    # our site-key lookup tables.  Flag for HITL to confirm site from records.
+    if status == "completed" and site_key == "unknown" and not hitl_flag:
+        hitl_flag = True
+        hitl_reason = (
+            "Completed: cancer type could not be determined from diagnosis coding. "
+            "SNOMED concept name is unresolved in the graph. Confirm cancer site from records."
+        )
     end_date = max(all_dates_str) if all_dates_str else None
     ref_concept = str(ref_anchors[0].get("concept_name") or "") if ref_anchors else ""
     _write_episode(

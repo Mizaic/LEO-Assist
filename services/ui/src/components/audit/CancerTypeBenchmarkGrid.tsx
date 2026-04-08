@@ -61,20 +61,24 @@ interface CancerTypeBenchmarkGridProps {
   primarySeriesLabel?: string;
 }
 
-const COLOURS = {
-  woodbrook:     BENCHMARK_COLOURS.national,  // brown — 2018 practice baseline, matches main chart's "national" slot
-  east_midlands: BENCHMARK_COLOURS.similar,   // teal  — Cancer Alliance, matches main chart's Cancer Alliance colour
-  england:       BENCHMARK_COLOURS.alliance,  // purple — All Patients, matches main chart's All Patients colour
-};
+// Colour for the first bar (woodbrook) is blue when live/today data is shown,
+// brown only when falling back to 2018 benchmark values.
+function woodbrookColour(hasLiveData: boolean): string {
+  return hasLiveData ? BENCHMARK_COLOURS.practice : BENCHMARK_COLOURS.national;
+}
 
 function MiniBarChart({
   data,
   yMax = 100,
   unit = "%",
+  firstBarColour,
+  firstBarLabel,
 }: {
   data: Array<{ name: string; woodbrook: number | null; east_midlands: number | null; england: number | null }>;
   yMax?: number;
   unit?: string;
+  firstBarColour: string;
+  firstBarLabel: string;
 }) {
   return (
     <ResponsiveContainer width="100%" height={180}>
@@ -85,13 +89,13 @@ function MiniBarChart({
           formatter={(v: number | string | undefined, name: string | undefined) => [`${v ?? ""}${unit}`, name ?? ""]}
           contentStyle={{ fontSize: 11 }}
         />
-        <Bar dataKey="woodbrook"     name={BENCHMARK_LABELS_2018.practice} fill={COLOURS.woodbrook}     radius={[2, 2, 0, 0]}>
+        <Bar dataKey="woodbrook"     name={firstBarLabel}               fill={firstBarColour}               radius={[2, 2, 0, 0]}>
           <LabelList dataKey="woodbrook"     position="top" style={{ fontSize: 9 }} formatter={(v: unknown) => v != null ? `${v}` : ""} />
         </Bar>
-        <Bar dataKey="east_midlands" name={BENCHMARK_LABELS_2018.alliance} fill={COLOURS.east_midlands} radius={[2, 2, 0, 0]}>
+        <Bar dataKey="east_midlands" name={BENCHMARK_LABELS_2018.alliance} fill={BENCHMARK_COLOURS.similar}  radius={[2, 2, 0, 0]}>
           <LabelList dataKey="east_midlands" position="top" style={{ fontSize: 9 }} formatter={(v: unknown) => v != null ? `${v}` : ""} />
         </Bar>
-        <Bar dataKey="england"       name={BENCHMARK_LABELS_2018.national} fill={COLOURS.england}       radius={[2, 2, 0, 0]}>
+        <Bar dataKey="england"       name={BENCHMARK_LABELS_2018.national} fill={BENCHMARK_COLOURS.alliance} radius={[2, 2, 0, 0]}>
           <LabelList dataKey="england"       position="top" style={{ fontSize: 9 }} formatter={(v: unknown) => v != null ? `${v}` : ""} />
         </Bar>
       </BarChart>
@@ -103,20 +107,23 @@ function LegendWithLabels({
   practiceLabel,
   allianceLabel,
   nationalLabel,
+  practiceColour,
 }: {
   practiceLabel: string;
   allianceLabel: string;
   nationalLabel: string;
+  practiceColour: string;
 }) {
+  const entries = [
+    { colour: practiceColour,              label: practiceLabel },
+    { colour: BENCHMARK_COLOURS.similar,   label: allianceLabel },
+    { colour: BENCHMARK_COLOURS.alliance,  label: nationalLabel },
+  ];
   return (
     <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1 }}>
-      {([
-        { key: "woodbrook",     label: practiceLabel },
-        { key: "east_midlands", label: allianceLabel },
-        { key: "england",       label: nationalLabel },
-      ] as const).map(({ key, label }) => (
-        <Box key={key} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-          <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: COLOURS[key], flexShrink: 0 }} />
+      {entries.map(({ colour, label }) => (
+        <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+          <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: colour, flexShrink: 0 }} />
           <Typography variant="caption" sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
             {label}
           </Typography>
@@ -139,6 +146,8 @@ export default function CancerTypeBenchmarkGrid({
 }: CancerTypeBenchmarkGridProps) {
   if (!bm && !liveByCancerType) return null;
 
+  const hasLiveData = liveByCancerType != null && Object.keys(liveByCancerType).length > 0;
+  const firstBarColour = woodbrookColour(hasLiveData);
   const practiceLegendLabel = primarySeriesLabel ?? BENCHMARK_LABELS_2018.practice;
 
   return (
@@ -150,13 +159,14 @@ export default function CancerTypeBenchmarkGrid({
         practiceLabel={practiceLegendLabel}
         allianceLabel={BENCHMARK_LABELS_2018.alliance}
         nationalLabel={BENCHMARK_LABELS_2018.national}
+        practiceColour={firstBarColour}
       />
       <Grid container spacing={2}>
         {CANCER_TYPES.map(({ key, label }) => {
           const chartData = metrics.map((m) => {
             const wb =
               liveByCancerType?.[key]?.[m.metricKey] ??
-              resolveBenchmarkValueByCancer(bm, section, m.metricKey, key, true);
+              resolveBenchmarkValueByCancer(bm, section, m.metricKey, key, orgSelected);
             const em = bm[`${section}.by_cancer_type.${key}.${m.metricKey}`]?.alliance ?? null;
             const en = bm[`${section}.by_cancer_type.${key}.${m.metricKey}`]?.national ?? null;
             return {
@@ -186,7 +196,13 @@ export default function CancerTypeBenchmarkGrid({
                   {label}
                 </Typography>
                 {hasData ? (
-                  <MiniBarChart data={chartData} yMax={yMax} unit={unit} />
+                  <MiniBarChart
+                    data={chartData}
+                    yMax={yMax}
+                    unit={unit}
+                    firstBarColour={firstBarColour}
+                    firstBarLabel={practiceLegendLabel}
+                  />
                 ) : (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                     No benchmark data

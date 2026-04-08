@@ -149,3 +149,27 @@
         New tests: test_ncda_specific_types (36 type cases), test_ncda_concept_id_overrides,
         test_site_keys_compatible_pathway_to_specific. All 37 tests passed.
         pytest tests/test_episode_builder.py tests/test_episode_builder_benign_closure.py -v
+    - execution_id: "VT-007-EXEC-003"
+      date: "2026-04-08"
+      executor: "automated_ci"
+      environment: "development"
+      result: "pass"
+      cases_executed: 31
+      cases_passed: 31
+      cases_failed: 0
+      duration_seconds: 1
+      notes: >
+        Unknown cancer_type cleanup verified. Three changes applied:
+        (1) _SITE_BY_CONCEPT_ID extended with all 46 cancer_types_mapping.json
+        concept IDs (254837009=breast, 399068003=prostate, 93689003=bladder etc.)
+        so episodes resolve correctly when c.name is stored as a raw numeric string.
+        (2) IS_A descendant site map loaded from
+        configs/snomed/snomed_cancer_type_descendant_site_map.json (4755 entries),
+        consulted by _extract_condition_key_from_anchor as a third-tier fallback.
+        (3) _has_confirmed_diagnosis and _has_possible_only_diagnosis updated to
+        exclude pathway_completion anchors (no_cancer_discharge concepts), preventing
+        them from triggering completed status when no actual cancer diagnosis exists.
+        HITL flag added for any remaining completed episode with cancer_type=unknown.
+        New test: test_cancer_diagnosis_concept_ids_resolve_correctly (25 concept IDs).
+        Result: unknown completed episodes reduced from 86 to 17 (80% reduction).
+        pytest tests/test_episode_builder.py -v

@@ -1,7 +1,7 @@
 {
-  "total_unknown_completed": 25,
+  "total_unknown_completed": 17,
   "episodes_with_no_diagnosis_anchor": 0,
-  "distinct_concept_ids_in_anchors": 195,
+  "distinct_concept_ids_in_anchors": 132,
   "top_concepts": [
     {
       "concept_id": "78873005",
@@ -9,13 +9,6 @@
       "name_is_numeric": false,
       "episode_count": 31,
       "encounter_count": 31
-    },
-    {
-      "concept_id": "10743008",
-      "concept_name": "10743008",
-      "name_is_numeric": true,
-      "episode_count": 20,
-      "encounter_count": 20
     },
     {
       "concept_id": "1016971000000106",
@@ -32,20 +25,6 @@
       "encounter_count": 12
     },
     {
-      "concept_id": "21522001",
-      "concept_name": "Abdominal pain (finding)",
-      "name_is_numeric": false,
-      "episode_count": 10,
-      "encounter_count": 10
-    },
-    {
-      "concept_id": "1107411000000104",
-      "concept_name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
-      "name_is_numeric": false,
-      "episode_count": 8,
-      "encounter_count": 8
-    },
-    {
       "concept_id": "238810007",
       "concept_name": "Flushing (disorder)",
       "name_is_numeric": false,
@@ -60,22 +39,8 @@
       "encounter_count": 8
     },
     {
-      "concept_id": "1012671000000103",
-      "concept_name": "Blood potassium level (observable entity)",
-      "name_is_numeric": false,
-      "episode_count": 7,
-      "encounter_count": 7
-    },
-    {
-      "concept_id": "1012681000000101",
-      "concept_name": "Blood sodium level (observable entity)",
-      "name_is_numeric": false,
-      "episode_count": 7,
-      "encounter_count": 7
-    },
-    {
-      "concept_id": "1000731000000107",
-      "concept_name": "Serum creatinine level (observable entity)",
+      "concept_id": "1107411000000104",
+      "concept_name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
       "name_is_numeric": false,
       "episode_count": 7,
       "encounter_count": 7
@@ -88,36 +53,36 @@
       "encounter_count": 7
     },
     {
-      "concept_id": "68496003",
-      "concept_name": "68496003",
-      "name_is_numeric": true,
-      "episode_count": 6,
-      "encounter_count": 6
-    },
-    {
-      "concept_id": "75367002",
-      "concept_name": "Blood pressure (observable entity)",
+      "concept_id": "21522001",
+      "concept_name": "Abdominal pain (finding)",
       "name_is_numeric": false,
       "episode_count": 6,
       "encounter_count": 6
     },
     {
-      "concept_id": "88111009",
-      "concept_name": "Change in bowel pattern",
+      "concept_id": "1012671000000103",
+      "concept_name": "Blood potassium level (observable entity)",
       "name_is_numeric": false,
       "episode_count": 6,
       "encounter_count": 6
     },
     {
-      "concept_id": "62315008",
-      "concept_name": "62315008",
-      "name_is_numeric": true,
+      "concept_id": "1012681000000101",
+      "concept_name": "Blood sodium level (observable entity)",
+      "name_is_numeric": false,
       "episode_count": 6,
       "encounter_count": 6
     },
     {
       "concept_id": "1028281000000106",
       "concept_name": "Blood urea (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 6,
+      "encounter_count": 6
+    },
+    {
+      "concept_id": "1000731000000107",
+      "concept_name": "Serum creatinine level (observable entity)",
       "name_is_numeric": false,
       "episode_count": 6,
       "encounter_count": 6
@@ -130,22 +95,8 @@
       "encounter_count": 5
     },
     {
-      "concept_id": "73761001",
-      "concept_name": "Colonoscopy (procedure)",
-      "name_is_numeric": false,
-      "episode_count": 5,
-      "encounter_count": 5
-    },
-    {
-      "concept_id": "386472008",
-      "concept_name": "Telephone consultation (procedure)",
-      "name_is_numeric": false,
-      "episode_count": 5,
-      "encounter_count": 5
-    },
-    {
-      "concept_id": "1049361000000101",
-      "concept_name": "Quantitative faecal immunochemical test (observable entity)",
+      "concept_id": "75367002",
+      "concept_name": "Blood pressure (observable entity)",
       "name_is_numeric": false,
       "episode_count": 5,
       "encounter_count": 5
@@ -165,58 +116,9 @@
       "encounter_count": 5
     },
     {
-      "concept_id": "262285001",
-      "concept_name": "262285001",
+      "concept_id": "68496003",
+      "concept_name": "68496003",
       "name_is_numeric": true,
-      "episode_count": 4,
-      "encounter_count": 4
-    },
-    {
-      "concept_id": "77176002",
-      "concept_name": "Smoking (finding)",
-      "name_is_numeric": false,
-      "episode_count": 4,
-      "encounter_count": 4
-    },
-    {
-      "concept_id": "84229001",
-      "concept_name": "84229001",
-      "name_is_numeric": true,
-      "episode_count": 4,
-      "encounter_count": 4
-    },
-    {
-      "concept_id": "185202000",
-      "concept_name": "Seen in general practitioner surgery (finding)",
-      "name_is_numeric": false,
-      "episode_count": 4,
-      "encounter_count": 4
-    },
-    {
-      "concept_id": "1110441000000100",
-      "concept_name": "White blood cell count in blood (observable entity)",
-      "name_is_numeric": false,
-      "episode_count": 4,
-      "encounter_count": 4
-    },
-    {
-      "concept_id": "1022651000000100",
-      "concept_name": "Platelet count (observable entity)",
-      "name_is_numeric": false,
-      "episode_count": 4,
-      "encounter_count": 4
-    },
-    {
-      "concept_id": "416125006",
-      "concept_name": "Concentration of hemoglobin in erythrocyte (observable entity)",
-      "name_is_numeric": false,
-      "episode_count": 4,
-      "encounter_count": 4
-    },
-    {
-      "concept_id": "1022491000000106",
-      "concept_name": "Mean corpuscular volume (observable entity)",
-      "name_is_numeric": false,
       "episode_count": 4,
       "encounter_count": 4
     },
@@ -231,6 +133,13 @@
       "concept_id": "1000621000000104",
       "concept_name": "Serum alkaline phosphatase level (observable entity)",
       "name_is_numeric": false,
+      "episode_count": 4,
+      "encounter_count": 4
+    },
+    {
+      "concept_id": "10743008",
+      "concept_name": "10743008",
+      "name_is_numeric": true,
       "episode_count": 4,
       "encounter_count": 4
     },
@@ -256,37 +165,16 @@
       "encounter_count": 3
     },
     {
-      "concept_id": "274025005",
-      "concept_name": "Colonic polypectomy (procedure)",
+      "concept_id": "73761001",
+      "concept_name": "Colonoscopy (procedure)",
       "name_is_numeric": false,
       "episode_count": 3,
       "encounter_count": 3
     },
     {
-      "concept_id": "76164006",
-      "concept_name": "Biopsy of colon (procedure)",
-      "name_is_numeric": false,
-      "episode_count": 3,
-      "encounter_count": 3
-    },
-    {
-      "concept_id": "131148009",
-      "concept_name": "131148009",
+      "concept_id": "386472008",
+      "concept_name": "386472008",
       "name_is_numeric": true,
-      "episode_count": 3,
-      "encounter_count": 3
-    },
-    {
-      "concept_id": "405729008",
-      "concept_name": "405729008",
-      "name_is_numeric": true,
-      "episode_count": 3,
-      "encounter_count": 3
-    },
-    {
-      "concept_id": "272060000",
-      "concept_name": "Fatigue - symptom (finding)",
-      "name_is_numeric": false,
       "episode_count": 3,
       "encounter_count": 3
     },
@@ -319,8 +207,36 @@
       "encounter_count": 3
     },
     {
+      "concept_id": "1110441000000100",
+      "concept_name": "White blood cell count in blood (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 3,
+      "encounter_count": 3
+    },
+    {
+      "concept_id": "1022651000000100",
+      "concept_name": "Platelet count (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 3,
+      "encounter_count": 3
+    },
+    {
+      "concept_id": "416125006",
+      "concept_name": "Concentration of hemoglobin in erythrocyte (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 3,
+      "encounter_count": 3
+    },
+    {
       "concept_id": "1022291000000105",
       "concept_name": "Haematocrit (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 3,
+      "encounter_count": 3
+    },
+    {
+      "concept_id": "1022491000000106",
+      "concept_name": "Mean corpuscular volume (observable entity)",
       "name_is_numeric": false,
       "episode_count": 3,
       "encounter_count": 3
@@ -340,16 +256,100 @@
       "encounter_count": 2
     },
     {
-      "concept_id": "271737000",
-      "concept_name": "271737000",
+      "concept_id": "274025005",
+      "concept_name": "Colonic polypectomy (procedure)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "76164006",
+      "concept_name": "Biopsy of colon (procedure)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "302338000",
+      "concept_name": "Lobectomy of thyroid gland (procedure)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "84229001",
+      "concept_name": "Fatigue (finding)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "40930008",
+      "concept_name": "Hypothyroidism (disorder)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "1018251000000107",
+      "concept_name": "Serum alanine aminotransferase level (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "999691000000104",
+      "concept_name": "Serum bilirubin level (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "185202000",
+      "concept_name": "Seen in general practitioner surgery (finding)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "62315008",
+      "concept_name": "62315008",
       "name_is_numeric": true,
       "episode_count": 2,
       "encounter_count": 2
     },
     {
-      "concept_id": "87522002",
-      "concept_name": "87522002",
-      "name_is_numeric": true,
+      "concept_id": "409966000",
+      "concept_name": "Acute diarrhea (disorder)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "850981000000101",
+      "concept_name": "Cholesterol level (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "993381000000106",
+      "concept_name": "Serum ferritin level (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "1049361000000101",
+      "concept_name": "Quantitative faecal immunochemical test (observable entity)",
+      "name_is_numeric": false,
+      "episode_count": 2,
+      "encounter_count": 2
+    },
+    {
+      "concept_id": "25064002",
+      "concept_name": "Headache (finding)",
+      "name_is_numeric": false,
       "episode_count": 2,
       "encounter_count": 2
     }
