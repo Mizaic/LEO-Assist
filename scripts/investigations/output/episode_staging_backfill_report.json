@@ -1,0 +1,253 @@
+{
+  "mode": "apply",
+  "processed": 276,
+  "staged": 226,
+  "unknown": 50,
+  "coverage_pct": 81.9,
+  "by_source": {
+    "coded": 226,
+    "none": 50
+  },
+  "preview": [
+    {
+      "episode_id": "0ff8bd1459fce781",
+      "cancer_type": "non_site_specific",
+      "cancer_stage": "early",
+      "cancer_stage_group": "0",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "f5c2fad7db5078f8",
+      "cancer_type": "unknown",
+      "cancer_stage": "early",
+      "cancer_stage_group": "2",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "5b0f284e057d0f5b",
+      "cancer_type": "breast",
+      "cancer_stage": "early",
+      "cancer_stage_group": "1",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "f7c98c47de74048d",
+      "cancer_type": "head_and_neck",
+      "cancer_stage": "early",
+      "cancer_stage_group": "0",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "977673f6c965956d",
+      "cancer_type": "unknown",
+      "cancer_stage": "unknown",
+      "cancer_stage_group": "",
+      "staging_system": "unknown",
+      "staging_source": "none"
+    },
+    {
+      "episode_id": "cdf35eb8983b64f5",
+      "cancer_type": "breast",
+      "cancer_stage": "early",
+      "cancer_stage_group": "2",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "afa5b5962c17a894",
+      "cancer_type": "unknown",
+      "cancer_stage": "early",
+      "cancer_stage_group": "2",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "95f46730e25050c8",
+      "cancer_type": "unknown",
+      "cancer_stage": "early",
+      "cancer_stage_group": "1",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "fb62376ea4b48443",
+      "cancer_type": "melanoma",
+      "cancer_stage": "early",
+      "cancer_stage_group": "1",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "e0141c603954c3a1",
+      "cancer_type": "breast",
+      "cancer_stage": "late",
+      "cancer_stage_group": "3A",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "e4780d4b5c6afaeb",
+      "cancer_type": "non_site_specific",
+      "cancer_stage": "late",
+      "cancer_stage_group": "3A",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "a543a1516fa4cd5e",
+      "cancer_type": "non_site_specific",
+      "cancer_stage": "late",
+      "cancer_stage_group": "3",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "8ac8ddc28128a26b",
+      "cancer_type": "unknown",
+      "cancer_stage": "late",
+      "cancer_stage_group": "3",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "fc2f72e494b1ebb6",
+      "cancer_type": "unknown",
+      "cancer_stage": "early",
+      "cancer_stage_group": "2",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "cf320fb5c1915784",
+      "cancer_type": "melanoma",
+      "cancer_stage": "unknown",
+      "cancer_stage_group": "",
+      "staging_system": "unknown",
+      "staging_source": "none"
+    },
+    {
+      "episode_id": "333a8e307b548cf0",
+      "cancer_type": "colorectal",
+      "cancer_stage": "late",
+      "cancer_stage_group": "3",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "4d873a62a972f4a8",
+      "cancer_type": "unknown",
+      "cancer_stage": "early",
+      "cancer_stage_group": "I",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "8e0da08ca2a4fe02",
+      "cancer_type": "unknown",
+      "cancer_stage": "early",
+      "cancer_stage_group": "2",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "94b4d5d65da85790",
+      "cancer_type": "colorectal",
+      "cancer_stage": "early",
+      "cancer_stage_group": "1",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "3110b391f521be61",
+      "cancer_type": "gynaecological",
+      "cancer_stage": "late",
+      "cancer_stage_group": "3",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "10bb80e842bd18e1",
+      "cancer_type": "unknown",
+      "cancer_stage": "late",
+      "cancer_stage_group": "3",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "b5ba77efa267b657",
+      "cancer_type": "breast",
+      "cancer_stage": "early",
+      "cancer_stage_group": "1",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "e0e326f2db1c7cba",
+      "cancer_type": "unknown",
+      "cancer_stage": "late",
+      "cancer_stage_group": "4",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "66cb7e7454181bd6",
+      "cancer_type": "unknown",
+      "cancer_stage": "unknown",
+      "cancer_stage_group": "",
+      "staging_system": "unknown",
+      "staging_source": "none"
+    },
+    {
+      "episode_id": "436ecfbc12482efc",
+      "cancer_type": "lymphoma",
+      "cancer_stage": "early",
+      "cancer_stage_group": "2",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "4cd7a20f86397709",
+      "cancer_type": "myeloma",
+      "cancer_stage": "unknown",
+      "cancer_stage_group": "",
+      "staging_system": "unknown",
+      "staging_source": "none"
+    },
+    {
+      "episode_id": "297609792bb798b3",
+      "cancer_type": "unknown",
+      "cancer_stage": "unknown",
+      "cancer_stage_group": "",
+      "staging_system": "unknown",
+      "staging_source": "none"
+    },
+    {
+      "episode_id": "2d609bc55dcf4364",
+      "cancer_type": "unknown",
+      "cancer_stage": "unknown",
+      "cancer_stage_group": "",
+      "staging_system": "unknown",
+      "staging_source": "none"
+    },
+    {
+      "episode_id": "8fbadd62c6be096a",
+      "cancer_type": "urological",
+      "cancer_stage": "late",
+      "cancer_stage_group": "4",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    },
+    {
+      "episode_id": "5ca1cf207f9b2eac",
+      "cancer_type": "unknown",
+      "cancer_stage": "early",
+      "cancer_stage_group": "2",
+      "staging_system": "explicit_stage",
+      "staging_source": "coded"
+    }
+  ]
+}

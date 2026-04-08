@@ -1,0 +1,76 @@
+{
+  "site_name": "Soft tissues (ICD10 C38.1-2, C47-C49) - NDRS",
+  "site_slug": "soft-tissue",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/soft-tissue",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "T1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IA",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T2, T3, T4",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IB",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "II",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T2",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIIA",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T3, T4",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "N1*",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

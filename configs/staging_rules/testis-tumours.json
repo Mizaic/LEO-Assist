@@ -1,0 +1,153 @@
+{
+  "site_name": "Testis tumours (ICD10 C62) - NDRS",
+  "site_slug": "testis-tumours",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/testis-tumours",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "PTIS",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0",
+      "stage_numeric": 0
+    },
+    {
+      "t": "PT1\u2013T4",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "PT1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IA",
+      "stage_numeric": 1
+    },
+    {
+      "t": "PT2\u2013T4",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IB",
+      "stage_numeric": 1
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IS",
+      "stage_numeric": 1
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N1 \u2013 N3",
+      "m": "M0",
+      "stage_group": "II",
+      "stage_numeric": 2
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N3",
+      "m": "M0",
+      "stage_group": "IIC",
+      "stage_numeric": 2
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N3",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "ANY N",
+      "m": "M1A",
+      "stage_group": "III",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "ANY N",
+      "m": "M1A",
+      "stage_group": "IIIA",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "ANY N",
+      "m": "M1A",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N1\u2013N3",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "N1\u2013N3",
+      "m": "M0",
+      "stage_group": "IIIC",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY PT/TX",
+      "n": "ANY N",
+      "m": "M1B",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

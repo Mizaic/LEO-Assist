@@ -107,15 +107,15 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
     <SectionCard
       id="section-avoidable-delays"
       title="Avoidable Delays"
-      description="Cases where the GP, with hindsight, judged there to have been an avoidable delay. Requires structured GP data entry."
+      description="Cases where the GP (family doctor), looking back, felt that diagnosis could have happened sooner. This needs GPs to fill in a form — it is not calculated automatically."
       availability="manual_entry"
       loading={loading}
       error={error}
     >
       {dataNotCaptured && (
         <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
-          Avoidable delay is recorded as 0% across {practice!.total_episodes} episodes.
-          This field requires GP data entry and has not been completed. The 0% value is not a clinical finding.
+          Avoidable delay shows as 0% across {practice!.total_episodes} cases.
+          This section needs GPs to fill in a form, which has not been done yet. The 0% figure does not mean there were no delays.
         </Alert>
       )}
       <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />

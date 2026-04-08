@@ -820,9 +820,6 @@ async def enqueue_recode(
     for each patient (classification must have already been run) and fans out
     one ``extract_encounter`` job per clinical encounter.
     """
-    from libs.message_bus.base import Message
-    from libs.message_bus.factory import create_message_bus
-
     patient_ids = payload.patient_ids
     if not patient_ids and payload.cohort_id:
         patient_ids = _resolve_cohort_patients(payload.cohort_id)
@@ -833,28 +830,21 @@ async def enqueue_recode(
     _require_patients_in_scope(scope, patient_ids)
 
     run_id = str(uuid.uuid4())
-    bus = create_message_bus()
-    try:
-        for pid in patient_ids:
-            msg = Message(
-                body={
-                    "patient_id": pid,
-                    "dry_run": payload.dry_run,
-                    "mode": "extract_patient",
-                    "trigger_analysis": True,
-                },
-                correlation_id=run_id,
-            )
-            await bus.send(CODING_QUEUE, msg)
-    finally:
-        await bus.close()
+    # Standalone coding-worker (coding-jobs queue) is deprecated; use pipeline-jobs.
+    await _publish_coding_jobs(
+        patient_ids,
+        run_id=run_id,
+        mode="extract_patient",
+        preview=payload.dry_run,
+        trigger_analysis=True,
+    )
 
     return {
         "run_id": run_id,
         "queued": len(patient_ids),
         "patient_ids": patient_ids,
         "mode": "extract_patient",
-        "note": "Classification skipped — using existing classification_content_type from Neo4j",
+        "note": "Classification skipped — using existing classification_content_type from Neo4j; jobs sent to pipeline-jobs",
     }
 
 

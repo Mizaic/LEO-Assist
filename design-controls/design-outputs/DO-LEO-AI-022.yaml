@@ -72,7 +72,7 @@
     verification_complete: false
 
   production_information:
-    deployment_instructions: "Deployed as part of the analysis-worker and analytics-api containers"
+    deployment_instructions: "Deployed as part of the pipeline-worker and analytics-api containers (analysis_worker Python package)"
 
   documentation:
     inline_documentation:

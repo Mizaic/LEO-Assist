@@ -1,0 +1,26 @@
+{
+  "site_name": "Ovarian, fallopian tube and primary peritoneal carcinoma (ICD10 C56, C57, C48.1, C48.2) - NDRS",
+  "site_slug": "ovarian-fallopian-tube-and-primary-peritoneal-carcinoma",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/ovarian-fallopian-tube-and-primary-peritoneal-carcinoma",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

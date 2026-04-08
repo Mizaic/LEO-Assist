@@ -21,7 +21,8 @@
       supporting Dockerfiles for each service. The Bicep modules provision
       the container environment, Key Vault for secrets, and configure
       auto-scaling rules. Dockerfiles produce minimal, reproducible images
-      for the core API, coding worker, and analysis worker services.
+      for each ACA service; coding and analysis logic ships inside the
+      pipeline-worker image via shared Python packages (no separate worker images).
     purpose: "Azure Container Apps infrastructure with auto-scaling and key vault integration for production deployment"
     technical_approach: |
       A main Bicep template orchestrates modular deployments for container
@@ -68,12 +69,8 @@
         description: "Dockerfile for the core API service"
         storage_location: "git"
       - artifact_type: "configuration_file"
-        location: "infra/dockerfiles/Dockerfile.coding-worker"
-        description: "Dockerfile for the coding worker service"
-        storage_location: "git"
-      - artifact_type: "configuration_file"
-        location: "infra/dockerfiles/Dockerfile.analysis-worker"
-        description: "Dockerfile for the analysis worker service"
+        location: "infra/dockerfiles/Dockerfile.pipeline-worker"
+        description: "Dockerfile for pipeline worker (includes coding/analysis library code)"
         storage_location: "git"
     technical_details:
       language: ["Bicep", "Dockerfile"]

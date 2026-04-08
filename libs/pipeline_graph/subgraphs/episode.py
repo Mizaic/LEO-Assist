@@ -13,6 +13,9 @@ from services.analysis_worker.app.analyzers.anchor_detector import AnchorResult
 from services.analysis_worker.app.analyzers.episode_builder import (
     build_episodes as build_patient_episodes,
 )
+from libs.pipeline_graph.subgraphs.staging_enrichment import (
+    enrich_staging as run_stage_enrichment,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +131,8 @@ def build_episodes(state: EpisodeState) -> dict[str, Any]:
 def build_episode_subgraph() -> CompiledStateGraph:
     g = StateGraph(EpisodeState)
     g.add_node("build_episodes", build_episodes)
+    g.add_node("staging_enrichment", run_stage_enrichment)
     g.add_edge(START, "build_episodes")
-    g.add_edge("build_episodes", END)
+    g.add_edge("build_episodes", "staging_enrichment")
+    g.add_edge("staging_enrichment", END)
     return g.compile()

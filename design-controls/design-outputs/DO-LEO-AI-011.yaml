@@ -76,7 +76,7 @@
     verification_complete: false
 
   production_information:
-    deployment_instructions: "Deployed across core-api, coding-worker, and analysis-worker containers via Azure Container Apps"
+    deployment_instructions: "Deployed across core-api and pipeline-worker containers via Azure Container Apps (shared Python packages for coding/analysis)"
 
   documentation:
     design_documentation: []

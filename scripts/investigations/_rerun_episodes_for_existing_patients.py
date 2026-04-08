@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline_graph.subgraphs.anchor import _load_registry
+from libs.pipeline_graph.subgraphs.staging_enrichment import enrich_staging
 from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
 from services.analysis_worker.app.analyzers.episode_builder import build_episodes
 
@@ -47,7 +48,7 @@ async def _run_patient(
     registry,
     patient_client: PatientGraphClient,
     clear_existing: bool,
-) -> tuple[int, int]:
+) -> tuple[int, int, int]:
     if clear_existing:
         patient_client.run(_Q_DELETE_PATIENT_EPISODES, patient_id=patient_id)
     anchors = detect_anchors(
@@ -63,7 +64,15 @@ async def _run_patient(
         patient_client=patient_client,
         domain_id=domain_id,
     )
-    return result.episodes_created, len(result.errors)
+    staging_state = enrich_staging(
+        {
+            "patient_id": patient_id,
+            "episode_ids": result.episode_ids,
+            "errors": [],
+        }
+    )
+    staging_errors = len(staging_state.get("errors") or [])
+    return result.episodes_created, len(result.errors), staging_errors
 
 
 async def main(domain_id: str, limit: int | None, clear_existing: bool) -> None:
@@ -79,23 +88,29 @@ async def main(domain_id: str, limit: int | None, clear_existing: bool) -> None:
         registry = _load_registry(domain_id)
         created_total = 0
         error_patients = 0
+        staging_error_patients = 0
         for i, pid in enumerate(patient_ids, 1):
-            created, err_count = await _run_patient(
+            created, err_count, staging_err_count = await _run_patient(
                 pid, domain_id, registry, client, clear_existing
             )
             created_total += created
             if err_count:
                 error_patients += 1
+            if staging_err_count:
+                staging_error_patients += 1
             if i % 25 == 0 or i == len(patient_ids):
                 print(
                     f"  processed {i}/{len(patient_ids)} "
-                    f"(episodes_written={created_total}, patient_errors={error_patients})"
+                    f"(episodes_written={created_total}, "
+                    f"patient_errors={error_patients}, "
+                    f"staging_error_patients={staging_error_patients})"
                 )
 
         print("Done.")
         print(f"  patients_processed: {len(patient_ids)}")
         print(f"  episodes_written: {created_total}")
         print(f"  patients_with_errors: {error_patients}")
+        print(f"  patients_with_staging_errors: {staging_error_patients}")
     finally:
         client.close()
 

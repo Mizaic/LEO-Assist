@@ -1,0 +1,104 @@
+{
+  "site_name": "Malignant melanoma of uvea (ICD10 C69.3, C69.4) - NDRS",
+  "site_slug": "malignant-melanoma-of-uvea",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/malignant-melanoma-of-uvea",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "T1A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T1B-D, T2A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T2B, T3A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T2C-D",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIIA",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T3B-C",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T4A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T3D",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T4B-C",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T4D-E",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIIC",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

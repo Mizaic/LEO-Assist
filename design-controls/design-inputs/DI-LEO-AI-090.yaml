@@ -1,66 +1,66 @@
-# -- DI-LEO-AI-090 -- Cancer Type Dumbbell Chart Component
+# -- DI-LEO-AI-090 -- Stage-at-diagnosis enrichment engine
 # IEC 62304 / ISO 13485 Design Input
 
 - id: "DI-LEO-AI-090"
   type: "Functional"
-  derived_from: ["UN-LEO-AI-057"]
+  derived_from: ["UN-LEO-AI-052"]
   requirement: >
-    The system SHALL provide a CancerTypeDumbbellChart React component that
-    renders a horizontal dumbbell (connected dot) chart for the cancer type
-    section of the NCDA audit report, with one row per cancer type showing
-    today's proportion (filled circle) and the 2018 national benchmark
-    (hollow diamond), connected by a coloured line whose length represents
-    the deviation from benchmark. The x-axis SHALL be auto-fitted to the
-    data range. Labels SHALL be human-readable title case. A percentage-point
-    delta annotation SHALL appear at the end of each line. The component SHALL
-    replace ComparisonBarChart as the default chart in CancerTypeSection.
+    The system SHALL derive and persist cancer stage at diagnosis for each
+    EpisodeOfCare with confirmed diagnosis evidence, using a deterministic
+    priority cascade: explicit stage string first, then site-specific TNM
+    derivation, then text-scan fallback. The system SHALL classify stage as
+    early/late/unknown and persist the full staging evidence fields for audit.
   rationale: >
-    The previous grouped bar chart used a fixed 0-100% y-axis causing all
-    values to appear tiny (max ~30%), making benchmark deviations invisible
-    at a glance. The dumbbell chart makes the gap the primary visual element,
-    reduces cognitive load for clinical audit staff, and eliminates the need
-    for rotated labels and mental arithmetic.
+    Cancer audit reporting requires reliable stage-at-diagnosis analytics.
+    Stage may be coded directly or implied by TNM combinations and varies by
+    cancer site. Deterministic derivation with source/confidence fields reduces
+    ambiguity, supports clinical review, and improves downstream KPI validity.
 
   machine_spec:
     acceptance_criteria:
       - type: "functional"
-        spec: "Component renders one row per cancer type with two dots connected by a line"
+        spec: "Rules loader imports site-specific staging rules from configs/staging_rules/*.json"
       - type: "functional"
-        spec: "X-axis domain is max(all values) rounded up to nearest 5, not hardcoded to 100"
+        spec: "Stage resolution priority is explicit stage > TNM derivation > unknown"
       - type: "functional"
-        spec: "Line is green when today > benchmark, amber when today < benchmark, grey when no benchmark"
+        spec: "EpisodeOfCare stores cancer_stage, cancer_stage_raw, cancer_stage_group, tnm_t, tnm_n, tnm_m, staging_system, staging_source, staging_confidence"
       - type: "functional"
-        spec: "Delta label shows +Xpp / -Xpp at end of line; no label when benchmark is absent"
+        spec: "Analytics endpoint returns by_stage_group, by_system, by_source, and coverage_pct"
       - type: "functional"
-        spec: "Cancer type label humanises underscore keys: lower_gi -> Lower GI, head_and_neck -> Head and Neck"
-      - type: "functional"
-        spec: "Component renders empty state with explanatory text when data array is empty"
+        spec: "Audit UI renders pipeline-derived stage distribution and coverage instead of COSD placeholder"
     constraints:
-      - type: "usability"
-        spec: "Chart must be readable at default card width (~800px) without horizontal scrolling"
-      - type: "code_quality"
-        spec: "Uses Recharts ComposedChart; no SVG manipulation outside Recharts API"
-    dependencies: ["DI-LEO-AI-028"]
+      - type: "safety"
+        spec: "Unknown is returned when evidence is insufficient; no inferred stage without matching rule"
+      - type: "safety"
+        spec: "Evidence source and confidence are persisted for review traceability"
+    dependencies: ["DI-LEO-AI-084", "DI-LEO-AI-088"]
     downstream_impacts:
-      - "services/ui -- CancerTypeSection uses this chart as default"
+      - "analysis_worker episode persistence"
+      - "pipeline_graph staging enrichment subgraph"
+      - "analytics_api cancer stage section"
+      - "ui audit cancer stage section"
 
   technical_details:
-    language: "TypeScript"
-    framework: "Next.js / React"
-    libraries: ["recharts", "@mui/material"]
+    language: "Python/TypeScript"
+    framework: "LangGraph/FastAPI/Next.js"
     file_structure:
-      - "services/ui/src/components/audit/CancerTypeDumbbellChart.tsx"
-      - "services/ui/src/components/audit/CancerTypeSection.tsx"
-    estimated_loc: 120
+      - "libs/staging/tnm_parser.py"
+      - "libs/staging/engine.py"
+      - "libs/pipeline_graph/subgraphs/staging_enrichment.py"
+      - "services/analysis_worker/app/analyzers/episode_builder.py"
+      - "services/analytics_api/app/routers/audit.py"
+      - "services/ui/src/components/audit/CancerStageSection.tsx"
+      - "services/ui/src/lib/analyticsApi.ts"
+    estimated_loc: 450
 
   verification:
     method: "Test"
     phase: "OQ"
     acceptance: >
-      All test cases in VT-LEO-AI-090 pass: correct render, empty state,
-      colour logic, delta label, and human label formatting.
+      VT-LEO-AI-090 test cases pass for parser, rules engine priority cascade,
+      non-TNM stage mapping, and unknown fallback.
     test_protocol: "VT-LEO-AI-090"
 
   safety_class: "B"
   risks: ["R-LEO-AI-064"]
-  tags: ["audit-report", "visualisation", "cancer-type", "ui", "recharts"]
+  tags: ["staging", "episode-detection", "analytics", "audit-ui"]

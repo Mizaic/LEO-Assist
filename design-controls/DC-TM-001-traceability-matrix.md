@@ -113,7 +113,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 
 | Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
 |--------|-------------|-----------|----------------|-----------|-------------|
-| FR-CW-001 | Service Bus consumer for coding jobs | Plan WS-C | coding-worker/app/main.py | -- | ST-CW-001 |
+| FR-CW-001 | Service Bus consumer for coding jobs | Plan WS-C | services/api pipeline-jobs publish; pipeline-worker consumer | -- | ST-CW-001 |
 | FR-CW-002 | Two-phase pipeline (LLM extract -> unified post-processing -> Terminology resolve) | Plan WS-C | coding-worker/app/pipeline/pipeline_service.py, libs/pipeline/post_processing.py | test_post_processing_pipeline.py, test_pipeline_parity.py | ST-CW-001 |
 | FR-CW-003 | LLM response caching | Plan WS-C | libs/llm-client/cache.py | test_shared_libs.py (3 tests) | -- |
 | FR-CW-004 | LLM fallback (Bedrock -> Azure OpenAI) | Plan WS-C | libs/llm-client/providers.py | -- | ST-CW-002 |
@@ -563,6 +563,22 @@ Safety constraints enforced:
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
 | DI-LEO-AI-088 | Post-specialist outcome inference engine | R-LEO-AI-062 | VT-LEO-AI-088 |
+
+---
+
+### 3.xx Stage-at-Diagnosis Enrichment Engine (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-052 | draft | Domain-driven episode detector configuration extended with stage-at-diagnosis enrichment |
+| Design Input | DI-LEO-AI-090 | draft | Deterministic stage-at-diagnosis engine (explicit > TNM > unknown) and persistence fields |
+| Design Output | DO-LEO-AI-088 | draft | TNM parser, staging rules engine, staging_enrichment subgraph, analytics and UI updates |
+| Risk | R-LEO-AI-064 | analyzed | Incorrect stage derivation from explicit stage or TNM evidence |
+| Verification Test | VT-LEO-AI-090 | passed | 7 tests: TNM parse, explicit priority, TNM derivation, non-TNM mapping, unknown fallback |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-090 | Stage-at-diagnosis enrichment engine | R-LEO-AI-064 | VT-LEO-AI-090 |
 
 ---
 

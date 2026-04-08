@@ -22,6 +22,10 @@
 #   pipeline_worker         pipeline-worker        pipeline-worker
 #   ui                      ui                     ui
 #
+#   Coding and episode logic live in services/coding_worker and services/analysis_worker
+#   Python packages (imported by pipeline-worker and tests). Standalone ACA images
+#   for coding-worker / analysis-worker are deprecated.
+#
 # Model inference service:
 #   Starts by default. Downloads the active NER model from Azure Blob at startup.
 #   Exposes /extract, /health, /reload, /versions on -ModelInferencePort (default 8004).

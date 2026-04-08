@@ -1,0 +1,216 @@
+{
+  "site_name": "Stomach (ICD10 C16 except C16.0) - NDRS",
+  "site_slug": "stomach",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/stomach",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "T1, T2",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T1, T2",
+      "n": "N1, N2, N3",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T3, T4A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T3, T4A",
+      "n": "N1, N2, N3",
+      "m": "M0",
+      "stage_group": "III",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T4B",
+      "n": "ANY N",
+      "m": "M0",
+      "stage_group": "IVA",
+      "stage_numeric": 4
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "IVB",
+      "stage_numeric": 4
+    },
+    {
+      "t": "TIS",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0",
+      "stage_numeric": 0
+    },
+    {
+      "t": "T1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IA",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T1",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "IB",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T2",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T1",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T2",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T3",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T1",
+      "n": "N3A",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T2",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T3",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T4A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T2",
+      "n": "N3A",
+      "m": "M0",
+      "stage_group": "IIIA",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T3",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T4A",
+      "n": "N1, N2",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T4B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T1, T2",
+      "n": "N3B",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T3, T4A",
+      "n": "N3A",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T4B",
+      "n": "N1, N2",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T3, T4A",
+      "n": "N3B",
+      "m": "M0",
+      "stage_group": "IIIC",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T4B",
+      "n": "N3A, N3B",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

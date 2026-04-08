@@ -1,0 +1,379 @@
+{
+  "index_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets",
+  "site_count": 62,
+  "generated_files": 62,
+  "sites": [
+    {
+      "site_slug": "adrenal-cortex",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/adrenal-cortex",
+      "rule_count": 5,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "ampulla-of-vater",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/ampulla-of-vater",
+      "rule_count": 9,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "anal-canal-and-perianal-skin",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/anal-canal-and-perianal-skin",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "appendix",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/appendix",
+      "rule_count": 13,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "bone",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/bone",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "breast-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/breast-tumours",
+      "rule_count": 12,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "carcinoma-of-conjuctiva",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/carcinoma-of-conjuctiva",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "carcinoma-of-larcrimal-gland",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/carcinoma-of-larcrimal-gland",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "carcinoma-of-skin-excluding-eyelid-head-and-neck-perianal-vulva-and-penis",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/carcinoma-of-skin-excluding-eyelid-head-and-neck-perianal-vulva-and-penis",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "carcinoma-of-skin-of-the-eyelid",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/carcinoma-of-skin-of-the-eyelid",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "cervix-uteri",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/cervix-uteri",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "chronic-lymphocytic-leukaemia",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/chronic-lymphocytic-leukaemia",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "colon-and-rectum",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/colon-and-rectum",
+      "rule_count": 19,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "distal-extrahepatic-bile-duct",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/distal-extrahepatic-bile-duct",
+      "rule_count": 9,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "gallbladder",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/gallbladder",
+      "rule_count": 10,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "gestational-trophoblastic-neoplasms",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/gestational-trophoblastic-neoplasms",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "hepatoblastoma-ctya",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/hepatoblastoma-ctya",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "hodgkins-and-non-hodgkins-lymphoma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/hodgkins-and-non-hodgkins-lymphoma",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "intrahepatic-bile-ducts",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/intrahepatic-bile-ducts",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "kidney-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/kidney-tumours",
+      "rule_count": 6,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "larynx",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/larynx",
+      "rule_count": 10,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "lip-and-oral-cavity",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/lip-and-oral-cavity",
+      "rule_count": 10,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "liver",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/liver",
+      "rule_count": 7,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "lung",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/lung",
+      "rule_count": 20,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "major-salivary-glands",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/major-salivary-glands",
+      "rule_count": 10,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "malignant-melanoma-of-conjuctiva",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/malignant-melanoma-of-conjuctiva",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "malignant-melanoma-of-skin",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/malignant-melanoma-of-skin",
+      "rule_count": 21,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "malignant-melanoma-of-upper-aerodigestive-tract",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/malignant-melanoma-of-upper-aerodigestive-tract",
+      "rule_count": 5,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "malignant-melanoma-of-uvea",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/malignant-melanoma-of-uvea",
+      "rule_count": 11,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "medulloblastoma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/medulloblastoma",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "merkel-cell-carcinoma-of-skin",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/merkel-cell-carcinoma-of-skin",
+      "rule_count": 6,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "multiple-myeloma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/multiple-myeloma",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "nasal-cavity-and-paranasal-sinuses",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/nasal-cavity-and-paranasal-sinuses",
+      "rule_count": 10,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "neuroblastoma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/neuroblastoma",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "neuroendocrine-tumours-of-the-foregut",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/neuroendocrine-tumours-of-the-foregut",
+      "rule_count": 7,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "neuroendocrine-tumours-of-the-midgut-and-hindgut",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/neuroendocrine-tumours-of-the-midgut-and-hindgut",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "non-hodgkin-lymphoma-children",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/non-hodgkin-lymphoma-children",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "oesophagus",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/oesophagus",
+      "rule_count": 27,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "ovarian-fallopian-tube-and-primary-peritoneal-carcinoma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/ovarian-fallopian-tube-and-primary-peritoneal-carcinoma",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "pancreas",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/pancreas",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "penis-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/penis-tumours",
+      "rule_count": 10,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "perihilar-bile-ducts",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/perihilar-bile-ducts",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "pharynx",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/pharynx",
+      "rule_count": 23,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "pleural-mesothelioma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/pleural-mesothelioma",
+      "rule_count": 7,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "prostate-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/prostate-tumours",
+      "rule_count": 5,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "renal-pelvis-and-ureter-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/renal-pelvis-and-ureter-tumours",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "retinblastoma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/retinblastoma",
+      "rule_count": 5,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "rhabdomysacroma-and-other-soft-tissue-sarcomas-ctya",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/rhabdomysacroma-and-other-soft-tissue-sarcomas-ctya",
+      "rule_count": 5,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "sarcoma-of-orbit",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/sarcoma-of-orbit",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "skin-carcinoma-of-the-head-and-neck",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/skin-carcinoma-of-the-head-and-neck",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "small-intestine",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/small-intestine",
+      "rule_count": 7,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "soft-tissue",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/soft-tissue",
+      "rule_count": 7,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "stomach",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/stomach",
+      "rule_count": 27,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "testis-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/testis-tumours",
+      "rule_count": 18,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "thymic-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/thymic-tumours",
+      "rule_count": 8,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "thyroid-gland",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/thyroid-gland",
+      "rule_count": 2,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "uretha-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/uretha-tumours",
+      "rule_count": 9,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "urinary-bladder-tumours",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/urinary-bladder-tumours",
+      "rule_count": 10,
+      "has_tnm_rules": true
+    },
+    {
+      "site_slug": "uterine-sarcomas-leiomyosarcoma-endometrial-stromal-sacroma-adenosarcoma",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/uterine-sarcomas-leiomyosarcoma-endometrial-stromal-sacroma-adenosarcoma",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "uterus---endometrium",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/uterus---endometrium",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "vulva",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/vulva",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    },
+    {
+      "site_slug": "wilms-tumour-of-the-kidney",
+      "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/wilms-tumour-of-the-kidney",
+      "rule_count": 0,
+      "has_tnm_rules": false
+    }
+  ]
+}

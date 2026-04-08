@@ -1,0 +1,118 @@
+{
+  "site_name": "Appendix (ICD10 C18.1) - NDRS",
+  "site_slug": "appendix",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/appendix",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "TIS",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0",
+      "stage_numeric": 0
+    },
+    {
+      "t": "TIS (LAMN)",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0",
+      "stage_numeric": 0
+    },
+    {
+      "t": "T1, T2",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T3",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T4A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T4B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIC",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T1, T2",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "IIIA",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T3, T4",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "IIIC",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1A",
+      "stage_group": "IVA",
+      "stage_numeric": 4
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1B",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1B",
+      "stage_group": "IVB",
+      "stage_numeric": 4
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1C",
+      "stage_group": "IVC",
+      "stage_numeric": 4
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

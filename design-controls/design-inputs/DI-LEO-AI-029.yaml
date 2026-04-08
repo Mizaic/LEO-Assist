@@ -6,27 +6,26 @@
   type: "Performance"
   derived_from: ["UN-LEO-AI-020"]
   requirement: "The system SHALL deploy pipeline workers as independently scalable container instances that auto-scale based on message queue depth, supporting at least 10 concurrent pipeline jobs with full pipeline completion for a single patient within 2 minutes"
-  rationale: "Pipeline processing is compute-intensive. Auto-scaling ensures adequate capacity during peak audit periods while minimising cost during idle periods. Independent scaling of coding and analysis workers enables fine-grained resource allocation."
+  rationale: "Pipeline processing is compute-intensive. Auto-scaling ensures adequate capacity during peak audit periods while minimising cost during idle periods. Pipeline worker instances scale on Service Bus queue depth; coding and analysis logic run in-process within the unified pipeline worker and shared Python packages (no separate coding-worker or analysis-worker container apps)."
 
   machine_spec:
     agent_prompt: |
       Implement auto-scaling worker architecture (~200 LOC).
 
-      SINGLE PURPOSE: Deploy coding and analysis workers as
-      independently scalable container instances that auto-scale
-      based on Service Bus queue depth.
+      SINGLE PURPOSE: Deploy pipeline workers as scalable container
+      instances that auto-scale based on Service Bus queue depth.
 
       REQUIREMENTS:
       1. Define container app scaling rules based on queue depth
-      2. Coding worker and analysis worker scale independently
+      2. Pipeline worker scales on pipeline-jobs queue depth
       3. Support at least 10 concurrent pipeline jobs
       4. Single patient pipeline completes within 2 minutes
       5. Scale-to-zero when idle to minimise cost
-      6. Health checks and readiness probes for each worker
+      6. Health checks and readiness probes for pipeline worker
 
       METHODS:
       - Container Apps Bicep module with scaling rules
-      - Dockerfile definitions for coding and analysis workers
+      - Dockerfile for pipeline-worker (includes shared coding/analysis libs)
       - Queue-depth-based KEDA scaling configuration
 
       CODE CLARITY:
@@ -51,8 +50,8 @@
     dependencies: []
 
     downstream_impacts:
-      - "services/coding_worker -- deployed as scalable container"
-      - "services/analysis_worker -- deployed as scalable container"
+      - "services/coding_worker -- Python package used by pipeline worker image"
+      - "services/analysis_worker -- Python package used by pipeline worker image"
       - "infra/bicep -- container app scaling rules defined here"
 
     technical_details:
@@ -60,8 +59,7 @@
       framework: "Azure Container Apps"
       libraries: ["azure-servicebus", "redis"]
       file_structure:
-        - "infra/dockerfiles/Dockerfile.coding-worker"
-        - "infra/dockerfiles/Dockerfile.analysis-worker"
+        - "infra/dockerfiles/Dockerfile.pipeline-worker"
         - "infra/bicep/modules/container-apps.bicep"
       estimated_loc: 200
 

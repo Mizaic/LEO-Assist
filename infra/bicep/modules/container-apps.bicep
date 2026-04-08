@@ -1,4 +1,4 @@
-// -- Container Apps Environment + all 9 apps ------------------------------
+// -- Container Apps Environment + 8 apps ---------------------------------
 param location string = resourceGroup().location
 param environment string
 param managedIdentityId string

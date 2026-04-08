@@ -21,7 +21,7 @@ class TestExtractConditionKey:
             == "breast"
         )
         assert _extract_condition_key("suspected lung cancer") == "lung"
-        assert _extract_condition_key("diagnosis of colorectal carcinoma") == "lower_gi"
+        assert _extract_condition_key("diagnosis of colorectal carcinoma") == "colorectal"
 
     def test_unknown_fallback(self):
         from services.analysis_worker.app.analyzers.episode_builder import (
@@ -29,6 +29,152 @@ class TestExtractConditionKey:
         )
 
         assert _extract_condition_key("") == "unknown"
+
+    def test_ncda_specific_types(self):
+        """Verify keyword map produces NCDA-aligned type keys, not broad pathway groups."""
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            _extract_condition_key,
+        )
+
+        cases = [
+            # Lower GI -> colorectal
+            ("diagnosis of colorectal carcinoma", "colorectal"),
+            ("rectal adenocarcinoma", "colorectal"),
+            ("bowel cancer", "colorectal"),
+            # Upper GI subtypes
+            ("pancreatic adenocarcinoma", "pancreatic"),
+            ("oesophageal cancer", "oesophageal"),
+            ("gastric carcinoma", "stomach"),
+            ("hepatocellular carcinoma", "liver"),
+            ("gallbladder carcinoma", "gallbladder"),
+            # Urological subtypes
+            ("prostate cancer", "prostate"),
+            ("bladder carcinoma", "bladder"),
+            ("renal cell carcinoma", "renal"),
+            ("testicular germ cell tumour", "testicular"),
+            # Gynaecological subtypes
+            ("ovarian cancer", "ovarian"),
+            ("endometrial carcinoma", "endometrial"),
+            ("cervix uteri malignancy", "cervical"),
+            ("vulval carcinoma", "vulval"),
+            # Haematological subtypes
+            ("non-hodgkin lymphoma", "lymphoma"),
+            ("acute myeloid leukaemia", "leukaemia"),
+            ("multiple myeloma", "myeloma"),
+            # Head and neck subtypes
+            ("thyroid carcinoma", "thyroid"),
+            ("laryngeal cancer", "laryngeal"),
+            ("oropharyngeal squamous cell carcinoma", "oropharyngeal"),
+            # Other NCDA types
+            ("melanoma", "melanoma"),
+            ("mesothelioma", "mesothelioma"),
+            ("sarcoma", "sarcoma"),
+            ("brain tumour", "brain"),
+            ("breast cancer", "breast"),
+            ("lung carcinoma", "lung"),
+            # Pathway-level fallback (no specific site in concept name)
+            ("haematological malignancy", "haematological"),
+            ("gynaecological cancer referral", "gynaecological"),
+            ("upper gi cancer referral", "upper_gi"),
+        ]
+
+        for concept, expected in cases:
+            result = _extract_condition_key(concept)
+            assert result == expected, (
+                f"_extract_condition_key({concept!r}) returned {result!r}, "
+                f"expected {expected!r}"
+            )
+
+    def test_ncda_concept_id_overrides(self):
+        """Verify 2WW lower-GI concept IDs map to colorectal, not lower_gi."""
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            _SITE_BY_CONCEPT_ID,
+        )
+
+        assert _SITE_BY_CONCEPT_ID["276401000000108"] == "colorectal"
+        assert _SITE_BY_CONCEPT_ID["892201000000106"] == "colorectal"
+        assert _SITE_BY_CONCEPT_ID["382651000000108"] == "colorectal"
+
+    def test_cancer_diagnosis_concept_ids_resolve_correctly(self):
+        """Cancer diagnosis concept IDs must resolve even when c.name is a raw
+        numeric string (unresolved in the graph).  These IDs come directly from
+        snomed_ncda_cancer_types_mapping.json and cover the most common sources
+        of cancer_type='unknown' in completed episodes."""
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            _extract_condition_key_from_anchor,
+        )
+
+        cases = [
+            # Breast - largest source of 'unknown' completed episodes
+            ("254837009", "breast"),
+            ("399935008", "breast"),  # DCIS
+            ("716917000", "breast"),  # DCIS left
+            ("716918005", "breast"),  # DCIS right
+            # Skin
+            ("372130007", "melanoma"),
+            # Urological
+            ("399068003", "prostate"),
+            ("93689003", "bladder"),
+            ("93849006", "renal"),
+            ("363449006", "testicular"),
+            # Gynaecological
+            ("363443007", "ovarian"),
+            ("363354003", "cervical"),
+            ("371972005", "endometrial"),
+            ("363367000", "vulval"),
+            # Upper GI
+            ("269457002", "oesophageal"),
+            ("255080008", "stomach"),
+            ("363418001", "pancreatic"),
+            ("93870000", "liver"),
+            ("363415003", "gallbladder"),
+            # Lower GI
+            ("363508008", "colorectal"),
+            # Lung
+            ("363358000", "lung"),
+            # Haematological
+            ("363495004", "leukaemia"),
+            # CNS
+            ("372063002", "brain"),
+            # Unknown primary
+            ("310504009", "non_site_specific"),
+            ("128462008", "non_site_specific"),
+        ]
+        for concept_id, expected_key in cases:
+            # Simulate c.name stored as raw numeric string (unresolved)
+            anchor = {"concept_id": concept_id, "concept_name": concept_id}
+            result = _extract_condition_key_from_anchor(anchor)
+            assert result == expected_key, (
+                f"concept_id={concept_id}: expected '{expected_key}', got '{result}'"
+            )
+
+    def test_non_site_specific_upgraded_by_specific_diagnosis(self):
+        """A generic fast-track (non_site_specific) referral should be upgraded to the
+        diagnosed cancer type when a specific diagnosis is available."""
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            _PATHWAY_GROUP_KEYS,
+        )
+
+        # non_site_specific must be in the group keys so the upgrade logic fires
+        assert "non_site_specific" in _PATHWAY_GROUP_KEYS, (
+            "non_site_specific must be in _PATHWAY_GROUP_KEYS so generic fast-track "
+            "referrals can be upgraded to the diagnosed cancer type"
+        )
+
+    def test_site_keys_compatible_pathway_to_specific(self):
+        """Pathway-level visit keys should be compatible with specific NCDA episode keys."""
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            _site_keys_compatible,
+        )
+
+        assert _site_keys_compatible("ovarian", "gynaecological")
+        assert _site_keys_compatible("prostate", "urological")
+        assert _site_keys_compatible("leukaemia", "haematological")
+        assert _site_keys_compatible("oropharyngeal", "head_and_neck")
+        assert _site_keys_compatible("oesophageal", "upper_gi")
+        # Incompatible types
+        assert not _site_keys_compatible("breast", "urological")
+        assert not _site_keys_compatible("lung", "gynaecological")
 
 
 class TestBuildEpisodes:
@@ -663,7 +809,8 @@ class TestClaimSpecialistsForEpisodes:
             _claim_specialists_for_episodes,
         )
 
-        spec = self._spec("ep1", "skin", "2024-01-01", "2024-12-31")
+        # "skin" concept names now map to "melanoma" (NCDA type)
+        spec = self._spec("ep1", "melanoma", "2024-01-01", "2024-12-31")
         visits = [
             {
                 "concept_name": "Seen in fast track suspected skin cancer clinic",

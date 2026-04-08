@@ -1,0 +1,62 @@
+{
+  "site_name": "Rhabdomyosarcoma and other soft tissue sarcomas (CTYA) - NDRS",
+  "site_slug": "rhabdomysacroma-and-other-soft-tissue-sarcomas-ctya",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/rhabdomysacroma-and-other-soft-tissue-sarcomas-ctya",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T1A, T2A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "II",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T1A, T2A",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "III",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T1B, T2B",
+      "n": "ANY N",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

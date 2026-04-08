@@ -225,15 +225,27 @@ def _make_response(
 
 
 def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
-    # Show ALL referral pathways by cancer type -- not just diagnosed ones.
-    # This matches NCDA definitions: cancer type breakdown of all 2WW referrals.
-    # Read ep.cancer_type directly (canonical field written by episode builder).
-    # condition_type is a legacy alias; both are set to the same value so this
-    # change is backward-compatible with existing data.
+    # NCDA definition: cancer type breakdown of CONFIRMED DIAGNOSES only.
+    # Only completed episodes represent an actual cancer diagnosis.
+    # Excluded types are referral pathway groups or unresolved keys that do
+    # not correspond to a valid NCDA cancer type category.
+    _NCDA_EXCLUDED = (
+        "'unknown'",
+        "'non_site_specific'",
+        "'skin'",          # old pre-migration key; resolved cases are 'melanoma'
+        "'upper_gi'",      # pathway group, not a diagnosis
+        "'head_and_neck'", # pathway group, not a diagnosis
+        "'urological'",    # pathway group, not a diagnosis
+        "'gynaecological'",# pathway group, not a diagnosis
+        "'haematological'",# pathway group, not a diagnosis
+        "'childrens_tumour'", # pathway group
+    )
+    exclusion = ", ".join(_NCDA_EXCLUDED)
     rows = client.run(
         f"{base}"
+        "AND ep.status = 'completed' "
         "AND ep.cancer_type IS NOT NULL "
-        "  AND ep.cancer_type <> 'unknown' "
+        f"AND NOT ep.cancer_type IN [{exclusion}] "
         "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS n "
         "ORDER BY n DESC",
         **params,
@@ -242,20 +254,104 @@ def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
     return [{"cancer_type": r["cancer_type"], "n": r["n"], "pct": round(r["n"] * 100.0 / total, 1)} for r in rows]
 
 
-def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> list:
-    rows = client.run(
+def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict:
+    confirmed_base = (
         f"{base}"
-        "AND ep.cancer_stage IS NOT NULL "
-        "WITH ep, "
-        "  CASE WHEN ep.cancer_stage IN ['0','1','2','I','II'] THEN 'early' "
-        "       WHEN ep.cancer_stage IN ['3','4','III','IV'] THEN 'late' "
-        "       ELSE 'unknown' END AS stage_group "
-        "RETURN stage_group, count(ep) AS n "
+        "OPTIONAL MATCH (enc:Encounter)-[r:IS_PART_OF]->(ep) "
+        "  WHERE r.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+        "WITH ep, count(enc) AS dx_count "
+        "WHERE dx_count > 0 "
+    )
+
+    rows = client.run(
+        f"{confirmed_base}"
+        "RETURN coalesce(ep.cancer_stage, 'unknown') AS stage_group, count(DISTINCT ep) AS n "
         "ORDER BY stage_group",
         **params,
     )
     total = sum(r["n"] for r in rows) or 1
-    return [{"stage_group": r["stage_group"], "n": r["n"], "pct": round(r["n"] * 100.0 / total, 1)} for r in rows]
+    by_stage = [
+        {"stage_group": r["stage_group"], "n": r["n"], "pct": round(r["n"] * 100.0 / total, 1)}
+        for r in rows
+    ]
+
+    by_system_rows = client.run(
+        f"{confirmed_base}"
+        "RETURN coalesce(ep.staging_system, 'unknown') AS staging_system, count(DISTINCT ep) AS n "
+        "ORDER BY n DESC, staging_system",
+        **params,
+    )
+    by_source_rows = client.run(
+        f"{confirmed_base}"
+        "RETURN coalesce(ep.staging_source, 'none') AS staging_source, count(DISTINCT ep) AS n "
+        "ORDER BY n DESC, staging_source",
+        **params,
+    )
+    group_rows = client.run(
+        f"{confirmed_base}"
+        "WITH ep "
+        "WHERE coalesce(ep.cancer_stage_group, '') <> '' "
+        "RETURN ep.cancer_stage_group AS cancer_stage_group, count(DISTINCT ep) AS n "
+        "ORDER BY n DESC, cancer_stage_group",
+        **params,
+    )
+    by_cancer_type_rows = client.run(
+        f"{confirmed_base}"
+        "WITH coalesce(ep.cancer_type, 'unknown') AS cancer_type, "
+        "     coalesce(ep.cancer_stage, 'unknown') AS stage_group, "
+        "     count(DISTINCT ep) AS n "
+        "WITH cancer_type, collect({stage_group: stage_group, n: n}) AS buckets, sum(n) AS total "
+        "UNWIND buckets AS bucket "
+        "RETURN cancer_type, "
+        "       bucket.stage_group AS stage_group, "
+        "       bucket.n AS n, "
+        "       CASE WHEN total > 0 "
+        "         THEN round((toFloat(bucket.n) * 1000.0) / toFloat(total)) / 10.0 "
+        "         ELSE 0.0 "
+        "       END AS pct "
+        "ORDER BY cancer_type, stage_group",
+        **params,
+    )
+
+    denom_row = client.run(
+        f"{confirmed_base}"
+        "RETURN count(DISTINCT ep) AS denom",
+        **params,
+    )
+    numerator_row = client.run(
+        f"{confirmed_base}"
+        "RETURN count(DISTINCT CASE WHEN coalesce(ep.cancer_stage, 'unknown') <> 'unknown' THEN ep END) AS numer",
+        **params,
+    )
+    denom = int((denom_row[0] or {}).get("denom") or 0) if denom_row else 0
+    numer = int((numerator_row[0] or {}).get("numer") or 0) if numerator_row else 0
+    coverage = round((numer * 100.0 / denom), 1) if denom > 0 else 0.0
+
+    return {
+        "rows": by_stage,
+        "by_stage_group": by_stage,
+        "by_system": [
+            {"staging_system": r["staging_system"], "n": r["n"]} for r in by_system_rows
+        ],
+        "by_source": [
+            {"staging_source": r["staging_source"], "n": r["n"]} for r in by_source_rows
+        ],
+        "by_stage_group_detail": [
+            {"cancer_stage_group": r["cancer_stage_group"], "n": r["n"]} for r in group_rows
+        ],
+        "by_cancer_type": [
+            {
+                "cancer_type": r["cancer_type"],
+                "stage_group": r["stage_group"],
+                "n": r["n"],
+                "pct": r["pct"],
+            }
+            for r in by_cancer_type_rows
+        ],
+        "coverage_pct": coverage,
+        "coverage_numerator": numer,
+        "coverage_denominator": denom,
+    }
 
 
 def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict:

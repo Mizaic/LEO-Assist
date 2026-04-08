@@ -52,6 +52,13 @@ interface CancerTypeBenchmarkGridProps {
   unit?: string;
   /** Descriptive heading shown above the grid */
   heading?: string;
+  /**
+   * Optional live values for the first series, keyed by cancer type then metric key.
+   * Example: liveByCancerType["breast"]["early_stage_pct"] = 61.7
+   */
+  liveByCancerType?: Record<string, Record<string, number | null>>;
+  /** Optional override for the first legend label. */
+  primarySeriesLabel?: string;
 }
 
 const COLOURS = {
@@ -92,13 +99,21 @@ function MiniBarChart({
   );
 }
 
-function Legend() {
+function LegendWithLabels({
+  practiceLabel,
+  allianceLabel,
+  nationalLabel,
+}: {
+  practiceLabel: string;
+  allianceLabel: string;
+  nationalLabel: string;
+}) {
   return (
     <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1 }}>
       {([
-        { key: "woodbrook",     label: BENCHMARK_LABELS_2018.practice },
-        { key: "east_midlands", label: BENCHMARK_LABELS_2018.alliance },
-        { key: "england",       label: BENCHMARK_LABELS_2018.national },
+        { key: "woodbrook",     label: practiceLabel },
+        { key: "east_midlands", label: allianceLabel },
+        { key: "england",       label: nationalLabel },
       ] as const).map(({ key, label }) => (
         <Box key={key} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
           <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: COLOURS[key], flexShrink: 0 }} />
@@ -119,19 +134,29 @@ export default function CancerTypeBenchmarkGrid({
   yMax = 100,
   unit = "%",
   heading = "2018 Baseline by Cancer Type",
+  liveByCancerType,
+  primarySeriesLabel,
 }: CancerTypeBenchmarkGridProps) {
-  if (!bm) return null;
+  if (!bm && !liveByCancerType) return null;
+
+  const practiceLegendLabel = primarySeriesLabel ?? BENCHMARK_LABELS_2018.practice;
 
   return (
     <Box sx={{ mt: 3 }}>
       <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: "text.secondary", fontSize: "0.8rem" }}>
         {heading}
       </Typography>
-      <Legend />
+      <LegendWithLabels
+        practiceLabel={practiceLegendLabel}
+        allianceLabel={BENCHMARK_LABELS_2018.alliance}
+        nationalLabel={BENCHMARK_LABELS_2018.national}
+      />
       <Grid container spacing={2}>
         {CANCER_TYPES.map(({ key, label }) => {
           const chartData = metrics.map((m) => {
-            const wb = resolveBenchmarkValueByCancer(bm, section, m.metricKey, key, true);
+            const wb =
+              liveByCancerType?.[key]?.[m.metricKey] ??
+              resolveBenchmarkValueByCancer(bm, section, m.metricKey, key, true);
             const em = bm[`${section}.by_cancer_type.${key}.${m.metricKey}`]?.alliance ?? null;
             const en = bm[`${section}.by_cancer_type.${key}.${m.metricKey}`]?.national ?? null;
             return {

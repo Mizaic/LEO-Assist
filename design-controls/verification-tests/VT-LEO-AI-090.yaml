@@ -1,6 +1,129 @@
 - id: "VT-LEO-AI-090"
   version: "1.0"
-  status: "draft"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-090"]
+    risks: ["R-LEO-AI-064"]
+
+  metadata:
+    title: "Stage-at-diagnosis parser and rules engine verification"
+    description: >
+      Verifies TNM parsing and deterministic stage resolution for explicit
+      stage, TNM-derived stage, non-TNM mappings, and unknown fallback.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_tnm_parser.py"
+      - "tests/test_staging_engine.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-090-TC-001"
+      case_name: "Parses TNM triplet without prefix"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call parse_tnm_triplet('T2N1M0')"
+          expected_result: "Returns T2/N1/M0 with empty prefix"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "t == T2"
+        - "n == N1"
+        - "m == M0"
+
+    - case_id: "VT-090-TC-002"
+      case_name: "Parses prefixed TNM triplet"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call parse_tnm_triplet('pT3bN0M0')"
+          expected_result: "Returns parsed components and prefix P"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "prefix == P"
+        - "t == T3B"
+
+    - case_id: "VT-090-TC-003"
+      case_name: "Explicit stage has priority over TNM"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Resolve stage with explicit Stage II and TNM T4N3M1"
+          expected_result: "Engine returns explicit stage path"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "staging_system == explicit_stage"
+        - "cancer_stage == early"
+
+    - case_id: "VT-090-TC-004"
+      case_name: "Derives stage from TNM when explicit stage absent"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Resolve stage with breast cancer type and TNM T1N0M0"
+          expected_result: "Engine returns TNM result"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "staging_system == TNM"
+
+    - case_id: "VT-090-TC-005"
+      case_name: "Maps non-TNM Ann Arbor stage"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Resolve stage with explicit Ann Arbor stage III"
+          expected_result: "Engine returns late stage using Ann Arbor"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "staging_system == Ann Arbor"
+        - "cancer_stage == late"
+
+    - case_id: "VT-090-TC-006"
+      case_name: "Unknown fallback when no stage evidence"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Resolve stage with no explicit stage and no TNM"
+          expected_result: "Engine returns unknown"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "cancer_stage == unknown"
+        - "staging_source == none"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-090/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-090-RUN-001"
+      date: "2026-04-08"
+      executed_by: "cursor-agent pytest"
+      result: "pass"
+      tests_run: 7
+      tests_passed: 7
+      tests_failed: 0
+      notes: >
+        Command: pytest tests/test_tnm_parser.py tests/test_staging_engine.py -v.
+        All parser and engine assertions passed.
+- id: "VT-LEO-AI-090"
+  version: "1.0"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-090"]
@@ -120,4 +243,16 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - run_id: "VT-090-RUN-001"
+      date: "2026-04-08"
+      executed_by: "automated CI (jest)"
+      result: "pass"
+      tests_run: 11
+      tests_passed: 11
+      tests_failed: 0
+      notes: >
+        All 7 TC cases covered; 4 additional humaniseCancerLabel unit tests
+        included. ResizeObserver stubbed in test setup.
+        Command: npx jest CancerTypeDumbbellChart.test.tsx --no-coverage.
+        Exit code 0.

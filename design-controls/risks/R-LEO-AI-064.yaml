@@ -1,81 +1,77 @@
-# -- R-LEO-AI-064 -- Misleading Audit Chart Causes Incorrect Clinical Interpretation
+# -- R-LEO-AI-064 -- Incorrect Stage Derivation at Diagnosis
 # ISO 14971 / IEC 62304 Risk
 
 - id: "R-LEO-AI-064"
-  title: "Audit visualisation misleads clinical staff into incorrect interpretation of cancer type distribution"
+  title: "Incorrect episode stage assignment from explicit stage or TNM evidence"
 
   hazard:
     description: >
-      The cancer type benchmark chart presents distribution data with a fixed
-      0-100% axis, causing benchmark deviations to be visually imperceptible
-      when all values are below 30%. Clinical staff may read the chart as
-      showing no meaningful difference from national benchmarks when substantial
-      deviations exist.
+      Stage-at-diagnosis derivation may map explicit stage text or TNM components
+      to the wrong stage group (early vs late) because of unsupported patterns,
+      ambiguous evidence, or incorrect site-rule matching.
     category: "clinical_safety"
 
   hazardous_situation: >
-    A clinical audit lead reviews the Cancer Type section of the NCDA audit
-    report and observes the chart. Due to the compressed visual scale or
-    confusing bar groupings, the lead concludes that their patient mix aligns
-    with national benchmarks, when in fact there is a 15-20 pp over-representation
-    of a specific cancer type. The lead does not investigate further and
-    does not escalate to the PCN cancer lead for pathway review.
+    A confirmed-diagnosis episode is assigned an incorrect stage group by the
+    enrichment pass. Audit dashboards then misstate the early-stage diagnosis
+    rate, leading quality teams to infer inaccurate pathway performance.
 
   harm:
     description: >
-      Failure to identify significant deviation in cancer type distribution
-      may delay quality improvement actions on referral pathways, contributing
-      to delayed diagnosis for patients in the affected cancer type.
-    severity: "minor"
+      Inaccurate quality improvement decisions and delayed corrective actions
+      for late diagnosis patterns at programme level.
+    severity: "serious"
 
   initial_risk_estimate:
-    severity: 2
+    severity: 3
     probability: 2
     detectability: 3
-    rpn: 12
-    risk_level: "low"
+    rpn: 18
+    risk_level: "medium"
 
   mitigation_measures:
     - control_type: "design_feature"
       description: >
-        Replace the grouped bar chart with a horizontal dumbbell chart using an
-        auto-fitted axis. The connecting line length directly encodes the
-        deviation from benchmark as the primary visual element. Direction colour
-        coding (green/amber) further reduces misinterpretation risk. Delta labels
-        show exact pp values alongside the visual encoding.
+        Enforce deterministic priority cascade (explicit stage over TNM),
+        site-specific TNM rule matching via _site_index, and unknown fallback
+        when evidence does not match known rules.
+      implemented_by: ["DI-LEO-AI-090"]
+      verified_by: ["VT-LEO-AI-090"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Persist staging_source and staging_confidence on EpisodeOfCare so lower
+        confidence records are visible for review and targeted validation.
       implemented_by: ["DI-LEO-AI-090"]
       verified_by: ["VT-LEO-AI-090"]
       effectiveness: "effective"
 
   residual_risk_estimate:
-    severity: 2
+    severity: 3
     probability: 1
     detectability: 2
-    rpn: 4
+    rpn: 6
     risk_level: "low"
     acceptability: "acceptable"
     justification: >
-      The dumbbell chart with auto-fitted axis and delta labels makes benchmark
-      deviations the primary visual signal. Residual risk from misinterpretation
-      is low because (a) exact pp values are shown numerically, (b) the summary
-      table below the chart remains unchanged, and (c) the audit report is
-      reviewed in a clinical context with peer review by GP leads.
+      Residual risk is acceptable because unsupported or ambiguous evidence
+      resolves to unknown rather than forced staging, and source/confidence
+      metadata enables focused review of lower-certainty cases.
 
   monitoring:
     monitoring_plan: >
-      Review user feedback from clinical audit teams following chart deployment.
-      Include in quarterly usability review of audit report components.
+      Monitor monthly proportion of unknown stage assignments and periodically
+      sample derived stages for manual review against source evidence.
     metrics:
-      - "User-reported confusion or queries about chart interpretation"
-      - "Support tickets mentioning cancer type chart"
-    review_frequency: "Quarterly"
+      - "Unknown stage rate among confirmed-diagnosis episodes"
+      - "Manual review agreement rate for derived stage samples"
+    review_frequency: "Monthly"
 
   metadata:
-    identified_by: "Design review - visualisation improvement initiative 2026-04-08"
+    identified_by: "Design review - stage-at-diagnosis engine 2026-04-08"
     identified_date: "2026-04-08"
     status: "analyzed"
     tags:
-      - "audit-report"
-      - "visualisation"
-      - "usability"
-      - "cancer-type"
+      - "staging"
+      - "tnm"
+      - "episode-enrichment"

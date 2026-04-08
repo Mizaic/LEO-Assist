@@ -1,0 +1,83 @@
+{
+  "site_name": "Bone (ICD10 C40 &amp; C41) - NDRS",
+  "site_slug": "bone",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/bone",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "T1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IA",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T2, T3",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IB",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T2",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T3",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "III",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "N0",
+      "m": "M1A",
+      "stage_group": "IVA",
+      "stage_numeric": 4
+    },
+    {
+      "t": "ANY T",
+      "n": "N1",
+      "m": "ANY M",
+      "stage_group": "IVB",
+      "stage_numeric": 4
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1B",
+      "stage_group": "IVB",
+      "stage_numeric": 4
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

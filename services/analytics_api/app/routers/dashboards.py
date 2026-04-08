@@ -86,19 +86,32 @@ async def rebuild_patient_episodes(
                 pid=body.patient_id,
             )
 
+        from libs.domain_config.registry import DomainRegistry
+        from libs.pipeline_graph.subgraphs.staging_enrichment import enrich_staging
         from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
         from services.analysis_worker.app.analyzers.episode_builder import build_episodes
 
+        registry = DomainRegistry.from_defaults()
         anchors = detect_anchors(
             patient_id=body.patient_id,
             start_date="2000-01-01",
             end_date="2030-12-31",
             patient_client=client,
+            registry=registry,
         )
         result = await build_episodes(
             patient_id=body.patient_id,
             anchors=anchors,
             patient_client=client,
+        )
+        # Ensure rebuild path also re-derives stage-at-diagnosis fields so
+        # audit cancer-stage section stays populated after manual reruns.
+        enrich_state = enrich_staging(
+            {
+                "patient_id": body.patient_id,
+                "episode_ids": result.episode_ids,
+                "errors": [],
+            }
         )
         return {
             "success": True,
@@ -108,6 +121,7 @@ async def rebuild_patient_episodes(
             "episodes_merged": result.episodes_merged,
             "encounters_linked": result.encounters_linked,
             "episode_ids": result.episode_ids,
+            "staging_errors": enrich_state.get("errors", []),
         }
     finally:
         client.close()

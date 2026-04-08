@@ -1,0 +1,83 @@
+{
+  "site_name": "Carcinoma of skin of the eyelid (ICD10 C44.1) - NDRS",
+  "site_slug": "carcinoma-of-skin-of-the-eyelid",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/carcinoma-of-skin-of-the-eyelid",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "TIS",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0",
+      "stage_numeric": 0
+    },
+    {
+      "t": "T1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IA",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T2A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IB",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T2B, T2C, T3",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T4",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "ANY T",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "IIIA",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

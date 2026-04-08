@@ -1,0 +1,121 @@
+{
+  "version": "1.0.0",
+  "systems": [
+    {
+      "system": "Ann Arbor",
+      "aliases": ["ann arbor", "lymphoma stage", "ann-arbor"],
+      "stage_to_group": {
+        "I": "early",
+        "IE": "early",
+        "II": "early",
+        "IIE": "early",
+        "III": "late",
+        "IIIE": "late",
+        "IV": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "Binet",
+      "aliases": ["binet", "cll binet"],
+      "stage_to_group": {
+        "A": "early",
+        "B": "late",
+        "C": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "FIGO",
+      "aliases": ["figo", "figo stage"],
+      "stage_to_group": {
+        "I": "early",
+        "IA": "early",
+        "IB": "early",
+        "IC": "early",
+        "II": "early",
+        "IIA": "early",
+        "IIB": "early",
+        "IIC": "early",
+        "III": "late",
+        "IIIA": "late",
+        "IIIB": "late",
+        "IIIC": "late",
+        "IV": "late",
+        "IVA": "late",
+        "IVB": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "R-ISS",
+      "aliases": ["r-iss", "r iss", "revised international staging system"],
+      "stage_to_group": {
+        "1": "early",
+        "I": "early",
+        "2": "late",
+        "II": "late",
+        "3": "late",
+        "III": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "INRG",
+      "aliases": ["inrg", "international neuroblastoma risk group"],
+      "stage_to_group": {
+        "L1": "early",
+        "L2": "early",
+        "M": "late",
+        "MS": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "Chang",
+      "aliases": ["chang", "medulloblastoma chang"],
+      "stage_to_group": {
+        "M0": "early",
+        "M1": "late",
+        "M2": "late",
+        "M3": "late",
+        "M4": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "Wilms",
+      "aliases": ["wilms", "wilms tumour", "wilms tumor"],
+      "stage_to_group": {
+        "I": "early",
+        "II": "early",
+        "III": "early",
+        "IV": "late",
+        "V": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "Murphy St Jude",
+      "aliases": ["murphy", "st jude", "murphy st jude"],
+      "stage_to_group": {
+        "I": "early",
+        "II": "early",
+        "III": "late",
+        "IV": "late"
+      },
+      "default_source": "coded"
+    },
+    {
+      "system": "Royal Marsden",
+      "aliases": ["royal marsden"],
+      "stage_to_group": {
+        "I": "early",
+        "II": "early",
+        "III": "late",
+        "IV": "late"
+      },
+      "default_source": "coded"
+    }
+  ]
+}

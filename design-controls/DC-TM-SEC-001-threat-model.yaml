@@ -65,7 +65,7 @@ system_context:
       controls: [TLS 1.3, Entra ID OAuth, cookie session, nonce CSRF]
     - id: ZONE_B
       name: "ACA internal network"
-      services: [terminology-api, fhir-api, analytics-api, model-inference, training-worker, coding-worker, analysis-worker]
+      services: [terminology-api, fhir-api, analytics-api, model-inference, training-worker, pipeline-worker]
       ingress: internal
       controls: [ACA mTLS peer-traffic-encryption, shared-secret Bearer token (GAP-007), Managed Identity service token (GAP-002)]
     - id: ZONE_C
@@ -84,8 +84,7 @@ system_context:
     - {name: "analytics-api", port: 8003, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
     - {name: "model-inference", port: 8004, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
     - {name: "training-worker", port: 8005, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
-    - {name: "coding-worker", port: null, exposure: "none", framework: "async message consumer", trust_zone: "ZONE_B"}
-    - {name: "analysis-worker", port: null, exposure: "none", framework: "async message consumer", trust_zone: "ZONE_B"}
+    - {name: "pipeline-worker", port: 8006, exposure: "internal", framework: "FastAPI + Service Bus consumer", trust_zone: "ZONE_B"}
     - {name: "ui", port: 3000, exposure: "external", framework: "Next.js 16", trust_zone: "ZONE_A"}
   data_stores:
     - {name: "Neo4j Patient Graph", type: "graph database", data: "Patient, Encounter, clinical text, review tasks", trust_zone: "ZONE_D"}

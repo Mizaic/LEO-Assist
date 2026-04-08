@@ -1,0 +1,62 @@
+{
+  "site_name": "Retinoblastoma (ICD10 C69.2) - NDRS",
+  "site_slug": "retinblastoma",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/retinblastoma",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "T1, T2, T3",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T4A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "II",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T4B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "III",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY T",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

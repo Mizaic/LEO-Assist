@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -108,12 +109,23 @@ class CodingPipeline:
         if progress_hook:
             progress_hook(event)
 
+    def _terminology_resolve_url(self) -> str:
+        base = (os.getenv("TERMINOLOGY_API_URL") or "").strip()
+        if not base:
+            urls = (os.getenv("TERMINOLOGY_API_URLS") or "").strip()
+            if urls:
+                base = urls.split(",")[0].strip()
+        if not base:
+            base = "http://localhost:8001"
+        return base.rstrip("/") + "/terminology/resolve"
+
     async def _resolve_via_api(self, terms: list[str], **_kwargs) -> dict[str, Any]:
         unique_terms = list(dict.fromkeys(t for t in terms if t))
         if not unique_terms:
             return {}
+        url = self._terminology_resolve_url()
         async with httpx.AsyncClient() as client:
-            response = await client.post("http://localhost:8000/resolve", json={"terms": unique_terms})
+            response = await client.post(url, json={"terms": unique_terms})
             response.raise_for_status()
             return (response.json() or {}).get("results", {})
 

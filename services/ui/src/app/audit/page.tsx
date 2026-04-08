@@ -36,7 +36,7 @@ import {
   fetchAuditAvoidableDelays,
   type AuditSummary,
   type AuditCancerTypeRow,
-  type AuditCancerStageRow,
+  type AuditCancerStageSummary,
   type AuditDemographics,
   type AuditComorbidities,
   type AuditPlaceRow,
@@ -169,7 +169,7 @@ export default function AuditPage() {
   // Section data — all wrapped in AuditSectionResult
   const [summary, setSummary] = useState<AuditSummary | null>(null);
   const [cancerType, setCancerType] = useState<AuditSectionResult<AuditCancerTypeRow[]> | null>(null);
-  const [cancerStage, setCancerStage] = useState<AuditSectionResult<AuditCancerStageRow[]> | null>(null);
+  const [cancerStage, setCancerStage] = useState<AuditSectionResult<AuditCancerStageSummary> | null>(null);
   const [demographics, setDemographics] = useState<AuditSectionResult<AuditDemographics> | null>(null);
   const [comorbidities, setComorbidities] = useState<AuditSectionResult<AuditComorbidities> | null>(null);
   const [placeOfPresentation, setPlaceOfPresentation] = useState<AuditSectionResult<AuditPlaceRow[]> | null>(null);
@@ -243,9 +243,21 @@ export default function AuditPage() {
     load(appliedFrom, appliedTo);
   }, [load, appliedFrom, appliedTo]);
 
+  const TAX_YEAR_PRESETS = [
+    { label: "2023/24", from: "2023-04-06", to: "2024-04-05" },
+    { label: "2024/25", from: "2024-04-06", to: "2025-04-05" },
+    { label: "2025/26", from: "2025-04-06", to: "2026-04-05" },
+  ];
+
   const handleApply = () => {
     setAppliedFrom(dateFrom || undefined);
     setAppliedTo(dateTo || undefined);
+  };
+  const handlePreset = (from: string, to: string) => {
+    setDateFrom(from);
+    setDateTo(to);
+    setAppliedFrom(from);
+    setAppliedTo(to);
   };
   const handleClear = () => {
     setDateFrom("");
@@ -337,6 +349,24 @@ export default function AuditPage() {
             Clear
           </Button>
         )}
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 0.5 }}>
+          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap" }}>
+            Year:
+          </Typography>
+          {TAX_YEAR_PRESETS.map((preset) => (
+            <Chip
+              key={preset.label}
+              label={preset.label}
+              size="small"
+              clickable
+              disabled={anyLoading}
+              onClick={() => handlePreset(preset.from, preset.to)}
+              color={appliedFrom === preset.from && appliedTo === preset.to ? "primary" : "default"}
+              variant={appliedFrom === preset.from && appliedTo === preset.to ? "filled" : "outlined"}
+              sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+            />
+          ))}
+        </Stack>
         {isFiltered && (
           <Chip
             label={`${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}`}

@@ -434,6 +434,24 @@ as they correct defects in already-approved design outputs.
 
 ---
 
+## Stage-at-Diagnosis Enrichment -- Design Control Summary
+
+Adds a first-class staging engine for episode-level stage-at-diagnosis:
+explicit stage extraction, site-specific TNM derivation, and source/confidence
+tracking exposed in analytics and audit UI.
+
+### Traceability
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-052 | draft | Domain-driven episode detector extended with stage-at-diagnosis enrichment |
+| Design Input | DI-LEO-AI-090 | draft | Deterministic stage-at-diagnosis engine and persistence fields |
+| Design Output | DO-LEO-AI-088 | draft | TNM parser, staging engine, staging enrichment subgraph, analytics and UI changes |
+| Risk | R-LEO-AI-064 | analyzed | Incorrect stage derivation from explicit stage or TNM evidence |
+| Verification Test | VT-LEO-AI-090 | passed | 7 automated tests for parser and engine priority cascade |
+
+---
+
 ## HITL Safety Layer Tier Reasoning -- Design Control Summary
 
 Running the three-tier safety classifier in HITL mode and surfacing its reasoning

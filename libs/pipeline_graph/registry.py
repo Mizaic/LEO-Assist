@@ -148,6 +148,18 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'episode_build': %s", exc)
 
     try:
+        from libs.pipeline_graph.subgraphs.staging_enrichment import (
+            build_staging_enrichment_subgraph,
+        )
+        registry.register(
+            "staging_enrichment",
+            build_staging_enrichment_subgraph,
+            description="Post-episode cancer stage enrichment",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'staging_enrichment': %s", exc)
+
+    try:
         from libs.pipeline_graph.subgraphs.safety_net import build_safety_net_subgraph
         registry.register("safety_net", build_safety_net_subgraph, description="Safety netting signal detection")
     except Exception as exc:

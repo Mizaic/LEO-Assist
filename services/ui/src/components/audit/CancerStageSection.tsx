@@ -6,6 +6,7 @@ import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import type { AuditCancerStageSummary, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -32,6 +33,26 @@ export default function CancerStageSection({ result, loading, error, orgSelected
   const practiceCoverageD = result?.scopes.practice?.coverage_denominator ?? 0;
   const stageDetail = result?.scopes.practice?.by_stage_group_detail ?? [];
   const bm = result?.benchmark?.metrics;
+  const byCancerType = result?.scopes.practice?.by_cancer_type ?? [];
+
+  const normaliseCancerTypeKey = (value: string): string => {
+    const key = value.toLowerCase();
+    if (key === "bowel") return "colorectal";
+    return key;
+  };
+  const liveByCancerType = byCancerType.reduce<Record<string, Record<string, number | null>>>((acc, row) => {
+    const cancerTypeKey = normaliseCancerTypeKey(row.cancer_type || "unknown");
+    if (!acc[cancerTypeKey]) {
+      acc[cancerTypeKey] = {};
+    }
+    if (row.stage_group === "early") {
+      acc[cancerTypeKey].early_stage_pct = row.pct;
+    }
+    if (row.stage_group === "late") {
+      acc[cancerTypeKey].late_stage_pct = row.pct;
+    }
+    return acc;
+  }, {});
 
   const visibleKeys = orgSelected
     ? (["practice", "national", "similar", "alliance"] as const)
@@ -120,8 +141,10 @@ export default function CancerStageSection({ result, loading, error, orgSelected
           { metricKey: "early_stage_pct", label: "Early" },
           { metricKey: "late_stage_pct",  label: "Late" },
         ]}
+        liveByCancerType={liveByCancerType}
+        primarySeriesLabel={orgSelected ? "This Practice (today)" : "All Patients (today)"}
         orgSelected={orgSelected}
-        heading="2018 Baseline by Cancer Type — Stage at Diagnosis"
+        heading="Stage at Diagnosis by Cancer Type"
       />
     </SectionCard>
   );

@@ -629,6 +629,23 @@ export interface AuditCancerStageRow {
   pct: number;
 }
 
+export interface AuditCancerStageSummary {
+  rows: AuditCancerStageRow[];
+  by_stage_group: AuditCancerStageRow[];
+  by_system: Array<{ staging_system: string; n: number }>;
+  by_source: Array<{ staging_source: string; n: number }>;
+  by_stage_group_detail: Array<{ cancer_stage_group: string; n: number }>;
+  by_cancer_type: Array<{
+    cancer_type: string;
+    stage_group: "early" | "late" | "unknown";
+    n: number;
+    pct: number;
+  }>;
+  coverage_pct: number;
+  coverage_numerator: number;
+  coverage_denominator: number;
+}
+
 export interface AuditDemographics {
   sex: Array<{ gender: string; n: number; pct: number }>;
   age_bands: Array<{ age_band: string; n: number; pct: number }>;
@@ -755,7 +772,7 @@ export async function fetchAuditCancerType(
 
 export async function fetchAuditCancerStage(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
-): Promise<AuditSectionResult<AuditCancerStageRow[]>> {
+): Promise<AuditSectionResult<AuditCancerStageSummary>> {
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/cancer-stage${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
 }
 

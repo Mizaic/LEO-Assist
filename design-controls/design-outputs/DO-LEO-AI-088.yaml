@@ -1,4 +1,4 @@
-# -- DO-LEO-AI-088 -- Cancer Type Dumbbell Chart Implementation
+# -- DO-LEO-AI-088 -- Stage-at-diagnosis enrichment implementation
 # ISO 13485 / IEC 62304 Design Output
 
 - id: "DO-LEO-AI-088"
@@ -8,72 +8,85 @@
 
   traceability:
     design_inputs: ["DI-LEO-AI-090"]
-    user_needs: ["UN-LEO-AI-057"]
+    user_needs: ["UN-LEO-AI-052"]
     risks_addressed: ["R-LEO-AI-064"]
     verification_tests: ["VT-LEO-AI-090"]
 
   specification:
-    title: "CancerTypeDumbbellChart - Horizontal dumbbell chart for cancer type benchmark comparison"
+    title: "Stage-at-diagnosis enrichment modules and audit surfacing"
     description: |
-      A Recharts ComposedChart rendered horizontally with one bar row per cancer
-      type. Two scatter points per row (today = filled blue circle, 2018 benchmark
-      = hollow amber diamond) are overlaid on a transparent bar that spans between
-      them, creating the dumbbell effect. The bar colour encodes direction: green
-      when today > benchmark, amber when today < benchmark, grey when no benchmark
-      is available. A custom label at the end of each row shows the pp delta.
-      The x-axis domain auto-fits to ceil(max(all values) / 5) * 5. Cancer type
-      key strings are humanised via a lookup table and a generic capitalise fallback.
+      Implements a first-class stage-at-diagnosis capability: rule ingestion from
+      NHS staging-sheet outputs, TNM parser, deterministic staging engine,
+      post-episode enrichment subgraph, EpisodeOfCare staging fields, analytics
+      aggregation, and audit UI rendering of early/late distribution plus
+      source and coverage.
     acceptance_criteria:
-      - criterion: "Row per type"
+      - criterion: "Rule ingestion"
         type: "functional"
         measurement: "Test"
-        target: "One row rendered per unique cancer_type key in input data"
-      - criterion: "Auto-fitted axis"
+        target: "StagingRulesEngine loads site rules, site index, and non-TNM mappings from configs/staging_rules"
+      - criterion: "Priority cascade"
         type: "functional"
         measurement: "Test"
-        target: "X-axis max <= ceil(max_value / 5) * 5 + 5 when data present"
-      - criterion: "Colour direction logic"
+        target: "Explicit stage resolves before TNM derivation when both are present"
+      - criterion: "TNM derivation"
         type: "functional"
         measurement: "Test"
-        target: "Line renders green for today > benchmark; amber for today < benchmark; grey otherwise"
-      - criterion: "Delta label"
+        target: "TNM triplets parse into T/N/M components and derive early/late where a matching site rule exists"
+      - criterion: "Episode persistence"
         type: "functional"
-        measurement: "Test"
-        target: "+Xpp / -Xpp label shown when benchmark exists; absent when benchmark is null"
-      - criterion: "Human labels"
+        measurement: "Inspection"
+        target: "EpisodeOfCare nodes contain staging fields with safe defaults"
+      - criterion: "Analytics output"
         type: "functional"
-        measurement: "Test"
-        target: "lower_gi -> Lower GI; head_and_neck -> Head and Neck; breast -> Breast"
-      - criterion: "Empty state"
+        measurement: "Inspection"
+        target: "Cancer stage endpoint returns rows, by_stage_group_detail, by_system, by_source, and coverage_pct"
+      - criterion: "UI surfacing"
         type: "functional"
-        measurement: "Test"
-        target: "Explanatory Typography rendered when data array is empty"
+        measurement: "Inspection"
+        target: "CancerStageSection no longer uses external feed placeholder and shows pipeline-derived data"
 
   implementation:
     artifacts:
       - artifact_type: "source_code"
-        location: "services/ui/src/components/audit/CancerTypeDumbbellChart.tsx"
-        description: "CancerTypeDumbbellChart component; humaniseCancerLabel helper; DumbbellRow type"
+        location: "libs/staging/tnm_parser.py"
+        description: "TNM parser and TNMComponents dataclass"
       - artifact_type: "source_code"
-        location: "services/ui/src/components/audit/CancerTypeSection.tsx"
-        description: "Modified to import and render CancerTypeDumbbellChart instead of ComparisonBarChart"
+        location: "libs/staging/engine.py"
+        description: "StagingRulesEngine with explicit>TNM>unknown cascade and non-TNM mapping"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/staging_enrichment.py"
+        description: "Post-episode staging enrichment subgraph and EpisodeOfCare field writes"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder.py"
+        description: "EpisodeOfCare staging field defaults"
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/audit.py"
+        description: "Cancer stage aggregates with source/system/detail/coverage fields"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/audit/CancerStageSection.tsx"
+        description: "Pipeline-derived cancer stage UI section"
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/analyticsApi.ts"
+        description: "Audit cancer stage response types updated"
     storage_location: "git"
     technical_details:
-      language: "TypeScript"
-      loc: 120
+      language: "Python/TypeScript"
+      loc: 500
       key_functions:
-        - "CancerTypeDumbbellChart"
-        - "humaniseCancerLabel"
-        - "buildDumbbellRows"
+        - "parse_tnm_triplet"
+        - "StagingRulesEngine.resolve_stage"
+        - "enrich_staging"
+        - "_q_cancer_stage"
 
   safety_characteristics:
     safety_class: "B"
     safety_critical_functions:
-      - "Presentation of cancer type distribution data to clinical audit staff"
+      - "Deterministic stage derivation and persistence for episode-level audit metrics"
     risk_control_measures:
-      - "Auto-fitted axis prevents misleading empty space that could cause under-estimation of differences"
-      - "Direction colour coding reduces misinterpretation risk for non-technical clinical users"
-      - "Delta labels provide exact numerical values alongside visual encoding"
+      - "Priority cascade prevents lower-confidence TNM from overriding explicit stage"
+      - "Unknown fallback prevents unsupported mappings from forcing a stage value"
+      - "Source and confidence fields expose evidence quality to reviewers"
 
   verification_status:
     verification_method: "Test"

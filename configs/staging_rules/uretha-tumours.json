@@ -1,0 +1,90 @@
+{
+  "site_name": "Urethra tumours (ICD10 C68.0) - NDRS",
+  "site_slug": "uretha-tumours",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/uretha-tumours",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "TA",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0A",
+      "stage_numeric": 0
+    },
+    {
+      "t": "TIS",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0IS",
+      "stage_numeric": 0
+    },
+    {
+      "t": "T1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "T2",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "II",
+      "stage_numeric": 2
+    },
+    {
+      "t": "T1, T2",
+      "n": "N1",
+      "m": "M0",
+      "stage_group": "III",
+      "stage_numeric": 3
+    },
+    {
+      "t": "T3",
+      "n": "N0, N1",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "T4",
+      "n": "N0, N1",
+      "m": "M0",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    },
+    {
+      "t": "ANY T",
+      "n": "N2",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "ANY T",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

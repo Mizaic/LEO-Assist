@@ -1,0 +1,174 @@
+{
+  "site_name": "Malignant melanoma of skin (ICD10 C43, C51.0, C60.9, C63.2) - NDRS",
+  "site_slug": "malignant-melanoma-of-skin",
+  "source_url": "https://digital.nhs.uk/ndrs/data/cancer-data-training-materials/staging-sheets/malignant-melanoma-of-skin",
+  "staging_edition": "UICC 8th (assumed unless page states otherwise)",
+  "tnm_to_stage_group": [
+    {
+      "t": "PTIS",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "0",
+      "stage_numeric": 0
+    },
+    {
+      "t": "PT1A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IA",
+      "stage_numeric": 1
+    },
+    {
+      "t": "PT1B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IB",
+      "stage_numeric": 1
+    },
+    {
+      "t": "PT2A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "PT2B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIA",
+      "stage_numeric": 2
+    },
+    {
+      "t": "PT3A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "PT3B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIB",
+      "stage_numeric": 2
+    },
+    {
+      "t": "PT4A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "PT4B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IIC",
+      "stage_numeric": 2
+    },
+    {
+      "t": "ANY PT",
+      "n": "N1, N2, N3",
+      "m": "M0",
+      "stage_group": "III",
+      "stage_numeric": 3
+    },
+    {
+      "t": "ANY PT",
+      "n": "ANY N",
+      "m": "M1",
+      "stage_group": "IV",
+      "stage_numeric": 4
+    },
+    {
+      "t": "PT1",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "I",
+      "stage_numeric": 1
+    },
+    {
+      "t": "PT1B",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "PT2A",
+      "n": "N0",
+      "m": "M0",
+      "stage_group": "IB",
+      "stage_numeric": 1
+    },
+    {
+      "t": "PT1A, T1B, T2A",
+      "n": "N1A, N2A",
+      "m": "M0",
+      "stage_group": "IIIA",
+      "stage_numeric": 3
+    },
+    {
+      "t": "PT1A, T1B, T2A",
+      "n": "N1B, N1C, N2B",
+      "m": "M0",
+      "stage_group": "IIIB",
+      "stage_numeric": 3
+    },
+    {
+      "t": "PT2B-T3A",
+      "n": "N1, N2A, N2B",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "PT1A, T1B, T2A, T2B, T3A",
+      "n": "N2C, N3",
+      "m": "M0",
+      "stage_group": "IIIC",
+      "stage_numeric": 3
+    },
+    {
+      "t": "PT3B, T4A",
+      "n": "N1, N2, N3",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "PT4B",
+      "n": "N1, N2",
+      "m": "M0",
+      "stage_group": "NAN",
+      "stage_numeric": null
+    },
+    {
+      "t": "PT4B",
+      "n": "N3",
+      "m": "M0",
+      "stage_group": "IIID",
+      "stage_numeric": 3
+    }
+  ],
+  "stage_group_to_early_late": {
+    "0": "early",
+    "I": "early",
+    "IA": "early",
+    "IB": "early",
+    "IC": "early",
+    "II": "early",
+    "IIA": "early",
+    "IIB": "early",
+    "IIC": "early",
+    "III": "late",
+    "IIIA": "late",
+    "IIIB": "late",
+    "IIIC": "late",
+    "IV": "late",
+    "IVA": "late",
+    "IVB": "late",
+    "IVC": "late"
+  }
+}

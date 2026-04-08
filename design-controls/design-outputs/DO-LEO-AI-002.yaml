@@ -82,7 +82,7 @@
     verification_complete: false
 
   production_information:
-    deployment_instructions: "Deployed as part of the coding-worker container via Azure Container Apps"
+    deployment_instructions: "Library code in services/coding_worker; runs inside pipeline-worker container via Azure Container Apps"
 
   documentation:
     design_documentation: []
