@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExtractionState(TypedDict, total=False):
+    encounter_id: str
     encounter_text: str
     extraction_method: str
     prompt_config: dict[str, Any]
@@ -57,11 +58,47 @@ def _items_to_dicts(items: list) -> list[dict[str, Any]]:
     ]
 
 
+def _hydrate_encounter_text_if_missing(state: ExtractionState) -> str:
+    text = str(state.get("encounter_text") or "").strip()
+    if text:
+        return text
+
+    encounter_id = str(state.get("encounter_id") or "").strip()
+    if not encounter_id:
+        return ""
+
+    from libs.neo4j_client.client import PatientGraphClient
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (e:Encounter {id: $encounter_id}) "
+            "RETURN coalesce(e.text, '') AS text",
+            encounter_id=encounter_id,
+        )
+    finally:
+        client.close()
+
+    hydrated = str((rows or [{}])[0].get("text") or "").strip()
+    if hydrated:
+        logger.warning(
+            "Encounter text missing in state for encounter_id=%s; "
+            "hydrated from Neo4j in extraction step",
+            encounter_id,
+        )
+    else:
+        logger.warning(
+            "Encounter text missing in state and Neo4j for encounter_id=%s",
+            encounter_id,
+        )
+    return hydrated
+
+
 def split_sentences(state: ExtractionState) -> dict[str, Any]:
-    text = state.get("encounter_text") or ""
+    text = _hydrate_encounter_text_if_missing(state)
     splitter = SentenceSplitter()
     chunks = splitter.split(text)
-    return {"sentences": [asdict(c) for c in chunks]}
+    return {"encounter_text": text, "sentences": [asdict(c) for c in chunks]}
 
 
 def _resolve_system_prompt(state: ExtractionState) -> str:

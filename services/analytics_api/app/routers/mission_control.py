@@ -309,6 +309,26 @@ def _row_to_patient(row: dict) -> dict:
     }
 
 
+def _patient_only_query(
+    scope: CallerScope,
+    org_id: Optional[str],
+    patient_id: str,
+) -> tuple[str, dict[str, Any]]:
+    """Build scoped patient-only query for exact-id fallback."""
+    prefix, extra = _patient_pipeline_audit_prefix(scope, org_id)
+    query = (
+        f"{prefix}"
+        "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
+        "RETURN "
+        "  p.id AS patient_id, "
+        "  p.gender AS gender, "
+        "  p.birthDate AS birth_date, "
+        "  gp.name AS practice_name "
+        "LIMIT 1"
+    )
+    return query, {**extra, "patient_id": patient_id}
+
+
 # ---------------------------------------------------------------------------
 # KPI query
 # ---------------------------------------------------------------------------
@@ -395,6 +415,15 @@ async def get_mission_control_patients(
 
         data_rows = client.run(data_q, **qparams)
         patients = [_row_to_patient(r) for r in data_rows]
+
+        pid = _normalise_mission_patient_id(patient_id)
+        if pid and total == 0:
+            fallback_q, fallback_params = _patient_only_query(scope, org_id, pid)
+            fallback_rows = client.run(fallback_q, **fallback_params)
+            if fallback_rows:
+                patient = _row_to_patient({**dict(fallback_rows[0]), "episodes": []})
+                patients = [patient]
+                total = 1
     finally:
         client.close()
 
@@ -527,12 +556,14 @@ async def get_patient_pipeline_events(
     if eid:
         middle = (
             "WITH p "
-            "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare {episode_id: $episode_id}) "
-            "MATCH (ep)<-[:IS_PART_OF]-(enc:Encounter) "
+            "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare {episode_id: $episode_id}) "
+            "OPTIONAL MATCH (ep)<-[:IS_PART_OF]-(enc:Encounter) "
             "WITH p, collect(DISTINCT toString(enc.id)) AS allowed "
         )
         episode_clause = (
-            "AND (trim(coalesce(ae.encounter_id, '')) = '' OR ae.encounter_id IN allowed) "
+            "AND (size(allowed) = 0 "
+            "OR trim(coalesce(ae.encounter_id, '')) = '' "
+            "OR ae.encounter_id IN allowed) "
         )
         extra = {**extra, "episode_id": eid}
     else:

@@ -25,6 +25,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import SearchIcon from "@mui/icons-material/Search";
 import { api } from "@/lib/api";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -37,8 +38,8 @@ interface Pipeline {
   status: string;
 }
 
-// Clinical pipeline scope: one patient or one encounter
-type ClinicalScope = "patient" | "encounter";
+// Clinical pipeline scope: one patient, one encounter, or a guarded bulk run
+type ClinicalScope = "patient" | "encounter" | "all_patients";
 
 // Gold training scope: all pending candidates or specific ones
 type GoldScope = "all_pending" | "specific";
@@ -66,6 +67,7 @@ interface RunEvent {
 }
 
 const GOLD_PIPELINE_ID = "pd-gold-training-audit";
+const BULK_CONFIRM_TEXT = "RESET AND REPROCESS ALL PATIENTS";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -431,11 +433,25 @@ function GoldScopePanel({
 function ClinicalScopePanel({
   clinicalScope, setClinicalScope, patientId, setPatientId,
   encounterId, setEncounterId, dryRun, setDryRun,
+  bulkOrgId, setBulkOrgId,
+  bulkAckExpensive, setBulkAckExpensive,
+  bulkAckDestructive, setBulkAckDestructive,
+  bulkAckBackground, setBulkAckBackground,
+  bulkConfirmationText, setBulkConfirmationText,
+  bulkPreview, bulkPreviewLoading, onPreviewBulk,
 }: {
   clinicalScope: ClinicalScope; setClinicalScope: (s: ClinicalScope) => void;
   patientId: string; setPatientId: (v: string) => void;
   encounterId: string; setEncounterId: (v: string) => void;
   dryRun: boolean; setDryRun: (v: boolean) => void;
+  bulkOrgId: string; setBulkOrgId: (v: string) => void;
+  bulkAckExpensive: boolean; setBulkAckExpensive: (v: boolean) => void;
+  bulkAckDestructive: boolean; setBulkAckDestructive: (v: boolean) => void;
+  bulkAckBackground: boolean; setBulkAckBackground: (v: boolean) => void;
+  bulkConfirmationText: string; setBulkConfirmationText: (v: string) => void;
+  bulkPreview: { patient_count: number; encounter_count: number } | null;
+  bulkPreviewLoading: boolean;
+  onPreviewBulk: () => void;
 }) {
   return (
     <Stack spacing={2}>
@@ -452,18 +468,83 @@ function ClinicalScopePanel({
           desc="Re-run one specific encounter. Shows live results."
           onClick={() => setClinicalScope("encounter")}
         />
+        <SelectionCard
+          selected={clinicalScope === "all_patients"}
+          title="All scoped patients"
+          desc="Reset and reprocess all patients in one org. This is expensive."
+          onClick={() => setClinicalScope("all_patients")}
+        />
       </Stack>
 
       <Stack spacing={1.5}>
-        <TextField label="Patient ID" size="small" value={patientId}
-          onChange={(e) => setPatientId(e.target.value)}
-          placeholder="e.g. 9990000001" fullWidth />
+        {clinicalScope !== "all_patients" && (
+          <TextField label="Patient ID" size="small" value={patientId}
+            onChange={(e) => setPatientId(e.target.value)}
+            placeholder="e.g. 9990000001" fullWidth />
+        )}
         {clinicalScope === "encounter" && (
           <TextField label="Encounter ID" size="small" value={encounterId}
             onChange={(e) => setEncounterId(e.target.value)}
             placeholder="e.g. doc_c73f4fcad01996bb" fullWidth />
         )}
+        {clinicalScope === "all_patients" && (
+          <TextField label="Organization ID" size="small" value={bulkOrgId}
+            onChange={(e) => setBulkOrgId(e.target.value)}
+            placeholder="e.g. org-gp-001" fullWidth />
+        )}
       </Stack>
+
+      {clinicalScope === "all_patients" && (
+        <Stack spacing={1.25}>
+          <Alert severity="error">
+            This will delete existing pipeline artefacts for every patient in the selected organization, then queue full reprocessing. It can take a long time and costs more.
+          </Alert>
+
+          <Button
+            variant="outlined"
+            onClick={onPreviewBulk}
+            disabled={bulkPreviewLoading || bulkOrgId.trim().length === 0}
+          >
+            {bulkPreviewLoading ? "Checking scope..." : "Preview impact"}
+          </Button>
+
+          {bulkPreview && (
+            <Alert severity="warning">
+              Scope preview: {bulkPreview.patient_count} patient(s), {bulkPreview.encounter_count} encounter(s) to queue.
+            </Alert>
+          )}
+
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Checkbox
+              checked={bulkAckExpensive}
+              onChange={(e) => setBulkAckExpensive(e.target.checked)}
+            />
+            <Typography variant="body2">I understand this run is expensive.</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Checkbox
+              checked={bulkAckDestructive}
+              onChange={(e) => setBulkAckDestructive(e.target.checked)}
+            />
+            <Typography variant="body2">I understand this deletes current patient pipeline artefacts first.</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Checkbox
+              checked={bulkAckBackground}
+              onChange={(e) => setBulkAckBackground(e.target.checked)}
+            />
+            <Typography variant="body2">I understand this runs in the background and may continue after I leave this page.</Typography>
+          </Stack>
+          <TextField
+            label="Type confirmation text"
+            size="small"
+            value={bulkConfirmationText}
+            onChange={(e) => setBulkConfirmationText(e.target.value)}
+            placeholder={BULK_CONFIRM_TEXT}
+            fullWidth
+          />
+        </Stack>
+      )}
 
       <Paper variant="outlined" onClick={() => setDryRun(!dryRun)}
         sx={{
@@ -473,7 +554,7 @@ function ClinicalScopePanel({
           bgcolor: dryRun ? "warning.50" : "background.paper",
         }}>
         <Typography variant="caption" fontWeight={dryRun ? 700 : 400}>
-          {dryRun ? "Test mode ON — nothing will be saved" : "Test mode OFF — results will be saved"}
+          {dryRun ? "Test mode ON - nothing will be saved" : "Test mode OFF - results will be saved"}
         </Typography>
       </Paper>
     </Stack>
@@ -500,6 +581,14 @@ export default function RunAIPage() {
   const [clinicalScope, setClinicalScope] = useState<ClinicalScope>("patient");
   const [patientId,     setPatientId]     = useState("");
   const [encounterId,   setEncounterId]   = useState("");
+  const [bulkOrgId, setBulkOrgId] = useState("");
+  const [bulkAckExpensive, setBulkAckExpensive] = useState(false);
+  const [bulkAckDestructive, setBulkAckDestructive] = useState(false);
+  const [bulkAckBackground, setBulkAckBackground] = useState(false);
+  const [bulkConfirmationText, setBulkConfirmationText] = useState("");
+  const [bulkPreview, setBulkPreview] = useState<{ patient_count: number; encounter_count: number } | null>(null);
+  const [bulkPreviewLoading, setBulkPreviewLoading] = useState(false);
+  const [confirmBulkRunOpen, setConfirmBulkRunOpen] = useState(false);
 
   // Shared
   const [dryRun,   setDryRun]   = useState(false);
@@ -538,11 +627,43 @@ export default function RunAIPage() {
     if (isGoldPipeline) {
       return goldScope === "all_pending" || selectedIds.size > 0;
     }
+    if (clinicalScope === "all_patients") {
+      return !dryRun
+        && bulkOrgId.trim().length > 0
+        && !!bulkPreview
+        && bulkAckExpensive
+        && bulkAckDestructive
+        && bulkAckBackground
+        && bulkConfirmationText.trim() === BULK_CONFIRM_TEXT;
+    }
     return patientId.trim().length > 0 &&
       (clinicalScope === "patient" || encounterId.trim().length > 0);
   })();
 
   const addEvent = (ev: RunEvent) => setEvents((p) => [...p, ev]);
+
+  const handlePreviewBulk = async () => {
+    setBulkPreviewLoading(true);
+    try {
+      const preview = await postJson<{
+        preview: boolean;
+        patient_count: number;
+        encounter_count: number;
+      }>("/api/pipeline/run-all-patients", {
+        org_id: bulkOrgId.trim(),
+        preview: true,
+      });
+      setBulkPreview({
+        patient_count: preview.patient_count,
+        encounter_count: preview.encounter_count,
+      });
+    } catch (e) {
+      setBulkPreview(null);
+      setRunError(e instanceof Error ? e.message : "Could not preview bulk run.");
+    } finally {
+      setBulkPreviewLoading(false);
+    }
+  };
 
   const handleRun = async () => {
     cancelRef.current?.();
@@ -611,6 +732,40 @@ export default function RunAIPage() {
           },
         );
 
+      } else if (clinicalScope === "all_patients") {
+        addEvent({ type: "warning", message: "Starting destructive bulk reset and reprocess run..." });
+        const resp = await postJson<{
+          run_id: string;
+          queued: number;
+          patient_count: number;
+          encounter_count: number;
+        }>("/api/pipeline/run-all-patients", {
+          org_id: bulkOrgId.trim(),
+          preview: false,
+          acknowledge_expensive: bulkAckExpensive,
+          acknowledge_destructive: bulkAckDestructive,
+          acknowledge_background: bulkAckBackground,
+          confirmation_text: bulkConfirmationText.trim(),
+          expected_patient_count: bulkPreview?.patient_count ?? null,
+        });
+        setRunId(resp.run_id);
+        addEvent({
+          type: "queued",
+          message: `Queued ${resp.queued} encounter job(s) for ${resp.patient_count} patient(s).`,
+        });
+        cancelRef.current = openStream(
+          `/api/pipeline/progress/${resp.run_id}`,
+          addEvent,
+          () => { setRunning(false); setDone(true); },
+          () => {
+            setRunning(false);
+            addEvent({
+              type: "warning",
+              message: "Live updates not available right now. The bulk run is still processing in the background.",
+            });
+            setDone(true);
+          },
+        );
       } else {
         // ── Patient: full canonical pipeline via Service Bus ──────────
         addEvent({ type: "info", message: "Sending to processing queue…" });
@@ -641,6 +796,15 @@ export default function RunAIPage() {
     }
   };
 
+  const handleRunClick = () => {
+    if (!canRun || running) return;
+    if (!isGoldPipeline && clinicalScope === "all_patients") {
+      setConfirmBulkRunOpen(true);
+      return;
+    }
+    void handleRun();
+  };
+
   const handleStop = () => {
     cancelRef.current?.();
     setRunning(false);
@@ -656,7 +820,9 @@ export default function RunAIPage() {
     }
     return clinicalScope === "patient"
       ? `patient ${patientId}`
-      : `encounter ${encounterId} (patient ${patientId})`;
+      : clinicalScope === "encounter"
+        ? `encounter ${encounterId} (patient ${patientId})`
+        : `all patients in org ${bulkOrgId || "(not set)"}`;
   })();
 
   return (
@@ -748,6 +914,14 @@ export default function RunAIPage() {
               patientId={patientId} setPatientId={setPatientId}
               encounterId={encounterId} setEncounterId={setEncounterId}
               dryRun={dryRun} setDryRun={setDryRun}
+              bulkOrgId={bulkOrgId} setBulkOrgId={setBulkOrgId}
+              bulkAckExpensive={bulkAckExpensive} setBulkAckExpensive={setBulkAckExpensive}
+              bulkAckDestructive={bulkAckDestructive} setBulkAckDestructive={setBulkAckDestructive}
+              bulkAckBackground={bulkAckBackground} setBulkAckBackground={setBulkAckBackground}
+              bulkConfirmationText={bulkConfirmationText} setBulkConfirmationText={setBulkConfirmationText}
+              bulkPreview={bulkPreview}
+              bulkPreviewLoading={bulkPreviewLoading}
+              onPreviewBulk={handlePreviewBulk}
             />
           )}
         </Paper>
@@ -777,7 +951,7 @@ export default function RunAIPage() {
           <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
             <Button variant="contained"
               startIcon={running ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />}
-              onClick={handleRun} disabled={!canRun || running}>
+              onClick={handleRunClick} disabled={!canRun || running}>
               {running ? "Running…" : "Run now"}
             </Button>
 
@@ -829,6 +1003,24 @@ export default function RunAIPage() {
             </>
           )}
         </Paper>
+      )}
+      {confirmBulkRunOpen && (
+        <ConfirmDialog
+          title="Final check before bulk run"
+          body={
+            `You are about to reset and reprocess ${bulkPreview?.patient_count ?? 0} patients `
+            + `and queue ${bulkPreview?.encounter_count ?? 0} encounters. `
+            + "This is expensive, destructive, and runs in the background. Continue now?"
+          }
+          confirmLabel="Yes, run now"
+          cancelLabel="Cancel"
+          variant="danger"
+          onCancel={() => setConfirmBulkRunOpen(false)}
+          onConfirm={() => {
+            setConfirmBulkRunOpen(false);
+            void handleRun();
+          }}
+        />
       )}
     </Box>
   );

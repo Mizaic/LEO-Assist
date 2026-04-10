@@ -1,4 +1,4 @@
-"""Create / update Azure Service Bus queues for the coding and analysis workers.
+"""Create / update Azure Service Bus queues for pipeline and analysis workers.
 
 Queue settings:
   - lock_duration: 5 minutes (maximum on Standard tier).
@@ -27,7 +27,7 @@ load_dotenv(ROOT / "secrets" / ".env")
 from azure.servicebus.management import ServiceBusAdministrationClient, QueueProperties
 
 QUEUES = [
-    "coding-jobs",
+    "pipeline-jobs",
     "analysis-jobs",
     # Dedicated queue for weekly audit jobs (CTO-002 fix: queue isolation).
     # Audit runs are long-running and must never delay real-time pipeline jobs.

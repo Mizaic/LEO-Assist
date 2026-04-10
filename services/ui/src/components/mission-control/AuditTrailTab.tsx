@@ -17,7 +17,7 @@ import { getStatusLabel } from "@/lib/pathwayLabels";
 
 interface Props {
   patientId: string;
-  episode: MissionEpisode;
+  episode: MissionEpisode | null;
   orgId?: string;
 }
 
@@ -76,7 +76,7 @@ export default function AuditTrailTab({ patientId, episode, orgId }: Props) {
     setPipelineLoading(true);
     setPipelineError(null);
     fetchPatientPipelineEvents(patientId, {
-      episodeId: episode.episode_id,
+      episodeId: episode?.episode_id,
       orgId: orgId || undefined,
       limit: 40,
     })
@@ -92,10 +92,11 @@ export default function AuditTrailTab({ patientId, episode, orgId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [patientId, episode.episode_id, orgId]);
+  }, [patientId, episode?.episode_id, orgId]);
 
-  const hasReview = Boolean(episode.reviewed_by);
-  const hasHumanAudit = hasReview || Boolean(episode.audit_notes) || episode.audit_flag;
+  const hasReview = Boolean(episode?.reviewed_by);
+  const hasHumanAudit =
+    hasReview || Boolean(episode?.audit_notes) || Boolean(episode?.audit_flag);
   const hasPipelineRows = (pipelineEvents?.length ?? 0) > 0;
 
   return (
@@ -222,14 +223,21 @@ export default function AuditTrailTab({ patientId, episode, orgId }: Props) {
         Human review
       </Typography>
 
-      {!hasHumanAudit && (
+      {!episode && (
+        <Alert severity="info">
+          No episode is available yet. Reset removed old pathways and rebuild is still in progress.
+          Pipeline run events are shown above when available.
+        </Alert>
+      )}
+
+      {episode && !hasHumanAudit && (
         <Alert severity="info">
           This episode has not been reviewed yet. Use the Overview tab to mark it as reviewed or
           add notes.
         </Alert>
       )}
 
-      {hasHumanAudit && (
+      {episode && hasHumanAudit && (
         <>
           {hasReview && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>

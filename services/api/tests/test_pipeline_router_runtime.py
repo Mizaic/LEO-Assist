@@ -5,9 +5,11 @@ from fastapi import HTTPException
 
 from app.routers.pipeline import (
     PIPELINE_QUEUE,
+    RunAllPatientsRequest,
     RunCohortRequest,
     RunPatientRequest,
     list_pipeline_subgraphs,
+    run_all_patients,
     run_patient,
     run_cohort,
     run_pipeline,
@@ -169,3 +171,86 @@ async def test_run_cohort_partial_publish_is_failed(monkeypatch):
             scope=None,  # type: ignore[arg-type]
         )
     assert exc.value.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_run_all_patients_preview_returns_counts(monkeypatch):
+    monkeypatch.setattr(
+        "app.routers.pipeline._resolve_scope_patients",
+        lambda scope, org_id: ["p-1", "p-2"],
+    )
+    monkeypatch.setattr(
+        "app.routers.pipeline._expand_patients_to_clinical_encounters",
+        lambda patient_ids: [
+            {"patient_id": "p-1", "encounter_id": "enc-1"},
+            {"patient_id": "p-2", "encounter_id": "enc-2"},
+            {"patient_id": "p-2", "encounter_id": "enc-3"},
+        ],
+    )
+
+    result = await run_all_patients(
+        RunAllPatientsRequest(org_id="org-1", preview=True),
+        scope=None,  # type: ignore[arg-type]
+    )
+    assert result["preview"] is True
+    assert result["patient_count"] == 2
+    assert result["encounter_count"] == 3
+    assert "confirmation_text_required" in result
+
+
+@pytest.mark.asyncio
+async def test_run_all_patients_requires_confirmation_and_queues(monkeypatch):
+    sent = []
+
+    class _Bus:
+        async def send(self, queue_or_topic, message, *, schedule_after_seconds=None):
+            sent.append((queue_or_topic, message, schedule_after_seconds))
+
+        async def close(self):
+            return None
+
+    monkeypatch.setattr(
+        "app.routers.pipeline._resolve_scope_patients",
+        lambda scope, org_id: ["p-1", "p-2"],
+    )
+    monkeypatch.setattr(
+        "app.routers.pipeline._expand_patients_to_clinical_encounters",
+        lambda patient_ids: [
+            {"patient_id": "p-1", "encounter_id": "enc-1"},
+            {"patient_id": "p-2", "encounter_id": "enc-2"},
+        ],
+    )
+    monkeypatch.setattr(
+        "app.routers.pipeline._clean_patients",
+        lambda patient_ids: {"documents": 4, "episodes": 2},
+    )
+    monkeypatch.setattr(
+        "libs.message_bus.factory.create_message_bus",
+        lambda: _Bus(),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await run_all_patients(
+            RunAllPatientsRequest(org_id="org-1", preview=False),
+            scope=None,  # type: ignore[arg-type]
+        )
+    assert exc.value.status_code == 400
+
+    result = await run_all_patients(
+        RunAllPatientsRequest(
+            org_id="org-1",
+            preview=False,
+            acknowledge_expensive=True,
+            acknowledge_destructive=True,
+            acknowledge_background=True,
+            confirmation_text="RESET AND REPROCESS ALL PATIENTS",
+            expected_patient_count=2,
+        ),
+        scope=None,  # type: ignore[arg-type]
+    )
+    assert result["preview"] is False
+    assert result["patient_count"] == 2
+    assert result["encounter_count"] == 2
+    assert result["queued"] == 2
+    assert result["stream_path"].startswith("/api/pipeline/progress/")
+    assert sent[0][0] == PIPELINE_QUEUE

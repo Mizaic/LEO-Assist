@@ -65,6 +65,12 @@ QUEUE_NAME = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 PORT = int(os.getenv("PIPELINE_WORKER_PORT", "8006"))
 _guidance_generate_jobs: dict[str, dict[str, Any]] = {}
 
+if QUEUE_NAME == "coding-jobs":
+    raise RuntimeError(
+        "Invalid PIPELINE_QUEUE_NAME=coding-jobs. "
+        "Set PIPELINE_QUEUE_NAME=pipeline-jobs."
+    )
+
 _batch_trace_runs: dict[str, dict[str, Any]] = {}
 _batch_trace_lock = threading.Lock()
 _BATCH_TRACE_TTL_SECONDS = max(300, int(os.getenv("BATCH_TRACE_TTL_SECONDS", "3600")))

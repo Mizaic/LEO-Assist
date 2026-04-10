@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
@@ -46,10 +46,15 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
     return allEpisodes.findIndex((item) => item.episode_id === episode.episode_id) === index;
   });
   const ep = uniqueEpisodes[0];
-  if (!ep) return null;
+  const hasEpisodes = Boolean(ep);
+  useEffect(() => {
+    if (!hasEpisodes) {
+      setExpanded(false);
+    }
+  }, [hasEpisodes]);
 
-  const intervalColour = getDiagnosticIntervalColour(ep.diagnostic_interval_days);
-  const reviewed = Boolean(ep.reviewed_by);
+  const intervalColour = ep ? getDiagnosticIntervalColour(ep.diagnostic_interval_days) : "warning";
+  const reviewed = Boolean(ep?.reviewed_by);
   const multiEpisode = uniqueEpisodes.length > 1;
 
   return (
@@ -63,8 +68,15 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
         <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
           <IconButton
             size="small"
-            aria-label={expanded ? "Collapse timeline" : "Expand timeline"}
-            onClick={() => setExpanded((v) => !v)}
+            aria-label={
+              hasEpisodes
+                ? expanded
+                  ? "Collapse timeline"
+                  : "Expand timeline"
+                : "No episodes to expand"
+            }
+            onClick={() => hasEpisodes && setExpanded((v) => !v)}
+            disabled={!hasEpisodes}
           >
             {expanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
           </IconButton>
@@ -72,7 +84,17 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
 
         {/* Status dot */}
         <TableCell>
-          <StatusBadge status={ep.status} />
+          {ep ? (
+            <StatusBadge status={ep.status} />
+          ) : (
+            <Chip
+              label="No episodes yet"
+              size="small"
+              color="warning"
+              variant="outlined"
+              sx={{ fontSize: "0.65rem" }}
+            />
+          )}
         </TableCell>
 
         {/* Patient */}
@@ -92,18 +114,18 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
 
         {/* Cancer type */}
         <TableCell>
-          {ep.cancer_type ? (
+          {ep?.cancer_type ? (
             <Typography variant="body2">{getCancerTypeLabel(ep.cancer_type)}</Typography>
           ) : (
             <Typography variant="body2" color="text.secondary">
-              {getStatusLabel(ep.status)}
+              {ep ? getStatusLabel(ep.status) : "Awaiting rebuild"}
             </Typography>
           )}
         </TableCell>
 
         {/* Stage */}
         <TableCell>
-          {ep.cancer_stage ? (
+          {ep?.cancer_stage ? (
             <Chip label={ep.cancer_stage} size="small" variant="outlined" />
           ) : (
             <Typography variant="body2" color="text.disabled">
@@ -115,14 +137,14 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
         {/* Key dates */}
         <TableCell>
           <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-            {formatDate(ep.referral_date)}
-            {ep.end_date && ` \u2192 ${formatDate(ep.end_date)}`}
+            {ep ? formatDate(ep.referral_date) : "No pathway dates yet"}
+            {ep?.end_date && ` -> ${formatDate(ep.end_date)}`}
           </Typography>
         </TableCell>
 
         {/* Time to diagnosis */}
         <TableCell>
-          {ep.diagnostic_interval_days != null ? (
+          {ep?.diagnostic_interval_days != null ? (
             <Tooltip title="Days from referral to diagnosis (NCDA 62-day target)" arrow>
               <Typography
                 variant="body2"
@@ -149,10 +171,10 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
         {/* Review */}
         <TableCell>
           <Chip
-            label={getReviewLabel(ep.reviewed_by)}
+            label={ep ? getReviewLabel(ep.reviewed_by) : "Needs rebuild"}
             size="small"
-            color={reviewed ? "success" : "warning"}
-            variant={reviewed ? "filled" : "outlined"}
+            color={ep ? (reviewed ? "success" : "warning") : "default"}
+            variant={ep ? (reviewed ? "filled" : "outlined") : "outlined"}
             sx={{ fontSize: "0.65rem" }}
           />
         </TableCell>

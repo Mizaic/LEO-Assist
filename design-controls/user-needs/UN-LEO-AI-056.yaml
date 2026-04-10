@@ -28,6 +28,7 @@
     - "Outcome inference runs at scale across all stale episodes and returns a verdict per episode"
   design_inputs:
     - "DI-LEO-AI-089"
+    - "DI-LEO-AI-095"
   metadata:
     identified_by: "Engineering team"
     identified_date: "2026-04-07"

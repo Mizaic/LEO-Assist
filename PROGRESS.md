@@ -44,7 +44,7 @@
 ## WS-C: Coding Worker (DONE)
 
 ### Completed
-- [x] `services/coding-worker/app/main.py` - Service Bus consumer, subscribes to coding-jobs queue
+- [x] `services/pipeline_worker/app/main.py` - Service Bus consumer, subscribes to pipeline-jobs queue
 - [x] `services/coding-worker/app/pipeline/pipeline_service.py` - Two-phase pipeline (LLM extract -> Terminology API resolve)
 - [x] `services/coding-worker/app/pipeline/llm_extractor.py` - Bedrock converse API clinical term extraction
 - [x] `services/coding-worker/app/pipeline/sentence_splitter.py` - Regex + optional PyRuSH splitting

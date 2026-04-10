@@ -110,7 +110,7 @@ system_context:
     - {name: "AWS Bedrock", purpose: "Primary LLM (Claude Haiku, Sonnet, Opus)", data_sent: "de-identified clinical text, entity text"}
     - {name: "Azure OpenAI", purpose: "Secondary LLM (GPT-5 mini)", data_sent: "de-identified clinical text, entity text"}
     - {name: "Azure Blob Storage (leoaimodels)", purpose: "NER model artifact storage", trust_zone: "ZONE_C"}
-    - {name: "Azure Service Bus", purpose: "Async job messaging (coding-jobs, analysis-jobs queues)", trust_zone: "ZONE_C"}
+    - {name: "Azure Service Bus", purpose: "Async job messaging (pipeline-jobs, analysis-jobs queues)", trust_zone: "ZONE_C"}
     - {name: "Azure Key Vault", purpose: "Centralised secret management (per-env)", trust_zone: "ZONE_C"}
     - {name: "Azure Container Registry (leoaicr)", purpose: "Docker image registry (shared, leo-ai RG)", trust_zone: "ZONE_C"}
 

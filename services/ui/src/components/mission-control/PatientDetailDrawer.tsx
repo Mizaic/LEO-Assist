@@ -115,11 +115,20 @@ export default function PatientDetailDrawer({
         };
         const onEvent = (ev: MessageEvent) => {
           try {
-            const payload = JSON.parse(ev.data) as { type?: string; message?: string };
+            const payload = JSON.parse(ev.data) as {
+              type?: string;
+              message?: string;
+              subgraph_id?: string;
+            };
             const type = payload.type ?? "";
             if (type === "run_started" || type === "patient_started" || type === "encounter_started") {
               setRebuildJobState("running");
               setRebuildMessage(`Running: ${payload.message ?? "full patient pipeline is processing."}`);
+            }
+            if (type === "step_completed") {
+              setRebuildJobState("running");
+              const step = payload.subgraph_id ? ` (${payload.subgraph_id})` : "";
+              setRebuildMessage(`Running: pipeline step completed${step}.`);
             }
             if (type === "run_completed" || type === "pipeline_done" || type === "extraction_done") {
               complete("completed", "Completed: full patient rebuild finished.");
@@ -134,6 +143,7 @@ export default function PatientDetailDrawer({
         source.addEventListener("run_started", onEvent as EventListener);
         source.addEventListener("patient_started", onEvent as EventListener);
         source.addEventListener("encounter_started", onEvent as EventListener);
+        source.addEventListener("step_completed", onEvent as EventListener);
         source.addEventListener("run_completed", onEvent as EventListener);
         source.addEventListener("pipeline_done", onEvent as EventListener);
         source.addEventListener("extraction_done", onEvent as EventListener);
@@ -289,11 +299,11 @@ export default function PatientDetailDrawer({
             )}
           </Box>
         )}
-        {tab === 3 && focusedEpisode && (
+        {tab === 3 && (
           <Box role="tabpanel" id="panel-audit" aria-labelledby="tab-audit">
             <AuditTrailTab
               patientId={patient.patient_id}
-              episode={focusedEpisode}
+              episode={focusedEpisode ?? null}
               orgId={orgId}
             />
           </Box>

@@ -21,6 +21,7 @@ from services.analytics_api.app.routers.mission_control import (
     _apply_cancer_type_filter,
     _apply_closure_reason_filter,
     _apply_patient_id_filter,
+    _patient_only_query,
     _apply_pathway_filter,
     _apply_review_filter,
     _kpis_cypher,
@@ -150,6 +151,78 @@ def test_patient_id_filter_invalid_chars_ignored():
     assert "toString(p.id)" not in base
 
 
+def test_patient_only_query_scopes_exact_id():
+    scope = CallerScope(
+        email="qa@example.com",
+        is_admin=False,
+        org_ids=["org-1"],
+        scope_type="gp",
+        primary_org_id="org-1",
+    )
+    q, params = _patient_only_query(scope, "org-1", "4181221113")
+    assert "toString(p.id) = $patient_id" in q
+    assert "LIMIT 1" in q
+    assert params["patient_id"] == "4181221113"
+
+
+@pytest.mark.asyncio
+async def test_patients_endpoint_falls_back_to_patient_without_episodes(monkeypatch):
+    from services.analytics_api.app.routers import mission_control as mc
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            # 1st run: count query returns no episode rows.
+            if "count(DISTINCT p) AS total" in query:
+                return [{"total": 0}]
+            # 2nd run: data query returns no rows.
+            if "collect(DISTINCT ep) AS episodes" in query:
+                return []
+            # 3rd run: fallback patient-only query.
+            if "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]" in query:
+                return [
+                    {
+                        "patient_id": "4181221113",
+                        "gender": "female",
+                        "birth_date": "1985-01-01",
+                        "practice_name": "Woodbrook Medical Centre",
+                    }
+                ]
+            return []
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
+
+    scope = CallerScope(
+        email="qa@example.com",
+        is_admin=False,
+        org_ids=["org-1"],
+        scope_type="gp",
+        primary_org_id="org-1",
+    )
+
+    result = await mc.get_mission_control_patients(
+        org_id="org-1",
+        date_from=None,
+        date_to=None,
+        pathway_filter="all",
+        cancer_types=None,
+        closure_reasons=None,
+        review_status="all",
+        patient_id="4181221113",
+        sort_by="referral_date",
+        sort_dir="DESC",
+        page=1,
+        page_size=25,
+        scope=scope,
+    )
+    assert result["total"] == 1
+    assert len(result["patients"]) == 1
+    assert result["patients"][0]["patient_id"] == "4181221113"
+    assert result["patients"][0]["episodes"] == []
+
+
 def test_normalise_mission_patient_id_rejects_oversized():
     assert _normalise_mission_patient_id("a" * 65) is None
 
@@ -259,6 +332,21 @@ def test_review_cypher_does_not_contain_clinical_fields():
         ), (
             f"Clinical field '{clinical_field}' may be set in patch_episode_review"
         )
+
+
+def test_pipeline_events_query_falls_back_when_episode_missing():
+    """Episode-scoped audit trail query must fall back to patient-wide runs.
+
+    After a reset, the old EpisodeOfCare can be deleted and rebuilt. The audit
+    trail endpoint should still show PipelineRun rows for the patient by using
+    OPTIONAL MATCH and allowing empty encounter sets.
+    """
+    from services.analytics_api.app.routers.mission_control import get_patient_pipeline_events
+    import inspect
+
+    source = inspect.getsource(get_patient_pipeline_events)
+    assert "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]" in source
+    assert "size(allowed) = 0" in source
 
 
 # ---------------------------------------------------------------------------

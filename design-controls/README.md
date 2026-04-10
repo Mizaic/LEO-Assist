@@ -185,6 +185,23 @@ from queue payloads by loading text at runtime using an encounter_loader step.
 
 ---
 
+## Bulk Reset and Reprocess Guardrails — Design Control Summary
+
+Adds an admin-only bulk recovery flow to reset and reprocess all patients in a
+selected organization, with explicit destructive-operation guardrails.
+
+### Traceability
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-056 | approved | Admin toolkit for safe remediation actions |
+| Design Input | DI-LEO-AI-095 | draft | Preview-first bulk reset and reprocess with explicit confirmations |
+| Design Output | DO-LEO-AI-093 | draft | Backend endpoint, UI warnings, and runtime tests |
+| Risk | R-LEO-AI-063 | analyzed | Incorrect patient graph mutation via remediation operations |
+| Verification Test | VT-LEO-AI-095 | draft | Preview count, guard rejection, and queue-success verification |
+
+---
+
 ## Referral Triage Programme -- User Needs (UN-030 to UN-048)
 
 Identified through 20 structured user interviews (UR-LEO-AI-001, March 2026)

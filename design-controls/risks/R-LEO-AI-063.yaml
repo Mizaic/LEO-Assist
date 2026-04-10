@@ -62,8 +62,8 @@
         The admin UI presents a confirmation dialog showing the dry-run preview
         before any mutation is applied. Destructive operations show a yellow
         warning banner.
-      implemented_by: ["DI-LEO-AI-089"]
-      verified_by: ["VT-LEO-AI-089"]
+      implemented_by: ["DI-LEO-AI-089", "DI-LEO-AI-095"]
+      verified_by: ["VT-LEO-AI-089", "VT-LEO-AI-095"]
       effectiveness: "effective"
 
   residual_risk_estimate:

@@ -1,0 +1,67 @@
+- id: "DI-LEO-AI-095"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-056"]
+  requirement: >
+    The system SHALL provide an admin-triggered bulk reset-and-reprocess
+    capability for all patients in a selected organization. The operation SHALL
+    be guarded by explicit risk controls: impact preview, three acknowledgement
+    flags (expensive, destructive, background), and exact typed confirmation
+    text before execution. Execution SHALL reset patient pipeline artefacts and
+    queue full pipeline reprocessing through the pipeline-jobs queue with
+    trigger_analysis enabled.
+  rationale: >
+    Operations teams need a controlled way to recover large datasets after
+    systemic pipeline defects or configuration incidents. Without a first-class
+    bulk flow, operators run one-off scripts or repeated manual patient runs,
+    increasing inconsistency risk and delaying recovery. Strong confirmation
+    gates reduce accidental mass data mutation risk.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "POST /pipeline/run-all-patients with preview=true returns patient_count and encounter_count for the chosen org scope"
+      - type: "safety"
+        spec: "Execution with preview=false is rejected unless all acknowledgements are true and confirmation_text exactly matches required phrase"
+      - type: "safety"
+        spec: "If expected_patient_count differs from current scope count, endpoint returns 409 requiring a fresh preview"
+      - type: "functional"
+        spec: "Successful execution calls reset and queues encounter-created jobs with trigger_analysis=true on pipeline-jobs"
+      - type: "usability"
+        spec: "Operations Run UI exposes an 'All scoped patients' mode with plain-language warnings, preview button, and typed confirmation field"
+
+  constraints:
+    - type: "safety"
+      spec: "Admin bulk runs MUST require org_id to avoid accidental global execution"
+    - type: "safety"
+      spec: "Bulk mode MUST disable test mode and require explicit destructive acknowledgements"
+
+  dependencies: ["DI-LEO-AI-094", "DI-LEO-AI-089"]
+  downstream_impacts:
+    - "services/api/app/routers/pipeline.py"
+    - "services/ui/src/app/admin/operations/run/page.tsx"
+    - "services/api/tests/test_pipeline_router_runtime.py"
+
+  technical_details:
+    language: "Python + TypeScript"
+    framework: "FastAPI + Next.js/MUI"
+    file_structure:
+      - "services/api/app/routers/pipeline.py"
+      - "services/ui/src/app/admin/operations/run/page.tsx"
+      - "services/api/tests/test_pipeline_router_runtime.py"
+    estimated_loc: 220
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-095 passes all critical cases for preview counts, confirmation
+      guard rejection, and successful queued bulk execution.
+    test_protocol: "VT-LEO-AI-095"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-063"]
+  tags:
+    - "operations"
+    - "bulk-reset"
+    - "pipeline-reprocess"
+    - "admin-safety"

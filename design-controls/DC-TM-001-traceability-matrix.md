@@ -72,6 +72,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-RS-002 | Preserve Patient/Encounter | 03-detail 5.2 | RESET_PATIENT_DOCUMENTS query | test_reset_service.py | ST-RS-001 |
 | FR-RS-003 | Remove Patient->semantic | 03-detail 5.3 | RESET_PATIENT_DIRECT_SEMANTIC query | test_reset_service.py | ST-RS-001 |
 | FR-RS-004 | Reset review queue | 03-detail 5.7 | reset_review_queue_service.py | test_reset_review_queue_service.py (2 tests) | ST-RS-002 |
+| FR-RS-005 | Bulk reset-and-reprocess with preview and explicit destructive confirmations | DI-LEO-AI-095, DO-LEO-AI-093 | services/api/app/routers/pipeline.py, services/ui/src/app/admin/operations/run/page.tsx | services/api/tests/test_pipeline_router_runtime.py | VT-LEO-AI-095 |
 
 ### 2.6 MedSpaCy
 

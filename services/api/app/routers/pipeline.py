@@ -72,6 +72,19 @@ class RunCohortRequest(BaseModel):
     preview: bool = False
 
 
+_BULK_RESET_CONFIRM_TEXT = "RESET AND REPROCESS ALL PATIENTS"
+
+
+class RunAllPatientsRequest(BaseModel):
+    org_id: str | None = None
+    preview: bool = True
+    acknowledge_expensive: bool = False
+    acknowledge_destructive: bool = False
+    acknowledge_background: bool = False
+    confirmation_text: str = ""
+    expected_patient_count: int | None = None
+
+
 
 @router.get("/subgraphs")
 def list_pipeline_subgraphs(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, object]:
@@ -221,6 +234,74 @@ def _expand_patients_to_clinical_encounters(patient_ids: list[str]) -> list[dict
         return jobs
     finally:
         client.close()
+
+
+def _resolve_scope_patients(scope: CallerScope, org_id: str | None) -> list[str]:
+    """Resolve patient IDs for bulk runs, restricted to caller visibility."""
+    if org_id and org_id.strip():
+        patient_ids = _resolve_org_patients(org_id.strip())
+        _require_patients_in_scope(scope, patient_ids)
+        return patient_ids
+
+    if scope.is_admin:
+        raise HTTPException(
+            status_code=400,
+            detail="org_id is required for admin bulk runs",
+        )
+
+    if not scope.org_ids:
+        return []
+
+    from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+
+    client = LibPGClient()
+    try:
+        rows = client.run(
+            "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+            "WHERE gp.id IN $org_ids "
+            "RETURN DISTINCT toString(p.id) AS pid "
+            "LIMIT 50000",
+            org_ids=scope.org_ids,
+        )
+        return [str(r.get("pid") or "") for r in rows if r.get("pid")]
+    finally:
+        client.close()
+
+
+def _validate_bulk_run_confirmation(
+    payload: RunAllPatientsRequest,
+    *,
+    patient_count: int,
+) -> None:
+    """Require explicit acknowledgements for destructive bulk operations."""
+    if payload.confirmation_text.strip() != _BULK_RESET_CONFIRM_TEXT:
+        raise HTTPException(
+            status_code=400,
+            detail="Type the exact confirmation text before running.",
+        )
+    if not payload.acknowledge_expensive:
+        raise HTTPException(
+            status_code=400,
+            detail="You must confirm this run can be expensive.",
+        )
+    if not payload.acknowledge_destructive:
+        raise HTTPException(
+            status_code=400,
+            detail="You must confirm this run deletes existing patient pipeline artefacts.",
+        )
+    if not payload.acknowledge_background:
+        raise HTTPException(
+            status_code=400,
+            detail="You must confirm this run continues in the background.",
+        )
+    if (
+        payload.expected_patient_count is not None
+        and payload.expected_patient_count != patient_count
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Patient count changed since preview. Refresh preview and confirm again.",
+        )
 
 
 @router.get("/extractor-status")
@@ -783,6 +864,70 @@ async def run_cohort(
         "patient_ids": patient_ids,
         "action": payload.action,
         "preview": payload.preview,
+        "stream_path": f"/api/pipeline/progress/{run_id}",
+        "cleaned_totals": cleaned_totals,
+    }
+
+
+@router.post("/run-all-patients")
+async def run_all_patients(
+    payload: RunAllPatientsRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Bulk reset and reprocess all scoped patients with explicit safety gates."""
+    patient_ids = _resolve_scope_patients(scope, payload.org_id)
+    if not patient_ids:
+        raise HTTPException(status_code=404, detail="No patients found for the selected scope")
+
+    encounter_jobs = _expand_patients_to_clinical_encounters(patient_ids)
+    patient_count = len(patient_ids)
+    encounter_count = len(encounter_jobs)
+
+    if payload.preview:
+        return {
+            "preview": True,
+            "org_id": payload.org_id,
+            "patient_count": patient_count,
+            "encounter_count": encounter_count,
+            "confirmation_text_required": _BULK_RESET_CONFIRM_TEXT,
+        }
+
+    _validate_bulk_run_confirmation(payload, patient_count=patient_count)
+
+    if not encounter_jobs:
+        raise HTTPException(
+            status_code=404,
+            detail="No clinical encounters with text found for selected patients",
+        )
+
+    run_id = str(uuid.uuid4())
+    cleaned_totals = _clean_patients(patient_ids)
+    try:
+        queued = await _publish_coding_jobs(
+            encounter_jobs,
+            run_id=run_id,
+            mode="all",
+            preview=False,
+            trigger_analysis=True,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "status": "failed",
+                "run_id": run_id,
+                "action": "bulk_full_pipeline",
+                "error": str(exc),
+            },
+        ) from exc
+
+    return {
+        "preview": False,
+        "run_id": run_id,
+        "queued": queued,
+        "patient_count": patient_count,
+        "encounter_count": encounter_count,
+        "org_id": payload.org_id,
         "stream_path": f"/api/pipeline/progress/{run_id}",
         "cleaned_totals": cleaned_totals,
     }

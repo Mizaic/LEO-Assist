@@ -4092,6 +4092,37 @@ export default function PathwayBuilderPage() {
       });
   }, [selectedNode, edges, nodes]);
 
+  const outboundConnections = useMemo<Array<{
+    targetLabel: string;
+    sourceHandle: string;
+    targetHandle: string;
+  }>>(() => {
+    if (!selectedNode) return [];
+    return edges
+      .filter((e) => e.source === selectedNode)
+      .map((e) => {
+        const targetNode = nodes.find((n) => n.id === e.target);
+        const targetLabel = targetNode
+          ? (targetNode.type === "output"
+            ? ((targetNode.data as { label?: string }).label ?? "Output")
+            : ((targetNode.data as { label?: string }).label ?? "Next step"))
+          : e.target;
+        return {
+          targetLabel,
+          sourceHandle: String(e.sourceHandle ?? "default"),
+          targetHandle: String(e.targetHandle ?? "default"),
+        };
+      });
+  }, [selectedNode, edges, nodes]);
+
+  const selectedNodeLabel = useMemo(() => {
+    if (!selectedNode) return "";
+    const n = nodes.find((node) => node.id === selectedNode);
+    if (!n) return selectedNode;
+    const data = n.data as { label?: string; subgraphId?: string };
+    return data.label ?? data.subgraphId ?? selectedNode;
+  }, [selectedNode, nodes]);
+
   // Collect field-level mappings from DIRECT predecessors.
   // If multiple predecessors exist, merge all mappings so pass-through hydration
   // reflects the actual wired graph rather than only the first incoming edge.
@@ -5035,6 +5066,49 @@ export default function PathwayBuilderPage() {
       />
 
       <ValidationPanel warnings={validationWarnings} />
+
+      {selectedNode && (
+        <Paper variant="outlined" sx={{ mx: 2, mt: 1, p: 1.5, borderRadius: 2 }}>
+          <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ flexWrap: "wrap" }}>
+            <Box sx={{ minWidth: 220 }}>
+              <Typography variant="caption" color="text.secondary">Selected step</Typography>
+              <Typography variant="body2" fontWeight={700}>{selectedNodeLabel}</Typography>
+            </Box>
+            <Box sx={{ minWidth: 280 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                Incoming wires
+              </Typography>
+              {inboundConnections.length === 0 ? (
+                <Typography variant="caption" color="text.disabled">None</Typography>
+              ) : (
+                <Stack spacing={0.25}>
+                  {inboundConnections.map((conn, idx) => (
+                    <Typography key={`in-${idx}`} variant="caption" sx={{ fontFamily: "monospace" }}>
+                      {`${conn.sourceLabel}.${conn.sourceHandle} -> this.${conn.targetHandle}`}
+                    </Typography>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+            <Box sx={{ minWidth: 280 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                Outgoing wires
+              </Typography>
+              {outboundConnections.length === 0 ? (
+                <Typography variant="caption" color="text.disabled">None</Typography>
+              ) : (
+                <Stack spacing={0.25}>
+                  {outboundConnections.map((conn, idx) => (
+                    <Typography key={`out-${idx}`} variant="caption" sx={{ fontFamily: "monospace" }}>
+                      {`this.${conn.sourceHandle} -> ${conn.targetLabel}.${conn.targetHandle}`}
+                    </Typography>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          </Stack>
+        </Paper>
+      )}
 
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <PipelineTestContext.Provider value={{

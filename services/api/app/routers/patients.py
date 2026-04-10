@@ -467,7 +467,6 @@ async def reset_and_recode_encounter(
             )]
             if not encounter_rows:
                 raise HTTPException(status_code=404, detail="Encounter not found")
-            encounter_text = str(encounter_rows[0].get("text") or "")
             reset_result = reset_encounter(patient_id, encounter_id, session)
         if reset_result.get("error") == "encounter_not_found":
             raise HTTPException(status_code=404, detail="Encounter not found")
@@ -496,7 +495,6 @@ async def reset_and_recode_encounter(
                     "dry_run": dry_run,
                     "trigger_analysis": rerun_episode_detector,
                     "context": {
-                        "encounter_text": encounter_text,
                         "encounter_id": encounter_id,
                         "plan_definition_id": "pd-gp-encounter-coding",
                         "mode": "extract_encounter",
