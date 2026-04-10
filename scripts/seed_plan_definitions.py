@@ -16,6 +16,7 @@ ActivityDefinitions map to subgraph IDs in the SubgraphRegistry.
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import os
@@ -41,6 +42,14 @@ logger = logging.getLogger(__name__)
 
 ACTIVITY_DEFINITIONS = [
     {
+        "id": "ad-encounter-loader",
+        "resourceType": "ActivityDefinition",
+        "name": "Encounter Text Loader",
+        "status": "active",
+        "description": "Load encounter clinical text from Neo4j patient graph",
+        "_subgraphId": "encounter_loader",
+    },
+    {
         "id": "ad-extraction-llm",
         "resourceType": "ActivityDefinition",
         "name": "LLM Entity Extraction",
@@ -50,6 +59,8 @@ ACTIVITY_DEFINITIONS = [
         "dynamicValue": [
             {"path": "extraction_method", "expression": {"expression": "llm"}},
             {"path": "prompt_config_id", "expression": {"expression": ""}},
+            {"path": "prompt_config_name", "expression": {"expression": "extraction"}},
+            {"path": "prompt_config_version", "expression": {"expression": "1"}},
         ],
     },
     {
@@ -201,17 +212,25 @@ PLAN_DEFINITIONS = [
         "description": "Primary care encounter NER extraction, terminology resolution, and persistence. Triggers on new encounter data. Includes optional analytics (anchor detection, episode building, safety netting, quality checks).",
         "action": [
             {
+                "id": "act-load-encounter",
+                "title": "Load Encounter Text",
+                "_sequence": 0,
+                "_subgraphId": "encounter_loader",
+                "trigger": [{"type": "data-changed", "name": "encounter-created"}],
+                "definitionCanonical": "ActivityDefinition/ad-encounter-loader",
+            },
+            {
                 "id": "act-extract",
                 "title": "Extract Entities",
-                "_sequence": 0,
+                "_sequence": 1,
                 "_subgraphId": "extraction",
-                "trigger": [{"type": "data-changed", "name": "encounter-created"}],
                 "definitionCanonical": "ActivityDefinition/ad-extraction-llm",
+                "relatedAction": [{"actionId": "act-load-encounter", "relationship": "after-end"}],
             },
             {
                 "id": "act-post-process",
                 "title": "Post-Process",
-                "_sequence": 1,
+                "_sequence": 2,
                 "_subgraphId": "post_processing",
                 "definitionCanonical": "ActivityDefinition/ad-post-processing",
                 "relatedAction": [{"actionId": "act-extract", "relationship": "after-end"}],
@@ -219,7 +238,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-terminology",
                 "title": "Resolve Terminology",
-                "_sequence": 2,
+                "_sequence": 3,
                 "_subgraphId": "terminology",
                 "definitionCanonical": "ActivityDefinition/ad-terminology",
                 "relatedAction": [{"actionId": "act-post-process", "relationship": "after-end"}],
@@ -227,7 +246,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-tier-classify",
                 "title": "Classify Tiers",
-                "_sequence": 3,
+                "_sequence": 4,
                 "_subgraphId": "tier_classify",
                 "definitionCanonical": "ActivityDefinition/ad-tier-classify",
                 "relatedAction": [{"actionId": "act-terminology", "relationship": "after-end"}],
@@ -235,7 +254,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-persist",
                 "title": "Persist to Patient Graph",
-                "_sequence": 4,
+                "_sequence": 5,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-patient",
                 "relatedAction": [{"actionId": "act-tier-classify", "relationship": "after-end"}],
@@ -243,7 +262,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-anchor",
                 "title": "Detect Anchors",
-                "_sequence": 5,
+                "_sequence": 6,
                 "_subgraphId": "anchor_detect",
                 "definitionCanonical": "ActivityDefinition/ad-anchor-detect",
                 "relatedAction": [{"actionId": "act-persist", "relationship": "after-end"}],
@@ -251,7 +270,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-episode",
                 "title": "Build Episodes",
-                "_sequence": 6,
+                "_sequence": 7,
                 "_subgraphId": "episode_build",
                 "definitionCanonical": "ActivityDefinition/ad-episode-build",
                 "relatedAction": [{"actionId": "act-anchor", "relationship": "after-end"}],
@@ -259,7 +278,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-safety-net",
                 "title": "Safety Netting",
-                "_sequence": 7,
+                "_sequence": 8,
                 "_subgraphId": "safety_net",
                 "definitionCanonical": "ActivityDefinition/ad-safety-net",
                 "relatedAction": [{"actionId": "act-episode", "relationship": "after-end"}],
@@ -267,7 +286,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-quality",
                 "title": "Quality Check",
-                "_sequence": 8,
+                "_sequence": 9,
                 "_subgraphId": "quality_check",
                 "definitionCanonical": "ActivityDefinition/ad-quality-check",
                 "relatedAction": [{"actionId": "act-safety-net", "relationship": "after-end"}],
@@ -429,6 +448,15 @@ def _to_ui_format(pd_def: dict) -> dict:
             expr = v.get("expression", {}).get("expression", "")
             if path == "extraction_method":
                 config["extractionMethod"] = expr
+            elif path == "prompt_config_id":
+                config["promptConfigId"] = expr
+            elif path == "prompt_config_name":
+                config["promptConfigName"] = expr
+            elif path == "prompt_config_version":
+                try:
+                    config["promptConfigVersion"] = int(expr)
+                except (TypeError, ValueError):
+                    config["promptConfigVersion"] = 1
             elif path == "output_target":
                 config["outputTarget"] = expr
             elif path == "model_tier":
@@ -453,6 +481,25 @@ def _to_ui_format(pd_def: dict) -> dict:
             source_id = rel.get("actionId", "")
             if source_id:
                 ui_edges.append({"source": source_id, "target": act["id"]})
+
+    trigger_action_id = ""
+    for act in fhir_actions:
+        if act.get("trigger"):
+            trigger_action_id = act.get("id", "")
+            break
+    if trigger_action_id:
+        ui_actions.insert(
+            0,
+            {
+                "id": "__source__",
+                "subgraphId": "source",
+                "label": "Start",
+                "nodeType": "source",
+                "position": {"x": 60, "y": 80},
+                "config": {},
+            },
+        )
+        ui_edges.insert(0, {"source": "__source__", "target": trigger_action_id})
 
     result = dict(pd_def)
     result["actions"] = ui_actions
@@ -516,9 +563,43 @@ MERGE (a)-[:USES_DEFINITION]->(ad)
 
 
 COUNT_PLANS = "MATCH (pd:PlanDefinition) RETURN count(pd) AS cnt"
+COUNT_PLAN_BY_ID = "MATCH (pd:PlanDefinition {id: $id}) RETURN count(pd) AS cnt"
+GET_PROMPT_CONFIG_EXTRACTION = """
+MATCH (p:PromptConfig {name: 'extraction', version: 1})
+RETURN p.id AS id
+LIMIT 1
+"""
 
 
-def seed_with_client(client) -> None:
+def _wire_extraction_prompt_config(client) -> None:
+    rows = client.run(GET_PROMPT_CONFIG_EXTRACTION)
+    if not rows:
+        logger.info("[Seed] PromptConfig extraction v1 not found; keeping prompt_config_id empty.")
+        return
+    prompt_config_id = str(rows[0].get("id") or "").strip()
+    if not prompt_config_id:
+        return
+    for ad in ACTIVITY_DEFINITIONS:
+        if ad.get("id") != "ad-extraction-llm":
+            continue
+        dynamic_values = ad.setdefault("dynamicValue", [])
+        found = False
+        for dv in dynamic_values:
+            if dv.get("path") == "prompt_config_id":
+                dv.setdefault("expression", {})["expression"] = prompt_config_id
+                found = True
+                break
+        if not found:
+            dynamic_values.append(
+                {
+                    "path": "prompt_config_id",
+                    "expression": {"expression": prompt_config_id},
+                }
+            )
+    logger.info("[Seed] Wired ad-extraction-llm prompt_config_id=%s", prompt_config_id)
+
+
+def seed_with_client(client, *, force: bool = False) -> None:
     """Seed PlanDefinitions using an existing KnowledgeGraphClient (for startup hooks).
 
     Only seeds when no PlanDefinitions exist in Neo4j, to avoid
@@ -529,11 +610,7 @@ def seed_with_client(client) -> None:
         client.run("CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE")
         client.run("CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE")
 
-        result = client.run(COUNT_PLANS)
-        existing = result[0]["cnt"] if result else 0
-        if existing > 0:
-            logger.info("[Seed] Skipped — %d PlanDefinition(s) already present.", existing)
-            return
+        _wire_extraction_prompt_config(client)
 
         for ad in ACTIVITY_DEFINITIONS:
             dv = ad.get("dynamicValue", [])
@@ -546,6 +623,11 @@ def seed_with_client(client) -> None:
             )
 
         for pd in PLAN_DEFINITIONS:
+            existing_row = client.run(COUNT_PLAN_BY_ID, id=pd["id"])
+            existing_count = int(existing_row[0]["cnt"]) if existing_row else 0
+            if existing_count > 0 and not force:
+                logger.info("[Seed] Skipped existing PlanDefinition id=%s", pd["id"])
+                continue
             ui_pd = _to_ui_format(pd)
             ui_pd["meta"] = {
                 "seeded": True,
@@ -569,13 +651,26 @@ def seed_with_client(client) -> None:
                     activity_id = definition_ref.split("/")[-1]
                     client.run(LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id)
 
-        logger.info("[Seed] %d ActivityDefinitions, %d PlanDefinitions seeded.", len(ACTIVITY_DEFINITIONS), len(PLAN_DEFINITIONS))
+        logger.info(
+            "[Seed] %d ActivityDefinitions processed, %d PlanDefinitions processed (force=%s).",
+            len(ACTIVITY_DEFINITIONS),
+            len(PLAN_DEFINITIONS),
+            force,
+        )
     except Exception as exc:
         logger.warning("[Seed] PlanDefinition seed failed (non-fatal): %s", exc)
 
 
 def main() -> None:
     from neo4j import GraphDatabase
+
+    parser = argparse.ArgumentParser(description="Seed PlanDefinitions and ActivityDefinitions")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing seeded plan definitions by id",
+    )
+    args = parser.parse_args()
 
     uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687"))
     user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j"))
@@ -590,12 +685,17 @@ def main() -> None:
     logger.info("Constraints ensured.")
 
     with driver.session() as session:
-        result = session.run(COUNT_PLANS).single()
-        existing = result["cnt"] if result else 0
-    if existing > 0:
-        logger.info("Skipped — %d PlanDefinition(s) already present.", existing)
-        driver.close()
-        return
+        prompt_row = session.run(GET_PROMPT_CONFIG_EXTRACTION).single()
+    prompt_config_id = str(prompt_row["id"]) if prompt_row and prompt_row.get("id") else ""
+    if prompt_config_id:
+        for ad in ACTIVITY_DEFINITIONS:
+            if ad.get("id") != "ad-extraction-llm":
+                continue
+            dynamic_values = ad.setdefault("dynamicValue", [])
+            for dv in dynamic_values:
+                if dv.get("path") == "prompt_config_id":
+                    dv.setdefault("expression", {})["expression"] = prompt_config_id
+                    break
 
     for ad in ACTIVITY_DEFINITIONS:
         dv = ad.get("dynamicValue", [])
@@ -613,6 +713,13 @@ def main() -> None:
         logger.info("  ActivityDefinition: %s", ad["name"])
 
     for pd in PLAN_DEFINITIONS:
+        with driver.session() as session:
+            existing = session.run(COUNT_PLAN_BY_ID, id=pd["id"]).single()
+            existing_count = int(existing["cnt"]) if existing else 0
+        if existing_count > 0 and not args.force:
+            logger.info("  Skipped existing PlanDefinition: %s", pd["id"])
+            continue
+
         ui_pd = _to_ui_format(pd)
         with driver.session() as session:
             session.run(UPSERT_PLAN, id=pd["id"], raw=json.dumps(ui_pd), name=pd["name"], status=pd["status"])
@@ -644,7 +751,12 @@ def main() -> None:
         logger.info("  PlanDefinition: %s (%d actions)", pd["name"], len(pd.get("action", [])))
 
     driver.close()
-    logger.info("Done. %d ActivityDefinitions, %d PlanDefinitions seeded.", len(ACTIVITY_DEFINITIONS), len(PLAN_DEFINITIONS))
+    logger.info(
+        "Done. %d ActivityDefinitions processed, %d PlanDefinitions processed (force=%s).",
+        len(ACTIVITY_DEFINITIONS),
+        len(PLAN_DEFINITIONS),
+        args.force,
+    )
 
 
 if __name__ == "__main__":

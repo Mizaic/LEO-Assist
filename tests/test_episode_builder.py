@@ -579,6 +579,160 @@ class TestBuildEpisodes:
         assert len(result.errors) >= 1
 
     @pytest.mark.asyncio
+    async def test_first_presentation_links_only_selected_day(self):
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            build_episodes,
+        )
+
+        anchors = AnchorResult(
+            patient_id="P1",
+            referral_anchors=[
+                {
+                    "encounter_id": "E_REF",
+                    "encounter_date": "2024-03-20",
+                    "concept_name": "Fast track referral for suspected colorectal cancer",
+                }
+            ],
+            first_presentation_anchors=[
+                {
+                    "encounter_id": "E_FP1",
+                    "encounter_date": "2024-03-10",
+                    "concept_name": "Rectal bleeding",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                },
+                {
+                    "encounter_id": "E_FP2",
+                    "encounter_date": "2024-03-18",
+                    "concept_name": "Weight loss",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                },
+            ],
+        )
+        mock_client = MagicMock()
+        mock_client.run.return_value = []
+
+        await build_episodes("P1", anchors, mock_client, domain_id="cancer_audit")
+
+        fp_ids: list[str] = []
+        for call in mock_client.run.call_args_list:
+            args, kwargs = call
+            if not args or "UNWIND $encounters AS e" not in str(args[0]):
+                continue
+            for row in kwargs.get("encounters", []):
+                if row.get("milestone_type") == "first_presentation":
+                    fp_ids.append(str(row.get("encounter_id") or ""))
+
+        assert set(fp_ids) == {"E_FP1"}
+
+    @pytest.mark.asyncio
+    async def test_first_presentation_links_single_encounter_on_selected_day(self):
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            build_episodes,
+        )
+
+        anchors = AnchorResult(
+            patient_id="P1",
+            referral_anchors=[
+                {
+                    "encounter_id": "E_REF",
+                    "encounter_date": "2024-03-20",
+                    "concept_name": "Fast track referral for suspected colorectal cancer",
+                }
+            ],
+            first_presentation_anchors=[
+                {
+                    "encounter_id": "E_FP1",
+                    "encounter_date": "2024-03-10",
+                    "concept_name": "Rectal bleeding",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                },
+                {
+                    "encounter_id": "E_FP2",
+                    "encounter_date": "2024-03-10",
+                    "concept_name": "Bowel habit change",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                },
+            ],
+        )
+        mock_client = MagicMock()
+        mock_client.run.return_value = []
+
+        await build_episodes("P1", anchors, mock_client, domain_id="cancer_audit")
+
+        fp_ids: list[str] = []
+        for call in mock_client.run.call_args_list:
+            args, kwargs = call
+            if not args or "UNWIND $encounters AS e" not in str(args[0]):
+                continue
+            for row in kwargs.get("encounters", []):
+                if row.get("milestone_type") == "first_presentation":
+                    fp_ids.append(str(row.get("encounter_id") or ""))
+
+        assert len(fp_ids) == 1
+        assert fp_ids[0] in {"E_FP1", "E_FP2"}
+
+    @pytest.mark.asyncio
+    async def test_treatment_started_links_only_earliest_compatible_after_referral(self):
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            build_episodes,
+        )
+
+        anchors = AnchorResult(
+            patient_id="P1",
+            referral_anchors=[
+                {
+                    "encounter_id": "E_REF",
+                    "encounter_date": "2024-03-20",
+                    "concept_name": "Fast track referral for suspected breast cancer",
+                }
+            ],
+            diagnosis_anchors=[
+                {
+                    "encounter_id": "E_DIAG",
+                    "encounter_date": "2024-03-30",
+                    "concept_name": "Malignant tumor of breast",
+                    "assertion": "present",
+                }
+            ],
+            treatment_anchors=[
+                {
+                    "encounter_id": "E_TX_BEFORE",
+                    "encounter_date": "2024-03-01",
+                    "concept_name": "Chemotherapy",
+                },
+                {
+                    "encounter_id": "E_TX_AFTER_1",
+                    "encounter_date": "2024-03-25",
+                    "concept_name": "Chemotherapy",
+                },
+                {
+                    "encounter_id": "E_TX_AFTER_2",
+                    "encounter_date": "2024-04-10",
+                    "concept_name": "Chemotherapy",
+                },
+            ],
+        )
+        mock_client = MagicMock()
+        mock_client.run.return_value = []
+
+        await build_episodes("P1", anchors, mock_client, domain_id="cancer_audit")
+
+        tx_ids: list[str] = []
+        for call in mock_client.run.call_args_list:
+            args, kwargs = call
+            if not args or "UNWIND $encounters AS e" not in str(args[0]):
+                continue
+            for row in kwargs.get("encounters", []):
+                if row.get("milestone_type") == "treatment_started":
+                    tx_ids.append(str(row.get("encounter_id") or ""))
+
+        assert tx_ids == ["E_TX_AFTER_1"]
+
+    @pytest.mark.asyncio
     async def test_specialist_letter_inference_completes_with_hitl(self):
         """VT-LEO-AI-087: letter + specialist seen + past stale threshold, no Rx."""
         from datetime import date

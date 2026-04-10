@@ -140,7 +140,7 @@ def kpi_benchmarks(
             "         AND treat_date >= confirmed_diag_date "
             "    THEN 1 ELSE 0 END) AS n_days_to_treatment, "
             "  null AS avg_consultations, "
-            "  count(ep) AS episode_count, "
+            "  count(DISTINCT ep) AS episode_count, "
             "  sum(CASE WHEN diag_is_inferred THEN 1 ELSE 0 END) AS inferred_diagnosis_count",
             **params,
         )

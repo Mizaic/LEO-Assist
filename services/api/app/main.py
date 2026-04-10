@@ -30,7 +30,10 @@ from slowapi.util import get_remote_address
 from libs.auth.org_scope import get_caller_scope
 from app.deps import get_caller_scope_from_request
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[os.getenv("RATE_LIMIT_DEFAULT", "120/minute")],
+)
 from app.routers.admin import router as admin_router
 from app.routers.data_quality import router as data_quality_router
 from app.routers.onboarding import router as onboarding_router
@@ -64,6 +67,15 @@ from app.routers.audit_quality import router as audit_quality_router
 def _validate_startup_deps():
     """Fail fast if critical dependencies are missing or unreachable."""
     import os
+
+    # SERVICE_AUTH_SECRET: warn in non-local environments
+    env = os.getenv("ENVIRONMENT", "local")
+    if env != "local" and not os.getenv("SERVICE_AUTH_SECRET", ""):
+        logging.getLogger(__name__).critical(
+            "SECURITY: SERVICE_AUTH_SECRET is not set in %s environment. "
+            "Inter-service auth is disabled.",
+            env,
+        )
 
     # python-jose: required for auth (JWT verification)
     try:

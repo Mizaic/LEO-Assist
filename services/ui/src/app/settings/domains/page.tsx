@@ -30,11 +30,13 @@ import {
   createDomain,
   type DomainSummary,
 } from "@/lib/analyticsApi";
+import { useOrg } from "@/context/OrgContext";
 
 type SourceFilter = "all" | "nice" | "platform" | "tenant";
 
 export default function DomainsListPage() {
   const router = useRouter();
+  const { isPlatformAdmin } = useOrg();
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [domains, setDomains] = useState<DomainSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,8 @@ export default function DomainsListPage() {
     }
   };
 
-  const showCreateButton = sourceFilter === "all" || sourceFilter === "tenant";
+  const showCreateButton =
+    isPlatformAdmin && (sourceFilter === "all" || sourceFilter === "tenant");
 
   return (
     <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
@@ -86,7 +89,7 @@ export default function DomainsListPage() {
         <IconButton aria-label="Back to settings" onClick={() => router.push("/settings")} size="small">
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
           Domain Configuration
         </Typography>
       </Box>
@@ -114,10 +117,27 @@ export default function DomainsListPage() {
         </Tabs>
       </Box>
 
+      {!isPlatformAdmin && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          You can view areas and export code lists. Only a platform admin can
+          create areas or change codes.
+        </Alert>
+      )}
+
       {sourceFilter === "nice" && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          These areas came from official NICE guidelines. You can add more codes
-          to them, but you cannot delete them.
+          {isPlatformAdmin ? (
+            <>
+              These areas came from official NICE guidelines. You can add more
+              codes to them, but you cannot delete them.
+            </>
+          ) : (
+            <>
+              These areas came from official NICE guidelines. You can view them
+              and export code lists. Only a platform admin can add or change
+              codes.
+            </>
+          )}
         </Alert>
       )}
 
@@ -154,7 +174,9 @@ export default function DomainsListPage() {
             >
               {sourceFilter === "nice"
                 ? "No NICE areas yet. Run a guideline sync to add them."
-                : "No areas yet. Create one to get started."}
+                : isPlatformAdmin
+                  ? "No areas yet. Create one to get started."
+                  : "No areas match this filter."}
             </Typography>
           )}
         </>

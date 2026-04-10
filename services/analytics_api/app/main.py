@@ -17,6 +17,7 @@ load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_keyvault_secrets()
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -31,14 +32,28 @@ from services.analytics_api.app.routers.cci import router as cci_router
 from services.analytics_api.app.routers.benchmarks import router as benchmark_router
 from services.analytics_api.app.routers.org_context import router as org_context_router
 from services.analytics_api.app.routers.audit import router as audit_router, _ensure_registry
+from services.analytics_api.app.routers.mission_control import router as mission_control_router
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
 
 
+def _check_service_auth_secret():
+    """Warn loudly if SERVICE_AUTH_SECRET is unset in a non-local environment."""
+    env = os.getenv("ENVIRONMENT", "local")
+    secret = os.getenv("SERVICE_AUTH_SECRET", "")
+    if env != "local" and not secret:
+        logger.critical(
+            "SECURITY: SERVICE_AUTH_SECRET is not set in %s environment. "
+            "Inter-service auth is disabled -- all callers are implicitly trusted.",
+            env,
+        )
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("Analytics API starting")
+    _check_service_auth_secret()
     try:
         n = seed_nhs_cohorts()
         if n > 0:
@@ -71,9 +86,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_allowed_origins = [
+    o.strip()
+    for o in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://localhost:3001",
+    ).split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,6 +111,7 @@ app.include_router(imd_router, prefix="/analytics", tags=["imd"])
 app.include_router(cci_router, prefix="/analytics", tags=["cci"])
 app.include_router(benchmark_router, prefix="/analytics", tags=["benchmarks"])
 app.include_router(audit_router, prefix="/analytics", tags=["audit"])
+app.include_router(mission_control_router, prefix="/analytics", tags=["mission-control"])
 
 
 @app.get("/health")

@@ -128,7 +128,7 @@ export default function PatientInspectorPage({ params }: PageProps) {
 
       <Grid container spacing={3}>
         {/* Left: encounter timeline */}
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Typography variant="h6" fontWeight={600} mb={2}>Encounter timeline</Typography>
           {data.encounters.length === 0
             ? <Typography color="text.secondary">No encounters</Typography>
@@ -136,7 +136,7 @@ export default function PatientInspectorPage({ params }: PageProps) {
         </Grid>
 
         {/* Right: episodes */}
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <Typography variant="h6" fontWeight={600} mb={2}>Episodes</Typography>
           {data.episodes.length === 0
             ? <Typography color="text.secondary">No episodes</Typography>

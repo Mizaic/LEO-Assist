@@ -1,0 +1,247 @@
+- id: "VT-LEO-AI-092"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-092"]
+    risks: ["R-LEO-AI-065"]
+
+  metadata:
+    title: "Mission Control Frontend UI -- Labels, Filters, Timeline, Review Actions"
+    description: >
+      Verifies that the Mission Control React UI uses plain English labels,
+      correctly serialises and deserialises filter state to/from URL params,
+      applies correct KPI colour thresholds, renders episode timelines,
+      and enforces the ConfirmDialog guard before any status override.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/mission-control/pathwayLabels.test.ts"
+      - "services/ui/src/__tests__/mission-control/missionControlFilters.test.ts"
+      - "services/ui/src/__tests__/mission-control/KPIStrip.test.tsx"
+      - "services/ui/src/__tests__/mission-control/EpisodeTimeline.test.tsx"
+      - "services/ui/src/__tests__/mission-control/EncounterTextTab.test.tsx"
+      - "services/ui/src/__tests__/mission-control/ReviewActionsPanel.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "jest and @testing-library/react installed in services/ui"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-092-TC-001"
+      case_name: "pathwayLabels maps all episode status values to plain English"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Import EPISODE_STATUS_LABELS from pathwayLabels.ts and call it for each of the 6 expected database values: completed, closed_benign, stale_no_diagnosis, stale_post_specialist, closed_related, in_progress"
+          expected_result: "Each returns a non-empty plain English string that does not contain underscores or raw database key strings"
+        - step_number: 2
+          action: "Verify the label for 'completed' is 'Confirmed cancer'"
+          expected_result: "Label matches exactly 'Confirmed cancer'"
+        - step_number: 3
+          action: "Verify the label for 'closed_benign' is 'No cancer found'"
+          expected_result: "Label matches exactly 'No cancer found'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All 6 status values have a non-empty plain English label"
+        - "No returned label contains underscore characters"
+        - "Labels for completed and closed_benign match exact expected strings"
+
+    - case_id: "VT-092-TC-002"
+      case_name: "missionControlFilters round-trips all filter fields via URL params"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Create a filter object with all fields populated: date_from, date_to, org_id, pathway_filter=closures, cancer_types=[colorectal,lung], closure_reasons=[closed_benign], review_status=unreviewed, page=2, page_size=50"
+          expected_result: "serialiseFilters produces a URLSearchParams string"
+        - step_number: 2
+          action: "Pass the serialised string to deserialiseFilters"
+          expected_result: "Returned object matches the original filter object exactly including arrays"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Round-trip produces identical filter state"
+        - "Array fields (cancer_types, closure_reasons) serialise and deserialise correctly"
+
+    - case_id: "VT-092-TC-003"
+      case_name: "KPIStrip diagnostic interval card colour thresholds are correct"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render KPIStrip with median_diagnostic_interval_days=25"
+          expected_result: "Interval card has green colour indicator"
+        - step_number: 2
+          action: "Render KPIStrip with median_diagnostic_interval_days=50"
+          expected_result: "Interval card has amber colour indicator"
+        - step_number: 3
+          action: "Render KPIStrip with median_diagnostic_interval_days=70"
+          expected_result: "Interval card has red colour indicator"
+        - step_number: 4
+          action: "Render KPIStrip with median_diagnostic_interval_days=null"
+          expected_result: "Interval card shows placeholder (no colour applied)"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Green at <=28 days, amber at >28 and <=62, red at >62"
+        - "Null value handled gracefully without error"
+
+    - case_id: "VT-092-TC-004"
+      case_name: "EpisodeTimeline renders one node per milestone and hollow circle for missing"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EpisodeTimeline with 3 milestones: first_seen, referral, diagnosis"
+          expected_result: "3 milestone nodes rendered; interval labels between adjacent nodes show day counts"
+        - step_number: 2
+          action: "Render EpisodeTimeline with milestones where specialist_visit is absent"
+          expected_result: "Specialist visit node renders as hollow/dashed circle"
+        - step_number: 3
+          action: "Render EpisodeTimeline for a closure episode ending with closed_benign"
+          expected_result: "Final milestone uses closure marker styling distinct from diagnosis marker"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "One rendered node per milestone in milestones array"
+        - "Missing milestones render as hollow circles not filled nodes"
+        - "Closure episodes end with a visually distinct closure marker"
+
+    - case_id: "VT-092-TC-005"
+      case_name: "ReviewActionsPanel ConfirmDialog guard prevents accidental status override"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render ReviewActionsPanel; select a new status from the Override dropdown"
+          expected_result: "ConfirmDialog renders with the proposed new status visible"
+        - step_number: 2
+          action: "Click Cancel in the ConfirmDialog"
+          expected_result: "PATCH /status API call is NOT made; episode status unchanged"
+        - step_number: 3
+          action: "Repeat; click Confirm in the ConfirmDialog"
+          expected_result: "PATCH /status API call IS made exactly once with the correct episode_id and new status"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "ConfirmDialog rendered before any status override API call"
+        - "Cancel: zero API calls made"
+        - "Confirm: exactly one API call made with correct params"
+
+    - case_id: "VT-092-TC-006"
+      case_name: "Mission Control reads URL params on mount and initialises filter state"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render MissionControl with URL search params: ?pathway_filter=confirmed&cancer_types=colorectal&date_from=2024-04-06&date_to=2025-04-05"
+          expected_result: "Filter state initialised with pathway_filter=confirmed, cancer_types=[colorectal], date_from=2024-04-06, date_to=2025-04-05"
+        - step_number: 2
+          action: "Verify the API call made on mount includes these filter params"
+          expected_result: "First fetch includes all 4 params from URL"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All 4 URL params correctly parsed and applied to initial filter state"
+        - "Initial API fetch includes params from URL"
+
+    - case_id: "VT-092-TC-007"
+      case_name: "Encounter text milestone chips jump to linked encounters"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EncounterTextTab with episode milestones linked to specific encounter_ids"
+          expected_result: "A milestone jump row renders chips with plain-English milestone labels and milestone dates"
+        - step_number: 2
+          action: "Click a milestone chip from the jump row"
+          expected_result: "Encounter scope switches to All encounters and the selected milestone chip becomes the focused chip"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Milestone jump chips are rendered for linked milestones"
+        - "Clicking a milestone chip switches scope to all encounters"
+        - "Selected milestone chip has focused styling"
+
+    - case_id: "VT-092-TC-008"
+      case_name: "Encounter coded concept tooltip shows sentence-level evidence"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Open EncounterTextTab and expand coded concepts for an encounter"
+          expected_result: "Each coded concept is rendered as a chip in the encounter card"
+        - step_number: 2
+          action: "Hover a coded concept chip"
+          expected_result: "Tooltip displays coded term, concept ID, de-identified evidence sentence, mention text, and sentence index when present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Tooltip includes sentence-level evidence for coded concept chips"
+        - "Tooltip falls back gracefully when sentence-level fields are missing"
+
+    - case_id: "VT-092-TC-009"
+      case_name: "Encounter tooltip derives sentence from encounter text when stored sentence is missing"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EncounterTextTab with coded links that have mention text but no evidence_sentence"
+          expected_result: "Coded concept chips still render normally"
+        - step_number: 2
+          action: "Hover a coded concept chip whose mention appears in encounter text"
+          expected_result: "Tooltip shows a sentence line derived from the encounter text around the mention"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Derived sentence is shown when evidence_sentence is not present"
+        - "No regression to concept chip rendering or tooltip visibility"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-092/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-092-RUN-001"
+      date: "2026-04-09"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      test_cases_run: 39
+      test_cases_passed: 39
+      test_cases_failed: 0
+      notes: "23 unit tests (pathwayLabels + missionControlFilters) + 11 tests (KPIStrip + EpisodeTimeline) + 5 tests (ReviewActionsPanel). All passed."
+    - run_id: "VT-092-RUN-002"
+      date: "2026-04-10"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      test_cases_run: 40
+      test_cases_passed: 40
+      test_cases_failed: 0
+      notes: "Mission Control suite passed including new EncounterTextTab milestone jump test. Command: npm test -- src/__tests__/mission-control"
+    - run_id: "VT-092-RUN-003"
+      date: "2026-04-10"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      test_cases_run: 41
+      test_cases_passed: 41
+      test_cases_failed: 0
+      notes: "Mission Control suite passed including EncounterTextTab tooltip evidence test for coded concept chips. Command: npm test -- src/__tests__/mission-control"
+    - run_id: "VT-092-RUN-004"
+      date: "2026-04-10"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      test_cases_run: 42
+      test_cases_passed: 42
+      test_cases_failed: 0
+      notes: "Mission Control suite passed including fallback sentence derivation tooltip test for coded concept chips. Command: npm test -- src/__tests__/mission-control"
+    - run_id: "VT-092-RUN-005"
+      date: "2026-04-10"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      test_cases_run: 42
+      test_cases_passed: 42
+      test_cases_failed: 0
+      notes: "EncounterTextTab tooltip now shows mention offsets when evidence_start/evidence_end are present. Command: npm test -- src/__tests__/mission-control/EncounterTextTab.test.tsx"

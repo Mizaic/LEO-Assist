@@ -210,3 +210,19 @@
         encounters, 3 cases). TC-010 (IS_A expansion enriches ValueSet concept
         buckets and child concepts are matched in anchor buckets, 2 cases).
         Total: 47 tests pass across 4 test files.
+    - run_date: "2026-04-10"
+      executor: "cursor-agent"
+      environment: "development"
+      result: "pass"
+      notes: >
+        Episode detector rerun hardening regression. test_episode_builder.py
+        (32 tests) passed, including first-presentation milestone scoping and
+        replace-on-rerun link behavior verification in the detector path.
+    - run_date: "2026-04-10"
+      executor: "cursor-agent"
+      environment: "development"
+      result: "pass"
+      notes: >
+        Root-cause hardening pass for milestone assignment. test_episode_builder.py
+        (34 tests) passed including new controls for single first_presentation
+        encounter linking and episode-scoped treatment_started linking.

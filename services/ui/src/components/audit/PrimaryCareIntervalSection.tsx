@@ -7,6 +7,8 @@ import IntervalStripPlot from "./IntervalStripPlot";
 import SummaryStatsTable from "./SummaryStatsRow";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import type { AuditIntervals, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 interface Props {
   result: AuditSectionResult<AuditIntervals> | null;
@@ -16,14 +18,12 @@ interface Props {
 }
 
 export default function PrimaryCareIntervalSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   // When a practice is selected, show that practice's 2018 median as the reference line;
   // fall back to national when no practice-level benchmark exists.
@@ -32,9 +32,8 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
   const nationalLabel = orgSelected
     ? (practiceMedianBm != null ? "This Practice (2018)" : "All Patients (2018)")
     : "All Patients (2018)";
-  const allianceMedian = orgSelected
-    ? (allianceLive?.pci?.median ?? bm?.["primary_care_interval.median_pci_days"]?.alliance ?? null)
-    : null;
+  const allianceMedian =
+    orgSelected && showCancerAlliance ? (allianceLive?.pci?.median ?? null) : null;
 
   const tableRows = [
     {
@@ -46,7 +45,7 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
       similar: allianceLive?.pci ? { value: allianceLive.pci.median } : null,
       alliance: englandLive?.pci
         ? { value: englandLive.pci.median }
-        : { value: bm?.["primary_care_interval.median_pci_days"]?.alliance ?? null },
+        : null,
       national: { value: nationalMedian },
     },
   ];

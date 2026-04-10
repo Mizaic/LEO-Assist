@@ -266,6 +266,22 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'AUTH_REDIRECT_URI', value: '${frontendUrl}/auth/callback' }
           { name: 'MAIL_FROM_ADDRESS', value: 'leo.support@healthcarecopilot.ai' }
         ])
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8000, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8000, scheme: 'HTTP' }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
       }]
       scale: { minReplicas: 1, maxReplicas: 3 }
     }
@@ -332,6 +348,22 @@ resource terminologyApi 'Microsoft.App/containerApps@2024-03-01' = {
         env: union(sharedEnv, [
           { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
         ])
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8001, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8001, scheme: 'HTTP' }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
       }]
       scale: { minReplicas: 0, maxReplicas: 3 }
     }
@@ -363,6 +395,22 @@ resource fhirApi 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
         ])
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8002, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8002, scheme: 'HTTP' }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
       }]
       scale: { minReplicas: 0, maxReplicas: 3 }
     }
@@ -393,6 +441,22 @@ resource analyticsApi 'Microsoft.App/containerApps@2024-03-01' = {
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
         ])
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8003, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8003, scheme: 'HTTP' }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
       }]
       scale: { minReplicas: 0, maxReplicas: 3 }
     }
@@ -423,6 +487,22 @@ resource modelInference 'Microsoft.App/containerApps@2024-03-01' = {
         env: union(sharedEnv, [
           { name: 'MODEL_STORE_CACHE_DIR', value: '/var/model_cache' }
         ])
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8004, scheme: 'HTTP' }
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8004, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
       }]
       scale: { minReplicas: 0, maxReplicas: 2 }
     }
@@ -451,6 +531,22 @@ resource trainingWorker 'Microsoft.App/containerApps@2024-03-01' = {
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/training-worker:${imageTag}'
         resources: { cpu: json('1.0'), memory: '2Gi' }
         env: sharedEnv
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8005, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8005, scheme: 'HTTP' }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
       }]
       scale: { minReplicas: 0, maxReplicas: 1 }
     }
@@ -488,6 +584,22 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'PIPELINE_QUEUE_NAME', value: 'pipeline-jobs' }
           { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
         ])
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8006, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8006, scheme: 'HTTP' }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
       }]
       scale: {
         minReplicas: 0

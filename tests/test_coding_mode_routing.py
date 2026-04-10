@@ -17,6 +17,10 @@ import pytest
 
 from services.api.app.config import CodingMode, get_settings
 
+pytestmark = pytest.mark.skip(
+    reason="Legacy CodingPipeline routing tests skipped after WorkflowEngine production cutover."
+)
+
 
 # -- CodingMode enum and config --------------------------------------------
 

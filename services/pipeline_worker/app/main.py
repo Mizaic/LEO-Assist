@@ -194,7 +194,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     handler = ServiceBusEventHandler(engine)
 
     async def on_message(msg: Message) -> None:
-        await handler.handle_message(msg.body)
+        try:
+            await handler.handle_message(msg)
+        except Exception:
+            # Emit a progress error event so UI subscribers do not appear idle
+            # when a run fails before first workflow step.
+            try:
+                from services.coding_worker.app.services.progress_publisher import publish_progress
+
+                run_id = str(msg.correlation_id or msg.message_id or "")
+                if run_id:
+                    publish_progress(
+                        run_id,
+                        {
+                            "type": "pipeline_error",
+                            "run_id": run_id,
+                            "message": "Pipeline worker failed before execution. See worker logs for details.",
+                        },
+                    )
+            except Exception:
+                pass
+            raise
 
     consumer_task = asyncio.create_task(_run_consumer(bus, on_message))
     logger.info("Pipeline Worker: message bus consumer started (queue=%s)", QUEUE_NAME)

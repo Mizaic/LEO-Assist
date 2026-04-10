@@ -28,13 +28,23 @@ from typing import Any
 
 from libs.llm_client.disorder_verifier import DisorderVerdict, verify_disorder
 from libs.ner.context_detector import normalize_situation_lookup
-from libs.ner.context_engine import apply_context_detection_to_dicts
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
+
+try:
+    from libs.ner.context_engine import apply_context_detection_to_dicts
+except Exception:
+    logger.warning(
+        "ConText engine unavailable; assertion context detection is disabled in this runtime",
+        exc_info=True,
+    )
+
+    def apply_context_detection_to_dicts(_encounter_text: str, _entities: list[dict[str, Any]]) -> None:
+        return
 
 _SENTENCE_BOUNDARY_RE = re.compile(r"(?:\.(?:\s|$)|\n)")
 

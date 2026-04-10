@@ -125,12 +125,16 @@ class PatientGraphWriter:
     ) -> None:
         from app.models.neo4j_schema import DELETE_CODED_LINK
 
-        session.run(
+        result = session.run(
             DELETE_CODED_LINK,
             patient_id=patient_id,
             encounter_id=encounter_id,
             concept_id=concept_id,
         )
+        row = result.single()
+        deleted = int(row["deleted"]) if row and "deleted" in row else 0
+        if deleted == 0:
+            raise ValueError("coded_link_not_found")
 
     def recode_documents_link(
         self,

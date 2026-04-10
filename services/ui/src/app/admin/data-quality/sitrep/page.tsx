@@ -50,20 +50,20 @@ export default function SitrepPage() {
         Current operational state snapshot -- no filters applied.
       </Typography>
 
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={6} sm={4} md={2}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <StatBox label="Stale episodes" value={data.stale_count} color="warning.main" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <StatBox label="HITL queue" value={data.hitl_queue_depth} color="info.main" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <StatBox label="SF task backlog" value={data.sf_task_backlog} />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <StatBox label="Gold labels" value={data.gold_label_count} />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <StatBox label="Training candidates" value={data.training_candidate_count} />
         </Grid>
       </Grid>

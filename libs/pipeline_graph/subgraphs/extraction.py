@@ -101,11 +101,18 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             except Exception:
                 few_shot_examples = None
 
+        try:
+            prompt_version = int(cfg.get("version") or 1)
+        except (TypeError, ValueError):
+            prompt_version = 1
+
         extractor = build_extractor(
             system_prompt=system_prompt,
             output_schema_json=output_schema_json,
             few_shot_examples=few_shot_examples,
             max_few_shot=max_few_shot,
+            prompt_name=str(cfg.get("name") or "extraction"),
+            prompt_version=prompt_version,
         )
         chunks = [
             SentenceChunk(

@@ -10,6 +10,8 @@ import Divider from "@mui/material/Divider";
 import SectionCard from "./SectionCard";
 import type { AuditSummary } from "@/lib/analyticsApi";
 import { BENCHMARK_COLOURS } from "./BenchmarkLegend";
+import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
+import { serialiseFilters, DEFAULT_FILTERS } from "@/lib/missionControlFilters";
 
 interface Props {
   summary: AuditSummary | null;
@@ -18,6 +20,8 @@ interface Props {
   orgName?: string;
   auditPeriod?: string;
   totalCases?: number;
+  /** When true, summary copy explains optional Cancer Alliance / England comparisons. */
+  orgSelected?: boolean;
 }
 
 interface StatTileProps {
@@ -54,7 +58,17 @@ function StatTile({ label, value, sub, color = BENCHMARK_COLOURS.practice }: Sta
 const fmt = (v: number | null | undefined, decimals = 1) =>
   v == null ? null : Number(v.toFixed(decimals));
 
-export default function AuditSummarySection({ summary, loading, error, orgName, auditPeriod, totalCases }: Props) {
+export default function AuditSummarySection({
+  summary, loading, error, orgName, auditPeriod, totalCases, orgSelected = false,
+}: Props) {
+  const { appliedFrom, appliedTo } = useAnalyticsDateFilter();
+  const viewCasesHref = `/care/patients?${serialiseFilters({
+    ...DEFAULT_FILTERS,
+    dateFrom: appliedFrom ?? "",
+    dateTo: appliedTo ?? "",
+    pathwayFilter: "all",
+  })}`;
+
   return (
     <SectionCard
       id="section-summary"
@@ -63,6 +77,7 @@ export default function AuditSummarySection({ summary, loading, error, orgName, 
       availability="ready"
       loading={loading}
       error={error}
+      viewCasesHref={viewCasesHref}
     >
       {summary && (
         <>
@@ -111,8 +126,10 @@ export default function AuditSummarySection({ summary, loading, error, orgName, 
           <Divider sx={{ mb: 2 }} />
 
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-            Use the sections below to explore each area of the National Cancer Diagnosis Audit (NCDA). Each section compares
-            your practice against the Cancer Alliance and national (England) figures.
+            Use the sections below to explore each area of the National Cancer Diagnosis Audit (NCDA).
+            {orgSelected
+              ? " By default, charts compare this practice to the benchmark period you choose above (such as your 2018 figures). Tick the boxes in the filter bar to add Cancer Alliance and all patients in England."
+              : " Charts compare live figures to the benchmark period you choose above."}
           </Typography>
         </>
       )}

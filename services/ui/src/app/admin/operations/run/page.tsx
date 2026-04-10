@@ -589,25 +589,34 @@ export default function RunAIPage() {
         );
 
       } else if (clinicalScope === "encounter") {
-        // ── Single encounter: live in-process stream ─────────────────
-        addEvent({ type: "info", message: "Starting…" });
-        const url = `/api/pipeline/stream-encounter`
-          + `?patient_id=${encodeURIComponent(patientId.trim())}`
-          + `&encounter_id=${encodeURIComponent(encounterId.trim())}`
-          + `&dry_run=${dryRun}`;
+        // ── Single encounter: canonical queued run via reset-and-recode ─────
+        addEvent({ type: "info", message: "Queueing canonical encounter run…" });
+        const encounterResp = await postJson<{ run_id: string }>(
+          `/api/patients/${encodeURIComponent(patientId.trim())}/encounters/${encodeURIComponent(encounterId.trim())}/reset-and-recode`,
+          { dry_run: dryRun, rerun_episode_detector: true },
+        );
+        setRunId(encounterResp.run_id);
+        addEvent({ type: "queued", message: "Encounter run queued. Waiting for worker pickup…" });
         cancelRef.current = openStream(
-          url,
+          `/api/pipeline/progress/${encounterResp.run_id}`,
           addEvent,
           () => { setRunning(false); setDone(true); },
-          (msg) => { setRunning(false); setRunError(msg); },
+          () => {
+            setRunning(false);
+            addEvent({
+              type: "warning",
+              message: "Live updates not available right now. The job is running in the background.",
+            });
+            setDone(true);
+          },
         );
 
       } else {
-        // ── Patient: async via Service Bus ────────────────────────────
+        // ── Patient: full canonical pipeline via Service Bus ──────────
         addEvent({ type: "info", message: "Sending to processing queue…" });
         const resp = await postJson<{ run_id: string }>("/api/pipeline/run-patient", {
           patient_id: patientId.trim(),
-          action: "code_new",
+          action: "full_pipeline",
           preview: dryRun,
         });
         setRunId(resp.run_id);

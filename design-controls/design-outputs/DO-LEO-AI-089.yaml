@@ -1,0 +1,101 @@
+# -- DO-LEO-AI-089 -- Mission Control Backend API Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-089"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-091"]
+    user_needs: ["UN-LEO-AI-058"]
+    risks_addressed: ["R-LEO-AI-065"]
+    verification_tests: ["VT-LEO-AI-091"]
+
+  specification:
+    title: "Mission Control Analytics API Router"
+    description: |
+      FastAPI router module at services/analytics_api/app/routers/mission_control.py
+      implementing three endpoints:
+
+      1. GET /analytics/mission-control/patients
+         - Builds on _audit_helpers._episode_base for org scoping and
+           date range filtering.
+         - Adds pathway_filter (confirmed|closures|all), cancer_types,
+           closure_reasons, and review_status query parameters.
+         - Returns paginated envelope: total, page, page_size, patients[].
+         - Each patient entry contains demographics and nested episodes[],
+           each episode containing: episode_id, cancer_type, status,
+           cancer_stage, referral_date, diagnosis_date,
+           diagnostic_interval_days, primary_care_interval_days,
+           safety_netting (bool), reviewed_by, reviewed_at, audit_flag,
+           audit_notes, milestones[].
+         - Pagination via SKIP/LIMIT Cypher; sorting via ORDER BY.
+
+      2. GET /analytics/mission-control/kpis
+         - Same filter params as /patients (minus pagination).
+         - Single aggregation Cypher returning:
+           total_patients, confirmed_cancer, pathway_closures,
+           median_diagnostic_interval_days, safety_netting_rate,
+           needs_review_count.
+
+      3. PATCH /analytics/mission-control/episodes/{episode_id}/review
+         - Writes reviewed_by, reviewed_at=datetime(), audit_notes,
+           audit_flag to matching EpisodeOfCare node.
+         - Does NOT alter any clinical coding properties.
+         - Requires authenticated caller (HTTP 401 if unauthenticated).
+
+    acceptance_criteria:
+      - criterion: "Patient list filtering"
+        type: "functional"
+        measurement: "Test"
+        target: "All 6 filter parameters produce correct Cypher WHERE clauses verified by unit tests with mock Neo4j responses"
+      - criterion: "Pagination correctness"
+        type: "functional"
+        measurement: "Test"
+        target: "SKIP = (page-1)*page_size, LIMIT = page_size; total count matches unfiltered query count"
+      - criterion: "KPI aggregation"
+        type: "functional"
+        measurement: "Test"
+        target: "All 6 KPI fields returned with correct types; safety_netting_rate is float 0.0-1.0"
+      - criterion: "Review write safety"
+        type: "safety"
+        measurement: "Test"
+        target: "PATCH /review sets only audit fields; cancer_type, status, SNOMED data unchanged after call"
+      - criterion: "Auth enforcement"
+        type: "safety"
+        measurement: "Test"
+        target: "Unauthenticated PATCH /review returns HTTP 401"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/mission_control.py"
+        description: "Router with get_mission_control_patients, get_mission_control_kpis, patch_episode_review"
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/main.py"
+        description: "Router registration: app.include_router(mission_control.router)"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 200
+      key_functions:
+        - "get_mission_control_patients"
+        - "get_mission_control_kpis"
+        - "patch_episode_review"
+        - "_build_mc_filters"
+        - "_mc_patients_cypher"
+        - "_mc_kpis_cypher"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Org scope enforcement -- ensures cross-org data access is impossible"
+      - "Review write isolation -- ensures audit tracking cannot corrupt clinical data"
+    risk_control_measures:
+      - "Reuses CallerScope from libs/auth/org_scope.py for all patient queries"
+      - "PATCH /review Cypher SET clause is whitelisted to audit fields only"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

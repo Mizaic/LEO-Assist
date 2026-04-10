@@ -1,7 +1,10 @@
 # -- Build stage: compile C extensions, install deps into /venv ------------
 # libgomp1 required at runtime by spaCy/thinc (OpenMP). Cannot use distroless.
 # Python 3.12: medspacy 1.3.1 selects spacy>=3.8 which supports pydantic v2.
-FROM python:3.12-slim-bookworm AS build
+# Pin base images: override BASE_IMAGE_BUILD/BASE_IMAGE_RUNTIME with digest in CI.
+ARG BASE_IMAGE_BUILD=python:3.12-slim-bookworm
+ARG BASE_IMAGE_RUNTIME=python:3.12-slim-bookworm
+FROM ${BASE_IMAGE_BUILD} AS build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential gcc libgomp1 && \
     rm -rf /var/lib/apt/lists/*
@@ -12,7 +15,8 @@ COPY services/api/requirements.txt /requirements.txt
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 
 # -- Runtime: slim with only libgomp, no build tools, non-root user --------
-FROM python:3.12-slim-bookworm
+ARG BASE_IMAGE_RUNTIME
+FROM ${BASE_IMAGE_RUNTIME}
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
     rm -rf /var/lib/apt/lists/* && \
     useradd --no-create-home --shell /sbin/nologin appuser

@@ -7,6 +7,8 @@ import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditPlaceRow, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 const PLACE_DISPLAY: Record<string, string> = {
   gp_surgery: "GP Surgery",
@@ -30,14 +32,12 @@ interface Props {
 }
 
 export default function PlaceOfPresentationSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice ?? [];
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   const MAX_PLACE_BARS = 8;
   const hiddenPlaceCount = Math.max(0, practice.length - MAX_PLACE_BARS);
@@ -71,7 +71,7 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
       unit: "%",
       practice: gpLive ? { value: gpLive.pct } : null,
       similar: gpAlive ? { value: gpAlive.pct } : null,
-      alliance: gpElive ? { value: gpElive.pct } : { value: bm?.["place_of_presentation.gp_surgery_pct"]?.alliance ?? null },
+      alliance: gpElive ? { value: gpElive.pct } : null,
       national: { value: resolveBenchmarkValue(bm, "place_of_presentation.gp_surgery_pct", orgSelected) },
     },
     {
@@ -79,7 +79,7 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
       unit: "%",
       practice: aeLive ? { value: aeLive.pct } : null,
       similar: aeAlive ? { value: aeAlive.pct } : null,
-      alliance: aeElive ? { value: aeElive.pct } : { value: bm?.["place_of_presentation.ae_pct"]?.alliance ?? null },
+      alliance: aeElive ? { value: aeElive.pct } : null,
       national: { value: resolveBenchmarkValue(bm, "place_of_presentation.ae_pct", orgSelected) },
     },
   ];

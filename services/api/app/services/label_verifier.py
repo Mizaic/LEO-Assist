@@ -45,7 +45,7 @@ from libs.llm_client.factory import LLMResponse, create_llm
 from libs.neo4j_client.client import PatientGraphClient
 from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
-from libs.prompts.registry import get_prompt
+from libs.prompts.registry import get_prompt, get_prompt_config
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,15 @@ _AUTO_TRIAGE_LLM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_LLM_THRESHOLD", "0.80"
 _LLM_RETRIES = int(os.getenv("LABEL_VERIFY_LLM_RETRIES", "4"))
 _LLM_BACKOFF_BASE_S = float(os.getenv("LABEL_VERIFY_LLM_BACKOFF_BASE_S", "0.6"))
 _CODING_MODE = os.getenv("CODING_MODE", "hitl").strip().lower()
+
+_AUTO_CODE_BLOCKED: frozenset[str] = frozenset({
+    "absent", "refuted", "declined", "cancelled", "planned",
+    "hypothetical", "possible", "historical", "family",
+})
+
+_ASSERTION_QUEUE_SET: frozenset[str] = frozenset({
+    "declined", "cancelled", "possible",
+})
 
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
@@ -478,6 +487,20 @@ try:
     )
 except Exception:  # pragma: no cover - fallback for lightweight test env
     import re
+    import warnings
+
+    warnings.warn(
+        "libs.pipeline.post_processing import failed -- all 9 post-processing "
+        "layers are DISABLED. This is acceptable in isolated test environments "
+        "but MUST NOT happen in production.",
+        RuntimeWarning,
+        stacklevel=1,
+    )
+    logging.getLogger(__name__).error(
+        "SAFETY: post-processing import failed -- lab-value guard, scope guard, "
+        "context detection, and disorder gate are all disabled",
+        exc_info=True,
+    )
 
     def run_post_processing(*args, **kwargs):  # type: ignore[no-redef]
         return args[0] if args else []
@@ -903,7 +926,6 @@ def _check_terminology_coding(
     This allows semantic-tag cross-validation: if the top candidate's SNOMED
     tag disagrees with the extracted entity label, the mismatch is flagged.
     """
-    _AUTO_CODE_BLOCKED = {"absent", "refuted", "declined", "cancelled", "planned", "hypothetical", "possible", "historical", "family"}
     codeable = [
         (i, e) for i, e in enumerate(entities)
         if str(e.get("label", "")) in _CODEABLE_LABELS
@@ -1281,7 +1303,13 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
     if not sentences:
         return []
 
-    extraction_prompt = get_prompt("extraction", version=1)
+    cfg = get_prompt_config("extraction", version=1)
+    from libs.pipeline_graph.subgraphs._extractor import assemble_system_prompt
+    extraction_prompt = assemble_system_prompt(
+        instructions=str(cfg.get("systemPrompt") or ""),
+        output_schema_json=cfg.get("outputSchema"),
+        few_shot_examples=cfg.get("fewShotExamples") or [],
+    )
     user_payload = (
         f"Extract clinical entities from sentences below.\n\n"
         f"Encounter text:\n{text}\n\n"

@@ -20,6 +20,8 @@ import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 
 import { useOrgId } from "@/context/OrgContext";
+import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
+import { TAX_YEAR_PRESETS } from "@/lib/taxYearPresets";
 import {
   fetchBenchmarkSets,
   fetchAuditSummary,
@@ -66,6 +68,10 @@ import PrimaryCareIntervalSection from "@/components/audit/PrimaryCareIntervalSe
 import DiagnosticIntervalSection from "@/components/audit/DiagnosticIntervalSection";
 import SafetyNettingSection from "@/components/audit/SafetyNettingSection";
 import AvoidableDelaysSection from "@/components/audit/AvoidableDelaysSection";
+import { AuditBenchmarkOverlayProvider, useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
+import FormGroup from "@mui/material/FormGroup";
 
 const TOC_SECTIONS: TocSection[] = [
   { id: "section-summary", label: "Summary", group: "overview" },
@@ -115,6 +121,54 @@ const allFalse = (): SectionLoading => ({
   referrals: false, intervals: false, safetyNetting: false, avoidableDelays: false,
 });
 
+function AuditExternalBenchmarkToggles({
+  orgSelected,
+  disabled,
+}: {
+  orgSelected: boolean;
+  disabled: boolean;
+}) {
+  const { showCancerAlliance, showAllPatients, setShowCancerAlliance, setShowAllPatients } =
+    useAuditBenchmarkOverlay();
+  if (!orgSelected) return null;
+  return (
+    <FormGroup
+      row
+      sx={{ alignItems: "center", gap: 0.5 }}
+      aria-label="Optional comparisons to other populations"
+    >
+      <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, mr: 0.5 }}>
+        Also show:
+      </Typography>
+      <FormControlLabel
+        control={
+          <Checkbox
+            size="small"
+            checked={showCancerAlliance}
+            onChange={(_, c) => setShowCancerAlliance(c)}
+            disabled={disabled}
+            inputProps={{ "aria-label": "Show Cancer Alliance comparison" }}
+          />
+        }
+        label={<Typography variant="caption">Cancer Alliance (today)</Typography>}
+        sx={{ mr: 0.5 }}
+      />
+      <FormControlLabel
+        control={
+          <Checkbox
+            size="small"
+            checked={showAllPatients}
+            onChange={(_, c) => setShowAllPatients(c)}
+            disabled={disabled}
+            inputProps={{ "aria-label": "Show all patients in England comparison" }}
+          />
+        }
+        label={<Typography variant="caption">All patients in England (today)</Typography>}
+      />
+    </FormGroup>
+  );
+}
+
 export default function AuditPage() {
   const orgId = useOrgId();
   const orgSelected = !!orgId;
@@ -148,11 +202,18 @@ export default function AuditPage() {
     setActiveTab(1);
   };
 
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [appliedFrom, setAppliedFrom] = useState<string | undefined>(undefined);
-  const [appliedTo, setAppliedTo] = useState<string | undefined>(undefined);
-  const isFiltered = !!appliedFrom || !!appliedTo;
+  const {
+    dateFrom,
+    dateTo,
+    appliedFrom,
+    appliedTo,
+    setDateFrom,
+    setDateTo,
+    apply,
+    applyPreset,
+    clear,
+    isFiltered,
+  } = useAnalyticsDateFilter();
 
   // Benchmark set selection.
   // null = lookup still in-flight; "none" = loaded but no benchmark selected; else = set id.
@@ -243,32 +304,10 @@ export default function AuditPage() {
     load(appliedFrom, appliedTo);
   }, [load, appliedFrom, appliedTo]);
 
-  const TAX_YEAR_PRESETS = [
-    { label: "2023/24", from: "2023-04-06", to: "2024-04-05" },
-    { label: "2024/25", from: "2024-04-06", to: "2025-04-05" },
-    { label: "2025/26", from: "2025-04-06", to: "2026-04-05" },
-  ];
-
-  const handleApply = () => {
-    setAppliedFrom(dateFrom || undefined);
-    setAppliedTo(dateTo || undefined);
-  };
-  const handlePreset = (from: string, to: string) => {
-    setDateFrom(from);
-    setDateTo(to);
-    setAppliedFrom(from);
-    setAppliedTo(to);
-  };
-  const handleClear = () => {
-    setDateFrom("");
-    setDateTo("");
-    setAppliedFrom(undefined);
-    setAppliedTo(undefined);
-  };
-
   const anyLoading = Object.values(loading).some(Boolean);
 
   return (
+    <AuditBenchmarkOverlayProvider>
     <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "clip" }}>
       {/* ── Page header ──────────────────────────────────────────────── */}
       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
@@ -338,14 +377,14 @@ export default function AuditPage() {
         <Button
           variant="contained"
           size="small"
-          onClick={handleApply}
+          onClick={apply}
           disabled={anyLoading}
           sx={{ textTransform: "none", px: 2.5, fontWeight: 600 }}
         >
           Apply
         </Button>
         {isFiltered && (
-          <Button variant="outlined" size="small" onClick={handleClear} sx={{ textTransform: "none" }}>
+          <Button variant="outlined" size="small" onClick={clear} sx={{ textTransform: "none" }}>
             Clear
           </Button>
         )}
@@ -360,7 +399,7 @@ export default function AuditPage() {
               size="small"
               clickable
               disabled={anyLoading}
-              onClick={() => handlePreset(preset.from, preset.to)}
+              onClick={() => applyPreset(preset.from, preset.to)}
               color={appliedFrom === preset.from && appliedTo === preset.to ? "primary" : "default"}
               variant={appliedFrom === preset.from && appliedTo === preset.to ? "filled" : "outlined"}
               sx={{ fontWeight: 600, fontSize: "0.75rem" }}
@@ -376,27 +415,30 @@ export default function AuditPage() {
           />
         )}
 
-        {/* Benchmark set selector */}
-        <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }}>
-          <CompareArrowsIcon fontSize="small" sx={{ color: "text.secondary" }} />
-          <TextField
-            select
-            label="Benchmark"
-            size="small"
-            value={benchmarkSetId ?? "none"}
-            onChange={(e) => setBenchmarkSetId(e.target.value)}
-            sx={{ width: 200 }}
-            inputProps={{ "aria-label": "Select benchmark set for comparison" }}
-          >
-            <MenuItem value="none">
-              <em>No benchmark overlay</em>
-            </MenuItem>
-            {benchmarkSets.map((s) => (
-              <MenuItem key={s.id} value={s.id}>
-                {s.name}{s.audit_year ? ` (${s.audit_year})` : ""}
+        {/* Benchmark set + optional live comparators */}
+        <Box sx={{ ml: "auto", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5, justifyContent: "flex-end" }}>
+          <AuditExternalBenchmarkToggles orgSelected={orgSelected} disabled={anyLoading} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <CompareArrowsIcon fontSize="small" sx={{ color: "text.secondary" }} />
+            <TextField
+              select
+              label="Benchmark"
+              size="small"
+              value={benchmarkSetId ?? "none"}
+              onChange={(e) => setBenchmarkSetId(e.target.value)}
+              sx={{ width: 200 }}
+              inputProps={{ "aria-label": "Select benchmark set for comparison" }}
+            >
+              <MenuItem value="none">
+                <em>No benchmark overlay</em>
               </MenuItem>
-            ))}
-          </TextField>
+              {benchmarkSets.map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.name}{s.audit_year ? ` (${s.audit_year})` : ""}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
         </Box>
       </Box>
 
@@ -473,6 +515,7 @@ export default function AuditPage() {
           error={errors.summary}
           totalCases={summary?.total_episodes}
           auditPeriod={isFiltered ? `${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}` : undefined}
+          orgSelected={orgSelected}
         />
 
         <CancerTypeSection
@@ -566,5 +609,6 @@ export default function AuditPage() {
       </Box>
       )}
     </Box>
+    </AuditBenchmarkOverlayProvider>
   );
 }

@@ -124,8 +124,8 @@ def escalate_label(
                         "role": "user",
                         "content": json.dumps(
                             {
-                                "entity_text": entity_text,
-                                "encounter_text": encounter_text,
+                                "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+                                "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
                                 "current_label": current_label,
                                 "model_a_label": model_a_label,
                                 "model_a_rationale": model_a_rationale,
@@ -551,8 +551,8 @@ def verify_coding_consensus(
 
     fail_v = "uncertain" if coding_mode == "autonomous" else "correct"
     user_msg = json.dumps({
-        "entity_text": entity_text,
-        "encounter_text": encounter_text[:1500],
+        "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=1500),
         "matched_concept": f"{snomed_term} (SNOMED: {snomed_concept_id})",
     })
 

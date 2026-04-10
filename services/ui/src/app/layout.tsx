@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import ThemeRegistry from "@/components/ThemeRegistry";
 import { PipelineProvider } from "@/context/PipelineContext";
 import { OrgProvider } from "@/context/OrgContext";
+import { AnalyticsDateFilterProvider } from "@/context/AnalyticsDateFilterContext";
 import AppShell from "@/components/AppShell";
 import AuthProviderWrapper from "@/components/AuthProviderWrapper";
 
@@ -19,9 +20,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProviderWrapper>
           <ThemeRegistry>
             <OrgProvider>
-              <PipelineProvider>
-                <AppShell>{children}</AppShell>
-              </PipelineProvider>
+              <AnalyticsDateFilterProvider>
+                <PipelineProvider>
+                  <AppShell>{children}</AppShell>
+                </PipelineProvider>
+              </AnalyticsDateFilterProvider>
             </OrgProvider>
           </ThemeRegistry>
         </AuthProviderWrapper>

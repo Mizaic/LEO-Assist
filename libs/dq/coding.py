@@ -55,7 +55,9 @@ def get_coding_summary(db_path: str) -> CodingIssueSummary:
                     label = item.get("concept") or item.get("label") or str(item)
                     concept_counter[label] = concept_counter.get(label, 0) + 1
             except Exception:
-                pass
+                logging.getLogger(__name__).debug(
+                    "Skipping malformed missing-concept JSON row", exc_info=True
+                )
 
         top_missing = sorted(
             [{"concept": k, "count": v} for k, v in concept_counter.items()],

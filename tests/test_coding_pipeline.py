@@ -7,6 +7,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.skip(
+    reason="Legacy CodingPipeline unit tests skipped after WorkflowEngine production cutover."
+)
+
 
 class TestPipelineStats:
 

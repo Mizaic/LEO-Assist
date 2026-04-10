@@ -7,6 +7,8 @@ import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditConsultations, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 interface Props {
   result: AuditSectionResult<AuditConsultations> | null;
@@ -16,14 +18,12 @@ interface Props {
 }
 
 export default function ConsultationsSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   const fewerThan3Bm = resolveBenchmarkValue(bm, "consultations.fewer_than_3_pct", orgSelected);
 
@@ -50,7 +50,7 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
       unit: "%",
       practice: practice ? { value: practice.fewer_than_3_pct, n: practice.fewer_than_3_n } : null,
       similar: allianceLive ? { value: allianceLive.fewer_than_3_pct } : null,
-      alliance: englandLive ? { value: englandLive.fewer_than_3_pct } : { value: bm?.["consultations.fewer_than_3_pct"]?.alliance ?? null },
+      alliance: englandLive ? { value: englandLive.fewer_than_3_pct } : null,
       national: { value: fewerThan3Bm },
     },
     {
@@ -60,7 +60,7 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
         ? { value: practice.median_consultations, iqr: [practice.iqr_low, practice.iqr_high] as [number | null, number | null] }
         : null,
       similar: allianceLive ? { value: allianceLive.median_consultations } : null,
-      alliance: englandLive ? { value: englandLive.median_consultations } : { value: bm?.["consultations.median_consultations"]?.alliance ?? null },
+      alliance: englandLive ? { value: englandLive.median_consultations } : null,
       national: { value: resolveBenchmarkValue(bm, "consultations.median_consultations", orgSelected) },
     },
   ];
@@ -97,6 +97,8 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
         metrics={[{ metricKey: "fewer_than_3_pct", label: "Fewer than 3" }]}
         orgSelected={orgSelected}
         heading="2018 Baseline by Cancer Type — Fewer than 3 Consultations (%)"
+        showAlliance2018={orgSelected ? showCancerAlliance : undefined}
+        showNational2018={orgSelected ? showAllPatients : undefined}
       />
     </SectionCard>
   );

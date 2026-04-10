@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 from unittest.mock import patch, MagicMock
 
 import pytest
+from fastapi import HTTPException
+from neo4j.exceptions import ServiceUnavailable
 
 
 class TestCodingResolver:
@@ -212,3 +215,55 @@ class TestValueSetService:
             mock_get.return_value = None
             result = expand_valueset("missing")
             assert result is None
+
+
+class TestResolveRouterRetry:
+    """Tests for retry behaviour in terminology resolve router."""
+
+    @staticmethod
+    @contextmanager
+    def _session_cm():
+        yield MagicMock()
+
+    def test_resolve_retries_transient_neo4j_error(self, monkeypatch):
+        from services.terminology_api.app.routers import resolve as resolve_router
+
+        monkeypatch.setattr(
+            resolve_router._kg_client,
+            "session",
+            lambda: self._session_cm(),
+        )
+
+        call_count = {"n": 0}
+
+        def _resolve(*args, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise ServiceUnavailable("simulated transient outage")
+            return {"cough": []}
+
+        monkeypatch.setattr(resolve_router._resolver, "resolve_candidates", _resolve)
+
+        body = resolve_router.ResolveRequest(terms=["cough"])
+        resp = resolve_router.resolve_terms(body)
+        assert "cough" in resp.results
+        assert call_count["n"] == 2
+
+    def test_resolve_returns_503_after_retries_exhausted(self, monkeypatch):
+        from services.terminology_api.app.routers import resolve as resolve_router
+
+        monkeypatch.setattr(
+            resolve_router._kg_client,
+            "session",
+            lambda: self._session_cm(),
+        )
+
+        def _always_fail(*args, **kwargs):
+            raise ServiceUnavailable("persistent outage")
+
+        monkeypatch.setattr(resolve_router._resolver, "resolve_candidates", _always_fail)
+
+        body = resolve_router.ResolveRequest(terms=["cough"])
+        with pytest.raises(HTTPException) as exc_info:
+            resolve_router.resolve_terms(body)
+        assert exc_info.value.status_code == 503

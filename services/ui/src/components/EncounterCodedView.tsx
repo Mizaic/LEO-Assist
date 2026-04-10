@@ -40,6 +40,9 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
   const [inferResult, setInferResult] = useState<string | null>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const backToMissionControl = `/care/patients?patient=${encodeURIComponent(
+    patientId
+  )}&tab=encounters`;
 
   async function handleRunInference() {
     setInferring(true);
@@ -207,7 +210,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
                 variant="text"
                 size="small"
                 startIcon={<ArrowBackIcon />}
-                onClick={() => router.push(`/care/patients/${patientId}`)}
+                onClick={() => router.push(backToMissionControl)}
                 sx={{ mb: 0.5, textTransform: "none" }}
               >
                 Back to encounters

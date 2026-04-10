@@ -41,20 +41,53 @@ RETURN deleted
 RESET_PATIENT_DOCUMENTS = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
 WHERE toString(p.id) = $patient_id
-WITH count(r) AS links_deleted
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
-WHERE toString(p.id) = $patient_id
-DELETE r
+WITH collect(r) AS rels
+WITH rels, size(rels) AS links_deleted
+UNWIND rels AS rel
+DELETE rel
 RETURN links_deleted
 """
 
 RESET_PATIENT_DIRECT_SEMANTIC = """
-MATCH (p:Patient)-[r]->(s)
+MATCH (p:Patient)-[r:HAS_FINDING|HAS_DISORDER|HAS_SITUATION|HAS_OBSERVABLE|HAS_PROCEDURE|HAS_CONCEPT]->()
 WHERE toString(p.id) = $patient_id
-  AND (s:SnomedConcept OR s:Clinical_finding OR s:Disease OR s:Situation
-       OR s:Observable_entity OR s:Procedure)
-DELETE r
-RETURN count(r) AS direct_deleted
+WITH collect(r) AS rels
+WITH rels, size(rels) AS direct_deleted
+UNWIND rels AS rel
+DELETE rel
+RETURN direct_deleted
+"""
+
+RESET_PATIENT_LLM_USAGE = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)--(u:LLMUsage)
+WHERE toString(p.id) = $patient_id
+WITH collect(DISTINCT u) AS nodes
+WITH nodes, size(nodes) AS deleted
+UNWIND nodes AS n
+DETACH DELETE n
+RETURN deleted
+"""
+
+RESET_PATIENT_CODING_DECISIONS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id
+WITH collect(DISTINCT toString(e.id)) AS enc_ids
+UNWIND enc_ids AS eid
+MATCH (d:CodingDecision)
+WHERE d.decision_id STARTS WITH ('dec:' + eid + ':')
+WITH collect(d) AS nodes
+WITH nodes, size(nodes) AS deleted
+UNWIND nodes AS n
+DETACH DELETE n
+RETURN deleted
+"""
+
+RESET_PATIENT_SENTENCES_PAYLOAD = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id
+  AND e.sentences_payload IS NOT NULL
+REMOVE e.sentences_payload
+RETURN count(e) AS deleted
 """
 
 RESET_PATIENT_ALERTS = """
@@ -120,5 +153,80 @@ RETURN deleted
 DELETE_ENCOUNTER_DOCUMENTS = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
 WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
-DELETE r
+WITH collect(r) AS rels
+WITH rels, size(rels) AS deleted
+UNWIND rels AS rel
+DELETE rel
+RETURN deleted
+"""
+
+DELETE_ENCOUNTER_EPISODE_LINKS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:IS_PART_OF]->(:EpisodeOfCare)
+WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
+WITH collect(r) AS rels
+WITH rels, size(rels) AS deleted
+UNWIND rels AS rel
+DELETE rel
+RETURN deleted
+"""
+
+LIST_ENCOUNTER_DOCUMENT_CONCEPT_IDS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(s)
+WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
+RETURN collect(DISTINCT toString(s.conceptId)) AS concept_ids
+"""
+
+CLEANUP_PATIENT_SHORTCUTS_FOR_CONCEPTS = """
+UNWIND $concept_ids AS cid
+MATCH (p:Patient)
+WHERE toString(p.id) = $patient_id
+MATCH (s)
+WHERE toString(s.conceptId) = cid
+WITH DISTINCT p, s, cid
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e2:Encounter)-[r2:DOCUMENTS]->(s)
+WITH p, s, cid, count(r2) AS remaining_docs
+WHERE remaining_docs = 0
+OPTIONAL MATCH (p)-[pr]->(s)
+WHERE type(pr) IN [
+  'HAS_FINDING',
+  'HAS_DISORDER',
+  'HAS_SITUATION',
+  'HAS_OBSERVABLE',
+  'HAS_PROCEDURE',
+  'HAS_CONCEPT'
+]
+WITH cid, collect(pr) AS rels
+UNWIND rels AS rel
+DELETE rel
+RETURN count(rel) AS shortcuts_deleted
+"""
+
+DELETE_ORPHAN_ENCOUNTER_LLM_USAGE = """
+MATCH (e:Encounter)
+WHERE toString(e.id) = $encounter_id
+OPTIONAL MATCH (e)--(u:LLMUsage)
+WITH e, collect(DISTINCT u) AS usages
+UNWIND usages AS u
+WITH e, u
+WHERE u IS NOT NULL
+OPTIONAL MATCH (u)--(other:Encounter)
+WHERE other <> e
+WITH u, count(other) AS other_encounters
+WHERE other_encounters = 0
+DETACH DELETE u
+RETURN count(u) AS llm_usage_deleted
+"""
+
+DELETE_ENCOUNTER_CODING_DECISIONS = """
+MATCH (d:CodingDecision)
+WHERE toString(d.decision_id) STARTS WITH $decision_prefix
+DETACH DELETE d
+RETURN count(d) AS decisions_deleted
+"""
+
+CLEAR_ENCOUNTER_SENTENCES_PAYLOAD = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
+REMOVE e.sentences_payload
+RETURN count(e) AS encounters_cleared
 """

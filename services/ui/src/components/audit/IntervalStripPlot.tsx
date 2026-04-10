@@ -68,8 +68,13 @@ export default function IntervalStripPlot({
   const inferredPoints = points.filter((p) => p.inferred);
   const inferredCount = inferredPoints.length;
 
+  type ScatterPointPayload = (typeof points)[0];
   const noData = points.length === 0;
-  const tooltipContent = ({ payload }: { payload?: Array<{ payload: typeof points[0] }> }) => {
+  const tooltipContent = ({
+    payload,
+  }: {
+    payload?: ReadonlyArray<{ payload?: ScatterPointPayload }>;
+  }) => {
     if (!payload?.length) return null;
     const d = payload[0]?.payload;
     return (

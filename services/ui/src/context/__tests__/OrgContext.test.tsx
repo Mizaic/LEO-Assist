@@ -86,6 +86,22 @@ describe("OrgContext", () => {
       expect(screen.getByTestId("org-count").textContent).toBe("2");
       expect(screen.getByTestId("admin").textContent).toBe("true");
     });
+
+    it("defaults platform admin with no org rows to viewAll", () => {
+      mockSession = {
+        user: { name: "Rob", email: "rob@test.ai" },
+        isPlatformAdmin: true,
+        organizations: [],
+      };
+      render(
+        <OrgProvider>
+          <OrgDisplay />
+        </OrgProvider>,
+      );
+      expect(screen.getByTestId("view-all").textContent).toBe("true");
+      expect(screen.getByTestId("org-id").textContent).toBe("undefined");
+      expect(localStore["leo_selected_org"]).toBe("__all__");
+    });
   });
 
   describe("with standard user session", () => {

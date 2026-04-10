@@ -116,6 +116,8 @@ type PersistedCanvasEdge = {
   target: string;
   sourceHandle?: string | null;
   targetHandle?: string | null;
+  source_handle?: string | null;
+  target_handle?: string | null;
 };
 
 function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
@@ -2078,7 +2080,7 @@ function SourceConfiguratorContent({
 // ── Step configurator ─────────────────────────────────────────────────────────
 
 function ActionConfigurator({
-  nodeId, initialConfig, onSave, onDelete, onClose, onPathwaySave, prevStepWrites, prevStepFieldMappings, prevStepSources,
+  nodeId, initialConfig, onSave, onDelete, onClose, onPathwaySave, prevStepWrites, prevStepFieldMappings, prevStepSources, inboundConnections,
 }: {
   nodeId: string;
   initialConfig: ActionConfig;
@@ -2089,6 +2091,7 @@ function ActionConfigurator({
   prevStepWrites: string[] | null;
   prevStepFieldMappings: FieldMappingRow[] | null;
   prevStepSources: Array<{ label: string; keys: string[] }>;
+  inboundConnections: Array<{ sourceLabel: string; sourceHandle: string; targetHandle: string }>;
 }) {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ActionConfig>({ ...DEFAULT_CONFIG, ...initialConfig, params: initialConfig.params ?? {} });
@@ -2364,6 +2367,20 @@ function ActionConfigurator({
                         </Box>
                       </Box>
                     ))}
+                    {inboundConnections.length > 0 && (
+                      <Box sx={{ pl: 2 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                          Wired ports
+                        </Typography>
+                        <Stack spacing={0.5}>
+                          {inboundConnections.map((conn, idx) => (
+                            <Typography key={`${conn.sourceLabel}-${idx}`} variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                              {`${conn.sourceLabel}.${conn.sourceHandle} -> this.${conn.targetHandle}`}
+                            </Typography>
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
                   </Stack>
                 ) : (
                   <Alert severity="info" icon={false} sx={{ fontSize: "0.8rem", borderRadius: 1.5 }}>
@@ -3685,10 +3702,10 @@ export default function PathwayBuilderPage() {
             id: `e${i}-${e.source}-${e.target}`,
             source: e.source,
             target: e.target,
-            sourceHandle: e.sourceHandle ?? null,
-            targetHandle: e.targetHandle ?? null,
+            sourceHandle: e.sourceHandle ?? e.source_handle ?? null,
+            targetHandle: e.targetHandle ?? e.target_handle ?? null,
             type: "portEdge",
-            data: { label: e.sourceHandle || e.targetHandle || "" },
+            data: { label: e.sourceHandle || e.source_handle || e.targetHandle || e.target_handle || "" },
           }));
           edgesRef.current = loadedEdges;
           setEdges(loadedEdges);
@@ -4052,20 +4069,52 @@ export default function PathwayBuilderPage() {
     });
   }, [selectedNode, edges, nodes, nodeConfigs]);
 
-  // Collect field-level mappings from DIRECT predecessors (first predecessor wins per key).
-  // Only direct predecessors matter — each step reads from the immediately preceding step.
+  const inboundConnections = useMemo<Array<{
+    sourceLabel: string;
+    sourceHandle: string;
+    targetHandle: string;
+  }>>(() => {
+    if (!selectedNode) return [];
+    return edges
+      .filter((e) => e.target === selectedNode)
+      .map((e) => {
+        const predNode = nodes.find((n) => n.id === e.source);
+        const sourceLabel = predNode
+          ? (predNode.type === "source"
+            ? ((predNode.data as { label?: string }).label ?? "Data source")
+            : ((predNode.data as { label?: string }).label ?? "Previous step"))
+          : e.source;
+        return {
+          sourceLabel,
+          sourceHandle: String(e.sourceHandle ?? "default"),
+          targetHandle: String(e.targetHandle ?? "default"),
+        };
+      });
+  }, [selectedNode, edges, nodes]);
+
+  // Collect field-level mappings from DIRECT predecessors.
+  // If multiple predecessors exist, merge all mappings so pass-through hydration
+  // reflects the actual wired graph rather than only the first incoming edge.
   const prevStepFieldMappings = useMemo<FieldMappingRow[] | null>(() => {
     if (!selectedNode) return null;
     const predecessorIds = edges
       .filter((e) => e.target === selectedNode)
       .map((e) => e.source);
     if (predecessorIds.length === 0) return null;
+    const merged: FieldMappingRow[] = [];
+    const seen = new Set<string>();
     for (const predId of predecessorIds) {
       const predCfg = nodeConfigs[predId];
       const mappings = predCfg?.params?.field_mappings as FieldMappingRow[] | undefined;
-      if (mappings && mappings.length > 0) return mappings;
+      if (!mappings || mappings.length === 0) continue;
+      for (const row of mappings) {
+        const dedupeKey = `${row.llmField}::${row.statePath}`;
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
+        merged.push(row);
+      }
     }
-    return null;
+    return merged.length > 0 ? merged : null;
   }, [selectedNode, edges, nodeConfigs]);
 
   // Derive output_target for a persist node from whichever output node(s) it is
@@ -4731,10 +4780,10 @@ export default function PathwayBuilderPage() {
         id: `e${i}-${e.source}-${e.target}`,
         source: e.source,
         target: e.target,
-        sourceHandle: e.sourceHandle ?? null,
-        targetHandle: e.targetHandle ?? null,
+        sourceHandle: e.sourceHandle ?? e.source_handle ?? null,
+        targetHandle: e.targetHandle ?? e.target_handle ?? null,
         type: "portEdge",
-        data: { label: e.sourceHandle || e.targetHandle || "" },
+        data: { label: e.sourceHandle || e.source_handle || e.targetHandle || e.target_handle || "" },
       }));
       edgesRef.current = restoredCanvasEdges;
       setEdges(restoredCanvasEdges);
@@ -5035,6 +5084,7 @@ export default function PathwayBuilderPage() {
             prevStepWrites={prevStepWrites}
             prevStepFieldMappings={prevStepFieldMappings}
             prevStepSources={prevStepSources}
+            inboundConnections={inboundConnections}
           />
         )}
       </Dialog>

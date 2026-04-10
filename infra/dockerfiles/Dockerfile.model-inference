@@ -6,9 +6,12 @@
 #   3. No image rebuild required.
 #
 # libgomp1 required at runtime by spaCy/thinc (OpenMP). Cannot use distroless.
+# Pin base images: override BASE_IMAGE_BUILD/BASE_IMAGE_RUNTIME with digest in CI.
+ARG BASE_IMAGE_BUILD=python:3.11-slim-bookworm
+ARG BASE_IMAGE_RUNTIME=python:3.11-slim-bookworm
 
 # -- Build stage: compile C extensions, install deps into /venv ------------
-FROM python:3.11-slim-bookworm AS build
+FROM ${BASE_IMAGE_BUILD} AS build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential gcc libgomp1 && \
     rm -rf /var/lib/apt/lists/*
@@ -19,7 +22,8 @@ COPY services/model_inference/requirements.txt /requirements.txt
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 
 # -- Runtime: slim with only libgomp, no build tools, non-root user --------
-FROM python:3.11-slim-bookworm
+ARG BASE_IMAGE_RUNTIME
+FROM ${BASE_IMAGE_RUNTIME}
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
     rm -rf /var/lib/apt/lists/* && \
     useradd --no-create-home --shell /sbin/nologin appuser && \

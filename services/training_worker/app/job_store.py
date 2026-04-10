@@ -150,7 +150,7 @@ class TrainingJobStore:
             try:
                 r.publish(f"training:{job_id}", json.dumps(payload, default=str))
             except Exception:
-                pass
+                logger.debug("Redis publish failed for training:%s", job_id)
 
 
 # Singleton

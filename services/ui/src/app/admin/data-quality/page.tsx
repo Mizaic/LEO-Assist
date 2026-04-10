@@ -157,8 +157,8 @@ export default function DataQualityDashboard() {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={2} mb={4}>
-          <Grid item xs={12} sm={6} md={3}>
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <SummaryCard
               title="Episodes"
               value={episodes?.total_count ?? '-'}
@@ -168,7 +168,7 @@ export default function DataQualityDashboard() {
               alert={(episodes?.stale_count ?? 0) > 0}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <SummaryCard
               title="Surface forms"
               value={sfAudit?.total_count ?? '-'}
@@ -178,7 +178,7 @@ export default function DataQualityDashboard() {
               alert={(sfAudit?.orphan_count ?? 0) > 0}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <SummaryCard
               title="Domain coverage"
               value="--"
@@ -187,7 +187,7 @@ export default function DataQualityDashboard() {
               icon={<TuneOutlinedIcon color="primary" />}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <SummaryCard
               title="Sitrep"
               value="--"

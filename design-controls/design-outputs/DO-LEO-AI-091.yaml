@@ -1,0 +1,92 @@
+# -- DO-LEO-AI-091 -- Spinal-TNM Context Disambiguation Guard Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-091"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-093"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-066"]
+    verification_tests: ["VT-LEO-AI-093"]
+
+  specification:
+    title: "Spinal-TNM scope guard and LLM prompt disambiguation rule"
+    description: |
+      Two coordinated changes that form a dual-layer defence against spinal
+      vertebral notation being misclassified as cancer TNM staging:
+
+      Layer 1 -- LLM prompt (extraction_v1.py):
+        A new negative extraction rule in the DO NOT EXTRACT section instructs
+        the extraction model not to label isolated vertebral level tokens (C1-C7,
+        T1-T12, L1-L5, S1-S5) as staging scale or observable entity when the
+        sentence contains spinal anatomical or physiotherapy context signals.
+
+      Layer 2 -- Post-processing scope guard (scope_guard.py):
+        A new is_spinal_context() predicate and a matching check block inside
+        reclassify_assertion(). When a standalone TNM component token (T0-T4,
+        N0-N3, M0-M1 with optional c/p/y/r prefix) appears in a sentence with
+        spinal markers and no full TNM triplet, reclassify_assertion() returns
+        SUPPRESSED. The _apply_scope_guard_to_dicts() caller in post_processing.py
+        removes the entity before terminology resolution.
+
+    acceptance_criteria:
+      - criterion: "Spinal-context staging suppression"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          reclassify_assertion() returns SUPPRESSED for T4/N2/M1 tokens in
+          sentences with facet, nags, snags, vertebra, or spinal markers.
+      - criterion: "Full-triplet exemption"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Entity in sentence containing a full T+N+M triplet (e.g. T2N1M0) is NOT
+          suppressed even when spinal marker is also present.
+      - criterion: "Oncology context exemption"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Entity in sentence with oncology signals (cancer, biopsy, staging, MDT)
+          is NOT suppressed even when an isolated TNM component is present.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/ner/scope_guard.py"
+        description: >
+          is_spinal_context() predicate with _SPINAL_CONTEXT_RE regex.
+          _STANDALONE_TNM_COMPONENT_RE and _TNM_FULL_TRIPLET_RE regexes.
+          New guard block in reclassify_assertion() returning SUPPRESSED when
+          standalone TNM token + spinal context + no full triplet.
+      - artifact_type: "source_code"
+        location: "libs/prompts/extraction_v1.py"
+        description: >
+          New DO NOT EXTRACT paragraph for vertebral level notation in
+          spinal/musculoskeletal context, with worked examples distinguishing
+          spinal vertebra labels from cancer TNM staging.
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 45
+      key_functions:
+        - "is_spinal_context"
+        - "reclassify_assertion"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - >
+        Suppression of false-positive TNM staging entities derived from spinal text,
+        preventing incorrect cancer staging observations being persisted to patient
+        graph and surfaced in clinical audit dashboards.
+    risk_control_measures:
+      - "Dual-layer guard: LLM prompt prevents extraction; scope guard suppresses any that pass through"
+      - "Full-triplet exemption preserves valid TNM staging when T+N+M all present"
+      - "Oncology context signals exempt entities from suppression"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

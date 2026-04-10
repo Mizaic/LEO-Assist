@@ -16,6 +16,47 @@ from libs.message_bus.base import Message, MessageBusAdapter
 
 logger = logging.getLogger("libs.message_bus.azure")
 
+
+def _log_servicebus_fatal(exc: Exception, queue: str) -> None:
+    """Log a fatal Service Bus error with an actionable message.
+
+    The azure-identity library decodes az-CLI stderr as UTF-8.  On Windows,
+    AAD error messages contain non-breaking spaces (0xa0 / Latin-1) which are
+    not valid UTF-8, causing a UnicodeDecodeError when a token refresh is
+    needed.  We detect that specific chain and emit a clear 'run az login'
+    instruction instead of the raw codec error.
+    """
+    cause = exc.__cause__ or exc.__context__
+    if isinstance(cause, UnicodeDecodeError):
+        logger.critical(
+            "Azure credential token expired or could not be refreshed for %s.  "
+            "Re-authenticate: az login --scope https://servicebus.azure.net//.default  "
+            "Raw error: %s",
+            queue, exc,
+        )
+    else:
+        logger.critical(
+            "Service Bus connection lost for %s -- worker must restart.  Error: %s",
+            queue, exc,
+        )
+
+
+def _on_listener_task_done(task: "asyncio.Task[None]", queue: str) -> None:
+    """Done-callback that surfaces task exceptions rather than silently dropping them."""
+    import asyncio
+
+    if task.cancelled():
+        logger.warning("Service Bus listener task for %s was cancelled", queue)
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.critical(
+            "Service Bus listener for %s terminated with an unhandled exception -- "
+            "no more messages will be processed until the worker restarts: %s",
+            queue, exc,
+        )
+
+
 # Maximum time in seconds to keep renewing a message lock.
 # Set generously — a patient with 300 clinical encounters can take 2+ hours.
 _MAX_LOCK_RENEWAL_SECONDS = int(os.getenv("SB_MAX_LOCK_RENEWAL_SECONDS", "14400"))  # 4 hours
@@ -81,60 +122,72 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         self._receivers.append(receiver)
 
         async def _loop():
-            from azure.servicebus.exceptions import MessageLockLostError
+            from azure.servicebus.exceptions import MessageLockLostError, ServiceBusError
 
-            async with AutoLockRenewer() as renewer:
-                async with receiver:
-                    async for sb_msg in receiver:
-                        # Register this message for automatic lock renewal.
-                        # If the worker crashes, renewal stops and the lock
-                        # expires naturally so another replica can pick it up.
-                        renewer.register(
-                            receiver,
-                            sb_msg,
-                            max_lock_renewal_duration=_MAX_LOCK_RENEWAL_SECONDS,
-                        )
-                        try:
-                            body = json.loads(str(sb_msg))
-                            msg = Message(
-                                body=body,
-                                message_id=sb_msg.message_id or "",
-                                correlation_id=sb_msg.correlation_id,
-                                subject=sb_msg.subject,
-                            )
-                            logger.info(
-                                "Message %s received from %s — lock auto-renewal active (max %ds)",
-                                sb_msg.message_id, queue_or_topic, _MAX_LOCK_RENEWAL_SECONDS,
-                            )
-                            result = handler(msg)
-                            if hasattr(result, "__await__"):
-                                await result
-                            await receiver.complete_message(sb_msg)
-                            logger.info("Message %s completed", sb_msg.message_id)
-                        except MessageLockLostError:
-                            # Lock expired — Service Bus will redeliver automatically.
-                            # There is nothing to settle; any attempt to complete/abandon
-                            # will also raise MessageLockLostError.
-                            logger.warning(
-                                "Message %s lock expired before settlement — "
-                                "Service Bus will redeliver (delivery count will increment)",
-                                sb_msg.message_id,
-                            )
-                        except Exception:
-                            logger.exception(
-                                "Handler failed for message %s — abandoning (will retry)",
-                                sb_msg.message_id,
+            try:
+                async with AutoLockRenewer() as renewer:
+                    async with receiver:
+                        async for sb_msg in receiver:
+                            # Register this message for automatic lock renewal.
+                            # If the worker crashes, renewal stops and the lock
+                            # expires naturally so another replica can pick it up.
+                            renewer.register(
+                                receiver,
+                                sb_msg,
+                                max_lock_renewal_duration=_MAX_LOCK_RENEWAL_SECONDS,
                             )
                             try:
-                                await receiver.abandon_message(sb_msg)
+                                body = json.loads(str(sb_msg))
+                                msg = Message(
+                                    body=body,
+                                    message_id=sb_msg.message_id or "",
+                                    correlation_id=sb_msg.correlation_id,
+                                    subject=sb_msg.subject,
+                                )
+                                logger.info(
+                                    "Message %s received from %s -- lock auto-renewal active (max %ds)",
+                                    sb_msg.message_id, queue_or_topic, _MAX_LOCK_RENEWAL_SECONDS,
+                                )
+                                result = handler(msg)
+                                if hasattr(result, "__await__"):
+                                    await result
+                                await receiver.complete_message(sb_msg)
+                                logger.info("Message %s completed", sb_msg.message_id)
                             except MessageLockLostError:
+                                # Lock expired -- Service Bus will redeliver automatically.
                                 logger.warning(
-                                    "Message %s lock also expired during abandon — "
-                                    "Service Bus will redeliver",
+                                    "Message %s lock expired before settlement -- "
+                                    "Service Bus will redeliver (delivery count will increment)",
                                     sb_msg.message_id,
                                 )
+                            except Exception:
+                                logger.exception(
+                                    "Handler failed for message %s -- abandoning (will retry)",
+                                    sb_msg.message_id,
+                                )
+                                try:
+                                    await receiver.abandon_message(sb_msg)
+                                except MessageLockLostError:
+                                    logger.warning(
+                                        "Message %s lock also expired during abandon -- "
+                                        "Service Bus will redeliver",
+                                        sb_msg.message_id,
+                                    )
+            except ServiceBusError as exc:
+                _log_servicebus_fatal(exc, queue_or_topic)
+                raise
+            except Exception:
+                logger.critical(
+                    "Unexpected fatal error in Service Bus listener for %s -- worker must restart",
+                    queue_or_topic,
+                    exc_info=True,
+                )
+                raise
 
-        asyncio.create_task(_loop())
+        task = asyncio.create_task(_loop())
+        task.add_done_callback(
+            lambda t: _on_listener_task_done(t, queue_or_topic)
+        )
 
     async def close(self) -> None:
         for sender in self._senders.values():

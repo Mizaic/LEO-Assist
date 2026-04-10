@@ -16,7 +16,7 @@ test.describe("Review Workflow", () => {
     if (await firstCard.isVisible()) {
       await firstCard.click();
       await page.waitForLoadState("networkidle");
-      await expect(page).toHaveURL(/\/care/patients\//);
+      await expect(page).toHaveURL(/\/care\/patients\//);
     }
   });
 

@@ -1,10 +1,11 @@
-"""Service Bus handler: validate coding job messages and run CodingPipeline."""
+"""Service Bus handler: validate coding jobs and run WorkflowEngine."""
 
 from __future__ import annotations
 
 import logging
 import os
 import re
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
@@ -23,6 +24,7 @@ class CodingJobMessage(BaseModel):
     encounter_id: str | None = Field(default=None, max_length=128)
     mode: str = "all"
     dry_run: bool = False
+    trigger_analysis: bool = False
 
     @field_validator("patient_id")
     @classmethod
@@ -57,49 +59,128 @@ async def handle_coding_job(message: Message) -> None:
         return
 
     try:
-        await _run_coding_job(job)
+        await _run_coding_job(job, message)
     except Exception:
         logger.exception("Coding job failed patient_id=%s", job.patient_id)
 
 
-async def _run_coding_job(job: CodingJobMessage) -> None:
-    from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
-    from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
+def _build_progress_callback(run_id: str, *, suppress_run_completed: bool = False):
+    from services.coding_worker.app.services.progress_publisher import publish_progress
 
-    coding_mode = os.getenv("CODING_MODE", "hitl")
-    pc = PatientGraphClient()
-    kc = KnowledgeGraphClient()
+    def _callback(event: dict[str, Any]) -> None:
+        payload = dict(event)
+        payload.setdefault("run_id", run_id)
+        if suppress_run_completed and payload.get("type") == "run_completed":
+            payload["type"] = "encounter_completed"
+        publish_progress(run_id, payload)
+
+    return _callback
+
+
+async def _dispatch_engine_for_encounter(
+    handler,
+    step_callback,
+    base_body: dict[str, Any],
+    *,
+    patient_id: str,
+    encounter_id: str,
+    run_id: str,
+    dry_run: bool,
+) -> None:
+    body = {
+        "event_type": str(base_body.get("event_type") or "encounter-created"),
+        "patient_id": patient_id,
+        "encounter_id": encounter_id,
+        "plan_definition_id": str(
+            base_body.get("plan_definition_id") or "pd-gp-encounter-coding"
+        ),
+        "context": {
+            "dry_run": dry_run,
+            "mode": "extract_encounter",
+            "encounter_id": encounter_id,
+        },
+    }
+    await handler.handle_message(
+        Message(body=body, correlation_id=run_id, subject="encounter-created"),
+        step_callback=step_callback,
+    )
+
+
+async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
+    from libs.neo4j_client.client import PatientGraphClient, get_async_driver
+    from libs.workflow.engine import WorkflowEngine
+    from libs.workflow.events import ServiceBusEventHandler
+
+    body = raw_message.body if isinstance(raw_message.body, dict) else {}
+    run_id = str(
+        raw_message.correlation_id
+        or body.get("run_id")
+        or raw_message.message_id
+        or ""
+    ).strip()
+    if not run_id:
+        run_id = f"run-{job.patient_id}"
+
+    driver = get_async_driver()
     try:
-        pipeline = CodingPipeline(pc, kc, coding_mode=coding_mode)
+        engine = WorkflowEngine(neo4j_driver=driver)
+        handler = ServiceBusEventHandler(engine)
+
         if job.mode == "extract_encounter":
             if not job.encounter_id:
                 logger.error("extract_encounter job missing encounter_id")
                 return
-            await pipeline.run_single_encounter(
-                job.patient_id,
-                job.encounter_id,
+            await _dispatch_engine_for_encounter(
+                handler,
+                _build_progress_callback(run_id),
+                body,
+                patient_id=job.patient_id,
+                encounter_id=job.encounter_id,
+                run_id=run_id,
                 dry_run=job.dry_run,
             )
             return
 
-        rows = pc.run(
-            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
-            "WHERE toString(p.id) = $pid AND e.classification_content_type = 'clinical' "
-            "RETURN e.id AS encounter_id",
-            pid=job.patient_id,
-        )
+        pc = PatientGraphClient()
+        try:
+            rows = pc.run(
+                "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
+                "WHERE toString(p.id) = $pid "
+                "  AND coalesce(e.classification_content_type, 'clinical') = 'clinical' "
+                "  AND trim(coalesce(e.text, '')) <> '' "
+                "RETURN toString(e.id) AS encounter_id",
+                pid=job.patient_id,
+            )
+        finally:
+            pc.close()
+
         if not rows:
             logger.warning("No clinical encounters for patient_id=%s", job.patient_id)
             return
+
         for row in rows:
-            eid = str(row.get("encounter_id") or "").strip()
-            if not eid:
+            encounter_id = str(row.get("encounter_id") or "").strip()
+            if not encounter_id:
                 continue
-            await pipeline.run_single_encounter(
-                job.patient_id,
-                eid,
+            await _dispatch_engine_for_encounter(
+                handler,
+                _build_progress_callback(run_id, suppress_run_completed=True),
+                body,
+                patient_id=job.patient_id,
+                encounter_id=encounter_id,
+                run_id=run_id,
                 dry_run=job.dry_run,
             )
+        from services.coding_worker.app.services.progress_publisher import publish_progress
+
+        publish_progress(
+            run_id,
+            {
+                "type": "run_completed",
+                "run_id": run_id,
+                "patient_id": job.patient_id,
+                "status": "completed",
+            },
+        )
     finally:
-        pc.close()
-        kc.close()
+        await driver.close()

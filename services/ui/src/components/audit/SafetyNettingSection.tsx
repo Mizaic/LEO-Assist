@@ -8,6 +8,8 @@ import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditSafetyNetting, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 interface Props {
   result: AuditSectionResult<AuditSafetyNetting> | null;
@@ -17,14 +19,12 @@ interface Props {
 }
 
 export default function SafetyNettingSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   const chartData: ComparisonDataRow[] = [
     {
@@ -42,7 +42,7 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
       unit: "%",
       practice: practice ? { value: practice.recorded_pct, n: practice.recorded_n } : null,
       similar: allianceLive ? { value: allianceLive.recorded_pct } : null,
-      alliance: englandLive ? { value: englandLive.recorded_pct } : { value: bm?.["safety_netting.recorded_pct"]?.alliance ?? null },
+      alliance: englandLive ? { value: englandLive.recorded_pct } : null,
       national: { value: resolveBenchmarkValue(bm, "safety_netting.recorded_pct", orgSelected) },
     },
   ];
@@ -89,6 +89,8 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
         metrics={[{ metricKey: "positive_contribution_pct", label: "Positive contribution %" }]}
         orgSelected={orgSelected}
         heading="2018 Baseline by Cancer Type — Safety Netting Positive Contribution (%)"
+        showAlliance2018={orgSelected ? showCancerAlliance : undefined}
+        showNational2018={orgSelected ? showAllPatients : undefined}
       />
     </SectionCard>
   );

@@ -1,7 +1,7 @@
 """Persistence subgraph for writing to patient graph and gold training.
 
 Routes based on ``output_target`` in state:
-- ``patient_graph`` — writes CodingDecision nodes per entity
+- ``patient_graph`` — writes :DOCUMENTS/:HAS_<tag> links and CodingDecision nodes
 - ``gold_training`` — writes GoldLabel/TrainingCandidate nodes (GDPR isolated)
 - ``both`` — writes to both stores
 """
@@ -24,6 +24,7 @@ class PersistState(TypedDict, total=False):
     patient_id: str
     encounter_id: str
     encounter_text: str
+    sentences: list[dict]
     entities: list[dict]
     tier_decisions: list[dict]
     output_target: str
@@ -64,9 +65,12 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
         return {"documents_written": 0}
 
     entities = state.get("entities") or []
+    raw_sentences = state.get("sentences") or []
+    encounter_text = state.get("encounter_text") or ""
     encounter_id = state.get("encounter_id") or ""
     patient_id = state.get("patient_id") or ""
     run_id = state.get("run_id") or ""
+    tier_decisions = state.get("tier_decisions") or []
     errors = list(state.get("errors") or [])
 
     if not entities:
@@ -74,11 +78,79 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
 
     try:
         from libs.cypher.coding_decision_queries import UPSERT_CODING_DECISION
+        from libs.cypher.documents_queries import write_documents_from_sentences_payload
 
         client = _get_patient_graph_client()
         n = 0
+        docs_written = 0
         try:
             with client.session() as session:
+                # Build a sentence payload compatible with documents_queries writer.
+                tier_by_index = {
+                    int(d.get("entity_index")): d.get("tier")
+                    for d in tier_decisions
+                    if d.get("entity_index") is not None
+                }
+                terms_by_sentence: dict[str, list[dict[str, Any]]] = {}
+                fallback_sentence_id = "s-fallback"
+                for idx, e in enumerate(entities):
+                    concept_id = e.get("concept_id")
+                    if not concept_id or e.get("terminology_unresolved"):
+                        continue
+                    sentence_id = e.get("__sentence_id") or fallback_sentence_id
+                    terms_by_sentence.setdefault(sentence_id, []).append(
+                        {
+                            "text": e.get("text", ""),
+                            "semantic_tag": e.get("semantic_tag") or e.get("label") or "other",
+                            "assertion": e.get("assertion", "present"),
+                            "modifiers": e.get("modifiers") or {},
+                            "numeric_value": e.get("value"),
+                            "unit": e.get("unit"),
+                            "reference_range": e.get("reference_range"),
+                            "decision_tier": tier_by_index.get(idx),
+                            "coding": {
+                                "snomed_concept_id": str(concept_id),
+                                "read_code": e.get("read_code"),
+                                "snomed_term": e.get("term") or e.get("text", ""),
+                                "score": float(e.get("score") or 0.0),
+                                "source": "pipeline",
+                            },
+                            "extraction_model_name": e.get("__model_name", ""),
+                            "extraction_model_version": e.get("__model_version", ""),
+                            "contract_version": e.get("__contract_version", ""),
+                            "domain": e.get("domain", "clinical"),
+                        }
+                    )
+
+                sentences_payload: list[dict[str, Any]] = []
+                seen_ids: set[str] = set()
+                for s in raw_sentences:
+                    sid = str(s.get("sentence_id") or "")
+                    if not sid or sid in seen_ids:
+                        continue
+                    seen_ids.add(sid)
+                    sentences_payload.append(
+                        {
+                            "sentence_id": sid,
+                            "text": s.get("text", ""),
+                            "terms": terms_by_sentence.pop(sid, []),
+                        }
+                    )
+                # Include any terms that did not carry a sentence_id.
+                for sid, terms in terms_by_sentence.items():
+                    fallback_text = encounter_text
+                    sentences_payload.append(
+                        {"sentence_id": sid, "text": fallback_text, "terms": terms}
+                    )
+
+                docs_written = write_documents_from_sentences_payload(
+                    encounter_id=encounter_id,
+                    sentences_payload=sentences_payload,
+                    session=session,
+                    source="pipeline",
+                    run_id=run_id,
+                )
+
                 for e in entities:
                     text = e.get("text", "")
                     decision_id = hashlib.sha256(
@@ -102,8 +174,13 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                     n += 1
         finally:
             client.close()
-        logger.info("Wrote %d CodingDecision nodes for encounter %s", n, encounter_id)
-        return {"documents_written": n, "errors": errors}
+        logger.info(
+            "Wrote %d DOCUMENTS links and %d CodingDecision nodes for encounter %s",
+            docs_written,
+            n,
+            encounter_id,
+        )
+        return {"documents_written": docs_written, "errors": errors}
     except Exception as exc:
         logger.exception("Patient graph persist failed")
         errors.append(f"persist_patient_graph: {exc}")

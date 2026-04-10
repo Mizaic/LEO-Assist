@@ -135,28 +135,27 @@ class TestFilterPolymorphism:
 class TestExtractionPromptRules:
     def test_admin_only_lines_do_not_extract_rule_present(self) -> None:
         """Purely admin lines must not get invented clinical entities."""
-        assert "receptionist" in EXTRACTION_SYSTEM_V1.lower()
-        assert "repeat prescription" in EXTRACTION_SYSTEM_V1.lower()
-        assert "without codable terms" in EXTRACTION_SYSTEM_V1.lower()
+        prompt_lower = EXTRACTION_SYSTEM_V1.lower()
+        assert "purely administrative text" in prompt_lower
+        assert "workflow text" in prompt_lower
+        assert "safety-netting" in prompt_lower
 
     def test_nad_do_not_extract_rule_present(self) -> None:
         """NAD must appear in the DO NOT EXTRACT section."""
-        assert '"NAD"' in EXTRACTION_SYSTEM_V1 or "'NAD'" in EXTRACTION_SYSTEM_V1
+        assert "NAD" in EXTRACTION_SYSTEM_V1
+        assert "Do NOT extract" in EXTRACTION_SYSTEM_V1
 
-    def test_nad_ambiguity_note_in_prompt(self) -> None:
-        """Prompt must state NAD is ambiguous between two meanings."""
+    def test_nad_never_extract_rule_in_prompt(self) -> None:
+        """Prompt must explicitly block NAD extraction."""
         prompt_lower = EXTRACTION_SYSTEM_V1.lower()
-        assert "no abnormality detected" in prompt_lower
-        assert "no apparent distress" in prompt_lower
+        assert "nad -> never extract" in prompt_lower
 
     def test_nad_prompt_says_do_not_code(self) -> None:
         """Prompt must tell LLM not to code NAD."""
         assert any(phrase in EXTRACTION_SYSTEM_V1 for phrase in [
-            "NOT be extracted",
-            "must NOT be extracted",
-            "do not code",
-            "omit NAD",
-            "leave for manual review",
+            "Do NOT extract",
+            "never extract",
+            "NAD -> never extract",
         ])
 
     def test_ca_disambiguation_present(self) -> None:

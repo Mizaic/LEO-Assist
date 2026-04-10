@@ -53,14 +53,17 @@ MERGE_EPISODE = (
 )
 
 LINK_ENCOUNTERS = (
+    "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
+    "OPTIONAL MATCH (:Encounter)-[r_old:IS_PART_OF]->(ep) "
+    "DELETE r_old "
+    "WITH ep "
     "UNWIND $encounters AS e "
     "OPTIONAL MATCH (enc:Encounter {id: e.encounter_id}) "
-    "WITH enc, e WHERE enc IS NOT NULL "
-    "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
+    "WITH ep, enc, e WHERE enc IS NOT NULL "
     "MERGE (enc)-[r:IS_PART_OF]->(ep) "
-    "ON CREATE SET r.milestone_type = e.milestone_type, "
-    "              r.linked_by = 'episode_builder', "
-    "              r.linked_at = datetime() "
+    "SET r.milestone_type = e.milestone_type, "
+    "    r.linked_by = 'episode_builder', "
+    "    r.linked_at = datetime() "
 )
 
 STALE_CLOSE_Q = """
@@ -70,46 +73,64 @@ WHERE ep.patient_id = $patient_id
   AND ep.status = 'in_progress'
   AND ep.auto_closed <> true
 WITH ep,
-     date(ep.referral_date) AS ref_date,
      CASE
-       WHEN ep.specialist_seen = true AND ep.specialist_visit_date IS NOT NULL
-         THEN date(ep.specialist_visit_date)
+       WHEN ep.referral_date IS NULL
+            OR trim(toString(ep.referral_date)) = ''
+         THEN null
        ELSE date(ep.referral_date)
-     END AS spec_date,
+     END AS ref_date,
      date() AS today
+WITH ep, ref_date, today,
+     CASE
+       WHEN ep.specialist_seen = true
+            AND ep.specialist_visit_date IS NOT NULL
+            AND trim(toString(ep.specialist_visit_date)) <> ''
+         THEN date(ep.specialist_visit_date)
+       ELSE ref_date
+     END AS spec_date
 SET ep.status = CASE
       WHEN ep.specialist_seen = true
+           AND spec_date IS NOT NULL
            AND duration.inDays(spec_date, today).days > $post_spec_days
         THEN 'stale_post_specialist'
-      WHEN duration.inDays(ref_date, today).days > $hard_days
+      WHEN ref_date IS NOT NULL
+           AND duration.inDays(ref_date, today).days > $hard_days
         THEN 'stale_no_diagnosis'
       ELSE ep.status
     END,
     ep.auto_closed = CASE
       WHEN ep.specialist_seen = true
+           AND spec_date IS NOT NULL
            AND duration.inDays(spec_date, today).days > $post_spec_days THEN true
-      WHEN duration.inDays(ref_date, today).days > $hard_days THEN true
+      WHEN ref_date IS NOT NULL
+           AND duration.inDays(ref_date, today).days > $hard_days THEN true
       ELSE false
     END,
     ep.auto_close_reason = CASE
       WHEN ep.specialist_seen = true
+           AND spec_date IS NOT NULL
            AND duration.inDays(spec_date, today).days > $post_spec_days
         THEN 'auto_stale_90d_post_specialist'
-      WHEN duration.inDays(ref_date, today).days > $hard_days
+      WHEN ref_date IS NOT NULL
+           AND duration.inDays(ref_date, today).days > $hard_days
         THEN 'auto_stale_12m_no_diagnosis'
       ELSE null
     END,
     ep.hitl_flag = CASE
       WHEN ep.specialist_seen = true
+           AND spec_date IS NOT NULL
            AND duration.inDays(spec_date, today).days > $post_spec_days THEN true
-      WHEN duration.inDays(ref_date, today).days > $hard_days THEN true
+      WHEN ref_date IS NOT NULL
+           AND duration.inDays(ref_date, today).days > $hard_days THEN true
       ELSE ep.hitl_flag
     END,
     ep.hitl_reason = CASE
       WHEN ep.specialist_seen = true
+           AND spec_date IS NOT NULL
            AND duration.inDays(spec_date, today).days > $post_spec_days
         THEN 'Auto-closed: specialist seen >90 days ago with no diagnosis coded. Verify pathway outcome.'
-      WHEN duration.inDays(ref_date, today).days > $hard_days
+      WHEN ref_date IS NOT NULL
+           AND duration.inDays(ref_date, today).days > $hard_days
         THEN 'Auto-closed: >12 months since referral, no diagnosis coded. Verify pathway outcome.'
       ELSE ep.hitl_reason
     END
@@ -187,13 +208,6 @@ MARK_MERGED_Q = (
     "    dup.merged_into     = $primary_id, "
     "    dup.merged_at       = datetime(), "
     "    dup.merge_reasoning = $reasoning "
-    "WITH dup, primary "
-    "OPTIONAL MATCH (enc:Encounter)-[r:IS_PART_OF]->(dup) "
-    "WITH enc, r, primary WHERE enc IS NOT NULL "
-    "MERGE (enc)-[r2:IS_PART_OF]->(primary) "
-    "ON CREATE SET r2.milestone_type = r.milestone_type, "
-    "              r2.linked_by = 'episode_builder_merge', "
-    "              r2.linked_at = datetime()"
 )
 
 REFERRAL_CONTEXT_TEXT_Q = """

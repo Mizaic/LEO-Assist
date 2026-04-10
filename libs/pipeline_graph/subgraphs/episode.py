@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from asyncio import run as asyncio_run
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -77,6 +78,16 @@ def _to_anchor_result(state: EpisodeState) -> AnchorResult:
     )
 
 
+def _run_coro_sync(coro_factory):
+    """Run a coroutine from sync code, even if an event loop is active."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro_factory())
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        return executor.submit(lambda: asyncio.run(coro_factory())).result()
+
+
 def build_episodes(state: EpisodeState) -> dict[str, Any]:
     patient_id = state.get("patient_id") or ""
     logger.info("Building episodes for patient %s", patient_id)
@@ -84,26 +95,31 @@ def build_episodes(state: EpisodeState) -> dict[str, Any]:
 
     domain_id = state.get("domain_id") or ""
 
-    from libs.neo4j_client.client import PatientGraphClient
+    def _build():
+        async def _inner():
+            from libs.neo4j_client.client import PatientGraphClient
 
-    client = PatientGraphClient()
+            client = PatientGraphClient()
+            try:
+                return await build_patient_episodes(
+                    patient_id=patient_id,
+                    anchors=_to_anchor_result(state),
+                    patient_client=client,
+                    domain_id=domain_id,
+                )
+            finally:
+                client.close()
+
+        return _inner()
+
     try:
-        result = asyncio_run(
-            build_patient_episodes(
-                patient_id=patient_id,
-                anchors=_to_anchor_result(state),
-                patient_client=client,
-                domain_id=domain_id,
-            )
-        )
+        result = _run_coro_sync(_build)
     except Exception:
         logger.exception(
             "Episode build failed for patient %s -- propagating error",
             patient_id,
         )
         raise
-    finally:
-        client.close()
 
     episodes = [
         {

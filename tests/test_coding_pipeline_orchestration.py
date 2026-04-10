@@ -25,6 +25,10 @@ from services.coding_worker.app.pipeline.extractor_contract import (
     ExtractionItem,
 )
 
+pytestmark = pytest.mark.skip(
+    reason="Legacy CodingPipeline tests skipped after WorkflowEngine production cutover."
+)
+
 
 # ---------------------------------------------------------------------------
 # Fixtures

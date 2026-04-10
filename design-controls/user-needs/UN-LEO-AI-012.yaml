@@ -94,7 +94,7 @@
     created_date: "2026-03-01"
     status: "implemented"
 
-  design_inputs: ["DI-LEO-AI-018", "DI-LEO-AI-019", "DI-LEO-AI-060", "DI-LEO-AI-061", "DI-LEO-AI-067"]
+  design_inputs: ["DI-LEO-AI-018", "DI-LEO-AI-019", "DI-LEO-AI-060", "DI-LEO-AI-061", "DI-LEO-AI-067", "DI-LEO-AI-094"]
   validation_tests: ["VAL-LEO-AI-009"]
 
   tags: ["pipeline", "workflow", "composable", "cross-cutting", "architecture"]

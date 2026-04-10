@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,7 +28,7 @@ from app.models.neo4j_schema import (
 )
 from app.services.inference_service import infer_encounter
 from app.services.reset_review_queue_service import reset_review_queue
-from app.services.reset_service import reset_patient
+from app.services.reset_service import reset_encounter, reset_patient
 from app.services.sync_service import sync_gold_to_patient
 from services.terminology_api.app.services.writeback_service import writeback_approved_terms
 from app.services.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
@@ -62,6 +64,11 @@ class AddCodedLinkRequest(BaseModel):
 
 class InferRequest(BaseModel):
     dry_run: bool = True
+
+
+class ResetAndRecodeEncounterRequest(BaseModel):
+    dry_run: bool = False
+    rerun_episode_detector: bool = False
 
 
 @router.get("")
@@ -441,6 +448,79 @@ def infer_encounter_coding(
         client.close()
 
 
+@router.post("/{patient_id}/encounters/{encounter_id}/reset-and-recode")
+async def reset_and_recode_encounter(
+    patient_id: str,
+    encounter_id: str,
+    body: ResetAndRecodeEncounterRequest | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Reset one encounter coding artefacts and queue a fresh coding run."""
+    client = PatientGraphClient()
+    try:
+        require_patient_in_scope(client, scope, patient_id)
+        with client.session() as session:
+            encounter_rows = [dict(r) for r in session.run(
+                GET_ENCOUNTER,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+            )]
+            if not encounter_rows:
+                raise HTTPException(status_code=404, detail="Encounter not found")
+            encounter_text = str(encounter_rows[0].get("text") or "")
+            reset_result = reset_encounter(patient_id, encounter_id, session)
+        if reset_result.get("error") == "encounter_not_found":
+            raise HTTPException(status_code=404, detail="Encounter not found")
+    finally:
+        client.close()
+
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    run_id = str(uuid.uuid4())
+    dry_run = body.dry_run if body else False
+    rerun_episode_detector = body.rerun_episode_detector if body else False
+    queue_name = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
+
+    bus = create_message_bus()
+    try:
+        await bus.send(
+            queue_name,
+            Message(
+                body={
+                    "event_type": "encounter-created",
+                    "patient_id": patient_id,
+                    "encounter_id": encounter_id,
+                    "plan_definition_id": "pd-gp-encounter-coding",
+                    "mode": "extract_encounter",
+                    "dry_run": dry_run,
+                    "trigger_analysis": rerun_episode_detector,
+                    "context": {
+                        "encounter_text": encounter_text,
+                        "encounter_id": encounter_id,
+                        "plan_definition_id": "pd-gp-encounter-coding",
+                        "mode": "extract_encounter",
+                        "dry_run": dry_run,
+                        "trigger_analysis": rerun_episode_detector,
+                    },
+                },
+                correlation_id=run_id,
+                subject="encounter-created",
+            ),
+        )
+    finally:
+        await bus.close()
+
+    return {
+        **reset_result,
+        "queued": True,
+        "run_id": run_id,
+        "mode": "extract_encounter",
+        "dry_run": dry_run,
+        "rerun_episode_detector": rerun_episode_detector,
+    }
+
+
 @router.post("/{patient_id}/encounters/{encounter_id}/coded-links")
 def add_coded_link(
     patient_id: str,
@@ -563,7 +643,10 @@ def delete_coded_link(
             encounter_id=encounter_id,
             concept_id=concept_id,
         )
-        return {"deleted": True}
+        deleted = int(rows[0].get("deleted") or 0) if rows else 0
+        if deleted == 0:
+            raise HTTPException(status_code=404, detail="Coded link not found")
+        return {"deleted": True, "deleted_count": deleted}
     finally:
         client.close()
 
@@ -580,26 +663,31 @@ def recode_coded_link(
     client = PatientGraphClient()
     try:
         require_patient_in_scope(client, scope, patient_id)
-        with client.session() as session:
-            payload = SemanticLinkPayload(
-                encounter_id=encounter_id,
-                semantic_tag=body.semantic_tag,
-                concept_id=body.new_concept_id,
-                term=body.term,
-                read_code=body.read_code,
-                evidence="",
-                confidence=0.9,
-                domain="clinical",
-                context={},
-                modifiers=body.modifiers or {},
-                source="manual_recode",
-            )
-            writer.recode_documents_link(
-                patient_id=patient_id,
-                old_concept_id=concept_id,
-                new_payload=payload,
-                session=session,
-            )
+        try:
+            with client.session() as session:
+                payload = SemanticLinkPayload(
+                    encounter_id=encounter_id,
+                    semantic_tag=body.semantic_tag,
+                    concept_id=body.new_concept_id,
+                    term=body.term,
+                    read_code=body.read_code,
+                    evidence="",
+                    confidence=0.9,
+                    domain="clinical",
+                    context={},
+                    modifiers=body.modifiers or {},
+                    source="manual_recode",
+                )
+                writer.recode_documents_link(
+                    patient_id=patient_id,
+                    old_concept_id=concept_id,
+                    new_payload=payload,
+                    session=session,
+                )
+        except ValueError as exc:
+            if str(exc) == "coded_link_not_found":
+                raise HTTPException(status_code=404, detail="Coded link not found") from exc
+            raise
         return {"recode": True, "new_concept_id": body.new_concept_id}
     finally:
         client.close()

@@ -58,6 +58,24 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE INDEX audit_run_status IF NOT EXISTS FOR (a:AuditRun) ON (a.status)",
     "CREATE CONSTRAINT drift_metric_id IF NOT EXISTS FOR (d:DriftMetric) REQUIRE d.metric_id IS UNIQUE",
     "CREATE CONSTRAINT loop_config_id IF NOT EXISTS FOR (c:LoopConfig) REQUIRE c.loop_id IS UNIQUE",
+    # Mission Control -- audit tracking fields on EpisodeOfCare
+    "CREATE INDEX episode_reviewed_by IF NOT EXISTS FOR (e:EpisodeOfCare) ON (e.reviewed_by)",
+    "CREATE INDEX episode_reviewed_at IF NOT EXISTS FOR (e:EpisodeOfCare) ON (e.reviewed_at)",
+    "CREATE INDEX episode_audit_flag IF NOT EXISTS FOR (e:EpisodeOfCare) ON (e.audit_flag)",
+    # PipelineRun AuditEvent -- indexes for analytics queries on flat properties.
+    # status: filter/aggregate empty_extraction rate, error rate by period.
+    # extraction_prompt_hash: regression gates -- empty rate by prompt version.
+    # extraction_provider / extraction_model_tier: cost comparison across providers.
+    # patient_id + created_at: per-patient timeline and spend rollup.
+    "CREATE CONSTRAINT audit_event_id IF NOT EXISTS FOR (ae:AuditEvent) REQUIRE ae.id IS UNIQUE",
+    "CREATE INDEX audit_event_type IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.type)",
+    "CREATE INDEX audit_event_status IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.status)",
+    "CREATE INDEX audit_event_created_at IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.created_at)",
+    "CREATE INDEX audit_event_patient IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.patient_id)",
+    "CREATE INDEX audit_event_encounter IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.encounter_id)",
+    "CREATE INDEX audit_event_prompt_hash IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.extraction_prompt_hash)",
+    "CREATE INDEX audit_event_prompt_name IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.extraction_prompt_name)",
+    "CREATE INDEX audit_event_provider IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.extraction_provider)",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [

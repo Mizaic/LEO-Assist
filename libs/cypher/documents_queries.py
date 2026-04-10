@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 from libs.utils.deidentify import deidentify_with_span
@@ -158,6 +159,35 @@ def _assertion_context(assertion: str | None) -> dict:
     }
 
 
+def _select_evidence_sentence(sentence_text: str, span_text: str) -> str:
+    """Choose the smallest sentence/line containing span_text.
+
+    Some pipelines can pass a multi-line encounter block as sentence text.
+    We still persist sentence-level evidence by shrinking to the best
+    matching line/sentence before de-identification.
+    """
+    text = (sentence_text or "").strip()
+    span = (span_text or "").strip()
+    if not text or not span:
+        return text
+
+    span_lower = span.lower()
+    if span_lower not in text.lower():
+        return text
+
+    lines = [ln.strip() for ln in re.split(r"\n+", text) if ln.strip()]
+    line_hits = [ln for ln in lines if span_lower in ln.lower()]
+    if line_hits:
+        return min(line_hits, key=len)
+
+    sentence_parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", text) if p.strip()]
+    sentence_hits = [p for p in sentence_parts if span_lower in p.lower()]
+    if sentence_hits:
+        return min(sentence_hits, key=len)
+
+    return text
+
+
 def write_documents_from_sentences_payload(
     encounter_id: str,
     sentences_payload: list[dict[str, Any]],
@@ -250,8 +280,9 @@ def write_documents_from_sentences_payload(
             evidence_start: int | None = None
             evidence_end: int | None = None
             if sentence_text and span_text:
+                narrowed_sentence = _select_evidence_sentence(sentence_text, span_text)
                 deident, ev_start, ev_end = deidentify_with_span(
-                    sentence_text, span_text
+                    narrowed_sentence, span_text
                 )
                 evidence_sentence = deident
                 if ev_start == -1:
@@ -314,17 +345,23 @@ DELETE_CODED_LINK = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
 WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
 MATCH (e)-[r:DOCUMENTS]->(s)
-WHERE s.conceptId = $concept_id
-DELETE r
+WHERE toString(s.conceptId) = toString($concept_id)
+   OR toString(r.conceptId) = toString($concept_id)
+WITH collect(r) AS rels
+WITH rels, size(rels) AS deleted
+UNWIND rels AS rel
+DELETE rel
+RETURN deleted
 """
 
 UPDATE_CODED_LINK_MODIFIERS = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
 WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
 MATCH (e)-[r:DOCUMENTS]->(s)
-WHERE s.conceptId = $concept_id
+WHERE toString(s.conceptId) = toString($concept_id)
+   OR toString(r.conceptId) = toString($concept_id)
 SET r.modifiers = $modifiers
-RETURN s.conceptId AS concept_id, r.modifiers AS modifiers
+RETURN toString(s.conceptId) AS concept_id, r.modifiers AS modifiers
 """
 
 LIST_ENCOUNTER_CODED_LINKS = """
@@ -333,11 +370,15 @@ WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
 OPTIONAL MATCH (e)-[r:DOCUMENTS]->(s)
 RETURN toString(e.id) AS encounter_id,
        labels(s) AS node_labels,
-       s.conceptId AS concept_id,
+       toString(s.conceptId) AS concept_id,
        s.name AS term,
        s.readCode AS read_code,
        s.semanticTag AS semantic_tag,
        r.evidence AS evidence,
+       r.evidence_sentence AS evidence_sentence,
+       r.sentence_index AS sentence_index,
+       r.evidence_start AS evidence_start,
+       r.evidence_end AS evidence_end,
        r.value AS value,
        r.unit AS unit,
        r.referenceRange AS reference_range,

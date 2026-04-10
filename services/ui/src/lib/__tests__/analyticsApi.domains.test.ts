@@ -83,21 +83,37 @@ describe("createDomain", () => {
       expect.stringContaining("/analytics/domains"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ name: "QOF", description: "Quality" }),
+        body: JSON.stringify({
+          name: "QOF",
+          description: "Quality",
+          episode_detector: false,
+        }),
       }),
     );
   });
 });
 
 describe("deleteDomain", () => {
-  it("sends DELETE request", async () => {
+  it("sends DELETE with session credentials", async () => {
     mockFetch.mockResolvedValue({ ok: true, status: 204 });
 
     await deleteDomain("test_audit");
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/analytics/domains/test_audit"),
-      expect.objectContaining({ method: "DELETE" }),
+      expect.objectContaining({
+        method: "DELETE",
+        credentials: "include",
+        headers: expect.objectContaining({
+          "X-Requested-With": "XMLHttpRequest",
+        }),
+      }),
     );
+  });
+
+  it("throws on error response", async () => {
+    mockFetch.mockResolvedValue(err("Admin access required", 403));
+
+    await expect(deleteDomain("x")).rejects.toThrow("Admin access required");
   });
 });
 

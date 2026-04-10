@@ -8,6 +8,8 @@ import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditAvoidableDelays, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 interface Props {
   result: AuditSectionResult<AuditAvoidableDelays> | null;
@@ -17,14 +19,12 @@ interface Props {
 }
 
 export default function AvoidableDelaysSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   const mainChart: ComparisonDataRow[] = [
     {
@@ -66,7 +66,7 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
       unit: "%",
       practice: practice ? { value: practice.avoidable_delay_pct, n: practice.avoidable_delay_n } : null,
       similar: allianceLive ? { value: allianceLive.avoidable_delay_pct } : null,
-      alliance: englandLive ? { value: englandLive.avoidable_delay_pct } : { value: bm?.["avoidable_delays.avoidable_delay_pct"]?.alliance ?? null },
+      alliance: englandLive ? { value: englandLive.avoidable_delay_pct } : null,
       national: { value: resolveBenchmarkValue(bm, "avoidable_delays.avoidable_delay_pct", orgSelected) },
     },
     {
@@ -74,7 +74,7 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
       unit: "%",
       practice: practice ? { value: practice.delay_before_presentation_pct } : null,
       similar: allianceLive ? { value: allianceLive.delay_before_presentation_pct } : null,
-      alliance: englandLive ? { value: englandLive.delay_before_presentation_pct } : { value: bm?.["avoidable_delays.delay_before_presentation_pct"]?.alliance ?? null },
+      alliance: englandLive ? { value: englandLive.delay_before_presentation_pct } : null,
       national: { value: resolveBenchmarkValue(bm, "avoidable_delays.delay_before_presentation_pct", orgSelected) },
     },
     {
@@ -82,7 +82,7 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
       unit: "%",
       practice: practice ? { value: practice.delay_pres_to_referral_pct } : null,
       similar: allianceLive ? { value: allianceLive.delay_pres_to_referral_pct } : null,
-      alliance: englandLive ? { value: englandLive.delay_pres_to_referral_pct } : { value: bm?.["avoidable_delays.delay_between_presentation_referral_pct"]?.alliance ?? null },
+      alliance: englandLive ? { value: englandLive.delay_pres_to_referral_pct } : null,
       national: { value: resolveBenchmarkValue(bm, "avoidable_delays.delay_between_presentation_referral_pct", orgSelected) },
     },
     {
@@ -90,7 +90,7 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
       unit: "%",
       practice: practice ? { value: practice.delay_after_referral_pct } : null,
       similar: allianceLive ? { value: allianceLive.delay_after_referral_pct } : null,
-      alliance: englandLive ? { value: englandLive.delay_after_referral_pct } : { value: bm?.["avoidable_delays.delay_after_referral_pct"]?.alliance ?? null },
+      alliance: englandLive ? { value: englandLive.delay_after_referral_pct } : null,
       national: { value: resolveBenchmarkValue(bm, "avoidable_delays.delay_after_referral_pct", orgSelected) },
     },
   ];
@@ -146,6 +146,8 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
         metrics={[{ metricKey: "avoidable_delay_pct", label: "Avoidable delay %" }]}
         orgSelected={orgSelected}
         heading="2018 Baseline by Cancer Type — Avoidable Delay (%)"
+        showAlliance2018={orgSelected ? showCancerAlliance : undefined}
+        showNational2018={orgSelected ? showAllPatients : undefined}
       />
     </SectionCard>
   );

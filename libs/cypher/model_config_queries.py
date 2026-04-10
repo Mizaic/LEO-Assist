@@ -151,16 +151,25 @@ WHERE ae.type = 'PipelineRun'
 GET_AUDIT_EVENT_SPEND = (
     "MATCH (ae:AuditEvent) "
     + _AUDIT_EVENT_WHERE
-    + """RETURN ae.run_id             AS runId,
-       ae.patient_id         AS patientId,
-       ae.encounter_id       AS encounterId,
-       ae.status             AS status,
-       ae.total_duration_ms  AS durationMs,
-       ae.llm_input_tokens   AS inputTokens,
-       ae.llm_output_tokens  AS outputTokens,
-       ae.llm_cached_tokens  AS cachedTokens,
-       ae.llm_cost_usd       AS costUsd,
-       ae.created_at         AS createdAt
+    + """RETURN ae.run_id                    AS runId,
+       ae.patient_id                 AS patientId,
+       ae.encounter_id               AS encounterId,
+       ae.status                     AS status,
+       ae.step_count                 AS stepCount,
+       ae.entity_count               AS entityCount,
+       ae.error_count                AS errorCount,
+       ae.first_error                AS firstError,
+       ae.total_duration_ms          AS durationMs,
+       ae.llm_input_tokens           AS inputTokens,
+       ae.llm_output_tokens          AS outputTokens,
+       ae.llm_cached_tokens          AS cachedTokens,
+       ae.llm_cost_usd               AS costUsd,
+       ae.extraction_prompt_name     AS extractionPromptName,
+       ae.extraction_prompt_version  AS extractionPromptVersion,
+       ae.extraction_prompt_hash     AS extractionPromptHash,
+       ae.extraction_provider        AS extractionProvider,
+       ae.extraction_model_tier      AS extractionModelTier,
+       ae.created_at                 AS createdAt
 ORDER BY ae.created_at DESC
 LIMIT $limit
 """
@@ -170,10 +179,99 @@ LIMIT $limit
 GET_AUDIT_EVENT_SPEND_TOTALS = (
     "MATCH (ae:AuditEvent) "
     + _AUDIT_EVENT_WHERE
-    + """RETURN count(ae)                      AS runCount,
-       sum(ae.llm_input_tokens)          AS inputTokens,
-       sum(ae.llm_output_tokens)         AS outputTokens,
+    + """RETURN count(ae)                           AS runCount,
+       sum(ae.llm_input_tokens)               AS inputTokens,
+       sum(ae.llm_output_tokens)              AS outputTokens,
        sum(coalesce(ae.llm_cached_tokens, 0)) AS cachedTokens,
-       sum(coalesce(ae.llm_cost_usd, 0)) AS costUsd
+       sum(coalesce(ae.llm_cost_usd, 0))      AS costUsd
 """
 )
+
+# ---------------------------------------------------------------------------
+# Quality regression: empty-extraction rate by prompt version
+#
+# Returns one row per (prompt_name, prompt_version, prompt_hash) tuple with
+# run totals and the rate of empty_extraction outcomes.  Used by quality gates
+# and the /analytics/llm-spend/prompt-quality endpoint.
+# ---------------------------------------------------------------------------
+GET_AUDIT_EMPTY_RATE_BY_PROMPT = """
+MATCH (ae:AuditEvent)
+WHERE ae.type = 'PipelineRun'
+  AND ae.extraction_prompt_name IS NOT NULL
+  AND ae.extraction_prompt_name <> ''
+  AND ($from_date IS NULL OR ae.created_at >= datetime($from_date))
+  AND ($to_date   IS NULL OR ae.created_at <= datetime($to_date))
+WITH ae.extraction_prompt_name    AS promptName,
+     ae.extraction_prompt_version AS promptVersion,
+     ae.extraction_prompt_hash    AS promptHash,
+     count(ae)                    AS totalRuns,
+     sum(CASE WHEN ae.status = 'empty_extraction' THEN 1 ELSE 0 END) AS emptyRuns,
+     sum(CASE WHEN ae.status = 'error'            THEN 1 ELSE 0 END) AS errorRuns,
+     avg(toFloat(ae.entity_count))                                    AS avgEntityCount,
+     avg(toFloat(ae.total_duration_ms))                               AS avgDurationMs,
+     sum(coalesce(ae.llm_cost_usd, 0))                                AS totalCostUsd
+RETURN promptName,
+       promptVersion,
+       promptHash,
+       totalRuns,
+       emptyRuns,
+       errorRuns,
+       round(toFloat(emptyRuns) / CASE WHEN totalRuns > 0 THEN totalRuns ELSE 1 END, 4) AS emptyRate,
+       round(avgEntityCount, 2)   AS avgEntityCount,
+       round(avgDurationMs, 0)    AS avgDurationMs,
+       round(totalCostUsd, 4)     AS totalCostUsd
+ORDER BY promptVersion DESC, totalRuns DESC
+"""
+
+# ---------------------------------------------------------------------------
+# Quality regression: per-provider cost and entity yield comparison
+#
+# Answers: "Does AWS produce more codes per dollar than Azure for this period?"
+# ---------------------------------------------------------------------------
+GET_AUDIT_PROVIDER_COMPARISON = """
+MATCH (ae:AuditEvent)
+WHERE ae.type = 'PipelineRun'
+  AND ae.extraction_provider IS NOT NULL
+  AND ae.extraction_provider <> ''
+  AND ($from_date IS NULL OR ae.created_at >= datetime($from_date))
+  AND ($to_date   IS NULL OR ae.created_at <= datetime($to_date))
+WITH ae.extraction_provider    AS provider,
+     ae.extraction_model_tier  AS modelTier,
+     count(ae)                 AS runCount,
+     sum(CASE WHEN ae.status = 'empty_extraction' THEN 1 ELSE 0 END) AS emptyRuns,
+     avg(toFloat(ae.entity_count))               AS avgEntityCount,
+     avg(toFloat(ae.total_duration_ms))           AS avgDurationMs,
+     sum(coalesce(ae.llm_cost_usd, 0))            AS totalCostUsd,
+     sum(toInteger(ae.llm_input_tokens))          AS totalInputTokens,
+     sum(toInteger(ae.llm_output_tokens))         AS totalOutputTokens
+RETURN provider,
+       modelTier,
+       runCount,
+       emptyRuns,
+       round(toFloat(emptyRuns) / CASE WHEN runCount > 0 THEN runCount ELSE 1 END, 4) AS emptyRate,
+       round(avgEntityCount, 2)  AS avgEntityCount,
+       round(avgDurationMs, 0)   AS avgDurationMs,
+       round(totalCostUsd, 4)    AS totalCostUsd,
+       totalInputTokens,
+       totalOutputTokens
+ORDER BY totalCostUsd DESC
+"""
+
+# ---------------------------------------------------------------------------
+# Recent pipeline errors grouped by first_error pattern
+#
+# Enables: "What error types have spiked in the last 24 hours?"
+# ---------------------------------------------------------------------------
+GET_AUDIT_RECENT_ERRORS = """
+MATCH (ae:AuditEvent)
+WHERE ae.type = 'PipelineRun'
+  AND ae.error_count > 0
+  AND ae.first_error IS NOT NULL
+  AND ($from_date IS NULL OR ae.created_at >= datetime($from_date))
+  AND ($to_date   IS NULL OR ae.created_at <= datetime($to_date))
+RETURN ae.first_error AS firstError,
+       count(ae)      AS occurrences,
+       max(ae.created_at) AS lastSeen
+ORDER BY occurrences DESC
+LIMIT $limit
+"""

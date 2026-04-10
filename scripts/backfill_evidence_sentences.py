@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -58,18 +59,40 @@ _RECORDS_PER_MINUTE_ESTIMATE = 500
 # ---------------------------------------------------------------------------
 
 _Q_COUNT_MISSING = """
-MATCH (e:Encounter)-[r:DOCUMENTS]->(s)
-WHERE r.evidence_sentence IS NULL
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->(s)
+WHERE (
+    r.evidence_sentence IS NULL
+    OR (
+        $repair_oversized = true
+        AND r.evidence_sentence IS NOT NULL
+        AND (
+            toString(r.evidence_sentence) CONTAINS '\n'
+            OR size(toString(r.evidence_sentence)) > 240
+        )
+    )
+)
   AND r.evidence IS NOT NULL
   AND trim(toString(r.evidence)) <> ''
+  AND ($patient_id IS NULL OR toString(p.id) = $patient_id)
 RETURN count(r) AS total
 """
 
 _Q_FETCH_BATCH = """
-MATCH (e:Encounter)-[r:DOCUMENTS]->(s)
-WHERE r.evidence_sentence IS NULL
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->(s)
+WHERE (
+    r.evidence_sentence IS NULL
+    OR (
+        $repair_oversized = true
+        AND r.evidence_sentence IS NOT NULL
+        AND (
+            toString(r.evidence_sentence) CONTAINS '\n'
+            OR size(toString(r.evidence_sentence)) > 240
+        )
+    )
+)
   AND r.evidence IS NOT NULL
   AND trim(toString(r.evidence)) <> ''
+  AND ($patient_id IS NULL OR toString(p.id) = $patient_id)
 RETURN
     toString(elementId(r)) AS rel_id,
     toString(e.id)         AS encounter_id,
@@ -106,19 +129,47 @@ def _find_sentence(text: str, span_text: str, sentence_index: int | None) -> str
     """
     sentences = _split_sentences(text)
     if sentence_index is not None and 0 <= int(sentence_index) < len(sentences):
-        return sentences[int(sentence_index)]
+        indexed = sentences[int(sentence_index)]
+        narrowed = _narrow_to_smallest_match(indexed, span_text)
+        if narrowed:
+            return narrowed
     span_lower = span_text.lower()
-    for sent in sentences:
-        if span_lower in sent.lower():
-            return sent
+    matching = [sent for sent in sentences if span_lower in sent.lower()]
+    if matching:
+        return min(matching, key=len)
     return text[:1000]
 
 
 def _split_sentences(text: str) -> list[str]:
     """Rough sentence splitter for backfill (no NLP dependency required)."""
-    import re
     parts = re.split(r"(?<=[.!?])\s+", text)
     return [p.strip() for p in parts if p.strip()]
+
+
+def _narrow_to_smallest_match(text: str, span_text: str) -> str:
+    """Shrink a multi-line sentence block to the smallest matching line/sentence."""
+    source = (text or "").strip()
+    span = (span_text or "").strip()
+    if not source or not span:
+        return source
+
+    span_lower = span.lower()
+    if span_lower not in source.lower():
+        return source
+
+    lines = [ln.strip() for ln in re.split(r"\n+", source) if ln.strip()]
+    line_hits = [ln for ln in lines if span_lower in ln.lower()]
+    if line_hits:
+        return min(line_hits, key=len)
+
+    sentence_hits = [
+        s for s in re.split(r"(?<=[.!?])\s+", source)
+        if s.strip() and span_lower in s.lower()
+    ]
+    if sentence_hits:
+        return min(sentence_hits, key=lambda s: len(s.strip())).strip()
+
+    return source
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +183,7 @@ def _process_row(row: dict[str, Any]) -> dict[str, Any] | None:
     if not encounter_text or not span_text:
         return None
     sentence = _find_sentence(encounter_text, span_text, row.get("sentence_index"))
+    sentence = _narrow_to_smallest_match(sentence, span_text)
     deident, ev_start, ev_end = deidentify_with_span(sentence, span_text)
     if ev_start == -1:
         logger.debug(
@@ -147,12 +199,21 @@ def _process_row(row: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def backfill(batch_size: int, dry_run: bool) -> None:
+def backfill(
+    batch_size: int,
+    dry_run: bool,
+    patient_id: str | None,
+    repair_oversized: bool,
+) -> None:
     client = PatientGraphClient()
     try:
         # Pre-flight count
         with client.session() as session:
-            count_row = session.run(_Q_COUNT_MISSING).single()
+            count_row = session.run(
+                _Q_COUNT_MISSING,
+                patient_id=patient_id,
+                repair_oversized=repair_oversized,
+            ).single()
         total = int(count_row["total"]) if count_row else 0
 
         if total == 0:
@@ -178,7 +239,11 @@ def backfill(batch_size: int, dry_run: bool) -> None:
         while True:
             with client.session() as session:
                 rows = [dict(r) for r in session.run(
-                    _Q_FETCH_BATCH, skip=skip_offset, limit=batch_size
+                    _Q_FETCH_BATCH,
+                    skip=skip_offset,
+                    limit=batch_size,
+                    patient_id=patient_id,
+                    repair_oversized=repair_oversized,
                 )]
 
             if not rows:
@@ -259,8 +324,24 @@ def main() -> None:
         action="store_true",
         help="Preview first 10 records without writing",
     )
+    parser.add_argument(
+        "--patient-id",
+        type=str,
+        default=None,
+        help="Optional patient_id filter to backfill one patient only",
+    )
+    parser.add_argument(
+        "--repair-oversized",
+        action="store_true",
+        help="Also repair existing oversized multi-line evidence_sentence values",
+    )
     args = parser.parse_args()
-    backfill(batch_size=args.batch_size, dry_run=args.dry_run)
+    backfill(
+        batch_size=args.batch_size,
+        dry_run=args.dry_run,
+        patient_id=args.patient_id,
+        repair_oversized=args.repair_oversized,
+    )
 
 
 if __name__ == "__main__":

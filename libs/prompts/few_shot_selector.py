@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 from typing import Sequence
 
@@ -162,22 +163,78 @@ class FewShotSelector:
         """Return top-k examples by similarity, with deterministic fallback."""
         if k <= 0 or not self._pool:
             return []
+        query = query_text or ""
+        routed_pool = self._route_pool_for_query(query)
+        if not routed_pool:
+            routed_pool = self._pool
 
-        if self._pool_embeddings is None:
+        pool_embeddings = self._pool_embeddings
+        if pool_embeddings is None:
             self.warm()
+            pool_embeddings = self._pool_embeddings
 
-        if self._pool_embeddings is not None:
-            qv = self._embedder.encode([query_text or ""])
-            if qv is not None and qv.shape[0] == 1 and qv.shape[1] == self._pool_embeddings.shape[1]:
-                scores = self._pool_embeddings @ qv[0]
+        if (
+            pool_embeddings is not None
+            and len(routed_pool) == len(self._pool)
+        ):
+            qv = self._embedder.encode([query])
+            if qv is not None and qv.shape[0] == 1 and qv.shape[1] == pool_embeddings.shape[1]:
+                scores = pool_embeddings @ qv[0]
                 top_idx = np.argsort(-scores)[: min(k, len(self._pool))]
                 return [self._pool[int(i)] for i in top_idx]
 
+        # Routed subset path: embed only the filtered pool for precision.
+        routed_texts = [self._example_text(ex) for ex in routed_pool]
+        routed_vectors = self._embedder.encode(routed_texts)
+        if routed_vectors is not None:
+            qv = self._embedder.encode([query])
+            if qv is not None and qv.shape[0] == 1 and qv.shape[1] == routed_vectors.shape[1]:
+                scores = routed_vectors @ qv[0]
+                top_idx = np.argsort(-scores)[: min(k, len(routed_pool))]
+                return [routed_pool[int(i)] for i in top_idx]
+
         ordered = sorted(
-            self._pool,
+            routed_pool,
             key=lambda ex: (self._fallback_priority(str(ex.get("category", ""))), str(ex.get("description", ""))),
         )
         return ordered[: min(k, len(ordered))]
+
+    def _route_pool_for_query(self, query_text: str) -> list[dict]:
+        """Route retrieval by domain so lab-heavy notes prefer lab slices."""
+        bucket = self._query_bucket(query_text)
+        if bucket == "generic":
+            return list(self._pool)
+        mapped = [ex for ex in self._pool if self._example_bucket(ex) == bucket]
+        if len(mapped) >= 3:
+            return mapped
+        # Keep strict route preference while allowing broad recall when sparse.
+        return mapped + [ex for ex in self._pool if ex not in mapped]
+
+    @staticmethod
+    def _query_bucket(query_text: str) -> str:
+        text = (query_text or "").lower()
+        if re.search(r"\b(hba1c|egfr|creatinine|haemoglobin|hemoglobin|platelet|lymphocyte|neutrophil|monocyte|eosinophil|basophil|mmol\/l|10\^9\/l|g\/l|fbc|full blood count)\b", text):
+            return "labs"
+        if re.search(r"\b(stage|staging|tnm|metastatic|oncology|carcinoma|tumour|tumor|cancer)\b", text):
+            return "oncology"
+        if re.search(r"\b(referral|urgent|two week wait|2ww|booked|appointment|admin|letter)\b", text):
+            return "referral_admin"
+        if re.search(r"\b(medication|dose|tablet|capsule|mg|drug|prescribed)\b", text):
+            return "medication"
+        return "generic"
+
+    @staticmethod
+    def _example_bucket(example: dict) -> str:
+        category = str(example.get("category", "")).lower()
+        if any(t in category for t in ("lab", "observable", "value-unit", "haematology")):
+            return "labs"
+        if any(t in category for t in ("oncology", "staging", "cancer")):
+            return "oncology"
+        if any(t in category for t in ("referral", "admin", "pathway")):
+            return "referral_admin"
+        if any(t in category for t in ("medication", "drug", "substance")):
+            return "medication"
+        return "generic"
 
     @staticmethod
     def _example_text(example: dict) -> str:

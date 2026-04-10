@@ -10,6 +10,7 @@ from services.analysis_worker.app.analyzers.anchor_detector import AnchorResult
 from . import _config as cfg
 from ._auto_close import _apply_auto_close_rules, _apply_outcome_inference
 from ._first_presentation import (
+    _anchor_is_complaint,
     _first_presentation_from_anchors,
     _first_presentation_from_referral_context,
 )
@@ -26,6 +27,7 @@ from ._persistence import (
 from ._site_resolution import (
     _extract_condition_key_from_anchor,
     _referral_route_from_concept,
+    _site_keys_compatible,
 )
 from ._status import (
     _cancer_diag_anchors,
@@ -43,6 +45,67 @@ from ._types import (
     _episode_id,
     _parse_date,
 )
+
+
+def _first_presentation_link_anchors(
+    fp_anchors: list[dict[str, Any]],
+    fp_date: str | None,
+) -> list[dict[str, Any]]:
+    """Return anchors for one selected first-presentation encounter."""
+    if not fp_date:
+        return []
+    day = str(fp_date)[:10]
+    on_day = [
+        anchor
+        for anchor in fp_anchors
+        if str(anchor.get("encounter_date") or "").startswith(day)
+        and str(anchor.get("encounter_id") or "")
+    ]
+    if not on_day:
+        return []
+
+    complaint_ids = [
+        str(anchor.get("encounter_id") or "")
+        for anchor in on_day
+        if _anchor_is_complaint(anchor)
+    ]
+    target_id = complaint_ids[0] if complaint_ids else str(on_day[0].get("encounter_id"))
+    if not target_id:
+        return []
+    return [anchor for anchor in on_day if str(anchor.get("encounter_id") or "") == target_id]
+
+
+def _episode_treatment_anchors(
+    treatment_anchors: list[dict[str, Any]],
+    ref_date: date | None,
+    site_key: str,
+) -> list[dict[str, Any]]:
+    """Filter treatment anchors to those plausibly belonging to one episode."""
+    out: list[dict[str, Any]] = []
+    for anchor in treatment_anchors:
+        t_date = _parse_date(anchor.get("encounter_date"))
+        if ref_date and t_date and t_date < ref_date:
+            continue
+        t_key = _extract_condition_key_from_anchor(anchor)
+        if t_key not in ("unknown", "non_site_specific") and not _site_keys_compatible(
+            site_key, t_key
+        ):
+            continue
+        out.append(anchor)
+    out.sort(key=lambda a: str(a.get("encounter_date") or ""))
+    return out
+
+
+def _treatment_started_link_anchors(
+    treatment_anchors: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return a single earliest encounter for treatment_started milestone."""
+    if not treatment_anchors:
+        return []
+    for anchor in treatment_anchors:
+        if str(anchor.get("encounter_id") or ""):
+            return [anchor]
+    return []
 
 
 def _closed_episode_spec(
@@ -158,9 +221,14 @@ def _build_closed_episode(
         if fb_date and fb_complaint:
             fp_date, complaint, place = fb_date, fb_complaint, (fb_place or place)
 
+    episode_treatments = _episode_treatment_anchors(
+        ctx.anchors.treatment_anchors if ctx.anchors else [],
+        ref_date,
+        site_key,
+    )
     is_phantom = site_key in ctx.phantom_sites
     status, hitl_flag, hitl_reason = _determine_episode_status(
-        has_diag, diag_anchors, None, ctx.anchors.treatment_anchors, ref_date, is_phantom
+        has_diag, diag_anchors, None, episode_treatments, ref_date, is_phantom
     )
 
     if status == "completed" and site_key == "unknown" and not hitl_flag:
@@ -199,11 +267,13 @@ def _build_closed_episode(
         "diagnosis_confirmed" if _has_confirmed_diagnosis(diag_anchors) else "diagnosis"
     )
     fp_anchors = ctx.anchors.first_presentation_anchors if ctx.anchors else []
+    fp_link_anchors = _first_presentation_link_anchors(fp_anchors, fp_date)
+    treatment_link_anchors = _treatment_started_link_anchors(episode_treatments)
     _link_encounters_to_episode(ctx.patient_client, ep_id, [
         (ref_anchors, "referral"),
         (diag_anchors, diag_milestone),
-        (ctx.anchors.treatment_anchors if ctx.anchors else [], "treatment_started"),
-        (fp_anchors, "first_presentation"),
+        (treatment_link_anchors, "treatment_started"),
+        (fp_link_anchors, "first_presentation"),
     ])
 
 
@@ -241,6 +311,11 @@ def _build_open_episode(
         if fb_date and fb_complaint:
             fp_date, complaint, place = fb_date, fb_complaint, (fb_place or place)
 
+    episode_treatments = _episode_treatment_anchors(
+        ctx.anchors.treatment_anchors if ctx.anchors else [],
+        ref_date,
+        site_key,
+    )
     is_phantom = site_key in ctx.phantom_sites
     benign_date: date | None = None
     if not is_phantom and ref_date:
@@ -251,7 +326,7 @@ def _build_open_episode(
     letter_end, letter_reason = _infer_completed_from_specialist_letter(
         claim,
         ctx.anchors.specialist_outcome_letter_anchors,
-        ctx.anchors.treatment_anchors,
+        episode_treatments,
         ref_date,
     )
     letter_inferred_benign = False
@@ -261,7 +336,7 @@ def _build_open_episode(
         letter_inferred_benign = True
     else:
         status, hitl_flag, hitl_reason = _determine_episode_status(
-            False, [], benign_date, ctx.anchors.treatment_anchors, ref_date, is_phantom
+            False, [], benign_date, episode_treatments, ref_date, is_phantom
         )
         if benign_date:
             end_date = benign_date.isoformat()
@@ -295,9 +370,10 @@ def _build_open_episode(
     )
 
     fp_anchors = ctx.anchors.first_presentation_anchors if ctx.anchors else []
+    fp_link_anchors = _first_presentation_link_anchors(fp_anchors, fp_date)
     _link_encounters_to_episode(ctx.patient_client, ep_id, [
         (group, "referral"),
-        (fp_anchors, "first_presentation"),
+        (fp_link_anchors, "first_presentation"),
     ])
 
 

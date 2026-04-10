@@ -66,17 +66,43 @@ export default function RunSection() {
     setProgress(0);
     const started = Date.now();
 
-    const params = new URLSearchParams();
-    ids.forEach((id) => params.append("patient_ids", id));
-    if (dryRun) params.append("dry_run", "true");
-
     const abort = new AbortController();
     abortRef.current = abort;
 
     try {
+      const start = await fetch("/api/pipeline/run-cohort", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          patient_ids: ids,
+          action: "full_pipeline",
+          preview: dryRun,
+        }),
+        signal: abort.signal,
+      });
+      if (!start.ok) {
+        throw new Error(`Server returned ${start.status}`);
+      }
+      const startPayload = (await start.json()) as { run_id?: string };
+      if (!startPayload.run_id) {
+        throw new Error("Run ID missing from start response.");
+      }
+      appendLog(`Queued run ${startPayload.run_id.slice(0, 8)}. Waiting for worker pickup...`);
+
       const res = await fetch(
-        `/api/pipeline/stream-unprocessed?${params}`,
-        { signal: abort.signal },
+        `/api/pipeline/progress/${encodeURIComponent(startPayload.run_id)}`,
+        {
+          credentials: "include",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "text/event-stream",
+          },
+          signal: abort.signal,
+        }
       );
       if (!res.ok || !res.body) {
         throw new Error(`Server returned ${res.status}`);
@@ -97,7 +123,16 @@ export default function RunSection() {
           if (!raw.startsWith("data: ")) continue;
           try {
             const evt = JSON.parse(raw.slice(6));
-            if (evt.progress != null) setProgress(evt.progress);
+            if (evt.type === "run_started" || evt.type === "patient_started") {
+              appendLog("Running...");
+              setProgress(15);
+            }
+            if (evt.type === "encounter_started") setProgress((p) => Math.max(p, 25));
+            if (evt.type === "term_extraction_started") setProgress((p) => Math.max(p, 40));
+            if (evt.type === "persist_completed") setProgress((p) => Math.max(p, 75));
+            if (evt.type === "run_completed" || evt.type === "pipeline_done" || evt.type === "extraction_done") {
+              setProgress(100);
+            }
             if (evt.message) appendLog(evt.message);
             if (evt.type === "pipeline_error") {
               appendLog(`Error: ${evt.message}`);

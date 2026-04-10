@@ -294,9 +294,11 @@ export default function QualitySection() {
                 <YAxis yAxisId="pct" domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
                 <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 11 }} />
                 <ChartTooltip
-                  formatter={(value: number, name: string) => {
-                    if (name === "Coding accuracy (%)") return [`${value}%`, name];
-                    return [value, name];
+                  formatter={(value, name) => {
+                    const n = value ?? 0;
+                    const label = name ?? "";
+                    if (label === "Coding accuracy (%)") return [`${n}%`, label];
+                    return [n, label];
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />

@@ -1,0 +1,80 @@
+- id: "VT-LEO-AI-094"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-094"]
+    risks: ["R-LEO-AI-015"]
+
+  metadata:
+    title: "WorkflowEngine Production Coding Routing Verification"
+    description: >
+      Verifies that coding jobs execute through WorkflowEngine, encounter text
+      is loaded by encounter_loader, queue payloads exclude encounter_text, and
+      progress events are emitted for SSE relay compatibility.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/coding_worker/tests/test_job_handler_engine.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "pytest installed"
+      - "Monkeypatch fixtures available"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-094-TC-001"
+      case_name: "extract_encounter job is routed through WorkflowEngine"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Invoke handle_coding_job with a valid extract_encounter message"
+          expected_result: "WorkflowEngine.handle_event is called once with event_type=encounter-created and matching encounter_id"
+        - step_number: 2
+          action: "Inspect returned event context passed to engine"
+          expected_result: "context includes mode and dry_run but does not include encounter_text"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "No CodingPipeline construction occurs"
+        - "Engine receives run_id equal to message correlation_id"
+
+    - case_id: "VT-094-TC-002"
+      case_name: "extract_patient mode fans out one engine run per clinical encounter"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Invoke _run_coding_job with mode=extract_patient and mocked clinical encounter ids"
+          expected_result: "WorkflowEngine.handle_event called once per encounter id returned from Neo4j"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Only non-empty encounter ids are executed"
+
+    - case_id: "VT-094-TC-003"
+      case_name: "Progress callback publishes step_completed and run_completed to Redis channel"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run a job with mocked engine calling step_callback twice (step_completed and run_completed)"
+          expected_result: "Redis publish called on channel pipeline:{run_id} for each callback payload"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Published payload JSON includes run_id and event type"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-094/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

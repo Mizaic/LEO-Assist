@@ -51,6 +51,14 @@ interface CancerTypeBenchmarkGridProps {
   liveByCancerType?: Record<string, Record<string, number | null>>;
   /** @deprecated -- label is now derived from orgSelected; prop kept for back-compat */
   primarySeriesLabel?: string;
+  /**
+   * When org is selected: show Cancer Alliance (2018) benchmark bar. Defaults true if omitted (legacy).
+   */
+  showAlliance2018?: boolean;
+  /**
+   * When org is selected: show all patients / England (2018) benchmark bar. Defaults true if omitted (legacy).
+   */
+  showNational2018?: boolean;
 }
 
 // -- Chart data type -------------------------------------------------------
@@ -72,8 +80,22 @@ const SERIES = [
   { key: "national2018", colour: BENCHMARK_COLOURS.alliance, label: BENCHMARK_LABELS_2018.national },
 ] as const;
 
-function Legend({ orgSelected }: { orgSelected: boolean }) {
-  const visible = orgSelected ? SERIES : SERIES.slice(2);
+function Legend({
+  orgSelected,
+  showAlliance2018,
+  showNational2018,
+}: {
+  orgSelected: boolean;
+  showAlliance2018: boolean;
+  showNational2018: boolean;
+}) {
+  const visible = orgSelected
+    ? SERIES.filter((s) => {
+        if (s.key === "alliance2018") return showAlliance2018;
+        if (s.key === "national2018") return showNational2018;
+        return true;
+      })
+    : SERIES.slice(2);
   return (
     <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1 }}>
       {visible.map(({ key, colour, label }) => (
@@ -95,11 +117,15 @@ function MiniBarChart({
   yMax = 100,
   unit = "%",
   orgSelected,
+  showAlliance2018,
+  showNational2018,
 }: {
   data: BarRow[];
   yMax?: number;
   unit?: string;
   orgSelected: boolean;
+  showAlliance2018: boolean;
+  showNational2018: boolean;
 }) {
   const fmt = (v: unknown) => (v != null ? `${v}` : "");
   const tipFmt = (v: number | string | undefined, name: string | undefined) =>
@@ -121,12 +147,16 @@ function MiniBarChart({
             <LabelList dataKey="practice2018" position="top" style={{ fontSize: 9 }} formatter={fmt} />
           </Bar>
         )}
-        <Bar dataKey="alliance2018" name={BENCHMARK_LABELS_2018.alliance} fill={BENCHMARK_COLOURS.similar} radius={[2, 2, 0, 0]}>
-          <LabelList dataKey="alliance2018" position="top" style={{ fontSize: 9 }} formatter={fmt} />
-        </Bar>
-        <Bar dataKey="national2018" name={BENCHMARK_LABELS_2018.national} fill={BENCHMARK_COLOURS.alliance} radius={[2, 2, 0, 0]}>
-          <LabelList dataKey="national2018" position="top" style={{ fontSize: 9 }} formatter={fmt} />
-        </Bar>
+        {(!orgSelected || showAlliance2018) && (
+          <Bar dataKey="alliance2018" name={BENCHMARK_LABELS_2018.alliance} fill={BENCHMARK_COLOURS.similar} radius={[2, 2, 0, 0]}>
+            <LabelList dataKey="alliance2018" position="top" style={{ fontSize: 9 }} formatter={fmt} />
+          </Bar>
+        )}
+        {(!orgSelected || showNational2018) && (
+          <Bar dataKey="national2018" name={BENCHMARK_LABELS_2018.national} fill={BENCHMARK_COLOURS.alliance} radius={[2, 2, 0, 0]}>
+            <LabelList dataKey="national2018" position="top" style={{ fontSize: 9 }} formatter={fmt} />
+          </Bar>
+        )}
       </BarChart>
     </ResponsiveContainer>
   );
@@ -143,15 +173,24 @@ export default function CancerTypeBenchmarkGrid({
   unit = "%",
   heading = "Stage at Diagnosis by Cancer Type",
   liveByCancerType,
+  showAlliance2018,
+  showNational2018,
 }: CancerTypeBenchmarkGridProps) {
   if (!bm && !liveByCancerType) return null;
+
+  const alliance2018On = showAlliance2018 ?? true;
+  const national2018On = showNational2018 ?? true;
 
   return (
     <Box sx={{ mt: 3 }}>
       <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: "text.secondary", fontSize: "0.8rem" }}>
         {heading}
       </Typography>
-      <Legend orgSelected={orgSelected} />
+      <Legend
+        orgSelected={orgSelected}
+        showAlliance2018={alliance2018On}
+        showNational2018={national2018On}
+      />
       <Grid container spacing={2}>
         {CANCER_TYPES.map(({ key, label }) => {
           const chartData: BarRow[] = metrics.map((m) => {
@@ -186,7 +225,14 @@ export default function CancerTypeBenchmarkGrid({
                   {label}
                 </Typography>
                 {hasData ? (
-                  <MiniBarChart data={chartData} yMax={yMax} unit={unit} orgSelected={orgSelected} />
+                  <MiniBarChart
+                    data={chartData}
+                    yMax={yMax}
+                    unit={unit}
+                    orgSelected={orgSelected}
+                    showAlliance2018={alliance2018On}
+                    showNational2018={national2018On}
+                  />
                 ) : (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                     No benchmark data

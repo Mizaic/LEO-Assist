@@ -66,6 +66,15 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     }
   }, [organizations, selectedOrgId, viewAll, isPlatformAdmin]);
 
+  // Platform admin with no org rows in session still needs "All organisations" mode;
+  // the org picker is shown (AppShell) but the previous effect never ran when length is 0.
+  useEffect(() => {
+    if (!isPlatformAdmin || organizations.length > 0) return;
+    setViewAll(true);
+    setSelectedOrgId(null);
+    localStorage.setItem(STORAGE_KEY, "__all__");
+  }, [isPlatformAdmin, organizations.length]);
+
   const switchOrg = useCallback(
     (orgId: string) => {
       if (orgId === "__all__") {

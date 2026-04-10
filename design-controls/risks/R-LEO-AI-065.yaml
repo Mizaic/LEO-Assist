@@ -1,0 +1,117 @@
+# -- R-LEO-AI-065 -- Auditor acts on incorrect or incomplete episode data
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-065"
+  title: "Auditor reviews and approves a cancer episode that contains incorrect AI-extracted data, leading to flawed clinical decisions"
+
+  hazard:
+    description: >
+      The Mission Control interface displays AI-extracted cancer episode data
+      (cancer type, stage, milestones, coded SNOMED concepts) to clinical
+      auditors. If this data contains errors introduced by the NLP pipeline
+      (wrong cancer type, missing milestone, incorrect assertion) and the
+      auditor does not detect the error before marking the episode as
+      reviewed, downstream clinical decisions may be made on flawed data.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    An auditor opens a patient episode in Mission Control where the NLP
+    pipeline has incorrectly coded a benign finding as a cancer diagnosis
+    (or vice versa). The auditor reviews the coded data tab but does not
+    cross-check the raw encounter text tab. The auditor marks the episode
+    as reviewed. The episode is subsequently used to calculate cancer
+    prevalence statistics, which influence GP referral pathway prioritisation.
+
+  harm:
+    description: >
+      Clinical decisions (referral pathway prioritisation, resource
+      allocation, quality improvement plans) are made on the basis of
+      incorrect cancer prevalence data that was incorrectly marked as
+      validated. This could lead to delayed diagnosis for patients in
+      under-prioritised pathways or misdirection of clinical resources.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 2
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Progressive disclosure with explicit raw evidence tab. The Mission
+        Control Encounter Text tab shows raw consultation text side-by-side
+        with highlighted extracted entities, allowing auditors to verify
+        pipeline output against source material before marking as reviewed.
+        This makes it easy to detect mismatches between raw text and coded
+        output.
+      implemented_by: ["DI-LEO-AI-092"]
+      verified_by: ["VT-LEO-AI-092"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Model confidence display. The Coded Data tab shows confidence scores
+        for each extracted SNOMED concept. Concepts below a threshold are
+        highlighted in amber/red, prompting auditors to scrutinise those
+        extractions more carefully.
+      implemented_by: ["DI-LEO-AI-092"]
+      verified_by: ["VT-LEO-AI-092"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        Review audit trail. Every mark-as-reviewed action records the
+        reviewer identity and timestamp. This creates accountability and
+        enables downstream systems to identify which user validated each
+        episode, supporting post-hoc quality review.
+      implemented_by: ["DI-LEO-AI-091"]
+      verified_by: ["VT-LEO-AI-091"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        Status override confirmation gate. Any attempt to manually override
+        an episode status requires explicit confirmation via ConfirmDialog,
+        reducing the probability of accidental clinical data modification.
+      implemented_by: ["DI-LEO-AI-092"]
+      verified_by: ["VT-LEO-AI-092"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With raw evidence visible alongside coded output, low-confidence
+      concepts highlighted, and review accountability tracked, the
+      probability of an auditor missing a pipeline error before marking
+      as reviewed is low. The residual risk is accepted because the
+      interface provides all information needed to detect errors; the
+      remaining risk requires auditor diligence, which is addressed by
+      clinical governance procedures. Residual RPN 6 is below the
+      threshold of 10 for conditionally acceptable.
+
+  monitoring:
+    monitoring_plan: >
+      Monitor the ratio of episodes where audit_flag=true (flagged for
+      follow-up) as a proxy for auditor detection of pipeline errors.
+      If this rate drops unexpectedly, review whether auditors are using
+      the evidence tabs. Track any clinical governance incidents linked
+      to Mission Control reviewed episodes.
+    metrics:
+      - "audit_flag rate per review session (episodes flagged / episodes reviewed)"
+      - "Number of clinical governance incidents linked to Mission Control validated episodes"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Design review of Mission Control feature (UN-LEO-AI-058)"
+    identified_date: "2026-04-09"
+    status: "analyzed"
+    tags:
+      - "mission-control"
+      - "audit"
+      - "clinical-safety"
+      - "pipeline-validation"

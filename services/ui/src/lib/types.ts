@@ -20,6 +20,13 @@ export interface CodedLink {
   semantic_tag?: string;
   /** DOCUMENTS relationship: evidence text from encounter */
   evidence?: string;
+  /** DOCUMENTS relationship: de-identified sentence containing the mention */
+  evidence_sentence?: string;
+  /** DOCUMENTS relationship: index of the sentence in the encounter payload */
+  sentence_index?: number;
+  /** DOCUMENTS relationship: mention offsets in evidence_sentence */
+  evidence_start?: number;
+  evidence_end?: number;
   /** DOCUMENTS relationship: extraction confidence (0-1) */
   confidence?: number;
   /** DOCUMENTS relationship: domain (e.g. clinical_finding) */

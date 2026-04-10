@@ -456,10 +456,22 @@ export async function updateDomain(
 }
 
 export async function deleteDomain(domainId: string): Promise<void> {
-  await fetch(
+  const res = await fetch(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
-    { method: "DELETE" },
+    {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    },
   );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { detail?: string }).detail || `Request failed (${res.status})`,
+    );
+  }
 }
 
 // ── Subdomains ──
@@ -688,6 +700,7 @@ export interface AuditIntervalsPatient {
   cancer_type?: string | null;
   pci_days?: number | null;
   di_days?: number | null;
+  diag_is_inferred?: boolean | null;
 }
 
 export interface AuditIntervalStats {
@@ -728,9 +741,9 @@ export interface AuditAvoidableDelays {
   total_episodes: number;
   avoidable_delay_n: number;
   avoidable_delay_pct: number;
-  delay_before_presentation_pct: number;
-  delay_pres_to_referral_pct: number;
-  delay_after_referral_pct: number;
+  delay_before_presentation_pct: number | null;
+  delay_pres_to_referral_pct: number | null;
+  delay_after_referral_pct: number | null;
 }
 
 export interface BenchmarkSetSummary {

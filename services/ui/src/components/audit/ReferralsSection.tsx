@@ -8,6 +8,8 @@ import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditReferralRow, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 const ROUTE_DISPLAY: Record<string, string> = {
   tww: "TWW",
@@ -31,14 +33,12 @@ interface Props {
 }
 
 export default function ReferralsSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice ?? [];
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   const MAX_ROUTE_BARS = 8;
   const hiddenRouteCount = Math.max(0, practice.length - MAX_ROUTE_BARS);
@@ -72,7 +72,7 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
       unit: "%",
       practice: twwP ? { value: twwP.pct } : null,
       similar: twwA ? { value: twwA.pct } : null,
-      alliance: twwE ? { value: twwE.pct } : { value: bm?.["referrals.tww_pct"]?.alliance ?? null },
+      alliance: twwE ? { value: twwE.pct } : null,
       national: { value: resolveBenchmarkValue(bm, "referrals.tww_pct", orgSelected) },
     },
     {
@@ -80,7 +80,7 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
       unit: "%",
       practice: emP ? { value: emP.pct } : null,
       similar: emA ? { value: emA.pct } : null,
-      alliance: emE ? { value: emE.pct } : { value: bm?.["referrals.emergency_pct"]?.alliance ?? null },
+      alliance: emE ? { value: emE.pct } : null,
       national: { value: resolveBenchmarkValue(bm, "referrals.emergency_pct", orgSelected) },
     },
   ];
@@ -118,6 +118,8 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
         metrics={[{ metricKey: "emergency_pct", label: "Emergency %" }]}
         orgSelected={orgSelected}
         heading="2018 Baseline by Cancer Type — Emergency Referral (%)"
+        showAlliance2018={orgSelected ? showCancerAlliance : undefined}
+        showNational2018={orgSelected ? showAllPatients : undefined}
       />
     </SectionCard>
   );

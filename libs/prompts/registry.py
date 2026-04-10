@@ -90,6 +90,16 @@ def get_prompt_with_few_shot(
             "Run: python -m scripts.seed_prompt_configs"
         )
 
+    cfg = _normalise_prompt_config_row(name, version, row)
+    return cfg["systemPrompt"], cfg["fewShotExamples"]
+
+
+def _normalise_prompt_config_row(
+    name: str,
+    version: int,
+    row: dict[str, Any],
+) -> dict[str, Any]:
+    """Normalise PromptConfig payload fields into a stable dict shape."""
     few_shot_raw = row.get("fewShotExamples") or "[]"
     try:
         examples = (
@@ -99,10 +109,39 @@ def get_prompt_with_few_shot(
         )
     except (json.JSONDecodeError, TypeError) as exc:
         logger.warning(
-            "Prompt %r v%d: fewShotExamples could not be parsed as JSON — "
+            "Prompt %r v%d: fewShotExamples could not be parsed as JSON - "
             "returning empty examples list. LLM output quality may be degraded. Error: %s",
             name, version, exc,
         )
         examples = []
+    if not isinstance(examples, list):
+        examples = []
 
-    return row["systemPrompt"], examples
+    return {
+        "id": row.get("id", ""),
+        "name": row.get("name", name),
+        "version": int(row.get("version", version) or version),
+        "systemPrompt": row["systemPrompt"],
+        "outputSchema": row.get("outputSchema") or None,
+        "fewShotExamples": examples,
+        "maxFewShot": int(row.get("maxFewShot", 20) or 20),
+    }
+
+
+def get_prompt_config(name: str, version: int = 1) -> dict[str, Any]:
+    """Return full prompt config (system, schema, examples) from Neo4j."""
+    try:
+        row = _neo4j_fetch(name, version)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Prompt {name!r} v{version} could not be loaded from Neo4j: {exc}. "
+            "Run: python -m scripts.seed_prompt_configs"
+        ) from exc
+
+    if row is None:
+        raise RuntimeError(
+            f"Prompt {name!r} v{version} not found in Neo4j. "
+            "Run: python -m scripts.seed_prompt_configs"
+        )
+
+    return _normalise_prompt_config_row(name, version, row)

@@ -12,7 +12,12 @@ The schema serves two purposes:
 """
 
 EXTRACTION_OUTPUT_SCHEMA: dict = {
-    "description": "Return ONLY valid JSON — no explanation, no markdown, no preamble.",
+    "description": (
+        "Return ONLY one JSON object (valid for json.loads). No markdown, no headings "
+        '(such as "# Extraction Result"), no bullet rationale, no code fences, no text '
+        "before or after the object. When there are no codable clinical entities, return "
+        'exactly {"terms": []} (empty array).'
+    ),
     "type": "object",
     "properties": {
         "terms": {
@@ -20,7 +25,13 @@ EXTRACTION_OUTPUT_SCHEMA: dict = {
             "description": "One entry per extracted clinical entity.",
             "items": {
                 "type": "object",
-                "required": ["sentence_id", "text", "lookup_term", "semantic_tag", "assertion"],
+                "required": [
+                    "sentence_id",
+                    "text",
+                    "lookup_term",
+                    "semantic_tag",
+                    "assertion",
+                ],
                 "properties": {
                     "sentence_id": {
                         "type": "string",
@@ -118,23 +129,33 @@ def format_output_schema_block(schema: dict) -> str:
 
     lines = ["## Output Format", ""]
 
-    if schema.get("description"):
-        lines.append(schema["description"])
-        lines.append("")
-
     # Discover the top-level array name and its item properties
     props = schema.get("properties", {})
     array_name = next(iter(props), "terms")
-    items_props: dict = (
-        props.get(array_name, {}).get("items", {}).get("properties", {})
-    )
-    required: list[str] = (
-        props.get(array_name, {}).get("items", {}).get("required", [])
-    )
+    items_props: dict = props.get(array_name, {}).get("items", {}).get("properties", {})
+    required: list[str] = props.get(array_name, {}).get("items", {}).get("required", [])
 
     if items_props:
-        lines.append(f'Return a JSON object with a single key "{array_name}" whose value is an array.')
-        lines.append(f'Each item in the array must be an object with these fields:')
+        empty_example = json.dumps({array_name: []}, separators=(",", ":"))
+        lines.append(
+            "Your entire assistant message must be a single JSON object only, with no "
+            "other characters. Do not use markdown, section headings, bullet lists, or "
+            "narrative explanation. Do not wrap the JSON in markdown code fences."
+        )
+        lines.append(
+            "When there are zero codable entities (for example only administrative "
+            f"text), respond with exactly: {empty_example}"
+        )
+        lines.append("")
+
+        if schema.get("description"):
+            lines.append(schema["description"])
+            lines.append("")
+
+        lines.append(
+            f'Return a JSON object with a single key "{array_name}" whose value is an array.'
+        )
+        lines.append(f"Each item in the array must be an object with these fields:")
         lines.append("")
         for field, defn in items_props.items():
             raw_type = defn.get("type", "string")
@@ -144,19 +165,31 @@ def format_output_schema_block(schema: dict) -> str:
                 else raw_type
             )
             nullable = isinstance(raw_type, list) and "null" in raw_type
-            req_marker = " (required)" if field in required else " (optional, null if not present)"
+            req_marker = (
+                " (required)"
+                if field in required
+                else " (optional, null if not present)"
+            )
             desc = defn.get("description", "")
 
             if "enum" in defn:
                 enum_vals = [v for v in defn["enum"] if v is not None]
                 allowed = ", ".join(f'"{v}"' for v in enum_vals)
                 desc_suffix = f" {desc}" if desc else ""
-                lines.append(f'  - **{field}**{req_marker}: one of {allowed}.{desc_suffix}')
+                lines.append(
+                    f"  - **{field}**{req_marker}: one of {allowed}.{desc_suffix}"
+                )
             else:
                 type_label = f"{base_type}, nullable" if nullable else base_type
-                lines.append(f'  - **{field}**{req_marker}: {type_label}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: {type_label}. {desc}")
 
         lines.append("")
-        lines.append(f'Return {{"{array_name}": []}} when no codable entities exist.')
+        lines.append(
+            f"If nothing qualifies for coding, still return JSON: {empty_example} "
+            f"(same shape, empty array). Never substitute prose for that object."
+        )
+    elif schema.get("description"):
+        lines.append(schema["description"])
+        lines.append("")
 
     return "\n".join(lines)

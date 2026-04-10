@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from libs.pipeline_graph.registry import get_registry
 
@@ -27,6 +28,8 @@ logger = logging.getLogger(__name__)
 _ENTITY_KEY_ALIASES = {"processed_entities", "resolved_entities"}
 
 HALT_SUBGRAPHS = frozenset()
+_PIPELINE_PASSTHROUGH_SENTINEL = "__pipeline_passthrough__"
+_ARRAY_PATH_RE = re.compile(r"^(?P<top>[A-Za-z0-9_]+)\[\]\.(?P<sub>[A-Za-z0-9_]+)$")
 
 
 @dataclass
@@ -68,6 +71,12 @@ class StepResult:
     llm_output_tokens: int = 0
     llm_cached_tokens: int = 0
     llm_cost_usd: float = 0.0
+    llm_prompt_name: str = ""
+    llm_prompt_version: int = 0
+    llm_prompt_hash: str = ""
+    llm_provider: str = ""
+    llm_model_tier: str = ""
+    llm_few_shot_example_ids: list[str] = field(default_factory=list)
 
 
 class WorkflowEngine:
@@ -83,7 +92,11 @@ class WorkflowEngine:
         self._bus = message_bus
         self._registry = get_registry()
 
-    async def handle_event(self, event: WorkflowEvent) -> dict[str, Any]:
+    async def handle_event(
+        self,
+        event: WorkflowEvent,
+        step_callback: Callable[[dict[str, Any]], None] | None = None,
+    ) -> dict[str, Any]:
         """Execute the full pipeline chain for an event."""
         all_actions = await self._get_all_plan_actions(event.plan_definition_id) if (
             self._driver and event.plan_definition_id
@@ -147,6 +160,21 @@ class WorkflowEngine:
                 step_state = self._build_step_state(action, pipeline_state)
                 step_result = await self._execute_step(action, step_state)
             step_results.append(step_result)
+            if step_callback:
+                step_callback(
+                    {
+                        "type": "step_completed",
+                        "run_id": event.run_id,
+                        "patient_id": pipeline_state.get("patient_id"),
+                        "encounter_id": pipeline_state.get("encounter_id"),
+                        "action_id": step_result.action_id,
+                        "subgraph_id": step_result.subgraph_id,
+                        "status": step_result.status,
+                        "duration_ms": step_result.duration_ms,
+                        "entity_count": step_result.entity_count,
+                        "error": step_result.error,
+                    }
+                )
 
             if step_result.status == "error":
                 final_status = "error"
@@ -154,7 +182,11 @@ class WorkflowEngine:
                              action.action_id, step_result.error)
                 break
 
-            self._merge_step_output(pipeline_state, step_result.output)
+            effective_output = self._apply_field_mappings_to_output(
+                action, pipeline_state, step_result.output
+            )
+            step_result.output = effective_output
+            self._merge_step_output(pipeline_state, effective_output)
 
             entities = pipeline_state.get("entities") or []
             if action.subgraph_id == "extraction" and not entities:
@@ -194,6 +226,19 @@ class WorkflowEngine:
                 fallback_enqueued = True
 
         await self._write_audit_event(event, step_results, final_status, pipeline_state)
+        if step_callback:
+            done_type = "run_error" if final_status == "error" else "run_completed"
+            step_callback(
+                {
+                    "type": done_type,
+                    "run_id": event.run_id,
+                    "patient_id": pipeline_state.get("patient_id"),
+                    "encounter_id": pipeline_state.get("encounter_id"),
+                    "status": final_status,
+                    "step_count": len(step_results),
+                    "entity_count": len(pipeline_state.get("entities") or []),
+                }
+            )
 
         total_input   = sum(s.llm_input_tokens  for s in step_results)
         total_output  = sum(s.llm_output_tokens for s in step_results)
@@ -216,6 +261,12 @@ class WorkflowEngine:
                     "llm_output_tokens": sr.llm_output_tokens,
                     "llm_cached_tokens": sr.llm_cached_tokens,
                     "llm_cost_usd":      round(sr.llm_cost_usd, 6),
+                    "llm_prompt_name": sr.llm_prompt_name,
+                    "llm_prompt_version": sr.llm_prompt_version,
+                    "llm_prompt_hash": sr.llm_prompt_hash,
+                    "llm_provider": sr.llm_provider,
+                    "llm_model_tier": sr.llm_model_tier,
+                    "llm_few_shot_example_ids": sr.llm_few_shot_example_ids,
                 }
                 for sr in step_results
             ],
@@ -225,6 +276,28 @@ class WorkflowEngine:
                 "output_tokens": total_output,
                 "cached_tokens": total_cached,
                 "cost_usd":      round(total_cost, 6),
+                    "per_step": [
+                        {
+                            "action_id": s.action_id,
+                            "subgraph_id": s.subgraph_id,
+                            "status": s.status,
+                            "prompt_name": s.llm_prompt_name,
+                            "prompt_version": s.llm_prompt_version,
+                            "prompt_hash": s.llm_prompt_hash,
+                            "provider": s.llm_provider,
+                            "model_tier": s.llm_model_tier,
+                            "few_shot_example_ids": s.llm_few_shot_example_ids,
+                            "input_tokens": s.llm_input_tokens,
+                            "output_tokens": s.llm_output_tokens,
+                            "cached_tokens": s.llm_cached_tokens,
+                            "cost_usd": round(s.llm_cost_usd, 6),
+                        }
+                        for s in step_results
+                        if s.llm_input_tokens
+                        or s.llm_output_tokens
+                        or s.llm_cached_tokens
+                        or s.llm_prompt_hash
+                    ],
             },
         }
 
@@ -347,6 +420,9 @@ class WorkflowEngine:
             )
             # Harvest token data written into subgraph state by LLM steps
             llm_tokens = result.get("llm_tokens") or {}
+            few_shot_ids = llm_tokens.get("few_shot_example_ids") or []
+            if not isinstance(few_shot_ids, list):
+                few_shot_ids = []
             return StepResult(
                 action_id=action.action_id,
                 subgraph_id=action.subgraph_id,
@@ -359,6 +435,12 @@ class WorkflowEngine:
                 llm_output_tokens=int(llm_tokens.get("output_tokens", 0)),
                 llm_cached_tokens=int(llm_tokens.get("cached_tokens", 0)),
                 llm_cost_usd=float(llm_tokens.get("cost_usd", 0.0)),
+                llm_prompt_name=str(llm_tokens.get("prompt_name") or ""),
+                llm_prompt_version=int(llm_tokens.get("prompt_version") or 0),
+                llm_prompt_hash=str(llm_tokens.get("prompt_hash") or ""),
+                llm_provider=str(llm_tokens.get("provider") or ""),
+                llm_model_tier=str(llm_tokens.get("model_tier") or ""),
+                llm_few_shot_example_ids=[str(i) for i in few_shot_ids if i],
             )
         except KeyError:
             duration = int((time.monotonic() - t0) * 1000)
@@ -394,12 +476,33 @@ class WorkflowEngine:
         # UI config keys are camelCase, subgraphs use snake_case.
         if "promptConfigId" in state and "prompt_config_id" not in state:
             state["prompt_config_id"] = state.get("promptConfigId")
+        if "promptConfigName" in state and "prompt_config_name" not in state:
+            state["prompt_config_name"] = state.get("promptConfigName")
+        if "promptConfigVersion" in state and "prompt_config_version" not in state:
+            state["prompt_config_version"] = state.get("promptConfigVersion")
         if "outputTarget" in state and "output_target" not in state:
             state["output_target"] = state.get("outputTarget")
 
-        prompt_config_id = state.get("prompt_config_id")
+        prompt_config_id = str(state.get("prompt_config_id") or "").strip()
         if prompt_config_id and "prompt_config" not in state:
             state["prompt_config"] = self._load_prompt_config(prompt_config_id)
+        elif not prompt_config_id and "prompt_config" not in state:
+            prompt_config_name = str(state.get("prompt_config_name") or "").strip()
+            if prompt_config_name:
+                try:
+                    from libs.prompts.registry import get_prompt_config
+
+                    prompt_config_version = int(state.get("prompt_config_version") or 1)
+                    state["prompt_config"] = get_prompt_config(
+                        prompt_config_name, version=prompt_config_version
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to load PromptConfig by name=%s version=%s: %s",
+                        prompt_config_name,
+                        state.get("prompt_config_version") or 1,
+                        exc,
+                    )
 
         return state
 
@@ -428,6 +531,109 @@ class WorkflowEngine:
                     pipeline_state["errors"] = existing + new_errors
             else:
                 pipeline_state[key] = value
+
+    @staticmethod
+    def _parse_array_path(path: str) -> tuple[str, str] | None:
+        match = _ARRAY_PATH_RE.match(path.strip())
+        if not match:
+            return None
+        return match.group("top"), match.group("sub")
+
+    @staticmethod
+    def _extract_state_path_value(state: dict[str, Any], path: str) -> Any:
+        parsed = WorkflowEngine._parse_array_path(path)
+        if not parsed:
+            return state.get(path)
+        top_key, sub_field = parsed
+        rows = state.get(top_key)
+        if not isinstance(rows, list):
+            return None
+        values: list[Any] = []
+        for row in rows:
+            if isinstance(row, dict):
+                values.append(row.get(sub_field))
+            else:
+                values.append(None)
+        return values
+
+    @staticmethod
+    def _extract_output_field(output: dict[str, Any], llm_field: str) -> Any:
+        parsed = WorkflowEngine._parse_array_path(llm_field)
+        if not parsed:
+            return output.get(llm_field)
+        source_top, source_sub = parsed
+        source_rows = output.get(source_top)
+        # Extraction output uses entities[]; UI schema often calls this terms[].
+        if not isinstance(source_rows, list) and source_top == "terms":
+            source_rows = output.get("entities")
+        if not isinstance(source_rows, list):
+            return None
+        values: list[Any] = []
+        for row in source_rows:
+            if isinstance(row, dict):
+                values.append(row.get(source_sub))
+            else:
+                values.append(None)
+        return values
+
+    @staticmethod
+    def _write_state_path_value(target: dict[str, Any], path: str, value: Any) -> None:
+        parsed = WorkflowEngine._parse_array_path(path)
+        if not parsed:
+            target[path] = value
+            return
+        top_key, sub_field = parsed
+        if isinstance(value, list):
+            rows = target.get(top_key)
+            if not isinstance(rows, list):
+                rows = []
+            if len(rows) < len(value):
+                rows.extend({} for _ in range(len(value) - len(rows)))
+            for idx, item_val in enumerate(value):
+                if not isinstance(rows[idx], dict):
+                    rows[idx] = {}
+                rows[idx][sub_field] = item_val
+            target[top_key] = rows
+            return
+        target[top_key] = value
+
+    def _apply_field_mappings_to_output(
+        self,
+        action: ActionDefinition,
+        pipeline_state: dict[str, Any],
+        step_output: dict[str, Any],
+    ) -> dict[str, Any]:
+        config = action.config if isinstance(action.config, dict) else {}
+        params = config.get("params") if isinstance(config.get("params"), dict) else {}
+        mappings = params.get("field_mappings") or config.get("field_mappings") or []
+        if not isinstance(mappings, list) or not mappings:
+            return step_output
+
+        mapped: dict[str, Any] = {}
+        for row in mappings:
+            if not isinstance(row, dict):
+                continue
+            state_path = str(row.get("statePath") or "").strip()
+            if not state_path:
+                continue
+            llm_field = str(row.get("llmField") or "").strip()
+            if llm_field == _PIPELINE_PASSTHROUGH_SENTINEL:
+                passthrough_val = self._extract_state_path_value(pipeline_state, state_path)
+                if passthrough_val is None:
+                    continue
+                self._write_state_path_value(mapped, state_path, passthrough_val)
+                continue
+
+            extracted_val = self._extract_output_field(step_output, llm_field)
+            if extracted_val is None:
+                continue
+            self._write_state_path_value(mapped, state_path, extracted_val)
+
+        if not mapped:
+            return step_output
+        merged = dict(step_output)
+        merged.update(mapped)
+        return merged
 
     async def _resolve_action_chain(
         self, event: WorkflowEvent,
@@ -750,7 +956,11 @@ class WorkflowEngine:
                 step_state = self._build_step_state(action, pipeline_state)
                 step_result = await self._execute_step(action, step_state)
                 if step_result.status != "error":
-                    self._merge_step_output(pipeline_state, step_result.output)
+                    effective_output = self._apply_field_mappings_to_output(
+                        action, pipeline_state, step_result.output
+                    )
+                    step_result.output = effective_output
+                    self._merge_step_output(pipeline_state, effective_output)
                 else:
                     final_status = "error"
 
@@ -859,7 +1069,27 @@ class WorkflowEngine:
             total_output = sum(s.llm_output_tokens for s in steps)
             total_cached = sum(s.llm_cached_tokens for s in steps)
             total_cost   = round(sum(s.llm_cost_usd for s in steps), 6)
+
+            # Identify the extraction step for flat analytics fields.
+            # Prefer the step whose subgraph_id is "extraction"; fall back to
+            # the first step that has a prompt name set.
+            extraction_step = next(
+                (s for s in steps if s.subgraph_id == "extraction"),
+                next((s for s in steps if s.llm_prompt_name), None),
+            )
+
+            first_error: str | None = None
+            for s in steps:
+                if s.error:
+                    first_error = str(s.error)[:400]
+                    break
+            if not first_error and errors:
+                first_error = str(errors[0])[:400]
+
             audit = {
+                # ----------------------------------------------------------------
+                # Identity
+                # ----------------------------------------------------------------
                 "id": f"audit-{event.run_id}",
                 "type": "PipelineRun",
                 "plan_definition_id": event.plan_definition_id or "",
@@ -867,14 +1097,38 @@ class WorkflowEngine:
                 "encounter_id": event.encounter_id or "",
                 "run_id": event.run_id,
                 "event_type": event.event_type,
+                # ----------------------------------------------------------------
+                # Run-level outcome (flat -- usable in Cypher WHERE / aggregation)
+                # ----------------------------------------------------------------
                 "status": status,
+                "step_count": len(steps),
                 "total_duration_ms": total_ms,
                 "entity_count": entity_count,
                 "error_count": len(errors),
+                "first_error": first_error,
+                # ----------------------------------------------------------------
+                # LLM spend totals (flat -- used by ORG_SPEND_SUMMARY et al.)
+                # ----------------------------------------------------------------
                 "llm_input_tokens":  total_input,
                 "llm_output_tokens": total_output,
                 "llm_cached_tokens": total_cached,
                 "llm_cost_usd":      total_cost,
+                # ----------------------------------------------------------------
+                # Primary extraction step dimensions (flat -- index + query on)
+                # Enables: "empty_extraction rate by prompt version",
+                #          "cost per entity by provider", regression gates.
+                # ----------------------------------------------------------------
+                "extraction_prompt_name":    (extraction_step.llm_prompt_name    if extraction_step else ""),
+                "extraction_prompt_version": (extraction_step.llm_prompt_version if extraction_step else 0),
+                "extraction_prompt_hash":    (extraction_step.llm_prompt_hash    if extraction_step else ""),
+                "extraction_provider":       (extraction_step.llm_provider       if extraction_step else ""),
+                "extraction_model_tier":     (extraction_step.llm_model_tier     if extraction_step else ""),
+                # ----------------------------------------------------------------
+                # Detail blobs (JSON strings -- for display / export, NOT analytics)
+                # steps: full per-step trace for audit trail UI
+                # errors: up to 50 error messages for diagnosis
+                # llm_prompt_hashes: sorted deduplicated set, for exact prompt audit
+                # ----------------------------------------------------------------
                 "steps": json.dumps([
                     {
                         "action_id": s.action_id,
@@ -888,10 +1142,19 @@ class WorkflowEngine:
                         "llm_output_tokens": s.llm_output_tokens,
                         "llm_cached_tokens": s.llm_cached_tokens,
                         "llm_cost_usd":      round(s.llm_cost_usd, 6),
+                        "llm_prompt_name": s.llm_prompt_name,
+                        "llm_prompt_version": s.llm_prompt_version,
+                        "llm_prompt_hash": s.llm_prompt_hash,
+                        "llm_provider": s.llm_provider,
+                        "llm_model_tier": s.llm_model_tier,
+                        "llm_few_shot_example_ids": s.llm_few_shot_example_ids,
                     }
                     for s in steps
                 ]),
                 "errors": json.dumps(errors[:50]),
+                "llm_prompt_hashes": json.dumps(
+                    sorted({s.llm_prompt_hash for s in steps if s.llm_prompt_hash})
+                ),
             }
             query = """
             MERGE (ae:AuditEvent {id: $id})

@@ -17,16 +17,24 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE
 from libs.domain_config.registry import DomainRegistry
 from libs.neo4j_client.client import KnowledgeGraphClient
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _require_admin(scope: CallerScope = Depends(get_caller_scope)) -> CallerScope:
+    """Raise 403 unless the caller is a platform admin."""
+    if not scope.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return scope
 
 SNOMED_SYSTEM = "http://snomed.info/sct"
 
@@ -345,7 +353,10 @@ class AddConceptRequest(BaseModel):
 
 
 @router.get("/domains", response_model=List[DomainSummary])
-def list_domains(source: Optional[str] = Query(default=None, description="Filter by source: nice, platform, or tenant")):
+def list_domains(
+    scope: CallerScope = Depends(get_caller_scope),
+    source: Optional[str] = Query(default=None, description="Filter by source: nice, platform, or tenant"),
+):
     """List all audit domains.
 
     Use the ``source`` query parameter to filter:
@@ -394,7 +405,7 @@ def list_domains(source: Optional[str] = Query(default=None, description="Filter
 
 
 @router.post("/domains", response_model=DomainSummary, status_code=201)
-def create_domain(body: DomainCreateRequest):
+def create_domain(body: DomainCreateRequest, scope: CallerScope = Depends(_require_admin)):
     """Create a new audit domain."""
     domain_id = body.name.lower().replace(" ", "_").replace("-", "_")
     client = KnowledgeGraphClient()
@@ -425,7 +436,7 @@ def create_domain(body: DomainCreateRequest):
 
 
 @router.get("/domains/{domain_id}", response_model=DomainDetail)
-def get_domain(domain_id: str):
+def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
     """Get domain with its subdomains (reads flat properties, no JSON parsing)."""
     _ensure_default_domain()
     client = KnowledgeGraphClient()
@@ -493,7 +504,7 @@ def get_domain(domain_id: str):
 
 
 @router.put("/domains/{domain_id}", response_model=DomainSummary)
-def update_domain(domain_id: str, body: DomainUpdateRequest):
+def update_domain(domain_id: str, body: DomainUpdateRequest, scope: CallerScope = Depends(_require_admin)):
     """Update domain metadata."""
     client = KnowledgeGraphClient()
     try:
@@ -541,7 +552,7 @@ def update_domain(domain_id: str, body: DomainUpdateRequest):
 
 
 @router.delete("/domains/{domain_id}", status_code=204)
-def delete_domain(domain_id: str):
+def delete_domain(domain_id: str, scope: CallerScope = Depends(_require_admin)):
     """Delete an audit domain (does not delete subdomains/ValueSets).
 
     NICE domains (source=nice) and platform domains (source=platform)
@@ -576,7 +587,7 @@ def delete_domain(domain_id: str):
     response_model=SubdomainSummary,
     status_code=201,
 )
-def create_subdomain(domain_id: str, body: SubdomainCreateRequest):
+def create_subdomain(domain_id: str, body: SubdomainCreateRequest, scope: CallerScope = Depends(_require_admin)):
     """Create a new subdomain (ValueSet) and link it to the domain."""
     client = KnowledgeGraphClient()
     try:
@@ -642,7 +653,7 @@ def create_subdomain(domain_id: str, body: SubdomainCreateRequest):
     "/domains/{domain_id}/subdomains/{subdomain_name}",
     response_model=SubdomainDetail,
 )
-def get_subdomain(domain_id: str, subdomain_name: str):
+def get_subdomain(domain_id: str, subdomain_name: str, scope: CallerScope = Depends(get_caller_scope)):
     """Get subdomain detail including SNOMED concepts."""
     _ensure_domain_owns_subdomain(domain_id, subdomain_name)
 
@@ -672,7 +683,8 @@ def get_subdomain(domain_id: str, subdomain_name: str):
     response_model=SubdomainSummary,
 )
 def update_subdomain(
-    domain_id: str, subdomain_name: str, body: SubdomainUpdateRequest
+    domain_id: str, subdomain_name: str, body: SubdomainUpdateRequest,
+    scope: CallerScope = Depends(_require_admin),
 ):
     """Update subdomain config (flat properties + rawJson sync)."""
     _ensure_domain_owns_subdomain(domain_id, subdomain_name)
@@ -755,7 +767,8 @@ def update_subdomain(
     response_model=SubdomainDetail,
 )
 def add_concept(
-    domain_id: str, subdomain_name: str, body: AddConceptRequest
+    domain_id: str, subdomain_name: str, body: AddConceptRequest,
+    scope: CallerScope = Depends(_require_admin),
 ):
     """Add a SNOMED concept to a subdomain."""
     _ensure_domain_owns_subdomain(domain_id, subdomain_name)
@@ -821,6 +834,7 @@ def add_concepts_batch(
     domain_id: str,
     subdomain_name: str,
     body: List[BatchConceptItem],
+    scope: CallerScope = Depends(_require_admin),
 ):
     """Bulk-add SNOMED concepts to a subdomain, skipping duplicates. Capped at 500 items."""
     if len(body) > 500:
@@ -873,7 +887,7 @@ def add_concepts_batch(
     "/domains/{domain_id}/subdomains/{subdomain_name}/concepts/{concept_id}",
     response_model=SubdomainDetail,
 )
-def remove_concept(domain_id: str, subdomain_name: str, concept_id: str):
+def remove_concept(domain_id: str, subdomain_name: str, concept_id: str, scope: CallerScope = Depends(_require_admin)):
     """Remove a SNOMED concept from a subdomain."""
     _ensure_domain_owns_subdomain(domain_id, subdomain_name)
 
@@ -916,6 +930,7 @@ def remove_concept(domain_id: str, subdomain_name: str, concept_id: str):
 def export_subdomain(
     domain_id: str,
     subdomain_name: str,
+    scope: CallerScope = Depends(get_caller_scope),
     include_children: bool = Query(
         default=False,
         description="When true, expand each concept via IS_A hierarchy and include all descendants",

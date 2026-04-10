@@ -6,6 +6,7 @@ import re
 
 from fastapi import APIRouter, HTTPException, Query
 
+from libs.cypher.terminology_queries import SEMANTIC_TAGS_QUERY
 from libs.neo4j_client.client import KnowledgeGraphClient
 from services.terminology_api.app.queries.terminology import (
     TERMINOLOGY_SEARCH,
@@ -26,6 +27,17 @@ def _sanitize_lucene_query(q: str) -> str:
     """Replace Lucene special chars with spaces to prevent query-parse errors."""
     sanitized = _LUCENE_SPECIAL.sub(" ", q)
     return re.sub(r" +", " ", sanitized).strip()
+
+
+@router.get("/semantic-tags")
+def list_semantic_tags():
+    """Return all distinct SNOMED CT semantic tags present in the knowledge graph."""
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(SEMANTIC_TAGS_QUERY)
+        return [r["semantic_tag"] for r in rows]
+    finally:
+        client.close()
 
 
 @router.get("/search")

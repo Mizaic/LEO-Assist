@@ -10,7 +10,8 @@ import logging
 import time
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from neo4j.exceptions import ServiceUnavailable, SessionExpired, TransientError
 from pydantic import BaseModel, Field
 
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -27,6 +28,14 @@ router = APIRouter()
 _embedder = TerminologyTextEmbedder()
 _kg_client = KnowledgeGraphClient()
 _resolver = CodingResolver(embedder=_embedder)
+_RESOLVE_RETRYABLE_EXCEPTIONS = (
+    ServiceUnavailable,
+    SessionExpired,
+    TransientError,
+    OSError,
+)
+_RESOLVE_MAX_ATTEMPTS = 3
+_RESOLVE_RETRY_DELAY_SECONDS = 0.2
 
 
 class ResolveRequest(BaseModel):
@@ -54,14 +63,46 @@ def resolve_terms(body: ResolveRequest):
     n_terms = len(body.terms)
     logger.info("[resolve] request  terms=%d  %s", n_terms, body.terms[:5])
 
-    with _kg_client.session() as session:
-        t_session = time.perf_counter()
-        raw = _resolver.resolve_candidates(
-            body.terms,
-            neo4j_session=session,
-            expected_tags=body.expected_tags,
+    raw = None
+    t_session = time.perf_counter()
+    t_resolve = t_session
+    for attempt in range(1, _RESOLVE_MAX_ATTEMPTS + 1):
+        try:
+            with _kg_client.session() as session:
+                t_session = time.perf_counter()
+                raw = _resolver.resolve_candidates(
+                    body.terms,
+                    neo4j_session=session,
+                    expected_tags=body.expected_tags,
+                )
+                t_resolve = time.perf_counter()
+                break
+        except _RESOLVE_RETRYABLE_EXCEPTIONS as exc:
+            if attempt == _RESOLVE_MAX_ATTEMPTS:
+                logger.exception(
+                    "[resolve] failed after retries  terms=%d  attempts=%d",
+                    n_terms,
+                    _RESOLVE_MAX_ATTEMPTS,
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail="Terminology resolver is temporarily unavailable. Please retry.",
+                ) from exc
+            logger.warning(
+                "[resolve] transient neo4j error  terms=%d  attempt=%d/%d  err=%s",
+                n_terms,
+                attempt,
+                _RESOLVE_MAX_ATTEMPTS,
+                exc,
+            )
+            time.sleep(_RESOLVE_RETRY_DELAY_SECONDS * attempt)
+
+    if raw is None:
+        # Defensive guard: raw should always be set on success or raise on failure.
+        raise HTTPException(
+            status_code=503,
+            detail="Terminology resolver is temporarily unavailable. Please retry.",
         )
-        t_resolve = time.perf_counter()
 
     results = {
         text: [

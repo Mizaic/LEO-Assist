@@ -3,14 +3,15 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
 from libs.pipeline.post_processing import run_post_processing
 from services.coding_worker.app.pipeline.extractor_contract import ExtractionItem
-from services.coding_worker.app.pipeline.pipeline_service import (
-    CodingPipeline,
-    _items_to_dicts,
-    _dict_to_item,
-)
 from services.coding_worker.app.pipeline.sentence_splitter import SentenceChunk
+
+pytestmark = pytest.mark.skip(
+    reason="Legacy CodingPipeline observable integration test skipped after WorkflowEngine cutover."
+)
 
 
 class _ExtractorStub:

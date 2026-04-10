@@ -401,7 +401,7 @@ class TestLinkEncountersToEpisode:
     """Verify _link_encounters_to_episode deduplicates and handles edge cases."""
 
     def test_no_encounter_id_skipped(self):
-        """Anchors without encounter_id must not produce a write call."""
+        """Anchors without encounter_id still trigger a replace call with empty payload."""
         from unittest.mock import MagicMock
         from services.analysis_worker.app.analyzers.episode_builder import _link_encounters_to_episode
 
@@ -409,7 +409,9 @@ class TestLinkEncountersToEpisode:
         _link_encounters_to_episode(client, "ep1", [
             ([{"encounter_id": None, "concept_name": "test"}], "referral"),
         ])
-        client.run.assert_not_called()
+        client.run.assert_called_once()
+        call_kwargs = client.run.call_args[1]
+        assert call_kwargs["encounters"] == []
 
     def test_deduplicates_same_encounter_across_types(self):
         """Same encounter_id appearing in multiple anchor lists must be sent once."""
@@ -451,3 +453,16 @@ class TestLinkEncountersToEpisode:
         call_kwargs = client.run.call_args[1]
         encounter_ids = {e["encounter_id"] for e in call_kwargs["encounters"]}
         assert encounter_ids == {"E1", "E2", "E3"}
+
+    def test_link_query_replaces_existing_links(self):
+        """Link query should delete existing links before adding current ones."""
+        from unittest.mock import MagicMock
+        from services.analysis_worker.app.analyzers.episode_builder import _link_encounters_to_episode
+
+        client = MagicMock()
+        _link_encounters_to_episode(client, "ep1", [
+            ([{"encounter_id": "E1"}], "referral"),
+        ])
+        client.run.assert_called_once()
+        query = str(client.run.call_args[0][0])
+        assert "DELETE r_old" in query

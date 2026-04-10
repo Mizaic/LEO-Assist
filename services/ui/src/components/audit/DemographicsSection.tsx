@@ -9,6 +9,8 @@ import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditDemographics, AuditComorbidities, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 interface Props {
   result: AuditSectionResult<AuditDemographics> | null;
@@ -19,14 +21,12 @@ interface Props {
 }
 
 export default function DemographicsSection({ result, comorbidities, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   const sexChart: ComparisonDataRow[] = (practice?.sex ?? []).map((row) => {
     const key = row.gender.toLowerCase();
@@ -71,9 +71,7 @@ export default function DemographicsSection({ result, comorbidities, loading, er
     };
   });
 
-  const ageKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
+  const ageKeys = visibleKeys;
 
   // Only show benchmark and live comparators that have at least one non-null value
   const ageBenchmarkKeys = ageKeys.filter((k) =>
@@ -106,46 +104,51 @@ export default function DemographicsSection({ result, comorbidities, loading, er
       label: "Male (%)", unit: "%",
       practice: maleLive(practice)     ? { value: maleLive(practice)!.pct }     : null,
       similar:  maleLive(allianceLive) ? { value: maleLive(allianceLive)!.pct } : null,
-      alliance: maleLive(englandLive)  ? { value: maleLive(englandLive)!.pct }  : { value: bm?.["demographics.sex_male_pct"]?.alliance ?? null },
+      alliance: maleLive(englandLive)  ? { value: maleLive(englandLive)!.pct }  : null,
       national: { value: resolveBenchmarkValue(bm, "demographics.sex_male_pct", orgSelected) },
     },
     {
       label: "Female (%)", unit: "%",
       practice: femLive(practice)     ? { value: femLive(practice)!.pct }     : null,
       similar:  femLive(allianceLive) ? { value: femLive(allianceLive)!.pct } : null,
-      alliance: femLive(englandLive)  ? { value: femLive(englandLive)!.pct }  : { value: bm?.["demographics.sex_female_pct"]?.alliance ?? null },
+      alliance: femLive(englandLive)  ? { value: femLive(englandLive)!.pct }  : null,
       national: { value: resolveBenchmarkValue(bm, "demographics.sex_female_pct", orgSelected) },
     },
     {
       label: "Median age at diagnosis (years)", unit: "years",
       practice: practice?.median_age != null     ? { value: practice.median_age }     : null,
       similar:  allianceLive?.median_age != null  ? { value: allianceLive.median_age }  : null,
-      alliance: englandLive?.median_age != null   ? { value: englandLive.median_age }   : { value: bm?.["demographics.median_age"]?.alliance ?? null },
+      alliance: englandLive?.median_age != null   ? { value: englandLive.median_age }   : null,
       national: { value: resolveBenchmarkValue(bm, "demographics.median_age", orgSelected) },
     },
     {
       label: "White ethnicity (%)", unit: "%",
       practice: whiteLive(practice)     ? { value: whiteLive(practice)!.pct }     : null,
       similar:  whiteLive(allianceLive) ? { value: whiteLive(allianceLive)!.pct } : null,
-      alliance: whiteLive(englandLive)  ? { value: whiteLive(englandLive)!.pct }  : { value: bm?.["demographics.white_ethnicity_pct"]?.alliance ?? null },
+      alliance: whiteLive(englandLive)  ? { value: whiteLive(englandLive)!.pct }  : null,
       national: { value: resolveBenchmarkValue(bm, "demographics.white_ethnicity_pct", orgSelected) },
     },
   ];
 
-  // Comorbidity chart — built from the separate comorbidities result
+  // Comorbidity chart -- built from the separate comorbidities result
   const comorbBm = comorbidities?.benchmark?.metrics;
   const practiceComorbidities = comorbidities?.scopes.practice?.comorbidities ?? [];
+  const allianceComorb = comorbidities?.scopes.alliance_live?.comorbidities ?? [];
+  const englandComorb = comorbidities?.scopes.england_live?.comorbidities ?? [];
 
-  // Show all comorbidity rows; use benchmark_key when set, omit 2018 bar otherwise.
-  const comorbChart: ComparisonDataRow[] = practiceComorbidities.map((row) => ({
-    category: row.condition,
-    practice: row.pct,
-    similar: null,
-    alliance: null,
-    national: row.benchmark_key
-      ? resolveBenchmarkValue(comorbBm, row.benchmark_key, orgSelected)
-      : null,
-  }));
+  const comorbChart: ComparisonDataRow[] = practiceComorbidities.map((row) => {
+    const aMatch = allianceComorb.find((c) => c.condition === row.condition);
+    const eMatch = englandComorb.find((c) => c.condition === row.condition);
+    return {
+      category: row.condition,
+      practice: row.pct,
+      similar: aMatch?.pct ?? null,
+      alliance: eMatch?.pct ?? null,
+      national: row.benchmark_key
+        ? resolveBenchmarkValue(comorbBm, row.benchmark_key, orgSelected)
+        : null,
+    };
+  });
 
   return (
     <SectionCard
@@ -186,6 +189,8 @@ export default function DemographicsSection({ result, comorbidities, loading, er
             ]}
             orgSelected={orgSelected}
             heading="2018 Age at Diagnosis by Cancer Type"
+            showAlliance2018={orgSelected ? showCancerAlliance : undefined}
+            showNational2018={orgSelected ? showAllPatients : undefined}
           />
         </Box>
       )}

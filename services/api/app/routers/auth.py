@@ -32,6 +32,7 @@ from libs.audit.security_log import (
     emit_logout,
     emit_token_rejected,
 )
+from libs.auth.practitioner_org_context import fetch_practitioner_org_context
 
 logger = logging.getLogger(__name__)
 
@@ -71,23 +72,13 @@ def _oauth_scope() -> str:
         "openid profile email api://c97f7ad9-845f-420c-ae3f-fa5c5d815bcd/.default",
     )
 
+
 # Multi-tenant: use /common/ endpoints so users from any NHS Entra tenant can authenticate
 # without needing guest accounts in the Mizaic tenant. The app registration signInAudience
 # is already AzureADMultipleOrgs. Issuer validation is done by tid-allowlist (see below).
 AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 
-
-def _service_base(base_key: str, url_key: str, default: str) -> str:
-    """Resolve service base URL from *_BASE first, then *_URL, then default."""
-    return (os.getenv(base_key) or os.getenv(url_key) or default).rstrip("/")
-
-
-ANALYTICS_BASE = _service_base(
-    "ANALYTICS_API_BASE",
-    "ANALYTICS_API_URL",
-    "http://localhost:8003",
-)
 
 # JWKS cache — fetched once per process, refreshed when keys change.
 # /common/ JWKS returns all current Microsoft signing keys (valid across all tenants).
@@ -219,22 +210,12 @@ def _get_session_config() -> tuple[int, int, bool]:
 
 
 def _fetch_org_context(email: str) -> tuple[bool, list[dict]]:
-    """Fetch org context from Analytics API. Returns (is_platform_admin, organizations)."""
-    try:
-        with httpx.Client(timeout=10) as client:
-            r = client.get(
-                f"{ANALYTICS_BASE.rstrip('/')}/analytics/auth/org-context",
-                params={"email": email},
-            )
-            if r.status_code != 200:
-                return False, []
-            data = r.json()
-            orgs = data.get("organizations") or []
-            is_admin = data.get("user", {}).get("is_platform_admin", False)
-            return is_admin, orgs
-    except Exception as e:
-        logger.warning("Failed to fetch org context: %s", e)
-        return False, []
+    """Load platform-admin flag and org list from the Patient Graph.
+
+    Not an HTTP call to Analytics: org-context there requires X-Leo-Session,
+    which does not exist until after we persist the session.
+    """
+    return fetch_practitioner_org_context(email)
 
 
 @router.get("/login")
@@ -427,7 +408,6 @@ def callback(
 @router.post("/logout")
 def logout(request: Request, response: Response):
     """Clear session and cookie."""
-    from libs.audit.security_log import emit_logout
     session_id = request.cookies.get(COOKIE_NAME)
     client_ip = request.client.host if request.client else "unknown"
     if session_id:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import queue
 import threading
@@ -11,6 +12,8 @@ import time
 import uuid
 from datetime import datetime, timezone
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -29,6 +32,7 @@ _PROGRESS_IDLE_TIMEOUT_S = 300  # close relay after 5 min of silence
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
 SUBGRAPH_PORTS: dict[str, dict[str, object]] = {
+    "encounter_loader": {"reads": ["encounter_id"], "writes": ["encounter_text"]},
     "extraction": {"reads": ["encounter_text"], "writes": ["entities", "sentences", "errors"]},
     "post_processing": {"reads": ["entities", "encounter_text"], "writes": ["entities", "errors"]},
     "terminology": {"reads": ["entities"], "writes": ["entities", "errors"]},
@@ -88,45 +92,60 @@ def list_pipeline_subgraphs(scope: CallerScope = Depends(get_caller_scope)) -> d
 
 
 async def _publish_coding_jobs(
-    patient_ids: list[str],
+    encounter_jobs: list[dict[str, str]],
     *,
     run_id: str,
     mode: str,
     preview: bool,
     trigger_analysis: bool,
-) -> None:
+) -> int:
     from libs.message_bus.base import Message
     from libs.message_bus.factory import create_message_bus
 
     bus = create_message_bus()
+    sent_count = 0
     try:
-        for pid in patient_ids:
+        for job in encounter_jobs:
+            pid = str(job.get("patient_id") or "")
+            encounter_id = str(job.get("encounter_id") or "")
             await bus.send(
                 PIPELINE_QUEUE,
                 Message(
                     body={
                         "event_type": "encounter-created",
                         "patient_id": pid,
+                        "encounter_id": encounter_id,
                         "plan_definition_id": "pd-gp-encounter-coding",
+                        "mode": "extract_encounter",
+                        "dry_run": preview,
+                        "trigger_analysis": trigger_analysis,
                         "context": {
                             "dry_run": preview,
-                            "mode": mode,
+                            "mode": "extract_encounter",
                             "trigger_analysis": trigger_analysis,
+                            "encounter_id": encounter_id,
                         },
                     },
                     correlation_id=run_id,
                     subject="encounter-created",
                 ),
             )
+            sent_count += 1
+        return sent_count
+    except Exception as exc:
+        raise RuntimeError(
+            f"coding_job_publish_failed sent={sent_count} total={len(encounter_jobs)} err={exc}"
+        ) from exc
     finally:
         await bus.close()
 
 
-async def _publish_analysis_jobs(patient_ids: list[str], *, run_id: str) -> None:
+async def _publish_analysis_jobs(patient_ids: list[str], *, run_id: str) -> int:
     from libs.message_bus.base import Message
     from libs.message_bus.factory import create_message_bus
 
     bus = create_message_bus()
+    sent_count = 0
     try:
         for pid in patient_ids:
             await bus.send(
@@ -142,6 +161,12 @@ async def _publish_analysis_jobs(patient_ids: list[str], *, run_id: str) -> None
                     subject="manual_run_analysis",
                 ),
             )
+            sent_count += 1
+        return sent_count
+    except Exception as exc:
+        raise RuntimeError(
+            f"analysis_job_publish_failed sent={sent_count} total={len(patient_ids)} err={exc}"
+        ) from exc
     finally:
         await bus.close()
 
@@ -166,6 +191,34 @@ def _require_patients_in_scope(scope: CallerScope, patient_ids: list[str]) -> No
                     status_code=403,
                     detail=f"Not authorized for patient {row['pid']}",
                 )
+    finally:
+        client.close()
+
+
+def _expand_patients_to_clinical_encounters(patient_ids: list[str]) -> list[dict[str, str]]:
+    """Resolve patient IDs into clinical encounter jobs."""
+    from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+
+    client = LibPGClient()
+    try:
+        rows = client.run(
+            "UNWIND $pids AS pid "
+            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
+            "WHERE toString(p.id) = pid "
+            "  AND coalesce(e.classification_content_type, 'clinical') = 'clinical' "
+            "  AND trim(coalesce(e.text, '')) <> '' "
+            "RETURN pid AS patient_id, toString(e.id) AS encounter_id",
+            pids=patient_ids,
+        )
+        jobs: list[dict[str, str]] = []
+        for row in rows:
+            jobs.append(
+                {
+                    "patient_id": str(row.get("patient_id") or ""),
+                    "encounter_id": str(row.get("encounter_id") or ""),
+                }
+            )
+        return jobs
     finally:
         client.close()
 
@@ -382,14 +435,19 @@ def stream_pipeline(
 def _clean_patients(patient_ids: list[str]) -> dict:
     """Remove all pipeline artefacts for the given patients and return totals.
 
-    Clears Neo4j artefacts (candidates, documents, alerts, episodes) AND
-    Redis checkpoints (classification and analysis stage caches) so a
-    re-run starts completely fresh.
+    Clears Neo4j artefacts (review queue, DOCUMENTS links, shortcut rels,
+    LLM usage, coding decisions, sentences payload, alerts, episodes) AND
+    Redis checkpoints so a re-run starts completely fresh.
+
+    Returns a dict of {step_name: deleted_count} for audit logging.
     """
     from libs.cypher.cleanup_queries import (
         RESET_PATIENT_REVIEW_QUEUE,
         RESET_PATIENT_DOCUMENTS,
         RESET_PATIENT_DIRECT_SEMANTIC,
+        RESET_PATIENT_LLM_USAGE,
+        RESET_PATIENT_CODING_DECISIONS,
+        RESET_PATIENT_SENTENCES_PAYLOAD,
         RESET_PATIENT_ALERTS,
         RESET_PATIENT_EPISODES,
         RESET_PATIENT_LEGACY_ALERTS,
@@ -403,21 +461,37 @@ def _clean_patients(patient_ids: list[str]) -> dict:
         with pg.session() as session:
             for pid in patient_ids:
                 for query_name, query in [
-                    ("review_queue", RESET_PATIENT_REVIEW_QUEUE),
-                    ("documents", RESET_PATIENT_DOCUMENTS),
-                    ("direct_semantic", RESET_PATIENT_DIRECT_SEMANTIC),
-                    ("alerts", RESET_PATIENT_ALERTS),
-                    ("episodes", RESET_PATIENT_EPISODES),
-                    ("legacy_alerts", RESET_PATIENT_LEGACY_ALERTS),
-                    ("legacy_episodes", RESET_PATIENT_LEGACY_EPISODES),
+                    ("review_queue",       RESET_PATIENT_REVIEW_QUEUE),
+                    ("documents",          RESET_PATIENT_DOCUMENTS),
+                    ("direct_semantic",    RESET_PATIENT_DIRECT_SEMANTIC),
+                    ("llm_usage",          RESET_PATIENT_LLM_USAGE),
+                    ("coding_decisions",   RESET_PATIENT_CODING_DECISIONS),
+                    ("sentences_payload",  RESET_PATIENT_SENTENCES_PAYLOAD),
+                    ("alerts",             RESET_PATIENT_ALERTS),
+                    ("episodes",           RESET_PATIENT_EPISODES),
+                    ("legacy_alerts",      RESET_PATIENT_LEGACY_ALERTS),
+                    ("legacy_episodes",    RESET_PATIENT_LEGACY_EPISODES),
                 ]:
                     r = session.run(query, patient_id=pid).single()
                     count = 0
                     if r:
-                        count = r.get("deleted", r.get("links_deleted", r.get("direct_deleted", 0)))
+                        count = int(r.get(
+                            "deleted",
+                            r.get("links_deleted",
+                                  r.get("direct_deleted", 0))
+                        ) or 0)
                     totals[query_name] = totals.get(query_name, 0) + count
+                    logger.info(
+                        "Patient reset step=%s patient=%s deleted=%d",
+                        query_name, pid, count,
+                    )
     finally:
         pg.close()
+
+    logger.info(
+        "Patient reset complete patients=%s totals=%s",
+        patient_ids, totals,
+    )
 
     # Clear Redis checkpoints so retries get a genuinely fresh run
     try:
@@ -428,9 +502,12 @@ def _clean_patients(patient_ids: list[str]) -> dict:
             store.delete_pattern(f"analysis:{pid}:*")
             redis_deleted += 1
         totals["redis_checkpoints_cleared"] = redis_deleted
+        logger.info(
+            "Patient reset cleared Redis checkpoints patients=%s count=%d",
+            patient_ids, redis_deleted,
+        )
     except Exception:
-        import logging as _logging
-        _logging.getLogger(__name__).warning(
+        logger.warning(
             "Could not clear Redis checkpoints during patient clean", exc_info=True
         )
 
@@ -548,46 +625,82 @@ async def run_patient(
 
     run_id = str(uuid.uuid4())
     cleaned_totals: dict[str, int] | None = None
+    encounter_jobs: list[dict[str, str]] = []
 
-    if payload.action == "recode_all":
-        cleaned_totals = _clean_patients([patient_id])
-        await _publish_coding_jobs(
-            [patient_id],
-            run_id=run_id,
-            mode="all",
-            preview=payload.preview,
-            trigger_analysis=False,
-        )
-    elif payload.action == "code_new":
-        await _publish_coding_jobs(
-            [patient_id],
-            run_id=run_id,
-            mode="unprocessed",
-            preview=payload.preview,
-            trigger_analysis=False,
-        )
-    elif payload.action == "run_analysis":
-        await _publish_analysis_jobs([patient_id], run_id=run_id)
-    elif payload.action == "full_pipeline":
-        await _publish_coding_jobs(
-            [patient_id],
-            run_id=run_id,
-            mode="all",
-            preview=payload.preview,
-            trigger_analysis=True,
-        )
-    else:  # pragma: no cover - Literal keeps this unreachable
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
+    try:
+        if payload.action == "recode_all":
+            cleaned_totals = _clean_patients([patient_id])
+            encounter_jobs = _expand_patients_to_clinical_encounters([patient_id])
+            if not encounter_jobs:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No clinical encounters with text found for patient {patient_id}",
+                )
+            queued = await _publish_coding_jobs(
+                encounter_jobs,
+                run_id=run_id,
+                mode="all",
+                preview=payload.preview,
+                trigger_analysis=False,
+            )
+        elif payload.action == "code_new":
+            encounter_jobs = _expand_patients_to_clinical_encounters([patient_id])
+            if not encounter_jobs:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No clinical encounters with text found for patient {patient_id}",
+                )
+            queued = await _publish_coding_jobs(
+                encounter_jobs,
+                run_id=run_id,
+                mode="unprocessed",
+                preview=payload.preview,
+                trigger_analysis=False,
+            )
+        elif payload.action == "run_analysis":
+            queued = await _publish_analysis_jobs([patient_id], run_id=run_id)
+        elif payload.action == "full_pipeline":
+            # Clean all existing artefacts first so the re-run starts from a
+            # blank slate.  This mirrors recode_all but also triggers episode
+            # detection after coding completes.
+            cleaned_totals = _clean_patients([patient_id])
+            logger.info(
+                "full_pipeline reset complete patient=%s cleaned=%s",
+                patient_id, cleaned_totals,
+            )
+            encounter_jobs = _expand_patients_to_clinical_encounters([patient_id])
+            if not encounter_jobs:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No clinical encounters with text found for patient {patient_id}",
+                )
+            queued = await _publish_coding_jobs(
+                encounter_jobs,
+                run_id=run_id,
+                mode="all",
+                preview=payload.preview,
+                trigger_analysis=True,
+            )
+        else:  # pragma: no cover - Literal keeps this unreachable
+            raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "status": "failed",
+                "run_id": run_id,
+                "action": payload.action,
+                "error": str(exc),
+            },
+        ) from exc
 
     return {
         "run_id": run_id,
-        "queued": 1,
+        "queued": queued,
         "patient_ids": [patient_id],
         "action": payload.action,
         "preview": payload.preview,
-        "stream_path": f"/api/pipeline/stream?patient_ids={patient_id}&dry_run={str(payload.preview).lower()}",
+        "stream_path": f"/api/pipeline/progress/{run_id}",
         "cleaned_totals": cleaned_totals,
     }
 
@@ -604,42 +717,69 @@ async def run_cohort(
 
     run_id = str(uuid.uuid4())
     cleaned_totals: dict[str, int] | None = None
-    if payload.action == "recode_all":
-        cleaned_totals = _clean_patients(patient_ids)
-        await _publish_coding_jobs(
-            patient_ids,
-            run_id=run_id,
-            mode="all",
-            preview=payload.preview,
-            trigger_analysis=False,
-        )
-    elif payload.action == "code_new":
-        await _publish_coding_jobs(
-            patient_ids,
-            run_id=run_id,
-            mode="unprocessed",
-            preview=payload.preview,
-            trigger_analysis=False,
-        )
-    elif payload.action == "full_pipeline":
-        await _publish_coding_jobs(
-            patient_ids,
-            run_id=run_id,
-            mode="all",
-            preview=payload.preview,
-            trigger_analysis=True,
-        )
-    elif payload.action == "run_analysis":
-        await _publish_analysis_jobs(patient_ids, run_id=run_id)
-    else:  # pragma: no cover
-        from fastapi import HTTPException
+    encounter_jobs: list[dict[str, str]] = []
+    try:
+        if payload.action == "recode_all":
+            cleaned_totals = _clean_patients(patient_ids)
+            encounter_jobs = _expand_patients_to_clinical_encounters(patient_ids)
+            if not encounter_jobs:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No clinical encounters with text found for requested patients",
+                )
+            queued = await _publish_coding_jobs(
+                encounter_jobs,
+                run_id=run_id,
+                mode="all",
+                preview=payload.preview,
+                trigger_analysis=False,
+            )
+        elif payload.action == "code_new":
+            encounter_jobs = _expand_patients_to_clinical_encounters(patient_ids)
+            if not encounter_jobs:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No clinical encounters with text found for requested patients",
+                )
+            queued = await _publish_coding_jobs(
+                encounter_jobs,
+                run_id=run_id,
+                mode="unprocessed",
+                preview=payload.preview,
+                trigger_analysis=False,
+            )
+        elif payload.action == "full_pipeline":
+            encounter_jobs = _expand_patients_to_clinical_encounters(patient_ids)
+            if not encounter_jobs:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No clinical encounters with text found for requested patients",
+                )
+            queued = await _publish_coding_jobs(
+                encounter_jobs,
+                run_id=run_id,
+                mode="all",
+                preview=payload.preview,
+                trigger_analysis=True,
+            )
+        elif payload.action == "run_analysis":
+            queued = await _publish_analysis_jobs(patient_ids, run_id=run_id)
+        else:  # pragma: no cover
+            raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "status": "failed",
+                "run_id": run_id,
+                "action": payload.action,
+                "error": str(exc),
+            },
+        ) from exc
 
-        raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
-
-    joined_ids = ",".join(patient_ids)
     return {
         "run_id": run_id,
-        "queued": len(patient_ids),
+        "queued": queued,
         "patient_ids": patient_ids,
         "action": payload.action,
         "preview": payload.preview,

@@ -100,6 +100,18 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
     does not silently prevent all other subgraphs from registering.
     """
     try:
+        from libs.pipeline_graph.subgraphs.encounter_loader import (
+            build_encounter_loader_subgraph,
+        )
+        registry.register(
+            "encounter_loader",
+            build_encounter_loader_subgraph,
+            description="Load encounter text from Neo4j by encounter_id",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'encounter_loader': %s", exc)
+
+    try:
         from libs.pipeline_graph.subgraphs.extraction import build_extraction_subgraph
         registry.register("extraction", build_extraction_subgraph, description="NER/LLM entity extraction")
     except Exception as exc:

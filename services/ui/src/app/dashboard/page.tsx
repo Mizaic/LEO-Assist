@@ -13,6 +13,7 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import {
+  fetchAuditSummary,
   fetchEpisodeSummary,
   fetchDiagnosedSummary,
   fetchKPIBenchmarks,
@@ -20,29 +21,36 @@ import {
   actionSafetyNetAlert,
 } from "@/lib/analyticsApi";
 import { useOrgId } from "@/context/OrgContext";
+import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
+import { TAX_YEAR_PRESETS } from "@/lib/taxYearPresets";
 import KPICards from "@/components/dashboard/KPICards";
 import EpisodesByTypeChart from "@/components/dashboard/EpisodesByTypeChart";
 import DiagnosedByTypeChart from "@/components/dashboard/DiagnosedByTypeChart";
 import SafetyNetAlertsSummary from "@/components/dashboard/SafetyNetAlertsSummary";
 import LLMSpendPanel from "@/components/dashboard/LLMSpendPanel";
 
-// Auto-closed stale statuses are NOT being tracked - exclude from active count.
-const TERMINAL_STATUSES = new Set([
-  "closed", "completed", "merged", "excluded",
-  "closed_benign", "closed_related", "closed_phantom",
-  "stale_no_diagnosis", "stale_post_specialist",
-]);
-
 export default function DashboardPage() {
   const orgId = useOrgId();
-
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [appliedFrom, setAppliedFrom] = useState<string | undefined>(undefined);
-  const [appliedTo, setAppliedTo] = useState<string | undefined>(undefined);
+  const {
+    dateFrom,
+    dateTo,
+    appliedFrom,
+    appliedTo,
+    setDateFrom,
+    setDateTo,
+    apply,
+    applyPreset,
+    clear,
+    isFiltered,
+  } = useAnalyticsDateFilter();
 
   const [episodes, setEpisodes] = useState<Array<{ condition_type: string; status: string; count: number }>>([]);
   const [diagnosed, setDiagnosed] = useState<Array<{ cancer_type: string; count: number }>>([]);
+  const [summary, setSummary] = useState<{
+    total_episodes: number;
+    active_episodes: number;
+    confirmed_cancers: number;
+  } | null>(null);
   const [kpis, setKpis] = useState<any>(null);
   const [alerts, setAlerts] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(true);
@@ -57,16 +65,27 @@ export default function DashboardPage() {
     // when only some requests succeed on a re-fetch.
     setEpisodes([]);
     setDiagnosed([]);
+    setSummary(null);
     setKpis(null);
     setAlerts([]);
     try {
-      const [epResult, diagResult, kpiResult, alertResult] = await Promise.allSettled([
+      const [summaryResult, epResult, diagResult, kpiResult, alertResult] = await Promise.allSettled([
+        fetchAuditSummary(orgId, from, to),
         fetchEpisodeSummary(orgId, from, to),
         fetchDiagnosedSummary(orgId, from, to),
         fetchKPIBenchmarks(orgId, from, to),
         fetchSafetyNetAlerts(orgId),
       ]);
       const errors: Record<string, string> = {};
+      if (summaryResult.status === "fulfilled") {
+        setSummary({
+          total_episodes: summaryResult.value.total_episodes,
+          active_episodes: summaryResult.value.active_episodes,
+          confirmed_cancers: summaryResult.value.confirmed_cancers,
+        });
+      } else {
+        errors.summary = "Unable to load summary metrics.";
+      }
       if (epResult.status === "fulfilled") setEpisodes(epResult.value);
       else errors.episodes = "Unable to load referral data.";
       if (diagResult.status === "fulfilled") setDiagnosed(diagResult.value);
@@ -87,11 +106,6 @@ export default function DashboardPage() {
     load(appliedFrom, appliedTo);
   }, [load, appliedFrom, appliedTo]);
 
-  const handleApply = () => {
-    setAppliedFrom(dateFrom || undefined);
-    setAppliedTo(dateTo || undefined);
-  };
-
   const handleAlertAction = useCallback(async (alertId: string, actioned: boolean) => {
     try {
       await actionSafetyNetAlert(alertId, actioned);
@@ -104,20 +118,9 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const handleClear = () => {
-    setDateFrom("");
-    setDateTo("");
-    setAppliedFrom(undefined);
-    setAppliedTo(undefined);
-  };
-
-  const isFiltered = !!appliedFrom || !!appliedTo;
-
-  const totalEpisodes = episodes.reduce((s, e) => s + e.count, 0);
-  const activeEpisodes = episodes
-    .filter((e) => !TERMINAL_STATUSES.has(e.status))
-    .reduce((s, e) => s + e.count, 0);
-  const totalDiagnosed = diagnosed.reduce((s, d) => s + d.count, 0);
+  const totalEpisodes = summary?.total_episodes ?? 0;
+  const activeEpisodes = summary?.active_episodes ?? 0;
+  const totalDiagnosed = summary?.confirmed_cancers ?? 0;
   const criticalAlerts = alerts.filter((a) => a.severity === "critical" || a.severity === "high").length;
 
   return (
@@ -172,7 +175,7 @@ export default function DashboardPage() {
         <Button
           variant="contained"
           size="small"
-          onClick={handleApply}
+          onClick={apply}
           disabled={loading}
           aria-label="Apply date filter"
           sx={{ textTransform: "none", px: 2.5, fontWeight: 600 }}
@@ -183,13 +186,31 @@ export default function DashboardPage() {
           <Button
             variant="outlined"
             size="small"
-            onClick={handleClear}
+            onClick={clear}
             aria-label="Clear date filter"
             sx={{ textTransform: "none" }}
           >
             Clear filter
           </Button>
         )}
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 0.5 }}>
+          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap" }}>
+            Year:
+          </Typography>
+          {TAX_YEAR_PRESETS.map((preset) => (
+            <Chip
+              key={preset.label}
+              label={preset.label}
+              size="small"
+              clickable
+              disabled={loading}
+              onClick={() => applyPreset(preset.from, preset.to)}
+              color={appliedFrom === preset.from && appliedTo === preset.to ? "primary" : "default"}
+              variant={appliedFrom === preset.from && appliedTo === preset.to ? "filled" : "outlined"}
+              sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+            />
+          ))}
+        </Stack>
         {isFiltered && (
           <Chip
             label={`${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}`}

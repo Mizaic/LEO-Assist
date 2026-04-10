@@ -97,7 +97,7 @@ def _link_encounters_to_episode(
     episode_id: str,
     anchors_by_type: list[tuple[list[dict[str, Any]], str]],
 ) -> None:
-    """Create IS_PART_OF edges between Encounter nodes and an EpisodeOfCare."""
+    """Replace IS_PART_OF edges for one episode with current milestone links."""
     if not episode_id:
         return
     encounter_links: list[dict[str, str]] = []
@@ -110,8 +110,6 @@ def _link_encounters_to_episode(
                     {"encounter_id": eid, "milestone_type": milestone_type}
                 )
                 seen.add(eid)
-    if not encounter_links:
-        return
     try:
         _run_with_retry(
             patient_client,

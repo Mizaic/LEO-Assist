@@ -6,6 +6,10 @@ import { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import Typography from "@mui/material/Typography";
 import type { AuditCancerTypeRow, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
+import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
+import { serialiseFilters, DEFAULT_FILTERS } from "@/lib/missionControlFilters";
 
 interface Props {
   result: AuditSectionResult<AuditCancerTypeRow[]> | null;
@@ -15,14 +19,20 @@ interface Props {
 }
 
 export default function CancerTypeSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const { appliedFrom, appliedTo } = useAnalyticsDateFilter();
+
+  const viewCasesHref = `/care/patients?${serialiseFilters({
+    ...DEFAULT_FILTERS,
+    dateFrom: appliedFrom ?? "",
+    dateTo: appliedTo ?? "",
+    pathwayFilter: "confirmed",
+  })}`;
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice ?? [];
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   // Build the full type list as a union of live data + 2018 benchmark types so that
   // types present in 2018 but absent from today's patient data are still shown.
@@ -74,7 +84,7 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
       unit: "%",
       practice: pRow ? { value: pRow.pct, n: pRow.n } : null,
       similar: aRow ? { value: aRow.pct } : null,
-      alliance: eRow ? { value: eRow.pct } : { value: bm?.[metricKey]?.alliance ?? null },
+      alliance: eRow ? { value: eRow.pct } : null,
       national: { value: resolveBenchmarkValue(bm, metricKey, orgSelected) },
     };
   });
@@ -83,10 +93,11 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
     <SectionCard
       id="section-cancer-type"
       title="Cancer Type"
-      description="Which types of cancer your audited patients have, compared to the 2018 England average. Each dot shows your practice figure. A diamond shows the 2018 benchmark."
+      description="Which types of cancer your audited patients have. The chart compares your practice to the benchmark period you select above (for example your 2018 figures). Use the filter bar to add Cancer Alliance and England-wide comparisons in the table below."
       availability="ready"
       loading={loading}
       error={error}
+      viewCasesHref={viewCasesHref}
     >
       {practice.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>

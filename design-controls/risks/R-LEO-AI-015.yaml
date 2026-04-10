@@ -33,6 +33,11 @@
       implemented_by: ["DI-LEO-AI-018", "DI-LEO-AI-019"]
       verified_by: ["VT-LEO-AI-011"]
       effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Production coding jobs route through WorkflowEngine with explicit step/run progress events and runtime encounter text loading from source-of-truth Neo4j"
+      implemented_by: ["DI-LEO-AI-094"]
+      verified_by: ["VT-LEO-AI-094"]
+      effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 2

@@ -86,11 +86,11 @@ function InspectTab() {
       </Stack>
       {loading && <CircularProgress size={20} />}
       {error && <Alert severity="error">{error}</Alert>}
-      {result && (
+      {result != null ? (
         <Box component="pre" sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1, fontSize: 12, overflow: 'auto' }}>
           {JSON.stringify(result, null, 2)}
         </Box>
-      )}
+      ) : null}
     </Box>
   );
 }

@@ -15,12 +15,14 @@ and keeps the no-code pipeline builder aware of the exact output shape.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from typing import Any
 
 from libs.ner.extractor_contract import ExtractionItem, ExtractorProvider
 from libs.nlp.sentence_splitter import SentenceChunk
+from libs.pipeline.extraction_response_parse import parse_extraction_terms_response
 from libs.prompts.few_shot_selector import FewShotSelector
 
 logger = logging.getLogger(__name__)
@@ -137,9 +139,13 @@ class LLMExtractorAdapter:
         few_shot_examples: list[dict] | None = None,
         max_few_shot: int = 20,
         provider: str | None = None,
+        prompt_name: str = "extraction",
+        prompt_version: int = 1,
     ) -> None:
         self._tier = tier
         self._provider = provider or _active_provider()
+        self._prompt_name = prompt_name
+        self._prompt_version = prompt_version
         try:
             parsed_max = int(max_few_shot or 20)
         except (TypeError, ValueError):
@@ -160,6 +166,9 @@ class LLMExtractorAdapter:
             few_shot_examples=self._core_examples,
             provider=self._provider,
         )
+        self._prompt_hash = hashlib.sha256(
+            self._system_prompt.encode("utf-8")
+        ).hexdigest()
 
     @property
     def source(self) -> str:
@@ -200,6 +209,21 @@ class LLMExtractorAdapter:
         sentences: list[SentenceChunk],
     ) -> tuple[list[ExtractionItem], dict]:
         """Core LLM call. Returns (items, usage_dict)."""
+        if not sentences:
+            logger.warning("LLM extractor received 0 sentences; skipping LLM call")
+            return [], {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cached_tokens": 0,
+                "cost_usd": 0.0,
+                "prompt_name": self._prompt_name,
+                "prompt_version": self._prompt_version,
+                "prompt_hash": self._prompt_hash,
+                "provider": self._provider,
+                "model_tier": self._tier,
+                "few_shot_example_ids": [],
+                "empty_sentence_input": True,
+            }
         from libs.llm_client.factory import create_llm
 
         llm = create_llm(tier=self._tier)
@@ -250,25 +274,31 @@ class LLMExtractorAdapter:
             finally:
                 kg.close()
         except Exception:
-            pass
+            logger.debug("Cost calculation failed (non-fatal)", exc_info=True)
 
         usage = {
             "input_tokens":  resp.input_tokens,
             "output_tokens": resp.output_tokens,
             "cached_tokens": resp.cached_input_tokens,
             "cost_usd":      cost_usd,
+            "prompt_name": self._prompt_name,
+            "prompt_version": self._prompt_version,
+            "prompt_hash": self._prompt_hash,
+            "provider": self._provider,
+            "model_tier": self._tier,
+            "few_shot_example_ids": [
+                _example_id(ex) for ex in (self._core_examples + dynamic_examples)
+                if isinstance(ex, dict)
+            ],
         }
 
-        raw = resp.text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
+        raw = (resp.text or "").strip()
+        data, parse_source = parse_extraction_terms_response(raw)
+        if parse_source == "failed":
             logger.warning("LLM returned invalid JSON: %s", raw[:200])
             return [], usage
+        if parse_source == "prose_empty":
+            usage["llm_parse_note"] = "prose_empty"
 
         terms = data.get("terms", [])
         items: list[ExtractionItem] = []
@@ -351,6 +381,8 @@ def build_extractor(
     few_shot_examples: list[dict] | None = None,
     max_few_shot: int = 20,
     provider: str | None = None,
+    prompt_name: str = "extraction",
+    prompt_version: int = 1,
 ) -> LLMExtractorAdapter:
     """Build an LLM extractor, assembling the full system prompt from its parts.
 
@@ -372,4 +404,22 @@ def build_extractor(
         few_shot_examples=few_shot_examples,
         max_few_shot=max_few_shot,
         provider=provider,
+        prompt_name=prompt_name,
+        prompt_version=prompt_version,
     )
+
+
+def _example_id(example: dict[str, Any]) -> str:
+    explicit = str(example.get("id") or "").strip()
+    if explicit:
+        return explicit
+    seed = "|".join(
+        [
+            str(example.get("category") or ""),
+            str(example.get("description") or ""),
+            str(example.get("input") or ""),
+        ]
+    )
+    if not seed:
+        return ""
+    return hashlib.sha1(seed.encode("utf-8")).hexdigest()[:12]

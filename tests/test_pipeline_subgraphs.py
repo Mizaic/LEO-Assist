@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from libs.pipeline_graph.registry import get_registry
 
 
@@ -122,3 +124,24 @@ def test_registered_subgraphs_build():
     assert expected.issubset(registered_ids)
     for subgraph_id in expected:
         registry.build(subgraph_id)
+
+
+@pytest.mark.asyncio
+async def test_episode_subgraph_invokes_inside_running_loop():
+    registry = get_registry()
+    episode_graph = registry.build("episode_build")
+    result = episode_graph.invoke(
+        {
+            "patient_id": "p-async-1",
+            "anchor_result": {
+                "referral_anchors": [],
+                "diagnosis_anchors": [],
+                "treatment_anchors": [],
+                "specialist_visit_anchors": [],
+                "benign_closure_anchors": [],
+                "specialist_outcome_letter_anchors": [],
+                "first_presentation_anchors": [],
+            },
+        }
+    )
+    assert "errors" in result

@@ -1,0 +1,185 @@
+# -- VT-LEO-AI-093 -- Spinal-TNM Context Disambiguation Guard
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-093"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-093"]
+    risks: ["R-LEO-AI-066"]
+
+  metadata:
+    title: "Spinal vertebral notation suppressed; valid TNM staging preserved"
+    description: >
+      Verifies that the scope guard (Layer 3 of the unified post-processing stack)
+      correctly suppresses TNM-component tokens extracted from spinal/physiotherapy
+      text, while preserving genuine cancer staging entities. Also verifies the
+      is_spinal_context() predicate and the full-triplet exemption logic.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_spinal_tnm_guard.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "libs.ner.scope_guard importable (no external deps)"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-093-TC-001"
+      case_name: "T4 in facet-area sentence suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call reclassify_assertion with entity_text='T4',
+            entity_semantic_tag='observable entity', entity_assertion='present',
+            sentence_text='right traps area palp local tenderness on rhomboids
+            traps and stiffness C3 T4 facet areas developing a treatment plan'
+          expected_result: "Returns SUPPRESSED"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result == SUPPRESSED"
+
+    - case_id: "VT-093-TC-002"
+      case_name: "T4 with staging_scale tag in facet sentence suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call reclassify_assertion with entity_text='T4',
+            entity_semantic_tag='staging scale', entity_assertion='present',
+            sentence_text='mobilisation of T4 facet joint performed'
+          expected_result: "Returns SUPPRESSED"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result == SUPPRESSED"
+
+    - case_id: "VT-093-TC-003"
+      case_name: "N2 in spinal sentence suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call reclassify_assertion with entity_text='N2',
+            entity_semantic_tag='observable entity', entity_assertion='present',
+            sentence_text='cervical radiculopathy at N2 dermatome level'
+          expected_result: "Returns SUPPRESSED"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result == SUPPRESSED"
+
+    - case_id: "VT-093-TC-004"
+      case_name: "Full TNM triplet in sentence exempts entity from suppression"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call reclassify_assertion with entity_text='T4',
+            entity_semantic_tag='staging scale', entity_assertion='present',
+            sentence_text='colorectal cancer T4N1M0 staging confirmed at MDT'
+          expected_result: "Returns None (no suppression)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result is None"
+
+    - case_id: "VT-093-TC-005"
+      case_name: "Oncological context without spinal marker -- entity preserved"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call reclassify_assertion with entity_text='T3',
+            entity_semantic_tag='staging scale', entity_assertion='present',
+            sentence_text='pT3 tumour confirmed on histology biopsy result'
+          expected_result: "Returns None (no suppression)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result is None"
+
+    - case_id: "VT-093-TC-006"
+      case_name: "Non-staging entity in spinal context not suppressed by spinal guard"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call reclassify_assertion with entity_text='disc prolapse',
+            entity_semantic_tag='disorder', entity_assertion='present',
+            sentence_text='T5-6 disc prolapse confirmed on MRI of spine'
+          expected_result: "Returns None (spinal guard does not affect disorder tag)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result is None"
+
+    - case_id: "VT-093-TC-007"
+      case_name: "Already-reclassified assertion not affected"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call reclassify_assertion with entity_text='T4',
+            entity_semantic_tag='observable entity', entity_assertion='absent',
+            sentence_text='no T4 facet involvement noted'
+          expected_result: >
+            Returns None -- entity already has a non-present assertion;
+            spinal guard must not fire.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result is None"
+
+    - case_id: "VT-093-TC-008"
+      case_name: "is_spinal_context positive -- nags physiotherapy sentence"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call is_spinal_context with sentence
+            'did NAGs C3 and SNAGs T4 in physiotherapy session'
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result is True"
+
+    - case_id: "VT-093-TC-009"
+      case_name: "is_spinal_context negative -- oncology sentence"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call is_spinal_context with sentence
+            'T4 colorectal cancer confirmed at MDT meeting'
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result is False"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-093/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-093-RUN-001"
+      date: "2026-04-10"
+      executor: "automated CI (pytest)"
+      environment: "development"
+      result: "pass"
+      total_cases: 25
+      passed: 25
+      failed: 0
+      notes: >
+        All 25 test cases passed. One regex defect found during initial run
+        (vertebr[ae]? did not match 'vertebrae') and corrected to vertebrae?
+        before recording this pass. Full suite re-run confirmed 25/25 pass.

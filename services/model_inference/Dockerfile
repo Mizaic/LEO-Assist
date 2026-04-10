@@ -1,4 +1,4 @@
-# ── NER Model Inference Service ──────────────────────────────────────────────
+# -- NER Model Inference Service -------------------------------------------
 #
 # No model files in the image.  The model is downloaded from Azure Blob Storage
 # at startup based on CODING_MODEL_VERSION.  To update the model:
@@ -13,19 +13,23 @@ WORKDIR /app
 # System deps for spaCy
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libgomp1 && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    useradd --no-create-home --shell /sbin/nologin appuser && \
+    mkdir -p /var/model_cache && chown appuser /var/model_cache
 
 COPY services/model_inference/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Copy only source code — no model weights
+# Copy only source code -- no model weights
 COPY libs/ /app/libs/
 COPY services/model_inference/app/ /app/app/
 
-# Local model cache — populated at runtime from blob, not from the image.
+# Local model cache -- populated at runtime from blob, not from the image.
 # Mount a persistent volume here in production for faster restarts.
 ENV MODEL_STORE_CACHE_DIR=/var/model_cache
-RUN mkdir -p /var/model_cache
+ENV PYTHONPATH=/app
+
+USER appuser
 
 EXPOSE 8004
 

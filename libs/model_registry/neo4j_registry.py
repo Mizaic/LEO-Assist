@@ -97,7 +97,7 @@ class Neo4jModelRegistry:
             try:
                 self._client.run(q)
             except Exception:
-                pass  # constraint may already exist
+                logger.debug("Constraint may already exist: %s", q[:60])
 
     def _get_client(self):
         return self._client

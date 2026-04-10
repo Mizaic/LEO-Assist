@@ -1,7 +1,12 @@
 "use client";
 
-import PatientList from "@/components/PatientList";
+import { Suspense } from "react";
+import MissionControl from "@/components/mission-control/MissionControl";
 
 export default function PatientsPage() {
-  return <PatientList />;
+  return (
+    <Suspense>
+      <MissionControl />
+    </Suspense>
+  );
 }

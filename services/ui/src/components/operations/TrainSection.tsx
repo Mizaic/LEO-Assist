@@ -254,7 +254,9 @@ function CorpusCard({ corpus }: { corpus: CorpusStats | null }) {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
               <XAxis dataKey="tag" tick={{ fontSize: 9 }} interval={0} angle={-30} textAnchor="end" height={40} />
               <YAxis tick={{ fontSize: 10 }} width={36} />
-              <ChartTooltip formatter={(v: number) => [v.toLocaleString(), "Examples"]} />
+              <ChartTooltip
+                formatter={(v) => [(v ?? 0).toLocaleString(), "Examples"]}
+              />
               <Bar dataKey="count" name="Examples" fill="#1F3A8A" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

@@ -292,7 +292,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <Divider />
 
-      {organizations.length > 0 && (
+      {(organizations.length > 0 || isPlatformAdmin) && (
         <Box sx={{ px: 1.5, py: 1.5 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
             <BusinessOutlinedIcon sx={{ fontSize: 14, color: "text.secondary" }} />

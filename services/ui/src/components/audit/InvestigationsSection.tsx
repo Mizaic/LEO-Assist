@@ -7,6 +7,8 @@ import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditInvestigations, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 /** Display label for each investigation type key (live or benchmark). */
 const INV_DISPLAY: Record<string, string> = {
@@ -59,14 +61,12 @@ interface Props {
 }
 
 export default function InvestigationsSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice    = result?.scopes.practice;
   const allianceLive = result?.scopes.alliance_live;
   const englandLive  = result?.scopes.england_live;
   const bm           = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   const atLeastOneBm = resolveBenchmarkValue(bm, "investigations.at_least_one_pct", orgSelected);
 
@@ -180,6 +180,8 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
         metrics={INV_BM_METRICS}
         orgSelected={orgSelected}
         heading="2018 Investigation Types by Cancer Type"
+        showAlliance2018={orgSelected ? showCancerAlliance : undefined}
+        showNational2018={orgSelected ? showAllPatients : undefined}
       />
 
       <Box sx={{ mt: 2 }}>

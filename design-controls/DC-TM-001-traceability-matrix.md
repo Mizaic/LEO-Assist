@@ -118,6 +118,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-CW-003 | LLM response caching | Plan WS-C | libs/llm-client/cache.py | test_shared_libs.py (3 tests) | -- |
 | FR-CW-004 | LLM fallback (Bedrock -> Azure OpenAI) | Plan WS-C | libs/llm-client/providers.py | -- | ST-CW-002 |
 | FR-CW-005 | Redis progress streaming | Plan WS-C | coding-worker/app/services/progress_publisher.py | -- | -- |
+| FR-CW-006 | Production coding routing through WorkflowEngine with encounter_loader and queue payload hardening | DI-LEO-AI-094, DO-LEO-AI-092 | services/coding_worker/app/services/job_handler.py, libs/workflow/engine.py, libs/pipeline_graph/subgraphs/encounter_loader.py, services/api/app/routers/pipeline.py, scripts/seed_plan_definitions.py | services/coding_worker/tests/test_job_handler_engine.py, tests/test_workflow_events.py | VT-LEO-AI-094 |
 
 ### 2.11 Analysis Worker (New — from VRB + auditor_2)
 
@@ -579,6 +580,42 @@ Safety constraints enforced:
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
 | DI-LEO-AI-090 | Stage-at-diagnosis enrichment engine | R-LEO-AI-064 | VT-LEO-AI-090 |
+
+---
+
+### 3.xx Clinical Audit Mission Control (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-058 | draft | Cancer auditors need Mission Control to filter, review, and validate cancer pathway episodes before clinical decisions |
+| Design Input | DI-LEO-AI-091 | draft | Mission Control backend API: GET /patients (paginated), GET /kpis, PATCH /review |
+| Design Input | DI-LEO-AI-092 | draft | Mission Control frontend UI: Command Bar, KPI Strip, Case Table, Detail Drawer, Timeline, Review Actions |
+| Design Output | DO-LEO-AI-089 | draft | mission_control.py FastAPI router implementation |
+| Design Output | DO-LEO-AI-090 | draft | Mission Control React UI component tree and API client layer |
+| Risk | R-LEO-AI-065 | analyzed | Auditor approves incorrect episode data, leading to flawed clinical decisions |
+| Verification Test | VT-LEO-AI-091 | passed | 16 tests: pathway filter, cancer type filter, review filter, pagination, KPI fields, confirmed_cancer benign exclusion (TC-009), review write safety, auth enforcement |
+| Verification Test | VT-LEO-AI-092 | passed | 42 tests: plain English labels, URL param round-trip, KPI colour thresholds, timeline rendering, encounter milestone jump chips, coded-entity evidence tooltip with fallback sentence derivation, confirm guard, ReviewActionsPanel |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-091 | Mission Control backend API | R-LEO-AI-065 | VT-LEO-AI-091 |
+| DI-LEO-AI-092 | Mission Control frontend UI | R-LEO-AI-065 | VT-LEO-AI-092 |
+
+---
+
+### 3.xx Spinal-TNM Context Disambiguation Guard (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-002 | draft | System assigns SNOMED CT codes to free-text encounter narratives using NLP |
+| Design Input | DI-LEO-AI-093 | draft | Spinal-TNM context disambiguation guard: suppress standalone TNM tokens in spinal/physiotherapy sentences; add LLM prompt negative extraction rule |
+| Design Output | DO-LEO-AI-091 | draft | is_spinal_context() predicate + reclassify_assertion() spinal guard block in scope_guard.py; vertebral level DO NOT EXTRACT rule in extraction_v1.py |
+| Risk | R-LEO-AI-066 | analyzed | Spinal vertebral level notation misclassified as cancer TNM staging observable entity |
+| Verification Test | VT-LEO-AI-093 | passed | 25 tests: spinal facet/nags/snags/radiculopathy/vertebrae suppression, full-triplet exemption, oncology-context exemption, non-staging tags unaffected, absent-assertion bypass, is_spinal_context predicate |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-093 | Spinal-TNM context disambiguation guard | R-LEO-AI-066 | VT-LEO-AI-093 |
 
 ---
 

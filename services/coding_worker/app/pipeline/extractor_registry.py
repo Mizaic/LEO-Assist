@@ -151,8 +151,19 @@ def build_extractor(progress_hook: Callable[[dict[str, Any]], None] | None = Non
         return FallbackExtractor(agent, llm, strict=strict, progress_hook=progress_hook)
     if backend == "model":
         if not model.is_available():
+            logger.warning(
+                "CODING_EXTRACTOR_BACKEND=model requested but model backend is unavailable or deprecated"
+            )
             if strict:
                 raise RuntimeError("model backend unavailable")
+            if progress_hook:
+                progress_hook(
+                    {
+                        "type": "backend_unavailable",
+                        "backend": "model",
+                        "fallback": "llm",
+                    }
+                )
             return llm
         return FallbackExtractor(model, llm, strict=strict, progress_hook=progress_hook)
     if backend == "auto":

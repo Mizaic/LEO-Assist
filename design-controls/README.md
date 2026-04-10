@@ -168,6 +168,23 @@ Node configuration opens in a Dialog wizard with proper pickers (no raw ID field
 
 ---
 
+## WorkflowEngine Production Coding Cutover — Design Control Summary
+
+Routes production coding jobs through WorkflowEngine and removes encounter text
+from queue payloads by loading text at runtime using an encounter_loader step.
+
+### Traceability
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-012 | implemented | Composable pipeline architecture |
+| Design Input | DI-LEO-AI-094 | draft | Production coding jobs SHALL route through WorkflowEngine |
+| Design Output | DO-LEO-AI-092 | draft | Job handler cutover, encounter_loader, seed updates, payload hardening |
+| Risk | R-LEO-AI-015 | analyzed | Data loss during sync / orchestration transitions |
+| Verification Test | VT-LEO-AI-094 | draft | Integration verification for engine routing and progress events |
+
+---
+
 ## Referral Triage Programme -- User Needs (UN-030 to UN-048)
 
 Identified through 20 structured user interviews (UR-LEO-AI-001, March 2026)

@@ -1,6 +1,7 @@
 import type { FieldMappingRow, PortDefinition } from "./types";
 
 export const SUBGRAPH_OPTIONS = [
+  { id: "encounter_loader",  label: "Load Encounter Text",     color: "#607D8B", category: "Data",            description: "Load encounter clinical text from Neo4j using encounter_id." },
   { id: "extraction",        label: "Find Clinical Facts",    color: "#4CAF50", category: "Clinical AI",     description: "Read patient notes and pull out clinical facts — symptoms, conditions, procedures, test results." },
   { id: "post_processing",   label: "Clean Up Results",       color: "#2196F3", category: "Clinical AI",     description: "Tidy the found facts — remove duplicates, expand abbreviations, and apply context rules." },
   { id: "terminology",       label: "Code to SNOMED CT",      color: "#FF9800", category: "Clinical AI",     description: "Match each clinical fact to an official SNOMED CT medical code." },
@@ -25,6 +26,7 @@ export const SUBGRAPH_IO: Record<string, {
   writes: string[];
   requiredFields?: Record<string, string[]>;
 }> = {
+  encounter_loader: { reads: ["encounter_id"], writes: ["encounter_text"] },
   extraction: { reads: ["encounter_text"], writes: ["entities", "sentences", "errors"] },
   post_processing: {
     reads: ["entities", "encounter_text"],
@@ -111,6 +113,7 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   quality_check: "llm",
   compliance: "llm",
   guidance_rule_extraction: "llm",
+  encounter_loader: "generic",
   persist: "persist",
   post_processing: "post_process",
   terminology: "terminology",

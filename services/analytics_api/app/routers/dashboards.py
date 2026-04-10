@@ -341,7 +341,7 @@ def episode_summary(
                 "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
                 "    WHERE r.milestone_type = 'referral' "
                 "  } "
-                "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(ep) AS count "
+                "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(DISTINCT ep) AS count "
                 "ORDER BY count DESC",
                 org=effective_org, **date_params,
             )
@@ -352,7 +352,7 @@ def episode_summary(
             "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
             "    WHERE r.milestone_type = 'referral' "
             "  } "
-            "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(ep) AS count "
+            "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(DISTINCT ep) AS count "
             "ORDER BY count DESC",
             **date_params, **scope_params,
         )
@@ -393,7 +393,7 @@ def episode_diagnosed(
                 "    WHERE r.milestone_type = 'referral' "
                 "  } "
                 f"{date_frag} "
-                "RETURN ep.cancer_type AS cancer_type, count(ep) AS count "
+                "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS count "
                 "ORDER BY count DESC",
                 org=effective_org, **date_params,
             )
@@ -406,7 +406,7 @@ def episode_diagnosed(
             "    WHERE r.milestone_type = 'referral' "
             "  } "
             f"{scope_frag}{date_frag} "
-            "RETURN ep.cancer_type AS cancer_type, count(ep) AS count "
+            "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS count "
             "ORDER BY count DESC",
             **date_params, **scope_params,
         )

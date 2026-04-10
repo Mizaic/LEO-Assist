@@ -379,7 +379,7 @@ class NiceApiClient:
             if cached:
                 return json.loads(cached)
         except Exception:
-            pass
+            logger.debug("Redis catalogue cache read failed", exc_info=True)
         finally:
             await redis.aclose()
         return []

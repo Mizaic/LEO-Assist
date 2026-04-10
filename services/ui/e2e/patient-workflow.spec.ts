@@ -33,7 +33,7 @@ test.describe("Patient Workflow", () => {
     );
     const firstCard = page.locator("[class*='MuiCardActionArea-root']").first();
     await firstCard.click();
-    await expect(page).toHaveURL(/\/care/patients\/[^/]+$/);
+    await expect(page).toHaveURL(/\/care\/patients\/[^/]+$/);
   });
 
   test("encounter list shows encounter rows", async ({ page }) => {

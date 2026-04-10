@@ -4,6 +4,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
@@ -11,6 +12,8 @@ import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
+import OpenInNew from "@mui/icons-material/OpenInNew";
+import Link from "next/link";
 
 export type DataAvailability = "ready" | "pipeline_pending" | "manual_entry" | "external_feed";
 
@@ -21,6 +24,7 @@ interface SectionCardProps {
   availability?: DataAvailability;
   loading?: boolean;
   error?: string | null;
+  viewCasesHref?: string;
   children: React.ReactNode;
 }
 
@@ -64,6 +68,7 @@ export default function SectionCard({
   availability = "ready",
   loading = false,
   error = null,
+  viewCasesHref,
   children,
 }: SectionCardProps) {
   const cfg = AVAILABILITY_CONFIG[availability];
@@ -92,16 +97,29 @@ export default function SectionCard({
               </Typography>
             )}
           </Box>
-          {availability !== "ready" && (
-            <Chip
-              icon={cfg.icon}
-              label={cfg.label}
-              size="small"
-              color={cfg.severity === "warning" ? "warning" : "default"}
-              variant="outlined"
-              sx={{ flexShrink: 0 }}
-            />
-          )}
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexShrink: 0 }}>
+            {viewCasesHref && (
+              <Button
+                component={Link}
+                href={viewCasesHref}
+                size="small"
+                variant="outlined"
+                endIcon={<OpenInNew fontSize="small" />}
+                sx={{ fontSize: "0.7rem", py: 0.25 }}
+              >
+                View cases
+              </Button>
+            )}
+            {availability !== "ready" && (
+              <Chip
+                icon={cfg.icon}
+                label={cfg.label}
+                size="small"
+                color={cfg.severity === "warning" ? "warning" : "default"}
+                variant="outlined"
+              />
+            )}
+          </Box>
         </Box>
 
         {cfg.message && (

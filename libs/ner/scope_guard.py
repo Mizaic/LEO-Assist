@@ -138,6 +138,58 @@ def has_hedged_diagnosis(sentence_text: str) -> bool:
 
 SUPPRESSED = "suppressed"
 
+# ---------------------------------------------------------------------------
+# Spinal-TNM context disambiguation guard
+# ---------------------------------------------------------------------------
+# Vertebral level labels (C3, T4, L5, etc.) share the same alphanumeric
+# pattern as TNM staging components. These regexes detect:
+#   - Standalone TNM-component tokens as the entity surface form.
+#   - Spinal/physiotherapy context in the containing sentence.
+#   - A full T+N+M triplet (exempts from suppression -- likely real staging).
+
+_STANDALONE_TNM_COMPONENT_RE = re.compile(
+    r"^\s*[cpyr]?[tnm][0-4][a-c]?\s*$",
+    re.IGNORECASE,
+)
+
+_TNM_FULL_TRIPLET_RE = re.compile(
+    r"\b(?:[cpyr]?t[0-4](?:[a-c])?)\s*(?:[cpyr]?n[0-3](?:[a-c])?)\s*"
+    r"(?:[cpyr]?m[0-1](?:[a-c])?)\b",
+    re.IGNORECASE,
+)
+
+_SPINAL_CONTEXT_RE = re.compile(
+    r"\b(?:"
+    r"facet"
+    r"|vertebrae?\b"
+    r"|nag[s]?\b"
+    r"|snag[s]?\b"
+    r"|spinal\b"
+    r"|spine\b"
+    r"|radiculopathy"
+    r"|dermatome"
+    r"|myelopathy"
+    r"|spondyl\w+"
+    r"|foraminal"
+    r"|laminectomy"
+    r"|discectomy"
+    r"|discogenic"
+    r"|physiother\w+"
+    r"|osteopath\w+"
+    r"|chiropr\w+"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_SPINAL_TNM_TAGS = frozenset(
+    {"staging scale", "staging_scale", "observable entity", "observable_entity"}
+)
+
+
+def is_spinal_context(sentence_text: str) -> bool:
+    """Return True if the sentence describes spinal anatomy or manual therapy."""
+    return bool(_SPINAL_CONTEXT_RE.search(sentence_text))
+
 
 def reclassify_assertion(
     *,
@@ -186,5 +238,16 @@ def reclassify_assertion(
             sentence_text,
         )
         return "possible"
+
+    if tag in _SPINAL_TNM_TAGS:
+        if _STANDALONE_TNM_COMPONENT_RE.match(entity_text or ""):
+            if is_spinal_context(sentence_text):
+                if not _TNM_FULL_TRIPLET_RE.search(sentence_text):
+                    logger.info(
+                        "scope_guard: %s -> SUPPRESSED (spinal anatomy, not TNM staging) | sent: %.120s",
+                        label,
+                        sentence_text,
+                    )
+                    return SUPPRESSED
 
     return None

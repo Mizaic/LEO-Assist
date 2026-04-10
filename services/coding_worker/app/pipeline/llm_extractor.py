@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import hashlib
 import logging
 import re
 import threading
@@ -9,7 +9,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from libs.ner.extractor_contract import CONTRACT_VERSION, ExtractionItem
-from libs.prompts.extraction_v1 import EXTRACTION_SYSTEM_V1
+from libs.pipeline_graph.subgraphs._extractor import assemble_system_prompt
+from libs.prompts.registry import get_prompt_config
 
 logger = logging.getLogger(__name__)
 
@@ -80,16 +81,15 @@ def _try_create_auto_surface_form_task(
         if _auto_surface_count_today() >= _DAILY_CAP:
             logger.debug(
                 "Stream C: daily cap (%d) reached -- skipping %r",
-                _DAILY_CAP, entity_text,
+                _DAILY_CAP,
+                entity_text,
             )
             return
 
         try:
             client = KnowledgeGraphClient()
             with client.session() as session:
-                maps_row = session.run(
-                    _MAPS_TO_EXISTS, normalized=normalized
-                ).single()
+                maps_row = session.run(_MAPS_TO_EXISTS, normalized=normalized).single()
                 if maps_row and maps_row["n"] > 0:
                     logger.debug(
                         "Stream C: MAPS_TO already exists for %r -- skip",
@@ -103,7 +103,8 @@ def _try_create_auto_surface_form_task(
                 if pending > 50:
                     logger.info(
                         "Stream C: pending backlog %d > 50 -- skipping %r",
-                        pending, entity_text,
+                        pending,
+                        entity_text,
                     )
                     client.close()
                     return
@@ -131,13 +132,17 @@ def _try_create_auto_surface_form_task(
             _increment_auto_surface()
             logger.info(
                 "Stream C: created SurfaceFormTask for %r -> %s (score=%.2f)",
-                entity_text, concept_id, score,
+                entity_text,
+                concept_id,
+                score,
             )
         except Exception as exc:
             logger.warning(
                 "Stream C: failed to create SurfaceFormTask for %r: %s",
-                entity_text, exc,
+                entity_text,
+                exc,
             )
+
 
 # ---------------------------------------------------------------------------
 # Output-format instructions appended to the system prompt at runtime.
@@ -148,7 +153,12 @@ _OUTPUT_FORMAT = """
 
 ## Output Format
 
-Return ONLY valid JSON — no prose before or after. Schema:
+Your entire assistant message must be one JSON object only (parseable by json.loads).
+No markdown headings, bullet rationale, code fences, or text before or after the object.
+
+When there are no codable entities, respond with exactly: {"terms":[]}
+
+Full schema when entities exist:
 {
   "terms": [
     {
@@ -165,7 +175,7 @@ Return ONLY valid JSON — no prose before or after. Schema:
   ]
 }
 
-If no codeable entities are found, return {"terms": []}.
+Never replace the JSON object with prose (for example "No codable entities").
 """
 
 _VALID_ASSERTIONS = {
@@ -218,17 +228,57 @@ class LLMExtractor:
     def __init__(self, model_id: str = "llm-unconfigured") -> None:
         self.model_id = model_id or "llm-unconfigured"
         self.model_version = "1.0"
+        self.prompt_name = "extraction"
+        self.prompt_version = 1
+        self.prompt_hash = ""
+        self.selected_few_shot_ids: list[str] = []
+        self._system_prompt = ""
+        self._load_prompt_bundle()
         self.client = self._init_client()
-        self.enabled = bool(self.client)
+        configured = self.model_id not in {"unconfigured", "llm-unconfigured"}
+        self.enabled = bool(self.client) and configured
         self.model_name = self.client.model_id if self.client else self.model_id
+
+    def _load_prompt_bundle(self) -> None:
+        """Load extraction prompt/schema/examples from Neo4j PromptConfig."""
+        try:
+            cfg = get_prompt_config(self.prompt_name, version=self.prompt_version)
+        except Exception:
+            logger.exception(
+                "LLMExtractor could not load prompt config %s v%s",
+                self.prompt_name,
+                self.prompt_version,
+            )
+            self._system_prompt = ""
+            self.prompt_hash = ""
+            self.selected_few_shot_ids = []
+            return
+
+        few_shots = cfg.get("fewShotExamples") or []
+        if not isinstance(few_shots, list):
+            few_shots = []
+        self.selected_few_shot_ids = [
+            _example_id(ex) for ex in few_shots if isinstance(ex, dict)
+        ]
+        self._system_prompt = assemble_system_prompt(
+            instructions=str(cfg.get("systemPrompt") or ""),
+            output_schema_json=cfg.get("outputSchema"),
+            few_shot_examples=few_shots,
+        )
+        if not cfg.get("outputSchema"):
+            self._system_prompt = f"{self._system_prompt}\n\n{_OUTPUT_FORMAT}"
+        self.prompt_hash = hashlib.sha256(
+            self._system_prompt.encode("utf-8")
+        ).hexdigest()
 
     def _init_client(self):
         """Return a wired LLMClient or None if Bedrock is not configured."""
         try:
             from libs.llm_client.factory import create_llm
+
             return create_llm(
-                provider=None,   # reads PIPELINE_MODEL_PROVIDER env, defaults "aws"
-                tier="small",    # Haiku for extraction — fast, low cost, structured task
+                provider=None,  # reads PIPELINE_MODEL_PROVIDER env, defaults "aws"
+                tier="small",  # Haiku for extraction — fast, low cost, structured task
             )
         except Exception as exc:
             logger.warning("LLMExtractor: could not initialise client: %s", exc)
@@ -243,13 +293,12 @@ class LLMExtractor:
         sentences: list,
     ) -> list[ExtractionItem]:
         """Call the LLM and return ExtractionItems for all sentences."""
-        if not self.enabled or not sentences:
+        if not self.enabled or not sentences or not self._system_prompt:
             return []
-        system = EXTRACTION_SYSTEM_V1 + _OUTPUT_FORMAT
         user_msg = self._build_user_prompt(encounter_text, sentences)
         try:
             resp = self.client.converse(
-                system=system,
+                system=self._system_prompt,
                 messages=[{"role": "user", "content": user_msg}],
                 max_tokens=2048,
                 temperature=0.0,
@@ -271,29 +320,26 @@ class LLMExtractor:
 
     @staticmethod
     def _parse_json(raw: str) -> dict[str, Any]:
-        if not raw:
-            return {}
-        raw = raw.strip()
-        # Strip markdown fence if present
-        if raw.startswith("```"):
-            lines = raw.splitlines()
-            inner = lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
-            raw = "\n".join(inner).strip()
-        # Find leading brace in case of preamble
-        if not raw.startswith("{"):
-            idx = raw.find("{")
-            if idx >= 0:
-                raw = raw[idx:]
+        from libs.pipeline.extraction_response_parse import (
+            parse_extraction_terms_response,
+        )
+
+        data, _src = parse_extraction_terms_response(raw)
+        return data
+
+    @staticmethod
+    def _extract_text(response: dict[str, Any]) -> str:
+        """Extract raw text payload from bedrock/openai-like responses."""
         try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            end = raw.rfind("}")
-            if end > 0:
-                try:
-                    return json.loads(raw[: end + 1])
-                except json.JSONDecodeError:
-                    pass
-            return {}
+            content = response.get("output", {}).get("message", {}).get("content", [])
+            if not content:
+                return ""
+            first = content[0]
+            if isinstance(first, dict):
+                return str(first.get("text") or "")
+        except Exception:
+            return ""
+        return ""
 
     @staticmethod
     def _build_user_prompt(encounter_text: str, sentences: list) -> str:
@@ -304,11 +350,15 @@ class LLMExtractor:
             parts.append(f"[{sid}] {text}")
         return "\n".join(parts)
 
-    def _parse_terms(self, payload: dict[str, Any], sentences: list) -> list[ExtractedTerm]:
+    def _parse_terms(
+        self, payload: dict[str, Any], sentences: list
+    ) -> list[ExtractedTerm]:
         terms = payload.get("terms") or []
         if not isinstance(terms, list):
             return []
-        valid_sentence_ids = {getattr(sentence, "sentence_id", "") for sentence in sentences}
+        valid_sentence_ids = {
+            getattr(sentence, "sentence_id", "") for sentence in sentences
+        }
         results: list[ExtractedTerm] = []
         seen: set[tuple[str, str, str]] = set()  # (text_lower, tag, assertion)
         for term in terms:
@@ -327,7 +377,9 @@ class LLMExtractor:
             if dedup_key in seen:
                 continue
             seen.add(dedup_key)
-            context = dict(_ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"]))
+            context = dict(
+                _ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"])
+            )
             results.append(
                 ExtractedTerm(
                     sentence_id=sentence_id or "s0",
@@ -387,7 +439,11 @@ class LLMExtractor:
                     lookup_term=comp,
                     semantic_tag="observable entity",
                     assertion=assertion,
-                    context=dict(_ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"])),
+                    context=dict(
+                        _ASSERTION_TO_CONTEXT.get(
+                            assertion, _ASSERTION_TO_CONTEXT["present"]
+                        )
+                    ),
                     modifiers={"derived_from_tnm_triplet": text},
                 )
             )
@@ -435,7 +491,9 @@ def maybe_create_surface_form_tasks(
         )
 
 
-def extracted_term_to_item(term: ExtractedTerm, *, source: str, model_name: str, model_version: str) -> ExtractionItem:
+def extracted_term_to_item(
+    term: ExtractedTerm, *, source: str, model_name: str, model_version: str
+) -> ExtractionItem:
     return ExtractionItem(
         sentence_id=term.sentence_id,
         text=term.text,
@@ -451,3 +509,19 @@ def extracted_term_to_item(term: ExtractedTerm, *, source: str, model_name: str,
         model_version=model_version,
         contract_version=CONTRACT_VERSION,
     )
+
+
+def _example_id(example: dict[str, Any]) -> str:
+    explicit = str(example.get("id") or "").strip()
+    if explicit:
+        return explicit
+    seed = "|".join(
+        [
+            str(example.get("category") or ""),
+            str(example.get("description") or ""),
+            str(example.get("input") or ""),
+        ]
+    )
+    if not seed:
+        return ""
+    return hashlib.sha1(seed.encode("utf-8")).hexdigest()[:12]

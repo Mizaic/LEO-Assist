@@ -7,6 +7,8 @@ import IntervalStripPlot from "./IntervalStripPlot";
 import SummaryStatsTable from "./SummaryStatsRow";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import type { AuditIntervals, AuditSectionResult } from "@/lib/analyticsApi";
+import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
+import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
 
 interface Props {
   result: AuditSectionResult<AuditIntervals> | null;
@@ -16,14 +18,12 @@ interface Props {
 }
 
 export default function DiagnosticIntervalSection({ result, loading, error, orgSelected = false }: Props) {
+  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
+  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
   const allianceLive = result?.scopes.alliance_live;
   const englandLive = result?.scopes.england_live;
   const bm = result?.benchmark?.metrics;
-
-  const visibleKeys = orgSelected
-    ? (["practice", "national", "similar", "alliance"] as const)
-    : (["practice", "national"] as const);
 
   // When a practice is selected, show that practice's 2018 median as the reference line;
   // fall back to national when no practice-level benchmark exists.
@@ -32,9 +32,8 @@ export default function DiagnosticIntervalSection({ result, loading, error, orgS
   const nationalLabel = orgSelected
     ? (practiceMedianBm != null ? "This Practice (2018)" : "All Patients (2018)")
     : "All Patients (2018)";
-  const allianceMedian = orgSelected
-    ? (allianceLive?.di?.median ?? bm?.["diagnostic_interval.median_di_days"]?.alliance ?? null)
-    : null;
+  const allianceMedian =
+    orgSelected && showCancerAlliance ? (allianceLive?.di?.median ?? null) : null;
 
   const tableRows = [
     {
@@ -46,7 +45,7 @@ export default function DiagnosticIntervalSection({ result, loading, error, orgS
       similar: allianceLive?.di ? { value: allianceLive.di.median } : null,
       alliance: englandLive?.di
         ? { value: englandLive.di.median }
-        : { value: bm?.["diagnostic_interval.median_di_days"]?.alliance ?? null },
+        : null,
       national: { value: nationalMedian },
     },
   ];

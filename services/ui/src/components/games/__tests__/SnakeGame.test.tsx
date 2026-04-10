@@ -3,8 +3,9 @@ import { render, screen } from "@testing-library/react";
 import SnakeGame from "../SnakeGame";
 
 // Mock canvas 2d context (jsdom does not implement it)
+const origGetContext = HTMLCanvasElement.prototype.getContext;
 beforeAll(() => {
-  HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
+  const mockCtx = {
     fillStyle: "",
     fillRect: jest.fn(),
     strokeStyle: "",
@@ -19,13 +20,27 @@ beforeAll(() => {
     shadowBlur: 0,
     arc: jest.fn(),
     fill: jest.fn(),
-    textAlign: "",
+    textAlign: "left" as CanvasTextAlign,
     font: "",
-    textBaseline: "",
+    textBaseline: "alphabetic" as CanvasTextBaseline,
     fillText: jest.fn(),
     globalAlpha: 1,
-    filter: jest.fn(),
-  })) as unknown as typeof CanvasRenderingContext2D.prototype;
+    filter: "none",
+  };
+  HTMLCanvasElement.prototype.getContext = function (
+    this: HTMLCanvasElement,
+    contextId: string,
+    options?: CanvasRenderingContext2DSettings,
+  ) {
+    if (contextId === "2d") {
+      return mockCtx as unknown as CanvasRenderingContext2D;
+    }
+    return origGetContext.call(this, contextId, options as never);
+  } as typeof HTMLCanvasElement.prototype.getContext;
+});
+
+afterAll(() => {
+  HTMLCanvasElement.prototype.getContext = origGetContext;
 });
 
 jest.mock("../Leaderboard", () => {

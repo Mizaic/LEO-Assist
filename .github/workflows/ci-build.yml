@@ -30,16 +30,48 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio
+          pip install pytest pytest-asyncio black flake8
+
+      - name: Lint - black format check
+        run: black --check --diff .
+
+      - name: Lint - flake8
+        run: flake8 --max-line-length=88 --extend-ignore=E203,W503 libs/ services/ tests/
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          ignore-unfixed: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python, javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
   build-push:
     name: Build ${{ matrix.service }}
-    needs: test
+    needs: [test, security-scan]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

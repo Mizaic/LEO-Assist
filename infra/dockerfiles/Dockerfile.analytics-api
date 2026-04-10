@@ -1,5 +1,8 @@
 # -- Build stage: install deps into /venv ----------------------------------
-FROM debian:12-slim AS build
+# Pin base images: override via --build-arg in CI for reproducible builds.
+ARG BASE_IMAGE_BUILD=debian:12-slim
+ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/python3-debian12:nonroot
+FROM ${BASE_IMAGE_BUILD} AS build
 RUN apt-get update && apt-get install --no-install-suggests --no-install-recommends --yes \
     python3-venv gcc libpython3-dev && \
     rm -rf /var/lib/apt/lists/*
@@ -10,7 +13,8 @@ COPY services/analytics_api/requirements.txt /requirements.txt
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 
 # -- Runtime: distroless (no shell, no package manager) --------------------
-FROM gcr.io/distroless/python3-debian12:nonroot
+ARG BASE_IMAGE_RUNTIME
+FROM ${BASE_IMAGE_RUNTIME}
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
 COPY services/analytics_api/ /app/services/analytics_api/

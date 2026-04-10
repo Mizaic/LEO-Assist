@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import DashboardPage from "../page";
+import { AnalyticsDateFilterProvider } from "@/context/AnalyticsDateFilterContext";
 import {
   fetchEpisodeSummary,
   fetchDiagnosedSummary,
@@ -40,7 +41,9 @@ const theme = createTheme();
 function renderDashboard() {
   return render(
     <ThemeProvider theme={theme}>
-      <DashboardPage />
+      <AnalyticsDateFilterProvider>
+        <DashboardPage />
+      </AnalyticsDateFilterProvider>
     </ThemeProvider>,
   );
 }

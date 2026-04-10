@@ -94,6 +94,13 @@ class TestParseJson:
         result = LLMExtractor._parse_json("not json at all")
         assert result == {}
 
+    def test_prose_no_entities_returns_empty_terms(self):
+        from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
+
+        raw = "# Result\n\n**No codable clinical entities identified.**\n"
+        result = LLMExtractor._parse_json(raw)
+        assert result == {"terms": []}
+
 
 class TestParseTerms:
 

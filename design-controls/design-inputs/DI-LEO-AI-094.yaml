@@ -1,0 +1,76 @@
+# -- DI-LEO-AI-094 -- Production Coding Job Routing via WorkflowEngine
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-094"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-012"]
+  requirement: >
+    The production coding worker SHALL execute coding jobs through the
+    WorkflowEngine using PlanDefinition pd-gp-encounter-coding for all
+    coding modes (extract_encounter, extract_patient, and all). Encounter
+    narrative text SHALL NOT be transported in queue message payloads and
+    SHALL instead be loaded at runtime from Neo4j by a dedicated
+    encounter_loader subgraph step before extraction.
+  rationale: >
+    Routing production through the same PlanDefinition-driven engine used by
+    pathway configuration removes runtime/UI divergence, improves auditability,
+    and allows operational changes to be managed through graph configuration.
+    Removing encounter text from queue payloads reduces message size and
+    avoids unnecessary duplication of clinical text in transient transport.
+
+  machine_spec:
+  acceptance_criteria:
+    - type: "functional"
+      spec: "Service bus coding jobs are handled by WorkflowEngine, not CodingPipeline"
+    - type: "functional"
+      spec: "pd-gp-encounter-coding includes an encounter_loader step that writes encounter_text into pipeline state"
+    - type: "functional"
+      spec: "Queue messages for coding jobs do not include encounter_text at top-level body or context"
+    - type: "functional"
+      spec: "Pipeline progress SSE stream receives step-level events and run_completed from engine execution"
+    - type: "safety"
+      spec: "Engine writes immutable AuditEvent records for production runs with step status and timing"
+    - type: "safety"
+      spec: "If prompt_config_id is absent for extraction, prompt_config_name and version fallback resolves PromptConfig from Neo4j"
+
+  constraints:
+    - type: "architecture"
+      spec: "WorkflowEngine remains the sole production orchestration path for coding jobs"
+    - type: "safety"
+      spec: "Encounter loader failure must halt the run and emit pipeline_error/run_error progress events"
+    - type: "interoperability"
+      spec: "Message format remains compatible with existing pipeline-jobs queue envelope"
+
+  dependencies: ["DI-LEO-AI-060", "DI-LEO-AI-019"]
+  downstream_impacts:
+    - "services/coding_worker/app/services/job_handler.py"
+    - "libs/workflow/engine.py"
+    - "libs/workflow/events.py"
+    - "scripts/seed_plan_definitions.py"
+    - "services/api/app/routers/pipeline.py"
+
+  technical_details:
+    language: "Python"
+    framework: "FastAPI / LangGraph"
+    file_structure:
+      - "services/coding_worker/app/services/job_handler.py"
+      - "libs/workflow/engine.py"
+      - "libs/workflow/events.py"
+      - "libs/pipeline_graph/subgraphs/encounter_loader.py"
+      - "libs/pipeline_graph/registry.py"
+      - "services/api/app/routers/pipeline.py"
+      - "scripts/seed_plan_definitions.py"
+    estimated_loc: 500
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-094 passes all critical cases validating engine routing,
+      encounter loader hydration, message payload hardening, and progress event
+      emission.
+    test_protocol: "VT-LEO-AI-094"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-015"]
+  tags: ["workflow-engine", "coding-worker", "pipeline", "neo4j", "message-bus"]
