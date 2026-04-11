@@ -1,5 +1,15 @@
 """Cypher queries for terminology operations against the Knowledge Graph."""
 
+_NORMALISED_TAG_EXPR = (
+    "toLower("
+    "replace("
+    "replace("
+    "replace(trim(coalesce(c.semantic_tag, '')), ' ', '_'),"
+    "'-', '_'),"
+    "'/', '_')"
+    ")"
+)
+
 TERMINOLOGY_SEARCH = """
 CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
@@ -44,20 +54,28 @@ TERMINOLOGY_SEARCH_FILTERED = """
 CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
     MATCH (node)-[:DESCRIBES]->(c:Concept)
-    WHERE c.active = true AND c.semantic_tag IN $tags
+    WHERE c.active = true AND """
+TERMINOLOGY_SEARCH_FILTERED += _NORMALISED_TAG_EXPR
+TERMINOLOGY_SEARCH_FILTERED += """ IN $tags
     RETURN c, score AS weighted_score
     UNION
     CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
     MATCH (node)-[:MAPS_TO]->(c:Concept)
-    WHERE c.active = true AND c.semantic_tag IN $tags
+    WHERE c.active = true AND """
+TERMINOLOGY_SEARCH_FILTERED += _NORMALISED_TAG_EXPR
+TERMINOLOGY_SEARCH_FILTERED += """ IN $tags
     RETURN c, score * 1.2 AS weighted_score
     UNION
     MATCH (c:Concept {id: $q})
-    WHERE c.active = true AND c.semantic_tag IN $tags
+    WHERE c.active = true AND """
+TERMINOLOGY_SEARCH_FILTERED += _NORMALISED_TAG_EXPR
+TERMINOLOGY_SEARCH_FILTERED += """ IN $tags
     RETURN c, 2.0 AS weighted_score
     UNION
     MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
-    WHERE c.active = true AND c.semantic_tag IN $tags
+    WHERE c.active = true AND """
+TERMINOLOGY_SEARCH_FILTERED += _NORMALISED_TAG_EXPR
+TERMINOLOGY_SEARCH_FILTERED += """ IN $tags
     RETURN c, 2.0 AS weighted_score
 }
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)

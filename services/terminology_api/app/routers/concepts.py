@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from libs.neo4j_client.client import KnowledgeGraphClient
+from libs.terminology.semantic_tag import normalise_semantic_tag
 from services.terminology_api.app.queries.terminology import (
     DESCENDANTS_TEMPLATE,
     GET_CONCEPT_FOR_SUGGESTION,
@@ -124,12 +125,13 @@ def get_descendants(
 ):
     """Return active SNOMED descendants of a concept via IS_A relationships."""
     query = DESCENDANTS_TEMPLATE.format(depth=int(depth))
+    semantic_tag_norm = normalise_semantic_tag(semantic_tag) if semantic_tag else None
     client = KnowledgeGraphClient()
     try:
         rows = client.run(
             query,
             concept_id=concept_id,
-            semantic_tag=semantic_tag,
+            semantic_tag=semantic_tag_norm,
             limit=limit,
         )
         if rows is None:

@@ -15,7 +15,7 @@ from libs.cypher.service_config_queries import (
 logger = logging.getLogger(__name__)
 
 
-def _terminology_runtime_defaults() -> dict[str, float | int]:
+def _terminology_runtime_defaults() -> dict[str, object]:
     return {
         "timeout_seconds": float(os.getenv("TERMINOLOGY_API_TIMEOUT", "15.0")),
         "max_retries": int(os.getenv("TERMINOLOGY_API_RETRIES", "3")),
@@ -27,6 +27,13 @@ def _terminology_runtime_defaults() -> dict[str, float | int]:
         "max_terms_per_request": int(
             os.getenv("TERMINOLOGY_API_MAX_TERMS_PER_REQUEST", "8")
         ),
+        "always_ignore_patterns": [
+            r"^\s*clinical\s+note\s+indicates\b",
+            r"\b(?:2ww|two\s*week\s*wait)\b.*\b(advised|advice)\b",
+            r"\babpi\b.*\bcould\s+suggest\s+significant\s+arterial\s+stenosis\b",
+            r"\breduced\s+abpi\b.*\bmay\s+indicate\s+peripheral\s+arterial\s+disease\b",
+            r"\bnot\s+on\s+thyroid\s+tx\b",
+        ],
     }
 
 

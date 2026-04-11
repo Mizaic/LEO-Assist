@@ -18,6 +18,7 @@ POST /training/export-preview          — dry-run count of what would be export
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import re
@@ -29,7 +30,7 @@ from typing import Any, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
@@ -80,6 +81,7 @@ from libs.cypher.training_candidate_queries import (
     GET_TRAINING_CANDIDATE_BY_ID,
     GET_TRAINING_CANDIDATE_STATS,
     GET_TRAINING_CANDIDATES_PAGE,
+    UPSERT_TRAINING_CANDIDATE,
     UPDATE_TRAINING_CANDIDATE_STATUS,
 )
 from libs.cypher.gold_label_queries import (
@@ -92,6 +94,13 @@ from libs.cypher.gold_label_queries import (
     GET_GOLD_LABELS_PAGE,
     UPSERT_GOLD_LABEL,
     UPDATE_GOLD_LABEL_ENTITIES,
+)
+from libs.cypher.synthetic_candidate_queries import (
+    GET_ENCOUNTER_CONTEXT_CANDIDATES,
+    GET_SURFACE_FORMS_FOR_GENERATION,
+    GET_SURFACE_FORM_TAG_COUNTS,
+    GET_SYNTHETIC_GOLD_STATS,
+    GET_SYNTHETIC_GOLD_TAG_BREAKDOWN,
 )
 from libs.cypher.surface_form_task_queries import (
     COUNT_SURFACE_FORM_TASKS,
@@ -125,6 +134,18 @@ from libs.cypher.post_processor_rule_queries import (
 )
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.ner.training_label_writer import bulk_upsert_training_labels
+from libs.ner.span_finder import find_span
+from libs.nlp.sentence_splitter import (
+    SentenceSplitter,
+    filter_header_sentences,
+    is_header_sentence,
+    is_non_evidence_line,
+    is_referral_procedure_phrase,
+)
+from libs.prompts.synthetic_ner_sentences import build_synthetic_sentence_prompts
+from libs.terminology.client import get_always_ignore_patterns
+from libs.ner.deid_validator import DeIdValidator
+from libs.utils.deidentify import deidentify_text
 from libs.utils.logging import logging_context
 
 logger = logging.getLogger(__name__)
@@ -281,6 +302,18 @@ class ResolveSurfaceFormTaskRequest(BaseModel):
     status: str  # approved | rejected | modified
     resolved_concept: str | None = None
     resolved_by: str = "operations_ui"
+
+
+class SyntheticGenerationRequest(BaseModel):
+    limit: int = Field(default=50, ge=1, le=50)
+    sentences_per_form: int = Field(default=10, ge=1, le=10)
+    semantic_tags: list[str] | None = None
+
+
+class SyntheticQueueRequest(BaseModel):
+    limit: int = Field(default=200, ge=1, le=500)
+    sentences_per_form: int = Field(default=10, ge=1, le=10)
+    semantic_tags: list[str] | None = None
 
 
 # ------------------------------------------------------------------
@@ -2798,6 +2831,520 @@ def delete_all_review_queue_items(
 # -- GDPR-isolated learning loop (Knowledge Graph) -------------------------
 # TrainingCandidate, GoldLabel and SurfaceFormTask are de-identified model
 # knowledge and belong in the Knowledge Graph, not the Patient Graph.
+
+_SYNTHETIC_SOURCE = "synthetic_llm"
+_SYNTHETIC_VERIFIED_BY = "llm:claude-sonnet-4-6"
+_PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
+_VALID_ASSERTIONS = {
+    "present",
+    "absent",
+    "historical",
+    "possible",
+    "planned",
+    "hypothetical",
+    "family",
+    "uncertain",
+    "refuted",
+    "declined",
+    "cancelled",
+}
+_CONTEXT_SPLITTER = SentenceSplitter()
+_OBS_VALUE_RE = re.compile(
+    r"\b(?:[<>]?\s*\d+(?:\.\d+)?(?:\s*/\s*\d+(?:\.\d+)?)?)\b",
+    re.IGNORECASE,
+)
+_OBS_RANGE_STATUS_RE = re.compile(
+    r"\b("
+    r"out\s+of\s+reference\s+range|"
+    r"outside\s+reference\s+range|"
+    r"above\s+(?:the\s+)?reference\s+range|"
+    r"below\s+(?:the\s+)?reference\s+range|"
+    r"within\s+(?:the\s+)?reference\s+range|"
+    r"high|raised|elevated|low|reduced"
+    r")\b",
+    re.IGNORECASE,
+)
+_BLOOD_LAB_CONTEXT_RE = re.compile(
+    r"\b("
+    r"blood|serum|plasma|lab(?:oratory)?|biochem(?:istry)?|haematology|"
+    r"full\s+blood\s+count|fbc|"
+    r"haemoglobin|hemoglobin|platelet|neutrophil|lymphocyte|"
+    r"potassium|sodium|creatinine|urea|egfr|crp|hba1c|"
+    r"tsh|thyroid|free\s+t4|cholesterol|triglyceride|ferritin|bilirubin|"
+    r"alt|ast|alp|albumin|globulin"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _normalise_semantic_tag(tag: str | None) -> str:
+    raw = str(tag or "finding").strip().lower()
+    if not raw:
+        return "finding"
+    return raw.replace("-", "_").replace(" ", "_").replace("/", "_")
+
+
+def _count_exact_phrase(text: str, phrase: str) -> int:
+    if not text or not phrase:
+        return 0
+    pattern = re.compile(rf"(?<!\w){re.escape(phrase)}(?!\w)", re.IGNORECASE)
+    return len(pattern.findall(text))
+
+
+def _safe_parse_json_array(raw_text: str) -> list[dict[str, Any]]:
+    text = str(raw_text or "").strip()
+    if not text:
+        return []
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            return [x for x in parsed if isinstance(x, dict)]
+    except Exception:
+        pass
+    match = re.search(r"\[\s*\{.*\}\s*\]", text, re.DOTALL)
+    if not match:
+        return []
+    try:
+        parsed = json.loads(match.group(0))
+        if isinstance(parsed, list):
+            return [x for x in parsed if isinstance(x, dict)]
+    except Exception:
+        return []
+    return []
+
+
+def _is_synthetic_non_evidence_sentence(text: str) -> bool:
+    sentence = str(text or "").strip()
+    if not sentence:
+        return True
+    if is_non_evidence_line(sentence):
+        return True
+    return any(pattern.search(sentence) for pattern in get_always_ignore_patterns())
+
+
+def _has_observation_value(text: str) -> bool:
+    raw = str(text or "")
+    has_numeric = bool(_OBS_VALUE_RE.search(raw))
+    has_range_phrase = bool(_OBS_RANGE_STATUS_RE.search(raw))
+    has_blood_context = bool(_BLOOD_LAB_CONTEXT_RE.search(raw))
+    return has_numeric or (has_range_phrase and has_blood_context)
+
+
+def _extract_context_snippet(encounter_text: str, max_chars: int = 500) -> str | None:
+    """Extract a clinically useful snippet while dropping admin/header noise."""
+    if not encounter_text:
+        return None
+    deid = deidentify_text(encounter_text, ner=True).strip()
+    if not deid:
+        return None
+    # First pass: strip clearly administrative lines before sentence splitting.
+    cleaned_lines = []
+    for raw_line in deid.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if is_header_sentence(line):
+            continue
+        if is_non_evidence_line(line):
+            continue
+        cleaned_lines.append(line)
+    if not cleaned_lines:
+        return None
+    cleaned_text = "\n".join(cleaned_lines)
+    chunks = _CONTEXT_SPLITTER.split(cleaned_text)
+    if not chunks:
+        return None
+    chunks = filter_header_sentences(chunks)
+    clinical_lines = [
+        c.text.strip()
+        for c in chunks
+        if c.text.strip() and not is_non_evidence_line(c.text)
+    ]
+    if not clinical_lines:
+        return None
+    snippet = " ".join(clinical_lines[:3])
+    snippet = re.sub(r"\s+", " ", snippet).strip()
+    if len(snippet) < 40:
+        return None
+    return snippet[:max_chars].strip()
+
+
+def _pick_diverse_context_examples(rows: list[dict[str, Any]], cap: int = 10) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    seen_patients: set[str] = set()
+    seen_months: set[str] = set()
+
+    # Pass 1: maximise patient + month diversity.
+    for row in rows:
+        pid = str(row.get("patient_id") or "")
+        month = str(row.get("month_bucket") or "")
+        if pid in seen_patients or month in seen_months:
+            continue
+        selected.append(row)
+        seen_patients.add(pid)
+        seen_months.add(month)
+        if len(selected) >= cap:
+            return selected
+
+    # Pass 2: patient diversity only.
+    for row in rows:
+        if len(selected) >= cap:
+            return selected
+        pid = str(row.get("patient_id") or "")
+        if pid in seen_patients:
+            continue
+        if row in selected:
+            continue
+        selected.append(row)
+        seen_patients.add(pid)
+
+    # Pass 3: fill remaining.
+    for row in rows:
+        if len(selected) >= cap:
+            break
+        if row in selected:
+            continue
+        selected.append(row)
+    return selected
+
+
+@router.get("/synthetic-gold/stats")
+def get_synthetic_gold_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            stats_row = session.run(GET_SYNTHETIC_GOLD_STATS).single()
+            tag_rows = [dict(r) for r in session.run(GET_SYNTHETIC_GOLD_TAG_BREAKDOWN)]
+            option_rows = [dict(r) for r in session.run(GET_SURFACE_FORM_TAG_COUNTS)]
+            labels_row = session.run(
+                """
+                MATCH (g:GoldLabel)
+                WHERE g.source = $source
+                RETURN count(g) AS total
+                """,
+                source=_SYNTHETIC_SOURCE,
+            ).single()
+        stats_payload = dict(stats_row) if stats_row else {}
+        return {
+            "total_surface_forms": int(stats_payload.get("total_surface_forms") or 0),
+            "covered_surface_forms": int(stats_payload.get("covered_surface_forms") or 0),
+            "synthetic_gold_labels": int((labels_row or {}).get("total") or 0),
+            "tag_breakdown": tag_rows,
+            "tag_options": option_rows,
+        }
+    finally:
+        client.close()
+
+
+@router.post("/synthetic-candidates")
+def generate_synthetic_candidates(
+    body: SyntheticGenerationRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    from libs.llm_client.factory import create_llm
+
+    semantic_tags = [
+        _normalise_semantic_tag(str(tag))
+        for tag in (body.semantic_tags or [])
+        if str(tag).strip()
+    ]
+
+    validator = DeIdValidator()
+    llm = create_llm(provider="aws", tier="big")
+
+    counts = {
+        "forms_processed": 0,
+        "candidates_written": 0,
+        "gold_labels_written": 0,
+        "context_examples_sampled": 0,
+        "context_examples_used": 0,
+        "context_examples_preview": [],
+        "skipped_phi": 0,
+        "skipped_no_match": 0,
+        "skipped_multi_entity": 0,
+        "skipped_non_evidence": 0,
+        "skipped_observable_no_value": 0,
+        "skipped_empty": 0,
+        "errors": [],
+    }
+
+    client = KnowledgeGraphClient()
+    pg_client = PatientGraphClient()
+    try:
+        with pg_client.session() as pg_session:
+            raw_context_rows = [
+                dict(r)
+                for r in pg_session.run(
+                    GET_ENCOUNTER_CONTEXT_CANDIDATES,
+                    limit=5000,
+                )
+            ]
+        picked_rows = _pick_diverse_context_examples(raw_context_rows, cap=10)
+        context_examples: list[str] = []
+        for row in picked_rows:
+            text = str(row.get("encounter_text") or "").strip()
+            if not text:
+                continue
+            snippet = _extract_context_snippet(text, max_chars=500)
+            if not snippet:
+                continue
+            context_examples.append(snippet)
+            if len(context_examples) >= 10:
+                break
+        counts["context_examples_sampled"] = len(context_examples)
+        counts["context_examples_used"] = len(context_examples)
+        counts["context_examples_preview"] = context_examples[:2]
+
+        with client.session() as session:
+            form_rows = [
+                dict(r)
+                for r in session.run(
+                    GET_SURFACE_FORMS_FOR_GENERATION,
+                    limit=body.limit,
+                    semantic_tags=semantic_tags,
+                )
+            ]
+            known_forms = [
+                str(r.get("form") or "").strip()
+                for r in form_rows
+                if str(r.get("form") or "").strip()
+            ]
+            for row in form_rows:
+                counts["forms_processed"] += 1
+                form = str(row.get("form") or "").strip()
+                if not form:
+                    counts["skipped_empty"] += 1
+                    continue
+                preferred_term = str(row.get("preferred_term") or "")
+                concept_id = str(row.get("concept_id") or "")
+                semantic_tag = _normalise_semantic_tag(str(row.get("semantic_tag") or ""))
+
+                system_prompt, user_prompt = build_synthetic_sentence_prompts(
+                    surface_form=form,
+                    preferred_term=preferred_term,
+                    concept_id=concept_id,
+                    semantic_tag=semantic_tag,
+                    n_sentences=body.sentences_per_form,
+                    context_examples=context_examples,
+                )
+                try:
+                    response = llm.converse(
+                        system=system_prompt,
+                        messages=[{"role": "user", "content": user_prompt}],
+                        max_tokens=2200,
+                        temperature=0.4,
+                    )
+                    sentences = _safe_parse_json_array(response.text)
+                except Exception as exc:
+                    counts["errors"].append(f"llm:{form[:40]}: {exc}")
+                    continue
+
+                for item in sentences[: body.sentences_per_form]:
+                    sentence = str(item.get("sentence") or "").strip()
+                    if not sentence:
+                        counts["skipped_empty"] += 1
+                        continue
+                    assertion = str(item.get("assertion") or "present").strip().lower()
+                    if assertion not in _VALID_ASSERTIONS:
+                        assertion = "present"
+
+                    deid_sentence = deidentify_text(sentence, ner=True)
+                    if _is_synthetic_non_evidence_sentence(deid_sentence):
+                        counts["skipped_non_evidence"] += 1
+                        continue
+                    if (
+                        semantic_tag == "observable_entity"
+                        and (
+                            not _has_observation_value(deid_sentence)
+                            or is_referral_procedure_phrase(deid_sentence)
+                        )
+                    ):
+                        counts["skipped_observable_no_value"] += 1
+                        continue
+                    # Hard guard: exactly one occurrence of the target mention.
+                    mention_count = _count_exact_phrase(deid_sentence, form)
+                    if mention_count != 1:
+                        counts["skipped_no_match"] += 1
+                        continue
+                    # Hard guard: do not include another known form in same sentence.
+                    has_other_form = any(
+                        other.lower() != form.lower()
+                        and _count_exact_phrase(deid_sentence, other) > 0
+                        for other in known_forms
+                    )
+                    if has_other_form:
+                        counts["skipped_multi_entity"] += 1
+                        continue
+                    span = find_span(deid_sentence, form)
+                    if span is None:
+                        counts["skipped_no_match"] += 1
+                        continue
+                    start, end = span
+                    mention_text = deid_sentence[start:end]
+
+                    record_issues = validator.check_record(
+                        {
+                            "text": deid_sentence,
+                            "entities": [{"entity_id": "0", "text": mention_text}],
+                            "metadata": {},
+                        }
+                    )
+                    if record_issues:
+                        counts["skipped_phi"] += 1
+                        continue
+
+                    candidate_id = hashlib.sha256(
+                        deid_sentence.encode("utf-8")
+                    ).hexdigest()
+                    label_id = f"synthetic-{uuid.uuid4().hex}"
+                    entities_json = json.dumps(
+                        [
+                            {
+                                "text": mention_text,
+                                "label": semantic_tag,
+                                "semantic_tag": semantic_tag,
+                                "start": start,
+                                "end": end,
+                                "assertion": assertion,
+                                "snomed_concept_id": concept_id,
+                            }
+                        ],
+                        ensure_ascii=False,
+                    )
+
+                    session.run(
+                        UPSERT_TRAINING_CANDIDATE,
+                        candidate_id=candidate_id,
+                        text=deid_sentence,
+                        entities_json=entities_json,
+                        source=_SYNTHETIC_SOURCE,
+                        status="completed",
+                        schema_version="v4",
+                    )
+                    session.run(
+                        UPSERT_GOLD_LABEL,
+                        label_id=label_id,
+                        text=deid_sentence,
+                        entities_json=entities_json,
+                        quality_score=0.85,
+                        source=_SYNTHETIC_SOURCE,
+                        verified_by=_SYNTHETIC_VERIFIED_BY,
+                        candidate_id=candidate_id,
+                        schema_version="v4",
+                    )
+                    counts["candidates_written"] += 1
+                    counts["gold_labels_written"] += 1
+    finally:
+        pg_client.close()
+        client.close()
+
+    return counts
+
+
+@router.delete("/synthetic-candidates")
+def delete_synthetic_candidates(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                """
+                MATCH (g:GoldLabel {source: $source})
+                WITH collect(g) AS labels
+                RETURN size(labels) AS gold_labels
+                """,
+                source=_SYNTHETIC_SOURCE,
+            ).single()
+            gold_labels = int((row or {}).get("gold_labels") or 0)
+            row = session.run(
+                """
+                MATCH (c:TrainingCandidate {source: $source})
+                RETURN count(c) AS candidates
+                """,
+                source=_SYNTHETIC_SOURCE,
+            ).single()
+            candidates = int((row or {}).get("candidates") or 0)
+            session.run(
+                """
+                MATCH (g:GoldLabel {source: $source})
+                DETACH DELETE g
+                """,
+                source=_SYNTHETIC_SOURCE,
+            )
+            session.run(
+                """
+                MATCH (c:TrainingCandidate {source: $source})
+                DETACH DELETE c
+                """,
+                source=_SYNTHETIC_SOURCE,
+            )
+        return {
+            "deleted_gold_labels": gold_labels,
+            "deleted_candidates": candidates,
+        }
+    finally:
+        client.close()
+
+
+@router.post("/synthetic-candidates/queue")
+async def queue_synthetic_candidates(
+    body: SyntheticQueueRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    semantic_tags = [
+        _normalise_semantic_tag(str(tag))
+        for tag in (body.semantic_tags or [])
+        if str(tag).strip()
+    ]
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = [
+                dict(r)
+                for r in session.run(
+                    GET_SURFACE_FORMS_FOR_GENERATION,
+                    limit=body.limit,
+                    semantic_tags=semantic_tags,
+                )
+            ]
+    finally:
+        client.close()
+
+    if not rows:
+        return {"queued": False, "estimated_forms": 0, "queued_batches": 0}
+
+    batches = [rows[i : i + 50] for i in range(0, len(rows), 50)]
+    bus = create_message_bus()
+    try:
+        for idx, batch in enumerate(batches):
+            message = Message(
+                body={
+                    "event_type": "synthetic-gold-generate",
+                    "batch_index": idx,
+                    "payload": {
+                        "surface_forms": batch,
+                        "sentences_per_form": body.sentences_per_form,
+                        "semantic_tags": semantic_tags,
+                    },
+                },
+                correlation_id=f"synthetic-{uuid.uuid4().hex}",
+                subject="synthetic-gold-generate",
+            )
+            await bus.send(_PIPELINE_QUEUE, message)
+    finally:
+        await bus.close()
+
+    return {
+        "queued": True,
+        "estimated_forms": len(rows),
+        "queued_batches": len(batches),
+    }
 
 
 @router.get("/candidates/stats")

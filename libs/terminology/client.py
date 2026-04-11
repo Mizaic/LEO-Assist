@@ -34,6 +34,32 @@ _LAB_VALUE_RE = re.compile(
 
 # Matches trailing EMIS local code: " (X78gA)", " (Y41c9)", " (N1402)" etc.
 _EMIS_CODE_RE = re.compile(r"\s*\([A-Z][a-zA-Z0-9]{3,6}\)\s*$")
+_OBS_VALUE_RE = re.compile(
+    r"\b(?:[<>]?\s*\d+(?:\.\d+)?(?:\s*/\s*\d+(?:\.\d+)?)?)\b",
+    re.IGNORECASE,
+)
+_OBS_RANGE_STATUS_RE = re.compile(
+    r"\b("
+    r"out\s+of\s+reference\s+range|"
+    r"outside\s+reference\s+range|"
+    r"above\s+(?:the\s+)?reference\s+range|"
+    r"below\s+(?:the\s+)?reference\s+range|"
+    r"within\s+(?:the\s+)?reference\s+range|"
+    r"high|raised|elevated|low|reduced"
+    r")\b",
+    re.IGNORECASE,
+)
+_BLOOD_LAB_CONTEXT_RE = re.compile(
+    r"\b("
+    r"blood|serum|plasma|lab(?:oratory)?|biochem(?:istry)?|haematology|"
+    r"full\s+blood\s+count|fbc|"
+    r"haemoglobin|hemoglobin|platelet|neutrophil|lymphocyte|"
+    r"potassium|sodium|creatinine|urea|egfr|crp|hba1c|"
+    r"tsh|thyroid|free\s+t4|cholesterol|triglyceride|ferritin|bilirubin|"
+    r"alt|ast|alp|albumin|globulin"
+    r")\b",
+    re.IGNORECASE,
+)
 
 
 def _normalise_for_resolve(text: str) -> str:
@@ -46,6 +72,42 @@ def _normalise_for_resolve(text: str) -> str:
     return cleaned or text.strip()
 
 
+def _normalise_tag(tag: str | None) -> str:
+    return str(tag or "").strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _has_observation_value(text: str) -> bool:
+    raw = str(text or "")
+    has_numeric = bool(_OBS_VALUE_RE.search(raw))
+    has_range_phrase = bool(_OBS_RANGE_STATUS_RE.search(raw))
+    has_blood_context = bool(_BLOOD_LAB_CONTEXT_RE.search(raw))
+    return has_numeric or (has_range_phrase and has_blood_context)
+
+
+def _candidate_tag(candidate: Any) -> str:
+    if isinstance(candidate, dict):
+        raw = candidate.get("semantic_tag") or candidate.get("semanticTag")
+        return _normalise_tag(str(raw or ""))
+    return _normalise_tag(str(getattr(candidate, "semantic_tag", "") or ""))
+
+
+def _filter_observable_without_value(
+    original_text: str,
+    candidates: list[Any],
+) -> list[Any]:
+    """Drop observable_entity candidates when text has no measurable value."""
+    if _has_observation_value(original_text):
+        return candidates
+    filtered = [c for c in candidates if _candidate_tag(c) != "observable_entity"]
+    if len(filtered) < len(candidates):
+        logger.debug(
+            "Suppressed observable_entity without value for '%s' (%d removed)",
+            original_text,
+            len(candidates) - len(filtered),
+        )
+    return filtered
+
+
 # ---------------------------------------------------------------------------
 # Terms that must NEVER be resolved, regardless of what the terminology
 # server returns.  The pipeline should not produce any coding for these.
@@ -56,6 +118,19 @@ def _normalise_for_resolve(text: str) -> str:
 # alone, NAD is excluded from auto-coding.  Reviewers can code manually.
 # ---------------------------------------------------------------------------
 _ALWAYS_IGNORE_TERMS: frozenset[str] = frozenset({"nad"})
+_ALWAYS_IGNORE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"^\s*clinical\s+note\s+indicates\b", re.IGNORECASE),
+    re.compile(r"\b(?:2ww|two\s*week\s*wait)\b.*\b(advised|advice)\b", re.IGNORECASE),
+    re.compile(
+        r"\babpi\b.*\bcould\s+suggest\s+significant\s+arterial\s+stenosis\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\breduced\s+abpi\b.*\bmay\s+indicate\s+peripheral\s+arterial\s+disease\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\bnot\s+on\s+thyroid\s+tx\b", re.IGNORECASE),
+)
 
 # ---------------------------------------------------------------------------
 # Ambiguous-abbreviation concept blocklist (belt-and-suspenders).
@@ -86,6 +161,12 @@ def _filter_abbrev_noise(
     if key in _ALWAYS_IGNORE_TERMS:
         logger.debug(
             "_filter_abbrev_noise: suppressing all results for always-ignored term '%s'",
+            norm_text,
+        )
+        return []
+    if any(pattern.search(norm_text) for pattern in get_always_ignore_patterns()):
+        logger.debug(
+            "_filter_abbrev_noise: suppressing template/non-specific phrase '%s'",
             norm_text,
         )
         return []
@@ -146,6 +227,9 @@ _DEFAULT_RUNTIME_CONFIG: dict[str, float | int] = {
 _runtime_cache_lock = threading.Lock()
 _runtime_cache_loaded_at = 0.0
 _runtime_cache_value = dict(_DEFAULT_RUNTIME_CONFIG)
+_ignore_pattern_cache_lock = threading.Lock()
+_ignore_pattern_cache_loaded_at = 0.0
+_ignore_pattern_cache_value: tuple[re.Pattern[str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -242,6 +326,74 @@ def _load_runtime_config(force_refresh: bool = False) -> dict[str, float | int]:
 def get_runtime_config(force_refresh: bool = False) -> dict[str, float | int]:
     """Return the shared terminology runtime config currently in effect."""
     return _load_runtime_config(force_refresh=force_refresh)
+
+
+def _parse_dynamic_ignore_patterns(
+    raw: dict[str, Any] | None,
+) -> tuple[re.Pattern[str], ...]:
+    entries = raw.get("always_ignore_patterns") if isinstance(raw, dict) else None
+    if not isinstance(entries, list):
+        return ()
+    compiled: list[re.Pattern[str]] = []
+    for entry in entries:
+        pattern_text = str(entry or "").strip()
+        if not pattern_text:
+            continue
+        try:
+            compiled.append(re.compile(pattern_text, re.IGNORECASE))
+        except re.error:
+            logger.warning(
+                "Ignoring invalid regex in ServiceConfig %s: %r",
+                _SERVICE_CONFIG_KEY,
+                pattern_text,
+            )
+    return tuple(compiled)
+
+
+def _load_dynamic_ignore_patterns(force_refresh: bool = False) -> tuple[re.Pattern[str], ...]:
+    global _ignore_pattern_cache_loaded_at, _ignore_pattern_cache_value
+
+    now = time.monotonic()
+    with _ignore_pattern_cache_lock:
+        if (
+            not force_refresh
+            and (now - _ignore_pattern_cache_loaded_at) < _SERVICE_CONFIG_CACHE_TTL_SECONDS
+        ):
+            return tuple(_ignore_pattern_cache_value)
+
+    dynamic_patterns: tuple[re.Pattern[str], ...] = ()
+    try:
+        from libs.cypher.service_config_queries import GET_SERVICE_CONFIG
+        from libs.neo4j_client.client import KnowledgeGraphClient
+
+        client = KnowledgeGraphClient()
+        try:
+            with client.session() as session:
+                row = session.run(GET_SERVICE_CONFIG, key=_SERVICE_CONFIG_KEY).single()
+        finally:
+            client.close()
+        if row and row.get("configJson"):
+            raw = row.get("configJson")
+            parsed = json.loads(raw) if isinstance(raw, str) else dict(raw or {})
+            dynamic_patterns = _parse_dynamic_ignore_patterns(parsed)
+    except Exception:
+        logger.debug(
+            "Terminology dynamic ignore-pattern lookup failed; using defaults",
+            exc_info=True,
+        )
+
+    with _ignore_pattern_cache_lock:
+        _ignore_pattern_cache_loaded_at = now
+        _ignore_pattern_cache_value = tuple(dynamic_patterns)
+    return tuple(dynamic_patterns)
+
+
+def get_always_ignore_patterns(
+    force_refresh: bool = False,
+) -> tuple[re.Pattern[str], ...]:
+    """Return built-in and service-configured resolver ignore regexes."""
+    dynamic = _load_dynamic_ignore_patterns(force_refresh=force_refresh)
+    return _ALWAYS_IGNORE_PATTERNS + dynamic
 
 
 class _ConcurrencyGate:
@@ -394,7 +546,13 @@ class TerminologyClient:
         # Rebuild expected_tags with normalised keys.
         norm_tags: dict[str, str] | None = None
         if expected_tags:
-            norm_tags = {_normalise_for_resolve(k): v for k, v in expected_tags.items()}
+            norm_tags = {}
+            for key, value in expected_tags.items():
+                if _normalise_tag(str(value or "")) == "observable_entity" and not _has_observation_value(
+                    key
+                ):
+                    continue
+                norm_tags[_normalise_for_resolve(key)] = value
 
         runtime = _load_runtime_config()
         runtime["timeout_seconds"] = float(
@@ -417,9 +575,9 @@ class TerminologyClient:
         # (NER and LLM) benefit from the guard.
         rekeyed: dict[str, list[ResolvedTerm]] = {}
         for norm_key, candidates in aggregated.items():
-            clean = _filter_abbrev_noise(norm_key, candidates)
+            base_clean = _filter_abbrev_noise(norm_key, candidates)
             for orig in norm_to_originals.get(norm_key, [norm_key]):
-                rekeyed[orig] = clean
+                rekeyed[orig] = _filter_observable_without_value(orig, base_clean)
         return rekeyed
 
     def resolve_one(
@@ -625,7 +783,13 @@ class AsyncTerminologyClient:
 
         norm_tags: dict[str, str] | None = None
         if expected_tags:
-            norm_tags = {_normalise_for_resolve(k): v for k, v in expected_tags.items()}
+            norm_tags = {}
+            for key, value in expected_tags.items():
+                if _normalise_tag(str(value or "")) == "observable_entity" and not _has_observation_value(
+                    key
+                ):
+                    continue
+                norm_tags[_normalise_for_resolve(key)] = value
 
         runtime = _load_runtime_config()
         runtime["timeout_seconds"] = float(
@@ -642,7 +806,7 @@ class AsyncTerminologyClient:
 
         rekeyed: dict[str, list[dict[str, Any]]] = {}
         for norm_key, candidates in aggregated.items():
-            clean = _filter_abbrev_noise(norm_key, candidates)
+            base_clean = _filter_abbrev_noise(norm_key, candidates)
             for orig in norm_to_originals.get(norm_key, [norm_key]):
-                rekeyed[orig] = clean
+                rekeyed[orig] = _filter_observable_without_value(orig, base_clean)
         return rekeyed

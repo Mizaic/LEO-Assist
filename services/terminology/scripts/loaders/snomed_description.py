@@ -17,6 +17,7 @@ from pathlib import Path
 from neo4j import AsyncDriver
 
 from .base import BatchWriter, normalize_term, stream_rf2
+from libs.terminology.semantic_tag import normalise_semantic_tag
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,8 @@ def _extract_semantic_tag(fsn: str) -> str:
     if fsn.endswith(")"):
         start = fsn.rfind("(")
         if start > 0:
-            return fsn[start + 1 : -1]
-    return ""
+            return normalise_semantic_tag(fsn[start + 1 : -1])
+    return "unknown"
 
 
 async def load_descriptions(

@@ -130,6 +130,13 @@ class TestNonEvidenceFilter:
         assert is_non_evidence_line("Discussed smoking cessation leaflet")
         assert is_non_evidence_line("EMIS template completed")
         assert is_non_evidence_line("Salbutamol 100 mcg/dose inhaler")
+        assert is_non_evidence_line(
+            "An abnormal ABPI - ankle brachial pressure index could suggest significant arterial stenosis."
+        )
+        assert is_non_evidence_line(
+            "A reduced ABPI - ankle brachial pressure index may indicate peripheral arterial disease."
+        )
+        assert is_non_evidence_line("Not on Thyroid Tx")
 
     def test_fast_track_phrase_is_not_filtered(self):
         from libs.nlp.sentence_splitter import is_non_evidence_line

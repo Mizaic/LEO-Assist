@@ -62,6 +62,16 @@ _NON_EVIDENCE_PATTERNS = [
         re.IGNORECASE,
     ),
     re.compile(r"^(Discussed|Advised|Counselled)\b", re.IGNORECASE),
+    re.compile(r"^Clinical\s+note\s+indicates\b", re.IGNORECASE),
+    re.compile(
+        r"^An?\s+abnormal\s+ABPI\b.*\bcould\s+suggest\s+significant\s+arterial\s+stenosis\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^A?\s*reduced\s+ABPI\b.*\bmay\s+indicate\s+peripheral\s+arterial\s+disease\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"^Not\s+on\s+Thyroid\s+Tx\b", re.IGNORECASE),
     re.compile(r"^(Vision\s+forward|EMIS|QOF)\b", re.IGNORECASE),
 ]
 

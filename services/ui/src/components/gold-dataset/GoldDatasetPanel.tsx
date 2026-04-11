@@ -15,6 +15,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
+import LinearProgress from "@mui/material/LinearProgress";
 import Pagination from "@mui/material/Pagination";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
@@ -63,6 +64,24 @@ interface GoldStats {
   high_quality: number;
 }
 
+interface SyntheticTagCount {
+  semantic_tag: string;
+  covered_surface_forms: number;
+}
+
+interface SyntheticTagOption {
+  semantic_tag: string;
+  total_surface_forms: number;
+}
+
+interface SyntheticStats {
+  total_surface_forms: number;
+  covered_surface_forms: number;
+  synthetic_gold_labels: number;
+  tag_breakdown: SyntheticTagCount[];
+  tag_options: SyntheticTagOption[];
+}
+
 interface Candidate {
   candidate_id: string;
   text: string;
@@ -103,6 +122,27 @@ interface DeleteTrainingCandidateResult {
   candidate_id: string;
   gold_labels_deleted: number;
   surface_form_tasks_deleted: number;
+}
+
+interface SyntheticGenerateResult {
+  forms_processed?: number;
+  candidates_written?: number;
+  gold_labels_written?: number;
+  skipped_phi?: number;
+  skipped_no_match?: number;
+  skipped_empty?: number;
+  errors?: string[];
+}
+
+interface SyntheticQueueResult {
+  queued: boolean;
+  estimated_forms: number;
+  queued_batches: number;
+}
+
+interface SyntheticDeleteResult {
+  deleted_gold_labels: number;
+  deleted_candidates: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -417,8 +457,9 @@ function GoldLabelDetailDialog({
   const [newEntityLabel, setNewEntityLabel] = useState<(typeof ENTITY_LABEL_OPTIONS)[number]>("finding");
   const [newEntityAssertion, setNewEntityAssertion] = useState<(typeof ASSERTION_OPTIONS)[number]>("present");
   const [lookupTarget, setLookupTarget] = useState<LookupTarget | null>(null);
+  const [termDrafts, setTermDrafts] = useState<Record<number, string>>({});
 
-  async function persistEntities(next: Entity[], successMsg: string) {
+  async function persistEntities(next: Entity[], successMsg: string): Promise<boolean> {
     setSaving(true);
     setSaveError(null);
     setSaveMsg(null);
@@ -434,10 +475,13 @@ function GoldLabelDetailDialog({
         })),
       );
       setEntities(next);
+      setTermDrafts({});
       setSaveMsg(successMsg);
       onEntitiesChanged?.();
+      return true;
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Could not save changes");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -456,6 +500,61 @@ function GoldLabelDetailDialog({
       next,
       `Updated assertion for "${entities[idx].text}" to ${formatAssertion(assertion)}.`,
     );
+  }
+
+  function isDuplicateEntity(candidate: Entity, idxToIgnore: number): boolean {
+    return entities.some((entity, idx) => {
+      if (idx === idxToIgnore) return false;
+      return (
+        entity.text.trim().toLowerCase() === candidate.text.trim().toLowerCase() &&
+        (entity.label ?? "").trim().toLowerCase() === (candidate.label ?? "").trim().toLowerCase() &&
+        (entity.assertion ?? "present").trim().toLowerCase() === (candidate.assertion ?? "present").trim().toLowerCase()
+      );
+    });
+  }
+
+  function handleUpdateEntityType(idx: number, label: string) {
+    const current = entities[idx];
+    if (!current) return;
+    const nextEntity = { ...current, label };
+    if (isDuplicateEntity(nextEntity, idx)) {
+      setSaveError("This term already exists with the same type and assertion.");
+      return;
+    }
+    const next = entities.map((entity, i) => (i === idx ? nextEntity : entity));
+    void persistEntities(next, `Updated type for "${current.text}" to ${label}.`);
+  }
+
+  async function handleCommitEntityTerm(idx: number) {
+    const current = entities[idx];
+    if (!current) return;
+    const draft = (termDrafts[idx] ?? current.text).trim();
+    if (!draft) {
+      setSaveError("Term cannot be empty.");
+      return;
+    }
+    if (draft === current.text.trim()) {
+      setTermDrafts((prev) => {
+        const next = { ...prev };
+        delete next[idx];
+        return next;
+      });
+      return;
+    }
+    const nextEntity = { ...current, text: draft };
+    if (isDuplicateEntity(nextEntity, idx)) {
+      setSaveError("This term already exists with the same type and assertion.");
+      return;
+    }
+    const next = entities.map((entity, i) => (i === idx ? nextEntity : entity));
+    const saved = await persistEntities(next, `Updated term to "${draft}".`);
+    if (saved) {
+      setTermDrafts((prev) => {
+        const updated = { ...prev };
+        delete updated[idx];
+        return updated;
+      });
+    }
   }
 
   function handleAddEntity() {
@@ -643,14 +742,56 @@ function GoldLabelDetailDialog({
                           }}
                         >
                           <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {e.text}
-                            </Typography>
+                            <TextField
+                              size="small"
+                              value={termDrafts[i] ?? e.text}
+                              onChange={(event) =>
+                                setTermDrafts((prev) => ({ ...prev, [i]: event.target.value }))
+                              }
+                              onBlur={() => {
+                                void handleCommitEntityTerm(i);
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  const input = event.currentTarget.querySelector("input");
+                                  input?.blur();
+                                }
+                              }}
+                              disabled={saving}
+                              sx={{
+                                minWidth: 260,
+                                "& .MuiInputBase-input": {
+                                  py: 0.45,
+                                  fontSize: "0.85rem",
+                                  fontWeight: 500,
+                                },
+                              }}
+                            />
                           </TableCell>
                           <TableCell>
-                            <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
-                              {e.label ?? e.semantic_tag ?? "—"}
-                            </Typography>
+                            <TextField
+                              select
+                              size="small"
+                              value={e.label ?? "finding"}
+                              onChange={(event) => handleUpdateEntityType(i, event.target.value)}
+                              disabled={saving}
+                              sx={{
+                                minWidth: 170,
+                                "& .MuiInputBase-input": {
+                                  py: 0.45,
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                  color: "primary.main",
+                                },
+                              }}
+                            >
+                              {ENTITY_LABEL_OPTIONS.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                  {option}
+                                </MenuItem>
+                              ))}
+                            </TextField>
                           </TableCell>
                           <TableCell>
                             <TextField
@@ -1020,13 +1161,14 @@ function SkeletonList() {
 const PAGE_SIZE = 20;
 
 export default function GoldDatasetPanel() {
-  const [tab, setTab] = useState<"candidates" | "gold">("candidates");
+  const [tab, setTab] = useState<"candidates" | "gold" | "synthetic">("candidates");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
 
   const [candidateStats, setCandidateStats] = useState<CandidateStats | null>(null);
   const [goldStats, setGoldStats] = useState<GoldStats | null>(null);
+  const [syntheticStats, setSyntheticStats] = useState<SyntheticStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
 
@@ -1045,6 +1187,12 @@ export default function GoldDatasetPanel() {
   const [openingCandidateLabelId, setOpeningCandidateLabelId] = useState<string | null>(null);
   const [candidateGoldLabel, setCandidateGoldLabel] = useState<GoldLabel | null>(null);
   const [markingGoldCandidateId, setMarkingGoldCandidateId] = useState<string | null>(null);
+  const [syntheticDialogOpen, setSyntheticDialogOpen] = useState(false);
+  const [generatingSynthetic, setGeneratingSynthetic] = useState(false);
+  const [syntheticMode, setSyntheticMode] = useState<"inline" | "queue">("inline");
+  const [syntheticLimit, setSyntheticLimit] = useState(50);
+  const [selectedSyntheticTags, setSelectedSyntheticTags] = useState<string[]>([]);
+  const [purgingSynthetic, setPurgingSynthetic] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<Candidate | GoldLabel | null>(null);
 
@@ -1064,12 +1212,14 @@ export default function GoldDatasetPanel() {
     setStatsLoading(true);
     setStatsError(null);
     try {
-      const [cs, gs] = await Promise.all([
+      const [cs, gs, ss] = await Promise.all([
         jsonFetch<CandidateStats>("/api/training/candidates/stats"),
         jsonFetch<GoldStats>("/api/training/gold-labels/stats"),
+        jsonFetch<SyntheticStats>("/api/training/synthetic-gold/stats"),
       ]);
       setCandidateStats(cs);
       setGoldStats(gs);
+      setSyntheticStats(ss);
     } catch (e) {
       setStatsError(e instanceof Error ? e.message : "Could not load stats");
     } finally {
@@ -1093,8 +1243,13 @@ export default function GoldDatasetPanel() {
         const data = await jsonFetch<{ items: Candidate[]; total: number }>(url);
         setItems(data.items);
         setTotal(data.total);
-      } else {
+      } else if (tab === "gold") {
         const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const data = await jsonFetch<{ items: GoldLabel[]; total: number }>(url);
+        setItems(data.items);
+        setTotal(data.total);
+      } else {
+        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}&source=synthetic_llm${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
         const data = await jsonFetch<{ items: GoldLabel[]; total: number }>(url);
         setItems(data.items);
         setTotal(data.total);
@@ -1111,7 +1266,7 @@ export default function GoldDatasetPanel() {
   }, [loadList]);
 
   // Reset page when tab changes — also clear items to prevent rendering stale typed data
-  const handleTabChange = (_: React.SyntheticEvent, val: "candidates" | "gold") => {
+  const handleTabChange = (_: React.SyntheticEvent, val: "candidates" | "gold" | "synthetic") => {
     setItems([]);
     setTotal(0);
     setTab(val);
@@ -1132,6 +1287,74 @@ export default function GoldDatasetPanel() {
       setListError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleGenerateSynthetic() {
+    if (generatingSynthetic) return;
+    setGeneratingSynthetic(true);
+    setListError(null);
+    setActionMsg(null);
+    try {
+      const payload = {
+        limit: syntheticMode === "inline" ? Math.min(syntheticLimit, 50) : Math.min(syntheticLimit, 500),
+        sentences_per_form: 10,
+        semantic_tags: selectedSyntheticTags.length ? selectedSyntheticTags : null,
+      };
+      if (syntheticMode === "inline") {
+        const result = await jsonFetch<SyntheticGenerateResult>(
+          "/api/training/synthetic-candidates",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+        setActionMsg(
+          `Synthetic generation complete: ${result.gold_labels_written ?? 0} labels from ${result.forms_processed ?? 0} forms.`,
+        );
+      } else {
+        const result = await jsonFetch<SyntheticQueueResult>(
+          "/api/training/synthetic-candidates/queue",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+        setActionMsg(
+          result.queued
+            ? `Queued ${result.queued_batches} batch(es) for ${result.estimated_forms} forms.`
+            : "No eligible surface forms found to queue.",
+        );
+      }
+      setSyntheticDialogOpen(false);
+      await Promise.all([loadList(), loadStats()]);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Failed to generate synthetic candidates");
+    } finally {
+      setGeneratingSynthetic(false);
+    }
+  }
+
+  async function handleDeleteSyntheticSet() {
+    if (purgingSynthetic) return;
+    setPurgingSynthetic(true);
+    setListError(null);
+    setActionMsg(null);
+    try {
+      const result = await jsonFetch<SyntheticDeleteResult>(
+        "/api/training/synthetic-candidates",
+        { method: "DELETE" },
+      );
+      setActionMsg(
+        `Deleted synthetic set: ${result.deleted_gold_labels} labels and ${result.deleted_candidates} candidates.`,
+      );
+      await Promise.all([loadList(), loadStats()]);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Failed to delete synthetic set");
+    } finally {
+      setPurgingSynthetic(false);
     }
   }
 
@@ -1290,6 +1513,11 @@ export default function GoldDatasetPanel() {
               color="primary.main"
             />
             <StatTile
+              label="Synthetic gold labels"
+              value={syntheticStats?.synthetic_gold_labels ?? 0}
+              color="secondary.main"
+            />
+            <StatTile
               label="Avg quality score"
               value={goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
                 ? `${Math.round((goldStats.avg_quality_score ?? 0) * 100)}%`
@@ -1330,12 +1558,78 @@ export default function GoldDatasetPanel() {
             </Stack>
           }
         />
+        <Tab
+          value="synthetic"
+          label={
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <span>Synthetic</span>
+              {syntheticStats && (
+                <Chip label={syntheticStats.synthetic_gold_labels} size="small" color="secondary" sx={{ height: 18, fontSize: "0.7rem" }} />
+              )}
+            </Stack>
+          }
+        />
       </Tabs>
+
+      {tab === "synthetic" && syntheticStats && (
+        <Card variant="outlined" sx={{ mb: 2 }}>
+          <CardContent sx={{ py: 1.5 }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }} justifyContent="space-between">
+              <Box sx={{ width: "100%" }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Surface-form coverage: {syntheticStats.covered_surface_forms.toLocaleString()} / {syntheticStats.total_surface_forms.toLocaleString()}
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={syntheticStats.total_surface_forms > 0 ? (syntheticStats.covered_surface_forms / syntheticStats.total_surface_forms) * 100 : 0}
+                  sx={{ mt: 1, height: 8, borderRadius: 1 }}
+                />
+                <Stack direction="row" spacing={0.75} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
+                  {syntheticStats.tag_breakdown.slice(0, 6).map((row) => (
+                    <Chip
+                      key={row.semantic_tag}
+                      size="small"
+                      label={`${row.semantic_tag}: ${row.covered_surface_forms}`}
+                      variant="outlined"
+                    />
+                  ))}
+                </Stack>
+              </Box>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={generatingSynthetic ? <CircularProgress size={14} color="inherit" /> : <SyncIcon />}
+                onClick={() => setSyntheticDialogOpen(true)}
+                disabled={generatingSynthetic}
+                size="small"
+              >
+                Generate synthetic
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={purgingSynthetic ? <CircularProgress size={14} color="inherit" /> : <DeleteOutlineIcon />}
+                onClick={handleDeleteSyntheticSet}
+                disabled={purgingSynthetic}
+                size="small"
+              >
+                Delete synthetic set
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search */}
       <TextField
         size="small"
-        placeholder={tab === "candidates" ? "Search candidate text…" : "Search gold label text…"}
+        placeholder={
+          tab === "candidates"
+            ? "Search candidate text…"
+            : tab === "synthetic"
+              ? "Search synthetic gold text…"
+              : "Search gold label text…"
+        }
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         fullWidth
@@ -1360,10 +1654,18 @@ export default function GoldDatasetPanel() {
         <Box sx={{ py: 6, textAlign: "center" }}>
           <Typography color="text.secondary">
             {debouncedSearch
-              ? `No ${tab === "candidates" ? "candidates" : "verified labels"} matching "${debouncedSearch}".`
+              ? `No ${
+                tab === "candidates"
+                  ? "candidates"
+                  : tab === "synthetic"
+                    ? "synthetic labels"
+                    : "verified labels"
+              } matching "${debouncedSearch}".`
               : tab === "candidates"
                 ? "No training candidates yet. Run the pipeline to generate them."
-                : "No verified gold labels yet. Labels appear here after a reviewer saves a candidate as gold data."}
+                : tab === "synthetic"
+                  ? "No synthetic labels yet. Generate from the Synthetic tab controls above."
+                  : "No verified gold labels yet. Labels appear here after a reviewer saves a candidate as gold data."}
           </Typography>
         </Box>
       ) : (
@@ -1419,6 +1721,13 @@ export default function GoldDatasetPanel() {
           onEntitiesChanged={() => void loadList()}
         />
       )}
+      {selectedItem && tab === "synthetic" && (
+        <GoldLabelDetailDialog
+          item={selectedItem as GoldLabel}
+          onClose={() => setSelectedItem(null)}
+          onEntitiesChanged={() => void loadList()}
+        />
+      )}
       {confirmGoldLabel && (
         <ConfirmDialog
           title="Delete verified label?"
@@ -1467,6 +1776,61 @@ export default function GoldDatasetPanel() {
           }}
         />
       )}
+      <Dialog open={syntheticDialogOpen} onClose={() => !generatingSynthetic && setSyntheticDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Generate synthetic gold labels</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 0.5 }}>
+            <TextField
+              select
+              label="Mode"
+              value={syntheticMode}
+              onChange={(e) => setSyntheticMode(e.target.value as "inline" | "queue")}
+              size="small"
+            >
+              <MenuItem value="inline">Inline (up to 50 forms)</MenuItem>
+              <MenuItem value="queue">Queued (up to 500 forms)</MenuItem>
+            </TextField>
+            <TextField
+              label="Surface forms to process"
+              type="number"
+              size="small"
+              value={syntheticLimit}
+              onChange={(e) => setSyntheticLimit(Number(e.target.value || 0))}
+              inputProps={{ min: 1, max: syntheticMode === "inline" ? 50 : 500 }}
+              helperText="10 sentences are generated per selected surface form."
+            />
+            <Typography variant="body2" color="text.secondary">
+              Semantic tags (multi-select):
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {(syntheticStats?.tag_options ?? []).map((opt) => {
+                const selected = selectedSyntheticTags.includes(opt.semantic_tag);
+                return (
+                  <Chip
+                    key={opt.semantic_tag}
+                    label={`${opt.semantic_tag} (${opt.total_surface_forms})`}
+                    color={selected ? "secondary" : "default"}
+                    variant={selected ? "filled" : "outlined"}
+                    onClick={() => {
+                      setSelectedSyntheticTags((prev) =>
+                        prev.includes(opt.semantic_tag)
+                          ? prev.filter((tag) => tag !== opt.semantic_tag)
+                          : [...prev, opt.semantic_tag],
+                      );
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSyntheticDialogOpen(false)} disabled={generatingSynthetic}>Cancel</Button>
+          <Button variant="contained" color="secondary" onClick={handleGenerateSynthetic} disabled={generatingSynthetic}>
+            {generatingSynthetic ? "Generating..." : "Run"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

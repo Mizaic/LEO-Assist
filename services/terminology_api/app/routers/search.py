@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from libs.cypher.terminology_queries import SEMANTIC_TAGS_QUERY
 from libs.neo4j_client.client import KnowledgeGraphClient
+from libs.terminology.semantic_tag import normalise_semantic_tag
 from services.terminology_api.app.queries.terminology import (
     TERMINOLOGY_SEARCH,
     TERMINOLOGY_SEARCH_FILTERED,
@@ -53,8 +54,11 @@ def search_terms(
     client = KnowledgeGraphClient()
     try:
         if semantic_tag:
+            normalised_tags = sorted(
+                {normalise_semantic_tag(tag) for tag in semantic_tag if str(tag).strip()}
+            )
             return client.run(
-                TERMINOLOGY_SEARCH_FILTERED, q=safe_q, limit=limit, tags=semantic_tag
+                TERMINOLOGY_SEARCH_FILTERED, q=safe_q, limit=limit, tags=normalised_tags
             )
         return client.run(TERMINOLOGY_SEARCH, q=safe_q, limit=limit)
     finally:
