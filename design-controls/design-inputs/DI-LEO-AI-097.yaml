@@ -8,7 +8,10 @@
     recovery of missed surface forms. Corrections SHALL be tagged with
     provenance metadata so they can be used for targeted NER retraining. For
     referral procedure phrases, assertion correction SHALL NOT downgrade the
-    procedure to uncertain disease context.
+    procedure to uncertain disease context. Medication side-effect counselling
+    lists (for example "advised at increased risk of side effects such as ...")
+    SHALL be treated as advice context and SHALL NOT persist listed side effects
+    as current patient findings.
   rationale: >
     NER-first extraction improves cost and determinism but still misses surface
     forms and can misclassify semantic labels. A narrow single-turn quality
@@ -31,6 +34,8 @@
         spec: "Referral procedure phrases corrected to possible are normalised to present assertion (the referral was performed)"
       - type: "functional"
         spec: "Gold-training persistence runs only when entities include extraction-check provenance markers (llm_added, assertion_corrected, or label_corrected)"
+      - type: "safety"
+        spec: "Side-effect counselling list items are suppressed from coding persistence and do not appear as present patient findings"
     constraints:
       - type: "safety"
         spec: "Extraction check must not call terminology tools or mutate SNOMED concept IDs directly"

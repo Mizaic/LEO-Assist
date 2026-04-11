@@ -39,6 +39,10 @@
         type: "functional"
         measurement: "Test"
         target: "Gold-training write is skipped unless an entity includes extraction-check provenance markers"
+      - criterion: "Side-effect counselling suppression"
+        type: "safety"
+        measurement: "Test"
+        target: "Medication side-effect counselling lists are suppressed and not persisted as current findings"
 
   implementation:
     artifacts:
@@ -48,7 +52,11 @@
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/pipeline/post_processing.py"
-        description: "Referral procedure assertion guard after ConText"
+        description: "Referral procedure assertion guard and scope-guard integration"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/ner/scope_guard.py"
+        description: "Side-effect counselling suppression and advice-context assertion reclassification"
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/nlp/sentence_splitter.py"

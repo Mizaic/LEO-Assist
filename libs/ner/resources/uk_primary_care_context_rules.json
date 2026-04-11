@@ -447,7 +447,23 @@
       "direction": "FORWARD",
       "max_scope": 8,
       "description": "Clinical impression section -- conditions listed are working hypotheses, not confirmed.",
-      "example": "Impression: tension headache → possible diagnosis"
+      "example": "Impression: tension headache -> possible diagnosis"
+    },
+    {
+      "literal": "side effects such as",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 10,
+      "description": "Lists of potential medication side effects given during counselling are warnings, not current patient findings.",
+      "example": "side effects such as dizziness, drowsiness -> monitor advice context"
+    },
+    {
+      "literal": "look out for these and report back",
+      "category": "HYPOTHETICAL",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "Advice to monitor and report symptoms indicates counselling context, not confirmed symptom presence.",
+      "example": "look out for these and report back to surgery -> counselling context"
     }
   ]
 }

@@ -138,6 +138,13 @@ _SIDE_EFFECT_COUNSELLING_RE = re.compile(
     re.IGNORECASE,
 )
 
+_SIDE_EFFECT_LIST_RE = re.compile(
+    r"(?:s/?e|side\s+effects?)\s+(?:such\s+as|including)\s+(?P<items>.+?)(?:"
+    r"\s*-\s*advised|\s*-\s*look\s+out|\s+look\s+out|\s+report\s+back|$"
+    r")",
+    re.IGNORECASE,
+)
+
 
 def _is_instruction_indication_phrase(sentence_text: str, entity_text: str) -> bool:
     text = (entity_text or "").strip()
@@ -146,6 +153,17 @@ def _is_instruction_indication_phrase(sentence_text: str, entity_text: str) -> b
     escaped = re.escape(text)
     pattern = re.compile(rf"\bfor\s+(?:\w+\s+){{0,2}}{escaped}\b", re.IGNORECASE)
     return bool(pattern.search(sentence_text))
+
+
+def _is_side_effect_list_item(sentence_text: str, entity_text: str) -> bool:
+    text = (entity_text or "").strip()
+    if not text:
+        return False
+    match = _SIDE_EFFECT_LIST_RE.search(sentence_text)
+    if not match:
+        return False
+    items = (match.group("items") or "").lower()
+    return text.lower() in items
 
 
 def is_safety_netting_sentence(sentence_text: str) -> bool:
@@ -281,12 +299,13 @@ def reclassify_assertion(
 
     if tag in {"finding", "disorder"}:
         if _SIDE_EFFECT_COUNSELLING_RE.search(sentence_text):
-            logger.info(
-                "scope_guard: %s -> SUPPRESSED (side-effect counselling context, not current patient finding) | sent: %.120s",
-                label,
-                sentence_text,
-            )
-            return SUPPRESSED
+            if _is_side_effect_list_item(sentence_text, entity_text):
+                logger.info(
+                    "scope_guard: %s -> SUPPRESSED (side-effect counselling context, not current patient finding) | sent: %.120s",
+                    label,
+                    sentence_text,
+                )
+                return SUPPRESSED
 
     if tag == "disorder" and has_hedged_diagnosis(sentence_text):
         logger.info(

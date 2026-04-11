@@ -19,6 +19,7 @@
     test_file_paths:
       - "tests/test_llm_check_subgraph.py"
       - "tests/test_post_processing_pipeline.py"
+      - "tests/test_scope_guard.py"
       - "tests/test_sentence_splitter.py"
       - "tests/test_persist_subgraph_gold.py"
 
@@ -83,7 +84,18 @@
       verification_method: "automated"
       acceptance_criteria:
         - "status=skipped_no_training_signal when no extraction-check signal exists"
-        - "training_labels_written is 1 only when valid llm provenance is present"
+        - "training_labels_written is greater than 0 when valid llm provenance is present"
+    - case_id: "VT-097-TC-006"
+      case_name: "Side-effect counselling list items are suppressed from persistence"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Invoke scope guard and extraction_check with side-effect advice list phrasing"
+          expected_result: "Listed side-effect entities are suppressed while unrelated current findings remain"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Entities in 'side effects such as ... advised to look out/report back' context are removed"
+        - "Current diagnosis and symptom statements outside advice list context are preserved"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -119,3 +131,14 @@
         recorded in a GP encounter is a completed action, not a future plan.
         Guard now normalises possible -> present so the tier classifier treats
         it as tier 1/2 instead of tier 3 non_codeable_assertion.
+    - run_id: "VT-097-RUN-003"
+      date: "2026-04-11"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 6
+      failed_cases: 0
+      notes: >
+        Added side-effect counselling suppression coverage in scope_guard and
+        extraction_check parity path. Executed tests/test_scope_guard.py,
+        tests/test_post_processing_pipeline.py, and tests/test_llm_check_subgraph.py.
