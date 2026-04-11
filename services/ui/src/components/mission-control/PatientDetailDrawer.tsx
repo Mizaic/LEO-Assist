@@ -287,15 +287,25 @@ export default function PatientDetailDrawer({
         )}
         {tab === 1 && (
           <Box role="tabpanel" id="panel-coded" aria-labelledby="tab-coded">
-            {focusedEpisode && (
+            {focusedEpisode ? (
               <CodedDataTab patientId={patient.patient_id} episode={focusedEpisode} />
+            ) : (
+              <Alert severity="info">
+                No pathway is available yet for this patient. Coded data appears after rebuild
+                creates a pathway.
+              </Alert>
             )}
           </Box>
         )}
         {tab === 2 && (
           <Box role="tabpanel" id="panel-text" aria-labelledby="tab-text">
-            {focusedEpisode && (
+            {focusedEpisode ? (
               <EncounterTextTab patientId={patient.patient_id} episode={focusedEpisode} />
+            ) : (
+              <Alert severity="info">
+                No pathway is available yet for this patient. Encounter text linked to a pathway
+                appears after rebuild completes.
+              </Alert>
             )}
           </Box>
         )}

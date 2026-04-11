@@ -64,15 +64,31 @@ async def handle_coding_job(message: Message) -> None:
         logger.exception("Coding job failed patient_id=%s", job.patient_id)
 
 
-def _build_progress_callback(run_id: str, *, suppress_run_completed: bool = False):
+def _build_progress_callback(
+    run_id: str,
+    *,
+    patient_id: str,
+    suppress_run_completed: bool = False,
+):
     from services.coding_worker.app.services.progress_publisher import publish_progress
+    from libs.redis_client.rebuild_status import update_from_event
 
     def _callback(event: dict[str, Any]) -> None:
         payload = dict(event)
         payload.setdefault("run_id", run_id)
+        payload.setdefault("patient_id", patient_id)
         if suppress_run_completed and payload.get("type") == "run_completed":
             payload["type"] = "encounter_completed"
         publish_progress(run_id, payload)
+        try:
+            update_from_event(patient_id, run_id, payload)
+        except Exception:
+            logger.debug(
+                "rebuild status update failed patient=%s run=%s",
+                patient_id,
+                run_id,
+                exc_info=True,
+            )
 
     return _callback
 
@@ -132,7 +148,7 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 return
             await _dispatch_engine_for_encounter(
                 handler,
-                _build_progress_callback(run_id),
+                _build_progress_callback(run_id, patient_id=job.patient_id),
                 body,
                 patient_id=job.patient_id,
                 encounter_id=job.encounter_id,
@@ -164,7 +180,11 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 continue
             await _dispatch_engine_for_encounter(
                 handler,
-                _build_progress_callback(run_id, suppress_run_completed=True),
+                _build_progress_callback(
+                    run_id,
+                    patient_id=job.patient_id,
+                    suppress_run_completed=True,
+                ),
                 body,
                 patient_id=job.patient_id,
                 encounter_id=encounter_id,
@@ -182,5 +202,25 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 "status": "completed",
             },
         )
+        try:
+            from libs.redis_client.rebuild_status import update_from_event
+
+            update_from_event(
+                job.patient_id,
+                run_id,
+                {
+                    "type": "run_completed",
+                    "run_id": run_id,
+                    "patient_id": job.patient_id,
+                    "status": "completed",
+                },
+            )
+        except Exception:
+            logger.debug(
+                "final rebuild status update failed patient=%s run=%s",
+                job.patient_id,
+                run_id,
+                exc_info=True,
+            )
     finally:
         await driver.close()

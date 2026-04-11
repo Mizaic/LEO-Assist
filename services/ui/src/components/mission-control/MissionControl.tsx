@@ -9,7 +9,11 @@ import KPIStrip from "./KPIStrip";
 import PatientCaseTable from "./PatientCaseTable";
 import PatientDetailDrawer from "./PatientDetailDrawer";
 import type { MissionEpisode, MissionKPIs, MissionPatient } from "@/lib/missionControlApi";
-import { fetchMissionKPIs, fetchMissionPatients } from "@/lib/missionControlApi";
+import {
+  fetchMissionKPIs,
+  fetchMissionPatients,
+  fetchPatientRebuildStatus,
+} from "@/lib/missionControlApi";
 import { useOrgId } from "@/context/OrgContext";
 import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
 import {
@@ -19,6 +23,7 @@ import {
 } from "@/lib/missionControlFilters";
 
 const USER_EMAIL_PLACEHOLDER = "auditor@nhs.net";
+const ACTIVE_REBUILD_STATUSES = new Set(["queued", "running"]);
 
 type DrawerTab = "overview" | "coded" | "encounters" | "audit";
 
@@ -117,8 +122,31 @@ export default function MissionControl() {
           fetchMissionKPIs(scopedFilters),
           fetchMissionPatients(scopedFilters, p, ps),
         ]);
+        const awaiting = patientResult.patients.filter(
+          (pt) => (pt.episodes?.length ?? 0) === 0
+        );
+        let rebuildMap: Record<string, Awaited<ReturnType<typeof fetchPatientRebuildStatus>> | null> = {};
+        if (awaiting.length > 0) {
+          const statuses = await Promise.all(
+            awaiting.map(async (pt) => {
+              try {
+                const status = await fetchPatientRebuildStatus(pt.patient_id, {
+                  orgId: scopedFilters.orgId || undefined,
+                });
+                return [pt.patient_id, status] as const;
+              } catch {
+                return [pt.patient_id, null] as const;
+              }
+            })
+          );
+          rebuildMap = Object.fromEntries(statuses);
+        }
+        const enrichedPatients = patientResult.patients.map((pt) => ({
+          ...pt,
+          rebuild_status: rebuildMap[pt.patient_id] ?? null,
+        }));
         setKpis(kpiResult);
-        setPatients(patientResult.patients);
+        setPatients(enrichedPatients);
         setTotal(patientResult.total);
       } catch (e) {
         if ((e as Error).name !== "AbortError") {
@@ -136,6 +164,50 @@ export default function MissionControl() {
   useEffect(() => {
     loadData(applied, page, pageSize, sortBy, sortDir);
   }, [applied, page, pageSize, sortBy, sortDir, loadData]);
+
+  // Refresh rebuild statuses for rows that are still awaiting rebuild.
+  useEffect(() => {
+    const awaiting = patients.filter(
+      (pt) =>
+        (pt.episodes?.length ?? 0) === 0 &&
+        ACTIVE_REBUILD_STATUSES.has(pt.rebuild_status?.status ?? "")
+    );
+    if (awaiting.length === 0) return;
+
+    let polling = false;
+    const interval = window.setInterval(async () => {
+      if (polling) return;
+      polling = true;
+      const updates = await Promise.all(
+        awaiting.map(async (pt) => {
+          try {
+            const status = await fetchPatientRebuildStatus(pt.patient_id, {
+              orgId: applied.orgId || undefined,
+            });
+            return [pt.patient_id, status] as const;
+          } catch {
+            return [pt.patient_id, null] as const;
+          }
+        })
+      );
+      const map = Object.fromEntries(updates);
+      const hasCompleted = Object.values(map).some(
+        (status) => status?.status === "completed"
+      );
+      setPatients((prev) =>
+        prev.map((pt) =>
+          (pt.episodes?.length ?? 0) === 0
+            ? { ...pt, rebuild_status: map[pt.patient_id] ?? pt.rebuild_status ?? null }
+            : pt
+        )
+      );
+      if (hasCompleted) {
+        await loadData(applied, page, pageSize, sortBy, sortDir);
+      }
+      polling = false;
+    }, 8000);
+    return () => window.clearInterval(interval);
+  }, [patients, applied.orgId, loadData, applied, page, pageSize, sortBy, sortDir]);
 
   // Keep Mission Control in sync with shared org/date filters from the app shell/audit flow.
   useEffect(() => {

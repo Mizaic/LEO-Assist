@@ -29,6 +29,7 @@ from services.analytics_api.app.routers.mission_control import (
     _normalise_mission_patient_id,
     _patient_pipeline_audit_prefix,
     _patients_cypher,
+    get_patient_rebuild_status,
     _CLOSURE_STATUSES,
     _ALWAYS_EXCLUDE,
 )
@@ -374,3 +375,49 @@ async def test_unauthenticated_review_raises_401():
     with pytest.raises(HTTPException) as exc_info:
         await patch_episode_review("ep-1", req, scope=EmptyScope())  # type: ignore[arg-type]
     assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_patient_rebuild_status_returns_estimates(monkeypatch):
+    from services.analytics_api.app.routers import mission_control as mc
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            if "RETURN count(p) AS c LIMIT 1" in query:
+                return [{"c": 1}]
+            if "total_duration_ms AS total_duration_ms" in query:
+                return [
+                    {"total_duration_ms": 60000, "created_at": "2026-04-10T10:00:00Z"},
+                    {"total_duration_ms": 90000, "created_at": "2026-04-10T10:01:00Z"},
+                ]
+            return []
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
+    monkeypatch.setattr(mc, "_pipeline_queue_depth", lambda: 12)
+    monkeypatch.setattr(
+        mc,
+        "get_rebuild_status",
+        lambda _pid: {
+            "run_id": "run-123",
+            "status": "queued",
+            "message": "Queued and waiting for worker pickup.",
+            "updated_at": "2026-04-10T10:00:00Z",
+            "queued_jobs": 3,
+        },
+    )
+
+    scope = CallerScope(
+        email="qa@example.com",
+        is_admin=False,
+        org_ids=["org-1"],
+        scope_type="gp",
+        primary_org_id="org-1",
+    )
+    result = await get_patient_rebuild_status("4181221113", "org-1", scope)
+    assert result["status"] == "queued"
+    assert result["queue_depth"] == 12
+    assert result["queue_position_estimate"] == 11
+    assert result["eta_seconds_estimate"] is not None

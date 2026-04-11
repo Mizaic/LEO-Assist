@@ -15,7 +15,9 @@ audit_notes, audit_flag) -- never clinical coding data.
 from __future__ import annotations
 
 import logging
+import os
 import re
+import statistics
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -23,6 +25,7 @@ from pydantic import BaseModel
 
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
+from libs.redis_client.rebuild_status import get_rebuild_status
 from services.analytics_api.app.routers._audit_helpers import (
     _add_date_filters,
     _episode_base,
@@ -169,6 +172,55 @@ def _truncate_audit_text(raw: Optional[str], max_len: int = 800) -> Optional[str
     if len(s) <= max_len:
         return s
     return s[:max_len] + "..."
+
+
+def _pipeline_queue_depth() -> Optional[int]:
+    conn = os.getenv("AZURE_SERVICE_BUS_CONNECTION_STRING", "").strip()
+    queue_name = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs").strip() or "pipeline-jobs"
+    if not conn:
+        return None
+    try:
+        from azure.servicebus.management import ServiceBusAdministrationClient
+
+        admin = ServiceBusAdministrationClient.from_connection_string(conn)
+        props = admin.get_queue_runtime_properties(queue_name)
+        return int(getattr(props, "active_message_count", 0) or 0)
+    except Exception:
+        logger.debug("Could not read Service Bus runtime properties", exc_info=True)
+        return None
+
+
+def _duration_and_throughput_estimate() -> tuple[Optional[float], Optional[float]]:
+    """Return (median_duration_seconds, throughput_runs_per_minute)."""
+    q = (
+        "MATCH (ae:AuditEvent) "
+        "WHERE coalesce(ae.`type`, '') = 'PipelineRun' "
+        "  AND ae.total_duration_ms IS NOT NULL "
+        "  AND ae.created_at >= datetime() - duration('PT60M') "
+        "RETURN ae.total_duration_ms AS total_duration_ms, ae.created_at AS created_at "
+        "ORDER BY ae.created_at DESC "
+        "LIMIT 500"
+    )
+    client = PatientGraphClient()
+    try:
+        rows = client.run(q)
+    finally:
+        client.close()
+
+    if not rows:
+        return None, None
+
+    durations_ms = [
+        float(r.get("total_duration_ms"))
+        for r in rows
+        if r.get("total_duration_ms") is not None
+    ]
+    if not durations_ms:
+        return None, None
+
+    median_seconds = statistics.median(durations_ms) / 1000.0
+    throughput_per_minute = len(durations_ms) / 60.0
+    return median_seconds, throughput_per_minute
 
 
 def _apply_patient_id_filter(
@@ -607,6 +659,58 @@ async def get_patient_pipeline_events(
 
     events = [_row_to_pipeline_event(r) for r in rows]
     return {"patient_id": pid, "episode_id": eid, "events": events}
+
+
+@router.get("/mission-control/patients/{patient_id}/rebuild-status")
+async def get_patient_rebuild_status(
+    patient_id: str,
+    org_id: Optional[str] = Query(None),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return live rebuild status plus queue/ETA estimates for Awaiting rebuild rows."""
+    pid = _normalise_mission_patient_id(patient_id)
+    if not pid:
+        raise HTTPException(status_code=400, detail="Invalid patient_id")
+
+    prefix, extra = _patient_pipeline_audit_prefix(scope, org_id)
+    exists_q = f"{prefix} RETURN count(p) AS c LIMIT 1"
+    client = PatientGraphClient()
+    try:
+        visible = client.run(exists_q, **{**extra, "patient_id": pid})
+    finally:
+        client.close()
+    if not visible or int(visible[0].get("c") or 0) == 0:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    status = get_rebuild_status(pid) or {}
+    queue_depth = _pipeline_queue_depth()
+    median_s, throughput_per_minute = _duration_and_throughput_estimate()
+
+    queue_position_estimate: Optional[int] = None
+    eta_seconds_estimate: Optional[int] = None
+    state = str(status.get("status") or "idle")
+    if state == "queued" and queue_depth is not None:
+        queue_position_estimate = max(queue_depth - 1, 0)
+    if state in {"queued", "running"} and median_s is not None:
+        if state == "queued" and queue_position_estimate is not None and throughput_per_minute:
+            wait_seconds = int((queue_position_estimate / throughput_per_minute) * 60.0)
+            eta_seconds_estimate = max(wait_seconds + int(median_s), int(median_s))
+        elif state == "running":
+            eta_seconds_estimate = max(int(median_s), 1)
+
+    return {
+        "patient_id": pid,
+        "run_id": status.get("run_id"),
+        "status": state,
+        "message": status.get("message"),
+        "updated_at": status.get("updated_at"),
+        "queued_jobs": status.get("queued_jobs"),
+        "queue_depth": queue_depth,
+        "queue_position_estimate": queue_position_estimate,
+        "median_duration_seconds": median_s,
+        "throughput_per_minute": throughput_per_minute,
+        "eta_seconds_estimate": eta_seconds_estimate,
+    }
 
 
 @router.patch("/mission-control/episodes/{episode_id}/review")

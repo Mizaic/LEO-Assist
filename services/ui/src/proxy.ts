@@ -49,7 +49,6 @@ function pipelineWorker(): string {
 }
 
 const EXACT_ROUTES: Record<string, () => string> = {
-  "/auth/login": () => `${coreApi()}/auth/login`,
   "/auth/logout": () => `${coreApi()}/auth/logout`,
   "/auth/session": () => `${coreApi()}/auth/session`,
   "/api/patients": () => `${coreApi()}/patients`,
@@ -171,7 +170,6 @@ export const config = {
   matcher: [
     "/api/admin/:path*",
     "/api/mail/:path*",
-    "/auth/login",
     "/auth/logout",
     "/auth/session",
     "/api/proxy/:path*",

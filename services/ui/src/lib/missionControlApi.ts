@@ -71,6 +71,7 @@ export interface MissionPatient {
   age: number | null;
   practice_name: string | null;
   episodes: MissionEpisode[];
+  rebuild_status?: RebuildStatus | null;
 }
 
 export interface MissionPatientsResponse {
@@ -134,6 +135,20 @@ export interface PipelineEventsResponse {
   events: PipelineAuditEvent[];
 }
 
+export interface RebuildStatus {
+  patient_id: string;
+  run_id: string | null;
+  status: "idle" | "queued" | "running" | "completed" | "failed";
+  message: string | null;
+  updated_at: string | null;
+  queued_jobs: number | null;
+  queue_depth: number | null;
+  queue_position_estimate: number | null;
+  median_duration_seconds: number | null;
+  throughput_per_minute: number | null;
+  eta_seconds_estimate: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // API calls
 // ---------------------------------------------------------------------------
@@ -178,6 +193,17 @@ export async function fetchPatientPipelineEvents(
   const q = p.toString();
   const path = `${PROXY}/mission-control/patients/${encodeURIComponent(patientId)}/pipeline-events`;
   return fetchJson<PipelineEventsResponse>(q ? `${path}?${q}` : path);
+}
+
+export async function fetchPatientRebuildStatus(
+  patientId: string,
+  options?: { orgId?: string }
+): Promise<RebuildStatus> {
+  const p = new URLSearchParams();
+  if (options?.orgId) p.set("org_id", options.orgId);
+  const q = p.toString();
+  const path = `${PROXY}/mission-control/patients/${encodeURIComponent(patientId)}/rebuild-status`;
+  return fetchJson<RebuildStatus>(q ? `${path}?${q}` : path);
 }
 
 export async function patchEpisodeStatus(

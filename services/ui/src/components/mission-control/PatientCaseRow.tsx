@@ -35,6 +35,16 @@ function formatDate(iso: string | null): string {
   }
 }
 
+function formatEta(seconds: number | null | undefined): string {
+  if (seconds == null || seconds <= 0) return "--";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 1) return "<1 min";
+  if (minutes < 60) return `~${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rem = minutes % 60;
+  return rem === 0 ? `~${hours}h` : `~${hours}h ${rem}m`;
+}
+
 interface Props {
   patient: MissionPatient;
   onOpen: (patient: MissionPatient) => void;
@@ -56,6 +66,17 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
   const intervalColour = ep ? getDiagnosticIntervalColour(ep.diagnostic_interval_days) : "warning";
   const reviewed = Boolean(ep?.reviewed_by);
   const multiEpisode = uniqueEpisodes.length > 1;
+  const rebuild = patient.rebuild_status ?? null;
+  const rebuildLabel =
+    rebuild?.status === "queued"
+      ? `Queued${rebuild.queue_position_estimate != null ? ` (#~${rebuild.queue_position_estimate})` : ""}`
+      : rebuild?.status === "running"
+      ? "Running"
+      : rebuild?.status === "completed"
+      ? "Rebuild complete"
+      : rebuild?.status === "failed"
+      ? "Rebuild failed"
+      : "Awaiting rebuild";
 
   return (
     <>
@@ -118,7 +139,7 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
             <Typography variant="body2">{getCancerTypeLabel(ep.cancer_type)}</Typography>
           ) : (
             <Typography variant="body2" color="text.secondary">
-              {ep ? getStatusLabel(ep.status) : "Awaiting rebuild"}
+              {ep ? getStatusLabel(ep.status) : rebuildLabel}
             </Typography>
           )}
         </TableCell>
@@ -137,7 +158,7 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
         {/* Key dates */}
         <TableCell>
           <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-            {ep ? formatDate(ep.referral_date) : "No pathway dates yet"}
+            {ep ? formatDate(ep.referral_date) : `ETA ${formatEta(rebuild?.eta_seconds_estimate)}`}
             {ep?.end_date && ` -> ${formatDate(ep.end_date)}`}
           </Typography>
         </TableCell>
@@ -171,9 +192,19 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
         {/* Review */}
         <TableCell>
           <Chip
-            label={ep ? getReviewLabel(ep.reviewed_by) : "Needs rebuild"}
+            label={ep ? getReviewLabel(ep.reviewed_by) : rebuildLabel}
             size="small"
-            color={ep ? (reviewed ? "success" : "warning") : "default"}
+            color={
+              ep
+                ? (reviewed ? "success" : "warning")
+                : rebuild?.status === "failed"
+                ? "error"
+                : rebuild?.status === "running"
+                ? "success"
+                : rebuild?.status === "queued"
+                ? "warning"
+                : "default"
+            }
             variant={ep ? (reviewed ? "filled" : "outlined") : "outlined"}
             sx={{ fontSize: "0.65rem" }}
           />
