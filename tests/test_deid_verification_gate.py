@@ -8,7 +8,15 @@ from libs.pipeline_graph.subgraphs.persist import write_gold_training
 def _state(text: str) -> dict:
     return {
         "encounter_text": text,
-        "entities": [{"text": "chest pain", "label": "finding", "start": 0, "end": 10}],
+        "entities": [
+            {
+                "text": "chest pain",
+                "label": "finding",
+                "start": 0,
+                "end": 10,
+                "_llm_check_source": "llm_added",
+            }
+        ],
         "verification_result": {"confidence": 0.95},
         "errors": [],
     }

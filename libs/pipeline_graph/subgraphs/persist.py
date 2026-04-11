@@ -31,6 +31,7 @@ class PersistState(TypedDict, total=False):
     run_id: str
     is_verified: bool
     verification_result: dict
+    llm_check_changes: list[dict[str, Any]]
     documents_written: int
     training_labels_written: int
     errors: list[str]
@@ -199,6 +200,22 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
 
     if not entities:
         return {"training_labels_written": 0, "errors": errors}
+
+    llm_feedback_sources = {"llm_added", "assertion_corrected", "label_corrected"}
+    has_training_signal = any(
+        str(entity.get("_llm_check_source") or "").strip().lower()
+        in llm_feedback_sources
+        for entity in entities
+    )
+    if not has_training_signal:
+        logger.info(
+            "Skipping gold training write: no extraction-check learning signal for encounter"
+        )
+        return {
+            "training_labels_written": 0,
+            "errors": errors,
+            "status": "skipped_no_training_signal",
+        }
 
     try:
         from libs.cypher.gold_label_queries import UPSERT_GOLD_LABEL

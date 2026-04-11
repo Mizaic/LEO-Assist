@@ -29,6 +29,8 @@
         spec: "PromptConfig name extraction_check v1 is seedable and loadable from Neo4j"
       - type: "safety"
         spec: "Referral procedure phrases corrected to possible are normalised to planned assertion"
+      - type: "functional"
+        spec: "Gold-training persistence runs only when entities include extraction-check provenance markers (llm_added, assertion_corrected, or label_corrected)"
     constraints:
       - type: "safety"
         spec: "Extraction check must not call terminology tools or mutate SNOMED concept IDs directly"
@@ -40,6 +42,7 @@
       - "libs/pipeline/post_processing.py"
       - "libs/nlp/sentence_splitter.py"
       - "libs/pipeline_graph/registry.py"
+      - "libs/pipeline_graph/subgraphs/persist.py"
       - "libs/prompts/extraction_check_v1.py"
       - "scripts/seed_prompt_configs.py"
       - "scripts/seed_plan_definitions.py"
@@ -48,6 +51,7 @@
       framework: "LangGraph / LLM client"
       file_structure:
         - "libs/pipeline_graph/subgraphs/llm_check.py"
+        - "libs/pipeline_graph/subgraphs/persist.py"
         - "libs/pipeline_graph/registry.py"
         - "libs/prompts/extraction_check_v1.py"
         - "scripts/seed_prompt_configs.py"

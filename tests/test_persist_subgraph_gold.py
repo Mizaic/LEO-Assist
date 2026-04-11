@@ -15,11 +15,32 @@ def test_write_gold_training_writes_candidate_and_gold() -> None:
         out = write_gold_training(
             {
                 "encounter_text": "chest pain for 3 days",
-                "entities": [{"text": "chest pain", "label": "finding", "start": 0, "end": 10}],
+                "entities": [
+                    {
+                        "text": "chest pain",
+                        "label": "finding",
+                        "start": 0,
+                        "end": 10,
+                        "_llm_check_source": "llm_added",
+                    }
+                ],
                 "verification_result": {"confidence": 0.95},
                 "errors": [],
             }
         )
     assert out["training_labels_written"] == 1
     assert session.run.call_count >= 3
+
+
+def test_write_gold_training_skips_without_llm_signal() -> None:
+    out = write_gold_training(
+        {
+            "encounter_text": "chest pain for 3 days",
+            "entities": [{"text": "chest pain", "label": "finding", "start": 0, "end": 10}],
+            "verification_result": {"confidence": 0.95},
+            "errors": [],
+        }
+    )
+    assert out["training_labels_written"] == 0
+    assert out["status"] == "skipped_no_training_signal"
 

@@ -20,6 +20,7 @@
       - "tests/test_llm_check_subgraph.py"
       - "tests/test_post_processing_pipeline.py"
       - "tests/test_sentence_splitter.py"
+      - "tests/test_persist_subgraph_gold.py"
 
   test_environment:
     environment_type: "development"
@@ -72,6 +73,17 @@
       acceptance_criteria:
         - "Referral procedure phrase is not persisted with possible assertion"
         - "_assertion_guard metadata is present on guarded entities"
+    - case_id: "VT-097-TC-005"
+      case_name: "Gold-training write requires extraction-check provenance signal"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Invoke write_gold_training with and without _llm_check_source on entities"
+          expected_result: "No-signal writes are skipped and llm-signal writes continue to DI-ID gate/persist path"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "status=skipped_no_training_signal when no extraction-check signal exists"
+        - "training_labels_written is 1 only when valid llm provenance is present"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -89,8 +101,9 @@
       executor: "automated (pytest)"
       environment: "development"
       result: "pass"
-      passed_cases: 4
+      passed_cases: 5
       failed_cases: 0
       notes: >
         Executed tests/test_llm_check_subgraph.py including referral-procedure
-        assertion guard coverage. All extraction-check cases passed.
+        assertion guard coverage, plus tests/test_persist_subgraph_gold.py for
+        provenance-gated gold-training writes. All extraction-check cases passed.
