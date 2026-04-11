@@ -585,8 +585,6 @@ def _apply_scope_guard_to_dicts(
 
     for i, ent in enumerate(entities):
         assertion = str(ent.get("assertion") or "present").strip().lower()
-        if assertion not in ("present", ""):
-            continue
         start = int(ent.get("start", 0) or 0)
         end = int(ent.get("end", 0) or 0)
         sentence_text = _extract_sentence_window(encounter_text, start, end)
@@ -599,7 +597,7 @@ def _apply_scope_guard_to_dicts(
         )
         if new_assertion == SUPPRESSED:
             to_remove.append(i)
-        elif new_assertion is not None:
+        elif new_assertion is not None and assertion in ("present", ""):
             ent["assertion"] = new_assertion
 
     for i in reversed(to_remove):

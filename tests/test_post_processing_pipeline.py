@@ -265,6 +265,35 @@ def test_scope_guard_suppresses_safety_netting() -> None:
     assert result == [], "Safety-netting entity must be suppressed (removed)"
 
 
+def test_scope_guard_suppresses_safety_netting_when_assertion_absent() -> None:
+    """SMS-style red-flag advice: absent assertions must still be removed."""
+    encounter = (
+        "Dear patient, anytime you have weakness please call 999 immediately "
+        "as it could be a sign of cauda equina syndrome"
+    )
+    entities = [
+        {
+            "text": "weakness",
+            "label": "finding",
+            "start": encounter.lower().find("weakness"),
+            "end": encounter.lower().find("weakness") + len("weakness"),
+            "assertion": "absent",
+        },
+        {
+            "text": "cauda equina syndrome",
+            "label": "disorder",
+            "start": encounter.lower().find("cauda equina"),
+            "end": encounter.lower().find("cauda equina") + len("cauda equina syndrome"),
+            "assertion": "absent",
+        },
+    ]
+
+    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
+        result = run_post_processing(encounter, entities)
+
+    assert result == []
+
+
 def test_scope_guard_keeps_recommendation_as_hypothetical() -> None:
     """Conditional clinical plans stay in the pipeline as hypothetical."""
     entities = [

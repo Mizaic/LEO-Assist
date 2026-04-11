@@ -7,6 +7,8 @@ intended purpose as a retrospective clinical-coding tool:
    contingency text (e.g. "if develops chest pain, call 999") are SUPPRESSED
    (removed from the entity list entirely). Safety-netting is patient advice,
    not a clinical event. It should never appear in the coding or review queue.
+   Suppression runs even when the extractor marked the entity ``absent`` (e.g.
+   red-flag wording in SMS or letters must not produce coded findings).
    ``reclassify_assertion`` returns the sentinel ``"suppressed"`` and the
    post-processing layer removes those entities before downstream steps.
 
@@ -44,10 +46,13 @@ logger = logging.getLogger(__name__)
 _SAFETY_NETTING_RE = re.compile(
     r"\b("
     r"if\s+(?:you\s+)?(?:develop|experience|notice|get|have|feel|become|worsen)"
+    r"|anytime\s+you\s+have"
+    r"|any\s+time\s+you\s+have"
     r"|worsening\s+(?:advice|instructions?|plan)"
     r"|seek\s+(?:urgent|immediate|emergency|medical)\s+(?:help|review|attention|care|advice)"
     r"|attend\s+(?:a[&\s]*e|emergency|casualty|urgent\s+care)"
-    r"|call\s+(?:999|111|ambulance|GP|doctor|nhs|out[\s-]+of[\s-]+hours)"
+    r"|(?:please|kindly)\s+call\s+(?:999|111|ambulance|GP|doctor|nhs|out[\s-]+of[\s-]+hours)"
+    r"|(?<![A-Za-z])(?:call|ring|phone)\s+(?:999|111|ambulance|GP|doctor|nhs|out[\s-]+of[\s-]+hours)"
     r"|go\s+(?:straight\s+)?to\s+(?:a[&\s]*e|hospital|emergency)"
     r"|red\s+flag"
     r"|safety[\s-]*netting"
@@ -254,14 +259,13 @@ def reclassify_assertion(
         ``SUPPRESSED`` (``"suppressed"``) if the entity originates from a
         safety-netting sentence and should be REMOVED from the entity list
         entirely -- caller must filter it out, it must not reach Neo4j.
+        Applies for **any** incoming assertion (including ``absent``): advice
+        text that lists red-flag symptoms is not a coded clinical finding.
         ``"hypothetical"`` if the entity is a conditional clinical plan
         (recommendation language) that should be kept for human review.
         ``"possible"`` if hedged diagnostic language applies.
         ``None`` if no scope-guard rule fires.
     """
-    if entity_assertion not in ("present", ""):
-        return None
-
     label = (
         f"{entity_text!r} [{entity_semantic_tag}]"
         if entity_text
@@ -275,6 +279,9 @@ def reclassify_assertion(
             sentence_text,
         )
         return SUPPRESSED
+
+    if entity_assertion not in ("present", ""):
+        return None
 
     if has_recommendation_language(sentence_text):
         logger.info(

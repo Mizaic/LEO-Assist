@@ -34,6 +34,17 @@ class TestSafetyNettingDetection:
             "Call 999 if you experience severe chest pain"
         )
 
+    def test_please_call_999_in_letter(self) -> None:
+        assert is_safety_netting_sentence(
+            "anytime you have weakness please call 999 immediately as it could be "
+            "a sign of nerve compression called cauda equina syndrome"
+        )
+
+    def test_anytime_you_have_red_flag_list(self) -> None:
+        assert is_safety_netting_sentence(
+            "Anytime you have fever or vomiting please contact the surgery"
+        )
+
     def test_call_111(self) -> None:
         assert is_safety_netting_sentence("Call 111 if symptoms do not improve")
 
@@ -203,10 +214,11 @@ class TestReclassifyAssertion:
         assert result is None
 
     def test_already_absent_not_changed(self) -> None:
+        """Absent in ordinary clinical prose: no scope-guard change (not safety text)."""
         result = reclassify_assertion(
             entity_semantic_tag="disorder",
             entity_assertion="absent",
-            sentence_text="If you develop chest pain, call 999",
+            sentence_text="Patient denies chest pain today, no shortness of breath",
         )
         assert result is None
 
@@ -306,6 +318,25 @@ class TestReclassifyAssertion:
             assert (
                 result == SUPPRESSED
             ), f"Expected SUPPRESSED for tag {tag}, got {result!r}"
+
+    def test_safety_netting_suppresses_even_when_assertion_absent(self) -> None:
+        """Absent red-flag list items in advice text must not stay in the entity list."""
+        letter = (
+            "As you wait for the spinal referral anytime you have weakness of both "
+            "legs, urine accidents please call 999 immediately as it could be a sign "
+            "of nerve compression called cauda equina syndrome"
+        )
+        for tag, phrase in (
+            ("finding", "weakness of both legs"),
+            ("disorder", "cauda equina syndrome"),
+        ):
+            result = reclassify_assertion(
+                entity_semantic_tag=tag,
+                entity_assertion="absent",
+                sentence_text=letter,
+                entity_text=phrase,
+            )
+            assert result == SUPPRESSED, f"tag={tag} phrase={phrase!r}"
 
     def test_raises_suspicion_reclassifies_disorder(self) -> None:
         result = reclassify_assertion(

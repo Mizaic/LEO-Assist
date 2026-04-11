@@ -40,3 +40,22 @@ def test_merge_resolution_blocks_not_sleeping_well_to_malaise() -> None:
     assert merged["terminology_unresolved"] is True
     assert merged["concept_id"] is None
     assert merged["term"] is None
+
+
+def test_merge_resolution_blocks_nerve_compression_to_malignant_neoplasm() -> None:
+    entity = {"text": "nerve compression", "label": "finding"}
+    candidates = [
+        ResolvedTerm(
+            text="nerve compression",
+            concept_id="372063002",
+            term="Malignant neoplasm of nervous system",
+            semantic_tag="finding",
+            score=0.88,
+        )
+    ]
+
+    merged = _merge_resolution(entity, candidates, min_score=0.70)
+
+    assert merged["terminology_unresolved"] is True
+    assert merged["concept_id"] is None
+    assert merged["term"] is None

@@ -19,6 +19,8 @@ _TERM_CONCEPT_BLOCKLIST: dict[str, set[str]] = {
     "spinal surgery": {"1287097003"},
     # Symptom phrasing should not be coerced to broad malaise.
     "not sleeping well": {"367391008"},
+    # Mechanical wording in patient advice; not malignant neoplasm of nervous system.
+    "nerve compression": {"372063002"},
 }
 
 
