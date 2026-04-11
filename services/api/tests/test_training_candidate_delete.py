@@ -198,6 +198,7 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
                     return_value={
                         "candidate_id": "cand-123",
                         "text": "example encounter text",
+                        "entities_json": '[{"text":"example","label":"finding","semantic_tag":"finding"}]',
                         "schema_version": "v4",
                     }
                 )
@@ -209,7 +210,7 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
                     return_value={
                         "label_id": "label-created",
                         "text": "example encounter text",
-                        "entities_json": "[]",
+                        "entities_json": '[{"text":"example","label":"finding","semantic_tag":"finding"}]',
                         "quality_score": None,
                         "source": "manual_gold_editor",
                         "verified_by": "admin@example.com",

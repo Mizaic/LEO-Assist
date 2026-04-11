@@ -6,6 +6,7 @@ from libs.cypher import training_candidate_queries as q
 def test_candidate_query_contains_required_fields() -> None:
     assert "candidate_id" in q.UPSERT_TRAINING_CANDIDATE
     assert "text" in q.UPSERT_TRAINING_CANDIDATE
+    assert "entities_json" in q.UPSERT_TRAINING_CANDIDATE
     assert "status" in q.UPSERT_TRAINING_CANDIDATE
 
 

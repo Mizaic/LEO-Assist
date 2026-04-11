@@ -9,6 +9,7 @@ Routes based on ``output_target`` in state:
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -325,6 +326,9 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                         str(entity.get("text", "") or ""), ner=True
                     ),
                     "label": entity.get("label") or entity.get("semantic_tag", ""),
+                    "semantic_tag": entity.get("semantic_tag")
+                    or entity.get("label")
+                    or "",
                     "start": entity.get("start", 0),
                     "end": entity.get("end", 0),
                     "assertion": entity.get("assertion", "present"),
@@ -380,6 +384,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                                 UPSERT_TRAINING_CANDIDATE,
                                 candidate_id=candidate_id,
                                 text=deid_sentence_text,
+                                entities_json=json.dumps(canonical_entities),
                                 source="pipeline_gold",
                                 status="failed",
                                 schema_version="v4",
@@ -420,6 +425,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                         UPSERT_TRAINING_CANDIDATE,
                         candidate_id=candidate_id,
                         text=deid_sentence_text,
+                        entities_json=json.dumps(group.get("entities") or []),
                         source="pipeline_gold",
                         status="pending",
                         schema_version="v4",

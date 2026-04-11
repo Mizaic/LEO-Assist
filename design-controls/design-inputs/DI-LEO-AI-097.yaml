@@ -34,6 +34,8 @@
         spec: "Referral procedure phrases corrected to possible are normalised to present assertion (the referral was performed)"
       - type: "functional"
         spec: "Gold-training persistence runs only when entities include extraction-check provenance markers (llm_added, assertion_corrected, or label_corrected)"
+      - type: "functional"
+        spec: "Sentence-level TrainingCandidate records persist entities_json with mention text, assertion, and semantic_tag for reviewer handoff to GoldLabel"
       - type: "safety"
         spec: "Side-effect counselling list items are suppressed from coding persistence and do not appear as present patient findings"
     constraints:

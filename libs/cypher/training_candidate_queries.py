@@ -14,6 +14,7 @@ UPSERT_TRAINING_CANDIDATE = """
 MERGE (c:TrainingCandidate {candidate_id: $candidate_id})
 ON CREATE SET
     c.text = $text,
+    c.entities_json = $entities_json,
     c.source = $source,
     c.status = $status,
     c.schema_version = $schema_version,
@@ -21,6 +22,7 @@ ON CREATE SET
     c.updated_at = datetime()
 ON MATCH SET
     c.text = $text,
+    c.entities_json = $entities_json,
     c.source = $source,
     c.status = CASE
         WHEN c.status = 'completed' AND $status = 'pending' THEN c.status
@@ -43,6 +45,7 @@ MATCH (c:TrainingCandidate {candidate_id: $candidate_id})
 RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
+    c.entities_json AS entities_json,
     c.source AS source,
     c.status AS status,
     c.schema_version AS schema_version,
@@ -59,6 +62,7 @@ WHERE ($status IS NULL OR c.status = $status)
 RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
+    c.entities_json AS entities_json,
     c.source AS source,
     c.status AS status,
     c.schema_version AS schema_version,

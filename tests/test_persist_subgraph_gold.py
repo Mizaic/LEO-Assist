@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 from libs.pipeline_graph.subgraphs.persist import write_gold_training
@@ -34,6 +35,11 @@ def test_write_gold_training_writes_candidate_only() -> None:
     assert out["training_labels_written"] == 1
     assert session.run.call_count == 1
     assert session.run.call_args.kwargs["status"] == "pending"
+    entities_json = session.run.call_args.kwargs["entities_json"]
+    entities = json.loads(entities_json)
+    assert entities[0]["text"] == "chest pain"
+    assert entities[0]["label"] == "finding"
+    assert entities[0]["semantic_tag"] == "finding"
 
 
 def test_write_gold_training_skips_without_llm_signal() -> None:

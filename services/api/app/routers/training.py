@@ -3079,7 +3079,7 @@ def ensure_gold_label_for_candidate(
                 UPSERT_GOLD_LABEL,
                 label_id=label_id,
                 text=candidate_row.get("text", ""),
-                entities_json="[]",
+                entities_json=candidate_row.get("entities_json") or "[]",
                 quality_score=None,
                 source="manual_gold_editor",
                 verified_by=getattr(scope, "email", "operations_ui"),

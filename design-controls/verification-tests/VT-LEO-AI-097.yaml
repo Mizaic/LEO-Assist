@@ -96,6 +96,17 @@
       acceptance_criteria:
         - "Entities in 'side effects such as ... advised to look out/report back' context are removed"
         - "Current diagnosis and symptom statements outside advice list context are preserved"
+    - case_id: "VT-097-TC-007"
+      case_name: "TrainingCandidate persists entity mention and semantic tag payload"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run gold-training sentence candidate write with llm signal and inspect UPSERT payload"
+          expected_result: "entities_json includes de-identified mention text, label, semantic_tag, and assertion"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "TrainingCandidate UPSERT receives entities_json with canonical entity objects"
+        - "Gold label ensure endpoint hydrates entities_json from candidate"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -142,3 +153,14 @@
         Added side-effect counselling suppression coverage in scope_guard and
         extraction_check parity path. Executed tests/test_scope_guard.py,
         tests/test_post_processing_pipeline.py, and tests/test_llm_check_subgraph.py.
+    - run_id: "VT-097-RUN-004"
+      date: "2026-04-11"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 7
+      failed_cases: 0
+      notes: >
+        Added TrainingCandidate entities_json persistence and ensure-gold-label
+        hydration from candidate payload. Executed tests/test_persist_subgraph_gold.py,
+        tests/test_training_candidate_queries.py, and services/api/tests/test_training_candidate_delete.py.
