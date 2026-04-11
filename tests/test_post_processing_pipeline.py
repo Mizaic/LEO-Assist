@@ -318,11 +318,41 @@ def test_scope_guard_suppresses_side_effect_counselling_findings() -> None:
         "to look out for these and report back to surgery"
     )
     entities = [
-        {"text": "dizziness", "label": "finding", "start": 83, "end": 92, "assertion": "present"},
-        {"text": "drowsiness", "label": "finding", "start": 94, "end": 104, "assertion": "present"},
-        {"text": "constipation", "label": "finding", "start": 124, "end": 136, "assertion": "present"},
-        {"text": "blurred vision", "label": "finding", "start": 138, "end": 152, "assertion": "present"},
-        {"text": "radiculopathy", "label": "disorder", "start": 32, "end": 44, "assertion": "present"},
+        {
+            "text": "dizziness",
+            "label": "finding",
+            "start": 83,
+            "end": 92,
+            "assertion": "present",
+        },
+        {
+            "text": "drowsiness",
+            "label": "finding",
+            "start": 94,
+            "end": 104,
+            "assertion": "present",
+        },
+        {
+            "text": "constipation",
+            "label": "finding",
+            "start": 124,
+            "end": 136,
+            "assertion": "present",
+        },
+        {
+            "text": "blurred vision",
+            "label": "finding",
+            "start": 138,
+            "end": 152,
+            "assertion": "present",
+        },
+        {
+            "text": "radiculopathy",
+            "label": "disorder",
+            "start": 32,
+            "end": 44,
+            "assertion": "present",
+        },
     ]
 
     with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):

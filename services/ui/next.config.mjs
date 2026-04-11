@@ -5,6 +5,14 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Match Next's getProjectDir() realpath behaviour so rootPath and projectPath
+// stay the same physical folder on Windows (8.3 vs long paths, junctions).
+let appRoot;
+try {
+  appRoot = fs.realpathSync(__dirname);
+} catch {
+  appRoot = path.resolve(__dirname);
+}
 const secretsDir = path.resolve(__dirname, "../../secrets");
 
 function loadEnvFile(filePath) {
@@ -39,9 +47,11 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   allowedDevOrigins: ["http://127.0.0.1:3000", "http://172.27.0.1:3000", "http://localhost:3000"],
+  // Keep tracing root aligned with turbopack.root (Next warns if they differ).
+  outputFileTracingRoot: appRoot,
   turbopack: {
     // Pin root to this app directory to avoid lockfile-based inference.
-    root: __dirname,
+    root: appRoot,
   },
   experimental: {
     proxyTimeout: 300_000, // 5 minutes – extraction pipelines can take 60s+

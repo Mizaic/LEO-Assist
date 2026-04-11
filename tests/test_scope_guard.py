@@ -265,7 +265,9 @@ class TestReclassifyAssertion:
         )
         assert result == SUPPRESSED
 
-    def test_side_effect_counselling_does_not_suppress_unrelated_procedure(self) -> None:
+    def test_side_effect_counselling_does_not_suppress_unrelated_procedure(
+        self,
+    ) -> None:
         result = reclassify_assertion(
             entity_semantic_tag="procedure",
             entity_assertion="present",
