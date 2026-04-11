@@ -7,6 +7,7 @@ Outputs a prioritised fix plan covering:
   P3 - 307 orphan SurfaceForm nodes with no MAPS_TO edge (cleanup)
   P4 - Low-confidence edges < 0.7
 """
+
 from __future__ import annotations
 
 import json
@@ -41,17 +42,25 @@ def run() -> None:
         # ------------------------------------------------------------------ #
         # P0 - Wrong concept type: body structure / qualifier value / organism #
         # ------------------------------------------------------------------ #
-        p0_tags = ["body structure", "qualifier value", "organism", "attribute",
-                   "environment", "physical object"]
-        p0 = list(s.run(
-            "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
-            "WHERE c.semantic_tag IN $tags "
-            "RETURN sf.normalized AS normalized, sf.form AS form, "
-            "       c.id AS cid, c.fsn AS fsn, c.semantic_tag AS tag, "
-            "       r.confidence AS conf, r.provenance AS prov "
-            "ORDER BY sf.form",
-            tags=p0_tags,
-        ))
+        p0_tags = [
+            "body structure",
+            "qualifier value",
+            "organism",
+            "attribute",
+            "environment",
+            "physical object",
+        ]
+        p0 = list(
+            s.run(
+                "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
+                "WHERE c.semantic_tag IN $tags "
+                "RETURN sf.normalized AS normalized, sf.form AS form, "
+                "       c.id AS cid, c.fsn AS fsn, c.semantic_tag AS tag, "
+                "       r.confidence AS conf, r.provenance AS prov "
+                "ORDER BY sf.form",
+                tags=p0_tags,
+            )
+        )
         print(f"\n{'='*65}")
         print(f"P0 - WRONG CONCEPT TYPE ({len(p0)} forms)")
         print(f"{'='*65}")
@@ -65,14 +74,16 @@ def run() -> None:
         print(f"\n{'='*65}")
         print("P1 - MULTI-MAPPED FORMS (both concepts at same confidence)")
         print(f"{'='*65}")
-        p1 = list(s.run(
-            "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
-            "WITH sf, count(c) AS nc, max(r.confidence) AS mc, "
-            "     min(r.confidence) AS lc "
-            "WHERE nc > 1 AND mc = lc "
-            "RETURN sf.normalized AS normalized, sf.form AS form, nc, mc "
-            "ORDER BY sf.form"
-        ))
+        p1 = list(
+            s.run(
+                "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
+                "WITH sf, count(c) AS nc, max(r.confidence) AS mc, "
+                "     min(r.confidence) AS lc "
+                "WHERE nc > 1 AND mc = lc "
+                "RETURN sf.normalized AS normalized, sf.form AS form, nc, mc "
+                "ORDER BY sf.form"
+            )
+        )
         for row in p1:
             print(f"\n  {row['form']!r} (x{row['nc']}, all conf={row['mc']}):")
             for edge in s.run(
@@ -87,14 +98,16 @@ def run() -> None:
         # P2 - regime/therapy and substance                                    #
         # ------------------------------------------------------------------ #
         p2_tags = ["regime/therapy", "substance"]
-        p2 = list(s.run(
-            "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
-            "WHERE c.semantic_tag IN $tags "
-            "RETURN sf.form AS form, c.id AS cid, c.fsn AS fsn, "
-            "       c.semantic_tag AS tag, r.confidence AS conf, r.provenance AS prov "
-            "ORDER BY c.semantic_tag, sf.form",
-            tags=p2_tags,
-        ))
+        p2 = list(
+            s.run(
+                "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
+                "WHERE c.semantic_tag IN $tags "
+                "RETURN sf.form AS form, c.id AS cid, c.fsn AS fsn, "
+                "       c.semantic_tag AS tag, r.confidence AS conf, r.provenance AS prov "
+                "ORDER BY c.semantic_tag, sf.form",
+                tags=p2_tags,
+            )
+        )
         print(f"\n{'='*65}")
         print(f"P2 - REGIME/THERAPY AND SUBSTANCE ({len(p2)} forms)")
         print("(these may be intentional; verify each makes clinical sense)")
@@ -124,13 +137,15 @@ def run() -> None:
         # ------------------------------------------------------------------ #
         # P4 - Low confidence                                                  #
         # ------------------------------------------------------------------ #
-        p4 = list(s.run(
-            "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
-            "WHERE r.confidence < 0.7 "
-            "RETURN sf.form AS form, c.id AS cid, c.fsn AS fsn, "
-            "       r.confidence AS conf, r.provenance AS prov "
-            "ORDER BY r.confidence"
-        ))
+        p4 = list(
+            s.run(
+                "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
+                "WHERE r.confidence < 0.7 "
+                "RETURN sf.form AS form, c.id AS cid, c.fsn AS fsn, "
+                "       r.confidence AS conf, r.provenance AS prov "
+                "ORDER BY r.confidence"
+            )
+        )
         print(f"\n{'='*65}")
         print(f"P4 - LOW CONFIDENCE EDGES (<0.7): {len(p4)}")
         print(f"{'='*65}")

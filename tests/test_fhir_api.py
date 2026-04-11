@@ -34,7 +34,12 @@ class TestMeasureService:
     def test_upsert_measure(self, MockKG):
         from services.fhir_api.app.services.measure_service import upsert_measure
 
-        resource = {"resourceType": "Measure", "id": "test-m", "name": "Test", "status": "active"}
+        resource = {
+            "resourceType": "Measure",
+            "id": "test-m",
+            "name": "Test",
+            "status": "active",
+        }
         result = upsert_measure("test-m", resource)
         assert result["id"] == "test-m"
         MockKG.return_value.run.assert_called_once()

@@ -15,7 +15,6 @@ from app.models.contracts import (
 from app.services.review_service import ReviewService
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
 
-
 router = APIRouter(prefix="/review", tags=["review"])
 
 
@@ -37,10 +36,7 @@ def list_tasks(
         require_patient_in_scope(service.client, scope, patient_id)
     tasks = service.list_tasks(status=status, patient_id=patient_id, limit=limit)
     if not scope.is_admin and not patient_id:
-        tasks = [
-            t for t in tasks
-            if _task_patient_in_scope(service.client, scope, t)
-        ]
+        tasks = [t for t in tasks if _task_patient_in_scope(service.client, scope, t)]
     return tasks
 
 
@@ -83,7 +79,9 @@ def decide_task(
 
 def _task_patient_in_scope(client, scope: CallerScope, task) -> bool:
     """Check if a review task's patient is in the caller's org scope."""
-    pid = getattr(task, "patient_id", None) or (task.get("patient_id") if isinstance(task, dict) else None)
+    pid = getattr(task, "patient_id", None) or (
+        task.get("patient_id") if isinstance(task, dict) else None
+    )
     if not pid:
         return True
     rows = client.run(

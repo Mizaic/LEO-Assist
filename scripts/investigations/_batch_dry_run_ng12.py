@@ -21,6 +21,7 @@ Usage:
     # PowerShell:  $env:CONSENSUS_AWS_TIER = "small"
     # bash:        export CONSENSUS_AWS_TIER=small
 """
+
 from __future__ import annotations
 
 import argparse
@@ -76,16 +77,18 @@ def _collect_leaves(tree: dict | None, out: list[dict]) -> None:
         return
     if tree.get("kind") == "concept":
         crit = tree.get("criterion") or {}
-        out.append({
-            "term": crit.get("term"),
-            "snomed_concept_id": crit.get("snomed_concept_id"),
-            "preferred_term": crit.get("preferred_term"),
-            "semantic_tag": crit.get("semantic_tag"),
-            "confidence": crit.get("confidence"),
-            "verification_status": crit.get("verification_status"),
-            "needs_human_review": crit.get("needs_human_review"),
-            "source_text": crit.get("source_text"),
-        })
+        out.append(
+            {
+                "term": crit.get("term"),
+                "snomed_concept_id": crit.get("snomed_concept_id"),
+                "preferred_term": crit.get("preferred_term"),
+                "semantic_tag": crit.get("semantic_tag"),
+                "confidence": crit.get("confidence"),
+                "verification_status": crit.get("verification_status"),
+                "needs_human_review": crit.get("needs_human_review"),
+                "source_text": crit.get("source_text"),
+            }
+        )
         return
     for child in tree.get("children") or []:
         _collect_leaves(child, out)
@@ -106,10 +109,12 @@ def _run_one(subgraph, rec: dict) -> dict:
         }
 
     t0 = time.monotonic()
-    result = subgraph.invoke({
-        "recommendation": rec,
-        "guideline_id": "NG12",
-    })
+    result = subgraph.invoke(
+        {
+            "recommendation": rec,
+            "guideline_id": "NG12",
+        }
+    )
     elapsed = round(time.monotonic() - t0, 1)
 
     coded = result.get("coded_criteria")
@@ -138,12 +143,16 @@ def _run_one(subgraph, rec: dict) -> dict:
         "status": "ok",
         "errors": errors,
         "leaves": leaves,
-        "action": {
-            "term": action.get("term"),
-            "snomed_concept_id": action.get("snomed_concept_id"),
-            "preferred_term": action.get("preferred_term"),
-            "semantic_tag": action.get("semantic_tag"),
-        } if action else None,
+        "action": (
+            {
+                "term": action.get("term"),
+                "snomed_concept_id": action.get("snomed_concept_id"),
+                "preferred_term": action.get("preferred_term"),
+                "semantic_tag": action.get("semantic_tag"),
+            }
+            if action
+            else None
+        ),
         "elapsed_s": elapsed,
     }
 
@@ -151,11 +160,15 @@ def _run_one(subgraph, rec: dict) -> dict:
 def _print_result(r: dict) -> None:
     status = r["status"]
     if status == "skipped":
-        print(f"\n[SKIP] {r['rec_id']} ({r['title']}) - process recommendation, no coding required")
+        print(
+            f"\n[SKIP] {r['rec_id']} ({r['title']}) - process recommendation, no coding required"
+        )
         return
     status_label = "OK " if status == "ok" else "FAIL"
-    print(f"\n[{status_label}] {r['rec_id']} ({r['title']}) urgency={r['urgency']} "
-          f"elapsed={r['elapsed_s']}s")
+    print(
+        f"\n[{status_label}] {r['rec_id']} ({r['title']}) urgency={r['urgency']} "
+        f"elapsed={r['elapsed_s']}s"
+    )
     if r["errors"]:
         for e in r["errors"]:
             print(f"  WARN  {e}")
@@ -237,6 +250,7 @@ def main() -> None:
     print("(No rules will be written to Neo4j.)")
 
     from libs.pipeline_graph.registry import get_registry
+
     subgraph = get_registry().build("guidance_rule_extraction")
 
     results: list[dict] = []

@@ -50,7 +50,9 @@ def main() -> None:
     finally:
         kg.close()
 
-    out_json.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
+    out_json.write_text(
+        json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     with out_csv.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(
             fh, fieldnames=["concept_id", "preferred_term", "fsn", "semantic_tag"]

@@ -217,11 +217,11 @@ RETURN new_rule.id AS id
 # ── Urgency → clinical priority mapping ────────────────────────────────────────
 
 _URGENCY_TO_PRIORITY: dict[str, dict] = {
-    "urgent_2w":       {"priority": "2ww",    "due_days": 14},
-    "very_urgent_48h": {"priority": "urgent",  "due_days": 2},
-    "immediate":       {"priority": "urgent",  "due_days": 1},
-    "urgent_1w":       {"priority": "urgent",  "due_days": 7},
-    "routine":         {"priority": "routine", "due_days": None},
+    "urgent_2w": {"priority": "2ww", "due_days": 14},
+    "very_urgent_48h": {"priority": "urgent", "due_days": 2},
+    "immediate": {"priority": "urgent", "due_days": 1},
+    "urgent_1w": {"priority": "urgent", "due_days": 7},
+    "routine": {"priority": "routine", "due_days": None},
 }
 
 # Default SNOMED closure distances used when writing HAS_CRITERIA edges.
@@ -243,10 +243,13 @@ _DEFAULT_DISTANCE_PARENT = 0
 
 def _urgency_to_priority(urgency: str | None) -> dict:
     """Map a Recommendation.urgency value to bitmap action priority metadata."""
-    return _URGENCY_TO_PRIORITY.get(urgency or "routine", {"priority": "routine", "due_days": None})
+    return _URGENCY_TO_PRIORITY.get(
+        urgency or "routine", {"priority": "routine", "due_days": None}
+    )
 
 
 # ── Generator class ────────────────────────────────────────────────────────────
+
 
 class GuidanceRuleGenerator:
     """Generates AppropriatenessRule candidates from Recommendation nodes.
@@ -265,13 +268,15 @@ class GuidanceRuleGenerator:
         # Build the subgraph once — it is stateless and thread-safe
         try:
             from libs.pipeline_graph.registry import get_registry
+
             self._subgraph = get_registry().build("guidance_rule_extraction")
         except Exception as exc:
             logger.error(
                 "CRITICAL: guidance_rule_extraction subgraph could not be loaded — "
                 "rule generation is DISABLED until this is fixed. "
                 "No rules will be written for any recommendation. Error: %s",
-                exc, exc_info=True,
+                exc,
+                exc_info=True,
             )
             self._subgraph = None
 
@@ -292,7 +297,9 @@ class GuidanceRuleGenerator:
                 generated.append(rule_id)
         logger.info(
             "Generated %d/%d rules for guideline %s",
-            len(generated), len(recs), guideline_id,
+            len(generated),
+            len(recs),
+            guideline_id,
         )
         return generated
 
@@ -320,47 +327,61 @@ class GuidanceRuleGenerator:
             return None
 
         import time as _time
+
         t0 = _time.monotonic()
 
-        result = self._subgraph.invoke({
-            "recommendation": rec,
-            "guideline_id": guideline_id,
-        })
+        result = self._subgraph.invoke(
+            {
+                "recommendation": rec,
+                "guideline_id": guideline_id,
+            }
+        )
         duration_ms = int((_time.monotonic() - t0) * 1000)
         raw = result.get("raw_criteria")
         coded = result.get("coded_criteria")
         llm_tokens: dict[str, int] = result.get("llm_tokens") or {}
 
         _CRITICAL_KEYWORDS = (
-            "prompt_missing", "extraction_blocked", "snomed_coding_error", "llm_error",
+            "prompt_missing",
+            "extraction_blocked",
+            "snomed_coding_error",
+            "llm_error",
         )
         errors_out = result.get("errors") or []
         for err in errors_out:
             if any(kw in err for kw in _CRITICAL_KEYWORDS):
                 logger.error(
                     "Rule extraction pipeline FAILURE for %s: %s",
-                    rec.get("id"), err,
+                    rec.get("id"),
+                    err,
                 )
             elif "terminology_api_unavailable" in err:
                 logger.error(
                     "Rule extraction TERMINOLOGY FAILURE for %s: %s",
-                    rec.get("id"), err,
+                    rec.get("id"),
+                    err,
                 )
             else:
                 logger.warning(
-                    "Rule extraction warning for %s: %s", rec.get("id"), err,
+                    "Rule extraction warning for %s: %s",
+                    rec.get("id"),
+                    err,
                 )
 
         if coded is None:
             logger.error(
                 "Rule extraction returned no coded_criteria for recommendation %s — "
                 "rule NOT written to Neo4j. Errors: %s",
-                rec["id"], errors_out,
+                rec["id"],
+                errors_out,
             )
             self._write_guidance_audit_event(
-                rec=rec, guideline_id=guideline_id,
-                status="failed", llm_tokens=llm_tokens,
-                duration_ms=duration_ms, errors=errors_out,
+                rec=rec,
+                guideline_id=guideline_id,
+                status="failed",
+                llm_tokens=llm_tokens,
+                duration_ms=duration_ms,
+                errors=errors_out,
             )
             return None
 
@@ -371,9 +392,12 @@ class GuidanceRuleGenerator:
                 coded.get("reason") or "non_codable_service_recommendation",
             )
             self._write_guidance_audit_event(
-                rec=rec, guideline_id=guideline_id,
-                status="skipped_non_codable", llm_tokens=llm_tokens,
-                duration_ms=duration_ms, errors=errors_out,
+                rec=rec,
+                guideline_id=guideline_id,
+                status="skipped_non_codable",
+                llm_tokens=llm_tokens,
+                duration_ms=duration_ms,
+                errors=errors_out,
             )
             return None
 
@@ -388,18 +412,26 @@ class GuidanceRuleGenerator:
                 rec["id"],
             )
             self._write_guidance_audit_event(
-                rec=rec, guideline_id=guideline_id,
-                status="terminology_failed", llm_tokens=llm_tokens,
-                duration_ms=duration_ms, errors=errors_out,
+                rec=rec,
+                guideline_id=guideline_id,
+                status="terminology_failed",
+                llm_tokens=llm_tokens,
+                duration_ms=duration_ms,
+                errors=errors_out,
             )
             return None
 
         rule_id = self._write_rule(guideline_id, rec, raw, coded)
-        status = "partial" if bool((coded or {}).get("needs_human_review")) else "success"
+        status = (
+            "partial" if bool((coded or {}).get("needs_human_review")) else "success"
+        )
         self._write_guidance_audit_event(
-            rec=rec, guideline_id=guideline_id,
-            status=status, llm_tokens=llm_tokens,
-            duration_ms=duration_ms, errors=errors_out,
+            rec=rec,
+            guideline_id=guideline_id,
+            status=status,
+            llm_tokens=llm_tokens,
+            duration_ms=duration_ms,
+            errors=errors_out,
             rule_id=rule_id,
         )
         return rule_id
@@ -436,10 +468,26 @@ class GuidanceRuleGenerator:
                 strength=rec.get("strength", "unspecified"),
                 compile_scope_id=guideline_id,
                 schema_version=int(coded.get("schema_version") or 1),
-                logic_json=json.dumps(coded.get("logic_tree")) if coded.get("logic_tree") is not None else None,
-                raw_logic_json=json.dumps((raw or {}).get("logic_tree")) if (raw or {}).get("logic_tree") is not None else None,
-                verifier_json=json.dumps(coded.get("verifier")) if coded.get("verifier") is not None else None,
-                action_json=json.dumps(coded.get("action")) if coded.get("action") is not None else None,
+                logic_json=(
+                    json.dumps(coded.get("logic_tree"))
+                    if coded.get("logic_tree") is not None
+                    else None
+                ),
+                raw_logic_json=(
+                    json.dumps((raw or {}).get("logic_tree"))
+                    if (raw or {}).get("logic_tree") is not None
+                    else None
+                ),
+                verifier_json=(
+                    json.dumps(coded.get("verifier"))
+                    if coded.get("verifier") is not None
+                    else None
+                ),
+                action_json=(
+                    json.dumps(coded.get("action"))
+                    if coded.get("action") is not None
+                    else None
+                ),
             )
 
             if int(coded.get("schema_version") or 1) != 2:
@@ -447,7 +495,8 @@ class GuidanceRuleGenerator:
                     mode = str(group.get("mode", "ALL")).upper()
                     predicate = "ABSENT" if mode == "NOT" else "PRESENT"
                     self._write_criteria_group(
-                        session, rule_id,
+                        session,
+                        rule_id,
                         group.get("coded_terms") or [],
                         group_type=mode,
                         predicate=predicate,
@@ -463,7 +512,8 @@ class GuidanceRuleGenerator:
                     "HCCP-Agents will receive a rule match with no recommended procedure. "
                     "This likely means the Terminology API was unavailable during extraction. "
                     "Re-generate this rule when the Terminology API is healthy.",
-                    action.get("term"), rule_id,
+                    action.get("term"),
+                    rule_id,
                 )
 
             if int(coded.get("schema_version") or 1) != 2:
@@ -472,11 +522,15 @@ class GuidanceRuleGenerator:
 
             session.run(
                 _CREATE_REVIEW_TASK,
-                task_id=task_id, rule_id=rule_id, guideline_id=guideline_id,
+                task_id=task_id,
+                rule_id=rule_id,
+                guideline_id=guideline_id,
             )
             session.run(
                 _LINK_SUPERSEDES,
-                rule_id=rule_id, guideline_id=guideline_id, verbatim=verbatim,
+                rule_id=rule_id,
+                guideline_id=guideline_id,
+                verbatim=verbatim,
             )
 
         return rule_id
@@ -512,14 +566,22 @@ class GuidanceRuleGenerator:
                 "group NOT written to Neo4j. This likely means the Terminology API was "
                 "unavailable during extraction or no SNOMED match was found. "
                 "Re-generate this rule when the Terminology API is healthy.",
-                predicate, group_suffix, rule_id,
+                predicate,
+                group_suffix,
+                rule_id,
             )
             return
 
-        group_id = f"{rule_id}:{predicate}:{group_suffix}" if group_suffix else f"{rule_id}:{predicate}"
+        group_id = (
+            f"{rule_id}:{predicate}:{group_suffix}"
+            if group_suffix
+            else f"{rule_id}:{predicate}"
+        )
         session.run(
             _UPSERT_CRITERIA_GROUP,
-            rule_id=rule_id, group_id=group_id, group_type=group_type,
+            rule_id=rule_id,
+            group_id=group_id,
+            group_type=group_type,
         )
         for criterion in resolved:
             session.run(
@@ -552,7 +614,9 @@ class GuidanceRuleGenerator:
         """
         concept_id = constraint.get("concept_id")
         if not concept_id:
-            logger.debug("APPLIES_TO constraint has no concept_id — skipping: %s", constraint)
+            logger.debug(
+                "APPLIES_TO constraint has no concept_id — skipping: %s", constraint
+            )
             return
         session.run(
             _UPSERT_APPLIES_TO,
@@ -567,8 +631,11 @@ class GuidanceRuleGenerator:
         )
         logger.debug(
             "Wrote APPLIES_TO: rule=%s concept=%s %s %s %s",
-            rule_id, concept_id,
-            constraint.get("operator"), constraint.get("value"), constraint.get("unit"),
+            rule_id,
+            concept_id,
+            constraint.get("operator"),
+            constraint.get("value"),
+            constraint.get("unit"),
         )
 
     def _write_action_group(
@@ -591,7 +658,8 @@ class GuidanceRuleGenerator:
         group_id = f"{rule_id}:ACTION"
         session.run(
             _UPSERT_ACTION_GROUP,
-            rule_id=rule_id, group_id=group_id,
+            rule_id=rule_id,
+            group_id=group_id,
         )
         session.run(
             _UPSERT_ACTION_CONCEPT,
@@ -629,6 +697,7 @@ class GuidanceRuleGenerator:
         """
         try:
             from libs.llm_usage import LLMUsage, LLMCostConfig
+
             usage = LLMUsage(
                 input_tokens=int(llm_tokens.get("input_tokens", 0)),
                 output_tokens=int(llm_tokens.get("output_tokens", 0)),
@@ -643,32 +712,36 @@ class GuidanceRuleGenerator:
 
             audit_id = f"audit-guidance-{rec.get('id', uuid.uuid4())}"
             props = {
-                "type":               "GuidanceRuleExtraction",
-                "subtype":            "guidance_rule_extraction",
-                "guideline_id":       guideline_id,
-                "recommendation_id":  rec.get("id", ""),
-                "rule_id":            rule_id or "",
-                "status":             status,
-                "total_duration_ms":  duration_ms,
-                "llm_input_tokens":   usage.input_tokens,
-                "llm_output_tokens":  usage.output_tokens,
-                "llm_cached_tokens":  usage.cached_input_tokens,
-                "llm_calls":          usage.llm_calls,
-                "llm_cost_usd":       round(cost_usd, 6),
-                "error_count":        len(errors),
-                "errors":             str(errors[:10]),
+                "type": "GuidanceRuleExtraction",
+                "subtype": "guidance_rule_extraction",
+                "guideline_id": guideline_id,
+                "recommendation_id": rec.get("id", ""),
+                "rule_id": rule_id or "",
+                "status": status,
+                "total_duration_ms": duration_ms,
+                "llm_input_tokens": usage.input_tokens,
+                "llm_output_tokens": usage.output_tokens,
+                "llm_cached_tokens": usage.cached_input_tokens,
+                "llm_calls": usage.llm_calls,
+                "llm_cost_usd": round(cost_usd, 6),
+                "error_count": len(errors),
+                "errors": str(errors[:10]),
                 # patient_id intentionally omitted — platform spend, not patient spend
             }
             with self._driver.session() as session:
                 session.run(_UPSERT_GUIDANCE_AUDIT_EVENT, id=audit_id, props=props)
             logger.debug(
                 "AuditEvent written for %s: status=%s tokens=%d+%d cost=$%.4f",
-                rec.get("id"), status,
-                usage.input_tokens, usage.output_tokens, cost_usd,
+                rec.get("id"),
+                status,
+                usage.input_tokens,
+                usage.output_tokens,
+                cost_usd,
             )
         except Exception as exc:
             # Billing is non-critical — log and continue; never block rule generation.
             logger.warning(
                 "Failed to write guidance AuditEvent for %s: %s",
-                rec.get("id"), exc,
+                rec.get("id"),
+                exc,
             )

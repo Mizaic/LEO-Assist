@@ -1,4 +1,5 @@
 """Count exactly which encounters need remediation and what type of fix."""
+
 import sqlite3
 import json
 from pathlib import Path
@@ -14,10 +15,10 @@ total_done = cur.fetchone()[0]
 
 cur.execute("SELECT encounter_id, result_json FROM encounters WHERE status='done'")
 
-needs_overcoded_fix = []     # delete DOCUMENTS
+needs_overcoded_fix = []  # delete DOCUMENTS
 needs_missing_critical = []  # add DOCUMENTS - critical
-needs_missing_high = []      # add DOCUMENTS - high
-needs_wrong_assertion = []   # update assertion
+needs_missing_high = []  # add DOCUMENTS - high
+needs_wrong_assertion = []  # update assertion
 clean = 0
 parse_errors = 0
 
@@ -31,7 +32,8 @@ for row in cur.fetchall():
     overcoded = d.get("overcoded", [])
     missing = d.get("missing", [])
     wrong = [
-        w for w in d.get("wrong_assertion", [])
+        w
+        for w in d.get("wrong_assertion", [])
         if w.get("current_assertion") != w.get("suggested_assertion")
     ]
 
@@ -77,14 +79,23 @@ print(f"Clean (no action needed):            {clean:,}")
 print()
 print(f"ENCOUNTERS needing work:             {len(all_needing_work):,}")
 print()
-print(f"  Overcoded (delete a code):         {len(needs_overcoded_fix):,} encounters  /  {oc_items:,} items")
-print(f"  Missing CRITICAL (add a code):     {len(needs_missing_critical):,} encounters  /  {crit_items:,} items")
-print(f"  Missing HIGH (add a code):         {len(needs_missing_high):,} encounters  /  {high_items:,} items")
-print(f"  Wrong assertion (update):          {len(needs_wrong_assertion):,} encounters  /  {wa_items:,} items")
+print(
+    f"  Overcoded (delete a code):         {len(needs_overcoded_fix):,} encounters  /  {oc_items:,} items"
+)
+print(
+    f"  Missing CRITICAL (add a code):     {len(needs_missing_critical):,} encounters  /  {crit_items:,} items"
+)
+print(
+    f"  Missing HIGH (add a code):         {len(needs_missing_high):,} encounters  /  {high_items:,} items"
+)
+print(
+    f"  Wrong assertion (update):          {len(needs_wrong_assertion):,} encounters  /  {wa_items:,} items"
+)
 print()
 
 # -- Sanity check: show top overcoded concepts
 from collections import Counter
+
 oc_concept_counter = Counter()
 for _, items in needs_overcoded_fix:
     for item in items:

@@ -63,7 +63,9 @@ def test_extract_batch_maps_entities(monkeypatch):
         _Client,
     )
     provider = ModelExtractorProvider()
-    sentences = [SimpleNamespace(sentence_id="s0", text="has hypertension", start=0, end=16)]
+    sentences = [
+        SimpleNamespace(sentence_id="s0", text="has hypertension", start=0, end=16)
+    ]
     items = provider.extract_batch("Patient has hypertension", sentences)
     assert len(items) == 1
     assert items[0].text == "hypertension"

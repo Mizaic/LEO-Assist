@@ -2,6 +2,7 @@
 Audit the SNOMED concepts used for 'chest X-ray findings suggestive of lung cancer'
 decomposition. Verify each is in graph, check its semantic tag, and list surface forms.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -10,9 +11,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase  # noqa: E402
 
@@ -28,19 +31,19 @@ CONCEPTS = [
     ("786838002", "Nodule of lung (disorder)"),
     # -- Ground glass / adenocarcinoma pattern --
     ("271807003", "Ground glass opacity (finding) - check"),
-    ("32659005",  "Ground-glass opacity - alternate check"),
+    ("32659005", "Ground-glass opacity - alternate check"),
     # -- Indirect signs: collapse --
-    ("35683001",  "Atelectasis (disorder)"),
+    ("35683001", "Atelectasis (disorder)"),
     # -- Indirect signs: fluid --
-    ("60046008",  "Pleural effusion (disorder)"),
+    ("60046008", "Pleural effusion (disorder)"),
     # -- Indirect signs: lymph nodes --
-    ("37125009",  "Hilar lymphadenopathy - check"),
-    ("89551006",  "Bilateral hilar lymphadenopathy - check"),
+    ("37125009", "Hilar lymphadenopathy - check"),
+    ("89551006", "Bilateral hilar lymphadenopathy - check"),
     ("396345004", "Mediastinal lymphadenopathy - check"),
     # -- Physical exam (n8) - separate criterion --
     ("272016000", "On examination - chest finding (physical exam n8)"),
     # -- Abnormal CXR (broad fallback) --
-    ("1290960005","Plain X-ray of chest abnormal (finding)"),
+    ("1290960005", "Plain X-ray of chest abnormal (finding)"),
 ]
 
 _Q = """

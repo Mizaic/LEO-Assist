@@ -1,4 +1,5 @@
 """Surface form and concept audit service."""
+
 from __future__ import annotations
 
 import logging
@@ -51,9 +52,7 @@ LIMIT 1
 """
 
 
-def get_surface_form_audit(
-    kg_client: Any, limit: int = 5000
-) -> SurfaceFormAuditResult:
+def get_surface_form_audit(kg_client: Any, limit: int = 5000) -> SurfaceFormAuditResult:
     """Return health metrics for all surface forms."""
     from libs.neo4j_client.client import run_with_retry
 
@@ -80,22 +79,24 @@ def get_surface_form_audit(
             low_conf += 1
 
         if is_orphan or is_dup or has_inactive or is_low_conf:
-            anomalous.append(SurfaceFormDetail(
-                normalized_term=r.get("normalized_term") or "",
-                raw_form=r.get("raw_form"),
-                maps_to=[
-                    MapsToEdge(
-                        concept_id=e.get("concept_id") or "",
-                        preferred_term=e.get("preferred_term"),
-                        score=float(e.get("score") or 0.0),
-                        source=e.get("source"),
-                        active=bool(e.get("active", True)),
-                    )
-                    for e in edges
-                ],
-                is_orphan=is_orphan,
-                has_inactive_target=has_inactive,
-            ))
+            anomalous.append(
+                SurfaceFormDetail(
+                    normalized_term=r.get("normalized_term") or "",
+                    raw_form=r.get("raw_form"),
+                    maps_to=[
+                        MapsToEdge(
+                            concept_id=e.get("concept_id") or "",
+                            preferred_term=e.get("preferred_term"),
+                            score=float(e.get("score") or 0.0),
+                            source=e.get("source"),
+                            active=bool(e.get("active", True)),
+                        )
+                        for e in edges
+                    ],
+                    is_orphan=is_orphan,
+                    has_inactive_target=has_inactive,
+                )
+            )
 
     return SurfaceFormAuditResult(
         total_count=len(rows),
@@ -113,9 +114,7 @@ def inspect_surface_form(
     """Return detail for a single surface form by normalized text."""
     from libs.neo4j_client.client import run_with_retry
 
-    rows = run_with_retry(
-        kg_client, _SF_INSPECT_Q, term=normalized_term
-    )
+    rows = run_with_retry(kg_client, _SF_INSPECT_Q, term=normalized_term)
     if not rows:
         return None
     r = rows[0]
@@ -134,28 +133,26 @@ def inspect_surface_form(
             for e in edges
         ],
         is_orphan=len(edges) == 0,
-        has_inactive_target=any(
-            e.get("active") is False for e in edges
-        ),
+        has_inactive_target=any(e.get("active") is False for e in edges),
     )
 
 
-def batch_resolve_test(
-    terms: list[str], term_client: Any
-) -> list[ResolveTestResult]:
+def batch_resolve_test(terms: list[str], term_client: Any) -> list[ResolveTestResult]:
     """Batch HTTP resolver smoke test: return pass/fail per term."""
     results = []
     for t in terms:
         try:
             resolved = term_client.resolve_one(t)
             if resolved:
-                results.append(ResolveTestResult(
-                    term=t,
-                    resolved_concept_id=str(resolved.concept_id),
-                    resolved_term=resolved.preferred_term,
-                    score=resolved.score,
-                    status="pass",
-                ))
+                results.append(
+                    ResolveTestResult(
+                        term=t,
+                        resolved_concept_id=str(resolved.concept_id),
+                        resolved_term=resolved.preferred_term,
+                        score=resolved.score,
+                        status="pass",
+                    )
+                )
             else:
                 results.append(ResolveTestResult(term=t, status="fail"))
         except Exception as exc:
@@ -189,19 +186,19 @@ def batch_pin_verify(
                 http_ok = True
         except Exception:
             pass
-        results.append(PinVerifyResult(
-            phrase=phrase,
-            concept_id=cid,
-            kg_edge_exists=kg_ok,
-            http_resolves=http_ok,
-            status="pass" if (kg_ok and http_ok) else "fail",
-        ))
+        results.append(
+            PinVerifyResult(
+                phrase=phrase,
+                concept_id=cid,
+                kg_edge_exists=kg_ok,
+                http_resolves=http_ok,
+                status="pass" if (kg_ok and http_ok) else "fail",
+            )
+        )
     return results
 
 
-def get_concept_status(
-    concept_ids: list[str], kg_client: Any
-) -> list[ConceptStatus]:
+def get_concept_status(concept_ids: list[str], kg_client: Any) -> list[ConceptStatus]:
     """Return active/inactive status and preferred term for concept IDs."""
     from libs.neo4j_client.client import run_with_retry
 
@@ -210,15 +207,15 @@ def get_concept_status(
         rows = run_with_retry(kg_client, _CONCEPT_Q, concept_id=cid)
         if rows:
             r = rows[0]
-            results.append(ConceptStatus(
-                concept_id=r.get("concept_id") or cid,
-                preferred_term=r.get("preferred_term"),
-                active=bool(r.get("active", True)),
-                semantic_tag=r.get("semantic_tag"),
-                replacement_id=r.get("replacement_id"),
-            ))
+            results.append(
+                ConceptStatus(
+                    concept_id=r.get("concept_id") or cid,
+                    preferred_term=r.get("preferred_term"),
+                    active=bool(r.get("active", True)),
+                    semantic_tag=r.get("semantic_tag"),
+                    replacement_id=r.get("replacement_id"),
+                )
+            )
         else:
-            results.append(ConceptStatus(
-                concept_id=cid, active=False
-            ))
+            results.append(ConceptStatus(concept_id=cid, active=False))
     return results

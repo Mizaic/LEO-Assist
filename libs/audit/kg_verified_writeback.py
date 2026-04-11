@@ -115,8 +115,7 @@ def write_audit_verified_to_kg(
     check_payload = {
         "text": deid_text,
         "entities": [
-            {"text": e.get("text", ""), "entity_id": i}
-            for i, e in enumerate(canonical)
+            {"text": e.get("text", ""), "entity_id": i} for i, e in enumerate(canonical)
         ],
     }
     deid_issues = validator.check_record(check_payload)

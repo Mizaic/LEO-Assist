@@ -40,7 +40,9 @@ def _resolve_scope_type(labels: list) -> str:
 @router.get("/auth/org-context")
 def get_org_context(
     scope: CallerScope = Depends(get_caller_scope),
-    email: Optional[str] = Query(default=None, description="User email override (admin only)"),
+    email: Optional[str] = Query(
+        default=None, description="User email override (admin only)"
+    ),
 ):
     """Return organizations the user can access, with scopeType for tenant scoping.
 

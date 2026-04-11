@@ -3,7 +3,6 @@ from __future__ import annotations
 from libs.cypher import gold_label_queries as glq
 from libs.cypher import training_candidate_queries as tcq
 
-
 FORBIDDEN = ("patient_id", "patient_id_hash", "encounter_id", "tenant_id", "org_id")
 
 
@@ -30,4 +29,3 @@ def test_gold_label_queries_exclude_forbidden_identifiers() -> None:
     )
     for token in FORBIDDEN:
         assert token not in joined
-

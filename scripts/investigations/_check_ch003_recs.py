@@ -1,12 +1,16 @@
 """Check CH003 recommendation content in Neo4j to diagnose silent failures."""
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from neo4j import GraphDatabase
@@ -35,6 +39,6 @@ for row in rows:
     print(f"Title:    {row['title']}")
     print(f"Normative:{row['normative']}")
     print(f"Urgency:  {row['urgency']}")
-    verbatim = row['verbatim_preview'] or ''
+    verbatim = row["verbatim_preview"] or ""
     print(f"Verbatim: {repr(verbatim[:120])}")
     print()

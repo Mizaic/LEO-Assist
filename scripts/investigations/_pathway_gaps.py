@@ -10,6 +10,7 @@ Usage
 -----
     python scripts/investigations/_pathway_gaps.py
 """
+
 from __future__ import annotations
 
 import json
@@ -22,6 +23,7 @@ sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
@@ -94,10 +96,14 @@ def _isa_expand(kg, parent_ids: list[int]) -> set[int]:
         _Q_ISA.format(depth=ISA_DEPTH),
         ids=[str(c) for c in parent_ids],
     )
-    return set(parent_ids) | {int(r["child_id"]) for r in (rows or []) if r.get("child_id")}
+    return set(parent_ids) | {
+        int(r["child_id"]) for r in (rows or []) if r.get("child_id")
+    }
 
 
-def _patient_set(pg, concept_ids: set[int], assertions: list[str] | None = None) -> set[str]:
+def _patient_set(
+    pg, concept_ids: set[int], assertions: list[str] | None = None
+) -> set[str]:
     if not concept_ids:
         return set()
     str_ids = [str(c) for c in concept_ids]
@@ -124,18 +130,20 @@ def main() -> None:
         expanded: dict[str, set[int]] = {}
         for m, ids in domain_by_milestone.items():
             expanded[m] = _isa_expand(kg, ids)
-            logger.info("  %-20s  %d parent(s) -> %d after IS_A", m, len(ids), len(expanded[m]))
+            logger.info(
+                "  %-20s  %d parent(s) -> %d after IS_A", m, len(ids), len(expanded[m])
+            )
     finally:
         kg.close()
 
-    referral_ids  = expanded.get("referral", set())
+    referral_ids = expanded.get("referral", set())
     diagnosis_ids = expanded.get("diagnosis", set())
     specialist_ids = expanded.get("specialist_visit", set())
 
     # -- Find hardcoded IDs not covered by domain IS_A expansion --
-    missing_referral    = FAST_TRACK_REFERRAL_IDS - referral_ids
-    missing_diagnosis   = CANCER_TYPE_IDS - diagnosis_ids
-    missing_specialist  = SEEN_BY_SPECIALIST_IDS - specialist_ids
+    missing_referral = FAST_TRACK_REFERRAL_IDS - referral_ids
+    missing_diagnosis = CANCER_TYPE_IDS - diagnosis_ids
+    missing_specialist = SEEN_BY_SPECIALIST_IDS - specialist_ids
 
     logger.info("")
     logger.info("=" * 65)
@@ -156,18 +164,18 @@ def main() -> None:
             names = {r["id"]: r["name"] for r in name_rows}
             logger.info("  %s  -- %d NOT COVERED:", label, len(missing))
             for cid in sorted(missing):
-                logger.info("    %s  %s", cid, names.get(str(cid), "(not in patient graph)"))
+                logger.info(
+                    "    %s  %s", cid, names.get(str(cid), "(not in patient graph)")
+                )
 
         # -- Pathway gap analysis --
         all_patients = {
             r["patient_id"]
-            for r in pg.run(
-                "MATCH (p:Patient) RETURN toString(p.id) AS patient_id"
-            )
+            for r in pg.run("MATCH (p:Patient) RETURN toString(p.id) AS patient_id")
         }
         total = len(all_patients)
 
-        with_referral  = _patient_set(pg, referral_ids)
+        with_referral = _patient_set(pg, referral_ids)
         with_diagnosis = _patient_set(pg, diagnosis_ids)
         with_exclusion = _patient_set(pg, CANCER_EXCLUSION_IDS)
         with_specialist = _patient_set(pg, specialist_ids)
@@ -185,11 +193,13 @@ def main() -> None:
         logger.info("=" * 65)
         logger.info(
             "  With referral:                     %3d  (%d%%)",
-            len(with_referral), 100 * len(with_referral) // total,
+            len(with_referral),
+            100 * len(with_referral) // total,
         )
         logger.info(
             "  With diagnosis (incl. exclusion):  %3d  (%d%%)",
-            len(with_diagnosis), 100 * len(with_diagnosis) // total,
+            len(with_diagnosis),
+            100 * len(with_diagnosis) // total,
         )
         logger.info(
             "  With exclusion only:               %3d",

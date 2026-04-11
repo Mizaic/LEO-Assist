@@ -29,10 +29,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 # Early CUDA check — before neo4j or other imports that might affect torch
 import torch
+
 _cuda_early = torch.cuda.is_available()
 if _cuda_early:
     _cuda_dev = torch.cuda.get_device_name(0)
@@ -51,15 +53,16 @@ log = logging.getLogger(__name__)
 # ── Milestone anchor phrases used in the smoke-test ──────────────────────────
 SMOKE_ANCHORS = [
     ("FAST_TRACK_REFERRAL", "Refer via 2WW fast track suspected cancer pathway"),
-    ("FIRST_SEEN",          "Seen in fast track suspected cancer clinic appointment"),
+    ("FIRST_SEEN", "Seen in fast track suspected cancer clinic appointment"),
     ("DIAGNOSIS_CONFIRMED", "Confirmed diagnosis breast cancer malignancy"),
-    ("FIRST_TREATMENT",     "Started chemotherapy adjuvant cancer treatment"),
+    ("FIRST_TREATMENT", "Started chemotherapy adjuvant cancer treatment"),
 ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _make_driver(uri: str, user: str, password: str):
     return GraphDatabase.driver(
@@ -90,11 +93,18 @@ def step1_confirm_state(driver) -> dict:
     dim = dim_row["dim"] if dim_row else None
 
     log.info("  Encounters total   : %d", total)
-    log.info("  With .vector       : %d (%.1f%%)", with_vec, 100 * with_vec / max(total, 1))
+    log.info(
+        "  With .vector       : %d (%.1f%%)", with_vec, 100 * with_vec / max(total, 1)
+    )
     log.info("  Stored vector dim  : %s", dim)
     log.info("  Vector index       : %s", "EXISTS" if idx else "NOT FOUND")
 
-    return {"total": total, "with_vector": with_vec, "stored_dim": dim, "index_exists": bool(idx)}
+    return {
+        "total": total,
+        "with_vector": with_vec,
+        "stored_dim": dim,
+        "index_exists": bool(idx),
+    }
 
 
 def step2_drop_index(driver):
@@ -128,13 +138,14 @@ def step4_reembed(driver, embed_batch: int, write_batch: int, resume: bool):
     log.info("Step 4 — re-embedding encounters with Bio_ClinicalBERT")
 
     from scripts.embedding_utils import load_vector_settings, TextEmbedder
+
     settings = load_vector_settings()
     log.info("  Model  : %s", settings.model_name)
     log.info("  Device : %s", settings.device)
     log.info("  Dim    : %d", settings.dimension)
 
     embedder = TextEmbedder(settings)
-    embedder.encode(["warm-up"])          # force model load before timing starts
+    embedder.encode(["warm-up"])  # force model load before timing starts
     log.info("  Model loaded — starting embedding pass")
 
     # Fetch all encounter IDs (and texts) that still need vectors.
@@ -187,7 +198,7 @@ def step4_reembed(driver, embed_batch: int, write_batch: int, resume: bool):
             eids, texts = zip(*((r["eid"], r["txt"] or "") for r in rows))
             vectors: list[list[float]] = []
             for i in range(0, len(texts), embed_batch):
-                chunk = texts[i: i + embed_batch]
+                chunk = texts[i : i + embed_batch]
                 vectors.extend(embedder.encode(list(chunk)))
 
             payload = [{"eid": eid, "vec": vec} for eid, vec in zip(eids, vectors)]
@@ -199,7 +210,10 @@ def step4_reembed(driver, embed_batch: int, write_batch: int, resume: bool):
             eta = (total - processed) / rate if rate > 0 else 0
             log.info(
                 "  Embedded %d / %d  (%.0f enc/s  ETA %.0f min)",
-                processed, total, rate, eta / 60,
+                processed,
+                total,
+                rate,
+                eta / 60,
             )
 
             if len(rows) < write_batch:
@@ -208,8 +222,11 @@ def step4_reembed(driver, embed_batch: int, write_batch: int, resume: bool):
         if prev_write:
             prev_write.result()
 
-    log.info("  Embedding complete — %d encounters written in %.1f min",
-             processed, (time.time() - t_start) / 60)
+    log.info(
+        "  Embedding complete — %d encounters written in %.1f min",
+        processed,
+        (time.time() - t_start) / 60,
+    )
 
 
 def step5_create_index(driver, dimension: int):
@@ -237,13 +254,16 @@ def step5_create_index(driver, dimension: int):
         if state == "ONLINE":
             break
     else:
-        log.warning("  Index did not reach ONLINE within 60 s — may still be populating")
+        log.warning(
+            "  Index did not reach ONLINE within 60 s — may still be populating"
+        )
 
 
 def step6_smoke_test(driver, dimension: int, verify: bool = False):
     log.info("Step 6 — smoke test (milestone anchor queries)")
 
     from scripts.embedding_utils import load_vector_settings, TextEmbedder
+
     settings = load_vector_settings()
     embedder = TextEmbedder(settings)
 
@@ -285,6 +305,7 @@ def step6_smoke_test(driver, dimension: int, verify: bool = False):
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def main():
     # Log early CUDA check (torch imported before neo4j)
     if _cuda_early:
@@ -294,33 +315,41 @@ def main():
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--embed-batch", type=int, default=512,
+        "--embed-batch",
+        type=int,
+        default=512,
         help="Texts per SentenceTransformer batch (512 for GPU, try 1024 for 12GB+ VRAM, 32 for CPU)",
     )
     parser.add_argument(
-        "--write-batch", type=int, default=1024,
+        "--write-batch",
+        type=int,
+        default=1024,
         help="Encounters per Neo4j fetch/write (default 1024, should match embed-batch for GPU)",
     )
     parser.add_argument(
-        "--resume", action="store_true",
+        "--resume",
+        action="store_true",
         help="Skip encounters that already have e.vector set (restart recovery)",
     )
     parser.add_argument(
-        "--skip-clear", action="store_true",
+        "--skip-clear",
+        action="store_true",
         help="Skip clearing existing vectors (use with --resume)",
     )
     parser.add_argument(
-        "--smoke-only", action="store_true",
+        "--smoke-only",
+        action="store_true",
         help="Run only the smoke test against the existing index",
     )
     parser.add_argument(
-        "--verify", action="store_true",
+        "--verify",
+        action="store_true",
         help="With --smoke-only: print full top-2 texts per anchor for manual review",
     )
     args = parser.parse_args()
 
-    uri      = os.environ["NEO4J_URI"]
-    user     = os.environ["NEO4J_USER"]
+    uri = os.environ["NEO4J_URI"]
+    user = os.environ["NEO4J_USER"]
     password = os.environ["NEO4J_PASSWORD"]
 
     driver = _make_driver(uri, user, password)
@@ -328,6 +357,7 @@ def main():
     try:
         if args.smoke_only:
             from scripts.embedding_utils import load_vector_settings
+
             settings = load_vector_settings()
             step6_smoke_test(driver, settings.dimension, verify=args.verify)
             return
@@ -342,9 +372,12 @@ def main():
         step4_reembed(driver, args.embed_batch, args.write_batch, args.resume)
 
         from scripts.embedding_utils import load_vector_settings
+
         settings = load_vector_settings()
         step5_create_index(driver, settings.dimension)
-        step6_smoke_test(driver, settings.dimension, verify=getattr(args, "verify", False))
+        step6_smoke_test(
+            driver, settings.dimension, verify=getattr(args, "verify", False)
+        )
 
     finally:
         driver.close()

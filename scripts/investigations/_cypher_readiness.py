@@ -1,4 +1,5 @@
 """Assess whether the dry-run DB has enough data to generate Cypher fixes."""
+
 import sqlite3, json
 from pathlib import Path
 from collections import Counter

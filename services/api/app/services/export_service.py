@@ -28,7 +28,9 @@ class ExportService:
     def __init__(self, neo4j_client: PatientGraphClient) -> None:
         self.neo4j = neo4j_client
 
-    def create_export(self, export_name: str, train_ratio: float, seed: int) -> dict[str, Any]:
+    def create_export(
+        self, export_name: str, train_ratio: float, seed: int
+    ) -> dict[str, Any]:
         with self.neo4j.session() as session:
             approved = list_approved_candidates(session=session)
 
@@ -65,7 +67,9 @@ class ExportService:
             if patient_ids:
                 candidates = []
                 for pid in patient_ids:
-                    candidates.extend(list_approved_candidates_for_patient(pid, session))
+                    candidates.extend(
+                        list_approved_candidates_for_patient(pid, session)
+                    )
             else:
                 candidates = list_approved_candidates(session=session)
 
@@ -89,29 +93,35 @@ class ExportService:
                     sent_entities.append((start, end, label))
 
                     ctx = term.get("context", {})
-                    context_flags.append({
-                        "start": start,
-                        "end": end,
-                        "label": label,
-                        "negated": ctx.get("negated", False),
-                        "uncertain": ctx.get("uncertain", False),
-                        "historical": ctx.get("historical", False),
-                        "subject": ctx.get("subject", "patient"),
-                        "temporality": ctx.get("temporality", "present"),
-                    })
+                    context_flags.append(
+                        {
+                            "start": start,
+                            "end": end,
+                            "label": label,
+                            "negated": ctx.get("negated", False),
+                            "uncertain": ctx.get("uncertain", False),
+                            "historical": ctx.get("historical", False),
+                            "subject": ctx.get("subject", "patient"),
+                            "temporality": ctx.get("temporality", "present"),
+                        }
+                    )
 
-                    kb_rows.append({
-                        "evidence": term.get("text", ""),
-                        "concept_id": concept_id,
-                        "term": term.get("coding", {}).get("snomed_term", ""),
-                        "semantic_tag": label,
-                        "negated": str(ctx.get("negated", False)),
-                    })
+                    kb_rows.append(
+                        {
+                            "evidence": term.get("text", ""),
+                            "concept_id": concept_id,
+                            "term": term.get("coding", {}).get("snomed_term", ""),
+                            "semantic_tag": label,
+                            "negated": str(ctx.get("negated", False)),
+                        }
+                    )
             if sent_entities:
-                entities.append((
-                    text,
-                    {"entities": sent_entities, "context_flags": context_flags},
-                ))
+                entities.append(
+                    (
+                        text,
+                        {"entities": sent_entities, "context_flags": context_flags},
+                    )
+                )
 
         export_id = str(uuid.uuid4())
         out_dir = Path("exports")

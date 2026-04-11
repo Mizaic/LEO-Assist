@@ -12,6 +12,7 @@ Checks performed per entity:
   5. Sentence over-capture — entity text > 60 chars (likely a full sentence)
   6. Suspicious negation — entity coded T1 but assertion is 'absent' or 'refuted'
 """
+
 from __future__ import annotations
 
 import json
@@ -25,6 +26,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_REPO_ROOT / "secrets" / ".env", override=False)
 
@@ -38,9 +40,16 @@ OUTPUT_PATH = Path(__file__).parent / "audit_report_20pct.md"
 
 # SNOMED semantic tags considered "overly broad" catch-alls
 BROAD_CONCEPTS = {
-    "clinical finding", "finding", "event", "situation",
-    "observable entity", "substance", "product", "body structure",
-    "procedure", "disorder",
+    "clinical finding",
+    "finding",
+    "event",
+    "situation",
+    "observable entity",
+    "substance",
+    "product",
+    "body structure",
+    "procedure",
+    "disorder",
 }
 # These are acceptable only if the entity text is equally generic
 VERY_BROAD_CONCEPTS_FSN = {
@@ -55,28 +64,26 @@ VERY_BROAD_CONCEPTS_FSN = {
 
 # NER label → expected SNOMED semantic_tag family (partial match)
 LABEL_TAG_FAMILIES: dict[str, set[str]] = {
-    "disorder":           {"disorder", "finding", "disease"},
-    "finding":            {"finding", "disorder", "observable entity"},
-    "procedure":          {"procedure", "regime/therapy"},
-    "substance":          {"substance", "product", "medicinal product", "medication"},
-    "body_structure":     {"body structure", "morphologic abnormality"},
-    "observable_entity":  {"observable entity", "finding"},
-    "qualifier_value":    {"qualifier value"},
-    "lab_result":         {"observable entity", "finding", "qualifier value"},
+    "disorder": {"disorder", "finding", "disease"},
+    "finding": {"finding", "disorder", "observable entity"},
+    "procedure": {"procedure", "regime/therapy"},
+    "substance": {"substance", "product", "medicinal product", "medication"},
+    "body_structure": {"body structure", "morphologic abnormality"},
+    "observable_entity": {"observable entity", "finding"},
+    "qualifier_value": {"qualifier value"},
+    "lab_result": {"observable entity", "finding", "qualifier value"},
 }
 
 
 def _fetch_all_label_ids(client: PatientGraphClient) -> list[dict]:
     """Return label_id, source, quality_score for every included TrainingLabel."""
-    return client.run(
-        """
+    return client.run("""
         MATCH (tl:TrainingLabel)
         WHERE tl.include = true AND tl.entities_json IS NOT NULL
         RETURN tl.label_id AS label_id,
                coalesce(tl.source, 'unknown') AS source,
                coalesce(tl.quality_score, 0.5) AS quality_score
-        """
-    )
+        """)
 
 
 def _fetch_records(client: PatientGraphClient, label_ids: list[str]) -> list[dict]:
@@ -126,7 +133,8 @@ def _audit_entity(ent: dict) -> list[str]:
     score = float(ent.get("coding", {}).get("score") or ent.get("score") or 0.0)
     snomed_tag = (
         (ent.get("coding", {}).get("semantic_tag") or ent.get("semantic_tag") or "")
-        .lower().strip()
+        .lower()
+        .strip()
     )
     snomed_term = (
         ent.get("coding", {}).get("snomed_term") or ent.get("snomed_term") or ""
@@ -141,12 +149,16 @@ def _audit_entity(ent: dict) -> list[str]:
 
     # 1. Sentence over-capture
     if len(text) > 65:
-        issues.append(f"over-capture: entity text is {len(text)} chars (likely full sentence)")
+        issues.append(
+            f"over-capture: entity text is {len(text)} chars (likely full sentence)"
+        )
 
     # 2. Semantic tag mismatch
     expected_family = LABEL_TAG_FAMILIES.get(label)
     if expected_family and snomed_tag and concept_id:
-        if not any(snomed_tag.startswith(exp) or exp in snomed_tag for exp in expected_family):
+        if not any(
+            snomed_tag.startswith(exp) or exp in snomed_tag for exp in expected_family
+        ):
             issues.append(f"tag-mismatch: NER={label!r} but SNOMED tag={snomed_tag!r}")
 
     # 3. Overly broad top-level concept
@@ -154,12 +166,18 @@ def _audit_entity(ent: dict) -> list[str]:
         issues.append(f"broad-concept: coded to root concept {snomed_term!r}")
 
     # 4. T1 entity with absent/refuted assertion (should be T2/T3)
-    if tier in ("1", "auto_coded", 1) and assertion in ("absent", "refuted", "hypothetical"):
+    if tier in ("1", "auto_coded", 1) and assertion in (
+        "absent",
+        "refuted",
+        "hypothetical",
+    ):
         issues.append(f"assertion-tier: T1 auto_coded but assertion={assertion!r}")
 
     # 5. T1 entity with unexpectedly low score
     if tier in ("1", "auto_coded", 1) and score < MIN_SCORE_T1:
-        issues.append(f"low-score: T1 auto_coded but score={score:.3f} < {MIN_SCORE_T1}")
+        issues.append(
+            f"low-score: T1 auto_coded but score={score:.3f} < {MIN_SCORE_T1}"
+        )
 
     return issues
 
@@ -173,7 +191,9 @@ def main() -> None:
 
         sample_meta = _stratified_sample(all_rows, SAMPLE_FRACTION, RANDOM_SEED)
         sample_ids = [r["label_id"] for r in sample_meta]
-        print(f"  Sampled {len(sample_ids)} records ({SAMPLE_FRACTION:.0%} stratified by source)")
+        print(
+            f"  Sampled {len(sample_ids)} records ({SAMPLE_FRACTION:.0%} stratified by source)"
+        )
 
         print("Fetching entities_json for sampled records…")
         records = _fetch_records(client, sample_ids)
@@ -236,28 +256,33 @@ def main() -> None:
                 for issue in ent_issues:
                     issue_type = issue.split(":")[0]
                     issue_type_counter[issue_type] += 1
-                rec_issues.append({
-                    "text": ent.get("text", ""),
-                    "label": ent.get("label", ""),
-                    "snomed_term": (
-                        ent.get("coding", {}).get("snomed_term")
-                        or ent.get("snomed_term") or ""
-                    ),
-                    "snomed_concept_id": concept_id,
-                    "score": score,
-                    "tier": tier,
-                    "assertion": assertion,
-                    "issues": ent_issues,
-                })
+                rec_issues.append(
+                    {
+                        "text": ent.get("text", ""),
+                        "label": ent.get("label", ""),
+                        "snomed_term": (
+                            ent.get("coding", {}).get("snomed_term")
+                            or ent.get("snomed_term")
+                            or ""
+                        ),
+                        "snomed_concept_id": concept_id,
+                        "score": score,
+                        "tier": tier,
+                        "assertion": assertion,
+                        "issues": ent_issues,
+                    }
+                )
 
         if rec_issues:
-            issue_records.append({
-                "label_id": rec["label_id"],
-                "source": rec.get("source") or "unknown",
-                "quality_score": rec.get("quality_score") or 0.0,
-                "entity_count": len(entities),
-                "issues": rec_issues,
-            })
+            issue_records.append(
+                {
+                    "label_id": rec["label_id"],
+                    "source": rec.get("source") or "unknown",
+                    "quality_score": rec.get("quality_score") or 0.0,
+                    "entity_count": len(entities),
+                    "issues": rec_issues,
+                }
+            )
         else:
             clean_records += 1
 
@@ -337,7 +362,11 @@ def main() -> None:
         lines.append("|---|---|---|---|---|---|---|")
         for ent in rec["issues"]:
             issues_str = "; ".join(ent["issues"])
-            snomed = f"{ent['snomed_term']} `{ent['snomed_concept_id']}`" if ent["snomed_concept_id"] else "*(none)*"
+            snomed = (
+                f"{ent['snomed_term']} `{ent['snomed_concept_id']}`"
+                if ent["snomed_concept_id"]
+                else "*(none)*"
+            )
             lines.append(
                 f"| `{ent['text'][:50]}` | `{ent['label']}` | {snomed} "
                 f"| {ent['score']:.3f} | {ent['tier']} | `{ent['assertion']}` | {issues_str} |"
@@ -350,8 +379,12 @@ def main() -> None:
     OUTPUT_PATH.write_text(report, encoding="utf-8")
     print(f"\nReport written to: {OUTPUT_PATH}")
     print(f"Records audited : {len(records)}")
-    print(f"Clean records   : {clean_records} ({clean_records/max(len(records),1):.1%})")
-    print(f"Flagged records : {len(issue_records)} ({len(issue_records)/max(len(records),1):.1%})")
+    print(
+        f"Clean records   : {clean_records} ({clean_records/max(len(records),1):.1%})"
+    )
+    print(
+        f"Flagged records : {len(issue_records)} ({len(issue_records)/max(len(records),1):.1%})"
+    )
     print(f"Total issues    : {total_issues} across {total_entities} entities")
     if issue_type_counter:
         print("\nIssue types:")

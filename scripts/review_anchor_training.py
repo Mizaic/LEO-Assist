@@ -40,6 +40,7 @@ Output schema (one record per input line)
     non_cancer_flag   bool         (true if either model says NON_CANCER)
     reviewed_at       str          ISO datetime
 """
+
 from __future__ import annotations
 
 import argparse
@@ -57,6 +58,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 logging.basicConfig(
@@ -88,6 +90,7 @@ _JSON_ARRAY_RE = re.compile(r"\[.*\]", re.DOTALL)
 # ──────────────────────────────────────────────────────────────────────────────
 # LLM helpers
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _parse_model_output(text: str) -> list[dict[str, Any]]:
     """Extract JSON array from model response, tolerating markdown fences."""
@@ -168,6 +171,7 @@ def _call_model(
     if dry_run:
         return "[]"
     from libs.llm_client.factory import create_llm
+
     client = create_llm(provider=provider, tier="small")
     try:
         response = client.converse(
@@ -178,7 +182,9 @@ def _call_model(
         )
         logger.debug(
             "%s: input_tokens=%d output_tokens=%d",
-            label, response.input_tokens, response.output_tokens,
+            label,
+            response.input_tokens,
+            response.output_tokens,
         )
         return response.text
     except Exception:
@@ -195,16 +201,18 @@ def _review_batch(
     # Build compact input — only the fields the prompt needs
     input_lines = []
     for i, rec in enumerate(batch, 1):
-        input_lines.append({
-            "line_number": i,
-            "concept_id": rec.get("concept_id"),
-            "concept_name": rec.get("concept_name"),
-            "text": rec.get("text", ""),
-            "confidence": rec.get("confidence"),
-            "detection_method": rec.get("detection_method"),
-            "milestone_type": rec.get("milestone_type"),
-            "label": rec.get("label"),
-        })
+        input_lines.append(
+            {
+                "line_number": i,
+                "concept_id": rec.get("concept_id"),
+                "concept_name": rec.get("concept_name"),
+                "text": rec.get("text", ""),
+                "confidence": rec.get("confidence"),
+                "detection_method": rec.get("detection_method"),
+                "milestone_type": rec.get("milestone_type"),
+                "label": rec.get("label"),
+            }
+        )
 
     batch_text = "Review the following JSONL records:\n\n" + "\n".join(
         json.dumps(line) for line in input_lines
@@ -212,8 +220,12 @@ def _review_batch(
 
     # Run both models concurrently
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-        fut_a = pool.submit(_call_model, "aws", system_prompt, batch_text, "Haiku", dry_run)
-        fut_b = pool.submit(_call_model, "azure", system_prompt, batch_text, "GPT-5-mini", dry_run)
+        fut_a = pool.submit(
+            _call_model, "aws", system_prompt, batch_text, "Haiku", dry_run
+        )
+        fut_b = pool.submit(
+            _call_model, "azure", system_prompt, batch_text, "GPT-5-mini", dry_run
+        )
         raw_a = fut_a.result()
         raw_b = fut_b.result()
 
@@ -232,6 +244,7 @@ def _review_batch(
 # ──────────────────────────────────────────────────────────────────────────────
 # Neo4j persistence
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _persist_to_neo4j(results: list[dict[str, Any]]) -> None:
     """Write AnchorReview nodes and REVIEWS relationships to Neo4j."""
@@ -258,12 +271,16 @@ def _persist_to_neo4j(results: list[dict[str, Any]]) -> None:
                         text=rec.get("text", "")[:500],
                         original_concept_id=str(rec.get("original_concept_id") or ""),
                         model_a_domain=rec.get("model_a_domain", ""),
-                        model_a_concept_correct=bool(rec.get("model_a_concept_correct")),
+                        model_a_concept_correct=bool(
+                            rec.get("model_a_concept_correct")
+                        ),
                         model_a_assertion=rec.get("model_a_assertion", ""),
                         model_a_rationale=rec.get("model_a_rationale", "")[:500],
                         model_a_target_rule=rec.get("model_a_target_rule", "")[:500],
                         model_b_domain=rec.get("model_b_domain", ""),
-                        model_b_concept_correct=bool(rec.get("model_b_concept_correct")),
+                        model_b_concept_correct=bool(
+                            rec.get("model_b_concept_correct")
+                        ),
                         model_b_assertion=rec.get("model_b_assertion", ""),
                         model_b_rationale=rec.get("model_b_rationale", "")[:500],
                         model_b_target_rule=rec.get("model_b_target_rule", "")[:500],
@@ -274,7 +291,10 @@ def _persist_to_neo4j(results: list[dict[str, Any]]) -> None:
                     written += 1
                 except Exception:
                     logger.warning(
-                        "Neo4j write failed for encounter=%s mt=%s", eid, mt, exc_info=True,
+                        "Neo4j write failed for encounter=%s mt=%s",
+                        eid,
+                        mt,
+                        exc_info=True,
                     )
                     errors += 1
     finally:
@@ -286,6 +306,7 @@ def _persist_to_neo4j(results: list[dict[str, Any]]) -> None:
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def run_review(
     input_path: str,
     output_path: str,
@@ -294,6 +315,7 @@ def run_review(
     persist_neo4j: bool = True,
 ) -> dict[str, Any]:
     from libs.prompts.registry import get_prompt
+
     system_prompt = get_prompt("anchor_domain_review", version=1)
 
     # Load all records
@@ -309,8 +331,12 @@ def run_review(
 
     total = len(records)
     logger.info("Loaded %d records from %s", total, input_path)
-    logger.info("Batch size: %d  |  Dry run: %s  |  Neo4j: %s",
-                batch_size, dry_run, persist_neo4j)
+    logger.info(
+        "Batch size: %d  |  Dry run: %s  |  Neo4j: %s",
+        batch_size,
+        dry_run,
+        persist_neo4j,
+    )
 
     all_results: list[dict[str, Any]] = []
     reviewed_at = datetime.now(timezone.utc).isoformat()
@@ -325,13 +351,15 @@ def run_review(
     }
 
     for batch_start in range(0, total, batch_size):
-        batch = records[batch_start: batch_start + batch_size]
+        batch = records[batch_start : batch_start + batch_size]
         batch_num = batch_start // batch_size + 1
         total_batches = (total + batch_size - 1) // batch_size
         logger.info(
             "Batch %d/%d — records %d-%d",
-            batch_num, total_batches,
-            batch_start + 1, batch_start + len(batch),
+            batch_num,
+            total_batches,
+            batch_start + 1,
+            batch_start + len(batch),
         )
 
         try:
@@ -340,16 +368,18 @@ def run_review(
             logger.error("Batch %d failed", batch_num, exc_info=True)
             stats["errors"] += len(batch)
             for rec in batch:
-                all_results.append({
-                    **rec,
-                    "model_a_domain": "AMBIGUOUS",
-                    "model_b_domain": "AMBIGUOUS",
-                    "consensus_agreement": True,
-                    "final_domain": "AMBIGUOUS",
-                    "non_cancer_flag": False,
-                    "reviewed_at": reviewed_at,
-                    "error": "batch_failed",
-                })
+                all_results.append(
+                    {
+                        **rec,
+                        "model_a_domain": "AMBIGUOUS",
+                        "model_b_domain": "AMBIGUOUS",
+                        "consensus_agreement": True,
+                        "final_domain": "AMBIGUOUS",
+                        "non_cancer_flag": False,
+                        "reviewed_at": reviewed_at,
+                        "error": "batch_failed",
+                    }
+                )
             continue
 
         for i, (rec, ra, rb) in enumerate(zip(batch, results_a, results_b)):
@@ -417,9 +447,11 @@ def run_review(
     logger.info("=" * 60)
     logger.info("  Total records:    %d", stats["total"])
     logger.info("  Batches run:      %d", stats["batches"])
-    logger.info("  Agreements:       %d (%.1f%%)",
-                stats["agreements"],
-                100 * stats["agreements"] / max(stats["total"], 1))
+    logger.info(
+        "  Agreements:       %d (%.1f%%)",
+        stats["agreements"],
+        100 * stats["agreements"] / max(stats["total"], 1),
+    )
     logger.info("  Disagreements:    %d", stats["disagreements"])
     logger.info("  NON_CANCER flags: %d", stats["non_cancer_flags"])
     logger.info("  Errors:           %d", stats["errors"])
@@ -444,15 +476,19 @@ def main():
         help="Output path (default: <input_dir>/anchor_review_results.jsonl)",
     )
     parser.add_argument(
-        "--batch-size", type=int, default=BATCH_SIZE,
+        "--batch-size",
+        type=int,
+        default=BATCH_SIZE,
         help=f"Records per LLM call (default {BATCH_SIZE})",
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Parse and validate input without calling LLMs",
     )
     parser.add_argument(
-        "--no-neo4j", action="store_true",
+        "--no-neo4j",
+        action="store_true",
         help="Skip Neo4j persistence (write JSONL only)",
     )
     args = parser.parse_args()

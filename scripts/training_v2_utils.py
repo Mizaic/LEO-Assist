@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-
 EMAIL_RE = re.compile(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b", re.IGNORECASE)
 PHONE_RE = re.compile(r"\b(?:\+44|0)\d[\d\s\-]{8,}\d\b")
 NHS_RE = re.compile(r"\b\d{3}\s?\d{3}\s?\d{4}\b")
@@ -26,9 +25,7 @@ POSTCODE_RE = re.compile(
 NAME_STYLE_RE = re.compile(
     r"\b[A-Z][A-Z\-']+,\s*[A-Z][a-zA-Z\-']+\s*\((?:Mr|Mrs|Ms|Miss|Dr|Prof)\)"
 )
-HONORIFIC_NAME_RE = re.compile(
-    r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+[A-Z][a-zA-Z\-']+\b"
-)
+HONORIFIC_NAME_RE = re.compile(r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+[A-Z][a-zA-Z\-']+\b")
 
 DATE_SLASH_RE = re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
 DATE_DOT_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b")
@@ -144,7 +141,9 @@ def _validate_term(
         warnings.append("term_span_out_of_range")
         return GateResult(hard_fails, warnings)
 
-    span_text = sentence_text[start:end] if relative_valid else deidentified_text[start:end]
+    span_text = (
+        sentence_text[start:end] if relative_valid else deidentified_text[start:end]
+    )
     if span_text.strip() != t_text.strip():
         warnings.append("term_text_span_mismatch")
 

@@ -2,6 +2,7 @@
 
 Buckets them by root cause so we know which levers to pull.
 """
+
 import sqlite3, json
 from pathlib import Path
 from collections import Counter
@@ -54,18 +55,20 @@ n = len(rows)
 avg_conf = sum(confidence) / n if n else 0
 print(f"Total needs_review: {n}")
 print(f"  has findings (miss/over/wrong): {has_findings}  ({has_findings/n*100:.0f}%)")
-print(f"  no findings but needs_review:   {low_conf_with_no_findings}  ({low_conf_with_no_findings/n*100:.0f}%)")
+print(
+    f"  no findings but needs_review:   {low_conf_with_no_findings}  ({low_conf_with_no_findings/n*100:.0f}%)"
+)
 print(f"  had _errors:                    {errors_present}")
 print(f"  hit iteration limit (>=10):     {hit_iter_limit}")
 print(f"  avg confidence:                 {avg_conf:.2f}")
 
 print(f"\nConfidence distribution:")
 buckets = {
-    "0.0":     sum(1 for c in confidence if c == 0),
+    "0.0": sum(1 for c in confidence if c == 0),
     "0.01-0.49": sum(1 for c in confidence if 0 < c < 0.5),
     "0.50-0.69": sum(1 for c in confidence if 0.5 <= c < 0.7),
     "0.70-0.84": sum(1 for c in confidence if 0.7 <= c < 0.85),
-    ">=0.85":  sum(1 for c in confidence if c >= 0.85),
+    ">=0.85": sum(1 for c in confidence if c >= 0.85),
 }
 for label, cnt in buckets.items():
     print(f"  {label}: {cnt}")

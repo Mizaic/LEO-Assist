@@ -21,4 +21,3 @@ choose the more general concept.
 
 Do not guess SNOMED concept IDs. Only select from the provided candidate list.\
 """
-

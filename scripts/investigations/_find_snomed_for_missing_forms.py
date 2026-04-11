@@ -8,6 +8,7 @@ output/missing_surface_form_snomed.json for review before adding.
 Usage:
     python scripts/investigations/_find_snomed_for_missing_forms.py
 """
+
 from __future__ import annotations
 
 import json
@@ -18,9 +19,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import KnowledgeGraphClient
 
@@ -393,9 +396,11 @@ def main() -> None:
                         "count": count,
                         "source": "manual_curation",
                         "concept_id": verified["concept_id"],
-                        "preferred_term": verified.get("preferred_term") or manual["preferred_term"],
+                        "preferred_term": verified.get("preferred_term")
+                        or manual["preferred_term"],
                         "fsn": verified.get("fsn") or manual["fsn"],
-                        "semantic_tag": verified.get("semantic_tag") or manual["semantic_tag"],
+                        "semantic_tag": verified.get("semantic_tag")
+                        or manual["semantic_tag"],
                         "note": manual.get("note", ""),
                         "candidates": [],
                     }
@@ -409,10 +414,16 @@ def main() -> None:
                         "category": category,
                         "count": count,
                         "source": "search_fallback",
-                        "concept_id": candidates[0]["concept_id"] if candidates else None,
-                        "preferred_term": candidates[0]["preferred_term"] if candidates else None,
+                        "concept_id": (
+                            candidates[0]["concept_id"] if candidates else None
+                        ),
+                        "preferred_term": (
+                            candidates[0]["preferred_term"] if candidates else None
+                        ),
                         "fsn": candidates[0]["fsn"] if candidates else None,
-                        "semantic_tag": candidates[0]["semantic_tag"] if candidates else None,
+                        "semantic_tag": (
+                            candidates[0]["semantic_tag"] if candidates else None
+                        ),
                         "note": f"Manual concept {manual['concept_id']} not in KG; used search",
                         "candidates": candidates,
                     }
@@ -447,7 +458,9 @@ def main() -> None:
         kg.close()
 
     # Save
-    OUTPUT_FILE.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+    OUTPUT_FILE.write_text(
+        json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(f"\nSaved -> {OUTPUT_FILE}")
 
     found = sum(1 for r in results if r["concept_id"])

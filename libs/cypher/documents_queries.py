@@ -42,19 +42,21 @@ _LABEL_BY_TAG: dict[str, str] = {
 # patient encounter. Body structures and organisms are not clinical events
 # -- they are anatomy/taxonomy reference nodes. Writing them as findings
 # produces noise that the audit agent then has to correct.
-_BLOCKED_SEMANTIC_TAGS: frozenset[str] = frozenset({
-    "bodystructure",
-    "body structure",
-    "organism",
-    "virus",
-    "bacterium",
-    "fungus",
-    "environment or geographical location",
-    "physical object",
-    "record artifact",
-    "namespace concept",
-    "special concept",
-})
+_BLOCKED_SEMANTIC_TAGS: frozenset[str] = frozenset(
+    {
+        "bodystructure",
+        "body structure",
+        "organism",
+        "virus",
+        "bacterium",
+        "fungus",
+        "environment or geographical location",
+        "physical object",
+        "record artifact",
+        "namespace concept",
+        "special concept",
+    }
+)
 
 # Maps Neo4j node label → patient-level relationship type
 _REL_BY_LABEL: dict[str, str] = {
@@ -120,8 +122,15 @@ FOREACH (_ IN CASE WHEN $assertion IN ['present', 'historical'] THEN [1] ELSE []
 
 
 _NON_PRESENT = {
-    "absent", "refuted", "possible", "historical", "planned",
-    "hypothetical", "family", "declined", "cancelled",
+    "absent",
+    "refuted",
+    "possible",
+    "historical",
+    "planned",
+    "hypothetical",
+    "family",
+    "declined",
+    "cancelled",
 }
 
 
@@ -146,16 +155,16 @@ def _assertion_context(assertion: str | None) -> dict:
     """Build the context dict persisted on :DOCUMENTS from the assertion string."""
     a = assertion or "present"
     return {
-        "assertion":    a,
-        "negated":      a == "absent",
-        "refuted":      a == "refuted",
-        "uncertain":    a == "possible",
-        "historical":   a == "historical",
-        "planned":      a == "planned",
+        "assertion": a,
+        "negated": a == "absent",
+        "refuted": a == "refuted",
+        "uncertain": a == "possible",
+        "historical": a == "historical",
+        "planned": a == "planned",
         "hypothetical": a == "hypothetical",
-        "family":       a == "family",
-        "declined":     a == "declined",
-        "cancelled":    a == "cancelled",
+        "family": a == "family",
+        "declined": a == "declined",
+        "cancelled": a == "cancelled",
     }
 
 
@@ -230,7 +239,11 @@ def write_documents_from_sentences_payload(
             _assertion = (_term.get("assertion") or "present").lower()
             _coding = _term.get("coding") or {}
             _pterm = (_coding.get("snomed_term") or "").strip().lower()
-            if _tag in {"disorder", "finding", "clinicalfinding"} and _assertion == "present" and _pterm:
+            if (
+                _tag in {"disorder", "finding", "clinicalfinding"}
+                and _assertion == "present"
+                and _pterm
+            ):
                 _active_terms.add(_pterm)
 
     written = 0
@@ -251,21 +264,24 @@ def write_documents_from_sentences_payload(
             ) in {t.replace(" ", "") for t in _BLOCKED_SEMANTIC_TAGS}:
                 logger.debug(
                     "Skipping write for concept %s: blocked semantic tag '%s'",
-                    concept_id, semantic_tag,
+                    concept_id,
+                    semantic_tag,
                 )
                 continue
             # Suppress "History of X (situation)" when active X is already
             # being written in this payload -- avoids redundant co-coding.
             snomed_term_lower = (coding.get("snomed_term") or "").strip().lower()
-            if (
-                semantic_tag.lower() == "situation"
-                and snomed_term_lower.startswith("history of ")
+            if semantic_tag.lower() == "situation" and snomed_term_lower.startswith(
+                "history of "
             ):
-                underlying = snomed_term_lower.removeprefix("history of ").split("(")[0].strip()
+                underlying = (
+                    snomed_term_lower.removeprefix("history of ").split("(")[0].strip()
+                )
                 if underlying and underlying in _active_terms:
                     logger.debug(
                         "Suppressing redundant 'History of %s' situation (active "
-                        "disorder already coded in this encounter)", underlying
+                        "disorder already coded in this encounter)",
+                        underlying,
                     )
                     continue
 
@@ -289,7 +305,8 @@ def write_documents_from_sentences_payload(
                     logger.debug(
                         "deidentify_with_span: span not found after deident "
                         "encounter=%s span=%r -- skipping offsets",
-                        encounter_id, span_text,
+                        encounter_id,
+                        span_text,
                     )
                 else:
                     evidence_start = ev_start
@@ -315,8 +332,10 @@ def write_documents_from_sentences_payload(
                         reference_range=term.get("reference_range") or None,
                         source=source,
                         model_name=model_name or term.get("extraction_model_name", ""),
-                        model_version=model_version or term.get("extraction_model_version", ""),
-                        contract_version=contract_version or term.get("contract_version", ""),
+                        model_version=model_version
+                        or term.get("extraction_model_version", ""),
+                        contract_version=contract_version
+                        or term.get("contract_version", ""),
                         run_id=run_id,
                         audit_flag=bool(term.get("audit_flag", False)),
                         decision_tier=term.get("decision_tier"),
@@ -340,6 +359,7 @@ def write_documents_from_sentences_payload(
                     )
 
     return written
+
 
 DELETE_CODED_LINK = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)

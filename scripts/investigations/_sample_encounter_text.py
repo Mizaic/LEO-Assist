@@ -3,15 +3,18 @@ Sample raw encounter text and classification metadata from stale HITL patients.
 Shows what the text actually says, what classification metadata is present,
 and whether that is enough to detect anchors without SNOMED codes.
 """
+
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -61,10 +64,7 @@ def main():
                 rows = s.run(_Q, pid=pid).data()
 
             for r in rows:
-                concepts = [
-                    c for c in (r.get("concepts") or [])
-                    if c.get("name")
-                ]
+                concepts = [c for c in (r.get("concepts") or []) if c.get("name")]
                 print(
                     f"\n  {r['date']}  [{r['coding_status']}]"
                     f"  type={r['content_type']}  sig={r['significance']}"

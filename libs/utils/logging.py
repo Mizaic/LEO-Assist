@@ -131,4 +131,3 @@ def logging_context(
     finally:
         for var, token in reversed(tokens):
             var.reset(token)
-

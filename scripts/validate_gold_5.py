@@ -6,6 +6,7 @@ Reports calibration stats for tuning auto-approve thresholds.
 Usage:
     python scripts/validate_gold_5.py [--dry-run] [--patients P1,P2,...]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,6 +21,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "services" / "api"))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 from services.api.app.services.encounter_classifier import (
@@ -91,7 +93,9 @@ def print_calibration_report(
     print(f"25th percentile:         {confidences[max(0, n//4)]:.3f}")
 
     auto_count = sum(1 for c in confidences if c >= AUTO_APPROVE_THRESHOLD)
-    review_count = sum(1 for c in confidences if REVIEW_QUEUE_THRESHOLD <= c < AUTO_APPROVE_THRESHOLD)
+    review_count = sum(
+        1 for c in confidences if REVIEW_QUEUE_THRESHOLD <= c < AUTO_APPROVE_THRESHOLD
+    )
     reject_count = sum(1 for c in confidences if c < REVIEW_QUEUE_THRESHOLD)
 
     print(f"\nAt threshold {AUTO_APPROVE_THRESHOLD}:")
@@ -116,11 +120,17 @@ def print_calibration_report(
 def main():
     parser = argparse.ArgumentParser(description="Validate gold pipeline on N patients")
     parser.add_argument("--patients", type=str, help="Comma-separated patient IDs")
-    parser.add_argument("--limit", type=int, default=5, help="Number of patients (if --patients not given)")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=5,
+        help="Number of patients (if --patients not given)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Skip persistence")
     args = parser.parse_args()
 
     from neo4j import GraphDatabase
+
     neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
     neo4j_user = os.getenv("NEO4J_USER", "neo4j")
     neo4j_password = os.getenv("NEO4J_PASSWORD", "")
@@ -134,7 +144,11 @@ def main():
     logger.info("Validating %d patients: %s", len(patient_ids), patient_ids)
 
     all_entities: list[AlignedEntity] = []
-    classification_stats: dict[str, int] = {"admin_only": 0, "document_transfer": 0, "clinical": 0}
+    classification_stats: dict[str, int] = {
+        "admin_only": 0,
+        "document_transfer": 0,
+        "clinical": 0,
+    }
 
     for patient_id in patient_ids:
         logger.info("=== Patient %s ===", patient_id)
@@ -148,24 +162,36 @@ def main():
 
         logger.info(
             "  Classification: %d admin, %d doc, %d clinical",
-            index.admin_count, index.document_transfer_count, index.clinical_count,
+            index.admin_count,
+            index.document_transfer_count,
+            index.clinical_count,
         )
 
         clinical_encounters = [
-            enc for enc in encounters
+            enc
+            for enc in encounters
             if index.classifications.get(
-                str(enc.get("encounter_id", "")), ClassificationResult(content_type="clinical")
-            ).content_type == "clinical"
+                str(enc.get("encounter_id", "")),
+                ClassificationResult(content_type="clinical"),
+            ).content_type
+            == "clinical"
         ]
 
-        logger.info("  Processing %d clinical encounters for extraction", len(clinical_encounters))
+        logger.info(
+            "  Processing %d clinical encounters for extraction",
+            len(clinical_encounters),
+        )
 
         # NOTE: Actual multi-model extraction requires live LLM calls.
         # For validation we log the classification results and would run
         # extraction in a follow-up step or with --live flag.
         logger.info(
             "  Domain summary: %s",
-            json.dumps(index.domain_summary, indent=2) if index.domain_summary else "{}"
+            (
+                json.dumps(index.domain_summary, indent=2)
+                if index.domain_summary
+                else "{}"
+            ),
         )
 
     print_calibration_report(all_entities, classification_stats)

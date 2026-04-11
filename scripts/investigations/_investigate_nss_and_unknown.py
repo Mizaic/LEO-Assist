@@ -4,6 +4,7 @@ Investigation: NSS closed_related episodes + unknown cancer_type episodes.
 Run from workspace root:
     python scripts/investigations/_investigate_nss_and_unknown.py
 """
+
 import sys
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -19,10 +20,10 @@ from libs.keyvault.loader import load_keyvault_secrets
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _sep(char="=", width=72):
     print(char * width)
@@ -76,8 +77,9 @@ def _date_window(ref_date_str, days=7):
         return None, None
     try:
         ref = datetime.strptime(str(ref_date_str)[:10], "%Y-%m-%d")
-        return (ref - timedelta(days=days)).strftime("%Y-%m-%d"), \
-               (ref + timedelta(days=days)).strftime("%Y-%m-%d")
+        return (ref - timedelta(days=days)).strftime("%Y-%m-%d"), (
+            ref + timedelta(days=days)
+        ).strftime("%Y-%m-%d")
     except ValueError:
         return None, None
 
@@ -230,15 +232,19 @@ def investigate_unknown(client):
             print(f"    signals: {signals}")
 
     # 2d. Encounter text + concepts for 5 unknown completed episodes
-    print("\n[2d] Encounter text + concept names for sample unknown completed episodes:")
+    print(
+        "\n[2d] Encounter text + concept names for sample unknown completed episodes:"
+    )
     detail_rows = _run(client, _UNKNOWN_COMPLETED_DETAIL)
 
     for ep in detail_rows[:5]:
         pid = ep["patient_id"]
         ref_date = ep["referral_date"]
         d_from, d_to = _date_window(ref_date, days=7)
-        print(f"\n  Patient {pid} | ep={ep['episode_id']} | "
-              f"ref={ref_date} | outcome={ep['inferred_outcome']}")
+        print(
+            f"\n  Patient {pid} | ep={ep['episode_id']} | "
+            f"ref={ref_date} | outcome={ep['inferred_outcome']}"
+        )
         signals = ep["inference_signals"]
         if signals:
             print(f"  signals: {signals}")
@@ -305,6 +311,7 @@ def investigate_unknown(client):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     client = PatientGraphClient()

@@ -18,6 +18,7 @@ Each line:
 Run:
     python scripts/investigations/_inventory_fast_track_specialist_encounters.py
 """
+
 from __future__ import annotations
 
 import json
@@ -142,7 +143,9 @@ def main() -> None:
 
     unique_patients = len({r["patient_id"] for r in rows})
     unique_encounters = len({r["encounter_id"] for r in rows})
-    unique_phrases = len({r["matched_phrase"].lower() for r in rows if r["matched_phrase"]})
+    unique_phrases = len(
+        {r["matched_phrase"].lower() for r in rows if r["matched_phrase"]}
+    )
 
     print()
     print(f"Written {len(rows)} rows to {OUT_FILE}")
@@ -152,6 +155,7 @@ def main() -> None:
     print()
     print("Phrase breakdown:")
     from collections import Counter
+
     counts = Counter(r["matched_phrase"].lower() for r in rows if r["matched_phrase"])
     for phrase, count in counts.most_common():
         print(f"  {count:4d}  {phrase}")

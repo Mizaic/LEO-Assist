@@ -1,5 +1,6 @@
 """Check whether the diagnosis domain uses flat concept IDs or IS_A hierarchy expansion,
 and whether there is any LIMIT in the Cypher that fetches anchor concepts."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -8,10 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -95,14 +98,22 @@ def main() -> None:
             print("=== IS_A hierarchy in graph ===")
             lbl_row = s.run(_Q_CONCEPT_LABELS).data()
             if lbl_row:
-                print(f"  Labels on IS_A child: {lbl_row[0]['lbl']}, root: {lbl_row[0]['root_lbl']}")
-                direct = s.run(_Q_ISA_DIRECT, root_code=MALIGNANT_ROOT).single()["direct"]
+                print(
+                    f"  Labels on IS_A child: {lbl_row[0]['lbl']}, root: {lbl_row[0]['root_lbl']}"
+                )
+                direct = s.run(_Q_ISA_DIRECT, root_code=MALIGNANT_ROOT).single()[
+                    "direct"
+                ]
                 print(f"  Direct IS_A children of {MALIGNANT_ROOT}: {direct}")
                 print("  Counting all IS_A descendants (may take a moment)...")
-                desc = s.run(_Q_ISA_DESCENDANTS, root_code=MALIGNANT_ROOT).single()["descendants"]
+                desc = s.run(_Q_ISA_DESCENDANTS, root_code=MALIGNANT_ROOT).single()[
+                    "descendants"
+                ]
                 print(f"  All IS_A descendants of {MALIGNANT_ROOT}: {desc}")
             else:
-                print("  No IS_A relationships found from code 363346000 -- hierarchy may not be in graph")
+                print(
+                    "  No IS_A relationships found from code 363346000 -- hierarchy may not be in graph"
+                )
 
             print()
             any_lbl = s.run(_Q_ANY_CONCEPT_LABELS).data()

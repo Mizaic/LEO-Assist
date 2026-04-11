@@ -14,14 +14,18 @@ class TestResetReviewQueueService:
 
     def test_reset_returns_deleted(self) -> None:
         session = MagicMock()
-        session.run.return_value = MagicMock(single=MagicMock(return_value={"deleted": 12}))
+        session.run.return_value = MagicMock(
+            single=MagicMock(return_value={"deleted": 12})
+        )
         result = reset_review_queue("p1", session)
         assert result["patient_id"] == "p1"
         assert result["deleted"] == 12
 
     def test_reset_no_tasks_returns_zero(self) -> None:
         session = MagicMock()
-        session.run.return_value = MagicMock(single=MagicMock(return_value={"deleted": 0}))
+        session.run.return_value = MagicMock(
+            single=MagicMock(return_value={"deleted": 0})
+        )
         result = reset_review_queue("p1", session)
         assert result["patient_id"] == "p1"
         assert result["deleted"] == 0

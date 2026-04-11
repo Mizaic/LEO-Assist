@@ -9,7 +9,9 @@ from app.services.neo4j_store import list_approved_candidates_for_patient
 from app.services.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 
 
-def _term_to_payload(term: dict[str, Any], encounter_id: str) -> SemanticLinkPayload | None:
+def _term_to_payload(
+    term: dict[str, Any], encounter_id: str
+) -> SemanticLinkPayload | None:
     """Build SemanticLinkPayload from gold term. Returns None if no SNOMED concept."""
     concept_id = term.get("coding", {}).get("snomed_concept_id")
     if not concept_id:

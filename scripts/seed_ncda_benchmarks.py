@@ -25,7 +25,11 @@ from services.fhir_api.app.services import benchmark_service
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-_BENCHMARKS_JSON = Path(__file__).resolve().parents[1] / "external_content" / "ncda_2018_benchmarks.json"
+_BENCHMARKS_JSON = (
+    Path(__file__).resolve().parents[1]
+    / "external_content"
+    / "ncda_2018_benchmarks.json"
+)
 
 
 def main() -> int:
@@ -46,13 +50,15 @@ def main() -> int:
         logger.info("Skipped — BenchmarkSet %s already present.", audit_id)
         return 0
 
-    benchmark_service.create_benchmark_set({
-        "id": audit_id,
-        "name": audit_meta.get("name", "NCDA 2018"),
-        "source": "uploaded",
-        "audit_year": audit_meta.get("year"),
-        "metadata": audit_meta,
-    })
+    benchmark_service.create_benchmark_set(
+        {
+            "id": audit_id,
+            "name": audit_meta.get("name", "NCDA 2018"),
+            "source": "uploaded",
+            "audit_year": audit_meta.get("year"),
+            "metadata": audit_meta,
+        }
+    )
 
     deleted = benchmark_service.delete_benchmark_values_by_metric_ids(
         audit_id, ["demographics.sex.male", "demographics.sex.female"]

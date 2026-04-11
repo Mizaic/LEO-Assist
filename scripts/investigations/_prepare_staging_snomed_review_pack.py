@@ -10,8 +10,20 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "scripts" / "investigations" / "output" / "missing_staging_surface_form_snomed.json"
-OUT = ROOT / "scripts" / "investigations" / "output" / "missing_staging_surface_form_snomed_review_pack.json"
+SRC = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "output"
+    / "missing_staging_surface_form_snomed.json"
+)
+OUT = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "output"
+    / "missing_staging_surface_form_snomed_review_pack.json"
+)
 
 OVERRIDES: dict[str, dict[str, Any]] = {
     "stage 3a": {

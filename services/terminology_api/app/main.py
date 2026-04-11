@@ -5,6 +5,8 @@ ValueSet/ConceptMap CRUD, and Redis-cached terminology lookups,
 all against the Knowledge Graph.
 """
 
+# aca-image: terminology-api build/deploy verification (no runtime effect).
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -46,6 +48,7 @@ async def lifespan(_app: FastAPI):
     # causing connection resets for concurrent callers.
     import asyncio
     from services.terminology_api.app.routers.resolve import _embedder
+
     await asyncio.get_event_loop().run_in_executor(None, _embedder._ensure_model)
     logger.info("Terminology API ready (embedder pre-loaded)")
     yield

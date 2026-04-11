@@ -21,7 +21,6 @@ import pyodbc
 import requests
 from dotenv import load_dotenv
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE = ROOT / "external_content" / "trud-snomed-data-migration"
 DEFAULT_READ_DB = DEFAULT_BASE / "DMWB NHS READ.mdb"
@@ -77,7 +76,9 @@ def open_access_connection(db_path: Path) -> pyodbc.Connection:
     return pyodbc.connect(connection_string)
 
 
-def iter_read_rows(conn: pyodbc.Connection, table_name: str) -> Iterable[tuple[str, str]]:
+def iter_read_rows(
+    conn: pyodbc.Connection, table_name: str
+) -> Iterable[tuple[str, str]]:
     query = f"SELECT [CUI], [T30], [T60], [T198] FROM [{table_name}]"
     cursor = conn.cursor()
     for row in cursor.execute(query):
@@ -95,11 +96,7 @@ def iter_read_rows(conn: pyodbc.Connection, table_name: str) -> Iterable[tuple[s
 
 
 def load_term_to_snomed(conn: pyodbc.Connection) -> dict[str, set[str]]:
-    query = (
-        "SELECT [CUI], [TERM] "
-        "FROM [SCT] "
-        "WHERE [STAT] = 0"
-    )
+    query = "SELECT [CUI], [TERM] " "FROM [SCT] " "WHERE [STAT] = 0"
     term_to_codes: dict[str, set[str]] = defaultdict(set)
     cursor = conn.cursor()
     for row in cursor.execute(query):
@@ -307,15 +304,23 @@ def resolve_with_api(
             if chosen:
                 row_out["mapping_status"] = "resolved_by_api"
                 row_out["snomed_code"] = str(chosen.get("conceptId"))
-                row_out["confidence"] = float(chosen.get("score", row_out.get("confidence", 0.5)))
-                row_out["resolution_method"] = "api_top_match_intersects_local_candidates"
+                row_out["confidence"] = float(
+                    chosen.get("score", row_out.get("confidence", 0.5))
+                )
+                row_out["resolution_method"] = (
+                    "api_top_match_intersects_local_candidates"
+                )
                 api_resolved_count += 1
             else:
                 row_out["resolution_method"] = "unresolved_api_no_intersection"
             row_out["api_candidate_count"] = len(api_results)
             row_out["api_candidates"] = [
                 {
-                    "conceptId": str(item.get("conceptId")) if item.get("conceptId") is not None else None,
+                    "conceptId": (
+                        str(item.get("conceptId"))
+                        if item.get("conceptId") is not None
+                        else None
+                    ),
                     "name": item.get("name", ""),
                     "score": item.get("score"),
                     "type": item.get("type", ""),
@@ -338,11 +343,7 @@ def resolve_with_api(
 
 
 def extract_bedrock_text(response: dict[str, Any]) -> str:
-    content = (
-        response.get("output", {})
-        .get("message", {})
-        .get("content", [])
-    )
+    content = response.get("output", {}).get("message", {}).get("content", [])
     if not isinstance(content, list):
         return ""
     parts: list[str] = []
@@ -376,7 +377,9 @@ def llm_pick_concept_id(
 ) -> tuple[str | None, float | None, str]:
     candidate_payload = [
         {
-            "conceptId": str(c.get("conceptId")) if c.get("conceptId") is not None else "",
+            "conceptId": (
+                str(c.get("conceptId")) if c.get("conceptId") is not None else ""
+            ),
             "name": str(c.get("name", "")),
             "type": str(c.get("type", "")),
             "score": c.get("score"),
@@ -421,7 +424,9 @@ def resolve_with_llm(
         config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 2}),
     )
     llm_rows: list[dict[str, Any]] = []
-    llm_cache: dict[tuple[str, tuple[str, ...]], tuple[str | None, float | None, str]] = {}
+    llm_cache: dict[
+        tuple[str, tuple[str, ...]], tuple[str | None, float | None, str]
+    ] = {}
     llm_queried = 0
     llm_resolved = 0
 
@@ -454,7 +459,9 @@ def resolve_with_llm(
                 intersect.append(cand)
         candidate_pool = intersect if len(intersect) >= 2 else api_candidates
         candidate_ids = tuple(
-            str(c.get("conceptId")) for c in candidate_pool if c.get("conceptId") is not None
+            str(c.get("conceptId"))
+            for c in candidate_pool
+            if c.get("conceptId") is not None
         )
         cache_key = (str(row_out.get("read_term", "")).strip().lower(), candidate_ids)
 
@@ -516,9 +523,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--read-db", type=Path, default=DEFAULT_READ_DB)
     parser.add_argument("--snomed-db", type=Path, default=DEFAULT_SNOMED_DB)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
-    parser.add_argument("--out-with-ambiguity", type=Path, default=DEFAULT_OUT_WITH_AMBIGUITY)
-    parser.add_argument("--out-api-resolved", type=Path, default=DEFAULT_OUT_API_RESOLVED)
-    parser.add_argument("--out-llm-resolved", type=Path, default=DEFAULT_OUT_LLM_RESOLVED)
+    parser.add_argument(
+        "--out-with-ambiguity", type=Path, default=DEFAULT_OUT_WITH_AMBIGUITY
+    )
+    parser.add_argument(
+        "--out-api-resolved", type=Path, default=DEFAULT_OUT_API_RESOLVED
+    )
+    parser.add_argument(
+        "--out-llm-resolved", type=Path, default=DEFAULT_OUT_LLM_RESOLVED
+    )
     parser.add_argument(
         "--api-url",
         default="https://leo-clinical-dev.healthcarecopilot.ai/api/snomed/search",

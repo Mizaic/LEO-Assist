@@ -1,4 +1,5 @@
 """Integration test: observable post-processing flows through the unified pipeline."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -71,7 +72,9 @@ def test_pipeline_observable_post_processing_flows_into_payload() -> None:
         ]
     }
     pipeline = CodingPipeline(patient_client=None, knowledge_client=None)
-    payload = pipeline._build_sentences_payload([sentence], extracted, resolved, _ExtractorStub())
+    payload = pipeline._build_sentences_payload(
+        [sentence], extracted, resolved, _ExtractorStub()
+    )
     term = payload[0]["terms"][0]
     assert term["text"] == "Neutrophil count"
     assert term["numeric_value"] == "2.41"

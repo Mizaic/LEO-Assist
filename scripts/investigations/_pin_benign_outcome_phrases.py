@@ -19,6 +19,7 @@ Run:
     # Verify only (no writes):
     python scripts/investigations/_pin_benign_outcome_phrases.py --verify-only
 """
+
 from __future__ import annotations
 
 import argparse
@@ -323,7 +324,9 @@ def _resolve(phrase: str) -> tuple[str | None, str | None]:
 
 
 def run_fixes(verify_only: bool = False) -> None:
-    print(f"{'Verifying' if verify_only else 'Pinning'} {len(_BENIGN_OUTCOME_PHRASES)} benign outcome phrase surface forms ...")
+    print(
+        f"{'Verifying' if verify_only else 'Pinning'} {len(_BENIGN_OUTCOME_PHRASES)} benign outcome phrase surface forms ..."
+    )
     print()
     pinned = already_ok = failed = 0
 

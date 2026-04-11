@@ -6,6 +6,7 @@ it should not be captured by the NER pipeline as a clinical entity.
 Run:
     python scripts/investigations/_remove_medication_review_surface_forms.py
 """
+
 from __future__ import annotations
 
 import sys

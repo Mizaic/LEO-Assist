@@ -6,13 +6,13 @@ Each pattern set is a list of (regex_pattern, human_label) tuples.
 Signal sets are site-generic by default. Cancer-site-specific overrides
 can be added by importing and extending these lists in calling code.
 """
+
 from __future__ import annotations
 
 import re
 from typing import Optional
 
 from libs.dq._models import SignalHit
-
 
 # ---------------------------------------------------------------------------
 # Cancer-confirming post-specialist signals
@@ -104,6 +104,7 @@ SPECIALIST_SEEN: list[str] = [
 # ---------------------------------------------------------------------------
 # Core matching helpers
 # ---------------------------------------------------------------------------
+
 
 def match_signals(
     text: str,

@@ -4,15 +4,18 @@ why 'NAFLD' and 'type 2 diabetes' resolve to wrong concepts.
 The root cause: UPSERT_SURFACE_FORM_MAPPING creates additional MAPS_TO rels
 without deleting existing ones. Multiple rels can exist; highest confidence wins.
 """
+
 import os, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
@@ -51,15 +54,17 @@ for form in FORMS:
     if not rows:
         print("    (none found)")
     for r in rows:
-        print(f"    concept={r['concept_id']}  confidence={r['confidence']}  "
-              f"provenance={r['provenance']}  fsn={str(r['concept_fsn'])[:60]}")
+        print(
+            f"    concept={r['concept_id']}  confidence={r['confidence']}  "
+            f"provenance={r['provenance']}  fsn={str(r['concept_fsn'])[:60]}"
+        )
 
 print()
 print("=== FIX: Delete wrong MAPS_TO relationships ===")
 FIXES = [
     # (normalized_form, wrong_concept_id_to_delete)
-    ("nafld",           "161535005"),   # History of liver disease - wrong
-    ("type 2 diabetes", "410657003"),   # Type (attribute) - completely wrong
+    ("nafld", "161535005"),  # History of liver disease - wrong
+    ("type 2 diabetes", "410657003"),  # Type (attribute) - completely wrong
 ]
 for form, wrong_cid in FIXES:
     rows = run(
@@ -88,7 +93,9 @@ for form in FORMS:
     )
     print(f"\n  '{form}':")
     for r in rows:
-        print(f"    [{r['concept_id']}] confidence={r['confidence']}  {str(r['fsn'])[:60]}")
+        print(
+            f"    [{r['concept_id']}] confidence={r['confidence']}  {str(r['fsn'])[:60]}"
+        )
 
 driver.close()
 print("\nDone.")

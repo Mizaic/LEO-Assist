@@ -1,4 +1,5 @@
 """Find correct SNOMED IDs for CXR finding concepts via terminology API."""
+
 import requests
 
 API = "http://localhost:8001/terminology"

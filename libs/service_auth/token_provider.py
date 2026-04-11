@@ -5,6 +5,7 @@ Usage in callers (coding_worker, core-api):
     from libs.service_auth.token_provider import get_service_token
     headers = {"Authorization": f"Bearer {get_service_token(TERMINOLOGY_API_APP_ID)}"}
 """
+
 from __future__ import annotations
 
 import os

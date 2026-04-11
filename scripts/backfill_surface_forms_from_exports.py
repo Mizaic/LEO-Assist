@@ -22,7 +22,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = ROOT / "configs" / "snomed"
 EXPORTS = ROOT / "exports"
@@ -119,7 +118,9 @@ class MappingEntryRef:
     mapping_key: str
 
 
-def build_concept_index() -> tuple[dict[str, list[MappingEntryRef]], dict[str, set[str]]]:
+def build_concept_index() -> (
+    tuple[dict[str, list[MappingEntryRef]], dict[str, set[str]]]
+):
     concept_to_entries: dict[str, list[MappingEntryRef]] = defaultdict(list)
     concept_to_existing_forms: dict[str, set[str]] = defaultdict(set)
 
@@ -176,7 +177,11 @@ def iter_source_files() -> list[Path]:
     files: list[Path] = []
     # User-requested sources
     files.extend((EXPORTS / "training" / "old").glob("*.jsonl"))
-    files.extend((EXPORTS / "ner" / "all_domains" / "archive_pre_refactor").glob("domain_entities_*.jsonl"))
+    files.extend(
+        (EXPORTS / "ner" / "all_domains" / "archive_pre_refactor").glob(
+            "domain_entities_*.jsonl"
+        )
+    )
     files.extend((EXPORTS / "ner" / "all_domains").glob("domain_*.jsonl"))
     files.extend((EXPORTS / "ner" / "runs" / "20260228_161535").glob("domain_*.jsonl"))
     files.append(EXPORTS / "ner" / "training" / "exclusion_domain_v1.jsonl")
@@ -254,11 +259,15 @@ def apply_backfill(
         # Apply to the first mapping entry for this concept (deterministic).
         ref = refs[0]
         if ref.file_path not in file_payload_cache:
-            file_payload_cache[ref.file_path] = json.loads(ref.file_path.read_text(encoding="utf-8"))
+            file_payload_cache[ref.file_path] = json.loads(
+                ref.file_path.read_text(encoding="utf-8")
+            )
         payload = file_payload_cache[ref.file_path]
         mapping_obj = payload["mappings"][ref.mapping_key]
         syns = list(mapping_obj.get("guideline_synonyms") or [])
-        syn_low = {_clean_candidate(s).lower() for s in syns if _clean_candidate(str(s))}
+        syn_low = {
+            _clean_candidate(s).lower() for s in syns if _clean_candidate(str(s))
+        }
         for s in accepted:
             if s.lower() not in syn_low:
                 syns.append(s)
@@ -278,11 +287,16 @@ def apply_backfill(
 
     if not dry_run:
         for fp, payload in file_payload_cache.items():
-            fp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            fp.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
         report["files_updated"] = len(touched_files)
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return report
 
 
@@ -307,16 +321,18 @@ def main() -> None:
         max_per_concept=args.max_per_concept,
         report_path=args.report,
     )
-    print(json.dumps(
-        {
-            "dry_run": args.dry_run,
-            "concepts_updated": report["concepts_updated"],
-            "synonyms_added": report["synonyms_added"],
-            "files_updated": report["files_updated"],
-            "report": str(args.report),
-        },
-        indent=2,
-    ))
+    print(
+        json.dumps(
+            {
+                "dry_run": args.dry_run,
+                "concepts_updated": report["concepts_updated"],
+                "synonyms_added": report["synonyms_added"],
+                "files_updated": report["files_updated"],
+                "report": str(args.report),
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

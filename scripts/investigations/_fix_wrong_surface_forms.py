@@ -13,6 +13,7 @@ Usage
 -----
   python scripts/investigations/_fix_wrong_surface_forms.py [--dry-run]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,6 +43,7 @@ _TOKEN = os.getenv("SERVICE_TOKEN", "")
 # Normalisation helper (mirrors the Terminology API's own normalisation)
 # ---------------------------------------------------------------------------
 
+
 def _norm(text: str) -> str:
     low = text.lower().strip()
     nfkd = unicodedata.normalize("NFKD", low)
@@ -61,124 +63,155 @@ def _norm(text: str) -> str:
 
 _SITUATION_BEATS_DISORDER = [
     # form, wrong_situation_id, correct_disorder_id, correct_fsn
-    ("COPD",
-     "270473001",  # History of chronic obstructive airway disease (situation)
-     "13645005",   # Chronic obstructive pulmonary disease (disorder)
-     "Chronic obstructive pulmonary disease (disorder)"),
-    ("CVA",
-     "308064009",  # History of cerebrovascular disease (situation)
-     "230690007",  # Cerebrovascular accident (disorder)
-     "Cerebrovascular accident (disorder)"),
-    ("Stroke",
-     "308064009",  # History of cerebrovascular disease (situation)
-     "230690007",  # Cerebrovascular accident (disorder)
-     "Cerebrovascular accident (disorder)"),
-    ("TIA",
-     "308064009",  # History of cerebrovascular disease (situation)
-     "266257000",  # Transient ischemic attack (disorder)
-     "Transient ischemic attack (disorder)"),
-    ("Chronic kidney disease",
-     "275552000",  # History of kidney disease (situation)
-     "709044004",  # Chronic kidney disease (disorder)
-     "Chronic kidney disease (disorder)"),
-    ("Chronic kidney disease stage 3",
-     "275552000",
-     "433144002",  # Chronic kidney disease stage 3 (disorder)
-     "Chronic kidney disease stage 3 (disorder)"),
-    ("Chronic kidney disease stage 4",
-     "275552000",
-     "431857002",  # Chronic kidney disease stage 4 (disorder)
-     "Chronic kidney disease stage 4 (disorder)"),
-    ("Chronic kidney disease stage 5",
-     "275552000",
-     "433146000",  # Chronic kidney disease stage 5 (disorder)
-     "Chronic kidney disease stage 5 (disorder)"),
-    ("Fatty liver",
-     "161535005",  # History of liver disease (situation)
-     "1231824009", # Metabolic dysfunction-associated steatotic liver disease
-     "Metabolic dysfunction-associated steatotic liver disease (disorder)"),
-    ("RA",
-     "472961001",  # History of disorder of connective tissue (situation)
-     "69896004",   # Rheumatoid arthritis (disorder)
-     "Rheumatoid arthritis (disorder)"),
-    ("Rheumatoid arthritis",
-     "472961001",
-     "69896004",
-     "Rheumatoid arthritis (disorder)"),
-    ("osteopenia",
-     "267004000",  # History of musculoskeletal disease (situation)
-     "312894000",  # Osteopenia (disorder)
-     "Osteopenia (disorder)"),
-    ("osteoporosis",
-     "267004000",
-     "64859006",   # Osteoporosis (disorder)
-     "Osteoporosis (disorder)"),
-    ("Dementia",
-     "161465002",  # History of dementia (situation)
-     "52448006",   # Dementia (disorder)
-     "Dementia (disorder)"),
+    (
+        "COPD",
+        "270473001",  # History of chronic obstructive airway disease (situation)
+        "13645005",  # Chronic obstructive pulmonary disease (disorder)
+        "Chronic obstructive pulmonary disease (disorder)",
+    ),
+    (
+        "CVA",
+        "308064009",  # History of cerebrovascular disease (situation)
+        "230690007",  # Cerebrovascular accident (disorder)
+        "Cerebrovascular accident (disorder)",
+    ),
+    (
+        "Stroke",
+        "308064009",  # History of cerebrovascular disease (situation)
+        "230690007",  # Cerebrovascular accident (disorder)
+        "Cerebrovascular accident (disorder)",
+    ),
+    (
+        "TIA",
+        "308064009",  # History of cerebrovascular disease (situation)
+        "266257000",  # Transient ischemic attack (disorder)
+        "Transient ischemic attack (disorder)",
+    ),
+    (
+        "Chronic kidney disease",
+        "275552000",  # History of kidney disease (situation)
+        "709044004",  # Chronic kidney disease (disorder)
+        "Chronic kidney disease (disorder)",
+    ),
+    (
+        "Chronic kidney disease stage 3",
+        "275552000",
+        "433144002",  # Chronic kidney disease stage 3 (disorder)
+        "Chronic kidney disease stage 3 (disorder)",
+    ),
+    (
+        "Chronic kidney disease stage 4",
+        "275552000",
+        "431857002",  # Chronic kidney disease stage 4 (disorder)
+        "Chronic kidney disease stage 4 (disorder)",
+    ),
+    (
+        "Chronic kidney disease stage 5",
+        "275552000",
+        "433146000",  # Chronic kidney disease stage 5 (disorder)
+        "Chronic kidney disease stage 5 (disorder)",
+    ),
+    (
+        "Fatty liver",
+        "161535005",  # History of liver disease (situation)
+        "1231824009",  # Metabolic dysfunction-associated steatotic liver disease
+        "Metabolic dysfunction-associated steatotic liver disease (disorder)",
+    ),
+    (
+        "RA",
+        "472961001",  # History of disorder of connective tissue (situation)
+        "69896004",  # Rheumatoid arthritis (disorder)
+        "Rheumatoid arthritis (disorder)",
+    ),
+    (
+        "Rheumatoid arthritis",
+        "472961001",
+        "69896004",
+        "Rheumatoid arthritis (disorder)",
+    ),
+    (
+        "osteopenia",
+        "267004000",  # History of musculoskeletal disease (situation)
+        "312894000",  # Osteopenia (disorder)
+        "Osteopenia (disorder)",
+    ),
+    (
+        "osteoporosis",
+        "267004000",
+        "64859006",  # Osteoporosis (disorder)
+        "Osteoporosis (disorder)",
+    ),
+    (
+        "Dementia",
+        "161465002",  # History of dementia (situation)
+        "52448006",  # Dementia (disorder)
+        "Dementia (disorder)",
+    ),
 ]
 
 _BROAD_BEATS_SPECIFIC = [
     # form, wrong_broad_id, correct_specific_id, correct_fsn
-    ("Active suicidal ideation",
-     "74732009",  # Mental disorder (disorder) -- too broad
-     "6471006",   # Suicidal thoughts (finding)
-     "Suicidal thoughts (finding)"),
-    ("Passive suicidal ideation",
-     "74732009",
-     "6471006",
-     "Suicidal thoughts (finding)"),
-    ("Suicidal ideation",
-     "74732009",
-     "6471006",
-     "Suicidal thoughts (finding)"),
-    ("Suicidal thoughts",
-     "74732009",
-     "6471006",
-     "Suicidal thoughts (finding)"),
-    ("Thoughts of suicide",
-     "74732009",
-     "6471006",
-     "Suicidal thoughts (finding)"),
-    ("Adjustment reaction",
-     "74732009",
-     "17226007",  # Adjustment disorder (disorder)
-     "Adjustment disorder (disorder)"),
-    ("Adjustment disorder",
-     "74732009",
-     "17226007",
-     "Adjustment disorder (disorder)"),
-    ("Anxiety disorder",
-     "74732009",
-     "21897009",  # Generalized anxiety disorder (disorder)
-     "Generalized anxiety disorder (disorder)"),
-    ("Generalised anxiety disorder",
-     "74732009",
-     "21897009",
-     "Generalized anxiety disorder (disorder)"),
-    ("Generalized anxiety disorder",
-     "74732009",
-     "21897009",
-     "Generalized anxiety disorder (disorder)"),
-    ("Mixed anxiety depression",
-     "74732009",
-     "231504006",  # Mixed anxiety and depressive disorder
-     "Mixed anxiety and depressive disorder (disorder)"),
-    ("Reactive depression",
-     "74732009",
-     "87414006",   # Reactive depression (situational) (disorder)
-     "Reactive depression (situational) (disorder)"),
+    (
+        "Active suicidal ideation",
+        "74732009",  # Mental disorder (disorder) -- too broad
+        "6471006",  # Suicidal thoughts (finding)
+        "Suicidal thoughts (finding)",
+    ),
+    ("Passive suicidal ideation", "74732009", "6471006", "Suicidal thoughts (finding)"),
+    ("Suicidal ideation", "74732009", "6471006", "Suicidal thoughts (finding)"),
+    ("Suicidal thoughts", "74732009", "6471006", "Suicidal thoughts (finding)"),
+    ("Thoughts of suicide", "74732009", "6471006", "Suicidal thoughts (finding)"),
+    (
+        "Adjustment reaction",
+        "74732009",
+        "17226007",  # Adjustment disorder (disorder)
+        "Adjustment disorder (disorder)",
+    ),
+    ("Adjustment disorder", "74732009", "17226007", "Adjustment disorder (disorder)"),
+    (
+        "Anxiety disorder",
+        "74732009",
+        "21897009",  # Generalized anxiety disorder (disorder)
+        "Generalized anxiety disorder (disorder)",
+    ),
+    (
+        "Generalised anxiety disorder",
+        "74732009",
+        "21897009",
+        "Generalized anxiety disorder (disorder)",
+    ),
+    (
+        "Generalized anxiety disorder",
+        "74732009",
+        "21897009",
+        "Generalized anxiety disorder (disorder)",
+    ),
+    (
+        "Mixed anxiety depression",
+        "74732009",
+        "231504006",  # Mixed anxiety and depressive disorder
+        "Mixed anxiety and depressive disorder (disorder)",
+    ),
+    (
+        "Reactive depression",
+        "74732009",
+        "87414006",  # Reactive depression (situational) (disorder)
+        "Reactive depression (situational) (disorder)",
+    ),
     # bone metastases -- generic metastatic neoplasm beats site-specific
-    ("bone metastases",
-     "128462008",  # Metastatic malignant neoplasm (disorder) -- too broad
-     "94222008",   # Metastatic malignant neoplasm to bone (disorder)
-     "Secondary malignant neoplasm of bone (disorder)"),
+    (
+        "bone metastases",
+        "128462008",  # Metastatic malignant neoplasm (disorder) -- too broad
+        "94222008",  # Metastatic malignant neoplasm to bone (disorder)
+        "Secondary malignant neoplasm of bone (disorder)",
+    ),
     # basal cell carcinoma -- generic skin malignancy beats BCC
-    ("basal cell carcinoma",
-     "372130007",  # Malignant neoplasm of skin (disorder) -- too broad
-     "254701007",  # Basal cell carcinoma of skin (disorder)
-     "Basal cell carcinoma of skin (disorder)"),
+    (
+        "basal cell carcinoma",
+        "372130007",  # Malignant neoplasm of skin (disorder) -- too broad
+        "254701007",  # Basal cell carcinoma of skin (disorder)
+        "Basal cell carcinoma of skin (disorder)",
+    ),
 ]
 
 ALL_FIXES = _SITUATION_BEATS_DISORDER + _BROAD_BEATS_SPECIFIC
@@ -205,9 +238,7 @@ def _delete_mapping(normalized: str, concept_id: str, dry_run: bool) -> bool:
     return False
 
 
-def _boost_mapping(
-    normalized: str, form: str, concept_id: str, dry_run: bool
-) -> bool:
+def _boost_mapping(normalized: str, form: str, concept_id: str, dry_run: bool) -> bool:
     url = f"{_API}/terminology/surface-forms/upsert-mapping"
     payload = {
         "normalized": normalized,
@@ -268,7 +299,10 @@ def main(dry_run: bool) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print actions but do not modify the database")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print actions but do not modify the database",
+    )
     args = parser.parse_args()
     main(dry_run=args.dry_run)

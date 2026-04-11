@@ -7,6 +7,7 @@ encounter sits in a fast-track patient cohort. Flags any suspicious codings
 Run:
     python scripts/investigations/_review_no_evidence_coding.py
 """
+
 from __future__ import annotations
 
 import json
@@ -17,9 +18,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 CONCEPT_ID = 395100000
@@ -57,6 +60,7 @@ def _parse_assertion(context_str) -> str:
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     print(f"Reviewing all DOCUMENTS codings for: {CONCEPT_ID} | {CONCEPT_NAME}")
@@ -75,15 +79,15 @@ def main() -> None:
     by_assertion: dict[str, int] = {}
 
     for i, r in enumerate(rows, 1):
-        assertion   = _parse_assertion(r["context"])
-        confidence  = r["confidence"] or 0.0
-        source      = r["source"] or "unknown"
-        evidence    = (r["evidence_sentence"] or r["evidence"] or "").strip()
-        enc_text    = (r["enc_text"] or "")[:200]
-        model       = r["model_name"] or "unknown"
-        tier        = r["decision_tier"] or "unknown"
+        assertion = _parse_assertion(r["context"])
+        confidence = r["confidence"] or 0.0
+        source = r["source"] or "unknown"
+        evidence = (r["evidence_sentence"] or r["evidence"] or "").strip()
+        enc_text = (r["enc_text"] or "")[:200]
+        model = r["model_name"] or "unknown"
+        tier = r["decision_tier"] or "unknown"
 
-        by_source[source]       = by_source.get(source, 0) + 1
+        by_source[source] = by_source.get(source, 0) + 1
         by_assertion[assertion] = by_assertion.get(assertion, 0) + 1
 
         # Flag if assertion is NOT 'present' (this is a situation, should always be present)
@@ -94,12 +98,16 @@ def main() -> None:
             suspicious.append(r)
 
         flag = "!! SUSPICIOUS" if is_suspicious else ""
-        print(f"[{i:2d}] Patient {r['patient_id']}  enc={r['encounter_id'][:8]}...  date={r['enc_date'][:10]}  {flag}")
-        print(f"     assertion  : {assertion}  |  confidence={confidence:.2f}  |  source={source}  |  model={model}")
+        print(
+            f"[{i:2d}] Patient {r['patient_id']}  enc={r['encounter_id'][:8]}...  date={r['enc_date'][:10]}  {flag}"
+        )
+        print(
+            f"     assertion  : {assertion}  |  confidence={confidence:.2f}  |  source={source}  |  model={model}"
+        )
         print(f"     evidence   : {evidence[:100] or '(none)'}")
         if enc_text and enc_text.strip() != evidence.strip():
             # Show a snippet of the encounter text for context
-            snippet = enc_text.replace('\n', ' ')[:120]
+            snippet = enc_text.replace("\n", " ")[:120]
             print(f"     enc_text   : {snippet}")
         print()
 
@@ -121,7 +129,9 @@ def main() -> None:
         print("  Suspicious encounters to investigate:")
         for r in suspicious:
             assertion = _parse_assertion(r["context"])
-            print(f"    enc={r['encounter_id']}  assertion={assertion}  conf={r['confidence']}")
+            print(
+                f"    enc={r['encounter_id']}  assertion={assertion}  conf={r['confidence']}"
+            )
 
 
 if __name__ == "__main__":

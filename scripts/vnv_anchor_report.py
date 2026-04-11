@@ -71,9 +71,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 import logging
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-8s %(name)s %(message)s",
@@ -85,6 +87,7 @@ ALL_MILESTONES = ["referral", "diagnosis", "treatment_start", "specialist_visit"
 
 # ─── Wilson confidence interval ──────────────────────────────────────────────
 
+
 def wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     """95 % Wilson score confidence interval for a proportion k/n.
 
@@ -93,9 +96,9 @@ def wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     if n == 0:
         return 0.0, 1.0
     p = k / n
-    denom = 1 + z ** 2 / n
-    centre = (p + z ** 2 / (2 * n)) / denom
-    margin = z * math.sqrt(p * (1 - p) / n + z ** 2 / (4 * n ** 2)) / denom
+    denom = 1 + z**2 / n
+    centre = (p + z**2 / (2 * n)) / denom
+    margin = z * math.sqrt(p * (1 - p) / n + z**2 / (4 * n**2)) / denom
     return max(0.0, centre - margin), min(1.0, centre + margin)
 
 
@@ -104,6 +107,7 @@ def pct(k: int, n: int) -> float:
 
 
 # ─── JSONL loading ────────────────────────────────────────────────────────────
+
 
 def load_rows(path: Path) -> list[dict[str, Any]]:
     rows = []
@@ -119,6 +123,7 @@ def load_rows(path: Path) -> list[dict[str, Any]]:
 
 
 # ─── Per-milestone classification ────────────────────────────────────────────
+
 
 def classify_milestone(
     patient_row: dict[str, Any],
@@ -175,6 +180,7 @@ def classify_milestone(
 
 # ─── Metrics computation ──────────────────────────────────────────────────────
 
+
 def compute_milestone_metrics(
     rows: list[dict[str, Any]],
     milestone: str,
@@ -190,12 +196,16 @@ def compute_milestone_metrics(
     # FP: not modelled (we don't challenge anchors the algorithm found)
     # Unlabelled: excluded from metric denominators with a note
 
-    TP = outcomes.count("algorithm_found") \
-       + outcomes.count("found_soft_TP") \
-       + outcomes.count("possibly_missing_TP")
-    FN = outcomes.count("found_soft_FN") \
-       + outcomes.count("possibly_missing_FN") \
-       + outcomes.count("truly_missing_FN")
+    TP = (
+        outcomes.count("algorithm_found")
+        + outcomes.count("found_soft_TP")
+        + outcomes.count("possibly_missing_TP")
+    )
+    FN = (
+        outcomes.count("found_soft_FN")
+        + outcomes.count("possibly_missing_FN")
+        + outcomes.count("truly_missing_FN")
+    )
     TN = outcomes.count("truly_missing_TN") + outcomes.count("possibly_missing_TN")
     FP = 0  # not assessed — false positive rate analysis is out-of-scope for NCDA
 
@@ -208,7 +218,7 @@ def compute_milestone_metrics(
     specificity = TN / n_negative if n_negative else None
     ppv = TP / (TP + FP) if (TP + FP) else None
     npv = TN / (TN + FN) if (TN + FN) else None
-    f1  = (2 * TP) / (2 * TP + FP + FN) if (2 * TP + FP + FN) else None
+    f1 = (2 * TP) / (2 * TP + FP + FN) if (2 * TP + FP + FN) else None
 
     sens_lo, sens_hi = wilson_ci(TP, n_positive) if n_positive else (None, None)
     spec_lo, spec_hi = wilson_ci(TN, n_negative) if n_negative else (None, None)
@@ -227,13 +237,15 @@ def compute_milestone_metrics(
 
     # Failure mode counts
     failure_modes = {
-        "found_soft": outcomes.count("found_soft_TP") + outcomes.count("found_soft_FN")
-                    + outcomes.count("found_soft_unlabelled"),
+        "found_soft": outcomes.count("found_soft_TP")
+        + outcomes.count("found_soft_FN")
+        + outcomes.count("found_soft_unlabelled"),
         "possibly_missing": outcomes.count("possibly_missing_TP")
-                          + outcomes.count("possibly_missing_FN")
-                          + outcomes.count("possibly_missing_TN")
-                          + outcomes.count("possibly_missing_unlabelled"),
-        "truly_missing": outcomes.count("truly_missing_TN") + outcomes.count("truly_missing_FN"),
+        + outcomes.count("possibly_missing_FN")
+        + outcomes.count("possibly_missing_TN")
+        + outcomes.count("possibly_missing_unlabelled"),
+        "truly_missing": outcomes.count("truly_missing_TN")
+        + outcomes.count("truly_missing_FN"),
     }
 
     def _fmt(v: float | None) -> str:
@@ -264,6 +276,7 @@ def compute_milestone_metrics(
 
 # ─── Population characteristics ───────────────────────────────────────────────
 
+
 def compute_population_stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
     n = len(rows)
     enc_counts = [r.get("encounter_count", 0) for r in rows if not r.get("error")]
@@ -276,12 +289,13 @@ def compute_population_stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "p25_enc": enc_counts[len(enc_counts) // 4] if enc_counts else 0,
         "p75_enc": enc_counts[3 * len(enc_counts) // 4] if enc_counts else 0,
         "date_from": min(all_dates) if all_dates else "n/a",
-        "date_to":   max(all_dates) if all_dates else "n/a",
+        "date_to": max(all_dates) if all_dates else "n/a",
         "patients_with_errors": sum(1 for r in rows if r.get("error")),
     }
 
 
 # ─── CSV output ───────────────────────────────────────────────────────────────
+
 
 def write_evidence_csv(
     metrics_list: list[dict[str, Any]],
@@ -308,82 +322,131 @@ def write_evidence_csv(
         # Metrics table
         w.writerow(["=== PERFORMANCE METRICS (per milestone) ==="])
         header = [
-            "Milestone", "TP", "FN", "TN", "FP", "Unlabelled",
-            "Sensitivity %", "Sens CI lo %", "Sens CI hi %",
-            "Specificity %", "Spec CI lo %", "Spec CI hi %",
-            "PPV %", "NPV %", "F1 %",
-            "Concept path", "None/unknown path",
-            "Found-soft (coding gap)", "Possibly missing", "Truly missing",
+            "Milestone",
+            "TP",
+            "FN",
+            "TN",
+            "FP",
+            "Unlabelled",
+            "Sensitivity %",
+            "Sens CI lo %",
+            "Sens CI hi %",
+            "Specificity %",
+            "Spec CI lo %",
+            "Spec CI hi %",
+            "PPV %",
+            "NPV %",
+            "F1 %",
+            "Concept path",
+            "None/unknown path",
+            "Found-soft (coding gap)",
+            "Possibly missing",
+            "Truly missing",
         ]
         w.writerow(header)
         for m in metrics_list:
             t = m["tier_attribution"]
             f = m["failure_modes"]
-            w.writerow([
-                m["milestone"],
-                m["TP"], m["FN"], m["TN"], m["FP"], m["unlabelled"],
-                m["sensitivity_pct"], m["sensitivity_ci_lo_pct"], m["sensitivity_ci_hi_pct"],
-                m["specificity_pct"], m["specificity_ci_lo_pct"], m["specificity_ci_hi_pct"],
-                m["ppv_pct"], m["npv_pct"], m["f1_pct"],
-                t.get("concept", 0),
-                t.get("none", 0) + t.get("other", 0),
-                f.get("found_soft", 0),
-                f.get("possibly_missing", 0),
-                f.get("truly_missing", 0),
-            ])
+            w.writerow(
+                [
+                    m["milestone"],
+                    m["TP"],
+                    m["FN"],
+                    m["TN"],
+                    m["FP"],
+                    m["unlabelled"],
+                    m["sensitivity_pct"],
+                    m["sensitivity_ci_lo_pct"],
+                    m["sensitivity_ci_hi_pct"],
+                    m["specificity_pct"],
+                    m["specificity_ci_lo_pct"],
+                    m["specificity_ci_hi_pct"],
+                    m["ppv_pct"],
+                    m["npv_pct"],
+                    m["f1_pct"],
+                    t.get("concept", 0),
+                    t.get("none", 0) + t.get("other", 0),
+                    f.get("found_soft", 0),
+                    f.get("possibly_missing", 0),
+                    f.get("truly_missing", 0),
+                ]
+            )
         w.writerow([])
 
         # Failure mode legend
         w.writerow(["=== FAILURE MODE CLASSIFICATION ==="])
-        w.writerow(["found_soft",
-                    "Domain keywords present with confirmed language but concept/resolver "
-                    "threshold not met — coding gap in extraction pipeline"])
-        w.writerow(["possibly_missing",
-                    "Keywords present but only suspected/ambiguous language — milestone "
-                    "may be genuinely absent (pre-diagnostic) or language too subtle"])
-        w.writerow(["truly_missing",
-                    "No domain keyword hits in investigation window — milestone absent "
-                    "from records (patient had no cancer pathway / incomplete records)"])
+        w.writerow(
+            [
+                "found_soft",
+                "Domain keywords present with confirmed language but concept/resolver "
+                "threshold not met — coding gap in extraction pipeline",
+            ]
+        )
+        w.writerow(
+            [
+                "possibly_missing",
+                "Keywords present but only suspected/ambiguous language — milestone "
+                "may be genuinely absent (pre-diagnostic) or language too subtle",
+            ]
+        )
+        w.writerow(
+            [
+                "truly_missing",
+                "No domain keyword hits in investigation window — milestone absent "
+                "from records (patient had no cancer pathway / incomplete records)",
+            ]
+        )
         w.writerow([])
 
         # Labelling notes
         w.writerow(["=== LABELLING NOTE ==="])
-        w.writerow([
-            "Metrics are computed from rows with manual_label populated. "
-            "'algorithm_found' rows count as provisional TP without manual review. "
-            "FP rate not assessed (challenges to algorithm-found anchors are "
-            "out of scope for NCDA initial validation)."
-        ])
+        w.writerow(
+            [
+                "Metrics are computed from rows with manual_label populated. "
+                "'algorithm_found' rows count as provisional TP without manual review. "
+                "FP rate not assessed (challenges to algorithm-found anchors are "
+                "out of scope for NCDA initial validation)."
+            ]
+        )
 
     logger.info("Evidence CSV → %s", path)
 
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
+
 def get_git_hash() -> str:
     try:
         return subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],
-            cwd=ROOT, text=True, stderr=subprocess.DEVNULL,
+            cwd=ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
         ).strip()
     except Exception:
         return "unknown"
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description=textwrap.dedent("""\
+    p = argparse.ArgumentParser(description=textwrap.dedent("""\
             VnV Anchor Report — Phase 3 of ISO 13485 V&V.
             Reads a clinician-labelled audit JSONL and computes formal
             performance metrics with Wilson confidence intervals.
-        """)
+        """))
+    p.add_argument(
+        "--input", required=True, help="Path to labelled anchor_audit_*.jsonl file"
     )
-    p.add_argument("--input", required=True,
-                   help="Path to labelled anchor_audit_*.jsonl file")
-    p.add_argument("--output-dir", default="exports",
-                   help="Directory for output files (default: exports/)")
-    p.add_argument("--min-labelled", type=int, default=0,
-                   help="Abort if fewer than N milestones have manual labels")
+    p.add_argument(
+        "--output-dir",
+        default="exports",
+        help="Directory for output files (default: exports/)",
+    )
+    p.add_argument(
+        "--min-labelled",
+        type=int,
+        default=0,
+        help="Abort if fewer than N milestones have manual labels",
+    )
     return p.parse_args()
 
 
@@ -409,14 +472,15 @@ def main() -> int:
         logger.error(
             "Only %d milestone-rows are labelled; need at least %d.  "
             "Aborting — complete Phase 2 labelling first.",
-            total_labelled, args.min_labelled,
+            total_labelled,
+            args.min_labelled,
         )
         return 1
 
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    csv_path    = out_dir / f"vnv_anchor_report_{ts}.csv"
+    csv_path = out_dir / f"vnv_anchor_report_{ts}.csv"
     detail_path = out_dir / f"vnv_anchor_report_{ts}_detail.json"
 
     git_hash = get_git_hash()
@@ -426,21 +490,40 @@ def main() -> int:
     # ── Console summary ───────────────────────────────────────────────────
     logger.info("=" * 70)
     logger.info("VnV ANCHOR DETECTION REPORT  (git: %s)", git_hash)
-    logger.info("  Patients: %d  Encounters: %d  Labelled rows: %d",
-                population["total_patients"],
-                population["total_encounters"],
-                total_labelled)
+    logger.info(
+        "  Patients: %d  Encounters: %d  Labelled rows: %d",
+        population["total_patients"],
+        population["total_encounters"],
+        total_labelled,
+    )
     logger.info("-" * 70)
-    logger.info("  %-20s  %4s  %4s  %4s  %-20s  %-20s",
-                "Milestone", "TP", "FN", "TN",
-                "Sensitivity (95% CI)", "Specificity (95% CI)")
+    logger.info(
+        "  %-20s  %4s  %4s  %4s  %-20s  %-20s",
+        "Milestone",
+        "TP",
+        "FN",
+        "TN",
+        "Sensitivity (95% CI)",
+        "Specificity (95% CI)",
+    )
     for m in metrics_list:
-        sens = (f"{m['sensitivity_pct']}% "
-                f"[{m['sensitivity_ci_lo_pct']}–{m['sensitivity_ci_hi_pct']}%]")
-        spec = (f"{m['specificity_pct']}% "
-                f"[{m['specificity_ci_lo_pct']}–{m['specificity_ci_hi_pct']}%]")
-        logger.info("  %-20s  %4s  %4s  %4s  %-20s  %-20s",
-                    m["milestone"], m["TP"], m["FN"], m["TN"], sens, spec)
+        sens = (
+            f"{m['sensitivity_pct']}% "
+            f"[{m['sensitivity_ci_lo_pct']}–{m['sensitivity_ci_hi_pct']}%]"
+        )
+        spec = (
+            f"{m['specificity_pct']}% "
+            f"[{m['specificity_ci_lo_pct']}–{m['specificity_ci_hi_pct']}%]"
+        )
+        logger.info(
+            "  %-20s  %4s  %4s  %4s  %-20s  %-20s",
+            m["milestone"],
+            m["TP"],
+            m["FN"],
+            m["TN"],
+            sens,
+            spec,
+        )
     logger.info("=" * 70)
 
     # ── Output files ──────────────────────────────────────────────────────

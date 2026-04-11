@@ -8,6 +8,7 @@ Run:
     python scripts/investigations/_run_episodes_and_stats.py
     python scripts/investigations/_run_episodes_and_stats.py --domain-id cancer_audit
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,16 +34,22 @@ load_keyvault_secrets()
 logging.basicConfig(level=logging.WARNING)
 
 _SPECIALIST_INV = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "fast_track_specialist_encounters.jsonl"
 )
 _REFERRAL_INV = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "fast_track_referral_encounters.jsonl"
 )
 
 _START_DATE = "2010-01-01"
-_END_DATE   = "2030-12-31"
+_END_DATE = "2030-12-31"
 
 # Query EpisodeOfCare nodes created/updated for a patient
 _Q_EPISODES = """
@@ -125,17 +132,27 @@ async def _run_patient(
         "specialist_visit_anchors": len(anchors.specialist_visit_anchors),
         "treatment_anchors": len(anchors.treatment_anchors),
         "benign_closure_anchors": len(anchors.benign_closure_anchors),
-        "referral_concepts": list(dict.fromkeys(_anchor_concepts(anchors.referral_anchors))),
-        "diagnosis_concepts": list(dict.fromkeys(_anchor_concepts(anchors.diagnosis_anchors))),
-        "specialist_concepts": list(dict.fromkeys(_anchor_concepts(anchors.specialist_visit_anchors))),
-        "treatment_concepts": list(dict.fromkeys(_anchor_concepts(anchors.treatment_anchors))),
+        "referral_concepts": list(
+            dict.fromkeys(_anchor_concepts(anchors.referral_anchors))
+        ),
+        "diagnosis_concepts": list(
+            dict.fromkeys(_anchor_concepts(anchors.diagnosis_anchors))
+        ),
+        "specialist_concepts": list(
+            dict.fromkeys(_anchor_concepts(anchors.specialist_visit_anchors))
+        ),
+        "treatment_concepts": list(
+            dict.fromkeys(_anchor_concepts(anchors.treatment_anchors))
+        ),
         "episodes_created": result.episodes_created,
         "episode_ids": result.episode_ids,
         "errors": result.errors,
     }
 
 
-def _pull_episode_counts(patient_ids: list[str]) -> tuple[dict[str, int], dict[str, int]]:
+def _pull_episode_counts(
+    patient_ids: list[str],
+) -> tuple[dict[str, int], dict[str, int]]:
     """Query Neo4j for EpisodeOfCare counts and status breakdown per patient."""
     from libs.neo4j_client.client import PatientGraphClient
 
@@ -155,54 +172,75 @@ def _pull_episode_counts(patient_ids: list[str]) -> tuple[dict[str, int], dict[s
     return counts, dict(status_counts)
 
 
-def _print_stats(summary: list[dict], ep_counts: dict[str, int], status_counts: dict[str, int], domain_id: str) -> None:
+def _print_stats(
+    summary: list[dict],
+    ep_counts: dict[str, int],
+    status_counts: dict[str, int],
+    domain_id: str,
+) -> None:
     processed = len(summary)
     errors = sum(1 for r in summary if r.get("errors") or r.get("error"))
 
     # Aggregate from in-memory anchor detection results
-    patients_with_referral   = sum(1 for r in summary if r.get("referral_anchors", 0) > 0)
-    patients_with_specialist = sum(1 for r in summary if r.get("specialist_visit_anchors", 0) > 0)
-    patients_with_diagnosis  = sum(1 for r in summary if r.get("diagnosis_anchors", 0) > 0)
-    patients_with_treatment  = sum(1 for r in summary if r.get("treatment_anchors", 0) > 0)
-    patients_with_episodes      = sum(1 for v in ep_counts.values() if v > 0)
-    patients_with_benign_closure = sum(1 for r in summary if r.get("benign_closure_anchors", 0) > 0)
+    patients_with_referral = sum(1 for r in summary if r.get("referral_anchors", 0) > 0)
+    patients_with_specialist = sum(
+        1 for r in summary if r.get("specialist_visit_anchors", 0) > 0
+    )
+    patients_with_diagnosis = sum(
+        1 for r in summary if r.get("diagnosis_anchors", 0) > 0
+    )
+    patients_with_treatment = sum(
+        1 for r in summary if r.get("treatment_anchors", 0) > 0
+    )
+    patients_with_episodes = sum(1 for v in ep_counts.values() if v > 0)
+    patients_with_benign_closure = sum(
+        1 for r in summary if r.get("benign_closure_anchors", 0) > 0
+    )
 
-    total_referrals      = sum(r.get("referral_anchors", 0) for r in summary)
-    total_specialists    = sum(r.get("specialist_visit_anchors", 0) for r in summary)
-    total_diagnoses      = sum(r.get("diagnosis_anchors", 0) for r in summary)
-    total_treatments     = sum(r.get("treatment_anchors", 0) for r in summary)
+    total_referrals = sum(r.get("referral_anchors", 0) for r in summary)
+    total_specialists = sum(r.get("specialist_visit_anchors", 0) for r in summary)
+    total_diagnoses = sum(r.get("diagnosis_anchors", 0) for r in summary)
+    total_treatments = sum(r.get("treatment_anchors", 0) for r in summary)
     total_benign_closures = sum(r.get("benign_closure_anchors", 0) for r in summary)
-    total_episodes       = sum(ep_counts.values())
+    total_episodes = sum(ep_counts.values())
 
     # Pathway completeness breakdown
     full_pathway = sum(
-        1 for r in summary
+        1
+        for r in summary
         if r.get("referral_anchors", 0) > 0
         and r.get("specialist_visit_anchors", 0) > 0
         and r.get("diagnosis_anchors", 0) > 0
     )
     ref_and_spec = sum(
-        1 for r in summary
+        1
+        for r in summary
         if r.get("referral_anchors", 0) > 0
         and r.get("specialist_visit_anchors", 0) > 0
         and r.get("diagnosis_anchors", 0) == 0
     )
     ref_and_diag = sum(
-        1 for r in summary
+        1
+        for r in summary
         if r.get("referral_anchors", 0) > 0
         and r.get("diagnosis_anchors", 0) > 0
         and r.get("specialist_visit_anchors", 0) == 0
     )
     ref_only = sum(
-        1 for r in summary
+        1
+        for r in summary
         if r.get("referral_anchors", 0) > 0
         and r.get("specialist_visit_anchors", 0) == 0
         and r.get("diagnosis_anchors", 0) == 0
     )
     no_ref = sum(
-        1 for r in summary
+        1
+        for r in summary
         if r.get("referral_anchors", 0) == 0
-        and (r.get("specialist_visit_anchors", 0) > 0 or r.get("diagnosis_anchors", 0) > 0)
+        and (
+            r.get("specialist_visit_anchors", 0) > 0
+            or r.get("diagnosis_anchors", 0) > 0
+        )
     )
 
     # Concept frequency tables from anchor objects
@@ -230,17 +268,27 @@ def _print_stats(summary: list[dict], ep_counts: dict[str, int], status_counts: 
     print(f"  Patients with errors        : {errors}")
     print()
     # Distinct concept counts: unique concept names per patient, summed across patients
-    distinct_refs   = sum(len(set(r.get("referral_concepts", [])))   for r in summary)
-    distinct_specs  = sum(len(set(r.get("specialist_concepts", [])))  for r in summary)
-    distinct_diags  = sum(len(set(r.get("diagnosis_concepts", [])))   for r in summary)
-    distinct_treats = sum(len(set(r.get("treatment_concepts", [])))   for r in summary)
+    distinct_refs = sum(len(set(r.get("referral_concepts", []))) for r in summary)
+    distinct_specs = sum(len(set(r.get("specialist_concepts", []))) for r in summary)
+    distinct_diags = sum(len(set(r.get("diagnosis_concepts", []))) for r in summary)
+    distinct_treats = sum(len(set(r.get("treatment_concepts", []))) for r in summary)
 
     print("  Anchor counts (distinct concept per patient -- no double-counting):")
-    print(f"    Referrals                 : {distinct_refs}  ({patients_with_referral} patients)")
-    print(f"    First specialist seen     : {distinct_specs}  ({patients_with_specialist} patients)")
-    print(f"    Diagnoses                 : {distinct_diags}  ({patients_with_diagnosis} patients)")
-    print(f"    Treatments                : {distinct_treats}  ({patients_with_treatment} patients)")
-    print(f"    Benign closures (395100000): {total_benign_closures}  ({patients_with_benign_closure} patients)")
+    print(
+        f"    Referrals                 : {distinct_refs}  ({patients_with_referral} patients)"
+    )
+    print(
+        f"    First specialist seen     : {distinct_specs}  ({patients_with_specialist} patients)"
+    )
+    print(
+        f"    Diagnoses                 : {distinct_diags}  ({patients_with_diagnosis} patients)"
+    )
+    print(
+        f"    Treatments                : {distinct_treats}  ({patients_with_treatment} patients)"
+    )
+    print(
+        f"    Benign closures (395100000): {total_benign_closures}  ({patients_with_benign_closure} patients)"
+    )
     print()
     print("  Episode status breakdown (in Neo4j):")
     _NORMAL_STATUSES = ("completed", "closed_benign", "in_progress")
@@ -321,9 +369,15 @@ async def main(domain_id: str) -> None:
 
     try:
         for i, patient_id in enumerate(patient_ids, 1):
-            print(f"[{i:2d}/{len(patient_ids)}] Patient {patient_id} ...", end=" ", flush=True)
+            print(
+                f"[{i:2d}/{len(patient_ids)}] Patient {patient_id} ...",
+                end=" ",
+                flush=True,
+            )
             try:
-                result = await _run_patient(patient_id, registry, patient_client, domain_id)
+                result = await _run_patient(
+                    patient_id, registry, patient_client, domain_id
+                )
                 summary.append(result)
                 print(
                     f"ref={result['referral_anchors']}  "

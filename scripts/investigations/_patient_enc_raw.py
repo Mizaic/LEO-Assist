@@ -1,4 +1,5 @@
 """Show raw encounter fields for patient 4203796334."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -27,6 +30,7 @@ RETURN
     enc.encounter_id                     AS eid
 ORDER BY enc.date
 """
+
 
 def main() -> None:
     client = PatientGraphClient()

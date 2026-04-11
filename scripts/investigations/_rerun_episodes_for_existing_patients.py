@@ -3,6 +3,7 @@
 Use after episode_builder logic changes so stored episode dates/statuses are
 recomputed from current anchors.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -79,7 +80,9 @@ async def main(domain_id: str, limit: int | None, clear_existing: bool) -> None:
     client = PatientGraphClient()
     try:
         rows = client.run(_Q_PATIENTS) or []
-        patient_ids = [str(r.get("patient_id") or "") for r in rows if r.get("patient_id")]
+        patient_ids = [
+            str(r.get("patient_id") or "") for r in rows if r.get("patient_id")
+        ]
         if limit is not None:
             patient_ids = patient_ids[:limit]
         print(f"Loaded {len(patient_ids)} patients with existing episodes")
@@ -137,4 +140,3 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     asyncio.run(main(args.domain_id, args.limit, not args.keep_existing))
-

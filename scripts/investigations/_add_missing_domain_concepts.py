@@ -5,6 +5,7 @@
 
 Follows the same rawJson + flat-property update pattern as the domains API.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,6 +18,7 @@ sys.path.insert(0, str(ROOT / "services" / "analytics_api"))
 
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
@@ -54,9 +56,7 @@ def _load_raw(kg, vs_id: str) -> dict:
 def _add_concept(vs: dict, code: str, display: str) -> bool:
     compose = vs.setdefault("compose", {})
     includes = compose.setdefault("include", [])
-    snomed_inc = next(
-        (i for i in includes if i.get("system") == SNOMED_SYSTEM), None
-    )
+    snomed_inc = next((i for i in includes if i.get("system") == SNOMED_SYSTEM), None)
     if not snomed_inc:
         snomed_inc = {"system": SNOMED_SYSTEM, "concept": []}
         includes.append(snomed_inc)
@@ -80,8 +80,10 @@ def main() -> None:
             changed = _add_concept(vs, code, display)
             if changed:
                 _upsert_valueset_flat(vs_id, vs)
-                print(f"  Saved. ValueSet now has "
-                      f"{sum(len(i.get('concept', [])) for i in vs['compose']['include'])} concept(s)")
+                print(
+                    f"  Saved. ValueSet now has "
+                    f"{sum(len(i.get('concept', [])) for i in vs['compose']['include'])} concept(s)"
+                )
     finally:
         kg.close()
 

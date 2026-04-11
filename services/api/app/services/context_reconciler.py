@@ -23,9 +23,13 @@ def reconcile_context(text: str, default_subject: str = "patient") -> ContextFla
     lowered = text.lower()
     negated = any(cue in lowered for cue in (" no ", " denies ", " nil ", " nad "))
     uncertain = any(cue in lowered for cue in ("?", "possible", "likely", "suspect"))
-    historical = any(cue in lowered for cue in ("history of", "previous", "previously", "past"))
+    historical = any(
+        cue in lowered for cue in ("history of", "previous", "previously", "past")
+    )
 
-    subject = "family" if "family history" in lowered or "fhx" in lowered else default_subject
+    subject = (
+        "family" if "family history" in lowered or "fhx" in lowered else default_subject
+    )
     temporality = "present"
     if any(cue in lowered for cue in ("plan", "review", "refer", "follow-up")):
         temporality = "planned"

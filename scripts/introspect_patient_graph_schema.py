@@ -19,6 +19,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(_REPO_ROOT / "secrets" / ".env")
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -34,11 +35,7 @@ def run(client: PatientGraphClient, query: str, **params) -> list[dict]:
 def get_node_labels(client: PatientGraphClient) -> list[str]:
     """Get all node labels in the graph."""
     records = run(client, "CALL db.labels()")
-    return [
-        r.get("label", list(r.values())[0] if r else "")
-        for r in records
-        if r
-    ]
+    return [r.get("label", list(r.values())[0] if r else "") for r in records if r]
 
 
 def get_relationship_types(client: PatientGraphClient) -> list[str]:
@@ -72,7 +69,9 @@ def get_node_properties(client: PatientGraphClient, label: str) -> list[dict]:
             return [
                 {
                     "property_name": r.get("property_name", r.get("propertyName")),
-                    "property_types": r.get("property_types", r.get("propertyTypes", [])),
+                    "property_types": r.get(
+                        "property_types", r.get("propertyTypes", [])
+                    ),
                     "mandatory": r.get("mandatory", False),
                 }
                 for r in records
@@ -87,7 +86,10 @@ def get_node_properties(client: PatientGraphClient, label: str) -> list[dict]:
             client,
             f"MATCH (n:{safe_label}) WITH n LIMIT 100 UNWIND keys(n) AS k RETURN DISTINCT k ORDER BY k",
         )
-        return [{"property_name": r["k"], "property_types": [], "mandatory": False} for r in records]
+        return [
+            {"property_name": r["k"], "property_types": [], "mandatory": False}
+            for r in records
+        ]
     except Exception:
         return []
 
@@ -109,11 +111,13 @@ def get_relationships_for_label(client: PatientGraphClient, label: str) -> list[
             """,
         )
         for r in out_records:
-            rels.append({
-                "relationship_type": r.get("rel_type", ""),
-                "direction": "OUTGOING",
-                "target_labels": r.get("target_labels", []),
-            })
+            rels.append(
+                {
+                    "relationship_type": r.get("rel_type", ""),
+                    "direction": "OUTGOING",
+                    "target_labels": r.get("target_labels", []),
+                }
+            )
 
         # Incoming
         in_records = run(
@@ -126,17 +130,23 @@ def get_relationships_for_label(client: PatientGraphClient, label: str) -> list[
             """,
         )
         for r in in_records:
-            rels.append({
-                "relationship_type": r.get("rel_type", ""),
-                "direction": "INCOMING",
-                "target_labels": r.get("target_labels", []),
-            })
+            rels.append(
+                {
+                    "relationship_type": r.get("rel_type", ""),
+                    "direction": "INCOMING",
+                    "target_labels": r.get("target_labels", []),
+                }
+            )
 
         # Deduplicate
         seen = set()
         unique = []
         for rel in rels:
-            key = (rel["relationship_type"], rel["direction"], tuple(rel["target_labels"]))
+            key = (
+                rel["relationship_type"],
+                rel["direction"],
+                tuple(rel["target_labels"]),
+            )
             if key not in seen:
                 seen.add(key)
                 unique.append(rel)
@@ -161,10 +171,12 @@ def get_relationship_properties(client: PatientGraphClient) -> list[dict]:
         )
         for r in records:
             keys = r.get("rel_keys", r.get("relKeys", []))
-            result.append({
-                "relationship_type": r.get("rel_type", r.get("relType", "")),
-                "properties": sorted(keys) if keys else [],
-            })
+            result.append(
+                {
+                    "relationship_type": r.get("rel_type", r.get("relType", "")),
+                    "properties": sorted(keys) if keys else [],
+                }
+            )
         # Deduplicate by rel_type, merge properties
         by_type: dict[str, list[str]] = {}
         for item in result:
@@ -174,7 +186,10 @@ def get_relationship_properties(client: PatientGraphClient) -> list[dict]:
             for p in item["properties"]:
                 if p not in by_type[rt]:
                     by_type[rt].append(p)
-        return [{"relationship_type": k, "properties": sorted(v)} for k, v in sorted(by_type.items())]
+        return [
+            {"relationship_type": k, "properties": sorted(v)}
+            for k, v in sorted(by_type.items())
+        ]
     except Exception:
         return []
 
@@ -204,12 +219,14 @@ def main() -> dict:
         for label in sorted(labels):
             props = get_node_properties(client, label)
             rels = get_relationships_for_label(client, label)
-            nodes.append({
-                "label": label,
-                "count": node_counts.get(label, 0),
-                "properties": props,
-                "relationships": rels,
-            })
+            nodes.append(
+                {
+                    "label": label,
+                    "count": node_counts.get(label, 0),
+                    "properties": props,
+                    "relationships": rels,
+                }
+            )
 
         rel_properties = get_relationship_properties(client)
 

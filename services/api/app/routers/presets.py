@@ -36,10 +36,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/presets", tags=["presets"])
 
 _VALID_EXTRACTORS = {"llm", "ner", "ner+llm"}
-_VALID_COLORS     = {"primary", "success", "warning", "error", "info", "secondary"}
-_VALID_MODELS     = {
-    "aws:small", "aws:big", "aws:max",
-    "azure:small", "azure:big", "azure:max",
+_VALID_COLORS = {"primary", "success", "warning", "error", "info", "secondary"}
+_VALID_MODELS = {
+    "aws:small",
+    "aws:big",
+    "aws:max",
+    "azure:small",
+    "azure:big",
+    "azure:max",
     "ner",
 }
 
@@ -51,24 +55,24 @@ def _slug(name: str) -> str:
 
 def _row(rec: dict[str, Any]) -> dict[str, Any]:
     return {
-        "preset_id":             rec.get("preset_id", ""),
-        "name":                  rec.get("name", ""),
-        "description":           rec.get("description", ""),
-        "consensus_mode":        bool(rec.get("consensus_mode", False)),
-        "primary_model":         rec.get("primary_model") or "aws:small",
-        "secondary_model":       rec.get("secondary_model") or "azure:small",
-        "tiebreaker_model":      rec.get("tiebreaker_model") or "aws:big",
-        "extractor":             rec.get("extractor") or "llm",
-        "strict":                bool(rec.get("strict", False)),
-        "prompt_config_id":      rec.get("prompt_config_id") or "",
-        "color":                 rec.get("color") or "primary",
+        "preset_id": rec.get("preset_id", ""),
+        "name": rec.get("name", ""),
+        "description": rec.get("description", ""),
+        "consensus_mode": bool(rec.get("consensus_mode", False)),
+        "primary_model": rec.get("primary_model") or "aws:small",
+        "secondary_model": rec.get("secondary_model") or "azure:small",
+        "tiebreaker_model": rec.get("tiebreaker_model") or "aws:big",
+        "extractor": rec.get("extractor") or "llm",
+        "strict": bool(rec.get("strict", False)),
+        "prompt_config_id": rec.get("prompt_config_id") or "",
+        "color": rec.get("color") or "primary",
         # GPT-5 and NER models do not honour temperature; explicitly stored on the preset
         # so the pathway builder can show/hide the temperature slider without heuristics.
-        "supports_temperature":  bool(rec.get("supports_temperature", True)),
-        "is_default":            bool(rec.get("is_default", False)),
-        "is_system":             bool(rec.get("is_system", False)),
-        "created_at":            rec.get("created_at"),
-        "updated_at":            rec.get("updated_at"),
+        "supports_temperature": bool(rec.get("supports_temperature", True)),
+        "is_default": bool(rec.get("is_default", False)),
+        "is_system": bool(rec.get("is_system", False)),
+        "created_at": rec.get("created_at"),
+        "updated_at": rec.get("updated_at"),
     }
 
 
@@ -77,10 +81,10 @@ class PresetRequest(BaseModel):
     description: str = ""
     consensus_mode: bool = True
     # Compound "provider:tier" strings e.g. "aws:small", "azure:big", "ner"
-    primary_model: str = "aws:small"     # single mode: the model; dual: first model
-    secondary_model: str = "azure:small" # dual only: second model
-    tiebreaker_model: str = "aws:big"    # dual only: arbitrator on disagreement
-    extractor: str = "llm"               # "llm" | "ner" | "ner+llm"
+    primary_model: str = "aws:small"  # single mode: the model; dual: first model
+    secondary_model: str = "azure:small"  # dual only: second model
+    tiebreaker_model: str = "aws:big"  # dual only: arbitrator on disagreement
+    extractor: str = "llm"  # "llm" | "ner" | "ner+llm"
     strict: bool = False
     prompt_config_id: str = ""
     color: str = "primary"
@@ -108,7 +112,9 @@ def get_preset(preset_id: str) -> dict[str, Any]:
         with client.session() as session:
             rows = session.run(GET_PRESET, preset_id=preset_id).data()
         if not rows:
-            raise HTTPException(status_code=404, detail=f"Preset {preset_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Preset {preset_id!r} not found"
+            )
         return _row(rows[0])
     finally:
         client.close()
@@ -117,9 +123,14 @@ def get_preset(preset_id: str) -> dict[str, Any]:
 @router.post("")
 def upsert_preset(body: PresetRequest) -> dict[str, Any]:
     if body.extractor not in _VALID_EXTRACTORS:
-        raise HTTPException(status_code=400, detail=f"extractor must be one of {sorted(_VALID_EXTRACTORS)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"extractor must be one of {sorted(_VALID_EXTRACTORS)}",
+        )
     if body.color not in _VALID_COLORS:
-        raise HTTPException(status_code=400, detail=f"color must be one of {sorted(_VALID_COLORS)}")
+        raise HTTPException(
+            status_code=400, detail=f"color must be one of {sorted(_VALID_COLORS)}"
+        )
 
     preset_id = body.preset_id.strip() or _slug(body.name)
     client = CodingGraphClient()
@@ -156,7 +167,9 @@ def set_default(preset_id: str) -> dict[str, Any]:
         with client.session() as session:
             rows = session.run(GET_PRESET, preset_id=preset_id).data()
             if not rows:
-                raise HTTPException(status_code=404, detail=f"Preset {preset_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Preset {preset_id!r} not found"
+                )
             session.run(SET_DEFAULT_PRESET, preset_id=preset_id)
         logger.info("System default preset set to: %s", preset_id)
         return {"updated": True, "preset_id": preset_id}
@@ -171,9 +184,13 @@ def delete_preset(preset_id: str) -> dict[str, Any]:
         with client.session() as session:
             rows = session.run(GET_PRESET, preset_id=preset_id).data()
             if not rows:
-                raise HTTPException(status_code=404, detail=f"Preset {preset_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Preset {preset_id!r} not found"
+                )
             if rows[0].get("is_system"):
-                raise HTTPException(status_code=400, detail="System presets cannot be deleted.")
+                raise HTTPException(
+                    status_code=400, detail="System presets cannot be deleted."
+                )
             result = session.run(DELETE_PRESET, preset_id=preset_id).data()
             deleted = result[0].get("deleted", 0) if result else 0
         return {"deleted": deleted > 0, "preset_id": preset_id}

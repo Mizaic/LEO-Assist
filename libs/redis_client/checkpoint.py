@@ -18,6 +18,7 @@ Connection:
     Reads REDIS_URL (standard ``redis[s]://...`` URL).
     Azure Managed Redis provides a ``rediss://`` URL written into Key Vault by deploy.ps1.
 """
+
 from __future__ import annotations
 
 import json
@@ -113,7 +114,9 @@ class CheckpointStore:
                 logger.info("Checkpoint: deleted %d keys matching %s", deleted, pattern)
         except Exception:
             logger.debug(
-                "Checkpoint DELETE_PATTERN failed for pattern %s", pattern, exc_info=True
+                "Checkpoint DELETE_PATTERN failed for pattern %s",
+                pattern,
+                exc_info=True,
             )
 
     def incr(self, key: str, ttl: int = DEFAULT_TTL) -> int:

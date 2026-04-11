@@ -14,14 +14,17 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # Bedrock/boto3 error codes that warrant retry with backoff
-_THROTTLE_CODES = frozenset({
-    "ThrottlingException",
-    "TooManyRequestsException",
-    "RequestLimitExceeded",
-    "ServiceUnavailableException",
-    "InternalServerException",
-    "ModelTimeoutException",  # Bedrock-specific
-})
+_THROTTLE_CODES = frozenset(
+    {
+        "ThrottlingException",
+        "TooManyRequestsException",
+        "RequestLimitExceeded",
+        "ServiceUnavailableException",
+        "InternalServerException",
+        "ModelTimeoutException",  # Bedrock-specific
+    }
+)
+
 
 def _get_error_code(exc: BaseException) -> str:
     """Extract AWS error code from ClientError."""
@@ -77,11 +80,16 @@ def converse_with_retry(
             last_exc = exc
             if not _is_retryable(exc) or attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, jitter)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, jitter
+            )
             code = _get_error_code(exc) or "Unknown"
             logger.warning(
                 "Bedrock throttle (attempt %d/%d): %s, retrying in %.1fs",
-                attempt + 1, max_retries, code, sleep_s,
+                attempt + 1,
+                max_retries,
+                code,
+                sleep_s,
             )
             time.sleep(sleep_s)
     if last_exc is not None:

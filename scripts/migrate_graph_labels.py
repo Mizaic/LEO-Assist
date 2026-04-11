@@ -10,6 +10,7 @@ Idempotent: safe to re-run (steps that find 0 matching nodes are harmless).
 Usage:
     python scripts/migrate_graph_labels.py [--uri bolt://localhost:7687] [--dry-run]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -97,7 +98,9 @@ MIGRATIONS = [
 ]
 
 
-def run_migrations(uri: str, user: str, password: str, database: str, dry_run: bool = False):
+def run_migrations(
+    uri: str, user: str, password: str, database: str, dry_run: bool = False
+):
     from neo4j import GraphDatabase
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -125,11 +128,15 @@ def run_migrations(uri: str, user: str, password: str, database: str, dry_run: b
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--uri", default=os.getenv("NEO4J_URI", "bolt://localhost:7687"))
+    parser.add_argument(
+        "--uri", default=os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    )
     parser.add_argument("--user", default=os.getenv("NEO4J_USER", "neo4j"))
     parser.add_argument("--password", default=os.getenv("NEO4J_PASSWORD", ""))
     parser.add_argument("--database", default=os.getenv("NEO4J_DATABASE", "neo4j"))
-    parser.add_argument("--dry-run", action="store_true", help="Print queries without executing")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print queries without executing"
+    )
     args = parser.parse_args()
 
     if not args.password and not args.dry_run:

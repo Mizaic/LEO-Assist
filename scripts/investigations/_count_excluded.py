@@ -1,4 +1,5 @@
 """Count patients with true cancer exclusion concepts."""
+
 import sys
 from pathlib import Path
 
@@ -7,6 +8,7 @@ sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
@@ -16,11 +18,11 @@ from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 # Valid exclusion concepts -- 415068001 is actually "Exposure to UV light",
 # NOT "No malignancy found on biopsy" -- it is a bad ID.
 VALID_EXCLUSION_IDS = [
-    "395100000",        # No evidence of cancer found (situation)
-    "414861001",        # No evidence of recurrence of cancer (situation)
-    "1090791000000103", # No evidence of malignancy (UK ext)
+    "395100000",  # No evidence of cancer found (situation)
+    "414861001",  # No evidence of recurrence of cancer (situation)
+    "1090791000000103",  # No evidence of malignancy (UK ext)
 ]
-BAD_ID = "415068001"   # Exposure to ultraviolet radiation -- wrong concept
+BAD_ID = "415068001"  # Exposure to ultraviolet radiation -- wrong concept
 
 # IS_A-expand the valid ones
 kg = KnowledgeGraphClient()
@@ -41,7 +43,8 @@ try:
 
     # True exclusions via valid concepts
     true_excl = {
-        r["pid"] for r in pg.run(
+        r["pid"]
+        for r in pg.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(:Encounter)-[:DOCUMENTS]->(c) "
             "WHERE c.conceptId IN $ids "
             "RETURN DISTINCT toString(p.id) AS pid",
@@ -59,7 +62,8 @@ try:
 
     # Exclusions via the domain's 395100000 specifically
     via_395 = {
-        r["pid"] for r in pg.run(
+        r["pid"]
+        for r in pg.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(:Encounter)-[:DOCUMENTS]->(c) "
             "WHERE c.conceptId = '395100000' "
             "RETURN DISTINCT toString(p.id) AS pid",
@@ -67,7 +71,8 @@ try:
     }
 
     via_414 = {
-        r["pid"] for r in pg.run(
+        r["pid"]
+        for r in pg.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(:Encounter)-[:DOCUMENTS]->(c) "
             "WHERE c.conceptId = '414861001' "
             "RETURN DISTINCT toString(p.id) AS pid",

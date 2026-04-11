@@ -32,12 +32,14 @@ def _log_servicebus_fatal(exc: Exception, queue: str) -> None:
             "Azure credential token expired or could not be refreshed for %s.  "
             "Re-authenticate: az login --scope https://servicebus.azure.net//.default  "
             "Raw error: %s",
-            queue, exc,
+            queue,
+            exc,
         )
     else:
         logger.critical(
             "Service Bus connection lost for %s -- worker must restart.  Error: %s",
-            queue, exc,
+            queue,
+            exc,
         )
 
 
@@ -53,13 +55,16 @@ def _on_listener_task_done(task: "asyncio.Task[None]", queue: str) -> None:
         logger.critical(
             "Service Bus listener for %s terminated with an unhandled exception -- "
             "no more messages will be processed until the worker restarts: %s",
-            queue, exc,
+            queue,
+            exc,
         )
 
 
 # Maximum time in seconds to keep renewing a message lock.
 # Set generously — a patient with 300 clinical encounters can take 2+ hours.
-_MAX_LOCK_RENEWAL_SECONDS = int(os.getenv("SB_MAX_LOCK_RENEWAL_SECONDS", "14400"))  # 4 hours
+_MAX_LOCK_RENEWAL_SECONDS = int(
+    os.getenv("SB_MAX_LOCK_RENEWAL_SECONDS", "14400")
+)  # 4 hours
 
 
 class AzureServiceBusAdapter(MessageBusAdapter):
@@ -122,7 +127,10 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         self._receivers.append(receiver)
 
         async def _loop():
-            from azure.servicebus.exceptions import MessageLockLostError, ServiceBusError
+            from azure.servicebus.exceptions import (
+                MessageLockLostError,
+                ServiceBusError,
+            )
 
             try:
                 async with AutoLockRenewer() as renewer:
@@ -146,7 +154,9 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                                 )
                                 logger.info(
                                     "Message %s received from %s -- lock auto-renewal active (max %ds)",
-                                    sb_msg.message_id, queue_or_topic, _MAX_LOCK_RENEWAL_SECONDS,
+                                    sb_msg.message_id,
+                                    queue_or_topic,
+                                    _MAX_LOCK_RENEWAL_SECONDS,
                                 )
                                 result = handler(msg)
                                 if hasattr(result, "__await__"):
@@ -185,9 +195,7 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                 raise
 
         task = asyncio.create_task(_loop())
-        task.add_done_callback(
-            lambda t: _on_listener_task_done(t, queue_or_topic)
-        )
+        task.add_done_callback(lambda t: _on_listener_task_done(t, queue_or_topic))
 
     async def close(self) -> None:
         for sender in self._senders.values():

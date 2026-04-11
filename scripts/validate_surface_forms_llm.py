@@ -27,7 +27,6 @@ from dotenv import load_dotenv
 import os
 import requests
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT / "services" / "terminology" / "data" / "training"
 
@@ -84,7 +83,9 @@ RULES = [
     "R15 span_quality: entity text is concise and not obvious fragment (e.g. pins, needles, no sa)",
 ]
 
-NEGATION_CUE_RE = re.compile(r"\bno\b|\bnot\b|\bdenies\b|\bnil\b|\bnad\b", re.IGNORECASE)
+NEGATION_CUE_RE = re.compile(
+    r"\bno\b|\bnot\b|\bdenies\b|\bnil\b|\bnad\b", re.IGNORECASE
+)
 SAFETY_NET_RE = re.compile(
     r"\bto\s+return\s+if\s+no\s+(?:better|improvement|change|response)\b"
     r"|\bif\s+no\s+(?:better|improvement|change|response)\b"
@@ -137,7 +138,9 @@ def deterministic_validate(row: dict[str, Any]) -> list[DeterministicIssue]:
         or NHS_RE.search(sentence)
         or FULLNAME_RE.search(sentence)
     ):
-        issues.append(DeterministicIssue("R12", "error", "possible PHI pattern in sentence"))
+        issues.append(
+            DeterministicIssue("R12", "error", "possible PHI pattern in sentence")
+        )
 
     if not isinstance(entities, list) or len(entities) == 0:
         issues.append(DeterministicIssue("R5", "error", "entities missing/empty"))
@@ -147,7 +150,9 @@ def deterministic_validate(row: dict[str, Any]) -> list[DeterministicIssue]:
     has_clinical = False
     for idx, e in enumerate(entities):
         if not isinstance(e, dict):
-            issues.append(DeterministicIssue("R5", "error", f"entity[{idx}] not object"))
+            issues.append(
+                DeterministicIssue("R5", "error", f"entity[{idx}] not object")
+            )
             continue
 
         required = {
@@ -161,7 +166,11 @@ def deterministic_validate(row: dict[str, Any]) -> list[DeterministicIssue]:
             "uncertainty",
         }
         if not required.issubset(e.keys()):
-            issues.append(DeterministicIssue("R5", "error", f"entity[{idx}] missing required fields"))
+            issues.append(
+                DeterministicIssue(
+                    "R5", "error", f"entity[{idx}] missing required fields"
+                )
+            )
             continue
 
         etype = e["type"]
@@ -172,16 +181,32 @@ def deterministic_validate(row: dict[str, Any]) -> list[DeterministicIssue]:
         tag = e["snomed_semantic_tag"]
 
         if etype not in ALLOWED_TYPES:
-            issues.append(DeterministicIssue("R6", "error", f"entity[{idx}] invalid type: {etype}"))
+            issues.append(
+                DeterministicIssue(
+                    "R6", "error", f"entity[{idx}] invalid type: {etype}"
+                )
+            )
             continue
         if tag != TYPE_TO_TAG[etype]:
-            issues.append(DeterministicIssue("R7", "error", f"entity[{idx}] type/tag mismatch"))
+            issues.append(
+                DeterministicIssue("R7", "error", f"entity[{idx}] type/tag mismatch")
+            )
         if status not in ALLOWED_STATUS:
-            issues.append(DeterministicIssue("R8", "error", f"entity[{idx}] invalid clinical_status"))
+            issues.append(
+                DeterministicIssue(
+                    "R8", "error", f"entity[{idx}] invalid clinical_status"
+                )
+            )
         if status == "planned" and bool(neg):
-            issues.append(DeterministicIssue("R9", "error", f"entity[{idx}] planned+negated"))
+            issues.append(
+                DeterministicIssue("R9", "error", f"entity[{idx}] planned+negated")
+            )
         if bool(unc) and etype not in {"diagnosis", "symptom"}:
-            issues.append(DeterministicIssue("R10", "error", f"entity[{idx}] uncertainty not allowed for type"))
+            issues.append(
+                DeterministicIssue(
+                    "R10", "error", f"entity[{idx}] uncertainty not allowed for type"
+                )
+            )
 
         if etype in CLINICAL_TYPES:
             has_clinical = True
@@ -189,16 +214,40 @@ def deterministic_validate(row: dict[str, Any]) -> list[DeterministicIssue]:
 
         low_text = text.lower()
         if ADMIN_PHRASE_RE.search(sentence) and etype in {"symptom", "diagnosis"}:
-            issues.append(DeterministicIssue("R13", "warning", f"entity[{idx}] admin phrase typed clinical"))
-        if any(t in low_text for t in ("repair", "vaccination", "immunisation", "referral", "advice")) and etype == "diagnosis":
-            issues.append(DeterministicIssue("R14", "error", f"entity[{idx}] procedure-like mention typed diagnosis"))
+            issues.append(
+                DeterministicIssue(
+                    "R13", "warning", f"entity[{idx}] admin phrase typed clinical"
+                )
+            )
+        if (
+            any(
+                t in low_text
+                for t in ("repair", "vaccination", "immunisation", "referral", "advice")
+            )
+            and etype == "diagnosis"
+        ):
+            issues.append(
+                DeterministicIssue(
+                    "R14",
+                    "error",
+                    f"entity[{idx}] procedure-like mention typed diagnosis",
+                )
+            )
         if low_text in {"pins", "needles", "no sa", "sa"} or len(low_text) < 3:
-            issues.append(DeterministicIssue("R15", "warning", f"entity[{idx}] low-quality span"))
+            issues.append(
+                DeterministicIssue("R15", "warning", f"entity[{idx}] low-quality span")
+            )
 
     if NEGATION_CUE_RE.search(sentence) and has_clinical and not has_negated_clinical:
         stripped = SAFETY_NET_RE.sub("", sentence)
         if NEGATION_CUE_RE.search(stripped):
-            issues.append(DeterministicIssue("R11", "error", "negation cue present without negated clinical entity"))
+            issues.append(
+                DeterministicIssue(
+                    "R11",
+                    "error",
+                    "negation cue present without negated clinical entity",
+                )
+            )
     return issues
 
 
@@ -238,7 +287,9 @@ def bedrock_call_with_backoff(
         except json.JSONDecodeError:
             if attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, 0.35
+            )
             time.sleep(sleep_s)
         except ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "")
@@ -251,13 +302,17 @@ def bedrock_call_with_backoff(
             }
             if not throttled or attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, 0.35
+            )
             time.sleep(sleep_s)
 
         except json.JSONDecodeError:
             if attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, 0.35
+            )
             time.sleep(sleep_s)
     raise RuntimeError("Bedrock request failed after retries")
 
@@ -295,7 +350,9 @@ def azure_chat_json_with_backoff(
             if resp.status_code in {429, 500, 502, 503, 504}:
                 if attempt == max_retries - 1:
                     resp.raise_for_status()
-                sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+                sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                    0, 0.35
+                )
                 time.sleep(sleep_s)
                 continue
             resp.raise_for_status()
@@ -310,12 +367,16 @@ def azure_chat_json_with_backoff(
         except requests.RequestException:
             if attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, 0.35
+            )
             time.sleep(sleep_s)
         except (KeyError, ValueError, json.JSONDecodeError):
             if attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, 0.35
+            )
             time.sleep(sleep_s)
     raise RuntimeError("Azure OpenAI request failed after retries")
 
@@ -365,13 +426,12 @@ def llm_validate_batch(
         "intervention (procedure) = the ACT of advising (education/recommendation). "
         "E.g. 'advice about treatment given' = advice_event; 'smoking cessation advice' = intervention.\n"
         + "\n\nReturn strict JSON with schema:\n"
-        '{\n'
+        "{\n"
         '  "results": [\n'
         '    {"line_number": 1, "pass": true, "what_is_wrong": []}\n'
         "  ]\n"
         "}\n\n"
-        "Rows:\n"
-        + json.dumps(batch_rows, ensure_ascii=False)
+        "Rows:\n" + json.dumps(batch_rows, ensure_ascii=False)
     )
     if model_env_var.startswith("AZURE_OPENAI_"):
         data = azure_chat_json_with_backoff(
@@ -497,8 +557,16 @@ def llm_fix_batch(
 def _validate_fixed_entity(e: dict[str, Any]) -> list[str]:
     """Check that a LLM-corrected entity has valid structure."""
     errors: list[str] = []
-    required = {"text", "type", "snomed_semantic_tag", "clinical_status",
-                "attributes", "temporal", "negation", "uncertainty"}
+    required = {
+        "text",
+        "type",
+        "snomed_semantic_tag",
+        "clinical_status",
+        "attributes",
+        "temporal",
+        "negation",
+        "uncertainty",
+    }
     if not required.issubset(set(e.keys())):
         errors.append(f"missing fields: {required - set(e.keys())}")
         return errors
@@ -516,7 +584,9 @@ def _validate_fixed_entity(e: dict[str, Any]) -> list[str]:
     return errors
 
 
-def validate_file(path: Path, client: Any, model_id: str, max_retries: int) -> dict[str, Any]:
+def validate_file(
+    path: Path, client: Any, model_id: str, max_retries: int
+) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     with path.open(encoding="utf-8") as f:
         for line in f:
@@ -547,7 +617,9 @@ def run_validation(
     det_issues_by_line: dict[int, list[str]] = {}
     for i, row in enumerate(rows, start=1):
         issues = deterministic_validate(row)
-        det_msgs = [f"{x.rule_id}: {x.message}" for x in issues if x.severity == "error"]
+        det_msgs = [
+            f"{x.rule_id}: {x.message}" for x in issues if x.severity == "error"
+        ]
         det_issues_by_line[i] = det_msgs
 
     for start in range(0, line_count, batch_size):
@@ -573,13 +645,17 @@ def run_validation(
             max_retries=max_retries,
         )
         llm_results = llm_out.get("results", [])
-        llm_by_line = {int(x["line_number"]): x for x in llm_results if "line_number" in x}
+        llm_by_line = {
+            int(x["line_number"]): x for x in llm_results if "line_number" in x
+        }
 
         for i in range(start, end):
             line_no = i + 1
             det_msgs = det_issues_by_line.get(line_no, [])
             llm_row = llm_by_line.get(line_no, {})
-            llm_msgs = llm_row.get("what_is_wrong", []) if isinstance(llm_row, dict) else []
+            llm_msgs = (
+                llm_row.get("what_is_wrong", []) if isinstance(llm_row, dict) else []
+            )
             llm_msgs = [str(m) for m in llm_msgs if str(m).strip()]
 
             combined = []
@@ -594,7 +670,10 @@ def run_validation(
             else:
                 passed_rows += 1
 
-        print(f"[{model_env_var}][{path.name}] validated {end}/{line_count} rows", flush=True)
+        print(
+            f"[{model_env_var}][{path.name}] validated {end}/{line_count} rows",
+            flush=True,
+        )
 
     return {
         "input_file": str(path),
@@ -636,13 +715,15 @@ def run_fix(
         batch_payload: list[dict[str, Any]] = []
         for ln in batch_keys:
             row = rows[ln - 1]
-            batch_payload.append({
-                "line_number": ln,
-                "date": row.get("date"),
-                "sentence": row.get("sentence"),
-                "entities": row.get("entities"),
-                "issues": failed_line_map[ln],
-            })
+            batch_payload.append(
+                {
+                    "line_number": ln,
+                    "date": row.get("date"),
+                    "sentence": row.get("sentence"),
+                    "entities": row.get("entities"),
+                    "issues": failed_line_map[ln],
+                }
+            )
 
         try:
             llm_out = llm_fix_batch(
@@ -660,10 +741,16 @@ def run_fix(
                 if ln in failed_line_map:
                     fix_results[ln] = fix
         except Exception as exc:
-            print(f"[{model_env_var}] fix batch error (lines {batch_keys[0]}-{batch_keys[-1]}): {exc}", flush=True)
+            print(
+                f"[{model_env_var}] fix batch error (lines {batch_keys[0]}-{batch_keys[-1]}): {exc}",
+                flush=True,
+            )
 
         done = min(start + batch_size, len(failed_indices))
-        print(f"[{model_env_var}][{path.name}] fixed {done}/{len(failed_indices)} failed rows", flush=True)
+        print(
+            f"[{model_env_var}][{path.name}] fixed {done}/{len(failed_indices)} failed rows",
+            flush=True,
+        )
 
     fixed_count = 0
     dropped_count = 0
@@ -680,50 +767,58 @@ def run_fix(
         # Protect clinically sensitive travel+rabies phrasing from over-correction.
         if "rabies" in old_sentence_low and "discussed no travel" in old_sentence_low:
             rejected_count += 1
-            changes.append({
-                "line_number": ln,
-                "action": "rejected",
-                "reason": "protected_row: keep deterministic extractor output for rabies/travel sentence",
-                "sentence": old_row.get("sentence", ""),
-                "issues": issues,
-                "original_entities": old_row.get("entities", []),
-            })
+            changes.append(
+                {
+                    "line_number": ln,
+                    "action": "rejected",
+                    "reason": "protected_row: keep deterministic extractor output for rabies/travel sentence",
+                    "sentence": old_row.get("sentence", ""),
+                    "issues": issues,
+                    "original_entities": old_row.get("entities", []),
+                }
+            )
             continue
 
         if action == "drop":
             if not allow_drop:
                 rejected_count += 1
-                changes.append({
-                    "line_number": ln,
-                    "action": "rejected",
-                    "reason": "drop_not_allowed",
-                    "sentence": old_row.get("sentence", ""),
-                    "issues": issues,
-                    "original_entities": old_row.get("entities", []),
-                })
+                changes.append(
+                    {
+                        "line_number": ln,
+                        "action": "rejected",
+                        "reason": "drop_not_allowed",
+                        "sentence": old_row.get("sentence", ""),
+                        "issues": issues,
+                        "original_entities": old_row.get("entities", []),
+                    }
+                )
                 continue
             drop_lines.add(ln)
             dropped_count += 1
-            changes.append({
-                "line_number": ln,
-                "action": "drop",
-                "sentence": old_row.get("sentence", ""),
-                "issues": issues,
-                "original_entities": old_row.get("entities", []),
-            })
+            changes.append(
+                {
+                    "line_number": ln,
+                    "action": "drop",
+                    "sentence": old_row.get("sentence", ""),
+                    "issues": issues,
+                    "original_entities": old_row.get("entities", []),
+                }
+            )
             continue
 
         new_entities = fix.get("entities")
         if not isinstance(new_entities, list) or len(new_entities) == 0:
             rejected_count += 1
-            changes.append({
-                "line_number": ln,
-                "action": "rejected",
-                "reason": "empty entities from LLM",
-                "sentence": old_row.get("sentence", ""),
-                "issues": issues,
-                "original_entities": old_row.get("entities", []),
-            })
+            changes.append(
+                {
+                    "line_number": ln,
+                    "action": "rejected",
+                    "reason": "empty entities from LLM",
+                    "sentence": old_row.get("sentence", ""),
+                    "issues": issues,
+                    "original_entities": old_row.get("entities", []),
+                }
+            )
             continue
 
         validation_errors: list[str] = []
@@ -733,15 +828,17 @@ def run_fix(
 
         if validation_errors:
             rejected_count += 1
-            changes.append({
-                "line_number": ln,
-                "action": "rejected",
-                "reason": "; ".join(validation_errors[:3]),
-                "sentence": old_row.get("sentence", ""),
-                "issues": issues,
-                "original_entities": old_row.get("entities", []),
-                "proposed_entities": new_entities,
-            })
+            changes.append(
+                {
+                    "line_number": ln,
+                    "action": "rejected",
+                    "reason": "; ".join(validation_errors[:3]),
+                    "sentence": old_row.get("sentence", ""),
+                    "issues": issues,
+                    "original_entities": old_row.get("entities", []),
+                    "proposed_entities": new_entities,
+                }
+            )
             continue
 
         applied_entities = new_entities
@@ -749,15 +846,17 @@ def run_fix(
             old_entities = old_row.get("entities", [])
             if len(new_entities) != len(old_entities):
                 rejected_count += 1
-                changes.append({
-                    "line_number": ln,
-                    "action": "rejected",
-                    "reason": "metadata_only_entity_count_mismatch",
-                    "sentence": old_row.get("sentence", ""),
-                    "issues": issues,
-                    "original_entities": old_entities,
-                    "proposed_entities": new_entities,
-                })
+                changes.append(
+                    {
+                        "line_number": ln,
+                        "action": "rejected",
+                        "reason": "metadata_only_entity_count_mismatch",
+                        "sentence": old_row.get("sentence", ""),
+                        "issues": issues,
+                        "original_entities": old_entities,
+                        "proposed_entities": new_entities,
+                    }
+                )
                 continue
 
             proposed_by_text: dict[str, list[dict[str, Any]]] = {}
@@ -775,21 +874,29 @@ def run_fix(
                     continue
                 proposal = bucket.pop(0)
                 merged = dict(ent)
-                for field in ("type", "snomed_semantic_tag", "clinical_status", "negation", "uncertainty"):
+                for field in (
+                    "type",
+                    "snomed_semantic_tag",
+                    "clinical_status",
+                    "negation",
+                    "uncertainty",
+                ):
                     merged[field] = proposal[field]
                 merged_entities.append(merged)
 
             if merge_errors:
                 rejected_count += 1
-                changes.append({
-                    "line_number": ln,
-                    "action": "rejected",
-                    "reason": "; ".join(merge_errors[:3]),
-                    "sentence": old_row.get("sentence", ""),
-                    "issues": issues,
-                    "original_entities": old_entities,
-                    "proposed_entities": new_entities,
-                })
+                changes.append(
+                    {
+                        "line_number": ln,
+                        "action": "rejected",
+                        "reason": "; ".join(merge_errors[:3]),
+                        "sentence": old_row.get("sentence", ""),
+                        "issues": issues,
+                        "original_entities": old_entities,
+                        "proposed_entities": new_entities,
+                    }
+                )
                 continue
             applied_entities = merged_entities
 
@@ -799,14 +906,16 @@ def run_fix(
             "entities": applied_entities,
         }
         fixed_count += 1
-        changes.append({
-            "line_number": ln,
-            "action": "fixed",
-            "sentence": old_row.get("sentence", ""),
-            "issues": issues,
-            "original_entities": old_row.get("entities", []),
-            "fixed_entities": applied_entities,
-        })
+        changes.append(
+            {
+                "line_number": ln,
+                "action": "fixed",
+                "sentence": old_row.get("sentence", ""),
+                "issues": issues,
+                "original_entities": old_row.get("entities", []),
+                "fixed_entities": applied_entities,
+            }
+        )
 
     output_rows = [row for i, row in enumerate(rows, 1) if i not in drop_lines]
     out_path = path
@@ -827,20 +936,46 @@ def run_fix(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate surface-form JSONL with Bedrock LLM")
-    parser.add_argument("--input", action="append", required=True, help="Input JSONL file path (repeatable)")
+    parser = argparse.ArgumentParser(
+        description="Validate surface-form JSONL with Bedrock LLM"
+    )
+    parser.add_argument(
+        "--input",
+        action="append",
+        required=True,
+        help="Input JSONL file path (repeatable)",
+    )
     parser.add_argument(
         "--model-env-var",
         action="append",
         default=[],
         help="Model env var to use (repeatable), e.g. AWS_BIG_MODEL, AZURE_OPENAI_BIG_MODEL",
     )
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory for validation reports")
-    parser.add_argument("--max-retries", type=int, default=8, help="Max retries for 429/throttling")
-    parser.add_argument("--batch-size", type=int, default=20, help="Rows per LLM validation batch")
-    parser.add_argument("--max-rows", type=int, default=0, help="Optional cap per file (0 = all rows)")
-    parser.add_argument("--fix", action="store_true", help="Fix failed rows: LLM corrects entities and JSONL is overwritten")
-    parser.add_argument("--fix-batch-size", type=int, default=5, help="Rows per LLM fix batch (smaller = better quality)")
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory for validation reports",
+    )
+    parser.add_argument(
+        "--max-retries", type=int, default=8, help="Max retries for 429/throttling"
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=20, help="Rows per LLM validation batch"
+    )
+    parser.add_argument(
+        "--max-rows", type=int, default=0, help="Optional cap per file (0 = all rows)"
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Fix failed rows: LLM corrects entities and JSONL is overwritten",
+    )
+    parser.add_argument(
+        "--fix-batch-size",
+        type=int,
+        default=5,
+        help="Rows per LLM fix batch (smaller = better quality)",
+    )
     parser.add_argument(
         "--allow-text-rewrite",
         action="store_true",
@@ -863,7 +998,9 @@ def main() -> None:
         "api_key": os.getenv("AZURE_OPENAI_API_KEY", ""),
         "api_version": os.getenv("AZURE_OPENAI_API_VERSION", ""),
     }
-    bedrock_client = boto3.client("bedrock-runtime", region_name=region) if region else None
+    bedrock_client = (
+        boto3.client("bedrock-runtime", region_name=region) if region else None
+    )
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -875,18 +1012,24 @@ def main() -> None:
             continue
         if model_env_var.startswith("AZURE_OPENAI_"):
             if not all(azure_cfg.values()):
-                print(f"Skipping {model_env_var}: Azure OpenAI config missing", flush=True)
+                print(
+                    f"Skipping {model_env_var}: Azure OpenAI config missing", flush=True
+                )
                 continue
             client = None
         else:
             if bedrock_client is None:
-                print(f"Skipping {model_env_var}: AWS region/client missing", flush=True)
+                print(
+                    f"Skipping {model_env_var}: AWS region/client missing", flush=True
+                )
                 continue
             client = bedrock_client
 
         for input_str in args.input:
             input_path = Path(input_str)
-            loaded = validate_file(input_path, client, model_id, max_retries=args.max_retries)
+            loaded = validate_file(
+                input_path, client, model_id, max_retries=args.max_retries
+            )
             rows = loaded["rows"]
             if args.max_rows > 0:
                 rows = rows[: args.max_rows]
@@ -913,7 +1056,10 @@ def main() -> None:
             )
 
             if args.fix and report["failed_rows"] > 0:
-                print(f"[{model_env_var}] Fixing {report['failed_rows']} failed rows...", flush=True)
+                print(
+                    f"[{model_env_var}] Fixing {report['failed_rows']} failed rows...",
+                    flush=True,
+                )
                 fix_summary = run_fix(
                     path=input_path,
                     rows=rows,
@@ -939,7 +1085,10 @@ def main() -> None:
                     f"rejected={fix_summary['rejected']} output_rows={fix_summary['output_rows']}",
                     flush=True,
                 )
-                print(f"[{model_env_var}] Fixed JSONL: {fix_summary['output_file']}", flush=True)
+                print(
+                    f"[{model_env_var}] Fixed JSONL: {fix_summary['output_file']}",
+                    flush=True,
+                )
                 print(f"[{model_env_var}] Fix report: {fix_out}", flush=True)
 
 

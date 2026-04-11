@@ -2,15 +2,18 @@
 Inspect what text fields are available on Encounter nodes and linked note nodes.
 Check for a sample of stale patients to understand what the source of truth looks like.
 """
+
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -73,6 +76,7 @@ LIMIT 3
 
 SAMPLE_PIDS = ["4203796334", "4921442355", "4940120139"]
 
+
 def main():
     pg = PatientGraphClient()
     try:
@@ -88,7 +92,17 @@ def main():
             rows = s.run(_Q_ENC_SAMPLE, pid=SAMPLE_PIDS[0]).data()
         for r in rows:
             print(f"  date={r['date']} id={r['eid']}")
-            for prop in ["text", "note", "description", "raw_text", "source_text", "display", "title", "type", "category"]:
+            for prop in [
+                "text",
+                "note",
+                "description",
+                "raw_text",
+                "source_text",
+                "display",
+                "title",
+                "type",
+                "category",
+            ]:
                 if r.get(prop) is not None:
                     val = str(r[prop])[:200]
                     print(f"    {prop}: {val}")
@@ -103,7 +117,14 @@ def main():
             with pg.session() as s:
                 linked = s.run(_Q_LINKED_NODES, eid=eid).data()
             for ln in linked:
-                text_val = ln.get("text") or ln.get("note") or ln.get("description") or ln.get("content") or ln.get("name") or ln.get("value")
+                text_val = (
+                    ln.get("text")
+                    or ln.get("note")
+                    or ln.get("description")
+                    or ln.get("content")
+                    or ln.get("name")
+                    or ln.get("value")
+                )
                 print(f"    -[{ln['rel']}]-> {ln['lbl']} | {text_val!r:.100}")
 
         print()
@@ -115,7 +136,9 @@ def main():
                 print(f"  Patient {pid} - has text-bearing linked nodes:")
                 for r in rows:
                     text = r.get("text") or r.get("note") or r.get("content")
-                    print(f"    date={r['date']} -{r['rel']}-> {r['lbl']}: {str(text)[:150]!r}")
+                    print(
+                        f"    date={r['date']} -{r['rel']}-> {r['lbl']}: {str(text)[:150]!r}"
+                    )
             else:
                 print(f"  Patient {pid} - no text-bearing nodes linked to encounters")
 

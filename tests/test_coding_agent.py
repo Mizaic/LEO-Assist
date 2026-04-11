@@ -5,6 +5,7 @@ connection is required. Tests verify: mode detection, tool-loop limits,
 backward-compatible audit verdict shape, NER offset presence, kill switches,
 and post-processing metadata addition.
 """
+
 from __future__ import annotations
 
 import json
@@ -81,11 +82,13 @@ def test_load_encounter_audit_mode():
     """VT-083-TC-001: audit mode when coded_entities present."""
     from libs.pipeline_graph.subgraphs.encounter_coding_agent import load_encounter
 
-    result = load_encounter({
-        "encounter_text": ENCOUNTER_TEXT,
-        "coded_entities": ROOT_CODED,
-        "tier": "big",
-    })
+    result = load_encounter(
+        {
+            "encounter_text": ENCOUNTER_TEXT,
+            "coded_entities": ROOT_CODED,
+            "tier": "big",
+        }
+    )
     assert result["mode"] == "audit"
 
 
@@ -93,11 +96,13 @@ def test_load_encounter_code_mode():
     """VT-083-TC-002: code mode when coded_entities empty."""
     from libs.pipeline_graph.subgraphs.encounter_coding_agent import load_encounter
 
-    result = load_encounter({
-        "encounter_text": ENCOUNTER_TEXT,
-        "coded_entities": [],
-        "tier": "small",
-    })
+    result = load_encounter(
+        {
+            "encounter_text": ENCOUNTER_TEXT,
+            "coded_entities": [],
+            "tier": "small",
+        }
+    )
     assert result["mode"] == "code"
 
 
@@ -105,10 +110,12 @@ def test_load_encounter_code_mode_absent():
     """VT-083-TC-002: code mode when coded_entities absent."""
     from libs.pipeline_graph.subgraphs.encounter_coding_agent import load_encounter
 
-    result = load_encounter({
-        "encounter_text": ENCOUNTER_TEXT,
-        "tier": "small",
-    })
+    result = load_encounter(
+        {
+            "encounter_text": ENCOUNTER_TEXT,
+            "tier": "small",
+        }
+    )
     assert result["mode"] == "code"
 
 
@@ -130,8 +137,10 @@ def test_tool_iteration_limit_yields_needs_review():
     }
     never_submits = _make_llm_response(tool_uses=[search_tool_use])
 
-    with patch("libs.llm_client.factory.create_llm") as mock_create, \
-         patch("libs.terminology.client.TerminologyClient") as mock_tc:
+    with (
+        patch("libs.llm_client.factory.create_llm") as mock_create,
+        patch("libs.terminology.client.TerminologyClient") as mock_tc,
+    ):
         llm_mock = MagicMock()
         llm_mock.converse.return_value = never_submits
         mock_create.return_value = llm_mock
@@ -143,15 +152,18 @@ def test_tool_iteration_limit_yields_needs_review():
             # Re-import to pick up env
             import importlib
             import libs.pipeline_graph.subgraphs.encounter_coding_agent as mod
+
             importlib.reload(mod)
             subgraph = mod.build_encounter_coding_agent_subgraph()
 
-        output = subgraph.invoke({
-            "encounter_text": ENCOUNTER_TEXT,
-            "coded_entities": ROOT_CODED,
-            "tier": "big",
-            "apply": False,
-        })
+        output = subgraph.invoke(
+            {
+                "encounter_text": ENCOUNTER_TEXT,
+                "coded_entities": ROOT_CODED,
+                "tier": "big",
+                "apply": False,
+            }
+        )
 
     verdict = output.get("verdict") or {}
     assert verdict.get("encounter_assessment") == "needs_review"
@@ -178,15 +190,23 @@ def test_audit_mode_verdict_has_legacy_keys():
         mock_create.return_value = llm_mock
 
         subgraph = build_encounter_coding_agent_subgraph()
-        output = subgraph.invoke({
-            "encounter_text": ENCOUNTER_TEXT,
-            "coded_entities": ROOT_CODED,
-            "tier": "big",
-            "apply": False,
-        })
+        output = subgraph.invoke(
+            {
+                "encounter_text": ENCOUNTER_TEXT,
+                "coded_entities": ROOT_CODED,
+                "tier": "big",
+                "apply": False,
+            }
+        )
 
     verdict = output.get("verdict") or {}
-    for key in ("missing", "overcoded", "wrong_assertion", "encounter_assessment", "confidence"):
+    for key in (
+        "missing",
+        "overcoded",
+        "wrong_assertion",
+        "encounter_assessment",
+        "confidence",
+    ):
         assert key in verdict, f"Missing legacy key: {key}"
 
 
@@ -210,12 +230,14 @@ def test_missing_entity_has_sentence_and_offsets():
         mock_create.return_value = llm_mock
 
         subgraph = build_encounter_coding_agent_subgraph()
-        output = subgraph.invoke({
-            "encounter_text": ENCOUNTER_TEXT,
-            "coded_entities": ROOT_CODED,
-            "tier": "big",
-            "apply": False,
-        })
+        output = subgraph.invoke(
+            {
+                "encounter_text": ENCOUNTER_TEXT,
+                "coded_entities": ROOT_CODED,
+                "tier": "big",
+                "apply": False,
+            }
+        )
 
     missing = output.get("verdict", {}).get("missing", [])
     assert len(missing) >= 1
@@ -235,6 +257,7 @@ def test_kill_switch_disabled():
     with patch.dict(os.environ, {"CODING_AGENT_ENABLED": "false"}):
         import importlib
         import services.coding_worker.app.pipeline.extractor_registry as reg
+
         importlib.reload(reg)
         provider = reg.AgentExtractorProvider()
         assert not provider.is_available()
@@ -247,13 +270,21 @@ def test_kill_switch_disabled():
 
 def test_agent_extractor_always_apply_false():
     """VT-083-TC-007: AgentExtractorProvider invokes subgraph with apply=False."""
-    from services.coding_worker.app.pipeline.extractor_registry import AgentExtractorProvider
+    from services.coding_worker.app.pipeline.extractor_registry import (
+        AgentExtractorProvider,
+    )
 
     captured = {}
 
     def fake_invoke(state):
         captured.update(state)
-        return {"verdict": {"entities": [], "confidence": 0.9, "encounter_assessment": "coded"}}
+        return {
+            "verdict": {
+                "entities": [],
+                "confidence": 0.9,
+                "encounter_assessment": "coded",
+            }
+        }
 
     provider = AgentExtractorProvider()
     mock_subgraph = MagicMock()
@@ -336,7 +367,7 @@ def test_build_system_prompt_includes_admin_encounter_rules():
         prompt = build_system_prompt(mode)
         assert "ADMIN / NON-CLINICAL ENCOUNTERS" in prompt
         assert "no_clinical_content" in prompt
-        assert "NEVER return \"has_issues\"" in prompt
+        assert 'NEVER return "has_issues"' in prompt
 
 
 # ---------------------------------------------------------------------------

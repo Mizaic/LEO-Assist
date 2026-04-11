@@ -68,13 +68,20 @@ def test_nin_operator_excludes_cancer_types():
     definition = {
         "nodeLabel": "EpisodeOfCare",
         "filters": [
-            {"property": "condition_type", "op": "nin", "value": ["breast", "prostate", "gynaecological"]},
+            {
+                "property": "condition_type",
+                "op": "nin",
+                "value": ["breast", "prostate", "gynaecological"],
+            },
         ],
         "groupBy": "Patient.gender",
         "scopeType": "gp",
     }
     cypher, params = generate_cypher(definition)
-    assert "NOT (ep.condition_type IN " in cypher or "NOT (ep.condition_type IN $" in cypher
+    assert (
+        "NOT (ep.condition_type IN " in cypher
+        or "NOT (ep.condition_type IN $" in cypher
+    )
     assert "f0_condition_type" in params
     assert params["f0_condition_type"] == ["breast", "prostate", "gynaecological"]
 
@@ -92,7 +99,10 @@ def test_cohort_and_nin_filter_no_duplicate_where():
     }
     cypher, params = generate_cypher(definition)
     assert "AND WHERE " not in cypher, "Invalid Cypher: duplicate WHERE clause"
-    assert "ep.status = $_cohort_status" in cypher and "NOT (ep.condition_type IN $" in cypher
+    assert (
+        "ep.status = $_cohort_status" in cypher
+        and "NOT (ep.condition_type IN $" in cypher
+    )
 
 
 def test_patient_gender_groupby():

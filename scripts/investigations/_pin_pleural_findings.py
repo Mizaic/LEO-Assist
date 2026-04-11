@@ -1,4 +1,5 @@
 """Pin pleural finding surface forms for mesothelioma CXR pattern."""
+
 import os
 import re
 import sys
@@ -86,8 +87,7 @@ def main() -> None:
             if result:
                 row = result[0]
                 print(
-                    f"  [ADD ] {norm!r:55s} -> {row['cid']:15s}"
-                    f" {row['fsn'][:40]}"
+                    f"  [ADD ] {norm!r:55s} -> {row['cid']:15s}" f" {row['fsn'][:40]}"
                 )
                 added += 1
             else:

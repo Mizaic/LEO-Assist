@@ -5,15 +5,18 @@ Tests:
   2. Does the assertion filter in the registry exclude 'possible'?
   3. What does the registry actually have in its cancer_types bucket?
 """
+
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient, KnowledgeGraphClient
@@ -22,7 +25,7 @@ from libs.neo4j_client.client import PatientGraphClient, KnowledgeGraphClient
 SKIN_CONCEPT_IDS = {
     "254651007": "Squamous cell carcinoma of skin",
     "254701007": "Basal cell carcinoma of skin",
-    "93655004":  "Malignant melanoma of skin",
+    "93655004": "Malignant melanoma of skin",
     "302837001": "Lentigo maligna melanoma",
 }
 
@@ -72,7 +75,9 @@ def main():
                 with kg.session() as s:
                     r2 = s.run(_Q_IS_DESCENDANT_DEEPER, cid=cid).single()
                 if r2:
-                    print(f"  MISS - depth={r2['depth']}: {cid} ({label}) -- TOO DEEP for anchor engine")
+                    print(
+                        f"  MISS - depth={r2['depth']}: {cid} ({label}) -- TOO DEEP for anchor engine"
+                    )
                 else:
                     print(f"  NOT IN HIERARCHY at any depth: {cid} ({label})")
 
@@ -81,7 +86,9 @@ def main():
         with pg.session() as s:
             rows = s.run(_Q_VS_CONCEPT_IDS).data()
         for r in rows:
-            print(f"  {r['name']} | mt={r['mt']} | n_ids={r['n_ids']} | sample={r['sample_ids']}")
+            print(
+                f"  {r['name']} | mt={r['mt']} | n_ids={r['n_ids']} | sample={r['sample_ids']}"
+            )
 
         print()
         print("=== 3. Is SCC of skin (254651007) in any diagnosis ValueSet? ===")
@@ -89,7 +96,9 @@ def main():
             with pg.session() as s:
                 rows = s.run(_Q_REGISTRY_HAS_SCC, cid=cid).data()
             if rows:
-                print(f"  FOUND in ValueSet: {cid} ({label}) -> {[r['vs_name'] for r in rows]}")
+                print(
+                    f"  FOUND in ValueSet: {cid} ({label}) -> {[r['vs_name'] for r in rows]}"
+                )
             else:
                 print(f"  NOT IN ANY ValueSet: {cid} ({label})")
 
@@ -101,7 +110,9 @@ def main():
             print(f"  {r['name']} | assertion_filter={r['assertion_filter']}")
 
         print()
-        print("=== 5. What assertions are on cancer diagnoses in completed vs stale? ===")
+        print(
+            "=== 5. What assertions are on cancer diagnoses in completed vs stale? ==="
+        )
         _Q_DIAG_ASSERTIONS = """
         MATCH (ep:EpisodeOfCare)<-[:IS_PART_OF]-(enc:Encounter)-[r:DOCUMENTS]->(c)
         WHERE ep.status IN ['completed', 'stale_no_diagnosis']
@@ -126,7 +137,9 @@ def main():
         with pg.session() as s:
             rows = s.run(_Q_STALE_ASSERTIONS, pids=stale_pids).data()
         for r in rows:
-            print(f"  pid={r['pid']} {r['date']} | cid={r['cid']} | assertion={r['assertion']} | {r['name']}")
+            print(
+                f"  pid={r['pid']} {r['date']} | cid={r['cid']} | assertion={r['assertion']} | {r['name']}"
+            )
 
     finally:
         kg.close()

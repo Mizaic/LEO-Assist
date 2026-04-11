@@ -8,6 +8,7 @@ reseeds the ValueSet in Neo4j so the anchor detector picks them up.
 Run:
     python scripts/investigations/_pin_dcis_to_breast_domain.py
 """
+
 from __future__ import annotations
 import json
 import sys
@@ -16,9 +17,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 _MAPPING_FILE = ROOT / "configs" / "snomed" / "snomed_ncda_cancer_types_mapping.json"
@@ -117,7 +120,8 @@ def _update_json() -> None:
     added = 0
     for term, entry in _DCIS_ENTRIES.items():
         existing = {
-            k: v for k, v in mappings.items()
+            k: v
+            for k, v in mappings.items()
             if v.get("concept_id") == entry["concept_id"]
         }
         if existing:
@@ -141,6 +145,7 @@ def _reseed_neo4j() -> None:
     """Push the updated ValueSet back into Neo4j so the registry picks it up."""
     print("\nRe-seeding cancer_types ValueSet in Neo4j...")
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     data = json.loads(_MAPPING_FILE.read_text(encoding="utf-8"))

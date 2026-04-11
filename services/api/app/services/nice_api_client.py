@@ -26,7 +26,9 @@ _NICE_BASE = "https://api.nice.org.uk/services/guidance/documents"
 _NICE_INDEX = "https://api.nice.org.uk/services/guidance/index.json"
 _NICE_ROOT = "https://api.nice.org.uk/services/guidance"
 # Pattern that matches valid NICE guidance codes e.g. NG151, CG89, TA123, QS12
-NICE_CODE_RE = re.compile(r"^(NG|CG|TA|QS|PH|SC|MG|DG|HST|IPG|MTG|CSG|MPG|SSG|COVID)\d+$", re.IGNORECASE)
+NICE_CODE_RE = re.compile(
+    r"^(NG|CG|TA|QS|PH|SC|MG|DG|HST|IPG|MTG|CSG|MPG|SSG|COVID)\d+$", re.IGNORECASE
+)
 _CATALOGUE_KEY = "nice:catalogue"
 _CATALOGUE_TTL = 86400  # 24 hours
 _TIMEOUT = 30.0
@@ -109,8 +111,10 @@ async def _get(client: httpx.AsyncClient, url: str) -> dict[str, Any]:
         except (httpx.HTTPStatusError, httpx.TransportError) as exc:
             last_exc = exc
             if attempt < _MAX_RETRIES - 1:
-                await asyncio.sleep(2 ** attempt)
-    raise RuntimeError(f"NICE API request failed after {_MAX_RETRIES} attempts: {last_exc}")
+                await asyncio.sleep(2**attempt)
+    raise RuntimeError(
+        f"NICE API request failed after {_MAX_RETRIES} attempts: {last_exc}"
+    )
 
 
 class NiceApiClient:
@@ -295,12 +299,14 @@ class NiceApiClient:
             code = item.get("GuidanceNumber") or item.get("Code", "")
             title = item.get("Title", "")
             if code and title:
-                results.append({
-                    "code": code.upper(),
-                    "title": title,
-                    # NICE API uses GuidanceType at top level, Type in index items
-                    "type": item.get("GuidanceType", item.get("Type", "")),
-                })
+                results.append(
+                    {
+                        "code": code.upper(),
+                        "title": title,
+                        # NICE API uses GuidanceType at top level, Type in index items
+                        "type": item.get("GuidanceType", item.get("Type", "")),
+                    }
+                )
         return results[:20]
 
     async def sync_catalogue_from_index(self) -> int:
@@ -334,16 +340,20 @@ class NiceApiClient:
                     code = (item.get("GuidanceNumber") or item.get("Code", "")).upper()
                     title = item.get("Title", "")
                     if code and title:
-                        all_items.append({
-                            "code": code,
-                            "title": title,
-                            "type": item.get("GuidanceType", item.get("Type", "")),
-                        })
+                        all_items.append(
+                            {
+                                "code": code,
+                                "title": title,
+                                "type": item.get("GuidanceType", item.get("Type", "")),
+                            }
+                        )
 
                 # Follow pagination links if present
                 raw_next = data.get("NextPageUri", data.get("Next", ""))
                 if raw_next and raw_next != next_url:
-                    next_url = raw_next if raw_next.endswith(".json") else f"{raw_next}.json"
+                    next_url = (
+                        raw_next if raw_next.endswith(".json") else f"{raw_next}.json"
+                    )
                 else:
                     next_url = None
 
@@ -449,7 +459,11 @@ class NiceApiClient:
                 return result
 
             # ── Step 2: fetch the taxonomy document (self-contained tree) ──
-            tax_url = taxonomy_uri if taxonomy_uri.endswith(".json") else f"{taxonomy_uri}.json"
+            tax_url = (
+                taxonomy_uri
+                if taxonomy_uri.endswith(".json")
+                else f"{taxonomy_uri}.json"
+            )
             try:
                 tax_doc = await _get(client, tax_url)
             except RuntimeError as exc:

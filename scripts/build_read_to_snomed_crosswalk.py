@@ -18,7 +18,6 @@ from typing import Any
 
 import pyodbc
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "external_content" / "trud-snomed-data-migration"
 READ_DB = BASE / "DMWB NHS READ.mdb"
@@ -88,7 +87,9 @@ def open_access_connection(path: Path) -> pyodbc.Connection:
     return pyodbc.connect(f"DRIVER={ODBC_DRIVER};DBQ={path.resolve()};")
 
 
-def load_read_terms(conn: pyodbc.Connection) -> tuple[dict[str, str], dict[str, set[str]]]:
+def load_read_terms(
+    conn: pyodbc.Connection,
+) -> tuple[dict[str, str], dict[str, set[str]]]:
     read_term: dict[str, str] = {}
     read_sources: dict[str, set[str]] = defaultdict(set)
     cursor = conn.cursor()
@@ -213,13 +214,14 @@ def build_crosswalk_rows(
             "group_root": root,
             "group_size": len(codes),
             "read_codes": codes,
-            "sources": sorted({src for c in codes for src in read_sources.get(c, set())}),
+            "sources": sorted(
+                {src for c in codes for src in read_sources.get(c, set())}
+            ),
             "normalized_term": normalized,
             "candidate_count": len(candidates),
         }
         candidate_detail = [
-            {"concept_id": c, "term": pt_map.get(c, "")}
-            for c in candidates
+            {"concept_id": c, "term": pt_map.get(c, "")} for c in candidates
         ]
 
         for code in codes:
@@ -282,9 +284,7 @@ def main() -> None:
 
     with open_access_connection(args.snomed_db) as snomed_conn:
         pt_map, term_to_codes, _ = build_snomed_maps(snomed_conn)
-    log(
-        f"Loaded snomed_pt={len(pt_map)} normalized_terms={len(term_to_codes)}"
-    )
+    log(f"Loaded snomed_pt={len(pt_map)} normalized_terms={len(term_to_codes)}")
 
     groups = group_read_codes(uf, set(read_term.keys()))
     log(f"Built equivalence groups={len(groups)}")

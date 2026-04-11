@@ -12,6 +12,7 @@ Output
 ------
     scripts/investigations/encounter_audit_reaudit/encounter_audit.db
 """
+
 import json
 import sys
 from pathlib import Path
@@ -22,11 +23,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.investigations._audit_db import CheckpointDB  # noqa: E402
 
 SRC = (
-    ROOT
-    / "scripts"
-    / "investigations"
-    / "encounter_audit"
-    / "problem_encounters.jsonl"
+    ROOT / "scripts" / "investigations" / "encounter_audit" / "problem_encounters.jsonl"
 )
 OUT_DIR = ROOT / "scripts" / "investigations" / "encounter_audit_reaudit"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -36,7 +33,11 @@ if not SRC.exists():
     print(f"ERROR: {SRC} not found. Run _list_problem_encounters.py first.")
     sys.exit(1)
 
-records = [json.loads(line) for line in SRC.read_text(encoding="utf-8").splitlines() if line.strip()]
+records = [
+    json.loads(line)
+    for line in SRC.read_text(encoding="utf-8").splitlines()
+    if line.strip()
+]
 print(f"Loaded {len(records)} problem encounters from {SRC.name}")
 
 db = CheckpointDB(DB_PATH)

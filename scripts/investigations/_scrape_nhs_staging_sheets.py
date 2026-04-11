@@ -138,7 +138,8 @@ def _discover_sheet_urls(index_html: str) -> list[str]:
     urls = {
         urljoin(BASE_URL, path)
         for path in links
-        if path.rstrip("/") != "/ndrs/data/cancer-data-training-materials/staging-sheets"
+        if path.rstrip("/")
+        != "/ndrs/data/cancer-data-training-materials/staging-sheets"
     }
     # Defensive include in case index rendering changes.
     urls.add(INDEX_URL)

@@ -154,5 +154,11 @@ RETURN count(t) AS total
 """
 
 
-def make_surface_form_task_id(candidate_id: str, entity_text: str, current_concept: str) -> str:
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{candidate_id}|{entity_text}|{current_concept}"))
+def make_surface_form_task_id(
+    candidate_id: str, entity_text: str, current_concept: str
+) -> str:
+    return str(
+        uuid.uuid5(
+            uuid.NAMESPACE_URL, f"{candidate_id}|{entity_text}|{current_concept}"
+        )
+    )

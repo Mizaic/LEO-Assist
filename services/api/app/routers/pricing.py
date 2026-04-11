@@ -18,6 +18,7 @@ Pricing formula
   billable    = list_price × (1 - Σ active_discount_rates)
   gross_margin = (list_price - raw_cost) / list_price  [== target_margin when no discount]
 """
+
 from __future__ import annotations
 
 import logging
@@ -51,12 +52,14 @@ DEFAULT_TARGET_MARGIN = 0.75  # 75% gross margin
 
 # ── Guards ────────────────────────────────────────────────────────────────────
 
+
 def _require_admin(scope: CallerScope) -> None:
     if not scope.is_admin:
         raise HTTPException(403, "Admin permission required")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _apply_pricing(
     raw_cost: float,
@@ -71,12 +74,12 @@ def _apply_pricing(
     billable = list_price * (1.0 - capped_discount)
     effective_margin = (billable - raw_cost) / billable if billable > 0 else 0.0
     return {
-        "rawCostUsd":      round(raw_cost, 6),
-        "listPriceUsd":    round(list_price, 6),
-        "discountRate":    round(capped_discount, 4),
-        "billableUsd":     round(billable, 6),
-        "grossMargin":     round(effective_margin, 4),
-        "targetMargin":    round(target_margin, 4),
+        "rawCostUsd": round(raw_cost, 6),
+        "listPriceUsd": round(list_price, 6),
+        "discountRate": round(capped_discount, 4),
+        "billableUsd": round(billable, 6),
+        "grossMargin": round(effective_margin, 4),
+        "targetMargin": round(target_margin, 4),
     }
 
 
@@ -89,16 +92,25 @@ def _get_margin(kg: CodingGraphClient) -> float:
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
+
 class MarginConfigUpdate(BaseModel):
-    targetMargin: float = Field(..., ge=0.0, lt=1.0, description="Gross margin 0.0–0.99, e.g. 0.75 = 75%")
+    targetMargin: float = Field(
+        ..., ge=0.0, lt=1.0, description="Gross margin 0.0–0.99, e.g. 0.75 = 75%"
+    )
 
 
 class DiscountCreate(BaseModel):
     description: str = Field(..., min_length=1)
-    rate: float = Field(..., ge=0.0, le=1.0, description="Discount rate 0.0–1.0, e.g. 0.20 = 20% off")
+    rate: float = Field(
+        ..., ge=0.0, le=1.0, description="Discount rate 0.0–1.0, e.g. 0.20 = 20% off"
+    )
     type: str = Field(..., description="'promo' or 'contract'")
-    validFrom: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    validTo: str | None = Field(None, description="ISO datetime or null for perpetual (life of contract)")
+    validFrom: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    validTo: str | None = Field(
+        None, description="ISO datetime or null for perpetual (life of contract)"
+    )
 
     @field_validator("type")
     @classmethod
@@ -110,8 +122,11 @@ class DiscountCreate(BaseModel):
 
 # ── GET /pricing/config ───────────────────────────────────────────────────────
 
+
 @router.get("/config")
-def get_pricing_config(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def get_pricing_config(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     _require_admin(scope)
     kg = CodingGraphClient()
     try:
@@ -120,15 +135,16 @@ def get_pricing_config(scope: CallerScope = Depends(get_caller_scope)) -> dict[s
             row = s.run(GET_PRICING_CONFIG).single()
         return {
             "targetMargin": margin,
-            "updatedBy":    row["updated_by"] if row else None,
-            "updatedAt":    row["updated_at"] if row else None,
-            "isDefault":    row is None,
+            "updatedBy": row["updated_by"] if row else None,
+            "updatedAt": row["updated_at"] if row else None,
+            "isDefault": row is None,
         }
     finally:
         kg.close()
 
 
 # ── PUT /pricing/config ───────────────────────────────────────────────────────
+
 
 @router.put("/config")
 def update_pricing_config(
@@ -144,13 +160,18 @@ def update_pricing_config(
                 target_margin=body.targetMargin,
                 updated_by=scope.email or "admin",
             )
-        logger.info("PricingConfig updated: margin=%.2f%% by %s", body.targetMargin * 100, scope.email)
+        logger.info(
+            "PricingConfig updated: margin=%.2f%% by %s",
+            body.targetMargin * 100,
+            scope.email,
+        )
         return {"targetMargin": body.targetMargin, "status": "updated"}
     finally:
         kg.close()
 
 
 # ── GET /pricing/orgs ─────────────────────────────────────────────────────────
+
 
 @router.get("/orgs")
 def get_org_spend(
@@ -168,7 +189,9 @@ def get_org_spend(
 
         # Aggregate raw spend per org from Patient Graph
         with pg.session() as s:
-            raw_rows = s.run(ORG_SPEND_SUMMARY, from_date=from_date, to_date=to_date).data()
+            raw_rows = s.run(
+                ORG_SPEND_SUMMARY, from_date=from_date, to_date=to_date
+            ).data()
 
         orgs = []
         for row in raw_rows:
@@ -182,27 +205,29 @@ def get_org_spend(
             active_discounts = disc["active_discounts"] if disc else []
 
             pricing = _apply_pricing(raw_cost, target_margin, total_discount)
-            orgs.append({
-                "orgId":           org_id,
-                "orgName":         row.get("orgName", ""),
-                "runCount":        int(row.get("runCount") or 0),
-                "inputTokens":     int(row.get("inputTokens") or 0),
-                "outputTokens":    int(row.get("outputTokens") or 0),
-                "cachedTokens":    int(row.get("cachedTokens") or 0),
-                "activeDiscounts": active_discounts,
-                **pricing,
-            })
+            orgs.append(
+                {
+                    "orgId": org_id,
+                    "orgName": row.get("orgName", ""),
+                    "runCount": int(row.get("runCount") or 0),
+                    "inputTokens": int(row.get("inputTokens") or 0),
+                    "outputTokens": int(row.get("outputTokens") or 0),
+                    "cachedTokens": int(row.get("cachedTokens") or 0),
+                    "activeDiscounts": active_discounts,
+                    **pricing,
+                }
+            )
 
         platform_raw = sum(o["rawCostUsd"] for o in orgs)
         platform_billable = sum(o["billableUsd"] for o in orgs)
 
         return {
-            "orgs":          orgs,
-            "targetMargin":  target_margin,
+            "orgs": orgs,
+            "targetMargin": target_margin,
             "totals": {
-                "rawCostUsd":   round(platform_raw, 6),
-                "billableUsd":  round(platform_billable, 6),
-                "orgCount":     len(orgs),
+                "rawCostUsd": round(platform_raw, 6),
+                "billableUsd": round(platform_billable, 6),
+                "orgCount": len(orgs),
             },
         }
     finally:
@@ -211,6 +236,7 @@ def get_org_spend(
 
 
 # ── GET /pricing/orgs/{org_id}/discounts ─────────────────────────────────────
+
 
 @router.get("/orgs/{org_id}/discounts")
 def list_org_discounts(
@@ -228,6 +254,7 @@ def list_org_discounts(
 
 
 # ── POST /pricing/orgs/{org_id}/discounts ────────────────────────────────────
+
 
 @router.post("/orgs/{org_id}/discounts", status_code=201)
 def create_org_discount(
@@ -253,7 +280,10 @@ def create_org_discount(
             )
         logger.info(
             "OrgDiscount created: org=%s rate=%.0f%% type=%s by %s",
-            org_id, body.rate * 100, body.type, scope.email,
+            org_id,
+            body.rate * 100,
+            body.type,
+            scope.email,
         )
         return {"discountId": discount_id, "orgId": org_id, "status": "created"}
     finally:
@@ -262,10 +292,13 @@ def create_org_discount(
 
 # ── DELETE /pricing/discounts/{discount_id} ───────────────────────────────────
 
+
 @router.delete("/discounts/{discount_id}")
 def delete_org_discount(
     discount_id: str,
-    permanent: bool = Query(False, description="True = hard delete; False = deactivate only"),
+    permanent: bool = Query(
+        False, description="True = hard delete; False = deactivate only"
+    ),
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     _require_admin(scope)
@@ -278,7 +311,9 @@ def delete_org_discount(
                 if not deleted:
                     raise HTTPException(404, f"Discount {discount_id!r} not found")
             else:
-                result = s.run(DEACTIVATE_ORG_DISCOUNT, discount_id=discount_id).single()
+                result = s.run(
+                    DEACTIVATE_ORG_DISCOUNT, discount_id=discount_id
+                ).single()
                 if not result:
                     raise HTTPException(404, f"Discount {discount_id!r} not found")
         action = "deleted" if permanent else "deactivated"
@@ -289,6 +324,7 @@ def delete_org_discount(
 
 
 # ── GET /pricing/platform-spend ───────────────────────────────────────────────
+
 
 @router.get("/platform-spend")
 def get_platform_spend(
@@ -303,28 +339,34 @@ def get_platform_spend(
     kg = CodingGraphClient()
     try:
         with pg.session() as s:
-            rows = s.run(PLATFORM_SPEND_SUMMARY, from_date=from_date, to_date=to_date).data()
+            rows = s.run(
+                PLATFORM_SPEND_SUMMARY, from_date=from_date, to_date=to_date
+            ).data()
 
         target_margin = _get_margin(kg)
         total_raw = sum(float(r.get("rawCostUsd") or 0) for r in rows)
         result = []
         for row in rows:
             raw = float(row.get("rawCostUsd") or 0)
-            result.append({
-                "eventType":   row.get("eventType", ""),
-                "runCount":    int(row.get("runCount") or 0),
-                "inputTokens": int(row.get("inputTokens") or 0),
-                "outputTokens":int(row.get("outputTokens") or 0),
-                "cachedTokens":int(row.get("cachedTokens") or 0),
-                "rawCostUsd":  round(raw, 6),
-            })
+            result.append(
+                {
+                    "eventType": row.get("eventType", ""),
+                    "runCount": int(row.get("runCount") or 0),
+                    "inputTokens": int(row.get("inputTokens") or 0),
+                    "outputTokens": int(row.get("outputTokens") or 0),
+                    "cachedTokens": int(row.get("cachedTokens") or 0),
+                    "rawCostUsd": round(raw, 6),
+                }
+            )
 
         return {
-            "breakdown":    result,
+            "breakdown": result,
             "targetMargin": target_margin,
             "totals": {
-                "rawCostUsd":  round(total_raw, 6),
-                "listPriceUsd": round(total_raw / (1.0 - target_margin) if total_raw > 0 else 0, 6),
+                "rawCostUsd": round(total_raw, 6),
+                "listPriceUsd": round(
+                    total_raw / (1.0 - target_margin) if total_raw > 0 else 0, 6
+                ),
                 "note": "Platform spend is a cost-centre — not billed to tenants.",
             },
         }

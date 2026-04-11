@@ -98,7 +98,9 @@ def _parse_verification_json(raw: str) -> dict[str, Any]:
             parsed = json.loads(candidate)
             if isinstance(parsed, dict):
                 return parsed
-            raise ValueError(f"Verifier returned non-object JSON: {type(parsed).__name__}")
+            raise ValueError(
+                f"Verifier returned non-object JSON: {type(parsed).__name__}"
+            )
         except Exception:
             continue
 
@@ -237,8 +239,12 @@ def _build_verify_messages(
     return system_prompt, [{"role": "user", "content": user_content}]
 
 
-def _build_tool_result_block(tool_use_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    safe_text = sanitise_for_prompt(json.dumps(payload, ensure_ascii=True), max_chars=4000)
+def _build_tool_result_block(
+    tool_use_id: str, payload: dict[str, Any]
+) -> dict[str, Any]:
+    safe_text = sanitise_for_prompt(
+        json.dumps(payload, ensure_ascii=True), max_chars=4000
+    )
     return {
         "toolResult": {
             "toolUseId": tool_use_id,
@@ -247,7 +253,9 @@ def _build_tool_result_block(tool_use_id: str, payload: dict[str, Any]) -> dict[
     }
 
 
-def _execute_lookup_snomed(tool_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def _execute_lookup_snomed(
+    tool_input: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
     query = str(tool_input.get("query") or "").strip()
     expected_label = str(tool_input.get("expected_label") or "").strip() or None
     entity_index = tool_input.get("entity_index")
@@ -332,11 +340,17 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
                 assistant_content: list[dict[str, Any]] = []
                 if resp.text:
                     assistant_content.append({"text": resp.text})
-                assistant_content.extend({"toolUse": tool_use} for tool_use in resp.tool_uses)
+                assistant_content.extend(
+                    {"toolUse": tool_use} for tool_use in resp.tool_uses
+                )
                 messages.append({"role": "assistant", "content": assistant_content})
 
                 final_tool_use = next(
-                    (tool_use for tool_use in resp.tool_uses if tool_use.get("name") == "verification_result"),
+                    (
+                        tool_use
+                        for tool_use in resp.tool_uses
+                        if tool_use.get("name") == "verification_result"
+                    ),
                     None,
                 )
                 if final_tool_use is not None:
@@ -349,19 +363,28 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
                         tool_results.append(
                             _build_tool_result_block(
                                 str(tool_use.get("toolUseId") or ""),
-                                {"ok": False, "error": f"unsupported_tool:{tool_use.get('name')}"},
+                                {
+                                    "ok": False,
+                                    "error": f"unsupported_tool:{tool_use.get('name')}",
+                                },
                             )
                         )
                         continue
 
-                    payload, trace = _execute_lookup_snomed(tool_use.get("input", {}) or {})
+                    payload, trace = _execute_lookup_snomed(
+                        tool_use.get("input", {}) or {}
+                    )
                     tool_trace.append(trace)
                     tool_results.append(
-                        _build_tool_result_block(str(tool_use.get("toolUseId") or ""), payload)
+                        _build_tool_result_block(
+                            str(tool_use.get("toolUseId") or ""), payload
+                        )
                     )
 
                 if not tool_results:
-                    raise ValueError("Verifier returned tool_use without executable tool calls")
+                    raise ValueError(
+                        "Verifier returned tool_use without executable tool calls"
+                    )
                 messages.append({"role": "user", "content": tool_results})
                 continue
 
@@ -430,7 +453,9 @@ def evaluate_result(state: VerificationState) -> dict[str, Any]:
     retries_remaining = max(0, max_retries + 1 - len(attempts))
 
     strict_pass = is_accurate and confidence >= threshold
-    confidence_pass = (retries_remaining == 0) and (confidence >= threshold) and not strict_pass
+    confidence_pass = (
+        (retries_remaining == 0) and (confidence >= threshold) and not strict_pass
+    )
     passed = strict_pass or confidence_pass
 
     if confidence_pass:
@@ -516,7 +541,11 @@ def correct_entities(state: VerificationState) -> dict[str, Any]:
 
     if drop_indices:
         new_entities = [e for i, e in enumerate(new_entities) if i not in drop_indices]
-        logger.info("correct_entities: dropped %d entities, %d patched", len(drop_indices), patch_count)
+        logger.info(
+            "correct_entities: dropped %d entities, %d patched",
+            len(drop_indices),
+            patch_count,
+        )
     elif patch_count == 0:
         return {}
     else:

@@ -13,13 +13,16 @@ import hashlib, json
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_audit_record(event_type: str = "pipeline_step", pipeline_run_id: str = "run-001",
-                       user_id: str | None = None) -> dict:
+
+def _make_audit_record(
+    event_type: str = "pipeline_step",
+    pipeline_run_id: str = "run-001",
+    user_id: str | None = None,
+) -> dict:
     record = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "event_type": event_type,
@@ -28,13 +31,16 @@ def _make_audit_record(event_type: str = "pipeline_step", pipeline_run_id: str =
         "user_id": user_id,
         "org_id": "org-001",
     }
-    record["_hash"] = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()
+    record["_hash"] = hashlib.sha256(
+        json.dumps(record, sort_keys=True).encode()
+    ).hexdigest()
     return record
 
 
 # ---------------------------------------------------------------------------
 # VT-013-TC-001: Pipeline events emit audit records
 # ---------------------------------------------------------------------------
+
 
 class TestPipelineAuditRecords:
 
@@ -55,8 +61,10 @@ class TestPipelineAuditRecords:
     def test_multiple_step_events_produced(self):
         """Pipeline with three steps produces three step audit records."""
         steps = ["shortlisting", "entity_extraction", "coding_resolution"]
-        records = [_make_audit_record(event_type=f"step_complete", pipeline_run_id="run-001")
-                   for _ in steps]
+        records = [
+            _make_audit_record(event_type=f"step_complete", pipeline_run_id="run-001")
+            for _ in steps
+        ]
         assert len(records) == 3
         assert all(r["pipeline_run_id"] == "run-001" for r in records)
 
@@ -64,6 +72,7 @@ class TestPipelineAuditRecords:
 # ---------------------------------------------------------------------------
 # VT-013-TC-002: Review decisions include user identity
 # ---------------------------------------------------------------------------
+
 
 class TestReviewDecisionAudit:
 
@@ -88,6 +97,7 @@ class TestReviewDecisionAudit:
 # VT-013-TC-003: Audit records are append-only immutable
 # ---------------------------------------------------------------------------
 
+
 class TestAuditImmutability:
 
     def test_hash_changes_on_record_modification(self):
@@ -97,7 +107,9 @@ class TestAuditImmutability:
 
         record["event_type"] = "TAMPERED"
         new_hash = hashlib.sha256(
-            json.dumps({k: v for k, v in record.items() if k != "_hash"}, sort_keys=True).encode()
+            json.dumps(
+                {k: v for k, v in record.items() if k != "_hash"}, sort_keys=True
+            ).encode()
         ).hexdigest()
 
         assert new_hash != original_hash

@@ -25,8 +25,8 @@ from app.routers.nice_guidance import (
 )
 from app import deps
 
-
 # ── Test app setup ────────────────────────────────────────────────────────
+
 
 def _make_app() -> FastAPI:
     app = FastAPI()
@@ -44,20 +44,53 @@ def test_client():
 
 _CATALOGUE = [
     # Clinical guidelines (NG/CG) -- should rank above TAs for condition search
-    {"code": "NG12",  "title": "Suspected cancer: recognition, referral and early diagnosis", "type": "clinical-guideline"},
-    {"code": "NG151", "title": "Bowel cancer: diagnosis and management",                      "type": "clinical-guideline"},
-    {"code": "CG89",  "title": "Colorectal cancer: the diagnosis and management",             "type": "clinical-guideline"},
+    {
+        "code": "NG12",
+        "title": "Suspected cancer: recognition, referral and early diagnosis",
+        "type": "clinical-guideline",
+    },
+    {
+        "code": "NG151",
+        "title": "Bowel cancer: diagnosis and management",
+        "type": "clinical-guideline",
+    },
+    {
+        "code": "CG89",
+        "title": "Colorectal cancer: the diagnosis and management",
+        "type": "clinical-guideline",
+    },
     # Technology appraisals -- contain "cancer" but should rank below NG/CG
-    {"code": "TA563", "title": "Abemaciclib with an aromatase inhibitor for breast cancer",   "type": "technology-appraisal"},
-    {"code": "TA810", "title": "Abemaciclib with endocrine therapy for early breast cancer",  "type": "technology-appraisal"},
-    {"code": "TA579", "title": "Abemaciclib for hormone-receptor-positive breast cancer",     "type": "technology-appraisal"},
+    {
+        "code": "TA563",
+        "title": "Abemaciclib with an aromatase inhibitor for breast cancer",
+        "type": "technology-appraisal",
+    },
+    {
+        "code": "TA810",
+        "title": "Abemaciclib with endocrine therapy for early breast cancer",
+        "type": "technology-appraisal",
+    },
+    {
+        "code": "TA579",
+        "title": "Abemaciclib for hormone-receptor-positive breast cancer",
+        "type": "technology-appraisal",
+    },
     # Unrelated
-    {"code": "NG156", "title": "Abdominal aortic aneurysm: diagnosis and management",        "type": "clinical-guideline"},
-    {"code": "NG28",  "title": "Type 2 diabetes in adults: management",                       "type": "clinical-guideline"},
+    {
+        "code": "NG156",
+        "title": "Abdominal aortic aneurysm: diagnosis and management",
+        "type": "clinical-guideline",
+    },
+    {
+        "code": "NG28",
+        "title": "Type 2 diabetes in adults: management",
+        "type": "clinical-guideline",
+    },
 ]
 
 
 # ── _ranked_search unit tests ─────────────────────────────────────────────
+
 
 class TestRankedSearch:
     """Unit tests for the _ranked_search helper (no network, no Redis)."""
@@ -72,9 +105,9 @@ class TestRankedSearch:
 
         ng12_pos = codes.index("NG12")
         ta_pos = codes.index("TA563")
-        assert ng12_pos < ta_pos, (
-            f"NG12 (position {ng12_pos}) should rank above TA563 (position {ta_pos})"
-        )
+        assert (
+            ng12_pos < ta_pos
+        ), f"NG12 (position {ng12_pos}) should rank above TA563 (position {ta_pos})"
 
     def test_exact_code_match_is_first(self):
         """Exact code match (e.g. 'NG12') must always appear first."""
@@ -100,7 +133,7 @@ class TestRankedSearch:
         """Entries with no match to query are not returned."""
         results = _ranked_search(_CATALOGUE, "cancer")
         codes = [r["code"] for r in results]
-        assert "NG28" not in codes   # diabetes -- no cancer match
+        assert "NG28" not in codes  # diabetes -- no cancer match
         assert "NG156" not in codes  # aneurysm -- no cancer match
 
     def test_case_insensitive(self):
@@ -113,8 +146,12 @@ class TestRankedSearch:
         # Both queries are already lowercased as the caller would supply them
         results_bowel = _ranked_search(_CATALOGUE, "bowel")
         results_cancer = _ranked_search(_CATALOGUE, "cancer")
-        assert any(r["code"] == "NG151" for r in results_bowel), "Should match 'Bowel cancer' guideline"
-        assert any(r["code"] == "NG12" for r in results_cancer), "Should match 'Suspected cancer' guideline"
+        assert any(
+            r["code"] == "NG151" for r in results_bowel
+        ), "Should match 'Bowel cancer' guideline"
+        assert any(
+            r["code"] == "NG12" for r in results_cancer
+        ), "Should match 'Suspected cancer' guideline"
 
     def test_empty_catalogue_returns_empty(self):
         """Empty catalogue returns empty result without error."""
@@ -128,7 +165,11 @@ class TestRankedSearch:
     def test_limit_respected(self):
         """Result count never exceeds limit."""
         big_catalogue = [
-            {"code": f"NG{i}", "title": f"Cancer guideline {i}", "type": "clinical-guideline"}
+            {
+                "code": f"NG{i}",
+                "title": f"Cancer guideline {i}",
+                "type": "clinical-guideline",
+            }
             for i in range(1, 101)
         ]
         results = _ranked_search(big_catalogue, "cancer", limit=10)
@@ -137,19 +178,28 @@ class TestRankedSearch:
     def test_within_tier_sorted_alphabetically(self):
         """Within the same relevance tier, results are alphabetical by title."""
         results = _ranked_search(_CATALOGUE, "cancer")
-        ng_results = [r for r in results if r["code"].startswith("NG") or r["code"].startswith("CG")]
+        ng_results = [
+            r
+            for r in results
+            if r["code"].startswith("NG") or r["code"].startswith("CG")
+        ]
         titles = [r["title"] for r in ng_results]
-        assert titles == sorted(titles), "NG/CG results should be alphabetical within tier"
+        assert titles == sorted(
+            titles
+        ), "NG/CG results should be alphabetical within tier"
 
 
 # ── GET /nice/catalogue endpoint tests ───────────────────────────────────
+
 
 class TestGetCatalogueEndpoint:
     """Integration tests for the GET /nice/catalogue endpoint."""
 
     def test_empty_query_returns_cached_entries(self, test_client):
         """GET /nice/catalogue with no query returns from Redis cache."""
-        cached = [{"code": "NG12", "title": "Suspected cancer", "type": "clinical-guideline"}]
+        cached = [
+            {"code": "NG12", "title": "Suspected cancer", "type": "clinical-guideline"}
+        ]
 
         with patch("app.routers.nice_guidance.NiceApiClient") as mock_cls:
             mock_client = mock_cls.return_value
@@ -176,7 +226,9 @@ class TestGetCatalogueEndpoint:
 
     def test_cold_cache_falls_back_to_live_nice_api(self, test_client):
         """GET /nice/catalogue?q= calls live NICE API when Redis cache is empty."""
-        live_results = [{"code": "NG12", "title": "Suspected cancer", "type": "clinical-guideline"}]
+        live_results = [
+            {"code": "NG12", "title": "Suspected cancer", "type": "clinical-guideline"}
+        ]
 
         with patch("app.routers.nice_guidance.NiceApiClient") as mock_cls:
             mock_client = mock_cls.return_value
@@ -237,14 +289,26 @@ class TestGetTaxonomy:
 
     def test_returns_hierarchy_with_loaded_status(self, test_client):
         """Returns full category/subcategory tree with per-guideline loaded status."""
-        with patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls, \
-             patch("app.routers.nice_guidance.NiceApiClient") as nice_cls:
+        with (
+            patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls,
+            patch("app.routers.nice_guidance.NiceApiClient") as nice_cls,
+        ):
             neo = mock_cls.return_value
             neo.run.side_effect = [self._TAXONOMY_ROWS, self._LOADED_ROWS]
-            nice_cls.return_value.fetch_catalogue = AsyncMock(return_value=[
-                {"code": "NG12", "title": "Suspected cancer", "type": "clinical-guideline"},
-                {"code": "NG151", "title": "Bowel cancer", "type": "clinical-guideline"},
-            ])
+            nice_cls.return_value.fetch_catalogue = AsyncMock(
+                return_value=[
+                    {
+                        "code": "NG12",
+                        "title": "Suspected cancer",
+                        "type": "clinical-guideline",
+                    },
+                    {
+                        "code": "NG151",
+                        "title": "Bowel cancer",
+                        "type": "clinical-guideline",
+                    },
+                ]
+            )
             resp = test_client.get("/nice/taxonomy")
 
         assert resp.status_code == 200
@@ -268,8 +332,10 @@ class TestGetTaxonomy:
 
     def test_loaded_count_zero_when_none_imported(self, test_client):
         """loaded_count is 0 when no guidelines in the subcategory have been imported."""
-        with patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls, \
-             patch("app.routers.nice_guidance.NiceApiClient") as nice_cls:
+        with (
+            patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls,
+            patch("app.routers.nice_guidance.NiceApiClient") as nice_cls,
+        ):
             neo = mock_cls.return_value
             neo.run.side_effect = [self._TAXONOMY_ROWS, []]
             nice_cls.return_value.fetch_catalogue = AsyncMock(return_value=[])
@@ -281,11 +347,15 @@ class TestGetTaxonomy:
 
     def test_title_falls_back_to_code_when_catalogue_unavailable(self, test_client):
         """When Redis catalogue is unavailable, guideline title falls back to the code itself."""
-        with patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls, \
-             patch("app.routers.nice_guidance.NiceApiClient") as nice_cls:
+        with (
+            patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls,
+            patch("app.routers.nice_guidance.NiceApiClient") as nice_cls,
+        ):
             neo = mock_cls.return_value
             neo.run.side_effect = [self._TAXONOMY_ROWS, []]
-            nice_cls.return_value.fetch_catalogue = AsyncMock(side_effect=Exception("Redis down"))
+            nice_cls.return_value.fetch_catalogue = AsyncMock(
+                side_effect=Exception("Redis down")
+            )
             resp = test_client.get("/nice/taxonomy")
 
         assert resp.status_code == 200
@@ -296,8 +366,10 @@ class TestGetTaxonomy:
 
     def test_closes_neo4j_client_on_success(self, test_client):
         """CodingGraphClient.close() is called even on success."""
-        with patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls, \
-             patch("app.routers.nice_guidance.NiceApiClient") as nice_cls:
+        with (
+            patch("app.routers.nice_guidance.CodingGraphClient") as mock_cls,
+            patch("app.routers.nice_guidance.NiceApiClient") as nice_cls,
+        ):
             neo = mock_cls.return_value
             neo.run.side_effect = [self._TAXONOMY_ROWS, self._LOADED_ROWS]
             nice_cls.return_value.fetch_catalogue = AsyncMock(return_value=[])
@@ -344,13 +416,21 @@ class TestExtractRecommendationsFromSection:
 
     def test_extracts_two_articles(self):
         """Parser returns one dict per <article> element."""
-        section_json = {"Content": self._NG12_SECTION_HTML, "SectionId": "sec-1.1", "Title": "1.1"}
+        section_json = {
+            "Content": self._NG12_SECTION_HTML,
+            "SectionId": "sec-1.1",
+            "Title": "1.1",
+        }
         recs = _extract_recommendations_from_section(section_json, "NG12")
         assert len(recs) == 2
 
     def test_verbatim_text_is_full_paragraph(self):
         """The ``Text`` key contains the full clinical recommendation text (not just the heading)."""
-        section_json = {"Content": self._NG12_SECTION_HTML, "SectionId": "sec-1.1", "Title": "1.1"}
+        section_json = {
+            "Content": self._NG12_SECTION_HTML,
+            "SectionId": "sec-1.1",
+            "Title": "1.1",
+        }
         recs = _extract_recommendations_from_section(section_json, "NG12")
         assert "2-week-wait referral" in recs[0]["Text"]
         assert "aged 40 and over" in recs[0]["Text"]
@@ -395,7 +475,11 @@ class TestExtractRecommendationsFromSection:
         <article class="numbered-paragraph">
           <h5>3.1.1</h5><p>Refer patients immediately.</p>
         </article>"""
-        section_json = {"Content": html, "SectionId": "sec-3.1", "ChapterId": "api-chapter-3"}
+        section_json = {
+            "Content": html,
+            "SectionId": "sec-3.1",
+            "ChapterId": "api-chapter-3",
+        }
         recs = _extract_recommendations_from_section(
             section_json, "NG12", chapter_id="fallback-chapter"
         )
@@ -450,7 +534,10 @@ class TestCollectLeafItems:
                 {
                     "Title": "1.1 Lower GI cancers",  # section group -- no Text
                     "Items": [
-                        {"Title": "1.1.1", "Text": "Refer for suspected colorectal cancer."},
+                        {
+                            "Title": "1.1.1",
+                            "Text": "Refer for suspected colorectal cancer.",
+                        },
                         {"Title": "1.1.2", "Text": "Consider FIT test."},
                     ],
                 }

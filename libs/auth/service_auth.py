@@ -7,6 +7,7 @@ as a second layer behind ACA internal network segmentation.
 The secret is read from SERVICE_AUTH_SECRET env var (populated from Key Vault).
 When SERVICE_AUTH_SECRET is not set the check is bypassed to allow local dev.
 """
+
 from __future__ import annotations
 
 import hmac

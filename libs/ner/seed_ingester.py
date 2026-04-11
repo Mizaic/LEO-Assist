@@ -27,6 +27,7 @@ Usage
     # result.kept_records   → records to add to corpus
     # result.audit_block    → dict for manifest.json seed_merge section
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -61,7 +62,6 @@ def _dedupe_key(record: dict[str, Any]) -> str:
 
 
 import re  # noqa: E402  (needed above — re-import here for module-level use)
-
 
 # ---------------------------------------------------------------------------
 # Validation helpers
@@ -150,7 +150,9 @@ class SeedIngestResult:
             "kept": self.kept,
             "deduped": self.deduped,
             "rejected": self.rejected,
-            "reason_counts": dict(sorted(self.reason_counts.items(), key=lambda x: -x[1])),
+            "reason_counts": dict(
+                sorted(self.reason_counts.items(), key=lambda x: -x[1])
+            ),
         }
 
     def _add_reason(self, reason: str) -> None:
@@ -202,7 +204,13 @@ class SeedIngester:
                     logger.warning("Seed line %d JSON parse error: %s", line_no, exc)
                     result.rejected += 1
                     result._add_reason("json_parse_error")
-                    result.rejected_records.append({"line": line_no, "reasons": ["json_parse_error"], "raw": line[:200]})
+                    result.rejected_records.append(
+                        {
+                            "line": line_no,
+                            "reasons": ["json_parse_error"],
+                            "raw": line[:200],
+                        }
+                    )
                     continue
 
                 # Tag provenance
@@ -216,23 +224,31 @@ class SeedIngester:
                 deid_reasons = _validate_deid(record)
                 sanity_reasons = _validate_clinical_sanity(record)
 
-                all_reasons = schema_reasons + entity_reasons + deid_reasons + sanity_reasons
+                all_reasons = (
+                    schema_reasons + entity_reasons + deid_reasons + sanity_reasons
+                )
                 if all_reasons:
                     result.rejected += 1
                     for r in all_reasons:
                         result._add_reason(r)
-                    result.rejected_records.append({
-                        "document_id": record.get("document_id"),
-                        "line": line_no,
-                        "reasons": all_reasons,
-                    })
+                    result.rejected_records.append(
+                        {
+                            "document_id": record.get("document_id"),
+                            "line": line_no,
+                            "reasons": all_reasons,
+                        }
+                    )
                     continue
 
                 # Dedupe check
                 dk = _dedupe_key(record)
                 if dk in existing_keys or dk in seen_in_seed:
                     result.deduped += 1
-                    result._add_reason("deduplicated_against_corpus" if dk in existing_keys else "deduplicated_within_seed")
+                    result._add_reason(
+                        "deduplicated_against_corpus"
+                        if dk in existing_keys
+                        else "deduplicated_within_seed"
+                    )
                     continue
 
                 seen_in_seed.add(dk)

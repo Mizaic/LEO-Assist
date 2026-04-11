@@ -8,14 +8,18 @@ Recs covered:
   CH003 all 21 (1.14.x, 1.15.x, 1.16.x)
   CH002: 1.3.4, 1.5.4, 1.7.7
 """
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
@@ -25,17 +29,27 @@ kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 PROCESS_REC_IDS = [
     # CH003 - communication, information, safety netting, referral process
-    "NG12:v1:CH003:SEC000:R000", "NG12:v1:CH003:SEC000:R001",
-    "NG12:v1:CH003:SEC000:R002", "NG12:v1:CH003:SEC000:R003",
-    "NG12:v1:CH003:SEC000:R004", "NG12:v1:CH003:SEC000:R005",
-    "NG12:v1:CH003:SEC000:R006", "NG12:v1:CH003:SEC000:R007",
-    "NG12:v1:CH003:SEC000:R008", "NG12:v1:CH003:SEC000:R009",
+    "NG12:v1:CH003:SEC000:R000",
+    "NG12:v1:CH003:SEC000:R001",
+    "NG12:v1:CH003:SEC000:R002",
+    "NG12:v1:CH003:SEC000:R003",
+    "NG12:v1:CH003:SEC000:R004",
+    "NG12:v1:CH003:SEC000:R005",
+    "NG12:v1:CH003:SEC000:R006",
+    "NG12:v1:CH003:SEC000:R007",
+    "NG12:v1:CH003:SEC000:R008",
+    "NG12:v1:CH003:SEC000:R009",
     "NG12:v1:CH003:SEC000:R010",
-    "NG12:v1:CH003:SEC001:R000", "NG12:v1:CH003:SEC001:R001",
-    "NG12:v1:CH003:SEC002:R000", "NG12:v1:CH003:SEC002:R001",
-    "NG12:v1:CH003:SEC002:R002", "NG12:v1:CH003:SEC002:R003",
-    "NG12:v1:CH003:SEC002:R004", "NG12:v1:CH003:SEC002:R005",
-    "NG12:v1:CH003:SEC002:R006", "NG12:v1:CH003:SEC002:R007",
+    "NG12:v1:CH003:SEC001:R000",
+    "NG12:v1:CH003:SEC001:R001",
+    "NG12:v1:CH003:SEC002:R000",
+    "NG12:v1:CH003:SEC002:R001",
+    "NG12:v1:CH003:SEC002:R002",
+    "NG12:v1:CH003:SEC002:R003",
+    "NG12:v1:CH003:SEC002:R004",
+    "NG12:v1:CH003:SEC002:R005",
+    "NG12:v1:CH003:SEC002:R006",
+    "NG12:v1:CH003:SEC002:R007",
     # CH002 process recs
     "NG12:v1:CH002:SEC002:R003",  # 1.3.4 "consider if people need help to return sample"
     "NG12:v1:CH002:SEC004:R003",  # 1.5.4 "advise woman to return to GP if symptoms worsen"

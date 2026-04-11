@@ -10,6 +10,7 @@ Then:
     python scripts/investigations/audit_encounter_coding.py --yes --resume \
         --output scripts/investigations/encounter_audit_v2
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -50,15 +51,17 @@ def main() -> None:
     from scripts.investigations._audit_db import CheckpointDB
 
     dst = CheckpointDB(DST_DB)
-    inserted = dst.insert_encounters([
-        {
-            "encounter_id": r["encounter_id"],
-            "patient_id": r["patient_id"],
-            "date": r["date"],
-            "text_len": r["text_len"],
-        }
-        for r in rows
-    ])
+    inserted = dst.insert_encounters(
+        [
+            {
+                "encounter_id": r["encounter_id"],
+                "patient_id": r["patient_id"],
+                "date": r["date"],
+                "text_len": r["text_len"],
+            }
+            for r in rows
+        ]
+    )
     dst.close()
 
     print(f"Inserted: {inserted} new rows (0 = all already existed)")

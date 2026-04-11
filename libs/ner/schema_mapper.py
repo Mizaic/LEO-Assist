@@ -15,6 +15,7 @@ Entity labels are validated against VALID_LABELS.  Offsets are verified so
 that text[start:end] == entity.text.  Malformed records are returned as
 rejected items with structured reasons.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -139,6 +140,7 @@ VALID_RELATION_TYPES: frozenset[str] = frozenset(
 # Deterministic ID helpers
 # ---------------------------------------------------------------------------
 
+
 def _stable_document_id(encounter_id: str, sentence_id: str) -> str:
     """SHA-256 truncated to 16 hex chars, prefixed with 'doc_'."""
     raw = f"{encounter_id}|{sentence_id}"
@@ -152,7 +154,9 @@ def _stable_entity_id(document_id: str, start: int, end: int, label: str) -> str
     return f"e_{digest}"
 
 
-def _stable_relation_id(document_id: str, head_id: str, tail_id: str, rel_type: str) -> str:
+def _stable_relation_id(
+    document_id: str, head_id: str, tail_id: str, rel_type: str
+) -> str:
     raw = f"{document_id}|{head_id}|{tail_id}|{rel_type}"
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:10]
     return f"r_{digest}"
@@ -161,6 +165,7 @@ def _stable_relation_id(document_id: str, head_id: str, tail_id: str, rel_type: 
 # ---------------------------------------------------------------------------
 # Label normalisation
 # ---------------------------------------------------------------------------
+
 
 def normalise_label(raw_label: str | None) -> str | None:
     """Return canonical label or None if unrecognised."""
@@ -182,18 +187,22 @@ def normalise_label(raw_label: str | None) -> str | None:
 # Offset verification
 # ---------------------------------------------------------------------------
 
+
 def _verify_offset(text: str, start: int, end: int, entity_text: str) -> bool:
     """Return True iff text[start:end] matches entity_text (whitespace-normalised)."""
     if start < 0 or end > len(text) or start >= end:
         return False
     span = text[start:end]
     # Accept exact match or single-space-collapsed match
-    return span == entity_text or re.sub(r"\s+", " ", span) == re.sub(r"\s+", " ", entity_text)
+    return span == entity_text or re.sub(r"\s+", " ", span) == re.sub(
+        r"\s+", " ", entity_text
+    )
 
 
 # ---------------------------------------------------------------------------
 # Entity mapper
 # ---------------------------------------------------------------------------
+
 
 def _map_entity(
     raw_entity: dict[str, Any],
@@ -225,7 +234,9 @@ def _map_entity(
             start = found_idx
             end = found_idx + len(entity_text)
         else:
-            reasons.append(f"offset_mismatch|expected={repr(entity_text)}|got={repr(text[start:end])}")
+            reasons.append(
+                f"offset_mismatch|expected={repr(entity_text)}|got={repr(text[start:end])}"
+            )
             return None, reasons
 
     raw_label = (
@@ -244,12 +255,22 @@ def _map_entity(
 
     assertion = raw_entity.get("assertion", "present")
     if assertion not in (
-        "present", "absent", "refuted", "possible", "historical",
-        "planned", "hypothetical", "family", "declined", "cancelled",
+        "present",
+        "absent",
+        "refuted",
+        "possible",
+        "historical",
+        "planned",
+        "hypothetical",
+        "family",
+        "declined",
+        "cancelled",
     ):
         assertion = "present"
 
-    eid = raw_entity.get("entity_id") or _stable_entity_id(document_id, start, end, label)
+    eid = raw_entity.get("entity_id") or _stable_entity_id(
+        document_id, start, end, label
+    )
 
     snomed = raw_entity.get("snomed_id") or raw_entity.get("snomed_code")
     snomed_term = raw_entity.get("snomed_term") or raw_entity.get("preferred_term")
@@ -270,7 +291,9 @@ def _map_entity(
         "text": entity_text,
         "label": label,
         "assertion": assertion,
-        "confidence": float(raw_entity.get("confidence") or raw_entity.get("resolver_score") or 0.0),
+        "confidence": float(
+            raw_entity.get("confidence") or raw_entity.get("resolver_score") or 0.0
+        ),
     }
     if normalised_code:
         entity["normalised_code"] = normalised_code
@@ -297,6 +320,7 @@ def _map_entity(
 # Relation mapper
 # ---------------------------------------------------------------------------
 
+
 def _map_relation(
     raw_rel: dict[str, Any],
     entity_id_set: set[str],
@@ -318,13 +342,16 @@ def _map_relation(
         reasons.append(f"tail_entity_not_found|{tail!r}")
         return None, reasons
 
-    rid = raw_rel.get("relation_id") or _stable_relation_id(document_id, head, tail, rel_type)
+    rid = raw_rel.get("relation_id") or _stable_relation_id(
+        document_id, head, tail, rel_type
+    )
     return {"relation_id": rid, "type": rel_type, "head": head, "tail": tail}, []
 
 
 # ---------------------------------------------------------------------------
 # Full record mapper
 # ---------------------------------------------------------------------------
+
 
 def map_raw_record(
     raw: dict[str, Any],
@@ -339,18 +366,16 @@ def map_raw_record(
     reasons: list[str] = []
 
     # Support both sentence-level records (mine_all_domains) and doc-level (seed)
-    text = (
-        raw.get("text")
-        or raw.get("sentence_text")
-        or ""
-    ).strip()
+    text = (raw.get("text") or raw.get("sentence_text") or "").strip()
     if not text:
         reasons.append("empty_text")
         return None, reasons
 
     encounter_id = str(raw.get("encounter_id") or raw.get("document_id") or "")
     sentence_id = str(raw.get("sentence_id") or "s0")
-    document_id = raw.get("document_id") or _stable_document_id(encounter_id, sentence_id)
+    document_id = raw.get("document_id") or _stable_document_id(
+        encounter_id, sentence_id
+    )
 
     raw_entities: list[dict[str, Any]] = raw.get("entities") or []
     mapped_entities: list[dict[str, Any]] = []
@@ -409,6 +434,7 @@ def map_raw_record(
 # ---------------------------------------------------------------------------
 # Batch helpers
 # ---------------------------------------------------------------------------
+
 
 def map_records_batch(
     raw_records: list[dict[str, Any]],

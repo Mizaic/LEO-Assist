@@ -32,7 +32,9 @@ from libs.auth.org_scope import CallerScope
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guidance", tags=["guidance-rules"])
-PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip("/")
+PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip(
+    "/"
+)
 
 
 def get_registry():
@@ -62,7 +64,10 @@ async def _proxy_pipeline_worker_json(
     try:
         return resp.json()
     except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Pipeline worker returned invalid JSON") from exc
+        raise HTTPException(
+            status_code=502, detail="Pipeline worker returned invalid JSON"
+        ) from exc
+
 
 _FETCH_RULES = """
 MATCH (rule:AppropriatenessRule)
@@ -333,11 +338,11 @@ async def test_rule_extraction(
 
     row = rows[0]
     rec = {
-        "id":            row["id"],
-        "verbatim":      row.get("verbatim", ""),
-        "title":         row.get("title", ""),
-        "urgency":       row.get("urgency", ""),
-        "strength":      row.get("strength", ""),
+        "id": row["id"],
+        "verbatim": row.get("verbatim", ""),
+        "title": row.get("title", ""),
+        "urgency": row.get("urgency", ""),
+        "strength": row.get("strength", ""),
         "section_title": row.get("section_title", ""),
         "chapter_title": row.get("chapter_title", ""),
     }
@@ -367,17 +372,20 @@ async def test_rule_extraction(
         result = await asyncio.wait_for(
             loop.run_in_executor(
                 None,
-                lambda: subgraph.invoke({
-                    "recommendation": rec,
-                    "guideline_id": guideline_id,
-                }),
+                lambda: subgraph.invoke(
+                    {
+                        "recommendation": rec,
+                        "guideline_id": guideline_id,
+                    }
+                ),
             ),
             timeout=float(_EXTRACTION_TIMEOUT_S),
         )
     except asyncio.TimeoutError:
         logger.error(
             "Rule extraction test timed out after %ss for %s",
-            _EXTRACTION_TIMEOUT_S, recommendation_id,
+            _EXTRACTION_TIMEOUT_S,
+            recommendation_id,
         )
         raise HTTPException(
             status_code=504,
@@ -398,32 +406,34 @@ async def test_rule_extraction(
     response_body = {
         "recommendation": {
             **rec,
-            "guideline_id":    guideline_id,
+            "guideline_id": guideline_id,
             "guideline_title": row.get("guideline_title", ""),
         },
-        "raw_criteria":   raw,
+        "raw_criteria": raw,
         "coded_criteria": coded,
-        "errors":         errors,
+        "errors": errors,
         # LLM token usage for this dry run (all consensus calls combined).
-        "llm_tokens":     llm_tokens,
+        "llm_tokens": llm_tokens,
         # Indicates whether this result would be written to Neo4j by the rule
         # generator.  False when any term failed to SNOMED-code (partial results).
-        "would_write":    coded is not None and not any(
-            "terminology_api_unavailable" in e for e in errors
-        ) and not bool((coded or {}).get("no_rule_expected")),
+        "would_write": coded is not None
+        and not any("terminology_api_unavailable" in e for e in errors)
+        and not bool((coded or {}).get("no_rule_expected")),
     }
 
     if coded is None:
         if errors:
             logger.warning(
                 "Rule extraction test returned warnings for %s without coded output: %s",
-                recommendation_id, errors,
+                recommendation_id,
+                errors,
             )
             return response_body
         # Pipeline produced no coded output at all — hard failure.
         logger.error(
             "Rule extraction test FAILED for %s — coded_criteria is None. Errors: %s",
-            recommendation_id, errors,
+            recommendation_id,
+            errors,
         )
         return JSONResponse(status_code=422, content=response_body)
 
@@ -433,7 +443,8 @@ async def test_rule_extraction(
         # can show what DID get coded plus highlight the failures.
         logger.warning(
             "Rule extraction test PARTIAL for %s — coded_criteria returned with warnings: %s",
-            recommendation_id, errors,
+            recommendation_id,
+            errors,
         )
 
     return response_body
@@ -551,11 +562,19 @@ def get_rule_diff(
         if not pred_id:
             return {"has_predecessor": False}
 
-        pred_logic_tree = _parse_logic_json(row.get("predecessor_logic_json")) if int(row.get("predecessor_schema_version") or 1) == 2 else None
+        pred_logic_tree = (
+            _parse_logic_json(row.get("predecessor_logic_json"))
+            if int(row.get("predecessor_schema_version") or 1) == 2
+            else None
+        )
         pred_criteria_raw = (
             _logic_tree_concepts(pred_logic_tree)
             if pred_logic_tree is not None
-            else [c for c in (row.get("predecessor_criteria") or []) if c.get("concept_id")]
+            else [
+                c
+                for c in (row.get("predecessor_criteria") or [])
+                if c.get("concept_id")
+            ]
         )
         pred_present = [c for c in pred_criteria_raw if c.get("predicate") == "PRESENT"]
         pred_absent = [c for c in pred_criteria_raw if c.get("predicate") == "ABSENT"]
@@ -581,7 +600,11 @@ def get_rule_diff(
                 "recommendation_number": row.get("predecessor_recommendation_number"),
                 "superseded_at": str(row.get("superseded_at", "")),
                 "schema_version": int(row.get("predecessor_schema_version") or 1),
-                "plain_english": _plain_english_logic(pred_logic_tree) if pred_logic_tree is not None else _plain_english_criteria(pred_present, pred_absent),
+                "plain_english": (
+                    _plain_english_logic(pred_logic_tree)
+                    if pred_logic_tree is not None
+                    else _plain_english_criteria(pred_present, pred_absent)
+                ),
                 "present_criteria": pred_present,
                 "absent_criteria": pred_absent,
                 "logic_tree": pred_logic_tree,
@@ -633,7 +656,9 @@ def decide_rule(
 @router.post("/rules/review/{rule_id}/promote-to-domain")
 def promote_rule_to_domain(
     rule_id: str,
-    reviewer: str = Query(..., min_length=2, description="Email of the admin promoting this rule"),
+    reviewer: str = Query(
+        ..., min_length=2, description="Email of the admin promoting this rule"
+    ),
     scope: CallerScope = Depends(require_admin),
 ) -> dict:
     """Add the SNOMED codes from an approved rule into its NICE domain.
@@ -676,7 +701,11 @@ def promote_rule_to_domain(
                 ),
             )
 
-        logic_tree = _parse_logic_json(row.get("logic_json")) if int(row.get("schema_version") or 1) == 2 else None
+        logic_tree = (
+            _parse_logic_json(row.get("logic_json"))
+            if int(row.get("schema_version") or 1) == 2
+            else None
+        )
         concepts = (
             _logic_tree_concepts(logic_tree)
             if logic_tree is not None
@@ -734,9 +763,7 @@ def approve_all_rules(
     """
     client = _kg_client()
     try:
-        pending = client.run(
-            _FETCH_PENDING_IDS, guideline_id=guideline_id
-        )
+        pending = client.run(_FETCH_PENDING_IDS, guideline_id=guideline_id)
         approved = []
         for row in pending:
             rid = row["rule_id"]
@@ -755,9 +782,7 @@ def approve_all_rules(
         client.close()
 
 
-def _compute_diff(
-    new_criteria: list[dict], pred_criteria: list[dict]
-) -> dict:
+def _compute_diff(new_criteria: list[dict], pred_criteria: list[dict]) -> dict:
     """Compute what changed between new rule criteria and its predecessor's.
 
     Matches on (predicate, concept_id) pairs. Terms whose concept_id is None
@@ -767,6 +792,7 @@ def _compute_diff(
         Dict with ``added``, ``removed``, and ``unchanged`` lists, each
         containing criterion dicts.
     """
+
     def _key(c: dict) -> tuple:
         return (c.get("predicate", ""), c.get("concept_id", ""))
 
@@ -777,9 +803,9 @@ def _compute_diff(
     pred_keys = {_key(c) for c in valid_pred}
 
     return {
-        "added":     [c for c in valid_new  if _key(c) not in pred_keys],
-        "removed":   [c for c in valid_pred if _key(c) not in new_keys],
-        "unchanged": [c for c in valid_new  if _key(c) in pred_keys],
+        "added": [c for c in valid_new if _key(c) not in pred_keys],
+        "removed": [c for c in valid_pred if _key(c) not in new_keys],
+        "unchanged": [c for c in valid_new if _key(c) in pred_keys],
     }
 
 
@@ -817,9 +843,7 @@ def _format_rule(r: dict) -> dict:
     }
 
 
-def _plain_english_criteria(
-    present: list[dict], absent: list[dict]
-) -> str:
+def _plain_english_criteria(present: list[dict], absent: list[dict]) -> str:
     """Return a plain-English description of rule criteria.
 
     Designed for reading age 11.
@@ -855,11 +879,15 @@ def _logic_tree_concepts(node: dict | None) -> list[dict]:
         concept_id = criterion.get("snomed_concept_id")
         if not concept_id:
             return []
-        return [{
-            "predicate": "LOGIC",
-            "concept_id": concept_id,
-            "preferred_term": criterion.get("preferred_term") or criterion.get("term") or concept_id,
-        }]
+        return [
+            {
+                "predicate": "LOGIC",
+                "concept_id": concept_id,
+                "preferred_term": criterion.get("preferred_term")
+                or criterion.get("term")
+                or concept_id,
+            }
+        ]
     items: list[dict] = []
     for child in node.get("children") or []:
         if isinstance(child, dict):
@@ -885,7 +913,11 @@ def _logic_node_to_text(node: dict) -> str:
     kind = str(node.get("kind") or "").upper()
     if kind == "CONCEPT":
         criterion = dict(node.get("criterion") or {})
-        return str(criterion.get("preferred_term") or criterion.get("term") or "unknown concept")
+        return str(
+            criterion.get("preferred_term")
+            or criterion.get("term")
+            or "unknown concept"
+        )
     if kind == "DEMOGRAPHIC":
         field = node.get("field")
         operator = node.get("operator")
@@ -893,7 +925,11 @@ def _logic_node_to_text(node: dict) -> str:
         unit = node.get("unit")
         suffix = f" {unit}" if unit else ""
         return f"{field} {operator} {value}{suffix}".strip()
-    child_texts = [_logic_node_to_text(child) for child in (node.get("children") or []) if isinstance(child, dict)]
+    child_texts = [
+        _logic_node_to_text(child)
+        for child in (node.get("children") or [])
+        if isinstance(child, dict)
+    ]
     if not child_texts:
         return "unknown condition"
     if kind == "AND":
@@ -905,5 +941,3 @@ def _logic_node_to_text(node: dict) -> str:
     if kind == "AT_LEAST":
         return f"at least {int(node.get('min') or 1)} of: " + ", ".join(child_texts)
     return "unknown condition"
-
-

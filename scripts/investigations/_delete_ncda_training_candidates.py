@@ -37,17 +37,14 @@ def main() -> None:
     try:
         with client.session() as s:
             q_count = (
-                "MATCH (c:TrainingCandidate {source: $src}) "
-                "RETURN count(c) AS n"
+                "MATCH (c:TrainingCandidate {source: $src}) " "RETURN count(c) AS n"
             )
             row = s.run(q_count, src="NCDA").single()
             n = int(row["n"]) if row else 0
             print(f"TrainingCandidate source=NCDA count: {n}")
             if args.dry_run or n == 0:
                 return
-            q_del = (
-                "MATCH (c:TrainingCandidate {source: $src}) DETACH DELETE c"
-            )
+            q_del = "MATCH (c:TrainingCandidate {source: $src}) DETACH DELETE c"
             s.run(q_del, src="NCDA")
             print("Deleted.")
     finally:

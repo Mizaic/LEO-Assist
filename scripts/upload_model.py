@@ -38,10 +38,15 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Upload trained NER model to blob store")
-    parser.add_argument("--version", required=True, help="Model version string e.g. 1.3")
+    parser = argparse.ArgumentParser(
+        description="Upload trained NER model to blob store"
+    )
     parser.add_argument(
-        "--model-dir", required=True,
+        "--version", required=True, help="Model version string e.g. 1.3"
+    )
+    parser.add_argument(
+        "--model-dir",
+        required=True,
         help="Local path to trained spaCy model directory",
     )
     parser.add_argument("--schema-version", default="1.0")
@@ -55,11 +60,15 @@ def main() -> int:
         help="Path to training manifest.json for compatibility gate check",
     )
     parser.add_argument(
-        "--offline-precision", type=float, default=None,
+        "--offline-precision",
+        type=float,
+        default=None,
         help="Offline eval precision (0-1). If provided, runs offline validation.",
     )
     parser.add_argument(
-        "--offline-recall", type=float, default=None,
+        "--offline-recall",
+        type=float,
+        default=None,
         help="Offline eval recall (0-1). If provided, runs offline validation.",
     )
     args = parser.parse_args()
@@ -137,7 +146,9 @@ def main() -> int:
         )
         logger.info(
             "Offline validation: status=%s (P=%.3f R=%.3f)",
-            rec.status, args.offline_precision, args.offline_recall,
+            rec.status,
+            args.offline_precision,
+            args.offline_recall,
         )
         if rec.status != "offline_validated":
             logger.warning(
@@ -148,7 +159,8 @@ def main() -> int:
     logger.info(
         "Upload complete. Next step: run ModelRegistry.start_canary('%s') "
         "and then ModelRegistry.promote('%s') after canary KPIs pass.",
-        args.version, args.version,
+        args.version,
+        args.version,
     )
     return 0
 

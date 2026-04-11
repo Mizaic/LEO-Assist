@@ -26,6 +26,7 @@ Usage
     python scripts/audit_cancer_status.py --output cancer_audit.csv
     python scripts/audit_cancer_status.py --fix-dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -154,6 +155,7 @@ ORDER BY patient_id
 # Data loading helpers
 # ------------------------------------------------------------------
 
+
 def _load_all_patients(session) -> list[str]:
     rows = session.run(_Q_ALL_PATIENTS)
     return [r["patient_id"] for r in rows]
@@ -195,9 +197,7 @@ def _load_legacy_episodes(session) -> set[str]:
     return {r["patient_id"] for r in rows}
 
 
-def _load_situation_patients(
-    session, query: str, ids: list[str]
-) -> set[str]:
+def _load_situation_patients(session, query: str, ids: list[str]) -> set[str]:
     """Return patient IDs that have any of the given concept IDs in DOCUMENTS.
 
     Uses toString(d.conceptId) to handle both integer and string storage,
@@ -212,9 +212,11 @@ def _load_situation_patients(
 # Assertion parsing
 # ------------------------------------------------------------------
 
+
 def _parse_assertion(context_json: str) -> str:
     """Extract assertion value from the JSON stored in r.context."""
     import json
+
     try:
         ctx = json.loads(context_json or "{}")
     except (ValueError, TypeError):
@@ -231,6 +233,7 @@ def _parse_assertion(context_json: str) -> str:
 # ------------------------------------------------------------------
 # Per-patient analysis
 # ------------------------------------------------------------------
+
 
 def _analyse_patient(
     patient_id: str,
@@ -265,7 +268,8 @@ def _analyse_patient(
 
     # -- Episode-level state --
     episodes_missing_status = [
-        ep for ep in episodes
+        ep
+        for ep in episodes
         if not ep.get("exclusion_outcome") and not ep.get("status")
     ]
 
@@ -284,14 +288,10 @@ def _analyse_patient(
 
     # DQ-3: EpisodeOfCare exists but lacks exclusion_outcome
     if episodes_missing_status:
-        issues.append(
-            f"DQ-3:episode_missing_status({len(episodes_missing_status)} ep)"
-        )
+        issues.append(f"DQ-3:episode_missing_status({len(episodes_missing_status)} ep)")
 
     # DQ-4: confirmed cancer diagnosis AND excluded episode (contradictory)
-    has_confirmed_ep = any(
-        ep.get("exclusion_outcome") == "excluded" for ep in episodes
-    )
+    has_confirmed_ep = any(ep.get("exclusion_outcome") == "excluded" for ep in episodes)
     if has_cancer_present and has_confirmed_ep:
         issues.append("DQ-4:cancer_present_and_episode_excluded")
 
@@ -302,9 +302,7 @@ def _analyse_patient(
     # DQ-6: same concept coded both present and excluded
     overlap = present_concepts & excluded_concepts
     if overlap:
-        issues.append(
-            f"DQ-6:conflicting_assertions({len(overlap)} concept(s))"
-        )
+        issues.append(f"DQ-6:conflicting_assertions({len(overlap)} concept(s))")
 
     # DQ-7: suspected cancer situation coded but no diagnosis and no exclusion
     # (patient is still mid-pathway with no recorded outcome)
@@ -323,10 +321,7 @@ def _analyse_patient(
         or ep.get("status") == "confirmed"
         for ep in episodes
     )
-    episode_excluded = any(
-        ep.get("exclusion_outcome") == "excluded"
-        for ep in episodes
-    )
+    episode_excluded = any(ep.get("exclusion_outcome") == "excluded" for ep in episodes)
 
     if has_cancer_present or has_history_situation or episode_confirmed:
         cancer_status = "cancer_diagnosis"
@@ -359,6 +354,7 @@ def _analyse_patient(
 # ------------------------------------------------------------------
 # Summary reporting
 # ------------------------------------------------------------------
+
 
 def _print_summary(rows: list[dict]) -> None:
     total = len(rows)
@@ -405,6 +401,7 @@ def _write_csv(rows: list[dict], path: str) -> None:
 # Main
 # ------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Audit cancer diagnosis and exclusion data quality"
@@ -439,6 +436,7 @@ def main() -> None:
         sys.exit(1)
 
     from neo4j import GraphDatabase
+
     driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
     logger.info("Connecting to %s", neo4j_uri)

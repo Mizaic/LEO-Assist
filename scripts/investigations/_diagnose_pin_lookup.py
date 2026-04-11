@@ -5,14 +5,18 @@ Checks:
   2. Does the SurfaceForm -> Concept edge exist?
   3. What does a direct /resolve API call return for our pinned terms?
 """
+
 import asyncio, os, sys, json
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 import httpx
@@ -70,7 +74,9 @@ for check in CHECKS:
     with driver.session() as s:
         row = s.run(CONCEPT_CHECK, cid=check["concept_id"]).single()
     if row:
-        print(f"  Concept node: id={row['cid']} active={row['active']} tag={row['tag']}")
+        print(
+            f"  Concept node: id={row['cid']} active={row['active']} tag={row['tag']}"
+        )
         print(f"    fsn: {row['fsn']}")
     else:
         print(f"  Concept node: NOT FOUND in graph")
@@ -85,8 +91,10 @@ for check in CHECKS:
                 for row in rows:
                     hit = "TARGET" if row["cid"] == check["concept_id"] else "OTHER"
                     print(f"  SF [{hit}] {norm!r}")
-                    print(f"         -> {row['cid']} active={row['active']} "
-                          f"conf={row['conf']} pinned={row['pinned']}")
+                    print(
+                        f"         -> {row['cid']} active={row['active']} "
+                        f"conf={row['conf']} pinned={row['pinned']}"
+                    )
             else:
                 print(f"  SF [MISS] {norm!r} -> no SurfaceForm node found")
 
@@ -107,9 +115,15 @@ for check in CHECKS:
                 flag = "FOUND" if found_target else "MISS "
                 print(f"  API [{flag}] resolve({term!r})")
                 for r in results[:5]:
-                    marker = " <-- TARGET" if r.get("concept_id") == check["concept_id"] else ""
-                    print(f"         {r.get('concept_id')} | {r.get('fsn','?')[:60]} "
-                          f"score={r.get('score',0):.3f}{marker}")
+                    marker = (
+                        " <-- TARGET"
+                        if r.get("concept_id") == check["concept_id"]
+                        else ""
+                    )
+                    print(
+                        f"         {r.get('concept_id')} | {r.get('fsn','?')[:60]} "
+                        f"score={r.get('score',0):.3f}{marker}"
+                    )
             else:
                 print(f"  API [ERR ] {resp.status_code} for {term!r}")
         except Exception as e:

@@ -12,10 +12,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # VT-010-TC-001: Proposals displayed with source text and context metadata
 # ---------------------------------------------------------------------------
+
 
 class TestProposalDisplay:
 
@@ -40,7 +40,11 @@ class TestProposalDisplay:
     def test_proposal_payload_has_context_flags(self):
         """Context flags (negation, family history) are present."""
         proposal = {
-            "context_flags": {"negated": False, "family_history": True, "past_history": False}
+            "context_flags": {
+                "negated": False,
+                "family_history": True,
+                "past_history": False,
+            }
         }
         flags = proposal["context_flags"]
         assert "negated" in flags
@@ -50,6 +54,7 @@ class TestProposalDisplay:
 # ---------------------------------------------------------------------------
 # VT-010-TC-002: Confirm and reject actions call the review service API
 # ---------------------------------------------------------------------------
+
 
 class TestReviewActions:
 
@@ -76,11 +81,14 @@ class TestReviewActions:
 # VT-010-TC-003: Suppress rule guard — assertion_warning requires context phrase
 # ---------------------------------------------------------------------------
 
+
 class TestSuppressRuleGuard:
 
     def test_suppress_blocked_when_assertion_warning_and_no_phrase(self):
         """Suppress is blocked when assertion_warning is present and phrase is empty."""
-        assertion_warning = "Term only codeable in active context, not as historical finding"
+        assertion_warning = (
+            "Term only codeable in active context, not as historical finding"
+        )
         context_phrase = ""
         can_suppress = not (assertion_warning and not context_phrase)
         assert not can_suppress
@@ -103,6 +111,7 @@ class TestSuppressRuleGuard:
         """Key phrase from assertion_warning is extracted for pre-fill."""
         warning = "Term 'awaiting appt' is not codeable in this context"
         import re
+
         match = re.search(r"'([^']+)'", warning)
         extracted = match.group(1) if match else ""
         assert extracted == "awaiting appt"

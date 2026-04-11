@@ -240,4 +240,3 @@ def _probe_mps(
         return True, ""
     except Exception as exc:
         return False, f"mps preflight failed: {type(exc).__name__}: {exc}"
-

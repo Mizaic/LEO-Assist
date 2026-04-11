@@ -6,13 +6,20 @@ import uuid
 from typing import Any, Callable
 
 from libs.ner.extractor_contract import ExtractionItem
-from services.coding_worker.app.pipeline.providers.llm_provider import LLMExtractorProvider
-from services.coding_worker.app.pipeline.providers.model_provider import ModelExtractorProvider
+from services.coding_worker.app.pipeline.providers.llm_provider import (
+    LLMExtractorProvider,
+)
+from services.coding_worker.app.pipeline.providers.model_provider import (
+    ModelExtractorProvider,
+)
 
 logger = logging.getLogger(__name__)
 
 _AGENT_ENABLED = os.getenv("CODING_AGENT_ENABLED", "true").lower() not in {
-    "false", "0", "no", "off"
+    "false",
+    "0",
+    "no",
+    "off",
 }
 _AGENT_TIER = os.getenv("CODING_AGENT_TIER", "small")
 
@@ -24,22 +31,24 @@ def _verdict_to_extraction_items(verdict: dict) -> list[ExtractionItem]:
         text = str(ent.get("text") or "").strip()
         if not text:
             continue
-        items.append(ExtractionItem(
-            sentence_id=str(uuid.uuid4()),
-            text=text,
-            span_start=int(ent.get("char_start") or 0),
-            span_end=int(ent.get("char_end") or len(text)),
-            semantic_tag=str(ent.get("semantic_tag") or "disorder"),
-            assertion=str(ent.get("assertion") or "present"),
-            confidence=float(ent.get("confidence") or 0.75),
-            normalized=str(ent.get("preferred_term") or text),
-            source="agent",
-            source_meta={
-                "concept_id": ent.get("snomed_concept_id"),
-                "reason": ent.get("reason"),
-                "sentence": ent.get("sentence"),
-            },
-        ))
+        items.append(
+            ExtractionItem(
+                sentence_id=str(uuid.uuid4()),
+                text=text,
+                span_start=int(ent.get("char_start") or 0),
+                span_end=int(ent.get("char_end") or len(text)),
+                semantic_tag=str(ent.get("semantic_tag") or "disorder"),
+                assertion=str(ent.get("assertion") or "present"),
+                confidence=float(ent.get("confidence") or 0.75),
+                normalized=str(ent.get("preferred_term") or text),
+                source="agent",
+                source_meta={
+                    "concept_id": ent.get("snomed_concept_id"),
+                    "reason": ent.get("reason"),
+                    "sentence": ent.get("sentence"),
+                },
+            )
+        )
     return items
 
 
@@ -60,6 +69,7 @@ class AgentExtractorProvider:
     def _get_subgraph(self):
         if self._subgraph is None:
             from libs.pipeline_graph.registry import get_registry
+
             self._subgraph = get_registry().build("encounter_coding_agent")
         return self._subgraph
 
@@ -73,14 +83,18 @@ class AgentExtractorProvider:
             logger.warning("AgentExtractorProvider unavailable: %s", exc)
             return False
 
-    def extract_batch(self, encounter_text: str, sentences: list) -> list[ExtractionItem]:
+    def extract_batch(
+        self, encounter_text: str, sentences: list
+    ) -> list[ExtractionItem]:
         subgraph = self._get_subgraph()
-        output = subgraph.invoke({
-            "encounter_text": encounter_text,
-            "coded_entities": [],   # code mode
-            "tier": _AGENT_TIER,
-            "apply": False,         # pipeline handles persistence, not the agent
-        })
+        output = subgraph.invoke(
+            {
+                "encounter_text": encounter_text,
+                "coded_entities": [],  # code mode
+                "tier": _AGENT_TIER,
+                "apply": False,  # pipeline handles persistence, not the agent
+            }
+        )
         verdict = output.get("verdict") or {}
         return _verdict_to_extraction_items(verdict)
 
@@ -172,9 +186,13 @@ def build_extractor(progress_hook: Callable[[dict[str, Any]], None] | None = Non
         elif _AGENT_ENABLED:
             agent = _make_agent_provider()
             if agent.is_available():
-                return FallbackExtractor(agent, llm, strict=strict, progress_hook=progress_hook)
+                return FallbackExtractor(
+                    agent, llm, strict=strict, progress_hook=progress_hook
+                )
             return llm
         else:
             return llm
-        return FallbackExtractor(primary, llm, strict=strict, progress_hook=progress_hook)
+        return FallbackExtractor(
+            primary, llm, strict=strict, progress_hook=progress_hook
+        )
     return llm

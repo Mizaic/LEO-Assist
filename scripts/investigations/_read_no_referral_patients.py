@@ -8,6 +8,7 @@ referrals, imaging, and exclusions.
 Output is written to scripts/investigations/no_referral_encounters/
 One file per patient.
 """
+
 from __future__ import annotations
 
 import os
@@ -52,20 +53,71 @@ HIST_IDS = frozenset(str(c) for c in CANCER_HISTORY_IDS)
 ALL_SIGNAL_IDS = CANCER_IDS | TREAT_IDS | SPEC_IDS | REF_IDS | EXCL_IDS | HIST_IDS
 
 CANCER_KEYWORDS = [
-    "cancer", "oncol", "chemoth", "radioth", "mastect", "lumpect",
-    "biopsy", "breast clinic", "staging", "metastas", "lymphoma",
-    "tumour", "tumor", "hospice", "loros", "palliative", "herceptin",
-    "tamoxifen", "letrozole", "anastrozole", "denosumab", "bisphosphon",
-    "trastuzumab", "capecitabine", "paclitaxel", "carboplatin",
-    "bevacizumab", "hormone therapy", "endocrine", "thyroid",
-    "thyroidectomy", "prostat", "colorect", "bowel cancer", "colostomy",
-    "ileostomy", "colonoscopy", "endoscopy", "urgent referral",
-    "two week", "2ww", "2 week wait", "fast track", "suspected cancer",
-    "malignant", "malignancy", "carcinoma", "sarcoma", "lymph node",
-    "metastasis", "metastatic", "radiograph", "ct scan", "mri",
-    "bone scan", "pet scan", "oncology clinic", "haematol",
-    "haematology", "spinal cord", "bone pain", "hypercalcaemia",
-    "hypercalcemia", "weight loss", "night sweat",
+    "cancer",
+    "oncol",
+    "chemoth",
+    "radioth",
+    "mastect",
+    "lumpect",
+    "biopsy",
+    "breast clinic",
+    "staging",
+    "metastas",
+    "lymphoma",
+    "tumour",
+    "tumor",
+    "hospice",
+    "loros",
+    "palliative",
+    "herceptin",
+    "tamoxifen",
+    "letrozole",
+    "anastrozole",
+    "denosumab",
+    "bisphosphon",
+    "trastuzumab",
+    "capecitabine",
+    "paclitaxel",
+    "carboplatin",
+    "bevacizumab",
+    "hormone therapy",
+    "endocrine",
+    "thyroid",
+    "thyroidectomy",
+    "prostat",
+    "colorect",
+    "bowel cancer",
+    "colostomy",
+    "ileostomy",
+    "colonoscopy",
+    "endoscopy",
+    "urgent referral",
+    "two week",
+    "2ww",
+    "2 week wait",
+    "fast track",
+    "suspected cancer",
+    "malignant",
+    "malignancy",
+    "carcinoma",
+    "sarcoma",
+    "lymph node",
+    "metastasis",
+    "metastatic",
+    "radiograph",
+    "ct scan",
+    "mri",
+    "bone scan",
+    "pet scan",
+    "oncology clinic",
+    "haematol",
+    "haematology",
+    "spinal cord",
+    "bone pain",
+    "hypercalcaemia",
+    "hypercalcemia",
+    "weight loss",
+    "night sweat",
 ]
 
 # -- queries ------------------------------------------------------------
@@ -123,9 +175,14 @@ def _has_keyword(text: str) -> bool:
     return any(kw in lower for kw in CANCER_KEYWORDS)
 
 
-def analyse_patient(session, pid: str, episode_id: str,
-                    condition_type: str, diagnosis_date: str,
-                    flags: str) -> None:
+def analyse_patient(
+    session,
+    pid: str,
+    episode_id: str,
+    condition_type: str,
+    diagnosis_date: str,
+    flags: str,
+) -> None:
     rows = list(session.run(Q_ALL_ENCOUNTERS, pid=pid))
     out_path = OUT_DIR / f"{pid}.txt"
 

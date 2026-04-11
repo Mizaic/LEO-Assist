@@ -26,10 +26,38 @@ from embedding_utils import TextEmbedder, load_vector_settings
 LOGGER = logging.getLogger("prototype_clinical_coder")
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.jsonl"
-DEFAULT_OUTPUT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.prototype_coding.jsonl"
-DEFAULT_REPORT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.prototype_report.json"
-DEFAULT_LOW_CONF = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.prototype_low_confidence.jsonl"
+DEFAULT_INPUT = (
+    ROOT
+    / "services"
+    / "terminology"
+    / "data"
+    / "training"
+    / "surface_forms_9990000001.jsonl"
+)
+DEFAULT_OUTPUT = (
+    ROOT
+    / "services"
+    / "terminology"
+    / "data"
+    / "training"
+    / "surface_forms_9990000001.prototype_coding.jsonl"
+)
+DEFAULT_REPORT = (
+    ROOT
+    / "services"
+    / "terminology"
+    / "data"
+    / "training"
+    / "surface_forms_9990000001.prototype_report.json"
+)
+DEFAULT_LOW_CONF = (
+    ROOT
+    / "services"
+    / "terminology"
+    / "data"
+    / "training"
+    / "surface_forms_9990000001.prototype_low_confidence.jsonl"
+)
 
 READ_CODE_RE = re.compile(r"\b[A-Za-z0-9.]{4,8}\b")
 PUNCT_RE = re.compile(r"[^a-z0-9 ]+")
@@ -80,7 +108,11 @@ class Stats:
     read_map_hit_top1: int = 0
 
     def as_dict(self) -> dict[str, Any]:
-        hit_rate = self.read_map_hit_top1 / self.read_code_in_sentence if self.read_code_in_sentence else 0.0
+        hit_rate = (
+            self.read_map_hit_top1 / self.read_code_in_sentence
+            if self.read_code_in_sentence
+            else 0.0
+        )
         return {
             "rows": self.rows,
             "entities": self.entities,
@@ -103,7 +135,9 @@ def normalize(text: str) -> str:
 
 
 def build_fulltext_queries(mention: str) -> list[str]:
-    escaped = "".join(f"\\{c}" if c in r'+-!(){}[]^"~*?:\/' else c for c in mention.strip())
+    escaped = "".join(
+        f"\\{c}" if c in r'+-!(){}[]^"~*?:\/' else c for c in mention.strip()
+    )
     if not escaped:
         return []
     tokens = TOKEN_RE.findall(normalize(mention))
@@ -129,7 +163,9 @@ def _parse_json_object(text: str) -> dict[str, Any]:
         return json.loads(m.group(0)) if m else {}
 
 
-def _fetch(session, mention: str, normalized: str, args, embedding: list[float] | None) -> list[dict[str, Any]]:
+def _fetch(
+    session, mention: str, normalized: str, args, embedding: list[float] | None
+) -> list[dict[str, Any]]:
     merged: dict[str, dict[str, Any]] = {}
 
     def push(rec: dict[str, Any], branch: str) -> None:
@@ -160,7 +196,12 @@ def _fetch(session, mention: str, normalized: str, args, embedding: list[float] 
             continue
     if args.mode == "hybrid" and embedding:
         try:
-            for rec in session.run(VECTOR_QUERY, index_name=args.vector_index_name, k=args.k_vector, embedding=embedding):
+            for rec in session.run(
+                VECTOR_QUERY,
+                index_name=args.vector_index_name,
+                k=args.k_vector,
+                embedding=embedding,
+            ):
                 push(dict(rec), "vector")
         except ClientError:
             pass
@@ -195,13 +236,20 @@ def _band(scored: list[dict[str, Any]]) -> tuple[str, list[str]]:
     return "low", reasons or ["low_confidence"]
 
 
-def _llm_choose(model_id: str, region: str, sentence: str, mention: str, modifiers: dict[str, Any], candidates: list[dict[str, Any]]) -> tuple[str | None, float | None, str]:
+def _llm_choose(
+    model_id: str,
+    region: str,
+    sentence: str,
+    mention: str,
+    modifiers: dict[str, Any],
+    candidates: list[dict[str, Any]],
+) -> tuple[str | None, float | None, str]:
     if boto3 is None:  # pragma: no cover
         return None, None, "boto3_not_available"
     client = boto3.client("bedrock-runtime", region_name=region)
     prompt = (
         "Choose one concept_id from candidates, or NONE. Do not invent IDs.\n"
-        "Return strict JSON: {\"selected_concept_id\":\"...|NONE\",\"confidence\":0-1,\"reason\":\"...\"}.\n\n"
+        'Return strict JSON: {"selected_concept_id":"...|NONE","confidence":0-1,"reason":"..."}.\n\n'
         f"Sentence: {sentence}\nMention: {mention}\nModifiers: {json.dumps(modifiers)}\n"
         f"Candidates: {json.dumps([{'concept_id': c['concept_id'], 'fsn': c.get('fsn'), 'semantic_tag': c.get('semantic_tag')} for c in candidates])}"
     )
@@ -211,7 +259,9 @@ def _llm_choose(model_id: str, region: str, sentence: str, mention: str, modifie
         inferenceConfig={"temperature": 0.0, "maxTokens": 250},
     )
     content = resp.get("output", {}).get("message", {}).get("content", [])
-    text = "\n".join(str(part.get("text", "")) for part in content if isinstance(part, dict)).strip()
+    text = "\n".join(
+        str(part.get("text", "")) for part in content if isinstance(part, dict)
+    ).strip()
     parsed = _parse_json_object(text)
     cid = str(parsed.get("selected_concept_id", "")).strip()
     if not cid or cid.upper() == "NONE":
@@ -237,7 +287,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-vector", type=float, default=0.4)
     p.add_argument("--use-llm-fallback", action="store_true")
     p.add_argument("--llm-model-env", default="AWS_SMALL_MODEL")
-    p.add_argument("--llm-region", default=os.environ.get("AWS_DEFAULT_REGION", "eu-west-2"))
+    p.add_argument(
+        "--llm-region", default=os.environ.get("AWS_DEFAULT_REGION", "eu-west-2")
+    )
     p.add_argument("--llm-confidence-threshold", type=float, default=0.70)
     p.add_argument("--log-every", type=int, default=25)
     p.add_argument("--verbose", action="store_true")
@@ -285,7 +337,10 @@ def main() -> None:
         LOGGER.info("Hybrid mode embedding model ready")
 
     try:
-        with driver.session() as session, args.input.open("r", encoding="utf-8") as handle:
+        with (
+            driver.session() as session,
+            args.input.open("r", encoding="utf-8") as handle,
+        ):
             for i, line in enumerate(handle, start=1):
                 if args.limit is not None and i > args.limit:
                     break
@@ -295,19 +350,33 @@ def main() -> None:
                 if not isinstance(entities, list):
                     continue
                 stats.rows += 1
-                sent_codes = {t for t in READ_CODE_RE.findall(sentence) if any(ch.isdigit() for ch in t)}
+                sent_codes = {
+                    t
+                    for t in READ_CODE_RE.findall(sentence)
+                    if any(ch.isdigit() for ch in t)
+                }
                 if sent_codes:
                     stats.read_code_in_sentence += 1
-                sent_result = {"date": row.get("date"), "sentence": sentence, "entity_results": []}
+                sent_result = {
+                    "date": row.get("date"),
+                    "sentence": sentence,
+                    "entity_results": [],
+                }
 
                 for entity in entities:
                     stats.entities += 1
                     mention = str(entity.get("text", "")).strip()
-                    embedding = embedder.encode([mention])[0] if (embedder and mention) else None
+                    embedding = (
+                        embedder.encode([mention])[0]
+                        if (embedder and mention)
+                        else None
+                    )
                     raw = _fetch(session, mention, normalize(mention), args, embedding)
                     scored = []
                     for c in raw:
-                        score = (args.w_lexical * c["lexical_norm"]) + (args.w_vector * c["vector_norm"])
+                        score = (args.w_lexical * c["lexical_norm"]) + (
+                            args.w_vector * c["vector_norm"]
+                        )
                         scored.append(
                             {
                                 "concept_id": c["concept_id"],
@@ -331,7 +400,11 @@ def main() -> None:
                     }
                     llm_meta = None
                     llm_accepted = False
-                    if args.use_llm_fallback and band in {"low", "no_candidate"} and scored:
+                    if (
+                        args.use_llm_fallback
+                        and band in {"low", "no_candidate"}
+                        and scored
+                    ):
                         stats.llm_invoked += 1
                         try:
                             llm_choice, llm_conf, llm_raw = _llm_choose(
@@ -342,17 +415,33 @@ def main() -> None:
                                 modifiers,
                                 scored[: args.top_k_out],
                             )
-                        except Exception as exc:  # pragma: no cover - runtime/network path
-                            LOGGER.warning("LLM fallback error for mention '%s': %s", mention, exc)
+                        except (
+                            Exception
+                        ) as exc:  # pragma: no cover - runtime/network path
+                            LOGGER.warning(
+                                "LLM fallback error for mention '%s': %s", mention, exc
+                            )
                             llm_choice, llm_conf, llm_raw = None, None, str(exc)
-                        candidate_ids = {c["concept_id"] for c in scored[: args.top_k_out]}
-                        if llm_choice in candidate_ids and (llm_conf or 0.0) >= args.llm_confidence_threshold:
-                            selected = next(c for c in scored if c["concept_id"] == llm_choice)
+                        candidate_ids = {
+                            c["concept_id"] for c in scored[: args.top_k_out]
+                        }
+                        if (
+                            llm_choice in candidate_ids
+                            and (llm_conf or 0.0) >= args.llm_confidence_threshold
+                        ):
+                            selected = next(
+                                c for c in scored if c["concept_id"] == llm_choice
+                            )
                             band = "medium"
                             reasons.append("llm_fallback_accept")
                             llm_accepted = True
                             stats.llm_accepted += 1
-                        llm_meta = {"selected_concept_id": llm_choice, "confidence": llm_conf, "accepted": llm_accepted, "raw_response": llm_raw}
+                        llm_meta = {
+                            "selected_concept_id": llm_choice,
+                            "confidence": llm_conf,
+                            "accepted": llm_accepted,
+                            "raw_response": llm_raw,
+                        }
 
                     requires_hitl = band in {"low", "no_candidate"}
                     er = {
@@ -365,7 +454,9 @@ def main() -> None:
                         "confidence_band": band,
                         "confidence_reasons": reasons,
                         "requires_hitl": requires_hitl,
-                        "decision_source": "llm_fallback" if llm_accepted else "retrieval",
+                        "decision_source": (
+                            "llm_fallback" if llm_accepted else "retrieval"
+                        ),
                         "candidates": scored[: args.top_k_out],
                     }
                     if llm_meta:
@@ -385,7 +476,13 @@ def main() -> None:
                         stats.low_conf += 1
                     if requires_hitl:
                         stats.hitl_required += 1
-                        low_conf_rows.append({"date": row.get("date"), "sentence": sentence, "entity_result": er})
+                        low_conf_rows.append(
+                            {
+                                "date": row.get("date"),
+                                "sentence": sentence,
+                                "entity_result": er,
+                            }
+                        )
                     sent_result["entity_results"].append(er)
                 results.append(sent_result)
                 if args.log_every > 0 and stats.rows % args.log_every == 0:

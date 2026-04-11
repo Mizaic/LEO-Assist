@@ -44,7 +44,6 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"conceptId": "38341003", "confidence": 0.95, "reason": "Hypertension is the preferred top-level SNOMED concept matching the extracted term."}',
     },
-
     # ── Abbreviation expansion ────────────────────────────────────────────────
     {
         "category": "disambiguation:abbreviation",
@@ -58,7 +57,6 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"conceptId": "49436004", "confidence": 0.97, "reason": "Atrial fibrillation is the exact expanded form of the abbreviation AF."}',
     },
-
     # ── Specificity selection ─────────────────────────────────────────────────
     {
         "category": "disambiguation:specificity",
@@ -85,7 +83,6 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"conceptId": "709044004", "confidence": 0.96, "reason": "Context explicitly states stage 3b; the stage-specific concept is the most precise match."}',
     },
-
     # ── Context-driven disambiguation ─────────────────────────────────────────
     {
         "category": "disambiguation:context-driven",
@@ -111,7 +108,6 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"conceptId": "267132006", "confidence": 0.96, "reason": "Context specifies vaginal discharge in a gynaecological presentation."}',
     },
-
     # ── No suitable match ─────────────────────────────────────────────────────
     {
         "category": "disambiguation:no-match",
@@ -137,7 +133,6 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"conceptId": "NONE", "confidence": 0.0, "reason": "Neither candidate represents allergy to penicillin; peanut allergy and amoxicillin are not equivalent concepts."}',
     },
-
     # ── Negated term - concept still selected ────────────────────────────────
     {
         "category": "disambiguation:negated",
@@ -151,7 +146,6 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"conceptId": "18165001", "confidence": 0.97, "reason": "Jaundice directly matches the extracted term; negation is handled by the assertion field upstream."}',
     },
-
     # ── Drug / substance ─────────────────────────────────────────────────────
     {
         "category": "disambiguation:exact-match",
@@ -165,7 +159,6 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"conceptId": "372664007", "confidence": 0.96, "reason": "Metformin is the standard SNOMED substance concept matching the generic drug name."}',
     },
-
     # ── Observable entity ─────────────────────────────────────────────────────
     {
         "category": "disambiguation:exact-match",
@@ -182,7 +175,9 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
 ]
 
 
-def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+def _apply_core_by_first_category(
+    examples: list[dict], core_categories: set[str]
+) -> None:
     seen: set[str] = set()
     for example in examples:
         category = str(example.get("category", ""))

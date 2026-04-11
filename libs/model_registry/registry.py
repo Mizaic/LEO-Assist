@@ -83,11 +83,13 @@ class ModelStatus(str, Enum):
 class ModelRecord:
     model_name: str
     model_version: str
-    model_path: str              # local training output path (used during training only)
+    model_path: str  # local training output path (used during training only)
     training_dataset_version: str
     schema_version: str
     deid_version: str
-    artifact_uri: str = ""       # blob path after upload e.g. "medspacy_clinical_ner/1.2/model.tar.gz"
+    artifact_uri: str = (
+        ""  # blob path after upload e.g. "medspacy_clinical_ner/1.2/model.tar.gz"
+    )
     status: str = ModelStatus.REGISTERED
     offline_precision: Optional[float] = None
     offline_recall: Optional[float] = None
@@ -160,9 +162,7 @@ class ModelRegistry:
             notes=notes,
         )
         record.artifact_uri = uri
-        logger.info(
-            "ModelRegistry: uploaded v%s artifact to blob: %s", version, uri
-        )
+        logger.info("ModelRegistry: uploaded v%s artifact to blob: %s", version, uri)
         self._save()
         return uri
 
@@ -179,8 +179,10 @@ class ModelRegistry:
         self._records[record.model_version] = record
         logger.info(
             "ModelRegistry: registered %s v%s (dataset=%s schema=%s)",
-            record.model_name, record.model_version,
-            record.training_dataset_version, record.schema_version,
+            record.model_name,
+            record.model_version,
+            record.training_dataset_version,
+            record.schema_version,
         )
         self._save()
         return record
@@ -206,14 +208,20 @@ class ModelRegistry:
             record.status = ModelStatus.OFFLINE_VALIDATED
             logger.info(
                 "ModelRegistry: v%s offline validated (P=%.3f R=%.3f)",
-                version, precision, recall,
+                version,
+                precision,
+                recall,
             )
         else:
             record.status = ModelStatus.DEPRECATED
             logger.warning(
                 "ModelRegistry: v%s failed offline validation (P=%.3f R=%.3f) "
                 "— thresholds P>=%.2f R>=%.2f",
-                version, precision, recall, _MIN_PRECISION, _MIN_RECALL,
+                version,
+                precision,
+                recall,
+                _MIN_PRECISION,
+                _MIN_RECALL,
             )
         self._save()
         return record
@@ -247,7 +255,9 @@ class ModelRegistry:
         record.canary_recall = round(recall, 4)
         logger.info(
             "ModelRegistry: v%s canary result (P=%.3f R=%.3f)",
-            version, precision, recall,
+            version,
+            precision,
+            recall,
         )
         self._save()
         return record
@@ -318,13 +328,18 @@ class ModelRegistry:
             logger.warning(
                 "ModelRegistry: v%s FORCE-PROMOTED — gate thresholds not met "
                 "(P=%.3f R=%.3f, required P>=%.2f R>=%.2f)",
-                version, record.canary_precision, record.canary_recall,
-                _MIN_CANARY_PRECISION, _MIN_CANARY_RECALL,
+                version,
+                record.canary_precision,
+                record.canary_recall,
+                _MIN_CANARY_PRECISION,
+                _MIN_CANARY_RECALL,
             )
         self._active_version = version
         logger.info(
             "ModelRegistry: v%s PROMOTED to active (rollback_target=%s force=%s)",
-            version, record.rollback_target_version, force,
+            version,
+            record.rollback_target_version,
+            force,
         )
         self._save()
         # Signal the inference service to hot-swap immediately
@@ -347,7 +362,8 @@ class ModelRegistry:
         self._active_version = target_ver
         logger.warning(
             "ModelRegistry: ROLLBACK — demoted v%s, restored v%s",
-            active.model_version, target_ver,
+            active.model_version,
+            target_ver,
         )
         self._save()
         # Signal the inference service to hot-swap back to the rollback target
@@ -376,7 +392,8 @@ class ModelRegistry:
             data = resp.json()
             logger.info(
                 "ModelRegistry: inference service reloaded to v%s in %dms",
-                data.get("active_version"), data.get("elapsed_ms", 0),
+                data.get("active_version"),
+                data.get("elapsed_ms", 0),
             )
         except Exception:
             logger.warning(
@@ -425,8 +442,9 @@ class ModelRegistry:
             }
             p.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except Exception:
-            logger.warning("ModelRegistry: failed to persist to %s", store_path,
-                           exc_info=True)
+            logger.warning(
+                "ModelRegistry: failed to persist to %s", store_path, exc_info=True
+            )
 
     def _load(self) -> None:
         store_path = _registry_store_path()
@@ -446,11 +464,14 @@ class ModelRegistry:
                 self._records[ver] = ModelRecord.from_dict(rec_dict)
             logger.info(
                 "ModelRegistry: loaded %d records from %s (active=%s)",
-                len(self._records), store_path, self._active_version,
+                len(self._records),
+                store_path,
+                self._active_version,
             )
         except Exception:
             logger.warning(
-                "ModelRegistry: failed to load from %s", store_path,
+                "ModelRegistry: failed to load from %s",
+                store_path,
                 exc_info=True,
             )
 
@@ -469,6 +490,7 @@ def get_registry() -> ModelRegistry:
         store = os.getenv("MODEL_REGISTRY_STORE", "").strip().lower()
         if store == "neo4j":
             from libs.model_registry.neo4j_registry import Neo4jModelRegistry
+
             _registry = Neo4jModelRegistry()
             logger.info("ModelRegistry: using Neo4j backend (Patient Graph)")
         else:

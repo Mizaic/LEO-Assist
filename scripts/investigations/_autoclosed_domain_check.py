@@ -7,6 +7,7 @@ Domain concept sets come from the Neo4j ValueSet nodes (same as episode builder)
 Run:
     python scripts/investigations/_autoclosed_domain_check.py
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -15,9 +16,11 @@ from collections import defaultdict
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 # Fetch all cancer-type concept IDs for each cancer_category from Neo4j ValueSet
@@ -55,14 +58,14 @@ LIMIT 5
 # Fetch benign outcome concepts coded after referral - includes 395100000 and common
 # benign site-specific outcomes that primary care coders use instead of 395100000
 _BENIGN_CIDS = [
-    395100000,   # No evidence of cancer found
-    415068001,   # Benign disorder
-    160303001,   # No malignancy
-    92814006,    # Fibroadenoma of breast
-    416940007,   # Past history of benign neoplasm
-    30811003,    # Diverticular disease of colon
-    444657004,   # Tubular adenoma of colon (polyp, removed)
-    449360000,   # Colonic polyp (benign removed)
+    395100000,  # No evidence of cancer found
+    415068001,  # Benign disorder
+    160303001,  # No malignancy
+    92814006,  # Fibroadenoma of breast
+    416940007,  # Past history of benign neoplasm
+    30811003,  # Diverticular disease of colon
+    444657004,  # Tubular adenoma of colon (polyp, removed)
+    449360000,  # Colonic polyp (benign removed)
 ]
 _Q_BENIGN = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[doc:DOCUMENTS]->(c)
@@ -76,21 +79,22 @@ LIMIT 3
 
 # Map cancer_type domain -> cancer_category label
 _DOMAIN_TO_CATEGORY = {
-    "breast":          "breast",
-    "lower_gi":        "lower_gi",
-    "upper_gi":        "upper_gi",
-    "lung":            "lung",
-    "skin":            "skin",
-    "urological":      "urological",
-    "haematological":  "haematological",
-    "head_and_neck":   "head_and_neck",
-    "gynaecological":  "gynaecological",
+    "breast": "breast",
+    "lower_gi": "lower_gi",
+    "upper_gi": "upper_gi",
+    "lung": "lung",
+    "skin": "skin",
+    "urological": "urological",
+    "haematological": "haematological",
+    "head_and_neck": "head_and_neck",
+    "gynaecological": "gynaecological",
     "non_site_specific": None,  # check any cancer domain
 }
 
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     # Build full cancer concept ID set from ValueSet (no per-category breakdown in the graph)
@@ -113,28 +117,35 @@ def main() -> None:
         concept_ids = all_cids
 
         # Check for in-domain cancer
-        in_domain_rows = client.run(_Q_IN_DOMAIN, pid=pid,
-                                    from_date=ref, concept_ids=concept_ids) or []
+        in_domain_rows = (
+            client.run(_Q_IN_DOMAIN, pid=pid, from_date=ref, concept_ids=concept_ids)
+            or []
+        )
         if in_domain_rows:
             for row in in_domain_rows:
-                missed_cancer.append((
-                    pid, site, ref, ep["status"], reason,
-                    row["name"], row["edate"]
-                ))
+                missed_cancer.append(
+                    (pid, site, ref, ep["status"], reason, row["name"], row["edate"])
+                )
             continue
 
         # Check for benign closure concepts
-        benign_rows = client.run(_Q_BENIGN, pid=pid, from_date=ref,
-                                 benign_cids=_BENIGN_CIDS) or []
+        benign_rows = (
+            client.run(_Q_BENIGN, pid=pid, from_date=ref, benign_cids=_BENIGN_CIDS)
+            or []
+        )
         if benign_rows:
             for row in benign_rows:
-                missed_benign.append((pid, site, ref, ep["status"], reason, row["name"], row["edate"]))
+                missed_benign.append(
+                    (pid, site, ref, ep["status"], reason, row["name"], row["edate"])
+                )
             continue
 
         truly_stale.append((pid, site, ref, ep["status"], reason))
 
-    print(f"=== MISSED CANCER (episode builder failed to detect in-domain diagnosis) ==="
-          f"  [{len(missed_cancer)} instances from {len({r[0] for r in missed_cancer})} patients]")
+    print(
+        f"=== MISSED CANCER (episode builder failed to detect in-domain diagnosis) ==="
+        f"  [{len(missed_cancer)} instances from {len({r[0] for r in missed_cancer})} patients]"
+    )
     seen_combo: set[tuple] = set()
     for pid, site, ref, status, reason, name, edate in missed_cancer:
         combo = (pid, site, ref)
@@ -144,8 +155,10 @@ def main() -> None:
             print(f"    first in-domain cancer: [{edate}] {name}")
     print()
 
-    print(f"=== MISSED BENIGN CLOSURE (should be closed_benign) ==="
-          f"  [{len({(r[0],r[1],r[2]) for r in missed_benign})} episodes]")
+    print(
+        f"=== MISSED BENIGN CLOSURE (should be closed_benign) ==="
+        f"  [{len({(r[0],r[1],r[2]) for r in missed_benign})} episodes]"
+    )
     seen_b: set[tuple] = set()
     for pid, site, ref, status, reason, name, edate in missed_benign:
         combo = (pid, site, ref)
@@ -155,8 +168,10 @@ def main() -> None:
             print(f"    benign concept: [{edate}] {name}")
     print()
 
-    print(f"=== GENUINELY STALE (no in-domain cancer, no benign closure detected) ==="
-          f"  [{len(truly_stale)} episodes]")
+    print(
+        f"=== GENUINELY STALE (no in-domain cancer, no benign closure detected) ==="
+        f"  [{len(truly_stale)} episodes]"
+    )
     for pid, site, ref, status, reason in truly_stale:
         print(f"  PID={pid}  site={site:20}  ref={ref}  reason={reason}")
     print()

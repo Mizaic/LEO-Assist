@@ -7,6 +7,7 @@ is present. Used as a FastAPI dependency on internal-ingress services.
 Locally (no APP_ID set): validation is skipped to allow local dev without
 full Entra configuration.
 """
+
 from __future__ import annotations
 
 import logging
@@ -61,7 +62,9 @@ def validate_service_token(request: Request) -> None:
             audience=app_id,
         )
     except JWTError as exc:
-        raise HTTPException(status_code=401, detail=f"Invalid service token: {exc}") from exc
+        raise HTTPException(
+            status_code=401, detail=f"Invalid service token: {exc}"
+        ) from exc
 
     roles: list[str] = claims.get("roles", [])
     if "Call" not in roles:

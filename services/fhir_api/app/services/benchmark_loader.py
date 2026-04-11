@@ -110,10 +110,23 @@ def _flatten_simple_value(
         "source": source,
     }
     if isinstance(value, dict) and _is_composite_sex(value):
-        return [{**base, "metric_id": metric_id, "label": label, "value": None, "value_json": value}]
+        return [
+            {
+                **base,
+                "metric_id": metric_id,
+                "label": label,
+                "value": None,
+                "value_json": value,
+            }
+        ]
     if isinstance(value, dict):
         return [
-            {**base, "metric_id": f"{metric_id}.{sub_key}", "label": f"{label} ({sub_key})", "value": sub_val}
+            {
+                **base,
+                "metric_id": f"{metric_id}.{sub_key}",
+                "label": f"{label} ({sub_key})",
+                "value": sub_val,
+            }
             for sub_key, sub_val in value.items()
             if sub_val is not None and not isinstance(sub_val, dict)
         ]
@@ -149,11 +162,15 @@ def _flatten_by_cancer_type(
             for entity_id, value in metric["values"].items():
                 nodes.extend(
                     _flatten_simple_value(
-                        entity_id, value,
-                        category,      # store under parent category so audit API finds it
+                        entity_id,
+                        value,
+                        category,  # store under parent category so audit API finds it
                         metric_id,
-                        label, unit, entity_map,
-                        audit_id, source,
+                        label,
+                        unit,
+                        entity_map,
+                        audit_id,
+                        source,
                     )
                 )
     return nodes
@@ -188,9 +205,15 @@ def _flatten_simple_section(
         for entity_id, value in metric["values"].items():
             nodes.extend(
                 _flatten_simple_value(
-                    entity_id, value, category, metric_id,
-                    label, unit, entity_map,
-                    audit_id, source,
+                    entity_id,
+                    value,
+                    category,
+                    metric_id,
+                    label,
+                    unit,
+                    entity_map,
+                    audit_id,
+                    source,
                 )
             )
     return nodes
@@ -215,23 +238,37 @@ def _flatten_condition_type_section(
                 if sub_val is not None:
                     nodes.extend(
                         _flatten_simple_value(
-                            entity_id, sub_val, "condition_type", metric_id,
-                            label, unit, entity_map,
-                            audit_id, source,
+                            entity_id,
+                            sub_val,
+                            "condition_type",
+                            metric_id,
+                            label,
+                            unit,
+                            entity_map,
+                            audit_id,
+                            source,
                         )
                     )
             else:
                 nodes.extend(
                     _flatten_simple_value(
-                        entity_id, value, "condition_type", metric_id,
-                        label, unit, entity_map,
-                        audit_id, source,
+                        entity_id,
+                        value,
+                        "condition_type",
+                        metric_id,
+                        label,
+                        unit,
+                        entity_map,
+                        audit_id,
+                        source,
                     )
                 )
     return nodes
 
 
-def _flatten_ncda(data: Dict[str, Any], audit_id: str, source: str) -> List[Dict[str, Any]]:
+def _flatten_ncda(
+    data: Dict[str, Any], audit_id: str, source: str
+) -> List[Dict[str, Any]]:
     """Flatten NCDA-style JSON into BenchmarkValue records."""
     entity_map = _build_entity_map(data.get("entities", []))
     benchmarks = data.get("benchmarks", {})
@@ -241,7 +278,9 @@ def _flatten_ncda(data: Dict[str, Any], audit_id: str, source: str) -> List[Dict
         if not isinstance(section, dict):
             continue
         if category == "condition_type":
-            nodes.extend(_flatten_condition_type_section(section, entity_map, audit_id, source))
+            nodes.extend(
+                _flatten_condition_type_section(section, entity_map, audit_id, source)
+            )
         else:
             nodes.extend(
                 _flatten_simple_section(category, section, entity_map, audit_id, source)
@@ -249,7 +288,9 @@ def _flatten_ncda(data: Dict[str, Any], audit_id: str, source: str) -> List[Dict
     return nodes
 
 
-def apply_mapping_template(raw_json: Dict[str, Any], template_id: str) -> Optional[List[Dict[str, Any]]]:
+def apply_mapping_template(
+    raw_json: Dict[str, Any], template_id: str
+) -> Optional[List[Dict[str, Any]]]:
     """Apply a built-in mapping template. Returns flat BenchmarkValue records or None."""
     if template_id == "ncda":
         audit = raw_json.get("audit", {})

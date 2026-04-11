@@ -27,7 +27,6 @@ from typing import Iterator
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_JSONL = (
     ROOT
@@ -176,8 +175,7 @@ def _print_stats(stats: Stats, mode: str) -> None:
     print(f"Missing ReadCode nodes: {stats.read_missing}")
     print(f"Existing MAPS_TO_READ rels: {stats.rel_existing}")
     print(
-        "Missing rels where ReadCode exists: "
-        f"{stats.rel_missing_with_existing_read}"
+        "Missing rels where ReadCode exists: " f"{stats.rel_missing_with_existing_read}"
     )
     print(f"Rels needing ReadCode create: {stats.rel_needs_new_read}")
     if mode == "apply":

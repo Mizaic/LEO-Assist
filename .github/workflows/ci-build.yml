@@ -46,7 +46,10 @@ jobs:
   security-scan:
     name: Security Scanning
     runs-on: ubuntu-latest
+    # Job permissions replace workflow defaults; include contents: read or checkout
+    # fails with "repository not found" for private repos.
     permissions:
+      contents: read
       security-events: write
     steps:
       - name: Checkout

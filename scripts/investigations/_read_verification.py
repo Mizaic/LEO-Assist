@@ -1,4 +1,5 @@
 import json, sys
+
 p = "scripts/investigations/abbreviation_snomed_verification.json"
 try:
     data = json.load(open(p))

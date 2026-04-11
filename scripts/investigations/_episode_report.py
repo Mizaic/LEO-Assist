@@ -9,6 +9,7 @@ Format:
      -- Treatment   : <date>  <concept>  (or 'none coded')
    - Episode 2  ...
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -18,22 +19,24 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
 
 STATUS_SYMBOL = {
-    "completed":            "[DONE]",
-    "closed_benign":        "[BENIGN]",
-    "in_progress":          "[OPEN]",
-    "stale_post_specialist":"[STALE-SPEC]",
-    "stale_no_diagnosis":   "[STALE-NODIAG]",
-    "closed_related":       "[RELATED]",
-    "closed_phantom":       "[PHANTOM]",
+    "completed": "[DONE]",
+    "closed_benign": "[BENIGN]",
+    "in_progress": "[OPEN]",
+    "stale_post_specialist": "[STALE-SPEC]",
+    "stale_no_diagnosis": "[STALE-NODIAG]",
+    "closed_related": "[RELATED]",
+    "closed_phantom": "[PHANTOM]",
 }
 
 # All episodes with their stored milestone dates/concepts
@@ -164,6 +167,7 @@ def main() -> None:
                 print(f"  Episode {i}  {symbol}  {site}{hitl_marker}")
 
                 from datetime import date, timedelta
+
                 ref_date_str = str(ep.get("ref_date") or "")
                 try:
                     ref_dt = date.fromisoformat(ref_date_str)
@@ -182,7 +186,9 @@ def main() -> None:
                 spec_date = ep.get("spec_date")
                 if spec_date and ep.get("spec_seen"):
                     with client.session() as s:
-                        sc = s.run(_Q_SPEC_CONCEPT, pid=pid, spec_date=str(spec_date)).single()
+                        sc = s.run(
+                            _Q_SPEC_CONCEPT, pid=pid, spec_date=str(spec_date)
+                        ).single()
                     spec_concept = _trunc(sc["name"] if sc else "", 65)
                     print(f"    -- First Seen : {spec_date}  {spec_concept}")
                 else:
@@ -190,7 +196,12 @@ def main() -> None:
 
                 # Diagnosis
                 with client.session() as s:
-                    dg = s.run(_Q_DIAGNOSIS, pid=pid, ref_date=ref_date_str, window_end=window_end).single()
+                    dg = s.run(
+                        _Q_DIAGNOSIS,
+                        pid=pid,
+                        ref_date=ref_date_str,
+                        window_end=window_end,
+                    ).single()
                 if dg:
                     print(f"    -- Diagnosis  : {dg['date']}  {_trunc(dg['name'], 65)}")
                 else:
@@ -198,7 +209,12 @@ def main() -> None:
 
                 # Treatment
                 with client.session() as s:
-                    tr = s.run(_Q_TREATMENT, pid=pid, ref_date=ref_date_str, window_end=window_end).single()
+                    tr = s.run(
+                        _Q_TREATMENT,
+                        pid=pid,
+                        ref_date=ref_date_str,
+                        window_end=window_end,
+                    ).single()
                 if tr:
                     print(f"    -- Treatment  : {tr['date']}  {_trunc(tr['name'], 65)}")
                 else:
@@ -221,12 +237,16 @@ def main() -> None:
         print()
 
         completed = status_counts.get("completed", 0)
-        stale = status_counts.get("stale_post_specialist", 0) + status_counts.get("stale_no_diagnosis", 0)
+        stale = status_counts.get("stale_post_specialist", 0) + status_counts.get(
+            "stale_no_diagnosis", 0
+        )
         in_prog = status_counts.get("in_progress", 0)
         print(f"  Completed pathways         : {completed}")
         print(f"  Active in-progress         : {in_prog}")
         print(f"  Stale (HITL review needed) : {stale}")
-        print(f"  Closed related/phantom     : {status_counts.get('closed_related', 0) + status_counts.get('closed_phantom', 0)}")
+        print(
+            f"  Closed related/phantom     : {status_counts.get('closed_related', 0) + status_counts.get('closed_phantom', 0)}"
+        )
 
     finally:
         client.close()

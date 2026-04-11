@@ -1,4 +1,5 @@
 """Quick inspect of both audit DBs."""
+
 import sqlite3
 import pathlib
 import json
@@ -41,6 +42,7 @@ for rel in [
     # File timestamps
     stat = db.stat()
     import datetime
+
     mtime = datetime.datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
 
     con.close()

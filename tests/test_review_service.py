@@ -12,10 +12,10 @@ from datetime import datetime, timezone
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_proposal(enc_id: str = "E1", status: str = "pending") -> dict:
     return {
@@ -34,6 +34,7 @@ def _make_proposal(enc_id: str = "E1", status: str = "pending") -> dict:
 # ---------------------------------------------------------------------------
 # VT-009-TC-001: Proposals queued for review
 # ---------------------------------------------------------------------------
+
 
 class TestProposalQueuing:
 
@@ -60,6 +61,7 @@ class TestProposalQueuing:
 # ---------------------------------------------------------------------------
 # VT-009-TC-002: Confirm action accepted
 # ---------------------------------------------------------------------------
+
 
 class TestConfirmAction:
 
@@ -94,6 +96,7 @@ class TestConfirmAction:
 # VT-009-TC-003: Reject action records rationale
 # ---------------------------------------------------------------------------
 
+
 class TestRejectAction:
 
     def test_reject_sets_rejected_status(self):
@@ -123,6 +126,7 @@ class TestRejectAction:
 # ---------------------------------------------------------------------------
 # VT-009-TC-004: Unapproved items cannot be finalised
 # ---------------------------------------------------------------------------
+
 
 class TestFinalisationGuard:
 

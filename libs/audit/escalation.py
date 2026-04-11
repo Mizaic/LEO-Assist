@@ -10,6 +10,7 @@ Escalation rules
                                new SafetyNetAlert with alert_type=escalation_auto_pause
 - Unacknowledged for > 7d   -> log structured warning (email in future sprint)
 """
+
 from __future__ import annotations
 
 import logging
@@ -100,7 +101,8 @@ def run_escalation_check(neo_client) -> dict[str, Any]:
         elif age >= _SECONDS_7D:
             logger.warning(
                 "audit.alert.escalation_email_due alert_id=%s age_days=%.1f",
-                alert_id, age / 86400,
+                alert_id,
+                age / 86400,
             )
             counts["email_due"] += 1
             if current_level < 1:
@@ -117,13 +119,13 @@ def run_escalation_check(neo_client) -> dict[str, Any]:
         _create_auto_pause_alert(neo_client, alert_14d_ids)
         counts["auto_pause_alerts_created"] = 1
         logger.warning(
-            "audit.escalation_auto_pause: loop1_audit disabled. "
-            "Overdue alerts: %s",
+            "audit.escalation_auto_pause: loop1_audit disabled. " "Overdue alerts: %s",
             ", ".join(alert_14d_ids[:5]),
         )
 
     logger.info(
-        "Escalation check complete: %s", counts,
+        "Escalation check complete: %s",
+        counts,
     )
     return {"escalation_check": "complete", "counts": counts}
 
@@ -146,13 +148,13 @@ def _pause_loop1(neo_client) -> None:
         logger.error("Failed to pause loop1_audit: %s", exc)
 
 
-def _create_auto_pause_alert(
-    neo_client, overdue_ids: list[str]
-) -> None:
-    alert_id = str(uuid.uuid5(
-        uuid.NAMESPACE_URL,
-        f"escalation_auto_pause:{','.join(sorted(overdue_ids[:5]))}",
-    ))
+def _create_auto_pause_alert(neo_client, overdue_ids: list[str]) -> None:
+    alert_id = str(
+        uuid.uuid5(
+            uuid.NAMESPACE_URL,
+            f"escalation_auto_pause:{','.join(sorted(overdue_ids[:5]))}",
+        )
+    )
     description = (
         f"loop1_audit auto-paused: {len(overdue_ids)} alert(s) "
         f"unacknowledged for > 14 days. "

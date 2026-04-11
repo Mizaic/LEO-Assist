@@ -26,7 +26,9 @@ def _first(records: list) -> Optional[Dict[str, Any]]:
     return json.loads(raw) if raw else None
 
 
-def upsert_valueset(valueset_id: str, resource: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def upsert_valueset(
+    valueset_id: str, resource: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
     client = KnowledgeGraphClient()
     try:
         params = {
@@ -79,7 +81,14 @@ def search_valuesets(
     try:
         count_records = client.run(VALUESET_COUNT, name=name, status=status, url=url)
         total = count_records[0].get("total") if count_records else 0
-        records = client.run(VALUESET_SEARCH, name=name, status=status, url=url, limit=count, offset=offset)
+        records = client.run(
+            VALUESET_SEARCH,
+            name=name,
+            status=status,
+            url=url,
+            limit=count,
+            offset=offset,
+        )
         items = [json.loads(r["rawJson"]) for r in records if r.get("rawJson")]
         return items, total
     finally:

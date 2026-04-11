@@ -39,7 +39,6 @@ from typing import Any
 
 from jsonschema import Draft7Validator
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DATA_TRAINING_DIR = ROOT / "services" / "terminology" / "data" / "training"
 
@@ -48,13 +47,18 @@ def resolve_paths(patient_id: str) -> tuple[Path, Path, Path, Path]:
     raw_path = DATA_TRAINING_DIR / f"raw_encounters_{patient_id}.json"
     out_path = DATA_TRAINING_DIR / f"surface_forms_{patient_id}.jsonl"
     qa_path = DATA_TRAINING_DIR / f"surface_forms_{patient_id}.qa.json"
-    validation_path = DATA_TRAINING_DIR / f"surface_forms_{patient_id}.validation_report.json"
+    validation_path = (
+        DATA_TRAINING_DIR / f"surface_forms_{patient_id}.validation_report.json"
+    )
     return raw_path, out_path, qa_path, validation_path
+
 
 NAME_PATTERN = re.compile(
     r"\b[A-Z][A-Z\-']+,\s*[A-Z][a-zA-Z\-']+\s*\((Mr|Mrs|Ms|Miss|Dr|Prof)\)"
 )
-HONORIFIC_NAME_PATTERN = re.compile(r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+[A-Z][a-zA-Z\-']+\b")
+HONORIFIC_NAME_PATTERN = re.compile(
+    r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+[A-Z][a-zA-Z\-']+\b"
+)
 CONSULTANT_PATTERN = re.compile(r"\bConsultant:\s*[A-Z][a-zA-Z\-']+\s+[A-Z]\b")
 EMAIL_PATTERN = re.compile(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b", re.IGNORECASE)
 PHONE_PATTERN = re.compile(r"\b(?:\+44|0)\d[\d\s\-]{8,}\d\b")
@@ -334,7 +338,9 @@ def deidentify_text(text: str) -> str:
     out = NHS_PATTERN.sub("[NHS_NUMBER]", out)
     out = INLINE_DATE_PATTERN.sub("[DATE]", out)
     out = DOTTED_DATE_PATTERN.sub("[DATE]", out)
-    out = re.sub(r"\bWoodbrook Medical Centre\b", "[PRACTICE]", out, flags=re.IGNORECASE)
+    out = re.sub(
+        r"\bWoodbrook Medical Centre\b", "[PRACTICE]", out, flags=re.IGNORECASE
+    )
     out = re.sub(r"\bHospital Outpatient\b", "[CARE_SITE]", out, flags=re.IGNORECASE)
     return out
 
@@ -349,9 +355,11 @@ def _iter_sentences(text: str) -> list[str]:
     for line in lines:
         if line == "[PERSON]" or any(cue in line.lower() for cue in ADMIN_NOISE_CUES):
             continue
-        payload = line.split(":", 1)[1].strip() if any(
-            line.startswith(prefix) for prefix in SECTION_PREFIXES
-        ) else line
+        payload = (
+            line.split(":", 1)[1].strip()
+            if any(line.startswith(prefix) for prefix in SECTION_PREFIXES)
+            else line
+        )
         for part in re.split(r"[.;]\s+|\s-\s", payload):
             sent = _clean(part)
             if sent and "[PRACTICE]" not in sent and "[PERSON]" not in sent:
@@ -360,9 +368,28 @@ def _iter_sentences(text: str) -> list[str]:
 
 
 ACRONYM_PRESERVE = {
-    "bcg", "sars", "ecg", "bmi", "hba1c", "inr", "fbc", "crp",
-    "esr", "tft", "lft", "u&e", "gfr", "egfr", "hiv", "mmr",
-    "dtap", "ipv", "hpv", "pcr", "ct", "mri",
+    "bcg",
+    "sars",
+    "ecg",
+    "bmi",
+    "hba1c",
+    "inr",
+    "fbc",
+    "crp",
+    "esr",
+    "tft",
+    "lft",
+    "u&e",
+    "gfr",
+    "egfr",
+    "hiv",
+    "mmr",
+    "dtap",
+    "ipv",
+    "hpv",
+    "pcr",
+    "ct",
+    "mri",
 }
 
 
@@ -386,7 +413,8 @@ def _classify_span_text(text: str) -> str:
     if "sars-cov-2" in s and ("detection result" in s or "rna" in s):
         return "lab_result"
     if any(
-        t in s for t in (
+        t in s
+        for t in (
             "notes summary",
             "letter sent",
             "administration (9",
@@ -435,30 +463,82 @@ def _classify_span_text(text: str) -> str:
         )
     ):
         return "social_history"
-    if any(t in s for t in (
-        "blood pressure", "sats", "temperature", "bpm", "mm hg",
-        "pulse rate", "pulse regular", "pulse irregular", "heart rate",
-        "height", "weight", "bmi", "body mass",
-        "peak flow", "spirometry", "fev1", "fvc",
-        "oxygen saturation", "respiratory rate",
-    )):
+    if any(
+        t in s
+        for t in (
+            "blood pressure",
+            "sats",
+            "temperature",
+            "bpm",
+            "mm hg",
+            "pulse rate",
+            "pulse regular",
+            "pulse irregular",
+            "heart rate",
+            "height",
+            "weight",
+            "bmi",
+            "body mass",
+            "peak flow",
+            "spirometry",
+            "fev1",
+            "fvc",
+            "oxygen saturation",
+            "respiratory rate",
+        )
+    ):
         return "vital_sign"
-    if any(t in s for t in (
-        "hba1c", "haemoglobin a1c", "hemoglobin a1c",
-        "liver function", "renal function", "thyroid function",
-        "serum albumin", "albumin level", "haemoglobin concentration",
-        "hemoglobin concentration", "creatine kinase", "ck level",
-        "full blood count", "fbc", "crp", "esr",
-        "serum amylase", "amylase level", "pcv level", "red blood cell count",
-        "mean cell volume", "neutrophil count", "basophil count", "lymphocyte count",
-        "bilirubin level", "alkaline phosphatase level", "serum potassium level",
-        "serum sodium level", "blood chemistry",
-        "cholesterol", "triglyceride", "glucose level", "blood glucose",
-        "gfr", "egfr", "creatinine", "urea",
-        "inr", "platelet", "white cell", "white blood",
-        "haemoglobin level", "hemoglobin level",
-        "urine", "dipstick", "urinalysis",
-    )):
+    if any(
+        t in s
+        for t in (
+            "hba1c",
+            "haemoglobin a1c",
+            "hemoglobin a1c",
+            "liver function",
+            "renal function",
+            "thyroid function",
+            "serum albumin",
+            "albumin level",
+            "haemoglobin concentration",
+            "hemoglobin concentration",
+            "creatine kinase",
+            "ck level",
+            "full blood count",
+            "fbc",
+            "crp",
+            "esr",
+            "serum amylase",
+            "amylase level",
+            "pcv level",
+            "red blood cell count",
+            "mean cell volume",
+            "neutrophil count",
+            "basophil count",
+            "lymphocyte count",
+            "bilirubin level",
+            "alkaline phosphatase level",
+            "serum potassium level",
+            "serum sodium level",
+            "blood chemistry",
+            "cholesterol",
+            "triglyceride",
+            "glucose level",
+            "blood glucose",
+            "gfr",
+            "egfr",
+            "creatinine",
+            "urea",
+            "inr",
+            "platelet",
+            "white cell",
+            "white blood",
+            "haemoglobin level",
+            "hemoglobin level",
+            "urine",
+            "dipstick",
+            "urinalysis",
+        )
+    ):
         return "lab_result"
     if any(t in s for t in ("referral", "refer ", "follow-up", "discharged")):
         return "referral"
@@ -469,7 +549,10 @@ def _classify_span_text(text: str) -> str:
         or re.search(r"\b(patient\s+)?given\b.*\badvice\b", s)
     ):
         return "advice_event"
-    if any(t in s for t in ("vaccination", "vaccine", "immunisation", "advice", "screening")):
+    if any(
+        t in s
+        for t in ("vaccination", "vaccine", "immunisation", "advice", "screening")
+    ):
         return "intervention"
     if any(t in s for t in ("travel", "contact abroad", "foreign contact")):
         return "exposure"
@@ -535,28 +618,37 @@ def _base_temporal(sentence: str, status: str) -> dict[str, Any]:
         "offset": _extract_offset(sentence),
         "pattern": "acute" if "acute" in sentence.lower() else None,
         "recurrence": "prior episode" if "similar" in sentence.lower() else None,
-        "context": "past episode" if status == "historic" else (
-            "care plan" if status == "planned" else "encounter"
+        "context": (
+            "past episode"
+            if status == "historic"
+            else ("care plan" if status == "planned" else "encounter")
         ),
     }
 
 
-def _entity(entity_text: str, entity_type: str, sentence: str, negation: bool) -> dict[str, Any]:
+def _entity(
+    entity_text: str, entity_type: str, sentence: str, negation: bool
+) -> dict[str, Any]:
     s = sentence.lower()
     clean_text = _normalize_text(entity_text).strip()
     if not clean_text:
         clean_text = "unspecified concept"
-    uncertainty = any(t in s for t in ("likely", "possible", "query", "suspect", "probably", "?"))
+    uncertainty = any(
+        t in s for t in ("likely", "possible", "query", "suspect", "probably", "?")
+    )
     if entity_type not in {"diagnosis", "symptom"}:
         uncertainty = False
     status = "current"
     recent_onset = re.search(r"\b(\d+)\s*(?:days?|hours?)\s+ago\b", s)
     if recent_onset and int(recent_onset.group(1)) <= 14:
         pass
-    elif any(t in s for t in ("previously", "had similar", "history of", "ago", "prior")):
+    elif any(
+        t in s for t in ("previously", "had similar", "history of", "ago", "prior")
+    ):
         status = "historic"
     if entity_type in {"referral", "intervention"} and any(
-        t in s for t in ("refer", "referral", "plan", "review", "follow-up", "to return")
+        t in s
+        for t in ("refer", "referral", "plan", "review", "follow-up", "to return")
     ):
         status = "planned"
     if negation and status == "planned":
@@ -636,7 +728,9 @@ def _keyword_entities(sentence: str) -> list[dict[str, Any]]:
         return [_entity(sentence, sentence_type, sentence, negation=False)]
     if sentence_type == "social_history" and re.search(r"\bno\s+fh\b|\bfh:\b", s):
         cleaned = re.sub(r"\([a-z0-9.]{3,8}\)", "", sentence, flags=re.IGNORECASE)
-        cleaned = _clean(re.sub(r"^\s*no\s+fh\s*:\s*", "", cleaned, flags=re.IGNORECASE))
+        cleaned = _clean(
+            re.sub(r"^\s*no\s+fh\s*:\s*", "", cleaned, flags=re.IGNORECASE)
+        )
         cleaned = _clean(re.sub(r"^fh\s*:\s*", "", cleaned, flags=re.IGNORECASE))
         if not cleaned:
             cleaned = "family history"
@@ -645,7 +739,11 @@ def _keyword_entities(sentence: str) -> list[dict[str, Any]]:
 
     out: list[dict[str, Any]] = []
     if "sars-cov-2" in s and ("detection result" in s or "rna" in s):
-        label = "sars-cov-2 test result negative" if "negative" in s else "sars-cov-2 test result"
+        label = (
+            "sars-cov-2 test result negative"
+            if "negative" in s
+            else "sars-cov-2 test result"
+        )
         out.append(_entity(label, "lab_result", sentence, negation=False))
 
     trailing_no = bool(re.search(r":\s*no\s*$", s))
@@ -664,11 +762,22 @@ def _keyword_entities(sentence: str) -> list[dict[str, Any]]:
             elif "cough" in p:
                 out.append(_entity("cough", "symptom", sentence, negation=True))
             elif "smell" in p or "taste" in p:
-                out.append(_entity("loss of smell/taste", "symptom", sentence, negation=True))
+                out.append(
+                    _entity("loss of smell/taste", "symptom", sentence, negation=True)
+                )
             elif "sob" in p:
-                out.append(_entity("shortness of breath", "symptom", sentence, negation=True))
+                out.append(
+                    _entity("shortness of breath", "symptom", sentence, negation=True)
+                )
             else:
-                out.append(_entity(_normalize_text(p), _classify_span_text(p), sentence, negation=True))
+                out.append(
+                    _entity(
+                        _normalize_text(p),
+                        _classify_span_text(p),
+                        sentence,
+                        negation=True,
+                    )
+                )
 
     if re.search(r"\bdiscussed\s+no\s+travel\b", s):
         out.append(_entity("travel advice", "intervention", sentence, negation=False))
@@ -691,31 +800,53 @@ def _keyword_entities(sentence: str) -> list[dict[str, Any]]:
             if re.fullmatch(r"[a-z]{1,3}", term) or term in {"no sa", "sa"}:
                 continue
             if term in {
-                "better", "improvement", "longer infectious", "longer",
-                "obvious triggers", "triggers", "obvious local trigger",
+                "better",
+                "improvement",
+                "longer infectious",
+                "longer",
+                "obvious triggers",
+                "triggers",
+                "obvious local trigger",
             }:
                 continue
             if len(term) < 3:
                 continue
             if "pins and needles" in term and "/" in term:
-                out.append(_entity("pins and needles", "symptom", sentence, negation=True))
+                out.append(
+                    _entity("pins and needles", "symptom", sentence, negation=True)
+                )
                 if "altered sensation" in term:
-                    out.append(_entity("altered sensation", "symptom", sentence, negation=True))
+                    out.append(
+                        _entity("altered sensation", "symptom", sentence, negation=True)
+                    )
                 continue
             if "travel" in p:
                 if "discussed" not in s:
                     out.append(_entity("travel", "exposure", sentence, negation=True))
             elif "contact abroad" in p or "foreign contact" in p:
-                out.append(_entity("foreign contact exposure", "exposure", sentence, negation=True))
+                out.append(
+                    _entity(
+                        "foreign contact exposure", "exposure", sentence, negation=True
+                    )
+                )
             elif "fever" in p or "fevers" in p:
                 out.append(_entity("fever", "symptom", sentence, negation=True))
             elif "pins and needles" in term:
-                out.append(_entity("pins and needles", "symptom", sentence, negation=True))
+                out.append(
+                    _entity("pins and needles", "symptom", sentence, negation=True)
+                )
             elif "sob" in p:
-                out.append(_entity("shortness of breath", "symptom", sentence, negation=True))
+                out.append(
+                    _entity("shortness of breath", "symptom", sentence, negation=True)
+                )
             else:
                 out.append(
-                    _entity(_normalize_text(term), _classify_span_text(term), sentence, negation=True)
+                    _entity(
+                        _normalize_text(term),
+                        _classify_span_text(term),
+                        sentence,
+                        negation=True,
+                    )
                 )
 
     if "epistaxis" in s or "nose bleed" in s or "nosebleed" in s:
@@ -741,20 +872,30 @@ def _keyword_entities(sentence: str) -> list[dict[str, Any]]:
     if "hernia" in s:
         # Distinguish condition mentions from procedural repair mentions.
         if any(t in s for t in ("repair", "repair site", "primary repair")):
-            out.append(_entity("hernia repair", "intervention", sentence, negation=False))
+            out.append(
+                _entity("hernia repair", "intervention", sentence, negation=False)
+            )
         else:
             m = re.search(r"\b(?:left|right|lt|rt)?\s*inguinal hernia\b", s)
             mention = m.group(0) if m else "hernia"
             out.append(_entity(mention, "diagnosis", sentence, negation=False))
-    if ("family history" in s or re.search(r"\bfh\b", s)) and not re.search(r"\bno\s+fh\b|\bfh:\b", s):
+    if ("family history" in s or re.search(r"\bfh\b", s)) and not re.search(
+        r"\bno\s+fh\b|\bfh:\b", s
+    ):
         if not any(e["type"] == "social_history" for e in out):
-            out.append(_entity("family history", "social_history", sentence, negation=False))
+            out.append(
+                _entity("family history", "social_history", sentence, negation=False)
+            )
     if any(t in s for t in ("past medical history", "pmh")):
-        out.append(_entity("past medical history", "social_history", sentence, negation=False))
+        out.append(
+            _entity("past medical history", "social_history", sentence, negation=False)
+        )
     if "occupation" in s:
         out.append(_entity("occupation", "social_history", sentence, negation=False))
     if any(t in s for t in ("employed", "unemployed", "retired")):
-        out.append(_entity("employment status", "social_history", sentence, negation=False))
+        out.append(
+            _entity("employment status", "social_history", sentence, negation=False)
+        )
     if "stopped smoking" in s or "ex smoker" in s or "former smoker" in s:
         out.append(_entity("ex smoker", "social_history", sentence, negation=False))
     elif "smoker" in s or "smoking" in s:
@@ -764,13 +905,22 @@ def _keyword_entities(sentence: str) -> list[dict[str, Any]]:
                 or re.search(r"\b(patient\s+)?given\b.*\badvice\b", s)
             )
             atype = "advice_event" if is_situation else "intervention"
-            out.append(_entity("smoking cessation advice", atype, sentence, negation=False))
+            out.append(
+                _entity("smoking cessation advice", atype, sentence, negation=False)
+            )
         else:
-            smatch = re.search(r"\blight smoker\b|\bcigarette smoker\b|\bsmoker\b|\bsmoking\b", s)
+            smatch = re.search(
+                r"\blight smoker\b|\bcigarette smoker\b|\bsmoker\b|\bsmoking\b", s
+            )
             stext = smatch.group(0) if smatch else "smoker"
             out.append(_entity(stext, "social_history", sentence, negation=False))
     has_dose_ctx = bool(re.search(r"\b(?:1st|2nd|3rd|4th|5th|booster)\b", s))
-    if "vaccination" in s or "vaccine" in s or "immunisation" in s or (has_dose_ctx and "rabies" in s):
+    if (
+        "vaccination" in s
+        or "vaccine" in s
+        or "immunisation" in s
+        or (has_dose_ctx and "rabies" in s)
+    ):
         hmatch = re.search(r"\bhepatitis\s+[ab]\s+(?:vaccination|vaccine)\b", s)
         vmatch = re.search(
             r"\b(?:1st|2nd|3rd|booster)?\s*[a-z]+\s+(?:vaccination|vaccine)\b",
@@ -805,13 +955,17 @@ def _keyword_entities(sentence: str) -> list[dict[str, Any]]:
     if ("referral" in s or "refer " in s) and "referral mode" not in s:
         rmatch = re.search(r"\breferral to [a-z\s\-]+\b|\brefer [a-z\s\-]+\b", s)
         if rmatch:
-            out.append(_entity(_clean(rmatch.group(0)), "referral", sentence, negation=False))
+            out.append(
+                _entity(_clean(rmatch.group(0)), "referral", sentence, negation=False)
+            )
         else:
             out.append(_entity("referral", "referral", sentence, negation=False))
     if re.search(r"\b(mometasone|amoxicillin|paracetamol|ibuprofen)\b", s):
         med = re.search(r"\b(mometasone|amoxicillin|paracetamol|ibuprofen)\b", s)
         if med:
-            med_neg = bool(re.search(r"\bnot taking\b|\bnot on\b|\bno longer taking\b", s))
+            med_neg = bool(
+                re.search(r"\bnot taking\b|\bnot on\b|\bno longer taking\b", s)
+            )
             out.append(_entity(med.group(1), "medication", sentence, negation=med_neg))
     return out
 
@@ -882,8 +1036,19 @@ def _split_multi_concept_sentence(row: dict[str, Any]) -> list[dict[str, Any]]:
         return rows
 
     if "no significant family history of cardiovascular disease" in lowered:
-        e = _entity("family history of cardiovascular disease", "social_history", sentence, negation=True)
-        return [{"date": row["date"], "sentence": "No significant family history of cardiovascular disease", "entities": [e]}]
+        e = _entity(
+            "family history of cardiovascular disease",
+            "social_history",
+            sentence,
+            negation=True,
+        )
+        return [
+            {
+                "date": row["date"],
+                "sentence": "No significant family history of cardiovascular disease",
+                "entities": [e],
+            }
+        ]
 
     if "scapula movement good, thoracic rotation ok" in lowered:
         rows = []
@@ -924,7 +1089,9 @@ def _split_multi_concept_sentence(row: dict[str, Any]) -> list[dict[str, Any]]:
     return [row_left, row_right]
 
 
-def _split_multi_concept_entities(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _split_multi_concept_entities(
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Split remaining blended entity texts like 'x and y' into two entities."""
     out: list[dict[str, Any]] = []
     for e in entities:
@@ -963,7 +1130,9 @@ def _entity_key(entity: dict[str, Any], date: str) -> tuple[str, str, str | None
     )
 
 
-def _split_overreach_entity(row: dict[str, Any], entity: dict[str, Any]) -> list[dict[str, Any]]:
+def _split_overreach_entity(
+    row: dict[str, Any], entity: dict[str, Any]
+) -> list[dict[str, Any]]:
     text = entity.get("text", "")
     sentence = row["sentence"]
     if entity["type"] != "intervention":
@@ -1007,18 +1176,20 @@ def postprocess_row(row: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str,
         for idx, e in enumerate(entities):
             if e["type"] in {"diagnosis", "symptom"} and not e["uncertainty"]:
                 e["uncertainty"] = True
-                events.append({
-                    "line_number": 0,
-                    "record_id": record_id,
-                    "error_category": "uncertainty_mismatch",
-                    "severity": "medium",
-                    "entity_index": idx,
-                    "field": "uncertainty",
-                    "observed_value": False,
-                    "expected_value": True,
-                    "rule_triggered": "lexical_uncertainty_token",
-                    "recommended_action": "Set uncertainty=true",
-                })
+                events.append(
+                    {
+                        "line_number": 0,
+                        "record_id": record_id,
+                        "error_category": "uncertainty_mismatch",
+                        "severity": "medium",
+                        "entity_index": idx,
+                        "field": "uncertainty",
+                        "observed_value": False,
+                        "expected_value": True,
+                        "rule_triggered": "lexical_uncertainty_token",
+                        "recommended_action": "Set uncertainty=true",
+                    }
+                )
 
     # 2) Administrative phrase remapping.
     if any(p in lowered for p in ADMIN_PHRASE_TRIGGERS):
@@ -1029,18 +1200,20 @@ def postprocess_row(row: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str,
                 e["snomed_semantic_tag"] = "record artifact"
                 e["attributes"] = {}
                 e["clinical_status"] = "historic"
-                events.append({
-                    "line_number": 0,
-                    "record_id": record_id,
-                    "error_category": "ontology_violation",
-                    "severity": "medium",
-                    "entity_index": idx,
-                    "field": "type",
-                    "observed_value": old,
-                    "expected_value": "administrative_event",
-                    "rule_triggered": "administrative_phrase_match",
-                    "recommended_action": "Remap entity type",
-                })
+                events.append(
+                    {
+                        "line_number": 0,
+                        "record_id": record_id,
+                        "error_category": "ontology_violation",
+                        "severity": "medium",
+                        "entity_index": idx,
+                        "field": "type",
+                        "observed_value": old,
+                        "expected_value": "administrative_event",
+                        "rule_triggered": "administrative_phrase_match",
+                        "recommended_action": "Remap entity type",
+                    }
+                )
 
     # 3) Negation scope correction.
     if re.search(r"^\s*no\s+", lowered):
@@ -1062,18 +1235,20 @@ def postprocess_row(row: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str,
     for idx, e in enumerate(entities):
         expanded = _split_overreach_entity(row, e)
         if len(expanded) > 1:
-            events.append({
-                "line_number": 0,
-                "record_id": record_id,
-                "error_category": "span_overreach",
-                "severity": "high",
-                "entity_index": idx,
-                "field": "text",
-                "observed_value": e.get("text", ""),
-                "expected_value": "segmented_entities",
-                "rule_triggered": "multi_clause_capture",
-                "recommended_action": "Split into diagnosis + intervention entities",
-            })
+            events.append(
+                {
+                    "line_number": 0,
+                    "record_id": record_id,
+                    "error_category": "span_overreach",
+                    "severity": "high",
+                    "entity_index": idx,
+                    "field": "text",
+                    "observed_value": e.get("text", ""),
+                    "expected_value": "segmented_entities",
+                    "rule_triggered": "multi_clause_capture",
+                    "recommended_action": "Split into diagnosis + intervention entities",
+                }
+            )
         split_entities.extend(expanded)
     entities = split_entities
 
@@ -1100,18 +1275,20 @@ def postprocess_row(row: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str,
         invalid = [k for k in e["attributes"].keys() if k not in allowed]
         for k in invalid:
             observed = e["attributes"].pop(k)
-            events.append({
-                "line_number": 0,
-                "record_id": record_id,
-                "error_category": "attribute_violation",
-                "severity": "medium",
-                "entity_index": idx,
-                "field": f"attributes.{k}",
-                "observed_value": observed,
-                "expected_value": None,
-                "rule_triggered": "attribute_type_compatibility",
-                "recommended_action": "Remove invalid attribute",
-            })
+            events.append(
+                {
+                    "line_number": 0,
+                    "record_id": record_id,
+                    "error_category": "attribute_violation",
+                    "severity": "medium",
+                    "entity_index": idx,
+                    "field": f"attributes.{k}",
+                    "observed_value": observed,
+                    "expected_value": None,
+                    "rule_triggered": "attribute_type_compatibility",
+                    "recommended_action": "Remove invalid attribute",
+                }
+            )
 
     # 7) Span grounding and fragment cleanup.
     cleaned_entities: list[dict[str, Any]] = []
@@ -1150,7 +1327,9 @@ def postprocess_row(row: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str,
             e["type"] = "administrative_event"
             e["snomed_semantic_tag"] = "record artifact"
             e["clinical_status"] = "historic"
-        text = re.sub(r",?\s*\[(CARE_SITE|PERSON|DATE|PRACTICE)\]", "", text, flags=re.IGNORECASE).strip(" ,")
+        text = re.sub(
+            r",?\s*\[(CARE_SITE|PERSON|DATE|PRACTICE)\]", "", text, flags=re.IGNORECASE
+        ).strip(" ,")
         text = re.sub(
             r"^family history of\s+(.+?)\s+no\s+fh:\s*\1$",
             r"family history of \1",
@@ -1192,7 +1371,17 @@ def _is_corrupt_span(text: str) -> bool:
     t = text.strip().lower()
     if len(t) < 3:
         return True
-    if t in {"gl", "s", "ation", "table", "symptoms w", "general", "observation", "textiles", "unspecified"}:
+    if t in {
+        "gl",
+        "s",
+        "ation",
+        "table",
+        "symptoms w",
+        "general",
+        "observation",
+        "textiles",
+        "unspecified",
+    }:
         return True
     if not re.search(r"[a-z]{2,}", t):
         return True
@@ -1218,7 +1407,10 @@ def extract_rows(encounter: dict[str, Any]) -> list[dict[str, Any]]:
             if not mention or not _is_valid_read_code(code):
                 continue
             etype = _classify_span_text(mention)
-            if etype in {"vital_sign", "lab_result"} and "sars-cov-2" in mention.lower():
+            if (
+                etype in {"vital_sign", "lab_result"}
+                and "sars-cov-2" in mention.lower()
+            ):
                 mention = (
                     "sars-cov-2 test result negative"
                     if "negative" in mention.lower()
@@ -1226,8 +1418,12 @@ def extract_rows(encounter: dict[str, Any]) -> list[dict[str, Any]]:
                 )
             mention_neg = bool(re.search(r"^\s*no\s+fh\s*:", mention.lower()))
             if mention_neg and etype == "social_history":
-                fh_clean = _clean(re.sub(r"^\s*no\s+fh\s*:\s*", "", mention, flags=re.IGNORECASE))
-                mention = f"family history of {fh_clean}" if fh_clean else "family history"
+                fh_clean = _clean(
+                    re.sub(r"^\s*no\s+fh\s*:\s*", "", mention, flags=re.IGNORECASE)
+                )
+                mention = (
+                    f"family history of {fh_clean}" if fh_clean else "family history"
+                )
             entities.append(_entity(mention, etype, sentence, negation=mention_neg))
 
         entities.extend(_extract_measurements(sentence))
@@ -1241,7 +1437,10 @@ def extract_rows(encounter: dict[str, Any]) -> list[dict[str, Any]]:
         for e in entities:
             if e["type"] == "administrative_event":
                 # Keep as record artifact only when explicitly administrative.
-                if not any(k in sentence.lower() for k in ("notes summary", "letter sent", "administration")):
+                if not any(
+                    k in sentence.lower()
+                    for k in ("notes summary", "letter sent", "administration")
+                ):
                     continue
             if _is_corrupt_span(e["text"]):
                 continue
@@ -1277,7 +1476,9 @@ def extract_rows(encounter: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
-def qa_validate_row(row: dict[str, Any], schema_validator: Draft7Validator) -> tuple[list[str], list[str]]:
+def qa_validate_row(
+    row: dict[str, Any], schema_validator: Draft7Validator
+) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -1292,7 +1493,11 @@ def qa_validate_row(row: dict[str, Any], schema_validator: Draft7Validator) -> t
             errors.append("date_range:outside_2024_2025")
 
     sentence = row.get("sentence", "")
-    if NAME_PATTERN.search(sentence) or "[PRACTICE]" in sentence or UUID_PATTERN.search(sentence):
+    if (
+        NAME_PATTERN.search(sentence)
+        or "[PRACTICE]" in sentence
+        or UUID_PATTERN.search(sentence)
+    ):
         errors.append("deid:sentence_contains_phi_or_identifier")
     if re.search(r"\b\d{4}-\d{2}-\d{2}\b", sentence):
         errors.append("deid:exact_date_leak")
@@ -1316,7 +1521,9 @@ def qa_validate_row(row: dict[str, Any], schema_validator: Draft7Validator) -> t
         re.IGNORECASE,
     )
     sent_stripped = _safety_net_re.sub("", sentence)
-    has_negation_cue = bool(re.search(r"\bno\b|\bnot\b|\bdenies\b|\bnil\b|\bnad\b", sent_stripped.lower()))
+    has_negation_cue = bool(
+        re.search(r"\bno\b|\bnot\b|\bdenies\b|\bnil\b|\bnad\b", sent_stripped.lower())
+    )
     if re.fullmatch(r"\s*nad(?:\s*\([a-z0-9.]+\))?\s*", sentence.lower()):
         has_negation_cue = False
     if sentence_kind in {"administrative_event", "document_event"}:
@@ -1331,11 +1538,15 @@ def qa_validate_row(row: dict[str, Any], schema_validator: Draft7Validator) -> t
         stag = e["snomed_semantic_tag"]
         status = e["clinical_status"]
 
-        if etype not in SEMANTIC_ALLOWED or stag not in SEMANTIC_ALLOWED.get(etype, set()):
+        if etype not in SEMANTIC_ALLOWED or stag not in SEMANTIC_ALLOWED.get(
+            etype, set()
+        ):
             errors.append(f"semantic_mismatch:{etype}->{stag}")
         if status not in ALLOWED_STATUS:
             errors.append("clinical_status:invalid")
-        if not isinstance(e["negation"], bool) or not isinstance(e["uncertainty"], bool):
+        if not isinstance(e["negation"], bool) or not isinstance(
+            e["uncertainty"], bool
+        ):
             errors.append("logic:boolean_fields_invalid")
 
         allowed_attr = ALLOWED_ATTRIBUTES.get(etype, set())
@@ -1343,7 +1554,11 @@ def qa_validate_row(row: dict[str, Any], schema_validator: Draft7Validator) -> t
             if attr_key not in allowed_attr:
                 errors.append(f"attribute_mismatch:{etype}->{attr_key}")
 
-        if status == "planned" and etype not in {"intervention", "advice_event", "referral"}:
+        if status == "planned" and etype not in {
+            "intervention",
+            "advice_event",
+            "referral",
+        }:
             errors.append("clinical_status:planned_type_mismatch")
         if status == "current" and etype in {"administrative_event", "document_event"}:
             errors.append("clinical_status:current_admin_not_allowed")
@@ -1428,11 +1643,21 @@ def summarize_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "rows": len(rows),
         "entities": total_entities,
         "tag_distribution": tag_counts,
-        "negated_pct": round((negated / total_entities) * 100, 2) if total_entities else 0.0,
-        "historic_pct": round((historic / total_entities) * 100, 2) if total_entities else 0.0,
-        "current_pct": round((current / total_entities) * 100, 2) if total_entities else 0.0,
-        "planned_pct": round((planned / total_entities) * 100, 2) if total_entities else 0.0,
-        "mean_entities_per_sentence": round(mean(ents_per_sentence), 3) if ents_per_sentence else 0.0,
+        "negated_pct": (
+            round((negated / total_entities) * 100, 2) if total_entities else 0.0
+        ),
+        "historic_pct": (
+            round((historic / total_entities) * 100, 2) if total_entities else 0.0
+        ),
+        "current_pct": (
+            round((current / total_entities) * 100, 2) if total_entities else 0.0
+        ),
+        "planned_pct": (
+            round((planned / total_entities) * 100, 2) if total_entities else 0.0
+        ),
+        "mean_entities_per_sentence": (
+            round(mean(ents_per_sentence), 3) if ents_per_sentence else 0.0
+        ),
     }
 
 
@@ -1458,11 +1683,15 @@ def main(patient_id: str) -> None:
             if errors:
                 qa_errors += len(errors)
                 if len(examples["errors"]) < 30:
-                    examples["errors"].append(f"{row['date']}|{row['sentence']} -> {errors[0]}")
+                    examples["errors"].append(
+                        f"{row['date']}|{row['sentence']} -> {errors[0]}"
+                    )
                 continue
             qa_warnings += len(warnings)
             if warnings and len(examples["warnings"]) < 30:
-                examples["warnings"].append(f"{row['date']}|{row['sentence']} -> {warnings[0]}")
+                examples["warnings"].append(
+                    f"{row['date']}|{row['sentence']} -> {warnings[0]}"
+                )
             out_rows.append(row)
             validation_events.extend(events)
             kept += 1
@@ -1474,9 +1703,7 @@ def main(patient_id: str) -> None:
             out.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     # Stamp line numbers onto post-processing events.
-    line_lookup = {
-        _record_id(r): i for i, r in enumerate(out_rows, start=1)
-    }
+    line_lookup = {_record_id(r): i for i, r in enumerate(out_rows, start=1)}
     for ev in validation_events:
         ev["line_number"] = line_lookup.get(ev["record_id"], 0)
 

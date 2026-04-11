@@ -18,6 +18,7 @@ Rules:
 Dry-run by default.
 Use --apply to commit writes.
 """
+
 from __future__ import annotations
 
 import json
@@ -192,10 +193,14 @@ def main() -> None:
     if not SCAN_RESULTS_FILE.exists():
         raise FileNotFoundError(f"Missing scan output file: {SCAN_RESULTS_FILE}")
 
-    encounters: list[dict[str, Any]] = json.loads(ENCOUNTERS_FILE.read_text(encoding="utf-8"))
+    encounters: list[dict[str, Any]] = json.loads(
+        ENCOUNTERS_FILE.read_text(encoding="utf-8")
+    )
     form_map = _load_form_map()
     if not form_map:
-        print("No form mappings found in covered/confirmed_additions; nothing to backfill.")
+        print(
+            "No form mappings found in covered/confirmed_additions; nothing to backfill."
+        )
         return
 
     print(
@@ -259,13 +264,16 @@ def main() -> None:
     ok = 0
     try:
         for i, w in enumerate(final_writes, 1):
-            rows = pg.run(
-                _UPSERT_DOCUMENTS_Q,
-                encounter_id=w["encounter_id"],
-                concept_id=w["concept_id"],
-                assertion=w["assertion"],
-                evidence=w["evidence"],
-            ) or []
+            rows = (
+                pg.run(
+                    _UPSERT_DOCUMENTS_Q,
+                    encounter_id=w["encounter_id"],
+                    concept_id=w["concept_id"],
+                    assertion=w["assertion"],
+                    evidence=w["evidence"],
+                )
+                or []
+            )
             if rows:
                 ok += 1
             if i % 2000 == 0:
@@ -278,4 +286,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

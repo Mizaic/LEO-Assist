@@ -22,10 +22,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 _ROOT = Path(__file__).resolve().parent.parent
 from dotenv import load_dotenv
+
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_ROOT / "secrets" / ".env", override=False)
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception:
     pass
@@ -48,7 +50,7 @@ logger = logging.getLogger(__name__)
 #     human approves them at /admin/guidance.
 
 _PATHWAY_NAME = "NICE Guideline → Appropriateness Rules"
-_PATHWAY_ID   = "nice-guidance-rule-pipeline-v1"
+_PATHWAY_ID = "nice-guidance-rule-pipeline-v1"
 
 _PATHWAY_PAYLOAD = {
     "id": _PATHWAY_ID,
@@ -92,7 +94,12 @@ _PATHWAY_PAYLOAD = {
                 "promptConfigId": "",
                 "promptConfigName": "guidance_rule_extraction",
                 "params": {
-                    "semantic_tags_criteria": ["finding", "disorder", "observable entity", "situation"],
+                    "semantic_tags_criteria": [
+                        "finding",
+                        "disorder",
+                        "observable entity",
+                        "situation",
+                    ],
                     "semantic_tags_action": ["procedure"],
                     "max_criteria_terms": 5,
                     "consensus_model_small": "aws:small",
@@ -158,7 +165,7 @@ _PATHWAY_PAYLOAD = {
     ],
     "edges": [
         {"source": "step_extract_criteria", "target": "step_human_review"},
-        {"source": "step_human_review",     "target": "step_compile_bitmap"},
+        {"source": "step_human_review", "target": "step_compile_bitmap"},
     ],
     "meta": {
         "seeded": True,
@@ -193,9 +200,13 @@ RETURN p.id AS id, coalesce(p.source, 'seed') AS source
 def main() -> None:
     from neo4j import GraphDatabase
 
-    uri      = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687"))
-    user     = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j"))
-    password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password"))
+    uri = os.getenv(
+        "KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    )
+    user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j"))
+    password = os.getenv(
+        "KNOWLEDGE_GRAPH_NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password")
+    )
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
     try:
@@ -210,7 +221,11 @@ def main() -> None:
             record = result.single()
             if record:
                 source = record.get("source", "seed")
-                action = "created" if source == "seed" else "skipped (user-edited — not overwritten)"
+                action = (
+                    "created"
+                    if source == "seed"
+                    else "skipped (user-edited — not overwritten)"
+                )
                 logger.info("  %s — %s", _PATHWAY_ID, action)
             else:
                 logger.info("  %s — no record returned", _PATHWAY_ID)

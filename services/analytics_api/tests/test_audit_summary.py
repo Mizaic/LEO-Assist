@@ -8,7 +8,9 @@ def test_audit_summary_guards_empty_temporal_strings(monkeypatch):
     class _FakeClient:
         def run(self, query, **kwargs):
             assert "trim(coalesce(toString(ep.referral_date), '')) = ''" in query
-            assert "trim(coalesce(toString(ep.first_presentation_date), '')) = ''" in query
+            assert (
+                "trim(coalesce(toString(ep.first_presentation_date), '')) = ''" in query
+            )
             assert "referral_date_value IS NOT NULL" in query
             return [
                 {

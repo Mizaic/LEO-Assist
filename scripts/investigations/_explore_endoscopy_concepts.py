@@ -5,6 +5,7 @@ Uses:
   GET /concepts/{id}/descendants   -- IS_A hierarchy traversal
   GET /search?q=...                -- fulltext search for comparison
 """
+
 from __future__ import annotations
 
 import requests
@@ -16,7 +17,9 @@ def descendants(concept_id: str, depth: int = 4, tag: str | None = None) -> list
     params: dict = {"depth": depth, "limit": 200}
     if tag:
         params["semantic_tag"] = tag
-    r = requests.get(f"{BASE}/concepts/{concept_id}/descendants", params=params, timeout=60)
+    r = requests.get(
+        f"{BASE}/concepts/{concept_id}/descendants", params=params, timeout=60
+    )
     r.raise_for_status()
     return r.json()
 
@@ -31,8 +34,7 @@ def search(q: str, tag: str | None = None, limit: int = 20) -> list[dict]:
 
 
 def resolve(term: str) -> list[dict]:
-    r = requests.post(f"{BASE}/resolve",
-                      json={"terms": [term], "top_k": 8}, timeout=30)
+    r = requests.post(f"{BASE}/resolve", json={"terms": [term], "top_k": 8}, timeout=30)
     r.raise_for_status()
     data = r.json()
     return data.get("results", {}).get(term, [])
@@ -64,12 +66,38 @@ if gi_parents:
         print(f"\nDescendants of {parent_id}:")
         try:
             desc = descendants(parent_id, depth=4, tag="procedure")
-            upper = [d for d in desc if any(w in (d.get("term") or "").lower()
-                                            for w in ["upper", "oesophag", "esophag",
-                                                      "gastro", "gastric", "duoden", "stomach"])]
-            lower = [d for d in desc if any(w in (d.get("term") or "").lower()
-                                             for w in ["lower", "colon", "colono", "sigmoid",
-                                                       "rectal", "rectum", "bowel"])]
+            upper = [
+                d
+                for d in desc
+                if any(
+                    w in (d.get("term") or "").lower()
+                    for w in [
+                        "upper",
+                        "oesophag",
+                        "esophag",
+                        "gastro",
+                        "gastric",
+                        "duoden",
+                        "stomach",
+                    ]
+                )
+            ]
+            lower = [
+                d
+                for d in desc
+                if any(
+                    w in (d.get("term") or "").lower()
+                    for w in [
+                        "lower",
+                        "colon",
+                        "colono",
+                        "sigmoid",
+                        "rectal",
+                        "rectum",
+                        "bowel",
+                    ]
+                )
+            ]
             _print(upper, "Upper GI candidates")
             _print(lower, "Lower GI candidates")
         except Exception as e:

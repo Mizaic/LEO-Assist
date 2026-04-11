@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture: mock DomainRegistry backed by synthetic concept sets
 # ---------------------------------------------------------------------------
@@ -99,7 +98,9 @@ class TestClassifyAnchorRows:
         )
 
         buckets, _ = _build_buckets(mock_registry)
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows([], buckets)
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+            [], buckets
+        )
         assert (
             refs == []
             and diags == []

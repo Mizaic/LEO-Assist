@@ -2,14 +2,18 @@
 
 Verifies that MAPS_TO edges exist with pinned=true for the target concept IDs.
 """
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
@@ -18,29 +22,61 @@ kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 CHECKS = [
-    ("1290960005", "Mesothelioma CXR finding",
-     ["chest X-ray findings suggestive of mesothelioma",
-      "pleural thickening on chest X-ray",
-      "CXR findings suggestive of mesothelioma"]),
-    ("272016000",  "On examination - chest finding (pleural signs)",
-     ["chest signs compatible with pleural disease",
-      "chest signs consistent with pleural disease",
-      "on examination chest finding"]),
-    ("405749004",  "Newly diagnosed diabetes",
-     ["new-onset diabetes mellitus", "newly diagnosed diabetes mellitus",
-      "new onset diabetes"]),
-    ("389026000",  "Ascites (disorder)",      ["ascites", "abdominal ascites"]),
-    ("271683004",  "Gallbladder palpable",     ["palpable gallbladder", "gallbladder palpable"]),
-    ("300344005",  "Gallbladder enlarged",     ["enlarged gallbladder"]),
-    ("300482003",  "Finding of appearance of testes",
-     ["change in shape of testis", "change in texture of testis"]),
-    ("13028004",   "Abnormal nervous system function",
-     ["progressive neurological deficit", "sub-acute neurological deterioration"]),
-    ("30425001",   "Osteolysis",
-     ["osteolysis", "X-ray finding suggestive of bone sarcoma"]),
-    ("1812681000000102", "Mass of anal structure",
-     ["anal mass", "mass of anal structure"]),
-    ("248523006",  "Rectal mass",             ["rectal mass"]),
+    (
+        "1290960005",
+        "Mesothelioma CXR finding",
+        [
+            "chest X-ray findings suggestive of mesothelioma",
+            "pleural thickening on chest X-ray",
+            "CXR findings suggestive of mesothelioma",
+        ],
+    ),
+    (
+        "272016000",
+        "On examination - chest finding (pleural signs)",
+        [
+            "chest signs compatible with pleural disease",
+            "chest signs consistent with pleural disease",
+            "on examination chest finding",
+        ],
+    ),
+    (
+        "405749004",
+        "Newly diagnosed diabetes",
+        [
+            "new-onset diabetes mellitus",
+            "newly diagnosed diabetes mellitus",
+            "new onset diabetes",
+        ],
+    ),
+    ("389026000", "Ascites (disorder)", ["ascites", "abdominal ascites"]),
+    (
+        "271683004",
+        "Gallbladder palpable",
+        ["palpable gallbladder", "gallbladder palpable"],
+    ),
+    ("300344005", "Gallbladder enlarged", ["enlarged gallbladder"]),
+    (
+        "300482003",
+        "Finding of appearance of testes",
+        ["change in shape of testis", "change in texture of testis"],
+    ),
+    (
+        "13028004",
+        "Abnormal nervous system function",
+        ["progressive neurological deficit", "sub-acute neurological deterioration"],
+    ),
+    (
+        "30425001",
+        "Osteolysis",
+        ["osteolysis", "X-ray finding suggestive of bone sarcoma"],
+    ),
+    (
+        "1812681000000102",
+        "Mass of anal structure",
+        ["anal mass", "mass of anal structure"],
+    ),
+    ("248523006", "Rectal mass", ["rectal mass"]),
 ]
 
 QUERY = """

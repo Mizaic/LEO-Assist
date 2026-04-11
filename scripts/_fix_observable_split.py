@@ -11,6 +11,7 @@ Usage:
     python scripts/_fix_observable_split.py --dry-run   # preview
     python scripts/_fix_observable_split.py              # write to Neo4j
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,6 +24,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_REPO_ROOT / "secrets" / ".env", override=False)
 
@@ -88,13 +90,15 @@ def _emit_extras_from_encounter(
 
         # Emit qualifier_value
         if value_span.lower() not in existing_qv_texts:
-            extras.append({
-                "text": value_span,
-                "label": "qualifier_value",
-                "start": vu_start,
-                "end": vu_start + len(value_span),
-                "confidence": float(ent.get("confidence", 0.0) or 0.0),
-            })
+            extras.append(
+                {
+                    "text": value_span,
+                    "label": "qualifier_value",
+                    "start": vu_start,
+                    "end": vu_start + len(value_span),
+                    "confidence": float(ent.get("confidence", 0.0) or 0.0),
+                }
+            )
 
         # Check for interpretation suffix after value+unit in encounter text
         after_vu_pos = vu_start + len(value_span)
@@ -102,7 +106,7 @@ def _emit_extras_from_encounter(
         remaining = encounter_text[after_vu_pos:]
         ref_match = re.match(r"\s*\[[^\]]*\]", remaining)
         if ref_match:
-            remaining = remaining[ref_match.end():]
+            remaining = remaining[ref_match.end() :]
 
         interp = _detect_interpretation(remaining)
         if interp:
@@ -114,15 +118,17 @@ def _emit_extras_from_encounter(
                     around=after_vu_pos,
                 )
                 if interp_start is not None:
-                    extras.append({
-                        "text": interp_text,
-                        "label": "finding",
-                        "start": interp_start,
-                        "end": interp_start + len(interp_text),
-                        "confidence": float(ent.get("confidence", 0.0) or 0.0),
-                        "interpretation_qualifier": interp_qualifier,
-                        "parent_observable_text": ent_text,
-                    })
+                    extras.append(
+                        {
+                            "text": interp_text,
+                            "label": "finding",
+                            "start": interp_start,
+                            "end": interp_start + len(interp_text),
+                            "confidence": float(ent.get("confidence", 0.0) or 0.0),
+                            "interpretation_qualifier": interp_qualifier,
+                            "parent_observable_text": ent_text,
+                        }
+                    )
 
     return extras
 
@@ -131,14 +137,12 @@ def main(dry_run: bool) -> None:
     client = PatientGraphClient()
     try:
         print("Fetching included TrainingLabel records...")
-        rows = client.run(
-            """
+        rows = client.run("""
             MATCH (tl:TrainingLabel)
             WHERE tl.include = true AND tl.entities_json IS NOT NULL
             RETURN tl.label_id AS label_id, tl.text AS encounter_text,
                    tl.entities_json AS ej
-            """
-        )
+            """)
         print(f"  Found {len(rows)} records")
 
         updates: list[dict] = []
@@ -156,8 +160,7 @@ def main(dry_run: bool) -> None:
                 continue
 
             has_observable = any(
-                _is_observable(str(e.get("label", "")))
-                for e in entities
+                _is_observable(str(e.get("label", ""))) for e in entities
             )
             if not has_observable:
                 continue
@@ -179,7 +182,8 @@ def main(dry_run: bool) -> None:
                 continue
 
             new_qv = sum(
-                1 for e in normalized
+                1
+                for e in normalized
                 if e.get("label") == "qualifier_value"
                 and not any(
                     orig.get("label") == "qualifier_value"
@@ -188,12 +192,15 @@ def main(dry_run: bool) -> None:
                 )
             )
             new_finding = sum(
-                1 for e in normalized
+                1
+                for e in normalized
                 if e.get("label") == "finding"
                 and e.get("interpretation_qualifier")
                 and not any(
-                    orig.get("interpretation_qualifier") == e.get("interpretation_qualifier")
-                    and orig.get("parent_observable_text") == e.get("parent_observable_text")
+                    orig.get("interpretation_qualifier")
+                    == e.get("interpretation_qualifier")
+                    and orig.get("parent_observable_text")
+                    == e.get("parent_observable_text")
                     for orig in entities
                 )
             )
@@ -202,20 +209,24 @@ def main(dry_run: bool) -> None:
             total_new_finding += new_finding
             total_records_changed += 1
 
-            updates.append({
-                "label_id": label_id,
-                "entities_json": json.dumps(normalized, default=str),
-            })
+            updates.append(
+                {
+                    "label_id": label_id,
+                    "entities_json": json.dumps(normalized, default=str),
+                }
+            )
 
             if len(examples) < 15:
-                examples.append({
-                    "label_id": label_id[:20],
-                    "before": len(entities),
-                    "after": len(normalized),
-                    "new_qv": new_qv,
-                    "new_finding": new_finding,
-                    "encounter": encounter_text[:90],
-                })
+                examples.append(
+                    {
+                        "label_id": label_id[:20],
+                        "before": len(entities),
+                        "after": len(normalized),
+                        "new_qv": new_qv,
+                        "new_finding": new_finding,
+                        "encounter": encounter_text[:90],
+                    }
+                )
 
         print(f"\nRecords to update      : {total_records_changed}")
         print(f"New qualifier_value    : {total_new_qv}")
@@ -224,8 +235,10 @@ def main(dry_run: bool) -> None:
         if examples:
             print("\nSample changes:")
             for ex in examples:
-                print(f"  {ex['label_id']} | {ex['before']} -> {ex['after']} entities "
-                      f"(+{ex['new_qv']} qv, +{ex['new_finding']} finding)")
+                print(
+                    f"  {ex['label_id']} | {ex['before']} -> {ex['after']} entities "
+                    f"(+{ex['new_qv']} qv, +{ex['new_finding']} finding)"
+                )
                 print(f"    {ex['encounter']!r}")
 
         if dry_run:
@@ -239,7 +252,7 @@ def main(dry_run: bool) -> None:
         print(f"\nWriting {len(updates)} records in batches of {BATCH_SIZE}...")
         written = 0
         for i in range(0, len(updates), BATCH_SIZE):
-            batch = updates[i:i + BATCH_SIZE]
+            batch = updates[i : i + BATCH_SIZE]
             client.run(
                 """
                 UNWIND $rows AS r
@@ -252,8 +265,10 @@ def main(dry_run: bool) -> None:
             written += len(batch)
             print(f"  {written}/{len(updates)} written")
 
-        print(f"\nDone. {total_records_changed} records updated: "
-              f"+{total_new_qv} qualifier_value, +{total_new_finding} finding entities.")
+        print(
+            f"\nDone. {total_records_changed} records updated: "
+            f"+{total_new_qv} qualifier_value, +{total_new_finding} finding entities."
+        )
 
     finally:
         client.close()
@@ -261,7 +276,10 @@ def main(dry_run: bool) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Preview changes without writing to Neo4j")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview changes without writing to Neo4j",
+    )
     args = parser.parse_args()
     main(dry_run=args.dry_run)

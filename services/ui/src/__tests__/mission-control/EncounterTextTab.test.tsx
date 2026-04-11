@@ -118,6 +118,7 @@ describe("EncounterTextTab milestone jump", () => {
       {
         concept_id: "149421000000109",
         term: "Provision of faecal immunochemical test kit",
+        assertion: "absent",
         evidence: "faecal immunochemical test kit",
         evidence_sentence:
           "Provision of faecal immunochemical test kit sent to patient.",
@@ -149,6 +150,7 @@ describe("EncounterTextTab milestone jump", () => {
           /Sentence: Provision of faecal immunochemical test kit sent to patient\./
         )
       ).toBeInTheDocument();
+      expect(screen.getByText(/Assertion: absent/)).toBeInTheDocument();
       expect(screen.getByText(/Mention offsets: 13-42/)).toBeInTheDocument();
     });
   });

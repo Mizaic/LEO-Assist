@@ -13,6 +13,7 @@ Classification priority (highest wins):
 Extending the classifier requires only editing ``encounter_rules.json``.
 No code changes and no model retraining are needed.
 """
+
 from __future__ import annotations
 
 import json
@@ -61,24 +62,18 @@ class EncounterTextcat:
         doc_t = rules.get("document_transfer", {})
         clin = rules.get("clinical_override", {})
 
-        self._admin_matcher = self._build_phrase_matcher(
-            nlp, admin.get("phrases", [])
-        )
+        self._admin_matcher = self._build_phrase_matcher(nlp, admin.get("phrases", []))
         self._admin_regex: list[re.Pattern] = [
             re.compile(p) for p in admin.get("regex", [])
         ]
         self._admin_max_length: int = int(admin.get("max_length", 0))
 
-        self._doc_matcher = self._build_phrase_matcher(
-            nlp, doc_t.get("phrases", [])
-        )
+        self._doc_matcher = self._build_phrase_matcher(nlp, doc_t.get("phrases", []))
         self._doc_regex: list[re.Pattern] = [
             re.compile(p) for p in doc_t.get("regex", [])
         ]
 
-        self._clin_matcher = self._build_phrase_matcher(
-            nlp, clin.get("phrases", [])
-        )
+        self._clin_matcher = self._build_phrase_matcher(nlp, clin.get("phrases", []))
         self._clin_regex: list[re.Pattern] = [
             re.compile(p) for p in clin.get("regex", [])
         ]
@@ -124,10 +119,7 @@ class EncounterTextcat:
         elif (
             self._hits(self._admin_matcher, doc)
             or self._regex_hits(self._admin_regex, text)
-            or (
-                self._admin_max_length
-                and len(text.strip()) <= self._admin_max_length
-            )
+            or (self._admin_max_length and len(text.strip()) <= self._admin_max_length)
         ):
             label = "admin_only"
 
@@ -180,7 +172,10 @@ def _get_pipeline(rules_path: Optional[str] = None) -> _EncounterPipeline:
     with _nlp_lock:
         if _nlp_instance is None:
             _nlp_instance = _EncounterPipeline(rules_path=rules_path)
-            logger.info("EncounterTextcat pipeline initialised (rules: %s)", rules_path or _RULES_PATH)
+            logger.info(
+                "EncounterTextcat pipeline initialised (rules: %s)",
+                rules_path or _RULES_PATH,
+            )
     return _nlp_instance
 
 

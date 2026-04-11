@@ -1,4 +1,5 @@
 """Domain ValueSet coverage and pathway gap analysis."""
+
 from __future__ import annotations
 
 import logging
@@ -64,9 +65,7 @@ def get_domain_coverage(
     """Return concepts outside ValueSets and orphan codes."""
     from libs.neo4j_client.client import run_with_retry
 
-    vs_rows = run_with_retry(
-        kg_client, _VALUESET_CONCEPTS_Q, domain_id=domain_id
-    )
+    vs_rows = run_with_retry(kg_client, _VALUESET_CONCEPTS_Q, domain_id=domain_id)
     vs_count = int(vs_rows[0]["cnt"]) if vs_rows else 0
 
     enc_rows = run_with_retry(
@@ -76,9 +75,7 @@ def get_domain_coverage(
         limit=limit,
     )
 
-    orphan_rows = run_with_retry(
-        patient_client, _ORPHAN_CONCEPTS_Q, limit=100
-    )
+    orphan_rows = run_with_retry(patient_client, _ORPHAN_CONCEPTS_Q, limit=100)
     orphans = [
         OrphanConcept(
             concept_id=r.get("concept_id") or "",
@@ -109,26 +106,28 @@ def get_pathway_gaps(
     gaps = []
     for r in rows:
         if r.get("has_referral") and not r.get("has_specialist"):
-            gaps.append(PathwayGap(
-                patient_id=r.get("patient_id") or "",
-                episode_id=r.get("episode_id"),
-                site=r.get("site") or "unknown",
-                gap_type="referral_no_specialist",
-                date=r.get("referral_date"),
-            ))
+            gaps.append(
+                PathwayGap(
+                    patient_id=r.get("patient_id") or "",
+                    episode_id=r.get("episode_id"),
+                    site=r.get("site") or "unknown",
+                    gap_type="referral_no_specialist",
+                    date=r.get("referral_date"),
+                )
+            )
         if not r.get("has_referral"):
-            gaps.append(PathwayGap(
-                patient_id=r.get("patient_id") or "",
-                episode_id=r.get("episode_id"),
-                site=r.get("site") or "unknown",
-                gap_type="no_referral",
-            ))
+            gaps.append(
+                PathwayGap(
+                    patient_id=r.get("patient_id") or "",
+                    episode_id=r.get("episode_id"),
+                    site=r.get("site") or "unknown",
+                    gap_type="no_referral",
+                )
+            )
     return gaps
 
 
-def get_orphan_concepts(
-    patient_client: Any, limit: int = 500
-) -> list[OrphanConcept]:
+def get_orphan_concepts(patient_client: Any, limit: int = 500) -> list[OrphanConcept]:
     """Return concept IDs on patient data not found or inactive in KG."""
     from libs.neo4j_client.client import run_with_retry
 

@@ -1,4 +1,5 @@
 """Breakdown of referrals, specialist visits, and diagnoses by year for patient 4203796334."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -8,10 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -75,7 +78,12 @@ def _classify_flags(flags: str | None) -> str:
     f = flags.lower()
     if "referral" in f or "2ww" in f or "fast" in f:
         return "referral"
-    if "specialist" in f or "outpatient" in f or "clinic letter" in f or "clinic_letter" in f:
+    if (
+        "specialist" in f
+        or "outpatient" in f
+        or "clinic letter" in f
+        or "clinic_letter" in f
+    ):
         return "specialist"
     if "diagnosis" in f or "cancer" in f:
         return "diagnosis"
@@ -93,14 +101,18 @@ def main() -> None:
             if pat_rows:
                 pat = dict(pat_rows[0]["p"])
                 print(f"Patient node keys: {sorted(pat.keys())}")
-                print(f"Patient props: { {k: v for k, v in pat.items() if k != 'vector'} }\n")
+                print(
+                    f"Patient props: { {k: v for k, v in pat.items() if k != 'vector'} }\n"
+                )
             else:
                 print(f"WARNING: No Patient node found for id={PATIENT_ID}\n")
 
             # Episodes
             episodes = s.run(_Q_EPISODES, pid=PATIENT_ID).data()
             print(f"EPISODES ({len(episodes)} total):")
-            print(f"{'ID':<20} {'Status':<25} {'Type':<12} {'Referral':<12} {'Specialist':<12} {'End':<12} {'HITL'}")
+            print(
+                f"{'ID':<20} {'Status':<25} {'Type':<12} {'Referral':<12} {'Specialist':<12} {'End':<12} {'HITL'}"
+            )
             print("-" * 110)
             for ep in episodes:
                 print(
@@ -124,19 +136,31 @@ def main() -> None:
             if not enc_rows:
                 print("  No encounters found. Checking raw encounter link...")
                 # Try IS_PART_OF from episodes directly
-                milestone_rows = s.run("""
+                milestone_rows = s.run(
+                    """
                     MATCH (ep:EpisodeOfCare {patient_id: $pid})<-[r:IS_PART_OF]-(enc:Encounter)
                     RETURN enc.id AS enc_id, enc.date AS date, enc.flags AS flags,
                            r.milestone_type AS milestone, ep.episode_id AS episode_id,
                            ep.cancer_type AS cancer_type
                     ORDER BY enc.date
-                """, pid=PATIENT_ID).data()
-                print(f"  Via IS_PART_OF from episodes: {len(milestone_rows)} encounters")
+                """,
+                    pid=PATIENT_ID,
+                ).data()
+                print(
+                    f"  Via IS_PART_OF from episodes: {len(milestone_rows)} encounters"
+                )
                 enc_rows = milestone_rows
 
             # Group by year
             def _new_year_bucket() -> dict:
-                return {"referral": 0, "specialist": 0, "diagnosis": 0, "milestone": 0, "other": 0, "unknown": 0}
+                return {
+                    "referral": 0,
+                    "specialist": 0,
+                    "diagnosis": 0,
+                    "milestone": 0,
+                    "other": 0,
+                    "unknown": 0,
+                }
 
             by_year: dict[str, dict] = defaultdict(_new_year_bucket)
             milestone_rows = []
@@ -155,7 +179,9 @@ def main() -> None:
 
             # Year summary
             print(f"COUNTS BY YEAR (based on flags classification):")
-            print(f"{'Year':<6} {'Referral':>8} {'Specialist':>10} {'Diagnosis':>10} {'Other':>6} {'Milestone-linked':>17}")
+            print(
+                f"{'Year':<6} {'Referral':>8} {'Specialist':>10} {'Diagnosis':>10} {'Other':>6} {'Milestone-linked':>17}"
+            )
             print("-" * 60)
             for year in sorted(by_year):
                 d = by_year[year]
@@ -171,7 +197,9 @@ def main() -> None:
             # Milestone encounters detail
             if milestone_rows:
                 print(f"\nMILESTONE-LINKED ENCOUNTERS ({len(milestone_rows)}):")
-                print(f"{'Date':<12} {'Milestone':<25} {'Episode':<20} {'Cancer':<12} {'Flags (first 60)'}")
+                print(
+                    f"{'Date':<12} {'Milestone':<25} {'Episode':<20} {'Cancer':<12} {'Flags (first 60)'}"
+                )
                 print("-" * 110)
                 for r in sorted(milestone_rows, key=lambda x: x.get("date") or ""):
                     flags_short = (r.get("flags") or "")[:60].replace("\n", " ")

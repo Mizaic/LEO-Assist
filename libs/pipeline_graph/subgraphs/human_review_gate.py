@@ -23,7 +23,9 @@ def evaluate_human_review_gate(state: HumanReviewGateState) -> dict[str, Any]:
     coded = state.get("coded_criteria")
     if not isinstance(coded, dict):
         return {"needs_human_review": True, "review_status": "pending_review"}
-    needs_review = bool(coded.get("needs_human_review")) or bool(coded.get("hitl_terms"))
+    needs_review = bool(coded.get("needs_human_review")) or bool(
+        coded.get("hitl_terms")
+    )
     return {
         "needs_human_review": needs_review,
         "review_status": "pending_review" if needs_review else "auto_ready",
@@ -36,4 +38,3 @@ def build_human_review_gate_subgraph() -> CompiledStateGraph:
     g.add_edge(START, "evaluate_human_review_gate")
     g.add_edge("evaluate_human_review_gate", END)
     return g.compile()
-

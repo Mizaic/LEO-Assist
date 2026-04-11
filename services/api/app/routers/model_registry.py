@@ -55,6 +55,7 @@ _canary_jobs: dict[str, dict[str, Any]] = {}
 # Request / response models
 # ------------------------------------------------------------------
 
+
 class RegisterRequest(BaseModel):
     model_name: str = ""
     model_version: str
@@ -104,6 +105,7 @@ class RejectRequest(BaseModel):
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _record_to_dict(rec: ModelRecord) -> dict[str, Any]:
     return {
         "model_name": rec.model_name,
@@ -135,7 +137,6 @@ def _f1(precision: Optional[float], recall: Optional[float]) -> Optional[float]:
     return (2.0 * precision * recall) / denom
 
 
-
 def _compute_metrics(
     tp: dict[str, int],
     fp: dict[str, int],
@@ -165,8 +166,12 @@ def _compute_metrics(
                 "fn": l_fn,
             }
         )
-    overall_precision = (total_tp / (total_tp + total_fp)) if (total_tp + total_fp) else 0.0
-    overall_recall = (total_tp / (total_tp + total_fn)) if (total_tp + total_fn) else 0.0
+    overall_precision = (
+        (total_tp / (total_tp + total_fp)) if (total_tp + total_fp) else 0.0
+    )
+    overall_recall = (
+        (total_tp / (total_tp + total_fn)) if (total_tp + total_fn) else 0.0
+    )
     overall_f1 = _f1(overall_precision, overall_recall) or 0.0
     return {
         "overall": {
@@ -185,6 +190,7 @@ def _fetch_gold_labels(limit: int = _GOLD_MAX_CANDIDATES) -> list[dict[str, Any]
     """Fetch GoldLabel nodes from the Knowledge Graph as the canary evaluation corpus."""
     from libs.cypher.gold_label_queries import GET_ALL_GOLD_LABELS_FOR_EXPORT
     from app.db.neo4j_client import CodingGraphClient
+
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -220,43 +226,69 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
         if not rec:
             raise RuntimeError(f"Version {version!r} not found")
         if rec.status not in {"offline_validated", "canary"}:
-            raise RuntimeError(f"Version {version!r} must be offline_validated or canary")
+            raise RuntimeError(
+                f"Version {version!r} must be offline_validated or canary"
+            )
 
         _set_canary_job(
             job_id,
-            {"phase": "starting_canary", "message": "Marking version as canary", "updated_at": time.time()},
+            {
+                "phase": "starting_canary",
+                "message": "Marking version as canary",
+                "updated_at": time.time(),
+            },
         )
         if rec.status == "offline_validated":
             reg.start_canary(version, cohort="gold_patients")
 
         _set_canary_job(
             job_id,
-            {"phase": "downloading_model", "message": "Downloading artifact from model store", "updated_at": time.time()},
+            {
+                "phase": "downloading_model",
+                "message": "Downloading artifact from model store",
+                "updated_at": time.time(),
+            },
         )
         store = ModelStore()
         model_dir = store.download(version)
         import spacy  # noqa: PLC0415 — lazy to avoid CuPy CUDA probe at API startup
+
         nlp = spacy.load(str(model_dir))
 
         _set_canary_job(
             job_id,
-            {"phase": "loading_gold_data", "message": "Fetching included TrainingLabel gold corpus", "updated_at": time.time()},
+            {
+                "phase": "loading_gold_data",
+                "message": "Fetching included TrainingLabel gold corpus",
+                "updated_at": time.time(),
+            },
         )
         import json as _json
+
         rows = _fetch_gold_labels()
         if not rows:
-            raise RuntimeError("No included TrainingLabel records found — add labels in the Training Data tab first")
+            raise RuntimeError(
+                "No included TrainingLabel records found — add labels in the Training Data tab first"
+            )
 
         # Reuse the same label normalisation as the offline evaluator / exporter.
         _LABEL_MAP: dict[str, str] = {
-            "disorder": "DISORDER", "finding": "FINDING", "procedure": "PROCEDURE",
-            "observable_entity": "OBSERVABLE", "qualifier_value": "QUALIFIER",
-            "substance": "SUBSTANCE", "medicinal_product": "MEDICINAL_PRODUCT",
-            "clinical_drug": "CLINICAL_DRUG", "situation": "SITUATION",
-            "event": "EVENT", "body_structure": "BODY_STRUCTURE",
+            "disorder": "DISORDER",
+            "finding": "FINDING",
+            "procedure": "PROCEDURE",
+            "observable_entity": "OBSERVABLE",
+            "qualifier_value": "QUALIFIER",
+            "substance": "SUBSTANCE",
+            "medicinal_product": "MEDICINAL_PRODUCT",
+            "clinical_drug": "CLINICAL_DRUG",
+            "situation": "SITUATION",
+            "event": "EVENT",
+            "body_structure": "BODY_STRUCTURE",
             "tumor_staging": "TUMOR_STAGING",
             "X_TEMPORAL": "TEMPORAL",
-            "X_DOSAGE": "DOSAGE", "X_FREQUENCY": "FREQUENCY", "X_ROUTE": "ROUTE",
+            "X_DOSAGE": "DOSAGE",
+            "X_FREQUENCY": "FREQUENCY",
+            "X_ROUTE": "ROUTE",
         }
 
         def _norm(raw: str) -> str:
@@ -269,13 +301,22 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
 
         _set_canary_job(
             job_id,
-            {"phase": "scoring", "message": "Running model over gold labels", "total_candidates": len(rows), "updated_at": time.time()},
+            {
+                "phase": "scoring",
+                "message": "Running model over gold labels",
+                "total_candidates": len(rows),
+                "updated_at": time.time(),
+            },
         )
         for idx, row in enumerate(rows, start=1):
             if idx % 50 == 0:
                 _set_canary_job(
                     job_id,
-                    {"progress": idx / max(len(rows), 1), "processed_candidates": idx, "updated_at": time.time()},
+                    {
+                        "progress": idx / max(len(rows), 1),
+                        "processed_candidates": idx,
+                        "updated_at": time.time(),
+                    },
                 )
             text = str(row.get("text") or "")
             if not text.strip():
@@ -361,6 +402,7 @@ async def _inference_health() -> dict[str, Any]:
 # GET /model-registry/status
 # ------------------------------------------------------------------
 
+
 @router.get("/status")
 async def get_status() -> dict[str, Any]:
     """Return active model record and inference service health in one call."""
@@ -377,6 +419,7 @@ async def get_status() -> dict[str, Any]:
 # ------------------------------------------------------------------
 # GET /model-registry/versions
 # ------------------------------------------------------------------
+
 
 @router.get("/versions")
 async def list_versions() -> dict[str, Any]:
@@ -399,39 +442,55 @@ async def list_versions() -> dict[str, Any]:
                     active_inf = inf_data.get("active_version")
                     for inf_ver in inf_data.get("versions", []):
                         ver = inf_ver.get("version", "")
-                        versions.append({
-                            "model_name":               inf_ver.get("model_name", ""),
-                            "model_version":            ver,
-                            "model_path":               "",
-                            "artifact_uri":             inf_ver.get("blob_path", ""),
-                            "training_dataset_version": inf_ver.get("dataset_version", ""),
-                            "schema_version":           inf_ver.get("schema_version", ""),
-                            "deid_version":             inf_ver.get("deid_version", ""),
-                            "status":                   "promoted" if ver == active_inf else "registered",
-                            "offline_precision":        None,
-                            "offline_recall":           None,
-                            "canary_precision":         None,
-                            "canary_recall":            None,
-                            "canary_cohort":            None,
-                            "rollback_target_version":  None,
-                            "registered_at":            inf_ver.get("uploaded_at", ""),
-                            "promoted_at":              None,
-                            "notes":                    inf_ver.get("notes", "") + " [discovered from inference service]",
-                        })
+                        versions.append(
+                            {
+                                "model_name": inf_ver.get("model_name", ""),
+                                "model_version": ver,
+                                "model_path": "",
+                                "artifact_uri": inf_ver.get("blob_path", ""),
+                                "training_dataset_version": inf_ver.get(
+                                    "dataset_version", ""
+                                ),
+                                "schema_version": inf_ver.get("schema_version", ""),
+                                "deid_version": inf_ver.get("deid_version", ""),
+                                "status": (
+                                    "promoted" if ver == active_inf else "registered"
+                                ),
+                                "offline_precision": None,
+                                "offline_recall": None,
+                                "canary_precision": None,
+                                "canary_recall": None,
+                                "canary_cohort": None,
+                                "rollback_target_version": None,
+                                "registered_at": inf_ver.get("uploaded_at", ""),
+                                "promoted_at": None,
+                                "notes": inf_ver.get("notes", "")
+                                + " [discovered from inference service]",
+                            }
+                        )
         except Exception:
-            logger.debug("Could not reach inference service for version fallback", exc_info=True)
+            logger.debug(
+                "Could not reach inference service for version fallback", exc_info=True
+            )
 
     _order = {
-        "promoted": 0, "canary": 1, "offline_validated": 2,
-        "registered": 3, "rollback": 4, "deprecated": 5,
+        "promoted": 0,
+        "canary": 1,
+        "offline_validated": 2,
+        "registered": 3,
+        "rollback": 4,
+        "deprecated": 5,
     }
-    versions.sort(key=lambda v: (_order.get(v["status"], 9), v.get("registered_at", "")))
+    versions.sort(
+        key=lambda v: (_order.get(v["status"], 9), v.get("registered_at", ""))
+    )
     return {"versions": versions, "count": len(versions)}
 
 
 # ------------------------------------------------------------------
 # GET /model-registry/versions/{version}
 # ------------------------------------------------------------------
+
 
 @router.get("/versions/{version}")
 async def get_version(version: str) -> dict[str, Any]:
@@ -445,6 +504,7 @@ async def get_version(version: str) -> dict[str, Any]:
     if rec.artifact_uri:
         try:
             from libs.model_store import ModelStore
+
             store = ModelStore()
             art = store.get_manifest(version)
             if art:
@@ -462,8 +522,11 @@ async def get_version(version: str) -> dict[str, Any]:
 # POST /model-registry/register
 # ------------------------------------------------------------------
 
+
 @router.post("/register")
-def register_version(req: RegisterRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+def register_version(
+    req: RegisterRequest, _: object = Depends(require_admin)
+) -> dict[str, Any]:
     """Register a new model version in the lifecycle registry.
 
     This is the first step.  Use /upload next to push the model artifact to blob.
@@ -475,7 +538,8 @@ def register_version(req: RegisterRequest, _: object = Depends(require_admin)) -
             detail=f"Version {req.model_version!r} already registered",
         )
     rec = ModelRecord(
-        model_name=req.model_name or os.getenv("CODING_MODEL_NAME", "medspacy_clinical_ner"),
+        model_name=req.model_name
+        or os.getenv("CODING_MODEL_NAME", "medspacy_clinical_ner"),
         model_version=req.model_version,
         model_path=req.model_path,
         training_dataset_version=req.training_dataset_version,
@@ -491,6 +555,7 @@ def register_version(req: RegisterRequest, _: object = Depends(require_admin)) -
 # POST /model-registry/versions/{version}/upload
 # ------------------------------------------------------------------
 
+
 def _do_upload(version: str, req: UploadRequest) -> None:
     """Background task: upload model dir to blob and run compat gate."""
     try:
@@ -503,6 +568,7 @@ def _do_upload(version: str, req: UploadRequest) -> None:
         # Optional compatibility gate
         if req.manifest_path:
             from libs.model_registry.manifest_reader import CompatibilityGate
+
             gate = CompatibilityGate()
             result = gate.check(
                 manifest_path=req.manifest_path,
@@ -514,7 +580,8 @@ def _do_upload(version: str, req: UploadRequest) -> None:
             if not result.passed:
                 logger.error(
                     "Upload blocked by compatibility gate for v%s: %s",
-                    version, result.failures,
+                    version,
+                    result.failures,
                 )
                 rec.notes = f"UPLOAD BLOCKED: {'; '.join(result.failures)}"
                 reg._save()
@@ -569,8 +636,11 @@ def upload_version(
 # POST /model-registry/versions/{version}/validate
 # ------------------------------------------------------------------
 
+
 @router.post("/versions/{version}/validate")
-def validate_version(version: str, req: ValidateRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+def validate_version(
+    version: str, req: ValidateRequest, _: object = Depends(require_admin)
+) -> dict[str, Any]:
     """Record offline eval precision/recall for a registered version.
 
     The registry compares against MODEL_MIN_PRECISION / MODEL_MIN_RECALL
@@ -598,8 +668,11 @@ def validate_version(version: str, req: ValidateRequest, _: object = Depends(req
 # POST /model-registry/versions/{version}/canary/start
 # ------------------------------------------------------------------
 
+
 @router.post("/versions/{version}/canary/start")
-def start_canary(version: str, req: CanaryStartRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+def start_canary(
+    version: str, req: CanaryStartRequest, _: object = Depends(require_admin)
+) -> dict[str, Any]:
     """Advance an offline-validated version to canary deployment."""
     reg = get_registry()
     if not reg.get(version):
@@ -615,21 +688,25 @@ def start_canary(version: str, req: CanaryStartRequest, _: object = Depends(requ
 # POST /model-registry/versions/{version}/canary/result
 # ------------------------------------------------------------------
 
+
 @router.post("/versions/{version}/canary/result")
-def record_canary_result(version: str, req: CanaryResultRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+def record_canary_result(
+    version: str, req: CanaryResultRequest, _: object = Depends(require_admin)
+) -> dict[str, Any]:
     """Record canary cohort KPI precision/recall for a version in canary state."""
     reg = get_registry()
     if not reg.get(version):
         raise HTTPException(status_code=404, detail=f"Version {version!r} not found")
     try:
-        rec = reg.record_canary_result(version, precision=req.precision, recall=req.recall)
+        rec = reg.record_canary_result(
+            version, precision=req.precision, recall=req.recall
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {
         "record": _record_to_dict(rec),
         "ready_to_promote": (
-            rec.canary_precision is not None
-            and rec.canary_recall is not None
+            rec.canary_precision is not None and rec.canary_recall is not None
         ),
     }
 
@@ -637,6 +714,7 @@ def record_canary_result(version: str, req: CanaryResultRequest, _: object = Dep
 # ------------------------------------------------------------------
 # POST /model-registry/versions/{version}/canary/run-gold
 # ------------------------------------------------------------------
+
 
 @router.post("/versions/{version}/canary/run-gold")
 def run_canary_gold(version: str, _: object = Depends(require_admin)) -> dict[str, Any]:
@@ -663,7 +741,9 @@ def run_canary_gold(version: str, _: object = Depends(require_admin)) -> dict[st
             "updated_at": time.time(),
         },
     )
-    thread = threading.Thread(target=_run_canary_gold_job, args=(version, job_id), daemon=True)
+    thread = threading.Thread(
+        target=_run_canary_gold_job, args=(version, job_id), daemon=True
+    )
     thread.start()
     return {"accepted": True, "job_id": job_id, "version": version}
 
@@ -681,8 +761,11 @@ def get_canary_gold_job(job_id: str) -> dict[str, Any]:
 # POST /model-registry/versions/{version}/promote
 # ------------------------------------------------------------------
 
+
 @router.post("/versions/{version}/promote")
-def promote_version(version: str, req: PromoteRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+def promote_version(
+    version: str, req: PromoteRequest, _: object = Depends(require_admin)
+) -> dict[str, Any]:
     """Promote a canary version to production active.
 
     Validates canary KPI thresholds, promotes, and automatically signals
@@ -709,7 +792,9 @@ def promote_version(version: str, req: PromoteRequest, _: object = Depends(requi
 
 
 @router.post("/versions/{version}/reject")
-def reject_version(version: str, req: RejectRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+def reject_version(
+    version: str, req: RejectRequest, _: object = Depends(require_admin)
+) -> dict[str, Any]:
     """Mark a version as deprecated after failed human review/canary decision."""
     reg = get_registry()
     rec = reg.get(version)
@@ -725,6 +810,7 @@ def reject_version(version: str, req: RejectRequest, _: object = Depends(require
 # ------------------------------------------------------------------
 # POST /model-registry/rollback
 # ------------------------------------------------------------------
+
 
 @router.post("/rollback")
 def rollback(_: object = Depends(require_admin)) -> dict[str, Any]:
@@ -747,6 +833,7 @@ def rollback(_: object = Depends(require_admin)) -> dict[str, Any]:
 # ------------------------------------------------------------------
 # GET /model-registry/inference/health
 # ------------------------------------------------------------------
+
 
 @router.get("/inference/health")
 async def inference_health() -> dict[str, Any]:
@@ -774,12 +861,15 @@ async def inference_health() -> dict[str, Any]:
 # POST /model-registry/inference/reload
 # ------------------------------------------------------------------
 
+
 class ReloadRequest(BaseModel):
     version: str
 
 
 @router.post("/inference/reload")
-async def reload_inference(req: ReloadRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+async def reload_inference(
+    req: ReloadRequest, _: object = Depends(require_admin)
+) -> dict[str, Any]:
     """Tell the inference service to load a specific version immediately.
 
     This is the primary deployment action — it directly targets the running
@@ -796,9 +886,13 @@ async def reload_inference(req: ReloadRequest, _: object = Depends(require_admin
             resp.raise_for_status()
             data = resp.json()
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=502, detail=f"Inference service error: {exc.response.text}")
+        raise HTTPException(
+            status_code=502, detail=f"Inference service error: {exc.response.text}"
+        )
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Could not reach inference service: {exc}")
+        raise HTTPException(
+            status_code=502, detail=f"Could not reach inference service: {exc}"
+        )
 
     # Best-effort: update Neo4j registry to reflect what is actually loaded.
     try:
@@ -811,11 +905,14 @@ async def reload_inference(req: ReloadRequest, _: object = Depends(require_admin
                 req.version,
             )
     except Exception:
-        logger.warning("inference/reload: could not update registry metadata", exc_info=True)
+        logger.warning(
+            "inference/reload: could not update registry metadata", exc_info=True
+        )
 
     logger.info(
         "inference/reload: loaded version=%s elapsed_ms=%s",
-        data.get("active_version"), data.get("elapsed_ms"),
+        data.get("active_version"),
+        data.get("elapsed_ms"),
     )
     return {
         "loaded": True,

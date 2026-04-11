@@ -205,7 +205,9 @@ def main() -> None:
             )
             grand_total: int = count_result.single()["total"]
             dup_row = session.run(DUPLICATE_REL_AUDIT_QUERY).single()
-            dup_count = int(dup_row["surface_forms_with_duplicate_rels"]) if dup_row else 0
+            dup_count = (
+                int(dup_row["surface_forms_with_duplicate_rels"]) if dup_row else 0
+            )
             if dup_count > 0:
                 log.warning(
                     "Detected %d SurfaceForm nodes with duplicate MAPS_TO links. "
@@ -243,9 +245,7 @@ def main() -> None:
                 return
 
             while True:
-                remaining_budget = (
-                    args.limit - total if args.limit else args.page_size
-                )
+                remaining_budget = args.limit - total if args.limit else args.page_size
                 if args.limit and remaining_budget <= 0:
                     break
 
@@ -344,4 +344,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

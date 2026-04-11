@@ -1,4 +1,5 @@
 """Check audit re-run progress and estimate ETA."""
+
 import sqlite3
 import os
 from datetime import datetime, timedelta
@@ -11,11 +12,9 @@ if not os.path.exists(DB):
     print("Audit DB not found - still in early phase")
 else:
     db = sqlite3.connect(DB)
-    tables = db.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()
+    tables = db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     print("Tables:", [t[0] for t in tables])
-    for t_name, in tables:
+    for (t_name,) in tables:
         n = db.execute(f"SELECT COUNT(*) FROM {t_name}").fetchone()[0]
         print(f"  {t_name}: {n:,} rows")
 

@@ -23,7 +23,11 @@ load_keyvault_secrets()
 
 BASE = "http://localhost:8001"
 MAPPINGS_FILE = (
-    ROOT / "scripts" / "investigations" / "output" / "staging_surface_form_upserts_compiled.json"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "output"
+    / "staging_surface_form_upserts_compiled.json"
 )
 PROVENANCE = "staging-tnm-surface-form-backfill-2026-04-08"
 

@@ -14,7 +14,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # SLA constants (sourced from VT-LEO-AI-018)
 SINGLE_PIPELINE_SLA_SECONDS = 120
 BATCH_10_SLA_SECONDS = 1200
@@ -25,6 +24,7 @@ API_ERROR_RATE_MAX = 0.01  # <= 1% — boundary inclusive
 # ---------------------------------------------------------------------------
 # VT-018-TC-001: SLA constants are configured correctly
 # ---------------------------------------------------------------------------
+
 
 class TestSlaConstants:
 
@@ -49,10 +49,12 @@ class TestSlaConstants:
 # VT-018-TC-002: Concurrency model handles 10 parallel tasks
 # ---------------------------------------------------------------------------
 
+
 class TestConcurrencyModel:
 
     def test_10_concurrent_tasks_complete(self):
         """10 concurrent tasks submitted to thread pool all complete without error."""
+
         def noop_job(job_id: int) -> str:
             return f"completed-{job_id}"
 
@@ -65,6 +67,7 @@ class TestConcurrencyModel:
 
     def test_no_job_failure_under_concurrency(self):
         """No futures raise exceptions in the concurrent model."""
+
         def safe_job(job_id: int) -> bool:
             return True
 
@@ -78,11 +81,13 @@ class TestConcurrencyModel:
 # VT-018-TC-003: P95 latency calculation logic
 # ---------------------------------------------------------------------------
 
+
 class TestP95Calculation:
 
     def test_p95_below_threshold_passes(self):
         """Latencies all under 500ms → P95 is below threshold."""
         import statistics
+
         latencies_ms = [i * 4 for i in range(1, 101)]  # 4ms to 400ms
         p95 = sorted(latencies_ms)[int(0.95 * len(latencies_ms))]
         assert p95 <= API_P95_LATENCY_MS

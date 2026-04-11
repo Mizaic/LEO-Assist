@@ -25,7 +25,9 @@ def _first(records: list) -> Optional[Dict[str, Any]]:
     return json.loads(raw) if raw else None
 
 
-def upsert_conceptmap(conceptmap_id: str, resource: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def upsert_conceptmap(
+    conceptmap_id: str, resource: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
     client = KnowledgeGraphClient()
     try:
         params = {
@@ -72,7 +74,14 @@ def search_conceptmaps(
     try:
         count_records = client.run(CONCEPTMAP_COUNT, name=name, status=status, url=url)
         total = count_records[0].get("total") if count_records else 0
-        records = client.run(CONCEPTMAP_SEARCH, name=name, status=status, url=url, limit=count, offset=offset)
+        records = client.run(
+            CONCEPTMAP_SEARCH,
+            name=name,
+            status=status,
+            url=url,
+            limit=count,
+            offset=offset,
+        )
         items = [json.loads(r["rawJson"]) for r in records if r.get("rawJson")]
         return items, total
     finally:
@@ -94,14 +103,16 @@ def translate_concept(
         for element in group.get("element") or []:
             if element.get("code") == code:
                 for target in element.get("target") or []:
-                    matches.append({
-                        "equivalence": target.get("equivalence", "equivalent"),
-                        "concept": {
-                            "system": group.get("target", ""),
-                            "code": target.get("code"),
-                            "display": target.get("display"),
-                        },
-                    })
+                    matches.append(
+                        {
+                            "equivalence": target.get("equivalence", "equivalent"),
+                            "concept": {
+                                "system": group.get("target", ""),
+                                "code": target.get("code"),
+                                "display": target.get("display"),
+                            },
+                        }
+                    )
 
     return {
         "resourceType": "Parameters",

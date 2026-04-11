@@ -6,6 +6,7 @@ Run:
     python scripts/investigations/_investigate_no_diagnosis_patients.py
     python scripts/investigations/_investigate_no_diagnosis_patients.py --out results.txt
 """
+
 from __future__ import annotations
 
 import argparse
@@ -22,9 +23,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 # 36 patients with referral + specialist but zero diagnosis anchors
@@ -144,8 +147,9 @@ def _wrap(text: str, width: int = 100, indent: str = "    ") -> str:
         if not stripped:
             continue
         out.extend(
-            textwrap.wrap(stripped, width=width, initial_indent=indent,
-                          subsequent_indent=indent)
+            textwrap.wrap(
+                stripped, width=width, initial_indent=indent, subsequent_indent=indent
+            )
         )
     return "\n".join(out[:40])  # cap at 40 lines per encounter
 
@@ -174,9 +178,7 @@ def investigate(patient_ids: list[str], out_path: Path | None) -> None:
         # Fresh session per patient to avoid timeout
         try:
             with client.session() as session:
-                row = session.run(
-                    _Q_EARLIEST_REFERRAL, patient_id=patient_id
-                ).single()
+                row = session.run(_Q_EARLIEST_REFERRAL, patient_id=patient_id).single()
                 earliest = _date_from_neo4j(row["earliest_referral"]) if row else None
 
             if not earliest:
@@ -191,12 +193,14 @@ def investigate(patient_ids: list[str], out_path: Path | None) -> None:
             emit()
 
             with client.session() as session:
-                encounters = list(session.run(
-                    _Q_ENCOUNTERS,
-                    patient_id=patient_id,
-                    start_date=earliest.strftime("%Y-%m-%d"),
-                    end_date=end_dt.strftime("%Y-%m-%d"),
-                ))
+                encounters = list(
+                    session.run(
+                        _Q_ENCOUNTERS,
+                        patient_id=patient_id,
+                        start_date=earliest.strftime("%Y-%m-%d"),
+                        end_date=end_dt.strftime("%Y-%m-%d"),
+                    )
+                )
 
         except Exception as exc:
             emit(f"  [ERROR: {exc}]")
@@ -210,9 +214,9 @@ def investigate(patient_ids: list[str], out_path: Path | None) -> None:
         emit()
 
         for enc in encounters:
-            enc_id  = enc["encounter_id"] or ""
-            date    = enc["date"] or ""
-            text    = enc["enc_text"] or ""
+            enc_id = enc["encounter_id"] or ""
+            date = enc["date"] or ""
+            text = enc["enc_text"] or ""
             codings = [c for c in (enc["codings"] or []) if c.strip() and c != " []"]
 
             emit(f"  -- {date}  enc={enc_id[:8]} --")

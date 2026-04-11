@@ -1,22 +1,26 @@
 """Pin surface forms for the remaining NG12 Category 3 gaps.
 
-  389026000   | Ascites (disorder)                               - no finding exists
-  271683004   | Gallbladder palpable (finding)
-  300344005   | Gallbladder enlarged (finding)
-  300482003   | Finding of appearance of testes (finding)
-  13028004    | Abnormal nervous system function (finding)
-  30425001    | Osteolysis (morphologic abnormality)             - bone sarcoma X-ray
-  30397001    | Periosteal bone formation, function (observable entity)
-  444905003   | Mass of soft tissue (finding)
+389026000   | Ascites (disorder)                               - no finding exists
+271683004   | Gallbladder palpable (finding)
+300344005   | Gallbladder enlarged (finding)
+300482003   | Finding of appearance of testes (finding)
+13028004    | Abnormal nervous system function (finding)
+30425001    | Osteolysis (morphologic abnormality)             - bone sarcoma X-ray
+30397001    | Periosteal bone formation, function (observable entity)
+444905003   | Mass of soft tissue (finding)
 """
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
@@ -48,7 +52,6 @@ PINS = [
         "semantic_tag": "disorder",
         "confidence": 1.0,
     },
-
     # -- Palpable / enlarged gallbladder 1.2.10 --
     {
         "normalized": "gallbladder palpable",
@@ -92,7 +95,6 @@ PINS = [
         "semantic_tag": "finding",
         "confidence": 1.0,
     },
-
     # -- Change in appearance/shape/texture of testis 1.6.7 --
     {
         "normalized": "finding of appearance of testes",
@@ -129,7 +131,6 @@ PINS = [
         "semantic_tag": "finding",
         "confidence": 1.0,
     },
-
     # -- Progressive sub-acute neurological deterioration 1.9.1 --
     {
         "normalized": "abnormal nervous system function",
@@ -166,7 +167,6 @@ PINS = [
         "semantic_tag": "finding",
         "confidence": 1.0,
     },
-
     # -- X-ray findings suggestive of bone sarcoma 1.11.1 --
     # Osteolysis: bone destruction visible on X-ray
     {

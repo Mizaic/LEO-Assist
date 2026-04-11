@@ -36,6 +36,7 @@ def _require_admin(scope: CallerScope = Depends(get_caller_scope)) -> CallerScop
         raise HTTPException(status_code=403, detail="Admin access required")
     return scope
 
+
 SNOMED_SYSTEM = "http://snomed.info/sct"
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -127,18 +128,23 @@ def _parse_concepts_from_raw(raw_json: Optional[str]) -> List[Dict[str, Any]]:
                 if (d.get("use") or {}).get("code") == "synonym"
             ]
             benchmark_key = next(
-                (d.get("value") for d in designations
-                 if (d.get("use") or {}).get("code") == "benchmark_key"),
+                (
+                    d.get("value")
+                    for d in designations
+                    if (d.get("use") or {}).get("code") == "benchmark_key"
+                ),
                 None,
             )
-            concepts.append({
-                "concept_id": concept_id,
-                "term": display,
-                "preferred_term": display,
-                "semantic_tag": None,
-                "guideline_synonyms": synonyms,
-                "benchmark_key": benchmark_key,
-            })
+            concepts.append(
+                {
+                    "concept_id": concept_id,
+                    "term": display,
+                    "preferred_term": display,
+                    "semantic_tag": None,
+                    "guideline_synonyms": synonyms,
+                    "benchmark_key": benchmark_key,
+                }
+            )
     return concepts
 
 
@@ -210,7 +216,9 @@ def _enrich_with_child_counts(concepts: List[Dict[str, Any]]) -> None:
         c["child_count"] = counts.get(str(c["concept_id"]), 0)
 
 
-def _valueset_row_to_subdomain_detail(vr: Dict[str, Any], subdomain_name: str) -> SubdomainDetail:
+def _valueset_row_to_subdomain_detail(
+    vr: Dict[str, Any], subdomain_name: str
+) -> SubdomainDetail:
     concepts = _parse_concepts_from_raw(vr.get("rawJson"))
     _enrich_with_child_counts(concepts)
     return SubdomainDetail(
@@ -355,7 +363,9 @@ class AddConceptRequest(BaseModel):
 @router.get("/domains", response_model=List[DomainSummary])
 def list_domains(
     scope: CallerScope = Depends(get_caller_scope),
-    source: Optional[str] = Query(default=None, description="Filter by source: nice, platform, or tenant"),
+    source: Optional[str] = Query(
+        default=None, description="Filter by source: nice, platform, or tenant"
+    ),
 ):
     """List all audit domains.
 
@@ -405,7 +415,9 @@ def list_domains(
 
 
 @router.post("/domains", response_model=DomainSummary, status_code=201)
-def create_domain(body: DomainCreateRequest, scope: CallerScope = Depends(_require_admin)):
+def create_domain(
+    body: DomainCreateRequest, scope: CallerScope = Depends(_require_admin)
+):
     """Create a new audit domain."""
     domain_id = body.name.lower().replace(" ", "_").replace("-", "_")
     client = KnowledgeGraphClient()
@@ -470,7 +482,9 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
         for vr in vs_rows:
             subdomain_name = vr.get("name") or _valueset_id_to_subdomain(vr["vid"])
             concepts = _parse_concepts_from_raw(vr.get("rawJson"))
-            concept_ids = [str(c["concept_id"]) for c in concepts if c.get("concept_id")]
+            concept_ids = [
+                str(c["concept_id"]) for c in concepts if c.get("concept_id")
+            ]
             parsed.append((vr, subdomain_name, concept_ids))
 
         all_ids = [cid for _, _, ids in parsed for cid in ids]
@@ -479,16 +493,18 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
         subdomains: List[SubdomainSummary] = []
         for vr, subdomain_name, concept_ids in parsed:
             desc_count = sum(child_counts.get(cid, 0) for cid in concept_ids)
-            subdomains.append(SubdomainSummary(
-                name=subdomain_name,
-                description=vr.get("description") or "",
-                milestone_type=vr.get("milestoneType"),
-                time_window_months=vr.get("timeWindowMonths"),
-                semantic_tags=_parse_list_prop(vr.get("semanticTags")),
-                assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
-                concept_count=len(concept_ids),
-                descendant_count=desc_count,
-            ))
+            subdomains.append(
+                SubdomainSummary(
+                    name=subdomain_name,
+                    description=vr.get("description") or "",
+                    milestone_type=vr.get("milestoneType"),
+                    time_window_months=vr.get("timeWindowMonths"),
+                    semantic_tags=_parse_list_prop(vr.get("semanticTags")),
+                    assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
+                    concept_count=len(concept_ids),
+                    descendant_count=desc_count,
+                )
+            )
 
         return DomainDetail(
             id=d["id"],
@@ -504,7 +520,11 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
 
 
 @router.put("/domains/{domain_id}", response_model=DomainSummary)
-def update_domain(domain_id: str, body: DomainUpdateRequest, scope: CallerScope = Depends(_require_admin)):
+def update_domain(
+    domain_id: str,
+    body: DomainUpdateRequest,
+    scope: CallerScope = Depends(_require_admin),
+):
     """Update domain metadata."""
     client = KnowledgeGraphClient()
     try:
@@ -587,7 +607,11 @@ def delete_domain(domain_id: str, scope: CallerScope = Depends(_require_admin)):
     response_model=SubdomainSummary,
     status_code=201,
 )
-def create_subdomain(domain_id: str, body: SubdomainCreateRequest, scope: CallerScope = Depends(_require_admin)):
+def create_subdomain(
+    domain_id: str,
+    body: SubdomainCreateRequest,
+    scope: CallerScope = Depends(_require_admin),
+):
     """Create a new subdomain (ValueSet) and link it to the domain."""
     client = KnowledgeGraphClient()
     try:
@@ -618,9 +642,9 @@ def create_subdomain(domain_id: str, body: SubdomainCreateRequest, scope: Caller
         "title": body.description or body.name,
         "description": body.description,
         "milestoneType": body.milestone_type,
-            "timeWindowMonths": body.time_window_months,
-            "semanticTags": body.semantic_tags,
-            "assertionFilter": body.assertion_filter,
+        "timeWindowMonths": body.time_window_months,
+        "semanticTags": body.semantic_tags,
+        "assertionFilter": body.assertion_filter,
         "compose": {"include": [{"system": SNOMED_SYSTEM, "concept": []}]},
     }
     _upsert_valueset_flat(vs_id, resource)
@@ -653,7 +677,9 @@ def create_subdomain(domain_id: str, body: SubdomainCreateRequest, scope: Caller
     "/domains/{domain_id}/subdomains/{subdomain_name}",
     response_model=SubdomainDetail,
 )
-def get_subdomain(domain_id: str, subdomain_name: str, scope: CallerScope = Depends(get_caller_scope)):
+def get_subdomain(
+    domain_id: str, subdomain_name: str, scope: CallerScope = Depends(get_caller_scope)
+):
     """Get subdomain detail including SNOMED concepts."""
     _ensure_domain_owns_subdomain(domain_id, subdomain_name)
 
@@ -683,7 +709,9 @@ def get_subdomain(domain_id: str, subdomain_name: str, scope: CallerScope = Depe
     response_model=SubdomainSummary,
 )
 def update_subdomain(
-    domain_id: str, subdomain_name: str, body: SubdomainUpdateRequest,
+    domain_id: str,
+    subdomain_name: str,
+    body: SubdomainUpdateRequest,
     scope: CallerScope = Depends(_require_admin),
 ):
     """Update subdomain config (flat properties + rawJson sync)."""
@@ -767,7 +795,9 @@ def update_subdomain(
     response_model=SubdomainDetail,
 )
 def add_concept(
-    domain_id: str, subdomain_name: str, body: AddConceptRequest,
+    domain_id: str,
+    subdomain_name: str,
+    body: AddConceptRequest,
     scope: CallerScope = Depends(_require_admin),
 ):
     """Add a SNOMED concept to a subdomain."""
@@ -801,13 +831,17 @@ def add_concept(
         if syn.strip():
             designations.append({"use": {"code": "synonym"}, "value": syn.strip()})
     if body.benchmark_key and body.benchmark_key.strip():
-        designations.append({"use": {"code": "benchmark_key"}, "value": body.benchmark_key.strip()})
+        designations.append(
+            {"use": {"code": "benchmark_key"}, "value": body.benchmark_key.strip()}
+        )
 
-    concepts.append({
-        "code": str(body.concept_id),
-        "display": body.term,
-        "designation": designations,
-    })
+    concepts.append(
+        {
+            "code": str(body.concept_id),
+            "display": body.term,
+            "designation": designations,
+        }
+    )
 
     _upsert_valueset_flat(vs_id, vs)
     DomainRegistry.reset_instance()
@@ -887,7 +921,12 @@ def add_concepts_batch(
     "/domains/{domain_id}/subdomains/{subdomain_name}/concepts/{concept_id}",
     response_model=SubdomainDetail,
 )
-def remove_concept(domain_id: str, subdomain_name: str, concept_id: str, scope: CallerScope = Depends(_require_admin)):
+def remove_concept(
+    domain_id: str,
+    subdomain_name: str,
+    concept_id: str,
+    scope: CallerScope = Depends(_require_admin),
+):
     """Remove a SNOMED concept from a subdomain."""
     _ensure_domain_owns_subdomain(domain_id, subdomain_name)
 
@@ -935,7 +974,9 @@ def export_subdomain(
         default=False,
         description="When true, expand each concept via IS_A hierarchy and include all descendants",
     ),
-    depth: int = Query(default=3, ge=1, le=5, description="IS_A traversal depth for child expansion"),
+    depth: int = Query(
+        default=3, ge=1, le=5, description="IS_A traversal depth for child expansion"
+    ),
 ):
     """Export subdomain concept config as JSON.
 
@@ -968,7 +1009,9 @@ def export_subdomain(
         }
         return JSONResponse(
             content=payload,
-            headers={"Content-Disposition": f'attachment; filename="{subdomain_name}.json"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{subdomain_name}.json"'
+            },
         )
 
     # Expand each concept's IS_A descendants
@@ -986,13 +1029,15 @@ def export_subdomain(
                 {"concept_id": int(r["snomed_concept_id"]), "term": r["term"]}
                 for r in (rows or [])
             ]
-            expanded.append({
-                "concept_id": c["concept_id"],
-                "term": c["preferred_term"],
-                "synonyms": c.get("guideline_synonyms", []),
-                "child_count": len(children),
-                "children": children,
-            })
+            expanded.append(
+                {
+                    "concept_id": c["concept_id"],
+                    "term": c["preferred_term"],
+                    "synonyms": c.get("guideline_synonyms", []),
+                    "child_count": len(children),
+                    "children": children,
+                }
+            )
     finally:
         kg.close()
 
@@ -1005,7 +1050,9 @@ def export_subdomain(
     }
     return JSONResponse(
         content=payload,
-        headers={"Content-Disposition": f'attachment; filename="{subdomain_name}-expanded.json"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{subdomain_name}-expanded.json"'
+        },
     )
 
 

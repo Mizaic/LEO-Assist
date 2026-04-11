@@ -1,4 +1,5 @@
 """Quick progress report for the running encounter audit."""
+
 import json
 import sqlite3
 import time
@@ -50,7 +51,7 @@ high_count = 0
 term_counts: dict[str, int] = {}
 top_critical: list[tuple[str, str, str]] = []  # (patient, date, term)
 
-for (r, proc_at) in done_rows:
+for r, proc_at in done_rows:
     if not r:
         continue
     d = json.loads(r)
@@ -67,11 +68,13 @@ for (r, proc_at) in done_rows:
         if sev == "critical":
             critical_count += 1
             meta = d.get("_meta", {})
-            top_critical.append((
-                meta.get("patient_id", "?"),
-                meta.get("date", "?"),
-                m.get("term", "?"),
-            ))
+            top_critical.append(
+                (
+                    meta.get("patient_id", "?"),
+                    meta.get("date", "?"),
+                    m.get("term", "?"),
+                )
+            )
         elif sev == "high":
             high_count += 1
         t = m.get("term", "").strip().lower()
@@ -101,9 +104,7 @@ if top_critical:
 
 # Estimate completion
 # Use the earliest processed_at and latest to estimate rate
-times = [
-    r for (_, r) in done_rows if r
-]
+times = [r for (_, r) in done_rows if r]
 if len(times) >= 2:
     times_sorted = sorted(times)
     t_start = time.strptime(times_sorted[0][:19], "%Y-%m-%dT%H:%M:%S")

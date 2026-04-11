@@ -42,7 +42,10 @@ class CircuitBreaker:
     def record_success(self) -> None:
         """Record a successful call; reset consecutive failure count."""
         if self._consecutive_failures > 0:
-            logger.debug("[CircuitBreaker] Success — resetting failure count from %d", self._consecutive_failures)
+            logger.debug(
+                "[CircuitBreaker] Success — resetting failure count from %d",
+                self._consecutive_failures,
+            )
         self._consecutive_failures = 0
 
     def record_failure(self) -> None:

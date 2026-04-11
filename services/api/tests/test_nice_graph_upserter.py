@@ -102,7 +102,9 @@ def test_upsert_recommendation_links_to_guideline(upserter):
         mock_drv.close = MagicMock()
         mock_driver.return_value = mock_drv
 
-        result = upserter.upsert_recommendation("NG151", rec_id, rec, version_id="NG151:v1")
+        result = upserter.upsert_recommendation(
+            "NG151", rec_id, rec, version_id="NG151:v1"
+        )
 
     assert result == rec_id
     cypher = session.run.call_args[0][0]
@@ -111,7 +113,10 @@ def test_upsert_recommendation_links_to_guideline(upserter):
 
 def test_upsert_recommendation_links_to_chapter_when_chapter_id_given(upserter):
     """When chapter_id is supplied, the Recommendation is also linked to its Chapter."""
-    rec = {"Title": "1.1.1", "Text": "Offer urgent referral for suspected colorectal cancer."}
+    rec = {
+        "Title": "1.1.1",
+        "Text": "Offer urgent referral for suspected colorectal cancer.",
+    }
     session, ctx = _make_session_mock("NG151:v1:CH000:R000")
 
     with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
@@ -121,8 +126,11 @@ def test_upsert_recommendation_links_to_chapter_when_chapter_id_given(upserter):
         mock_driver.return_value = mock_drv
 
         upserter.upsert_recommendation(
-            "NG151", "NG151:v1:CH000:R000", rec,
-            chapter_id="NG151:v1:CH000", version_id="NG151:v1",
+            "NG151",
+            "NG151:v1:CH000:R000",
+            rec,
+            chapter_id="NG151:v1:CH000",
+            version_id="NG151:v1",
         )
 
     cypher = session.run.call_args[0][0]
@@ -228,10 +236,18 @@ def test_upsert_taxonomy_creates_category_subcategory_and_domain(upserter):
     assert counts["domains"] == 1
 
     cypher_calls = [call[0][0] for call in session.run.call_args_list]
-    assert any("TaxonomyCategory" in c for c in cypher_calls), "Should upsert TaxonomyCategory"
-    assert any("TaxonomySubcategory" in c for c in cypher_calls), "Should upsert TaxonomySubcategory"
-    assert any("AuditDomain" in c and "nice" in c for c in cypher_calls), "Should upsert AuditDomain with source=nice"
-    assert any("CLASSIFIES_GUIDELINE" in c for c in cypher_calls), "Should link guidelines to subcategory"
+    assert any(
+        "TaxonomyCategory" in c for c in cypher_calls
+    ), "Should upsert TaxonomyCategory"
+    assert any(
+        "TaxonomySubcategory" in c for c in cypher_calls
+    ), "Should upsert TaxonomySubcategory"
+    assert any(
+        "AuditDomain" in c and "nice" in c for c in cypher_calls
+    ), "Should upsert AuditDomain with source=nice"
+    assert any(
+        "CLASSIFIES_GUIDELINE" in c for c in cypher_calls
+    ), "Should link guidelines to subcategory"
 
 
 def test_upsert_taxonomy_handles_empty_list(upserter):

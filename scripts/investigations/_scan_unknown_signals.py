@@ -1,6 +1,7 @@
 """Quick signal scan for the 13 UNKNOWN in_progress episode patients.
 Prints only encounters with cancer, benign, or referral codings.
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -8,9 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 UNKNOWN_PIDS = [
@@ -29,15 +32,43 @@ UNKNOWN_PIDS = [
     ("4983118659", "2025-08-01"),
 ]
 
-_CANCER_KW = ("malign", "carcinoma", "cancer", "sarcoma", "lymphoma",
-              "melanoma", "neoplasm", "leukaemia", "leukemia", "myeloma",
-              "glioma", "adenocarcinoma", "metastati")
-_BENIGN_KW = ("no evidence of cancer", "no evidence of malignancy",
-              "fibroadenoma", "adenoma", "haemorrhoid", "hemorrhoid",
-              "hiatus hernia", "benign", "ulcerative colitis", "crohn",
-              "diverticular", "cyst", "polyp")
-_REFERRAL_KW = ("fast track referral", "2ww", "two week wait",
-                "suspected cancer", "suspected malignant")
+_CANCER_KW = (
+    "malign",
+    "carcinoma",
+    "cancer",
+    "sarcoma",
+    "lymphoma",
+    "melanoma",
+    "neoplasm",
+    "leukaemia",
+    "leukemia",
+    "myeloma",
+    "glioma",
+    "adenocarcinoma",
+    "metastati",
+)
+_BENIGN_KW = (
+    "no evidence of cancer",
+    "no evidence of malignancy",
+    "fibroadenoma",
+    "adenoma",
+    "haemorrhoid",
+    "hemorrhoid",
+    "hiatus hernia",
+    "benign",
+    "ulcerative colitis",
+    "crohn",
+    "diverticular",
+    "cyst",
+    "polyp",
+)
+_REFERRAL_KW = (
+    "fast track referral",
+    "2ww",
+    "two week wait",
+    "suspected cancer",
+    "suspected malignant",
+)
 
 _Q = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
@@ -75,6 +106,7 @@ def _categorise(coded: list[dict]) -> tuple[list[str], list[str], list[str]]:
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     for pid, from_date in UNKNOWN_PIDS:

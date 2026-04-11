@@ -1,4 +1,5 @@
 """Confirm whether retired codes appear in patient records and whether active replacements cover them."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
@@ -59,6 +62,7 @@ WHERE d.active = true
 RETURN count(DISTINCT d) AS count
 """
 
+
 def main() -> None:
     kg = KnowledgeGraphClient()
     pg = PatientGraphClient()
@@ -78,7 +82,7 @@ def main() -> None:
             RETURN count(DISTINCT d) AS cnt
             """
             r2 = kg.run(q)
-            cnt = r2[0]['cnt'] if r2 else 0
+            cnt = r2[0]["cnt"] if r2 else 0
             print(f"  depth <= {depth:>2}: {cnt:>6} active concepts")
 
         print()
@@ -88,14 +92,20 @@ def main() -> None:
             print("  None -- all encounter cancer concepts are active SNOMED codes")
         else:
             for r in rows:
-                print(f"  conceptId={r['conceptId']:>15}  enc_count={r['enc_count']:>4}  {r['name']}")
+                print(
+                    f"  conceptId={r['conceptId']:>15}  enc_count={r['enc_count']:>4}  {r['name']}"
+                )
 
         print()
-        print("=== For each retired code in patient data: what is its active parent? ===")
+        print(
+            "=== For each retired code in patient data: what is its active parent? ==="
+        )
         rows2 = kg.run(_Q_ACTIVE_REPLACEMENTS, root=CANCER_ROOT)
         for r in rows2:
             print(f"  RETIRED {r['dead_cid']} '{r['dead_name']}'")
-            print(f"    -> parent {r['parent_id']} (active={r['parent_active']}) '{r['parent_fsn']}'")
+            print(
+                f"    -> parent {r['parent_id']} (active={r['parent_active']}) '{r['parent_fsn']}'"
+            )
 
     finally:
         kg.close()

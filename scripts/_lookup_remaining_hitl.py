@@ -32,6 +32,7 @@ TERM_API = "http://localhost:8001"
 # Neo4j
 # ---------------------------------------------------------------------------
 
+
 def get_neo4j_driver():
     uri = os.getenv("NEO4J_URI", "")
     user = os.getenv("NEO4J_USER", "neo4j")
@@ -79,8 +80,16 @@ def format_result(r: dict) -> str:
     """Format one terminology search result into a short string."""
     if "error" in r:
         return f"ERROR: {r['error']}"
-    cid = r.get("snomed_concept_id") or r.get("conceptId") or r.get("concept_id") or r.get("id") or "?"
-    term = r.get("term") or r.get("fsn") or r.get("preferredTerm") or r.get("name") or "?"
+    cid = (
+        r.get("snomed_concept_id")
+        or r.get("conceptId")
+        or r.get("concept_id")
+        or r.get("id")
+        or "?"
+    )
+    term = (
+        r.get("term") or r.get("fsn") or r.get("preferredTerm") or r.get("name") or "?"
+    )
     tag = r.get("semantic_tag") or r.get("semanticTag") or ""
     score = r.get("score")
     score_str = f" score={score:.2f}" if score is not None else ""
@@ -133,20 +142,22 @@ def main():
         top2 = format_result(results[1]) if len(results) > 1 else ""
         top3 = format_result(results[2]) if len(results) > 2 else ""
 
-        lines.append({
-            "entity_text": text,
-            "label": label,
-            "assertion": assertion,
-            "n": occurrences,
-            "tier": tier,
-            "category": category,
-            "current_snomed": f"{snomed_id} {snomed_term}" if snomed_id else "",
-            "suggested_label": suggested,
-            "delta": f"{delta:.2f}" if delta is not None else "",
-            "top1": top1,
-            "top2": top2,
-            "top3": top3,
-        })
+        lines.append(
+            {
+                "entity_text": text,
+                "label": label,
+                "assertion": assertion,
+                "n": occurrences,
+                "tier": tier,
+                "category": category,
+                "current_snomed": f"{snomed_id} {snomed_term}" if snomed_id else "",
+                "suggested_label": suggested,
+                "delta": f"{delta:.2f}" if delta is not None else "",
+                "top1": top1,
+                "top2": top2,
+                "top3": top3,
+            }
+        )
 
     client.close()
 
@@ -165,9 +176,15 @@ def main():
         for cat in sorted(categories.keys()):
             items = categories[cat]
             total_occ = sum(i["n"] for i in items)
-            f.write(f"\n## {cat} ({len(items)} unique texts, {total_occ} total reviews)\n\n")
-            f.write("| # | Entity Text | Label | Assertion | Count | Tier | Current SNOMED | Top 1 Match | Top 2 Match | Top 3 Match | Action |\n")
-            f.write("|---|-------------|-------|-----------|-------|------|----------------|-------------|-------------|-------------|--------|\n")
+            f.write(
+                f"\n## {cat} ({len(items)} unique texts, {total_occ} total reviews)\n\n"
+            )
+            f.write(
+                "| # | Entity Text | Label | Assertion | Count | Tier | Current SNOMED | Top 1 Match | Top 2 Match | Top 3 Match | Action |\n"
+            )
+            f.write(
+                "|---|-------------|-------|-----------|-------|------|----------------|-------------|-------------|-------------|--------|\n"
+            )
             for i, item in enumerate(items, 1):
                 et = item["entity_text"].replace("|", "\\|")
                 f.write(
@@ -185,7 +202,10 @@ def main():
                 )
 
     print(f"\nWritten to {out}", file=sys.stderr)
-    print(f"Categories: {', '.join(f'{k}={len(v)}' for k, v in sorted(categories.items()))}", file=sys.stderr)
+    print(
+        f"Categories: {', '.join(f'{k}={len(v)}' for k, v in sorted(categories.items()))}",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

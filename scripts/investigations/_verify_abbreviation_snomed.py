@@ -10,6 +10,7 @@ For each abbreviation, we:
 
 Run:  python scripts/investigations/_verify_abbreviation_snomed.py
 """
+
 from __future__ import annotations
 
 import json
@@ -30,57 +31,69 @@ RESOLVE_URL = f"{BASE}/terminology/resolve"
 # ---------------------------------------------------------------------------
 ABBREVIATIONS = [
     # -- Tier 1: Cancer pathway (safety-critical) --
-    ("2WW",    "two week wait cancer referral",           "procedure", "All tumour-site 2WW SNOMED codes"),
-    ("FIT",    "faecal immunochemical test",              "procedure", "Bowel cancer screening FIT"),
-    ("FOBT",   "faecal occult blood test",                "procedure", "Older FOBT term"),
-    ("FOB",    "faecal occult blood",                     "procedure", "Short form of FOBT"),
-    ("SLL",    "small lymphocytic lymphoma",              "disorder",  "Same entity as CLL variant"),
-    ("CLL",    "chronic lymphocytic leukaemia",           "disorder",  "Most common adult leukaemia"),
-    ("BCC",    "basal cell carcinoma",                    "disorder",  "Skin cancer - very common"),
-    ("SCC",    "squamous cell carcinoma",                 "disorder",  "Skin/lung/other SCC"),
-    ("CA",     "malignant neoplasm",                      "disorder",  "'prostate CA', 'CA breast'"),
-    ("CA125",  "cancer antigen 125 serum",                "observable entity", "Ovarian cancer marker"),
-    ("ADT",    "androgen deprivation therapy",            "procedure", "Prostate cancer treatment"),
-    ("GOJ",    "gastro-oesophageal junction adenocarcinoma", "disorder", "GOJ adenocarcinoma"),
-    ("PSA",    "prostate specific antigen",               "observable entity", "PSA level"),
-
+    (
+        "2WW",
+        "two week wait cancer referral",
+        "procedure",
+        "All tumour-site 2WW SNOMED codes",
+    ),
+    ("FIT", "faecal immunochemical test", "procedure", "Bowel cancer screening FIT"),
+    ("FOBT", "faecal occult blood test", "procedure", "Older FOBT term"),
+    ("FOB", "faecal occult blood", "procedure", "Short form of FOBT"),
+    ("SLL", "small lymphocytic lymphoma", "disorder", "Same entity as CLL variant"),
+    ("CLL", "chronic lymphocytic leukaemia", "disorder", "Most common adult leukaemia"),
+    ("BCC", "basal cell carcinoma", "disorder", "Skin cancer - very common"),
+    ("SCC", "squamous cell carcinoma", "disorder", "Skin/lung/other SCC"),
+    ("CA", "malignant neoplasm", "disorder", "'prostate CA', 'CA breast'"),
+    ("CA125", "cancer antigen 125 serum", "observable entity", "Ovarian cancer marker"),
+    ("ADT", "androgen deprivation therapy", "procedure", "Prostate cancer treatment"),
+    (
+        "GOJ",
+        "gastro-oesophageal junction adenocarcinoma",
+        "disorder",
+        "GOJ adenocarcinoma",
+    ),
+    ("PSA", "prostate specific antigen", "observable entity", "PSA level"),
     # -- Tier 2: High-volume chronic conditions --
-    ("HTN",    "hypertension",                            "disorder",  "74 hits - biggest gap"),
-    ("HbA1c",  "haemoglobin A1c level",                  "observable entity", "HbA1c standalone"),
-    ("CKD",    "chronic kidney disease",                  "disorder",  "30 hits"),
-    ("CBG",    "capillary blood glucose",                 "observable entity", "CBG BB'fast"),
-    ("HF",     "heart failure",                           "disorder",  "Known HF, COPD, HF"),
-    ("IHD",    "ischaemic heart disease",                 "disorder",  "venlafaxine CI due to IHD"),
-    ("IDA",    "iron deficiency anaemia",                 "disorder",  "gastroscopy for IDA"),
-    ("GORD",   "gastro-oesophageal reflux disease",       "disorder",  "Diagnosis: GORD"),
-    ("T2DM",   "type 2 diabetes mellitus",                "disorder",  "T2DM variant spelling"),
-    ("IDDM",   "insulin dependent diabetes mellitus",     "disorder",  "IDDM variant"),
-    ("BPH",    "benign prostatic hyperplasia",            "disorder",  "BG of IHD, ILD, COPD, BPH"),
-    ("ILD",    "interstitial lung disease",               "disorder",  "BG of IHD, ILD, COPD"),
-
+    ("HTN", "hypertension", "disorder", "74 hits - biggest gap"),
+    ("HbA1c", "haemoglobin A1c level", "observable entity", "HbA1c standalone"),
+    ("CKD", "chronic kidney disease", "disorder", "30 hits"),
+    ("CBG", "capillary blood glucose", "observable entity", "CBG BB'fast"),
+    ("HF", "heart failure", "disorder", "Known HF, COPD, HF"),
+    ("IHD", "ischaemic heart disease", "disorder", "venlafaxine CI due to IHD"),
+    ("IDA", "iron deficiency anaemia", "disorder", "gastroscopy for IDA"),
+    ("GORD", "gastro-oesophageal reflux disease", "disorder", "Diagnosis: GORD"),
+    ("T2DM", "type 2 diabetes mellitus", "disorder", "T2DM variant spelling"),
+    ("IDDM", "insulin dependent diabetes mellitus", "disorder", "IDDM variant"),
+    ("BPH", "benign prostatic hyperplasia", "disorder", "BG of IHD, ILD, COPD, BPH"),
+    ("ILD", "interstitial lung disease", "disorder", "BG of IHD, ILD, COPD"),
     # -- Tier 3: Symptoms and clinical findings --
-    ("SOBOE",  "shortness of breath on exertion",         "finding",   "11 hits - very common"),
-    ("SOB",    "dyspnoea",                                "finding",   "shortness of breath"),
-    ("TATT",   "fatigue",                                 "finding",   "tired all the time"),
-    ("CIBH",   "change in bowel habit",                   "finding",   "persistent CIBH"),
-    ("CP",     "chest pain",                              "finding",   "CP / dizziness"),
-    ("PV",     "vaginal bleeding",                        "finding",   "PV bleeding"),
-    ("NAD",    "no abnormality detected",                 "finding",   "Xray NAD, FOBT NAD"),
-    ("OOH",    "out of hours",                            "finding",   "OOH report"),
-    ("TWOC",   "trial without catheter",                  "procedure", "failed TWOC - urinary retention"),
-    ("IMB",    "intermenstrual bleeding",                 "finding",   "1x episode IMB"),
-    ("PR",     "per rectum bleeding",                     "finding",   "PR bleeding on wiping"),
-
+    ("SOBOE", "shortness of breath on exertion", "finding", "11 hits - very common"),
+    ("SOB", "dyspnoea", "finding", "shortness of breath"),
+    ("TATT", "fatigue", "finding", "tired all the time"),
+    ("CIBH", "change in bowel habit", "finding", "persistent CIBH"),
+    ("CP", "chest pain", "finding", "CP / dizziness"),
+    ("PV", "vaginal bleeding", "finding", "PV bleeding"),
+    ("NAD", "no abnormality detected", "finding", "Xray NAD, FOBT NAD"),
+    ("OOH", "out of hours", "finding", "OOH report"),
+    ("TWOC", "trial without catheter", "procedure", "failed TWOC - urinary retention"),
+    ("IMB", "intermenstrual bleeding", "finding", "1x episode IMB"),
+    ("PR", "per rectum bleeding", "finding", "PR bleeding on wiping"),
     # -- Tier 4: Investigations and procedures --
-    ("XR",     "plain x-ray",                            "procedure", "26 hits - f/u XR"),
-    ("US",     "ultrasonography",                         "procedure", "US Pelvis"),
-    ("ECHO",   "echocardiogram",                          "procedure", "ECHO severe AS"),
-    ("GFR",    "estimated glomerular filtration rate",    "observable entity", "GFR G3b"),
-    ("eGFR",   "estimated glomerular filtration rate",    "observable entity", "eGFR in context"),
-    ("TSH",    "thyroid stimulating hormone level",       "observable entity", "Serum TSH"),
-    ("HBPM",   "home blood pressure monitoring",          "observable entity", "Average HBPM"),
-    ("MSK",    "musculoskeletal",                         "finding",   "MSK back pain"),
-    ("LUTS",   "lower urinary tract symptoms",            "finding",   "LUTS / haematuria"),
+    ("XR", "plain x-ray", "procedure", "26 hits - f/u XR"),
+    ("US", "ultrasonography", "procedure", "US Pelvis"),
+    ("ECHO", "echocardiogram", "procedure", "ECHO severe AS"),
+    ("GFR", "estimated glomerular filtration rate", "observable entity", "GFR G3b"),
+    (
+        "eGFR",
+        "estimated glomerular filtration rate",
+        "observable entity",
+        "eGFR in context",
+    ),
+    ("TSH", "thyroid stimulating hormone level", "observable entity", "Serum TSH"),
+    ("HBPM", "home blood pressure monitoring", "observable entity", "Average HBPM"),
+    ("MSK", "musculoskeletal", "finding", "MSK back pain"),
+    ("LUTS", "lower urinary tract symptoms", "finding", "LUTS / haematuria"),
 ]
 
 
@@ -147,8 +160,10 @@ def main() -> None:
         resolved = res.get(abbrev) or res.get(abbrev.lower()) or []
         if isinstance(resolved, list) and resolved:
             top = resolved[0]
-            print(f"  Resolve '{abbrev}' currently -> [{top.get('concept_id','?')}] "
-                  f"{top.get('term','?')} (score={top.get('score',0):.2f})")
+            print(
+                f"  Resolve '{abbrev}' currently -> [{top.get('concept_id','?')}] "
+                f"{top.get('term','?')} (score={top.get('score',0):.2f})"
+            )
         else:
             print(f"  Resolve '{abbrev}' currently -> NOT FOUND in resolver")
 
@@ -156,28 +171,32 @@ def main() -> None:
         rec = None
         if hits and "snomed_concept_id" in hits[0]:
             rec = hits[0]
-            results.append({
-                "abbreviation": abbrev,
-                "expansion": expansion,
-                "recommended_concept_id": rec["snomed_concept_id"],
-                "recommended_term": rec["term"],
-                "semantic_tag": rec["semantic_tag"],
-                "score": round(rec["score"], 3),
-                "note": note,
-                "currently_resolves": bool(resolved),
-            })
+            results.append(
+                {
+                    "abbreviation": abbrev,
+                    "expansion": expansion,
+                    "recommended_concept_id": rec["snomed_concept_id"],
+                    "recommended_term": rec["term"],
+                    "semantic_tag": rec["semantic_tag"],
+                    "score": round(rec["score"], 3),
+                    "note": note,
+                    "currently_resolves": bool(resolved),
+                }
+            )
             print(f"  ** RECOMMENDED: [{rec['snomed_concept_id']}] {rec['term']}")
         else:
-            results.append({
-                "abbreviation": abbrev,
-                "expansion": expansion,
-                "recommended_concept_id": None,
-                "recommended_term": None,
-                "semantic_tag": expected_tag,
-                "score": 0,
-                "note": note,
-                "currently_resolves": bool(resolved),
-            })
+            results.append(
+                {
+                    "abbreviation": abbrev,
+                    "expansion": expansion,
+                    "recommended_concept_id": None,
+                    "recommended_term": None,
+                    "semantic_tag": expected_tag,
+                    "score": 0,
+                    "note": note,
+                    "currently_resolves": bool(resolved),
+                }
+            )
             print("  ** NO CANDIDATE FOUND - manual lookup required")
 
         time.sleep(0.05)  # be gentle on the server
@@ -191,7 +210,9 @@ def main() -> None:
     print(f"Written: {out_path}")
     print()
     print("SUMMARY")
-    print(f"{'Abbrev':<10} {'Concept ID':<16} {'Recommended SNOMED term':<60} {'Currently resolves?'}")
+    print(
+        f"{'Abbrev':<10} {'Concept ID':<16} {'Recommended SNOMED term':<60} {'Currently resolves?'}"
+    )
     print("-" * 110)
     for r in results:
         cid = r["recommended_concept_id"] or "NOT FOUND"

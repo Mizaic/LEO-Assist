@@ -126,7 +126,10 @@ def test_multiline_sentence_payload_is_narrowed_to_matching_line() -> None:
     assert written == 1
     deid_mock.assert_called_once()
     deid_sentence_arg = deid_mock.call_args.args[0]
-    assert deid_sentence_arg == "Haematocrit (X76tb) 0.357 [0.37 - 0.47] - Outside reference range"
+    assert (
+        deid_sentence_arg
+        == "Haematocrit (X76tb) 0.357 [0.37 - 0.47] - Outside reference range"
+    )
     assert deid_mock.call_args.args[1] == "Haematocrit"
 
     docs_calls = [

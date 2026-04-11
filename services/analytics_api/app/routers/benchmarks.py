@@ -25,12 +25,8 @@ router = APIRouter()
 
 # Cypher fragment that scopes patients to an org at any hierarchy level.
 # Variables introduced: _scope, gp  (p must already be in scope or follow).
-_EPISODE_EXCLUDE = (
-    "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
-)
-_REFERRAL_LINK_EXISTS = (
-    "EXISTS { MATCH (:Encounter)-[rr:IS_PART_OF]->(ep) WHERE rr.milestone_type = 'referral' } "
-)
+_EPISODE_EXCLUDE = "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+_REFERRAL_LINK_EXISTS = "EXISTS { MATCH (:Encounter)-[rr:IS_PART_OF]->(ep) WHERE rr.milestone_type = 'referral' } "
 
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {{id: ${p}}}) "
@@ -160,13 +156,20 @@ def peer_comparison(
     avg_days_to_treatment.
     """
     scope = _coerce_scope(scope)
-    _ALLOWED = {"avg_days_to_referral", "avg_days_to_diagnosis", "avg_days_to_treatment"}
+    _ALLOWED = {
+        "avg_days_to_referral",
+        "avg_days_to_diagnosis",
+        "avg_days_to_treatment",
+    }
     if metric not in _ALLOWED:
         metric = "avg_days_to_diagnosis"
 
     if not scope.is_admin and org_id not in scope.org_ids:
         from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Not authorized for this organization")
+
+        raise HTTPException(
+            status_code=403, detail="Not authorized for this organization"
+        )
 
     client = PatientGraphClient()
     try:
@@ -206,7 +209,8 @@ def peer_comparison(
             "  cnt, "
             "  CASE WHEN org = $org_id THEN true ELSE false END AS is_self "
             "ORDER BY avg_val",
-            metric=metric, org_id=org_id,
+            metric=metric,
+            org_id=org_id,
         )
     finally:
         client.close()
@@ -220,7 +224,11 @@ def kpi_trends(
 ):
     """Monthly trend data for a KPI metric."""
     scope = _coerce_scope(scope)
-    _ALLOWED = {"avg_days_to_referral", "avg_days_to_diagnosis", "avg_days_to_treatment"}
+    _ALLOWED = {
+        "avg_days_to_referral",
+        "avg_days_to_diagnosis",
+        "avg_days_to_treatment",
+    }
     if metric not in _ALLOWED:
         metric = "avg_days_to_diagnosis"
 

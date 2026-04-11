@@ -10,6 +10,7 @@ Outputs:
   - Summary verdict breakdown
   - Per-episode CSV rows to results/stale_post_specialist_inference.csv
 """
+
 from __future__ import annotations
 import csv
 import re
@@ -22,10 +23,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -61,51 +64,51 @@ ORDER BY enc.date
 # ---------------------------------------------------------------------------
 
 POST_CANCER: list[tuple[str, str]] = [
-    (r"\bexcis",                  "excision"),
-    (r"\bmohs\b",                 "mohs surgery"),
-    (r"\bwide local excision\b",  "wide local excision"),
-    (r"\bsurgical removal\b",     "surgical removal"),
-    (r"\boncolog",                "oncology"),
-    (r"\bradiother",              "radiotherapy"),
-    (r"\bchemother",              "chemotherapy"),
-    (r"\bimmunother",             "immunotherapy"),
-    (r"\bsentinel node\b",        "sentinel node"),
-    (r"\blymph node\b",           "lymph node"),
-    (r"\bpatholog",               "pathology"),
-    (r"\bhistolog",               "histology"),
-    (r"\bbiopsy result\b",        "biopsy result"),
-    (r"\bstage [1-4ivi]+\b",      "staging"),
-    (r"\bdo not cancel\b",        "urgent recall"),
-    (r"\bpriority [ab1]\b",       "high priority f/u"),
-    (r"\burgent.*follow",         "urgent follow-up"),
-    (r"\bcancer referral",        "cancer referral"),
-    (r"\bcarcinoma\b",            "carcinoma"),
-    (r"\bmalign",                 "malignant"),
-    (r"\bcpms\b",                 "CPMS trial"),
-    (r"\bclinical trial",         "clinical trial"),
+    (r"\bexcis", "excision"),
+    (r"\bmohs\b", "mohs surgery"),
+    (r"\bwide local excision\b", "wide local excision"),
+    (r"\bsurgical removal\b", "surgical removal"),
+    (r"\boncolog", "oncology"),
+    (r"\bradiother", "radiotherapy"),
+    (r"\bchemother", "chemotherapy"),
+    (r"\bimmunother", "immunotherapy"),
+    (r"\bsentinel node\b", "sentinel node"),
+    (r"\blymph node\b", "lymph node"),
+    (r"\bpatholog", "pathology"),
+    (r"\bhistolog", "histology"),
+    (r"\bbiopsy result\b", "biopsy result"),
+    (r"\bstage [1-4ivi]+\b", "staging"),
+    (r"\bdo not cancel\b", "urgent recall"),
+    (r"\bpriority [ab1]\b", "high priority f/u"),
+    (r"\burgent.*follow", "urgent follow-up"),
+    (r"\bcancer referral", "cancer referral"),
+    (r"\bcarcinoma\b", "carcinoma"),
+    (r"\bmalign", "malignant"),
+    (r"\bcpms\b", "CPMS trial"),
+    (r"\bclinical trial", "clinical trial"),
 ]
 
 POST_BENIGN: list[tuple[str, str]] = [
-    (r"\befudix\b",                    "Efudix"),
-    (r"\bfluorouracil\b",              "fluorouracil"),
-    (r"\b5[- ]?fu\b",                  "5-FU"),
-    (r"\bimiquimod\b",                 "imiquimod"),
-    (r"\bphotodynam",                  "photodynamic therapy"),
-    (r"\bcryother",                    "cryotherapy"),
-    (r"\bcurette\b",                   "curettage"),
-    (r"\bak\b",                        "AK"),
-    (r"\bactinic keratosis\b",         "actinic keratosis"),
-    (r"\bsolar keratosis\b",           "solar keratosis"),
-    (r"\bseborrhoeic\b",               "seborrhoeic"),
-    (r"\bbenign\b",                    "benign"),
-    (r"\bnot malign",                  "not malignant"),
-    (r"\bnon[- ]?malign",              "non-malignant"),
-    (r"\bno evidence of cancer\b",     "no cancer"),
-    (r"\bno further follow[- ]?up\b",  "no further f/u"),
-    (r"\bdischarg",                    "discharged"),
-    (r"\broutine.*follow",             "routine f/u"),
-    (r"\breassur",                     "reassured"),
-    (r"\bnot cancer\b",                "not cancer"),
+    (r"\befudix\b", "Efudix"),
+    (r"\bfluorouracil\b", "fluorouracil"),
+    (r"\b5[- ]?fu\b", "5-FU"),
+    (r"\bimiquimod\b", "imiquimod"),
+    (r"\bphotodynam", "photodynamic therapy"),
+    (r"\bcryother", "cryotherapy"),
+    (r"\bcurette\b", "curettage"),
+    (r"\bak\b", "AK"),
+    (r"\bactinic keratosis\b", "actinic keratosis"),
+    (r"\bsolar keratosis\b", "solar keratosis"),
+    (r"\bseborrhoeic\b", "seborrhoeic"),
+    (r"\bbenign\b", "benign"),
+    (r"\bnot malign", "not malignant"),
+    (r"\bnon[- ]?malign", "non-malignant"),
+    (r"\bno evidence of cancer\b", "no cancer"),
+    (r"\bno further follow[- ]?up\b", "no further f/u"),
+    (r"\bdischarg", "discharged"),
+    (r"\broutine.*follow", "routine f/u"),
+    (r"\breassur", "reassured"),
+    (r"\bnot cancer\b", "not cancer"),
 ]
 
 PRIVATE_MARKERS = [
@@ -154,15 +157,15 @@ def _verdict(nc: int, nb: int, private: bool) -> str:
 
 
 def analyse_episode(s, ep: dict) -> dict:
-    pid            = ep["patient_id"]
-    episode_id     = ep["episode_id"]
-    referral_date  = ep["referral_date"]
+    pid = ep["patient_id"]
+    episode_id = ep["episode_id"]
+    referral_date = ep["referral_date"]
     specialist_date = ep["specialist_date"]
-    cancer_type    = ep["cancer_type"] or ""
+    cancer_type = ep["cancer_type"] or ""
 
-    phase1_end  = specialist_date
+    phase1_end = specialist_date
     phase2_start = _date_add(specialist_date, 1)
-    phase2_end   = _date_add(specialist_date, POST_WINDOW_DAYS)
+    phase2_end = _date_add(specialist_date, POST_WINDOW_DAYS)
 
     rows = s.run(
         Q_ENCOUNTERS,
@@ -192,22 +195,22 @@ def analyse_episode(s, ep: dict) -> dict:
 
     nc = len(cancer_labels)
     nb = len(benign_labels)
-    v  = _verdict(nc, nb, private_letter)
+    v = _verdict(nc, nb, private_letter)
 
     return {
-        "episode_id":           episode_id,
-        "patient_id":           pid,
-        "cancer_type":          cancer_type,
-        "referral_date":        referral_date,
-        "specialist_date":      specialist_date,
+        "episode_id": episode_id,
+        "patient_id": pid,
+        "cancer_type": cancer_type,
+        "referral_date": referral_date,
+        "specialist_date": specialist_date,
         "specialist_confirmed": specialist_confirmed,
-        "private_letter":       private_letter,
-        "phase2_encounters":    len(phase2),
-        "cancer_signal_count":  nc,
-        "benign_signal_count":  nb,
-        "cancer_signals":       "; ".join(sorted(set(cancer_labels))),
-        "benign_signals":       "; ".join(sorted(set(benign_labels))),
-        "verdict":              v,
+        "private_letter": private_letter,
+        "phase2_encounters": len(phase2),
+        "cancer_signal_count": nc,
+        "benign_signal_count": nb,
+        "cancer_signals": "; ".join(sorted(set(cancer_labels))),
+        "benign_signals": "; ".join(sorted(set(benign_labels))),
+        "verdict": v,
     }
 
 
@@ -255,10 +258,9 @@ def main() -> None:
 
     # -- Private letter breakdown
     n_private = sum(1 for r in results if r["private_letter"])
-    n_hitl    = verdict_counts["HITL_REQUIRED"]
+    n_hitl = verdict_counts["HITL_REQUIRED"]
     n_hitl_private = sum(
-        1 for r in results
-        if r["verdict"] == "HITL_REQUIRED" and r["private_letter"]
+        1 for r in results if r["verdict"] == "HITL_REQUIRED" and r["private_letter"]
     )
     print(f"\nPRIVATE LETTER ANALYSIS:")
     print(f"  Episodes with private/blocked letter : {n_private} / {total}")

@@ -138,14 +138,18 @@ def export_labels(
             for row in rows:
                 entities = json.loads(row["entities_json"] or "[]")
                 if rules:
-                    entities = apply_rules_to_entities(str(row["text"] or ""), entities, rules)
+                    entities = apply_rules_to_entities(
+                        str(row["text"] or ""), entities, rules
+                    )
                 if not entities:
                     continue
-                records.append({
-                    "text": row["text"] or "",
-                    "entities": entities,
-                    "source": row.get("source", ""),
-                })
+                records.append(
+                    {
+                        "text": row["text"] or "",
+                        "entities": entities,
+                        "source": row.get("source", ""),
+                    }
+                )
     finally:
         client.close()
 
@@ -176,9 +180,9 @@ def export_labels(
     skipped = 0
 
     # Single pass over all records: collect labels and build DocBins together.
-    for is_train, rec in (
-        [(True, r) for r in train_records] + [(False, r) for r in dev_records]
-    ):
+    for is_train, rec in [(True, r) for r in train_records] + [
+        (False, r) for r in dev_records
+    ]:
         for ent in rec["entities"]:
             all_labels.add(_normalise_label(str(ent.get("label", ""))))
         try:

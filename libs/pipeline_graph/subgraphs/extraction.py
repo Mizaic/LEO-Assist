@@ -182,6 +182,7 @@ def _resolve_system_prompt(state: ExtractionState) -> str:
     if cfg.get("systemPrompt"):
         return cfg["systemPrompt"]
     from libs.prompts.registry import get_prompt
+
     return get_prompt("extraction", version=1)
 
 
@@ -203,6 +204,7 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             from services.coding_worker.app.pipeline.providers.model_provider import (
                 ModelExtractorProvider,
             )
+
             extractor = ModelExtractorProvider()
             items = extractor.extract_batch(encounter_text, chunks)
             entities = _items_to_dicts(items)
@@ -239,6 +241,7 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
         few_shot_examples: list[dict] | None = None
         if few_shot_raw:
             import json as _json
+
             try:
                 few_shot_examples = (
                     _json.loads(few_shot_raw)

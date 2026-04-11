@@ -1,4 +1,5 @@
 """Sitrep across all three workstreams - Neo4j queries only."""
+
 import os
 import sys
 from pathlib import Path
@@ -6,33 +7,54 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 import warnings
+
 warnings.filterwarnings("ignore")
 
-pg_uri = os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", "bolt://localhost:7687")
+pg_uri = os.getenv("NEO4J_URI", "") or os.getenv(
+    "NEO4J_PATIENT_URI", "bolt://localhost:7687"
+)
 pg_user = os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", "neo4j")
-pg_pass = os.getenv("NEO4J_PASSWORD", "") or os.getenv("NEO4J_PATIENT_PASSWORD", "patient-dev")
+pg_pass = os.getenv("NEO4J_PASSWORD", "") or os.getenv(
+    "NEO4J_PATIENT_PASSWORD", "patient-dev"
+)
 
 driver = GraphDatabase.driver(pg_uri, auth=(pg_user, pg_pass))
+
 
 def q(cypher, **params):
     with driver.session() as s:
         return list(s.run(cypher, **params))
 
+
 # WS1
 total_docs = q("MATCH ()-[r:DOCUMENTS]->() RETURN count(r) AS n")[0]["n"]
 assertions = {}
-for a in ("present", "historical", "absent", "possible", "declined",
-          "cancelled", "family", "refuted", "planned", "hypothetical"):
-    plain = q("MATCH ()-[r:DOCUMENTS]->() WHERE r.context = $v RETURN count(r) AS n", v=a)[0]["n"]
+for a in (
+    "present",
+    "historical",
+    "absent",
+    "possible",
+    "declined",
+    "cancelled",
+    "family",
+    "refuted",
+    "planned",
+    "hypothetical",
+):
+    plain = q(
+        "MATCH ()-[r:DOCUMENTS]->() WHERE r.context = $v RETURN count(r) AS n", v=a
+    )[0]["n"]
     json_match = q(
         "MATCH ()-[r:DOCUMENTS]->() WHERE r.context CONTAINS $v RETURN count(r) AS n",
-        v=f'"assertion": "{a}"'
+        v=f'"assertion": "{a}"',
     )[0]["n"]
     if plain + json_match > 0:
         assertions[a] = plain + json_match
@@ -62,7 +84,9 @@ for row in q("MATCH (t:ReviewTask) RETURN t.status AS s, count(t) AS n"):
 # WS3
 tl_total = q("MATCH (t:TrainingLabel) RETURN count(t) AS n")[0]["n"]
 tl_by_type = {}
-for row in q("MATCH (t:TrainingLabel) RETURN t.label_type AS lt, count(t) AS n ORDER BY n DESC"):
+for row in q(
+    "MATCH (t:TrainingLabel) RETURN t.label_type AS lt, count(t) AS n ORDER BY n DESC"
+):
     if row["lt"]:
         tl_by_type[row["lt"]] = row["n"]
 ec_total = q("MATCH (e:EncounterCandidate) RETURN count(e) AS n")[0]["n"]

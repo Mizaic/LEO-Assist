@@ -1,20 +1,29 @@
 """Verify EpisodeOfCare nodes now have referral_date set for previously-missing patients."""
+
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
 
 PREVIOUSLY_NO_DATE = [
-    "4246627143", "4822890058", "4983118659", "6517334858",
-    "7313758405", "7319972905", "7321643565", "7322946243",
+    "4246627143",
+    "4822890058",
+    "4983118659",
+    "6517334858",
+    "7313758405",
+    "7319972905",
+    "7321643565",
+    "7322946243",
 ]
 
 Q = """

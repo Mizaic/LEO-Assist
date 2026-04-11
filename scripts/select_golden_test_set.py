@@ -28,6 +28,7 @@ Do NOT run this in production -- outputs encounter IDs for clinician review.
 The clinician completes the ground truth JSON manually before running the
 auditor validation harness.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,8 +68,16 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "respiratory": {
         "semantic_tags": ["disorder"],
         "keywords": [
-            "asthma", "copd", "pneumonia", "bronchitis", "respiratory",
-            "lung", "pleural", "emphysema", "inhaler", "dyspnoea",
+            "asthma",
+            "copd",
+            "pneumonia",
+            "bronchitis",
+            "respiratory",
+            "lung",
+            "pleural",
+            "emphysema",
+            "inhaler",
+            "dyspnoea",
         ],
         "target": 13,
         "safety_critical": False,
@@ -76,9 +85,17 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "cardiovascular": {
         "semantic_tags": ["disorder", "finding"],
         "keywords": [
-            "heart failure", "atrial fibrillation", "hypertension",
-            "coronary", "angina", "myocardial", "cardiac", "cardiovascular",
-            "arrhythmia", "stroke", "tia",
+            "heart failure",
+            "atrial fibrillation",
+            "hypertension",
+            "coronary",
+            "angina",
+            "myocardial",
+            "cardiac",
+            "cardiovascular",
+            "arrhythmia",
+            "stroke",
+            "tia",
         ],
         "target": 13,
         "safety_critical": False,
@@ -86,8 +103,16 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "oncology": {
         "semantic_tags": ["disorder"],
         "keywords": [
-            "cancer", "carcinoma", "malignant", "tumour", "tumor",
-            "leukaemia", "lymphoma", "melanoma", "neoplasm", "oncology",
+            "cancer",
+            "carcinoma",
+            "malignant",
+            "tumour",
+            "tumor",
+            "leukaemia",
+            "lymphoma",
+            "melanoma",
+            "neoplasm",
+            "oncology",
         ],
         "target": 13,
         "safety_critical": True,
@@ -95,9 +120,18 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "mental_health": {
         "semantic_tags": ["disorder", "finding"],
         "keywords": [
-            "depression", "anxiety", "schizophrenia", "bipolar", "psychosis",
-            "mental", "psychiatric", "ptsd", "eating disorder", "self-harm",
-            "suicidal", "safeguarding",
+            "depression",
+            "anxiety",
+            "schizophrenia",
+            "bipolar",
+            "psychosis",
+            "mental",
+            "psychiatric",
+            "ptsd",
+            "eating disorder",
+            "self-harm",
+            "suicidal",
+            "safeguarding",
         ],
         "target": 13,
         "safety_critical": True,
@@ -105,8 +139,15 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "musculoskeletal": {
         "semantic_tags": ["disorder", "finding"],
         "keywords": [
-            "arthritis", "osteoporosis", "fracture", "back pain",
-            "musculoskeletal", "joint", "tendon", "rheumatoid", "gout",
+            "arthritis",
+            "osteoporosis",
+            "fracture",
+            "back pain",
+            "musculoskeletal",
+            "joint",
+            "tendon",
+            "rheumatoid",
+            "gout",
         ],
         "target": 12,
         "safety_critical": False,
@@ -114,8 +155,16 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "dermatology": {
         "semantic_tags": ["disorder", "finding"],
         "keywords": [
-            "eczema", "psoriasis", "dermatitis", "rash", "skin", "acne",
-            "urticaria", "cellulitis", "melanoma", "wound",
+            "eczema",
+            "psoriasis",
+            "dermatitis",
+            "rash",
+            "skin",
+            "acne",
+            "urticaria",
+            "cellulitis",
+            "melanoma",
+            "wound",
         ],
         "target": 12,
         "safety_critical": False,
@@ -123,8 +172,15 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "endocrine": {
         "semantic_tags": ["disorder", "finding"],
         "keywords": [
-            "diabetes", "thyroid", "hyperthyroid", "hypothyroid",
-            "endocrine", "adrenal", "insulin", "hba1c", "glucose",
+            "diabetes",
+            "thyroid",
+            "hyperthyroid",
+            "hypothyroid",
+            "endocrine",
+            "adrenal",
+            "insulin",
+            "hba1c",
+            "glucose",
         ],
         "target": 12,
         "safety_critical": False,
@@ -132,8 +188,17 @@ DOMAINS: dict[str, dict[str, Any]] = {
     "gastrointestinal": {
         "semantic_tags": ["disorder", "finding"],
         "keywords": [
-            "ibs", "crohn", "colitis", "gastro", "reflux", "bowel",
-            "hepatitis", "liver", "gallstone", "pancreatitis", "coeliac",
+            "ibs",
+            "crohn",
+            "colitis",
+            "gastro",
+            "reflux",
+            "bowel",
+            "hepatitis",
+            "liver",
+            "gallstone",
+            "pancreatitis",
+            "coeliac",
         ],
         "target": 12,
         "safety_critical": False,
@@ -228,7 +293,9 @@ def _select_stratified(
         if got < config["target"]:
             logger.warning(
                 "Domain %s: only %d/%d encounters found",
-                domain, got, config["target"],
+                domain,
+                got,
+                config["target"],
             )
         else:
             logger.info("Domain %s: selected %d encounters", domain, got)
@@ -313,7 +380,9 @@ def _validate_safety_critical_coverage(
             logger.warning(
                 "SAFETY WARNING: domain '%s' has only %d encounters "
                 "(minimum %d recommended for meaningful recall measurement)",
-                domain, count, min_per_critical,
+                domain,
+                count,
+                min_per_critical,
             )
             ok = False
     return ok
@@ -347,8 +416,11 @@ def main() -> None:
             domains[domain]["target"] = args.encounters_per_domain
 
     total_target = sum(c["target"] for c in domains.values())
-    logger.info("Selecting golden test set: %d encounters across %d domains",
-                total_target, len(domains))
+    logger.info(
+        "Selecting golden test set: %d encounters across %d domains",
+        total_target,
+        len(domains),
+    )
 
     if args.dry_run:
         logger.info("DRY RUN -- domain targets:")

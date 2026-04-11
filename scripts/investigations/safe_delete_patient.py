@@ -99,11 +99,16 @@ DETACH DELETE p
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _audit(session, pid: str) -> dict:
     row = session.run(_Q_AUDIT, pid=pid).single()
     if row is None:
-        return {"patient_exists": 0, "encounter_count": 0,
-                "documents_count": 0, "episode_count": 0}
+        return {
+            "patient_exists": 0,
+            "encounter_count": 0,
+            "documents_count": 0,
+            "episode_count": 0,
+        }
     return dict(row)
 
 
@@ -121,12 +126,15 @@ def _delete(session, pid: str) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawTextHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawTextHelpFormatter
+    )
     ap.add_argument("--patient-id", required=True, help="Patient ID to delete")
-    ap.add_argument("--apply", action="store_true",
-                    help="Actually delete (omit for dry-run)")
+    ap.add_argument(
+        "--apply", action="store_true", help="Actually delete (omit for dry-run)"
+    )
     args = ap.parse_args()
 
     pid = str(args.patient_id)
@@ -165,8 +173,10 @@ def main() -> None:
         if not counts_after["patient_exists"]:
             print(f"Patient {pid} and all associated data deleted successfully.")
         else:
-            print("WARNING: patient node still exists after deletion -- "
-                  "check for unexpected relationships.")
+            print(
+                "WARNING: patient node still exists after deletion -- "
+                "check for unexpected relationships."
+            )
 
     driver.close()
 

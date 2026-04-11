@@ -30,7 +30,11 @@ ENCOUNTERS_FILE = (
     ROOT / "scripts" / "investigations" / "output" / "staging_window_encounters.json"
 )
 MAPPINGS_FILE = (
-    ROOT / "scripts" / "investigations" / "output" / "staging_surface_form_upserts_compiled.json"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "output"
+    / "staging_surface_form_upserts_compiled.json"
 )
 
 _Q_EXISTS = """
@@ -74,7 +78,9 @@ MERGE (p)-[:HAS_OBSERVABLE]->(s)
 """
 
 
-def _compile_patterns(mappings: list[dict[str, Any]]) -> list[tuple[str, str, str, re.Pattern[str]]]:
+def _compile_patterns(
+    mappings: list[dict[str, Any]],
+) -> list[tuple[str, str, str, re.Pattern[str]]]:
     rows = sorted(mappings, key=lambda r: len(str(r["surface_form"])), reverse=True)
     out: list[tuple[str, str, str, re.Pattern[str]]] = []
     for row in rows:
@@ -83,7 +89,9 @@ def _compile_patterns(mappings: list[dict[str, Any]]) -> list[tuple[str, str, st
             continue
         cid = str(row["concept_id"])
         term = str(row.get("term") or "")
-        patt = re.compile(rf"(?<![A-Za-z0-9]){re.escape(sf)}(?![A-Za-z0-9])", re.IGNORECASE)
+        patt = re.compile(
+            rf"(?<![A-Za-z0-9]){re.escape(sf)}(?![A-Za-z0-9])", re.IGNORECASE
+        )
         out.append((sf, cid, term, patt))
     return out
 
@@ -160,7 +168,11 @@ def main(apply: bool = False) -> None:
                         "surface_form": sf,
                         "concept_id": cid,
                         "term": term,
-                        "evidence": text[max(0, match.start() - 80): min(len(text), match.end() + 80)],
+                        "evidence": text[
+                            max(0, match.start() - 80) : min(
+                                len(text), match.end() + 80
+                            )
+                        ],
                         "start": match.start(),
                         "end": match.end(),
                     }

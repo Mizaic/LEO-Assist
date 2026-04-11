@@ -1,4 +1,5 @@
 """Look up concepts in cancer_audit domain and check patient graph."""
+
 import sys
 from pathlib import Path
 
@@ -7,6 +8,7 @@ sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
@@ -20,10 +22,11 @@ CONCEPT_IDS_STR = [str(c) for c in CONCEPT_IDS_INT]
 kg = KnowledgeGraphClient()
 
 # Sample what conceptId type is in KG
-sample = kg.run(
-    "MATCH (c:Concept) RETURN c.conceptId AS id LIMIT 3"
+sample = kg.run("MATCH (c:Concept) RETURN c.conceptId AS id LIMIT 3")
+print(
+    "KG Concept.conceptId sample types:",
+    [(r["id"], type(r["id"]).__name__) for r in sample],
 )
-print("KG Concept.conceptId sample types:", [(r["id"], type(r["id"]).__name__) for r in sample])
 
 # Try int lookup
 rows_int = kg.run(

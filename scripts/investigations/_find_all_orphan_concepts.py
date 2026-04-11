@@ -4,6 +4,7 @@ Strategy (fast): start from the small set of encounter-documented concept IDs,
 look up their :Concept node, then check if that node has any IS_A relationships.
 Much faster than scanning all :Concept nodes.
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -12,10 +13,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
@@ -79,9 +82,9 @@ def main() -> None:
             results.extend(rows)
 
         # Classify
-        no_concept_node = []   # no :Concept node at all
-        orphan_in_graph = []   # :Concept node exists but no IS_A
-        connected = []         # :Concept node with IS_A
+        no_concept_node = []  # no :Concept node at all
+        orphan_in_graph = []  # :Concept node exists but no IS_A
+        connected = []  # :Concept node with IS_A
 
         for r in results:
             cid = r["cid"]
@@ -99,24 +102,40 @@ def main() -> None:
         if orphan_in_graph:
             print()
             print("=== IS_A orphans in patient encounter data ===")
-            print(f"  {'concept_id':<18} {'active':<7} {'enc_count':>9}  {'tag':<20}  fsn")
+            print(
+                f"  {'concept_id':<18} {'active':<7} {'enc_count':>9}  {'tag':<20}  fsn"
+            )
             print("  " + "-" * 100)
-            for r in sorted(orphan_in_graph, key=lambda x: -enc_by_cid.get(x["cid"], {}).get("enc_count", 0)):
+            for r in sorted(
+                orphan_in_graph,
+                key=lambda x: -enc_by_cid.get(x["cid"], {}).get("enc_count", 0),
+            ):
                 cid = r["cid"]
                 enc_count = enc_by_cid.get(cid, {}).get("enc_count", 0)
                 active = str(r.get("active") or "?")
-                tag = str(r.get("concept_tag") or enc_by_cid.get(cid, {}).get("tag") or "")[:20]
-                fsn = str(r.get("fsn") or enc_by_cid.get(cid, {}).get("name") or "")[:65]
+                tag = str(
+                    r.get("concept_tag") or enc_by_cid.get(cid, {}).get("tag") or ""
+                )[:20]
+                fsn = str(r.get("fsn") or enc_by_cid.get(cid, {}).get("name") or "")[
+                    :65
+                ]
                 print(f"  {cid:<18} {active:<7} {enc_count:>9}  {tag:<20}  {fsn}")
 
         if no_concept_node:
             print()
-            print(f"=== Concepts in encounters with NO :Concept node in hierarchy ({len(no_concept_node)}) ===")
+            print(
+                f"=== Concepts in encounters with NO :Concept node in hierarchy ({len(no_concept_node)}) ==="
+            )
             print("  (These can't be IS_A expanded at all -- encounter-only codes)")
-            top = sorted(no_concept_node, key=lambda c: -enc_by_cid.get(c, {}).get("enc_count", 0))[:20]
+            top = sorted(
+                no_concept_node,
+                key=lambda c: -enc_by_cid.get(c, {}).get("enc_count", 0),
+            )[:20]
             for cid in top:
                 enc = enc_by_cid.get(cid, {})
-                print(f"  {cid:<18}  enc_count={enc.get('enc_count',0):>5}  {str(enc.get('name',''))[:65]}")
+                print(
+                    f"  {cid:<18}  enc_count={enc.get('enc_count',0):>5}  {str(enc.get('name',''))[:65]}"
+                )
 
     finally:
         kg.close()

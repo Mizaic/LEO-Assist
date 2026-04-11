@@ -20,6 +20,7 @@ Caching strategy:
     module-level dict  →  cheap, no Redis dependency
     TTL reset on force_refresh  →  fresh examples propagate within one run
 """
+
 from __future__ import annotations
 
 import logging
@@ -57,11 +58,13 @@ CACHE_TTL_SECONDS = 30 * 60  # 30 minutes
 # In-process cache
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _Cache:
     examples: dict[str, list[dict]] = field(default_factory=dict)
     fetched_at: float = 0.0
     count: int = 0
+
 
 _cache = _Cache()
 _cache_lock = threading.Lock()
@@ -70,6 +73,7 @@ _cache_lock = threading.Lock()
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _fetch_from_neo4j(n_per_class: int) -> dict[str, list[dict]]:
     """Pull voted examples from Neo4j, grouped by correct class."""
@@ -92,11 +96,13 @@ def _fetch_from_neo4j(n_per_class: int) -> dict[str, list[dict]]:
                         continue
                     # De-identify before the text enters the prompt or the UI
                     clean = deidentify_text(raw)
-                    examples[content_type].append({
-                        "text": clean[:MAX_EXAMPLE_CHARS],
-                        "truncated": len(clean) > MAX_EXAMPLE_CHARS,
-                        "notes": row.get("notes") or "",
-                    })
+                    examples[content_type].append(
+                        {
+                            "text": clean[:MAX_EXAMPLE_CHARS],
+                            "truncated": len(clean) > MAX_EXAMPLE_CHARS,
+                            "notes": row.get("notes") or "",
+                        }
+                    )
     finally:
         client.close()
     return examples
@@ -128,6 +134,7 @@ def _get_examples(n_per_class: int, force_refresh: bool) -> dict[str, list[dict]
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def build_few_shot_section(
     n_per_class: int = DEFAULT_N_PER_CLASS,

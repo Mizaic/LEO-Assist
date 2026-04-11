@@ -1,4 +1,5 @@
 """Add the 12 missing FIT surface form variants."""
+
 import os
 import re
 import sys

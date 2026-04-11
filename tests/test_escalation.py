@@ -36,7 +36,6 @@ from libs.llm_client.escalation import (
 )
 from libs.llm_client.factory import LLMResponse
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -125,30 +124,37 @@ class TestSafeFloat:
 
     def test_valid_float(self):
         from libs.llm_client.escalation import _safe_float
+
         assert _safe_float(0.9) == pytest.approx(0.9)
 
     def test_int_coerced(self):
         from libs.llm_client.escalation import _safe_float
+
         assert _safe_float(1) == pytest.approx(1.0)
 
     def test_string_float(self):
         from libs.llm_client.escalation import _safe_float
+
         assert _safe_float("0.75") == pytest.approx(0.75)
 
     def test_above_one_clamped(self):
         from libs.llm_client.escalation import _safe_float
+
         assert _safe_float(1.5) == pytest.approx(1.0)
 
     def test_below_zero_clamped(self):
         from libs.llm_client.escalation import _safe_float
+
         assert _safe_float(-0.5) == pytest.approx(0.0)
 
     def test_none_uses_default(self):
         from libs.llm_client.escalation import _safe_float
+
         assert _safe_float(None) == pytest.approx(0.0)
 
     def test_non_numeric_string_uses_default(self):
         from libs.llm_client.escalation import _safe_float
+
         assert _safe_float("high") == pytest.approx(0.0)
 
 
@@ -179,8 +185,14 @@ class TestEscalateCoding:
     @patch("libs.llm_client.escalation.create_llm")
     def test_escalates_to_big_on_low_confidence(self, mock_create):
         mock_create.side_effect = [
-            _mock_client('{"concept_term": "Cough", "confidence": 0.6, "reason": "ambiguous"}', "haiku"),
-            _mock_client('{"concept_term": "Cough (finding)", "confidence": 0.95, "reason": "clear"}', "sonnet"),
+            _mock_client(
+                '{"concept_term": "Cough", "confidence": 0.6, "reason": "ambiguous"}',
+                "haiku",
+            ),
+            _mock_client(
+                '{"concept_term": "Cough (finding)", "confidence": 0.95, "reason": "clear"}',
+                "sonnet",
+            ),
         ]
         result = escalate_coding(
             entity_text="cough",
@@ -230,7 +242,9 @@ class TestEscalateCoding:
         mock_create.return_value = _mock_client(
             '{"concept_term": "X (finding)", "confidence": 0.9}'
         )
-        result = escalate_coding(entity_text="x", entity_label="finding", encounter_text="x")
+        result = escalate_coding(
+            entity_text="x", entity_label="finding", encounter_text="x"
+        )
         assert result.all_attempts is not None
         assert len(result.all_attempts) == 1
 
@@ -341,7 +355,9 @@ class TestEscalateCoding:
 
     @patch("libs.llm_client.escalation.create_llm")
     def test_empty_concept_term_not_resolved(self, mock_create):
-        mock_create.return_value = _mock_client('{"concept_term": "", "confidence": 0.95}')
+        mock_create.return_value = _mock_client(
+            '{"concept_term": "", "confidence": 0.95}'
+        )
         result = escalate_coding(entity_text="x", entity_label="f", encounter_text="x")
         assert result.resolved is False
 
@@ -350,7 +366,13 @@ class TestEscalateCoding:
         # Use 600-char reason so total JSON stays under the 1000-char response cap
         long_reason = "R" * 600
         mock_create.return_value = _mock_client(
-            json.dumps({"concept_term": "X (finding)", "confidence": 0.92, "reason": long_reason})
+            json.dumps(
+                {
+                    "concept_term": "X (finding)",
+                    "confidence": 0.92,
+                    "reason": long_reason,
+                }
+            )
         )
         result = escalate_coding(entity_text="x", entity_label="f", encounter_text="x")
         assert len(result.rationale) == 500
@@ -398,8 +420,14 @@ class TestEscalateLabel:
     @patch("libs.llm_client.escalation.create_llm")
     def test_low_confidence_at_small_escalates_to_big(self, mock_create):
         mock_create.side_effect = [
-            _mock_client('{"resolved_label": "disorder", "confidence": 0.7, "reason": "unsure"}', "small"),
-            _mock_client('{"resolved_label": "disorder", "confidence": 0.92, "reason": "sure"}', "big"),
+            _mock_client(
+                '{"resolved_label": "disorder", "confidence": 0.7, "reason": "unsure"}',
+                "small",
+            ),
+            _mock_client(
+                '{"resolved_label": "disorder", "confidence": 0.92, "reason": "sure"}',
+                "big",
+            ),
         ]
         result = self._call(mock_create, confidence_threshold=0.85)
         assert result.resolved is True
@@ -640,7 +668,9 @@ class TestEscalateCodingFromCandidates:
 
     @patch("libs.llm_client.escalation.create_llm")
     def test_invalid_tier_defaults_to_small(self, mock_create):
-        mock_create.return_value = _mock_client('{"action": "ambiguous", "reason": "ok"}')
+        mock_create.return_value = _mock_client(
+            '{"action": "ambiguous", "reason": "ok"}'
+        )
         escalate_coding_from_candidates(
             entity_text="x",
             encounter_text="x",
@@ -684,7 +714,8 @@ class TestPromptLabValueRules:
         )
         with patch("libs.llm_client.escalation.create_llm", return_value=mock_client):
             escalate_coding(
-                entity_text="eGFR", entity_label="observable entity",
+                entity_text="eGFR",
+                entity_label="observable entity",
                 encounter_text="eGFR 69 mL/min",
             )
 
@@ -721,12 +752,14 @@ class TestRefutedAssertionSupport:
             result = escalate_coding_from_candidates(
                 entity_text="Barrett's oesophagus",
                 encounter_text="initially suggested Barrett's but biopsy confirmed cancer",
-                candidates=[{
-                    "snomed_concept_id": "123456",
-                    "term": "Barrett's oesophagus",
-                    "semantic_tag": "disorder",
-                    "score": 0.9,
-                }],
+                candidates=[
+                    {
+                        "snomed_concept_id": "123456",
+                        "term": "Barrett's oesophagus",
+                        "semantic_tag": "disorder",
+                        "score": 0.9,
+                    }
+                ],
             )
         assert result.assertion == "refuted"
 

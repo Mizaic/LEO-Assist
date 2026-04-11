@@ -8,6 +8,7 @@ The classifier uses deterministic phrase and regex pattern matching
 (libs.classifiers.encounter_textcat). Encounter text is never sent to an
 LLM, closing the prompt injection surface identified in threat NER-T-001.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -41,6 +42,7 @@ class ClassificationResult:
 @dataclass
 class PatientEncounterIndex:
     """Summary of classified encounters for a patient."""
+
     patient_id: str
     run_id: str = ""
     total: int = 0
@@ -84,7 +86,9 @@ def build_patient_encounter_index(
     checkpoint_store: "CheckpointStore | None" = None,
 ) -> PatientEncounterIndex:
     """Classify all encounters for a patient and build an index."""
-    index = PatientEncounterIndex(patient_id=patient_id, run_id=run_id, total=len(encounters))
+    index = PatientEncounterIndex(
+        patient_id=patient_id, run_id=run_id, total=len(encounters)
+    )
 
     total = len(encounters)
     for n, enc in enumerate(encounters, 1):
@@ -97,7 +101,11 @@ def build_patient_encounter_index(
             if cached:
                 result = ClassificationResult(**cached)
                 logger.info(
-                    "  [%d/%d] Encounter %s -> %s [cached]", n, total, enc_id, result.content_type
+                    "  [%d/%d] Encounter %s -> %s [cached]",
+                    n,
+                    total,
+                    enc_id,
+                    result.content_type,
                 )
                 index.classifications[enc_id] = result
                 if result.content_type == "admin_only":
@@ -107,7 +115,9 @@ def build_patient_encounter_index(
                 else:
                     index.clinical_count += 1
                     for domain in result.domains:
-                        index.domain_summary[domain] = index.domain_summary.get(domain, 0) + 1
+                        index.domain_summary[domain] = (
+                            index.domain_summary.get(domain, 0) + 1
+                        )
                 continue
 
         if not text or not text.strip():
@@ -119,7 +129,9 @@ def build_patient_encounter_index(
                 model_a_type="rule_textcat",
             )
             index.classifications[enc_id] = result
-            logger.info("  [%d/%d] Encounter %s -> admin_only (empty text)", n, total, enc_id)
+            logger.info(
+                "  [%d/%d] Encounter %s -> admin_only (empty text)", n, total, enc_id
+            )
             if checkpoint_store:
                 checkpoint_store.set(cache_key, dataclasses.asdict(result))
             continue
@@ -132,7 +144,10 @@ def build_patient_encounter_index(
 
         logger.info(
             "  [%d/%d] Encounter %s -> %s",
-            n, total, enc_id, result.content_type,
+            n,
+            total,
+            enc_id,
+            result.content_type,
         )
 
         if result.content_type == "admin_only":
@@ -146,8 +161,11 @@ def build_patient_encounter_index(
 
     logger.info(
         "Patient %s encounter index: %d total, %d admin, %d doc, %d clinical",
-        patient_id, index.total, index.admin_count,
-        index.document_transfer_count, index.clinical_count,
+        patient_id,
+        index.total,
+        index.admin_count,
+        index.document_transfer_count,
+        index.clinical_count,
     )
     return index
 
@@ -166,7 +184,9 @@ def persist_encounter_classification_batch(
             "encounter_id": enc_id,
             "classification_content_type": result.content_type,
             "classification_domains": [str(v) for v in result.domains],
-            "classification_encounter_purpose": [str(v) for v in result.encounter_purpose],
+            "classification_encounter_purpose": [
+                str(v) for v in result.encounter_purpose
+            ],
             "classification_expected_semantic_tags": [
                 str(v) for v in result.expected_semantic_tags
             ],
@@ -220,11 +240,15 @@ def persist_patient_encounter_classification(
                 "encounter_id": str(encounter_id),
                 "classification_content_type": result.content_type,
                 "classification_domains": [str(v) for v in result.domains],
-                "classification_encounter_purpose": [str(v) for v in result.encounter_purpose],
+                "classification_encounter_purpose": [
+                    str(v) for v in result.encounter_purpose
+                ],
                 "classification_expected_semantic_tags": [
                     str(v) for v in result.expected_semantic_tags
                 ],
-                "classification_clinical_significance": str(result.clinical_significance),
+                "classification_clinical_significance": str(
+                    result.clinical_significance
+                ),
                 "classification_consensus_agreement": bool(result.consensus_agreement),
                 "classification_model_a_type": str(result.model_a_type),
                 "classification_model_b_type": str(result.model_b_type),

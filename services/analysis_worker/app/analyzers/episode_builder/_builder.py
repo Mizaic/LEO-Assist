@@ -69,10 +69,16 @@ def _first_presentation_link_anchors(
         for anchor in on_day
         if _anchor_is_complaint(anchor)
     ]
-    target_id = complaint_ids[0] if complaint_ids else str(on_day[0].get("encounter_id"))
+    target_id = (
+        complaint_ids[0] if complaint_ids else str(on_day[0].get("encounter_id"))
+    )
     if not target_id:
         return []
-    return [anchor for anchor in on_day if str(anchor.get("encounter_id") or "") == target_id]
+    return [
+        anchor
+        for anchor in on_day
+        if str(anchor.get("encounter_id") or "") == target_id
+    ]
 
 
 def _episode_treatment_anchors(
@@ -149,9 +155,7 @@ def _open_episode_spec(
     earliest = str(group[0].get("encounter_date") or "")
     ref_date = _parse_date(group[0].get("encounter_date"))
     window_end = (
-        (ref_date + timedelta(days=cfg.STALE_HARD_DAYS))
-        if ref_date
-        else date.today()
+        (ref_date + timedelta(days=cfg.STALE_HARD_DAYS)) if ref_date else date.today()
     )
     return _EpisodeSpec(
         ep_id=_episode_id(patient_id, site_key, earliest),
@@ -269,12 +273,16 @@ def _build_closed_episode(
     fp_anchors = ctx.anchors.first_presentation_anchors if ctx.anchors else []
     fp_link_anchors = _first_presentation_link_anchors(fp_anchors, fp_date)
     treatment_link_anchors = _treatment_started_link_anchors(episode_treatments)
-    _link_encounters_to_episode(ctx.patient_client, ep_id, [
-        (ref_anchors, "referral"),
-        (diag_anchors, diag_milestone),
-        (treatment_link_anchors, "treatment_started"),
-        (fp_link_anchors, "first_presentation"),
-    ])
+    _link_encounters_to_episode(
+        ctx.patient_client,
+        ep_id,
+        [
+            (ref_anchors, "referral"),
+            (diag_anchors, diag_milestone),
+            (treatment_link_anchors, "treatment_started"),
+            (fp_link_anchors, "first_presentation"),
+        ],
+    )
 
 
 def _build_open_episode(
@@ -371,10 +379,14 @@ def _build_open_episode(
 
     fp_anchors = ctx.anchors.first_presentation_anchors if ctx.anchors else []
     fp_link_anchors = _first_presentation_link_anchors(fp_anchors, fp_date)
-    _link_encounters_to_episode(ctx.patient_client, ep_id, [
-        (group, "referral"),
-        (fp_link_anchors, "first_presentation"),
-    ])
+    _link_encounters_to_episode(
+        ctx.patient_client,
+        ep_id,
+        [
+            (group, "referral"),
+            (fp_link_anchors, "first_presentation"),
+        ],
+    )
 
 
 async def build_episodes(
@@ -406,9 +418,7 @@ async def build_episodes(
         for site_key, group in open_groups
     ]
 
-    claims = _claim_specialists_for_episodes(
-        anchors.specialist_visit_anchors, specs
-    )
+    claims = _claim_specialists_for_episodes(anchors.specialist_visit_anchors, specs)
 
     episode_ids: list[str] = []
     ctx = BuildContext(
@@ -434,9 +444,7 @@ async def build_episodes(
                 default="",
             ),
         )
-        _build_closed_episode(
-            ctx, site_key, ref_anchors, diag_anchors, claims[ep_id]
-        )
+        _build_closed_episode(ctx, site_key, ref_anchors, diag_anchors, claims[ep_id])
 
     for site_key, group in open_groups:
         ep_id = _episode_id(

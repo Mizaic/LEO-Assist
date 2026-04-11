@@ -4,18 +4,22 @@ Shows:
   - All 5 R6_WRONG_SEMANTIC_TAG items
   - All 94 R4_WRONG_SITUATION_NO_ALT items with alternative searches
 """
+
 import json, os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
@@ -30,7 +34,9 @@ for d in data["decisions"]:
     if d["rule"] == "R6_WRONG_SEMANTIC_TAG":
         print(f"  {d['form']!r}")
         print(f"    -> {d['concept_id']} | {d['concept_fsn']}")
-        print(f"    tag={d['semantic_tag']}  conf={d['confidence']}  prov={d['provenance']}")
+        print(
+            f"    tag={d['semantic_tag']}  conf={d['confidence']}  prov={d['provenance']}"
+        )
         print(f"    reason: {d['reason']}")
 
 # ── R4: Wrong situation with no alternative ─────────────────────────────────
@@ -50,18 +56,23 @@ with driver.session() as s:
         print(f"    prov={d['provenance']}  conf={d['confidence']}")
 
         # Search for a better specific concept
-        rows = s.run("""
+        rows = s.run(
+            """
             CALL db.index.fulltext.queryNodes('term_fulltext', $q) YIELD node, score
             MATCH (node)-[:DESCRIBES]->(c:Concept)
             WHERE c.active = true
               AND c.semantic_tag IN ['disorder', 'finding']
             RETURN c.id AS id, c.fsn AS fsn, score
             ORDER BY score DESC LIMIT 3
-        """, q=form_low).data()
+        """,
+            q=form_low,
+        ).data()
 
         if rows and rows[0]["score"] >= 7.0:
             best = rows[0]
-            print(f"    BETTER?: {best['id']} | {best['fsn']} (score={best['score']:.1f})")
+            print(
+                f"    BETTER?: {best['id']} | {best['fsn']} (score={best['score']:.1f})"
+            )
         else:
             top = f"{rows[0]['fsn']} ({rows[0]['score']:.1f})" if rows else "no results"
             print(f"    No good alternative (best: {top})")

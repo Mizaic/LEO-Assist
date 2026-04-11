@@ -7,6 +7,7 @@ Pin surface forms for all remaining NG12 gap categories identified by analysis:
 Also adds worked examples to the extraction prompt for enlarged-organ
 abdominal mass decomposition.
 """
+
 import os
 import re
 import sys
@@ -126,8 +127,7 @@ def main() -> None:
             if result:
                 row = result[0]
                 print(
-                    f"  [ADD ] {norm!r:60s} -> {row['cid']:20s}"
-                    f" {row['fsn'][:40]}"
+                    f"  [ADD ] {norm!r:60s} -> {row['cid']:20s}" f" {row['fsn'][:40]}"
                 )
                 added += 1
             else:

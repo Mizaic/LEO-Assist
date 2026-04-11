@@ -9,6 +9,7 @@ Checks:
 Run:
     python scripts/investigations/_diagnose_missed_referrals.py
 """
+
 from __future__ import annotations
 
 import json
@@ -20,9 +21,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.auth.service_auth import get_service_auth_header
 import requests
@@ -31,7 +34,13 @@ BASE = "http://localhost:8001"
 SESSION = requests.Session()
 SESSION.headers.update(get_service_auth_header())
 
-INVENTORY = ROOT / "scripts" / "investigations" / "encounter_audit" / "fast_track_referral_encounters.jsonl"
+INVENTORY = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
+    / "fast_track_referral_encounters.jsonl"
+)
 
 # Generic fast-track cancer referral concept
 GENERIC_FTR_CONCEPT_ID = 199251000000107
@@ -91,14 +100,22 @@ def check_generic_code() -> bool:
     print(f"Checking generic concept {GENERIC_FTR_CONCEPT_ID} ...")
     r = SESSION.post(
         f"{BASE}/terminology/resolve",
-        json={"terms": [GENERIC_FTR_NAME, "fast track cancer referral", "fast track referral"]},
+        json={
+            "terms": [
+                GENERIC_FTR_NAME,
+                "fast track cancer referral",
+                "fast track referral",
+            ]
+        },
         timeout=20,
     )
     results = r.json().get("results") or {}
     for term, hits in results.items():
         top = hits[0] if hits else {}
         print(f"  {term!r}")
-        print(f"    -> {top.get('snomed_concept_id')} | {top.get('snomed_term')} | score={top.get('score')}")
+        print(
+            f"    -> {top.get('snomed_concept_id')} | {top.get('snomed_term')} | score={top.get('score')}"
+        )
     print()
     return True
 
@@ -106,12 +123,14 @@ def check_generic_code() -> bool:
 def classify_text(text: str) -> str:
     """Classify encounter text using the rule-based classifier."""
     from libs.classifiers.encounter_textcat import classify_text as _classify
+
     return _classify(text)
 
 
 def diagnose_missed(rows: list[dict]) -> dict[str, list]:
     """Return {reason: [encounter_ids]} for each root-cause category."""
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
     reasons: dict[str, list] = {
         "admin_only_classification": [],
@@ -124,7 +143,9 @@ def diagnose_missed(rows: list[dict]) -> dict[str, list]:
             for row in rows:
                 eid = row["encounter_id"]
                 phrase = row.get("matched_phrase", "").lower()
-                is_generic_2ww = phrase.startswith("2ww") or phrase.startswith("two week wait")
+                is_generic_2ww = phrase.startswith("2ww") or phrase.startswith(
+                    "two week wait"
+                )
 
                 rec = session.run(_Q_ENCOUNTER, eid=eid).single()
                 if not rec:
@@ -145,7 +166,10 @@ def diagnose_missed(rows: list[dict]) -> dict[str, list]:
                     reasons["generic_2ww_no_site"].append(eid)
                 elif saved_class == "admin_only" or live_class == "admin_only":
                     reasons["admin_only_classification"].append(eid)
-                elif saved_class == "document_transfer" or live_class == "document_transfer":
+                elif (
+                    saved_class == "document_transfer"
+                    or live_class == "document_transfer"
+                ):
                     reasons["document_transfer_classification"].append(eid)
                 else:
                     reasons["clinical_but_missed"].append(eid)
@@ -157,10 +181,14 @@ def diagnose_missed(rows: list[dict]) -> dict[str, list]:
 def writeback_generic_2ww(rows: list[dict], run_id: str, dry_run: bool = False) -> int:
     """Write DOCUMENTS for generic 2WW encounters using the generic FTR concept."""
     from libs.neo4j_client.client import PatientGraphClient
+
     generic_rows = [
-        r for r in rows
-        if (r.get("matched_phrase", "").lower().startswith("2ww")
-            or r.get("matched_phrase", "").lower().startswith("two week wait"))
+        r
+        for r in rows
+        if (
+            r.get("matched_phrase", "").lower().startswith("2ww")
+            or r.get("matched_phrase", "").lower().startswith("two week wait")
+        )
         and r.get("referral_doc_count", 0) == 0
     ]
 
@@ -168,7 +196,9 @@ def writeback_generic_2ww(rows: list[dict], run_id: str, dry_run: bool = False) 
         print("No generic 2WW encounters to write.")
         return 0
 
-    print(f"\nWriting generic FTR concept ({GENERIC_FTR_CONCEPT_ID}) for {len(generic_rows)} generic 2WW encounters ...")
+    print(
+        f"\nWriting generic FTR concept ({GENERIC_FTR_CONCEPT_ID}) for {len(generic_rows)} generic 2WW encounters ..."
+    )
     client = PatientGraphClient()
     written = 0
     try:
@@ -177,13 +207,17 @@ def writeback_generic_2ww(rows: list[dict], run_id: str, dry_run: bool = False) 
                 eid = row["encounter_id"]
                 phrase = row.get("matched_phrase", "2WW referral")
 
-                result = session.run(_Q_EXISTS, eid=eid, concept_id=GENERIC_FTR_CONCEPT_ID).single()
+                result = session.run(
+                    _Q_EXISTS, eid=eid, concept_id=GENERIC_FTR_CONCEPT_ID
+                ).single()
                 if result and result["n"] > 0:
                     print(f"  [SKIP] enc={eid} already coded with generic concept")
                     continue
 
                 if dry_run:
-                    print(f"  [DRY ] enc={eid} -> {GENERIC_FTR_CONCEPT_ID} ({GENERIC_FTR_NAME})")
+                    print(
+                        f"  [DRY ] enc={eid} -> {GENERIC_FTR_CONCEPT_ID} ({GENERIC_FTR_NAME})"
+                    )
                     written += 1
                     continue
 
@@ -199,7 +233,9 @@ def writeback_generic_2ww(rows: list[dict], run_id: str, dry_run: bool = False) 
                         context=json.dumps({"assertion": "present", "negated": False}),
                         run_id=run_id,
                     )
-                    print(f"  [WRITE] enc={eid} -> {GENERIC_FTR_CONCEPT_ID} ({GENERIC_FTR_NAME})")
+                    print(
+                        f"  [WRITE] enc={eid} -> {GENERIC_FTR_CONCEPT_ID} ({GENERIC_FTR_NAME})"
+                    )
                     written += 1
                 except Exception as exc:
                     print(f"  [ERROR] enc={eid}: {exc}")
@@ -214,7 +250,11 @@ def main() -> None:
     with INVENTORY.open() as fh:
         all_rows = [json.loads(l) for l in fh]
 
-    uncoded = [r for r in all_rows if r.get("referral_doc_count", 0) == 0 and r.get("matched_phrase")]
+    uncoded = [
+        r
+        for r in all_rows
+        if r.get("referral_doc_count", 0) == 0 and r.get("matched_phrase")
+    ]
     # Dedup by encounter_id for diagnosis
     seen: set[str] = set()
     unique_uncoded = []

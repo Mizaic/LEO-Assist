@@ -1,12 +1,16 @@
 """Verify batch 7 concept IDs before writing."""
+
 import sys, requests
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.terminology.client import TerminologyClient
 
@@ -34,8 +38,9 @@ print(f"{'SEARCH':<40} {'WANT':<16} {'GOT ID':<16} {'GOT NAME'}")
 print("-" * 110)
 
 for term, want_id in VERIFY:
-    r = requests.get(f"{BASE}/terminology/resolve-one",
-                     params={"term": term}, timeout=15)
+    r = requests.get(
+        f"{BASE}/terminology/resolve-one", params={"term": term}, timeout=15
+    )
     if r.status_code == 200:
         d = r.json()
         got_id = str(d.get("concept_id") or d.get("snomed_concept_id") or "?")

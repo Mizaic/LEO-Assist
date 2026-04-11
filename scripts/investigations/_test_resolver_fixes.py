@@ -1,4 +1,5 @@
 """Smoke-test the resolver fixes against the known bad cases."""
+
 import sys
 from pathlib import Path
 import httpx
@@ -7,16 +8,19 @@ TERMINOLOGY_URL = "http://localhost:8001/terminology"
 
 BAD_CASES = [
     # phrase                                         expected concept (what it SHOULD return)
-    ("Serum TSH level 1.3 mIU/L",                  "Serum thyroid stimulating hormone level"),
-    ("Emphysema diagnosed with CT scan",            "Emphysema"),
-    ("Recent CXR reported as normal.",              "Normal"),
-    ("Reports issues with nausea",                  "Nausea"),
-    ("Weight 45 Kg",                                "Weight"),
-    ("Platelet count 312 10^9/L",                   "Platelet count"),
-    ("HDL cholesterol 1.45 mmol/L",                "HDL"),
+    ("Serum TSH level 1.3 mIU/L", "Serum thyroid stimulating hormone level"),
+    ("Emphysema diagnosed with CT scan", "Emphysema"),
+    ("Recent CXR reported as normal.", "Normal"),
+    ("Reports issues with nausea", "Nausea"),
+    ("Weight 45 Kg", "Weight"),
+    ("Platelet count 312 10^9/L", "Platelet count"),
+    ("HDL cholesterol 1.45 mmol/L", "HDL"),
     ("Long standing right sided sciatica due to spinal stenosis.", "Sciatica"),
-    ("ECG done today for fluttering feeling in the chest - no abno", "Electrocardiogram"),
-    ("sharp pain over left side of her breast",    "breast"),
+    (
+        "ECG done today for fluttering feeling in the chest - no abno",
+        "Electrocardiogram",
+    ),
+    ("sharp pain over left side of her breast", "breast"),
 ]
 
 print("Testing resolver fixes...\n")

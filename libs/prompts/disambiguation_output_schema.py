@@ -54,11 +54,13 @@ def format_output_schema_block(schema: dict) -> str:
             nullable = isinstance(raw_type, list) and "null" in raw_type
             if "enum" in defn:
                 allowed = ", ".join(f'"{v}"' for v in defn["enum"])
-                lines.append(f'  - **{field}**{req_marker}: one of {allowed}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: one of {allowed}. {desc}")
             else:
                 type_label = f"{base_type}, nullable" if nullable else base_type
-                lines.append(f'  - **{field}**{req_marker}: {type_label}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: {type_label}. {desc}")
         lines.append("")
-        lines.append('If no candidate fits, return {"conceptId": "NONE", "confidence": 0.0, "reason": "..."}')
+        lines.append(
+            'If no candidate fits, return {"conceptId": "NONE", "confidence": 0.0, "reason": "..."}'
+        )
 
     return "\n".join(lines)

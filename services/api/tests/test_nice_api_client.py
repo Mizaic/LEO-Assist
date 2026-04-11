@@ -18,7 +18,11 @@ def client():
 @pytest.mark.asyncio
 async def test_get_guidance_returns_parsed_json(client):
     """NiceApiClient.get_guidance returns structured JSON for a valid code."""
-    payload = {"GuidanceNumber": "NG151", "Title": "Bowel cancer", "Type": "clinical-guideline"}
+    payload = {
+        "GuidanceNumber": "NG151",
+        "Title": "Bowel cancer",
+        "Type": "clinical-guideline",
+    }
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
     mock_resp.json.return_value = payload
@@ -113,7 +117,11 @@ async def test_get_chapters_filters_chapter_resources(client):
     doc = {
         "GuidanceNumber": "NG151",
         "Resources": [
-            {"Rel": "/linkrels/guidance/chapter", "Uri": "https://api.nice.org.uk/ch1", "Title": "Recommendations"},
+            {
+                "Rel": "/linkrels/guidance/chapter",
+                "Uri": "https://api.nice.org.uk/ch1",
+                "Title": "Recommendations",
+            },
             {"Rel": "self", "Uri": "https://api.nice.org.uk/self", "Title": "Self"},
         ],
     }
@@ -140,7 +148,9 @@ async def test_get_recommendations_walks_chapter_hrefs(client):
     mock_resp.raise_for_status = MagicMock()
     mock_resp.json.return_value = chapter_payload
 
-    with patch.object(client, "get_chapters", new_callable=AsyncMock, return_value=chapters):
+    with patch.object(
+        client, "get_chapters", new_callable=AsyncMock, return_value=chapters
+    ):
         with patch("httpx.AsyncClient") as mock_cls:
             mock_http = AsyncMock()
             mock_http.__aenter__ = AsyncMock(return_value=mock_http)
@@ -175,7 +185,9 @@ async def test_get_recommendations_skips_failed_chapters(client):
     # Chapter 1 fails all 3 retry attempts; chapter 2 succeeds on first try
     side_effects = [httpx.TransportError("fail")] * 3 + [good_resp]
 
-    with patch.object(client, "get_chapters", new_callable=AsyncMock, return_value=chapters):
+    with patch.object(
+        client, "get_chapters", new_callable=AsyncMock, return_value=chapters
+    ):
         with patch("httpx.AsyncClient") as mock_cls:
             mock_http = AsyncMock()
             mock_http.__aenter__ = AsyncMock(return_value=mock_http)
@@ -198,8 +210,16 @@ async def test_search_index_returns_parsed_results(client):
     """
     payload = {
         "IndexItems": [
-            {"GuidanceNumber": "NG12", "Title": "Suspected cancer: recognition and referral", "GuidanceType": "clinical-guideline"},
-            {"GuidanceNumber": "NG151", "Title": "Bowel cancer", "GuidanceType": "clinical-guideline"},
+            {
+                "GuidanceNumber": "NG12",
+                "Title": "Suspected cancer: recognition and referral",
+                "GuidanceType": "clinical-guideline",
+            },
+            {
+                "GuidanceNumber": "NG151",
+                "Title": "Bowel cancer",
+                "GuidanceType": "clinical-guideline",
+            },
         ]
     }
     mock_resp = MagicMock()
@@ -243,8 +263,16 @@ async def test_sync_catalogue_from_index_single_page(client):
     """sync_catalogue_from_index stores all IndexItems when there is one page."""
     payload = {
         "IndexItems": [
-            {"GuidanceNumber": "NG12", "Title": "Suspected cancer", "GuidanceType": "clinical-guideline"},
-            {"GuidanceNumber": "NG151", "Title": "Bowel cancer", "GuidanceType": "clinical-guideline"},
+            {
+                "GuidanceNumber": "NG12",
+                "Title": "Suspected cancer",
+                "GuidanceType": "clinical-guideline",
+            },
+            {
+                "GuidanceNumber": "NG151",
+                "Title": "Bowel cancer",
+                "GuidanceType": "clinical-guideline",
+            },
         ]
         # No NextPageUri → single page
     }
@@ -277,11 +305,15 @@ async def test_sync_catalogue_from_index_single_page(client):
 async def test_sync_catalogue_from_index_follows_pagination(client):
     """sync_catalogue_from_index follows NextPageUri to collect all guidelines."""
     page1 = {
-        "IndexItems": [{"GuidanceNumber": "NG1", "Title": "Guideline 1", "GuidanceType": ""}],
+        "IndexItems": [
+            {"GuidanceNumber": "NG1", "Title": "Guideline 1", "GuidanceType": ""}
+        ],
         "NextPageUri": "https://api.nice.org.uk/services/guidance/index?page=2",
     }
     page2 = {
-        "IndexItems": [{"GuidanceNumber": "NG2", "Title": "Guideline 2", "GuidanceType": ""}],
+        "IndexItems": [
+            {"GuidanceNumber": "NG2", "Title": "Guideline 2", "GuidanceType": ""}
+        ],
         # No NextPageUri on last page
     }
     resp1 = MagicMock()
@@ -314,7 +346,9 @@ async def test_sync_catalogue_from_index_follows_pagination(client):
 async def test_sync_catalogue_from_index_tolerates_redis_failure(client):
     """sync_catalogue_from_index returns count even when Redis write fails."""
     payload = {
-        "IndexItems": [{"GuidanceNumber": "NG12", "Title": "Suspected cancer", "GuidanceType": ""}],
+        "IndexItems": [
+            {"GuidanceNumber": "NG12", "Title": "Suspected cancer", "GuidanceType": ""}
+        ],
     }
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
@@ -348,8 +382,16 @@ def _make_resp(data: dict) -> MagicMock:
 # Shared fixtures for taxonomy tests
 _API_ROOT_WITH_TAXONOMY_LINK = {
     "Resources": [
-        {"Rel": "/linkrels/guidance/newtaxonomy", "Uri": "https://api.nice.org.uk/services/guidance/newtaxonomy", "Title": "Taxonomy"},
-        {"Rel": "/linkrels/guidance/index", "Uri": "https://api.nice.org.uk/services/guidance/index.json", "Title": "Index"},
+        {
+            "Rel": "/linkrels/guidance/newtaxonomy",
+            "Uri": "https://api.nice.org.uk/services/guidance/newtaxonomy",
+            "Title": "Taxonomy",
+        },
+        {
+            "Rel": "/linkrels/guidance/index",
+            "Uri": "https://api.nice.org.uk/services/guidance/index.json",
+            "Title": "Index",
+        },
     ]
 }
 
@@ -370,8 +412,16 @@ _TAXONOMY_DOC = {
                             "name": "Colorectal cancer",
                             "categories": [],
                             "paths": [
-                                {"Rel": "/linkrels/guidance", "Uri": "/services/guidance/documents/NG12", "Title": "Suspected cancer (NG12)"},
-                                {"Rel": "/linkrels/guidance", "Uri": "/services/guidance/documents/NG151", "Title": "Bowel cancer (NG151)"},
+                                {
+                                    "Rel": "/linkrels/guidance",
+                                    "Uri": "/services/guidance/documents/NG12",
+                                    "Title": "Suspected cancer (NG12)",
+                                },
+                                {
+                                    "Rel": "/linkrels/guidance",
+                                    "Uri": "/services/guidance/documents/NG151",
+                                    "Title": "Bowel cancer (NG151)",
+                                },
                             ],
                         }
                     ],
@@ -395,10 +445,14 @@ async def test_fetch_taxonomy_returns_flat_entries(client):
         mock_http = AsyncMock()
         mock_http.__aenter__ = AsyncMock(return_value=mock_http)
         mock_http.__aexit__ = AsyncMock(return_value=False)
-        mock_http.get = AsyncMock(side_effect=[
-            _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),  # step 1: root → discover taxonomy link
-            _make_resp(_TAXONOMY_DOC),                 # step 2: self-contained taxonomy tree
-        ])
+        mock_http.get = AsyncMock(
+            side_effect=[
+                _make_resp(
+                    _API_ROOT_WITH_TAXONOMY_LINK
+                ),  # step 1: root → discover taxonomy link
+                _make_resp(_TAXONOMY_DOC),  # step 2: self-contained taxonomy tree
+            ]
+        )
         mock_cls.return_value = mock_http
 
         result = await client.fetch_taxonomy()
@@ -422,7 +476,10 @@ async def test_fetch_taxonomy_returns_empty_when_no_taxonomy_link(client):
     """fetch_taxonomy returns [] and logs a warning when root has no taxonomy link."""
     root_without_taxonomy = {
         "Resources": [
-            {"Rel": "/linkrels/guidance/index", "Uri": "https://api.nice.org.uk/services/guidance/index.json"},
+            {
+                "Rel": "/linkrels/guidance/index",
+                "Uri": "https://api.nice.org.uk/services/guidance/index.json",
+            },
         ]
     }
 
@@ -434,7 +491,10 @@ async def test_fetch_taxonomy_returns_empty_when_no_taxonomy_link(client):
         mock_cls.return_value = mock_http
 
         import logging
-        with patch.object(logging.getLogger("app.services.nice_api_client"), "warning") as mock_warn:
+
+        with patch.object(
+            logging.getLogger("app.services.nice_api_client"), "warning"
+        ) as mock_warn:
             result = await client.fetch_taxonomy()
 
     assert result == []
@@ -455,7 +515,7 @@ async def test_fetch_taxonomy_warns_when_category_has_no_subcategories(client):
         "categories": [
             {
                 "name": "Conditions and diseases",
-                "categories": [],   # no subcategories -- should warn
+                "categories": [],  # no subcategories -- should warn
                 "paths": [],
             },
             {
@@ -465,7 +525,11 @@ async def test_fetch_taxonomy_warns_when_category_has_no_subcategories(client):
                         "name": "Alcohol",
                         "categories": [],
                         "paths": [
-                            {"Uri": "/services/guidance/documents/NG115", "Rel": "/linkrels/guidance", "Title": "Alcohol-use disorders (NG115)"},
+                            {
+                                "Uri": "/services/guidance/documents/NG115",
+                                "Rel": "/linkrels/guidance",
+                                "Title": "Alcohol-use disorders (NG115)",
+                            },
                         ],
                     }
                 ],
@@ -478,14 +542,19 @@ async def test_fetch_taxonomy_warns_when_category_has_no_subcategories(client):
         mock_http = AsyncMock()
         mock_http.__aenter__ = AsyncMock(return_value=mock_http)
         mock_http.__aexit__ = AsyncMock(return_value=False)
-        mock_http.get = AsyncMock(side_effect=[
-            _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),
-            _make_resp(taxonomy_empty_cat),
-        ])
+        mock_http.get = AsyncMock(
+            side_effect=[
+                _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),
+                _make_resp(taxonomy_empty_cat),
+            ]
+        )
         mock_cls.return_value = mock_http
 
         import logging
-        with patch.object(logging.getLogger("app.services.nice_api_client"), "warning") as mock_warn:
+
+        with patch.object(
+            logging.getLogger("app.services.nice_api_client"), "warning"
+        ) as mock_warn:
             result = await client.fetch_taxonomy()
 
     # Only the Lifestyle category has subcategories and should produce an entry
@@ -512,8 +581,13 @@ async def test_fetch_taxonomy_returns_empty_on_root_failure(client):
         mock_cls.return_value = mock_http
 
         import logging
-        with patch("asyncio.sleep", new_callable=AsyncMock), \
-             patch.object(logging.getLogger("app.services.nice_api_client"), "warning") as mock_warn:
+
+        with (
+            patch("asyncio.sleep", new_callable=AsyncMock),
+            patch.object(
+                logging.getLogger("app.services.nice_api_client"), "warning"
+            ) as mock_warn,
+        ):
             result = await client.fetch_taxonomy()
 
     assert result == []
@@ -539,15 +613,27 @@ async def test_fetch_taxonomy_collects_codes_from_nested_subcategories(client):
                                 "name": "Colorectal cancer",
                                 "categories": [],
                                 "paths": [
-                                    {"Uri": "/services/guidance/documents/NG12", "Rel": "/linkrels/guidance", "Title": ""},
-                                    {"Uri": "/services/guidance/documents/NG151", "Rel": "/linkrels/guidance", "Title": ""},
+                                    {
+                                        "Uri": "/services/guidance/documents/NG12",
+                                        "Rel": "/linkrels/guidance",
+                                        "Title": "",
+                                    },
+                                    {
+                                        "Uri": "/services/guidance/documents/NG151",
+                                        "Rel": "/linkrels/guidance",
+                                        "Title": "",
+                                    },
                                 ],
                             },
                             {
                                 "name": "Lung cancer",
                                 "categories": [],
                                 "paths": [
-                                    {"Uri": "/services/guidance/documents/NG122", "Rel": "/linkrels/guidance", "Title": ""},
+                                    {
+                                        "Uri": "/services/guidance/documents/NG122",
+                                        "Rel": "/linkrels/guidance",
+                                        "Title": "",
+                                    },
                                 ],
                             },
                         ],
@@ -563,10 +649,12 @@ async def test_fetch_taxonomy_collects_codes_from_nested_subcategories(client):
         mock_http = AsyncMock()
         mock_http.__aenter__ = AsyncMock(return_value=mock_http)
         mock_http.__aexit__ = AsyncMock(return_value=False)
-        mock_http.get = AsyncMock(side_effect=[
-            _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),
-            _make_resp(taxonomy_deep),
-        ])
+        mock_http.get = AsyncMock(
+            side_effect=[
+                _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),
+                _make_resp(taxonomy_deep),
+            ]
+        )
         mock_cls.return_value = mock_http
 
         result = await client.fetch_taxonomy()
@@ -582,19 +670,22 @@ async def test_fetch_taxonomy_collects_codes_from_nested_subcategories(client):
     assert mock_http.get.call_count == 2
 
 
-@pytest.mark.parametrize("code,valid", [
-    ("NG151", True),
-    ("CG89", True),
-    ("TA123", True),
-    ("QS12", True),
-    ("PH46", True),
-    ("NG12", True),
-    ("CANCER", False),
-    ("", False),
-    ("12345", False),
-    ("NICE151", False),
-    ("ng151", True),  # case-insensitive
-])
+@pytest.mark.parametrize(
+    "code,valid",
+    [
+        ("NG151", True),
+        ("CG89", True),
+        ("TA123", True),
+        ("QS12", True),
+        ("PH46", True),
+        ("NG12", True),
+        ("CANCER", False),
+        ("", False),
+        ("12345", False),
+        ("NICE151", False),
+        ("ng151", True),  # case-insensitive
+    ],
+)
 def test_nice_code_re_validation(code, valid):
     """NICE_CODE_RE correctly identifies valid and invalid guidance codes."""
     assert bool(NICE_CODE_RE.match(code)) == valid

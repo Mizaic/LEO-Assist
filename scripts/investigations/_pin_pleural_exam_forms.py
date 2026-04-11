@@ -1,4 +1,5 @@
 """Pin 'chest signs compatible with pleural disease' surface forms."""
+
 import os
 import re
 import sys
@@ -8,9 +9,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase  # noqa: E402
 

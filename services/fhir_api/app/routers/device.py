@@ -26,12 +26,19 @@ def search_devices(
             "WHERE ($status IS NULL OR d.status = $status) "
             "AND ($typeCode IS NULL OR d.typeCode = $typeCode) "
             "RETURN d.rawJson AS rawJson ORDER BY d.id LIMIT $limit",
-            status=status, typeCode=type, limit=_count,
+            status=status,
+            typeCode=type,
+            limit=_count,
         )
         items = [json.loads(r["rawJson"]) for r in rows if r.get("rawJson")]
         if name:
             items = [d for d in items if name.lower() in json.dumps(d).lower()]
-        return {"resourceType": "Bundle", "type": "searchset", "total": len(items), "entry": [{"resource": d} for d in items]}
+        return {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": len(items),
+            "entry": [{"resource": d} for d in items],
+        }
     finally:
         client.close()
 
@@ -40,7 +47,10 @@ def search_devices(
 def get_device(device_id: str):
     client = KnowledgeGraphClient()
     try:
-        rows = client.run("MATCH (d:Device {id: $did}) RETURN d.rawJson AS rawJson LIMIT 1", did=device_id)
+        rows = client.run(
+            "MATCH (d:Device {id: $did}) RETURN d.rawJson AS rawJson LIMIT 1",
+            did=device_id,
+        )
         if not rows or not rows[0].get("rawJson"):
             raise HTTPException(404, f"Device/{device_id} not found")
         return json.loads(rows[0]["rawJson"])
@@ -62,7 +72,11 @@ def upsert_device(device_id: str, resource: Dict[str, Any]):
             raw=json.dumps(resource),
             status=resource.get("status"),
             typeCode=type_coding.get("code"),
-            version=(resource.get("version") or [{}])[0].get("value") if resource.get("version") else None,
+            version=(
+                (resource.get("version") or [{}])[0].get("value")
+                if resource.get("version")
+                else None
+            ),
         )
         return resource
     finally:

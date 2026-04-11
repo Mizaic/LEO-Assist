@@ -1,4 +1,5 @@
 """Find site-specific ultrasound procedure concepts for NG12 actions."""
+
 import requests
 
 BASE = "http://localhost:8001/terminology"
@@ -17,9 +18,11 @@ queries = [
 ]
 
 for q in queries:
-    r = requests.get(f"{BASE}/search",
-                     params={"q": q, "limit": 3, "semantic_tag": "procedure"},
-                     timeout=30)
+    r = requests.get(
+        f"{BASE}/search",
+        params={"q": q, "limit": 3, "semantic_tag": "procedure"},
+        timeout=30,
+    )
     if r.ok:
         items = r.json()[:2]
         print(q + ":")

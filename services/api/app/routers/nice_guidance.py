@@ -102,7 +102,9 @@ async def get_catalogue(
         return _ranked_search(entries, q_lower)
 
     # Fallback (cache cold): live NICE index search
-    logger.info("Redis catalogue empty -- falling back to live NICE index search for %r", q)
+    logger.info(
+        "Redis catalogue empty -- falling back to live NICE index search for %r", q
+    )
     return await client.search_index(q)
 
 
@@ -209,7 +211,9 @@ async def get_taxonomy(scope: CallerScope = Depends(require_admin)) -> dict:
             catalogue = await NiceApiClient().fetch_catalogue()
             title_map = {e["code"]: e["title"] for e in catalogue}
         except Exception:
-            logger.debug("Could not fetch Redis catalogue for taxonomy title enrichment -- codes shown only")
+            logger.debug(
+                "Could not fetch Redis catalogue for taxonomy title enrichment -- codes shown only"
+            )
 
         categories = []
         for row in rows:
@@ -226,18 +230,22 @@ async def get_taxonomy(scope: CallerScope = Depends(require_admin)) -> dict:
                     }
                     for c in codes
                 ]
-                subcats.append({
-                    "id": sub["id"],
-                    "title": sub.get("title", ""),
-                    "guideline_count": len(codes),
-                    "loaded_count": sum(1 for c in codes if c in loaded_set),
-                    "guidelines": guidelines,
-                })
-            categories.append({
-                "id": row["id"],
-                "title": row["title"],
-                "subcategories": subcats,
-            })
+                subcats.append(
+                    {
+                        "id": sub["id"],
+                        "title": sub.get("title", ""),
+                        "guideline_count": len(codes),
+                        "loaded_count": sum(1 for c in codes if c in loaded_set),
+                        "guidelines": guidelines,
+                    }
+                )
+            categories.append(
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "subcategories": subcats,
+                }
+            )
 
         return {"available": True, "categories": categories}
     finally:
@@ -269,6 +277,7 @@ async def sync_catalogue(
 
     def _run_sync() -> None:
         import asyncio
+
         loop = asyncio.new_event_loop()
         try:
             client = NiceApiClient()
@@ -282,14 +291,16 @@ async def sync_catalogue(
             taxonomy_entries = loop.run_until_complete(client.fetch_taxonomy())
             taxonomy_counts = upserter.upsert_taxonomy(taxonomy_entries)
 
-            _jobs[job_id].update({
-                "status": "done",
-                "catalogue_count": count,
-                "taxonomy_categories": taxonomy_counts.get("categories", 0),
-                "taxonomy_subcategories": taxonomy_counts.get("subcategories", 0),
-                "taxonomy_domains": taxonomy_counts.get("domains", 0),
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-            })
+            _jobs[job_id].update(
+                {
+                    "status": "done",
+                    "catalogue_count": count,
+                    "taxonomy_categories": taxonomy_counts.get("categories", 0),
+                    "taxonomy_subcategories": taxonomy_counts.get("subcategories", 0),
+                    "taxonomy_domains": taxonomy_counts.get("domains", 0),
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
         except Exception as exc:
             logger.exception("Catalogue sync failed: %s", exc)
             _jobs[job_id].update({"status": "error", "error": str(exc)})
@@ -516,7 +527,9 @@ def get_guideline_subgraph(
         neo.close()
 
     if not rows:
-        raise HTTPException(status_code=404, detail=f"Guideline {code_upper} not found in Neo4j")
+        raise HTTPException(
+            status_code=404, detail=f"Guideline {code_upper} not found in Neo4j"
+        )
 
     # Build tree from flat rows
     guideline_info: dict = {}
@@ -543,28 +556,25 @@ def get_guideline_subgraph(
         rec_id = row.get("rec_id")
         if rec_id and ch_id:
             # Filter out NULL-only rule entries (OPTIONAL MATCH with no rules)
-            raw_rules = [
-                r for r in (row.get("rules") or [])
-                if r.get("rule_id")
-            ]
-            chapters[ch_id]["recommendations"].append({
-                "rec_id": rec_id,
-                "rec_title": row.get("rec_title", ""),
-                "verbatim": row.get("verbatim", ""),
-                "urgency": row.get("urgency", ""),
-                "strength": row.get("strength", ""),
-                "section_title": row.get("section_title", ""),
-                "is_normative": row.get("is_normative", False),
-                "version_id": row.get("rec_version_id", ""),
-                "rules": raw_rules,
-            })
+            raw_rules = [r for r in (row.get("rules") or []) if r.get("rule_id")]
+            chapters[ch_id]["recommendations"].append(
+                {
+                    "rec_id": rec_id,
+                    "rec_title": row.get("rec_title", ""),
+                    "verbatim": row.get("verbatim", ""),
+                    "urgency": row.get("urgency", ""),
+                    "strength": row.get("strength", ""),
+                    "section_title": row.get("section_title", ""),
+                    "is_normative": row.get("is_normative", False),
+                    "version_id": row.get("rec_version_id", ""),
+                    "rules": raw_rules,
+                }
+            )
 
     chapter_list = sorted(chapters.values(), key=lambda c: c["order"])
     total_recs = sum(len(c["recommendations"]) for c in chapter_list)
     total_rules = sum(
-        len(r["rules"])
-        for c in chapter_list
-        for r in c["recommendations"]
+        len(r["rules"]) for c in chapter_list for r in c["recommendations"]
     )
 
     return {
@@ -641,18 +651,20 @@ def _extract_recommendations_from_section(
         inner_text = article.get_text(" ", strip=True)
         if not inner_text:
             continue
-        recs.append({
-            "Title": rec_title,
-            "Text": inner_text,
-            "ArticleId": article_id,
-            "SectionId": section_id,
-            # SectionTitle = the cancer-site / topic label from the section heading
-            # e.g. "Lung cancer", "Oesophageal cancer", "1.1 Lung cancer"
-            "SectionTitle": section_title,
-            "ChapterId": chapter_id_from_api,
-            # True = came from a canonical <article> element, not a cross-ref table
-            "isNormative": True,
-        })
+        recs.append(
+            {
+                "Title": rec_title,
+                "Text": inner_text,
+                "ArticleId": article_id,
+                "SectionId": section_id,
+                # SectionTitle = the cancer-site / topic label from the section heading
+                # e.g. "Lung cancer", "Oesophageal cancer", "1.1 Lung cancer"
+                "SectionTitle": section_title,
+                "ChapterId": chapter_id_from_api,
+                # True = came from a canonical <article> element, not a cross-ref table
+                "isNormative": True,
+            }
+        )
 
     # No fallback: sections without <article> elements are cross-reference tables
     # (symptom/sign index chapters) — returning [] intentionally skips them.
@@ -740,14 +752,22 @@ async def _async_ingest(job_id: str, code: str) -> None:
     version_id = f"{guideline_id}:v{ingest_version}"
 
     if ingest_version > 1:
-        _emit(job_id, "progress", {
-            "step": f"Archiving previous version (v{ingest_version - 1}) for audit trail…",
-        })
+        _emit(
+            job_id,
+            "progress",
+            {
+                "step": f"Archiving previous version (v{ingest_version - 1}) for audit trail…",
+            },
+        )
     superseded = upserter.clear_guideline_content(guideline_id)
     if superseded:
-        _emit(job_id, "progress", {
-            "step": f"Archived {superseded} rule(s) — previous decisions preserved.",
-        })
+        _emit(
+            job_id,
+            "progress",
+            {
+                "step": f"Archived {superseded} rule(s) — previous decisions preserved.",
+            },
+        )
 
     _emit(job_id, "progress", {"step": "Fetching chapters..."})
     chapters = await client.get_chapters(code)
@@ -797,17 +817,23 @@ async def _async_ingest(job_id: str, code: str) -> None:
                 logger.debug("Section %s yielded no recommendations", sec_uri)
                 continue
 
-            _emit(job_id, "progress", {
-                "step": (
-                    f"'{chapter_title}' › section {sec_idx + 1}: "
-                    f"{len(rec_items)} recommendation(s)…"
-                ),
-            })
+            _emit(
+                job_id,
+                "progress",
+                {
+                    "step": (
+                        f"'{chapter_title}' › section {sec_idx + 1}: "
+                        f"{len(rec_items)} recommendation(s)…"
+                    ),
+                },
+            )
 
             for rec_idx, item in enumerate(rec_items):
                 rec_id = f"{chapter_id}:SEC{sec_idx:03d}:R{rec_idx:03d}"
                 upserter.upsert_recommendation(
-                    guideline_id, rec_id, item,
+                    guideline_id,
+                    rec_id,
+                    item,
                     chapter_id=chapter_id,
                     version_id=version_id,
                 )
@@ -819,14 +845,21 @@ async def _async_ingest(job_id: str, code: str) -> None:
 
     logger.info(
         "Ingest complete: %s v%d  chapters=%d  recommendations=%d",
-        code, ingest_version, len(chapters), total_recs,
+        code,
+        ingest_version,
+        len(chapters),
+        total_recs,
     )
-    _emit(job_id, "done", {
-        "status": "done",
-        "step": "Complete",
-        "completed_at": datetime.now(timezone.utc).isoformat(),
-        "recommendation_count": total_recs,
-        "chapter_count": len(chapters),
-        "ingest_version": ingest_version,
-        "version_id": version_id,
-    })
+    _emit(
+        job_id,
+        "done",
+        {
+            "status": "done",
+            "step": "Complete",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "recommendation_count": total_recs,
+            "chapter_count": len(chapters),
+            "ingest_version": ingest_version,
+            "version_id": version_id,
+        },
+    )

@@ -1,4 +1,5 @@
 """Quick check: how many stale_post_specialist episodes got inference scores."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -8,9 +9,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -24,6 +27,7 @@ RETURN ep.episode_id AS episode_id, ep.cancer_type AS cancer_type,
        ep.inference_signals AS inference_signals
 ORDER BY ep.cancer_type, ep.inferred_outcome
 """
+
 
 def main() -> None:
     c = PatientGraphClient()
@@ -47,7 +51,9 @@ def main() -> None:
 
     inferred = sum(1 for r in rows if r.get("inferred_outcome") is not None)
     print()
-    print(f"  Got inference  : {inferred}/{total}  ({100*inferred//total if total else 0}%)")
+    print(
+        f"  Got inference  : {inferred}/{total}  ({100*inferred//total if total else 0}%)"
+    )
     print(f"  HITL required  : {total - inferred}/{total}")
 
     print()
@@ -66,6 +72,7 @@ def main() -> None:
                 f"{r.get('inferred_outcome_date') or '-':<12} "
                 f"{signals}"
             )
+
 
 if __name__ == "__main__":
     main()

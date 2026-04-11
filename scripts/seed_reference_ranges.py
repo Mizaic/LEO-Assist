@@ -21,7 +21,9 @@ from libs.neo4j_client.client import PatientGraphClient
 logger = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_DEFAULT_PATH = _REPO_ROOT / "configs" / "reference_ranges" / "nhs_haematology_defaults.json"
+_DEFAULT_PATH = (
+    _REPO_ROOT / "configs" / "reference_ranges" / "nhs_haematology_defaults.json"
+)
 
 
 def _build_range_id(entry: dict[str, Any]) -> str:
@@ -38,11 +40,16 @@ def _build_range_id(entry: dict[str, Any]) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"reference-range:{key}"))
 
 
-def seed_if_missing(client: PatientGraphClient, *, updated_by: str = "system_seed") -> int:
+def seed_if_missing(
+    client: PatientGraphClient, *, updated_by: str = "system_seed"
+) -> int:
     rows = client.run("MATCH (r:ReferenceRange) RETURN count(r) AS cnt")
     existing = int(rows[0]["cnt"]) if rows else 0
     if existing > 0:
-        logger.info("[ReferenceRangeSeed] Skipping seed; %d ReferenceRange nodes already exist", existing)
+        logger.info(
+            "[ReferenceRangeSeed] Skipping seed; %d ReferenceRange nodes already exist",
+            existing,
+        )
         return 0
 
     payload = json.loads(_DEFAULT_PATH.read_text(encoding="utf-8"))

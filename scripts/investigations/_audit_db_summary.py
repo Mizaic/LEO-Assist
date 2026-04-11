@@ -1,6 +1,7 @@
 """
 Summarise the audit SQLite database: schema, counts, sample rows.
 """
+
 import sqlite3, json, sys
 from pathlib import Path
 

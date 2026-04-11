@@ -1,4 +1,5 @@
 """Patient graph inspection service."""
+
 from __future__ import annotations
 
 import logging
@@ -114,9 +115,7 @@ def get_schema_audit(client: Any, sample_size: int = 200) -> dict:
     """Return encounter schema consistency stats from a sample."""
     from libs.neo4j_client.client import run_with_retry
 
-    rows = run_with_retry(
-        client, _SCHEMA_AUDIT_Q, sample_size=sample_size
-    )
+    rows = run_with_retry(client, _SCHEMA_AUDIT_Q, sample_size=sample_size)
     if not rows:
         return {"sample_size": 0}
 
@@ -134,6 +133,7 @@ def get_schema_audit(client: Any, sample_size: int = 200) -> dict:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _row_to_encounter(row: dict, with_text: bool) -> EncounterSummary:
     concepts = [

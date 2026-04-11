@@ -14,6 +14,7 @@ The scan pipeline:
    - unmapped_candidates: frequent phrases not yet mapped, with search hints
    - confirmed_additions: empty list for human review/edit before add script
 """
+
 from __future__ import annotations
 
 import json
@@ -42,9 +43,7 @@ load_keyvault_secrets()
 INPUT_FILE = (
     ROOT / "scripts" / "investigations" / "output" / "pre_referral_encounters.json"
 )
-OUTPUT_FILE = (
-    ROOT / "scripts" / "investigations" / "output" / "ngram_scan_results.json"
-)
+OUTPUT_FILE = ROOT / "scripts" / "investigations" / "output" / "ngram_scan_results.json"
 
 BATCH_SIZE = 500
 MAX_NGRAM = 5
@@ -278,7 +277,9 @@ def main() -> None:
     if not INPUT_FILE.exists():
         raise FileNotFoundError(f"Missing input file: {INPUT_FILE}")
 
-    encounters: list[dict[str, Any]] = json.loads(INPUT_FILE.read_text(encoding="utf-8"))
+    encounters: list[dict[str, Any]] = json.loads(
+        INPUT_FILE.read_text(encoding="utf-8")
+    )
     print(f"Loaded {len(encounters)} encounters from {INPUT_FILE}")
 
     # 1) Build n-gram hit inventory from encounter text
@@ -356,7 +357,9 @@ def main() -> None:
                             }
                         )
                 if filtered:
-                    filtered.sort(key=lambda x: float(x.get("score") or 0.0), reverse=True)
+                    filtered.sort(
+                        key=lambda x: float(x.get("score") or 0.0), reverse=True
+                    )
                     exact_hits_by_ngram[ngram] = filtered
             if i % 20 == 0 or i == len(batches):
                 print(f"  exact lookup batches: {i}/{len(batches)}")
@@ -453,4 +456,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

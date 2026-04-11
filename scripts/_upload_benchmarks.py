@@ -3,12 +3,15 @@
 The /benchmarks/upload endpoint expects:
   POST application/json { rawJson: <dict>, name?: str, auditId?: str }
 """
+
 import urllib.request
 import json
 import sys
 import os
 
-json_path = os.path.join(os.path.dirname(__file__), "..", "external_content", "ncda_2018_benchmarks.json")
+json_path = os.path.join(
+    os.path.dirname(__file__), "..", "external_content", "ncda_2018_benchmarks.json"
+)
 
 with open(json_path, "r", encoding="utf-8") as f:
     raw = json.load(f)

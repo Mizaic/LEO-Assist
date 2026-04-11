@@ -19,6 +19,7 @@ Usage
     python scripts/explore_cancer_expressions.py --patient-ids 4202301609,4187508279
     python scripts/explore_cancer_expressions.py --limit 200
 """
+
 from __future__ import annotations
 
 import argparse
@@ -56,42 +57,44 @@ logger = logging.getLogger("explore_cancer")
 # Cancer-adjacent SNOMED concept IDs (not direct diagnoses, but
 # strong signals that a cancer pathway is / was active)
 # ------------------------------------------------------------------
-_ADJACENT_CONCEPT_IDS: frozenset[str] = frozenset([
-    # Chemotherapy
-    "367336001",   # Chemotherapy
-    "703423002",   # Chemotherapy regimen
-    "169413002",   # Chemotherapy side effect
-    # Radiotherapy
-    "108290001",   # Radiation oncology
-    "228748004",   # Radiotherapy
-    "33195004",    # Radiation therapy
-    # Oncology referral / specialty
-    "306205009",   # Referral to oncology service
-    "308442009",   # Referral to oncologist
-    "310338000",   # Referral to clinical oncologist
-    "306206005",   # Referral to haematology service
-    # Tumour markers
-    "166558007",   # AFP within reference range
-    "166559004",   # AFP above reference range
-    "274754009",   # CEA measurement
-    "117877009",   # PSA measurement
-    "275911002",   # CA-125
-    # Biopsy / histology
-    "86273004",    # Biopsy
-    "168457008",   # Histology
-    "726566009",   # Pathology biopsy report
-    "168447004",   # Biopsy of lesion
-    # History of malignancy (situation nodes)
-    "266987004",   # History of malignant neoplasm
-    "160303001",   # Family history of cancer
-    "160303001",   # FH cancer
-    # Palliative care
-    "306237005",   # Referral to palliative care
-    "103735009",   # Palliative care
-    # MDT
-    "182987002",   # MDT meeting
-    "445528004",   # Cancer MDT
-])
+_ADJACENT_CONCEPT_IDS: frozenset[str] = frozenset(
+    [
+        # Chemotherapy
+        "367336001",  # Chemotherapy
+        "703423002",  # Chemotherapy regimen
+        "169413002",  # Chemotherapy side effect
+        # Radiotherapy
+        "108290001",  # Radiation oncology
+        "228748004",  # Radiotherapy
+        "33195004",  # Radiation therapy
+        # Oncology referral / specialty
+        "306205009",  # Referral to oncology service
+        "308442009",  # Referral to oncologist
+        "310338000",  # Referral to clinical oncologist
+        "306206005",  # Referral to haematology service
+        # Tumour markers
+        "166558007",  # AFP within reference range
+        "166559004",  # AFP above reference range
+        "274754009",  # CEA measurement
+        "117877009",  # PSA measurement
+        "275911002",  # CA-125
+        # Biopsy / histology
+        "86273004",  # Biopsy
+        "168457008",  # Histology
+        "726566009",  # Pathology biopsy report
+        "168447004",  # Biopsy of lesion
+        # History of malignancy (situation nodes)
+        "266987004",  # History of malignant neoplasm
+        "160303001",  # Family history of cancer
+        "160303001",  # FH cancer
+        # Palliative care
+        "306237005",  # Referral to palliative care
+        "103735009",  # Palliative care
+        # MDT
+        "182987002",  # MDT meeting
+        "445528004",  # Cancer MDT
+    ]
+)
 
 _CANCER_IDS_STR = frozenset(str(c) for c in CANCER_TYPE_IDS)
 _REFERRAL_IDS_STR = frozenset(str(c) for c in FAST_TRACK_REFERRAL_IDS)
@@ -102,44 +105,52 @@ _REFERRAL_IDS_STR = frozenset(str(c) for c in FAST_TRACK_REFERRAL_IDS)
 
 # Patterns that suggest a DIAGNOSIS is / was present
 _DIAGNOSIS_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("cancer",          re.compile(r"\bcancer\b", re.IGNORECASE)),
-    ("carcinoma",       re.compile(r"\bcarcinoma\b", re.IGNORECASE)),
-    ("malignant",       re.compile(r"\bmalignant\b", re.IGNORECASE)),
-    ("malignancy",      re.compile(r"\bmalignancy\b", re.IGNORECASE)),
-    ("neoplasm",        re.compile(r"\bneoplasm\b", re.IGNORECASE)),
-    ("tumour/tumor",    re.compile(r"\btumou?r\b", re.IGNORECASE)),
-    ("lymphoma",        re.compile(r"\blymphoma\b", re.IGNORECASE)),
-    ("leukaemia",       re.compile(r"\bleukaemi[a]?\b|\bleukemi[a]?\b",
-                                   re.IGNORECASE)),
-    ("melanoma",        re.compile(r"\bmelanoma\b", re.IGNORECASE)),
-    ("sarcoma",         re.compile(r"\bsarcoma\b", re.IGNORECASE)),
-    ("myeloma",         re.compile(r"\bmyeloma\b", re.IGNORECASE)),
-    ("seminoma",        re.compile(r"\bseminoma\b", re.IGNORECASE)),
-    ("metastasis",      re.compile(r"\bmetastas[ie]", re.IGNORECASE)),
-    ("oncology",        re.compile(r"\boncolog", re.IGNORECASE)),
-    ("chemotherapy",    re.compile(r"\bchemotherap", re.IGNORECASE)),
-    ("radiotherapy",    re.compile(r"\bradiotherap", re.IGNORECASE)),
-    ("2WW",             re.compile(r"\b2ww\b|\btwo.?week.?wait", re.IGNORECASE)),
-    ("fast.track",      re.compile(r"\bfast.track\b", re.IGNORECASE)),
+    ("cancer", re.compile(r"\bcancer\b", re.IGNORECASE)),
+    ("carcinoma", re.compile(r"\bcarcinoma\b", re.IGNORECASE)),
+    ("malignant", re.compile(r"\bmalignant\b", re.IGNORECASE)),
+    ("malignancy", re.compile(r"\bmalignancy\b", re.IGNORECASE)),
+    ("neoplasm", re.compile(r"\bneoplasm\b", re.IGNORECASE)),
+    ("tumour/tumor", re.compile(r"\btumou?r\b", re.IGNORECASE)),
+    ("lymphoma", re.compile(r"\blymphoma\b", re.IGNORECASE)),
+    ("leukaemia", re.compile(r"\bleukaemi[a]?\b|\bleukemi[a]?\b", re.IGNORECASE)),
+    ("melanoma", re.compile(r"\bmelanoma\b", re.IGNORECASE)),
+    ("sarcoma", re.compile(r"\bsarcoma\b", re.IGNORECASE)),
+    ("myeloma", re.compile(r"\bmyeloma\b", re.IGNORECASE)),
+    ("seminoma", re.compile(r"\bseminoma\b", re.IGNORECASE)),
+    ("metastasis", re.compile(r"\bmetastas[ie]", re.IGNORECASE)),
+    ("oncology", re.compile(r"\boncolog", re.IGNORECASE)),
+    ("chemotherapy", re.compile(r"\bchemotherap", re.IGNORECASE)),
+    ("radiotherapy", re.compile(r"\bradiotherap", re.IGNORECASE)),
+    ("2WW", re.compile(r"\b2ww\b|\btwo.?week.?wait", re.IGNORECASE)),
+    ("fast.track", re.compile(r"\bfast.track\b", re.IGNORECASE)),
 ]
 
 # Patterns that suggest an EXCLUSION / normal result
 _EXCLUSION_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("no_malignancy",   re.compile(r"no (evidence of |signs of |features of )?"
-                                   r"malignancy", re.IGNORECASE)),
-    ("no_cancer",       re.compile(r"no (evidence of |signs of )?cancer",
-                                   re.IGNORECASE)),
-    ("benign",          re.compile(r"\bbenign\b", re.IGNORECASE)),
-    ("NAD",             re.compile(r"\bNAD\b")),
-    ("normal_biopsy",   re.compile(r"normal (biopsy|histology)", re.IGNORECASE)),
-    ("cancer_excluded", re.compile(r"cancer (excluded|ruled out)",
-                                   re.IGNORECASE)),
-    ("discharged_2WW",  re.compile(r"discharged.{0,30}(pathway|2ww|clinic)",
-                                   re.IGNORECASE)),
-    ("no_polyps",       re.compile(r"no polyps", re.IGNORECASE)),
-    ("clear_scope",     re.compile(r"(colonoscopy|endoscopy|cystoscopy).{0,40}"
-                                   r"(normal|clear|NAD)", re.IGNORECASE)),
-    ("not_suspicious",  re.compile(r"not suspicious", re.IGNORECASE)),
+    (
+        "no_malignancy",
+        re.compile(
+            r"no (evidence of |signs of |features of )?" r"malignancy", re.IGNORECASE
+        ),
+    ),
+    ("no_cancer", re.compile(r"no (evidence of |signs of )?cancer", re.IGNORECASE)),
+    ("benign", re.compile(r"\bbenign\b", re.IGNORECASE)),
+    ("NAD", re.compile(r"\bNAD\b")),
+    ("normal_biopsy", re.compile(r"normal (biopsy|histology)", re.IGNORECASE)),
+    ("cancer_excluded", re.compile(r"cancer (excluded|ruled out)", re.IGNORECASE)),
+    (
+        "discharged_2WW",
+        re.compile(r"discharged.{0,30}(pathway|2ww|clinic)", re.IGNORECASE),
+    ),
+    ("no_polyps", re.compile(r"no polyps", re.IGNORECASE)),
+    (
+        "clear_scope",
+        re.compile(
+            r"(colonoscopy|endoscopy|cystoscopy).{0,40}" r"(normal|clear|NAD)",
+            re.IGNORECASE,
+        ),
+    ),
+    ("not_suspicious", re.compile(r"not suspicious", re.IGNORECASE)),
 ]
 
 
@@ -193,6 +204,7 @@ RETURN
 # Text analysis helpers
 # ------------------------------------------------------------------
 
+
 def _find_keyword_hits(
     text: str,
 ) -> tuple[list[str], list[str]]:
@@ -241,6 +253,7 @@ def _parse_assertion(context_json: str | None) -> str:
 # Data loading
 # ------------------------------------------------------------------
 
+
 def _load_no_signal_patients(session, patient_ids: list[str]) -> list[str]:
     """Return patient IDs with no cancer signal, filtered if --patient-ids given."""
     if patient_ids:
@@ -267,9 +280,7 @@ def _load_encounters(session, patient_ids: list[str], limit: int) -> list[dict]:
     return result
 
 
-def _load_coded_concepts(
-    session, encounter_ids: list[str]
-) -> dict[str, list[dict]]:
+def _load_coded_concepts(session, encounter_ids: list[str]) -> dict[str, list[dict]]:
     """Return encounter_id -> list of coded concept rows."""
     result: dict[str, list[dict]] = {}
     if not encounter_ids:
@@ -288,6 +299,7 @@ def _load_coded_concepts(
 # Analysis
 # ------------------------------------------------------------------
 
+
 def _classify_encounter(
     enc: dict,
     coded: list[dict],
@@ -300,16 +312,13 @@ def _classify_encounter(
 
     # Adjacent SNOMED concepts coded on this encounter
     adjacent = [
-        c for c in coded
-        if str(c.get("concept_id", "")) in _ADJACENT_CONCEPT_IDS
+        c for c in coded if str(c.get("concept_id", "")) in _ADJACENT_CONCEPT_IDS
     ]
     cancer_concepts = [
-        c for c in coded
-        if str(c.get("concept_id", "")) in _CANCER_IDS_STR
+        c for c in coded if str(c.get("concept_id", "")) in _CANCER_IDS_STR
     ]
     referral_concepts = [
-        c for c in coded
-        if str(c.get("concept_id", "")) in _REFERRAL_IDS_STR
+        c for c in coded if str(c.get("concept_id", "")) in _REFERRAL_IDS_STR
     ]
 
     # Determine what category this looks like
@@ -333,9 +342,7 @@ def _classify_encounter(
         "cancer_concepts_coded": len(cancer_concepts),
         "referral_concepts_coded": len(referral_concepts),
         "adjacent_concepts_coded": len(adjacent),
-        "adjacent_concept_names": "|".join(
-            c.get("concept_name", "") for c in adjacent
-        ),
+        "adjacent_concept_names": "|".join(c.get("concept_name", "") for c in adjacent),
         "text_snippet": snippet,
     }
 
@@ -343,6 +350,7 @@ def _classify_encounter(
 # ------------------------------------------------------------------
 # Reporting
 # ------------------------------------------------------------------
+
 
 def _print_report(rows: list[dict]) -> None:
     if not rows:
@@ -367,7 +375,8 @@ def _print_report(rows: list[dict]) -> None:
     logger.info("=" * 64)
     logger.info(
         "CANCER EXPRESSION EXPLORATION -- %d flagged encounters, %d patients",
-        len(rows), len(patients_hit),
+        len(rows),
+        len(patients_hit),
     )
     logger.info("=" * 64)
 
@@ -422,20 +431,27 @@ def _write_csv(rows: list[dict], path: str) -> None:
 # Main
 # ------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Explore cancer expression patterns in no-signal patients"
     )
     parser.add_argument(
-        "--output", metavar="PATH", default="",
+        "--output",
+        metavar="PATH",
+        default="",
         help="Write flagged encounters to a CSV file",
     )
     parser.add_argument(
-        "--patient-ids", metavar="IDS", default="",
+        "--patient-ids",
+        metavar="IDS",
+        default="",
         help="Comma-separated patient IDs (default: all no-signal patients)",
     )
     parser.add_argument(
-        "--limit", type=int, default=0,
+        "--limit",
+        type=int,
+        default=0,
         help="Cap the number of encounters scanned (0 = unlimited)",
     )
     args = parser.parse_args()
@@ -452,21 +468,19 @@ def main() -> None:
         sys.exit(1)
 
     from neo4j import GraphDatabase
-    driver = GraphDatabase.driver(
-        neo4j_uri, auth=(neo4j_user, neo4j_password)
-    )
+
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
     explicit_ids = (
         [p.strip() for p in args.patient_ids.split(",") if p.strip()]
-        if args.patient_ids else []
+        if args.patient_ids
+        else []
     )
 
     with driver.session() as session:
         logger.info("Identifying no-signal patients...")
         patient_ids = _load_no_signal_patients(session, explicit_ids)
-        logger.info(
-            "Scanning encounters for %d patients...", len(patient_ids)
-        )
+        logger.info("Scanning encounters for %d patients...", len(patient_ids))
 
         encounters = _load_encounters(session, patient_ids, args.limit)
         logger.info("Loaded %d encounters", len(encounters))
@@ -490,9 +504,7 @@ def main() -> None:
     if args.output:
         _write_csv(results, args.output)
     elif results:
-        logger.info(
-            "Run with --output cancer_expressions.csv for the full detail."
-        )
+        logger.info("Run with --output cancer_expressions.csv for the full detail.")
 
 
 if __name__ == "__main__":

@@ -27,7 +27,10 @@ import time
 from typing import Any
 
 import httpx
-from libs.cypher.coding_review_queries import GET_CODING_IGNORE_RULES, UPSERT_CODING_REVIEW
+from libs.cypher.coding_review_queries import (
+    GET_CODING_IGNORE_RULES,
+    UPSERT_CODING_REVIEW,
+)
 from libs.cypher.label_verification_queries import (
     GET_HITL_REVIEWED_LABEL_IDS,
     RESOLVE_LABEL_VERIFICATION_REVIEW,
@@ -43,7 +46,11 @@ from libs.coding_engine.tier_classifier import classify_tier
 from libs.llm_client.escalation import escalate_label
 from libs.llm_client.factory import LLMResponse, create_llm
 from libs.neo4j_client.client import PatientGraphClient
-from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
+from libs.ner.post_processor_rules import (
+    apply_rules_to_entities,
+    parse_rules,
+    PostProcessorRule,
+)
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.prompts.registry import get_prompt, get_prompt_config
 
@@ -55,21 +62,36 @@ _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 # Each worker runs AWS+Azure in parallel, so in-flight LLM requests are roughly 2x this value.
 # For large backfills (e.g., 12k labels), tune LABEL_VERIFY_WORKERS via env for your infra limits.
 _MAX_WORKERS = int(os.getenv("LABEL_VERIFY_WORKERS", "50"))
-_TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
+_TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip(
+    "/"
+)
 _AUTO_TRIAGE_TERM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_TERM_THRESHOLD", "0.85"))
 _AUTO_TRIAGE_LLM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_LLM_THRESHOLD", "0.80"))
 _LLM_RETRIES = int(os.getenv("LABEL_VERIFY_LLM_RETRIES", "4"))
 _LLM_BACKOFF_BASE_S = float(os.getenv("LABEL_VERIFY_LLM_BACKOFF_BASE_S", "0.6"))
 _CODING_MODE = os.getenv("CODING_MODE", "hitl").strip().lower()
 
-_AUTO_CODE_BLOCKED: frozenset[str] = frozenset({
-    "absent", "refuted", "declined", "cancelled", "planned",
-    "hypothetical", "possible", "historical", "family",
-})
+_AUTO_CODE_BLOCKED: frozenset[str] = frozenset(
+    {
+        "absent",
+        "refuted",
+        "declined",
+        "cancelled",
+        "planned",
+        "hypothetical",
+        "possible",
+        "historical",
+        "family",
+    }
+)
 
-_ASSERTION_QUEUE_SET: frozenset[str] = frozenset({
-    "declined", "cancelled", "possible",
-})
+_ASSERTION_QUEUE_SET: frozenset[str] = frozenset(
+    {
+        "declined",
+        "cancelled",
+        "possible",
+    }
+)
 
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
@@ -79,7 +101,9 @@ def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
         return max(minimum, default)
 
 
-_ADAPTIVE_MIN_CONCURRENCY = _env_int("LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY", 20, minimum=1)
+_ADAPTIVE_MIN_CONCURRENCY = _env_int(
+    "LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY", 20, minimum=1
+)
 _ADAPTIVE_MAX_CONCURRENCY = _env_int(
     "LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY",
     max(_MAX_WORKERS * 2, _ADAPTIVE_MIN_CONCURRENCY),
@@ -191,7 +215,12 @@ class _AdaptiveLLMLimiter:
 
     def snapshot(self) -> dict[str, int]:
         with self._lock:
-            return {"target": self._target, "in_flight": self._in_flight, "min": self._min, "max": self._max}
+            return {
+                "target": self._target,
+                "in_flight": self._in_flight,
+                "min": self._min,
+                "max": self._max,
+            }
 
 
 _llm_limiter = _AdaptiveLLMLimiter(
@@ -278,7 +307,9 @@ def begin_job_with_mode(*, run_mode: str = "all", reset_pending: bool = False) -
       - "resume": continue from checkpoint — skip labels already verified
       - "re_extract": re-extract entities via LLM before running verification
     """
-    mode = run_mode if run_mode in {"all", "hitl_only", "resume", "re_extract"} else "all"
+    mode = (
+        run_mode if run_mode in {"all", "hitl_only", "resume", "re_extract"} else "all"
+    )
     with _job_state_lock:
         if _job_state["status"] in {"running", "stopping"}:
             return False
@@ -396,14 +427,25 @@ def _call_model_for_label(
         except Exception as exc:
             msg = str(exc).lower()
             throttled = any(
-                marker in msg for marker in ("429", "rate limit", "ratelimit", "throttle", "too many requests")
+                marker in msg
+                for marker in (
+                    "429",
+                    "rate limit",
+                    "ratelimit",
+                    "throttle",
+                    "too many requests",
+                )
             )
             if throttled:
                 _llm_limiter.on_throttle()
             if attempt >= _LLM_RETRIES:
-                logger.warning("Label verification model call failed provider=%s", provider, exc_info=True)
+                logger.warning(
+                    "Label verification model call failed provider=%s",
+                    provider,
+                    exc_info=True,
+                )
                 return []
-            delay = _LLM_BACKOFF_BASE_S * (2 ** attempt)
+            delay = _LLM_BACKOFF_BASE_S * (2**attempt)
             if throttled:
                 delay *= 1.5
             time.sleep(delay)
@@ -463,7 +505,6 @@ def _resolve_start(text: str, span_text: str, around: int = 0) -> int | None:
     if positions:
         return min(positions, key=lambda p: abs(p - around))
     return None
-
 
 
 # Entity-type normalisation and value-unit linking have been moved to the
@@ -534,13 +575,31 @@ except Exception:  # pragma: no cover - fallback for lightweight test env
         return False
 
 
-_CLINICAL_LABELS = frozenset({
-    "disorder", "finding", "procedure", "observable_entity", "qualifier_value",
-    "substance", "medicinal_product", "clinical_drug", "situation", "event",
-    "body_structure", "tumor_staging", "assessment_scale", "staging_scale",
-    "regime_therapy", "record_artifact", "morphologic_abnormality",
-    "occupation", "attribute", "environment", "product",
-})
+_CLINICAL_LABELS = frozenset(
+    {
+        "disorder",
+        "finding",
+        "procedure",
+        "observable_entity",
+        "qualifier_value",
+        "substance",
+        "medicinal_product",
+        "clinical_drug",
+        "situation",
+        "event",
+        "body_structure",
+        "tumor_staging",
+        "assessment_scale",
+        "staging_scale",
+        "regime_therapy",
+        "record_artifact",
+        "morphologic_abnormality",
+        "occupation",
+        "attribute",
+        "environment",
+        "product",
+    }
+)
 
 
 def _deterministic_resolve(
@@ -562,68 +621,139 @@ def _deterministic_resolve(
     # X_NEGATION_CUE misuse: one model says X_NEGATION_CUE on a real clinical entity
     # while the other gives a valid clinical label. Trust the clinical label —
     # but only if the entity text isn't actually a negation word.
-    _real_negation_words = {"no", "not", "denies", "denied", "nil", "without", "never", "none", "neither", "nor"}
+    _real_negation_words = {
+        "no",
+        "not",
+        "denies",
+        "denied",
+        "nil",
+        "without",
+        "never",
+        "none",
+        "neither",
+        "nor",
+    }
     is_real_negation = lowered in _real_negation_words
     if not is_real_negation:
         if model_a_label == "X_NEGATION_CUE" and model_b_label in _CLINICAL_LABELS:
-            return {"resolved_label": model_b_label, "confidence": 0.95,
-                    "method": "deterministic_rule", "reason": "X_NEGATION_CUE misuse — prefer clinical label"}
+            return {
+                "resolved_label": model_b_label,
+                "confidence": 0.95,
+                "method": "deterministic_rule",
+                "reason": "X_NEGATION_CUE misuse — prefer clinical label",
+            }
         if model_b_label == "X_NEGATION_CUE" and model_a_label in _CLINICAL_LABELS:
-            return {"resolved_label": model_a_label, "confidence": 0.95,
-                    "method": "deterministic_rule", "reason": "X_NEGATION_CUE misuse — prefer clinical label"}
+            return {
+                "resolved_label": model_a_label,
+                "confidence": 0.95,
+                "method": "deterministic_rule",
+                "reason": "X_NEGATION_CUE misuse — prefer clinical label",
+            }
 
     # Numeric measurement labeled observable_entity by one model → qualifier_value.
     if "qualifier_value" in candidates:
         if _is_numeric_measurement_text(text):
-            return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "numeric measurement value"}
+            return {
+                "resolved_label": "qualifier_value",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "numeric measurement value",
+            }
         if _BARE_NUMERIC_RE.match(text):
-            return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "bare numeric value"}
+            return {
+                "resolved_label": "qualifier_value",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "bare numeric value",
+            }
         if _is_lab_value_text(text):
-            return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "lab result value"}
+            return {
+                "resolved_label": "qualifier_value",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "lab result value",
+            }
         if _is_result_descriptor(text):
-            return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "result descriptor"}
+            return {
+                "resolved_label": "qualifier_value",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "result descriptor",
+            }
         if lowered in _EPISODE_MARKER_TEXTS:
-            return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "episode marker"}
+            return {
+                "resolved_label": "qualifier_value",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "episode marker",
+            }
         if lowered in _SEVERITY_MODIFIER_TEXTS:
-            return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "severity modifier"}
+            return {
+                "resolved_label": "qualifier_value",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "severity modifier",
+            }
         if _UNCERTAINTY_MARKER_RE.match(text):
-            return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "uncertainty marker"}
+            return {
+                "resolved_label": "qualifier_value",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "uncertainty marker",
+            }
 
     # Smoking / lifestyle attribute → finding.
     if "finding" in candidates:
         if _is_smoking_status_text(text):
-            return {"resolved_label": "finding", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "smoking status"}
+            return {
+                "resolved_label": "finding",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "smoking status",
+            }
         if _is_lifestyle_topic_list(text):
-            return {"resolved_label": "finding", "confidence": 0.99,
-                    "method": "deterministic_rule", "reason": "lifestyle factor"}
+            return {
+                "resolved_label": "finding",
+                "confidence": 0.99,
+                "method": "deterministic_rule",
+                "reason": "lifestyle factor",
+            }
 
     # Bare analyte near observable → suppress (return special marker).
     if _is_bare_analyte(text) and _has_nearby_observable(all_entities, entity_idx):
-        return {"resolved_label": "__suppress__", "confidence": 0.99,
-                "method": "deterministic_rule", "reason": "bare analyte near observable"}
+        return {
+            "resolved_label": "__suppress__",
+            "confidence": 0.99,
+            "method": "deterministic_rule",
+            "reason": "bare analyte near observable",
+        }
 
     # Smoking consumption frequency → qualifier_value.
     if "qualifier_value" in candidates and _SMOKING_CONSUMPTION_RE.search(text):
-        return {"resolved_label": "qualifier_value", "confidence": 0.99,
-                "method": "deterministic_rule", "reason": "smoking consumption frequency"}
+        return {
+            "resolved_label": "qualifier_value",
+            "confidence": 0.99,
+            "method": "deterministic_rule",
+            "reason": "smoking consumption frequency",
+        }
 
     # MDT → procedure.
     if "procedure" in candidates and lowered == "mdt":
-        return {"resolved_label": "procedure", "confidence": 0.99,
-                "method": "deterministic_rule", "reason": "MDT is procedure"}
+        return {
+            "resolved_label": "procedure",
+            "confidence": 0.99,
+            "method": "deterministic_rule",
+            "reason": "MDT is procedure",
+        }
 
     # MDT outcome heading → record_artifact.
     if _MDT_OUTCOME_RE.search(text):
-        return {"resolved_label": "record_artifact", "confidence": 0.99,
-                "method": "deterministic_rule", "reason": "MDT outcome heading"}
+        return {
+            "resolved_label": "record_artifact",
+            "confidence": 0.99,
+            "method": "deterministic_rule",
+            "reason": "MDT outcome heading",
+        }
 
     return None
 
@@ -655,10 +785,12 @@ def _auto_triage_disagreement(
             response.raise_for_status()
             payload = response.json() if response.content else {}
     except Exception:
-        logger.debug("Auto-triage terminology lookup failed for %r", entity_text, exc_info=True)
+        logger.debug(
+            "Auto-triage terminology lookup failed for %r", entity_text, exc_info=True
+        )
         payload = {}
 
-    candidates = (((payload or {}).get("results") or {}).get(entity_text) or [])
+    candidates = ((payload or {}).get("results") or {}).get(entity_text) or []
     if candidates and isinstance(candidates, list):
         top = candidates[0] if isinstance(candidates[0], dict) else {}
         top_score = _safe_float(top.get("score"))
@@ -666,12 +798,13 @@ def _auto_triage_disagreement(
         top_label = _snomed_tag_to_label(top_tag)
         logger.debug(
             "Auto-triage term lookup: entity=%r score=%.2f tag=%r mapped=%r targets=%r",
-            entity_text, top_score, top_tag, top_label, target_labels,
+            entity_text,
+            top_score,
+            top_tag,
+            top_label,
+            target_labels,
         )
-        if (
-            top_score >= _AUTO_TRIAGE_TERM_THRESHOLD
-            and top_label in target_labels
-        ):
+        if top_score >= _AUTO_TRIAGE_TERM_THRESHOLD and top_label in target_labels:
             return {
                 "resolved_label": top_label,
                 "confidence": top_score,
@@ -707,19 +840,35 @@ def _auto_triage_disagreement(
     return None
 
 
-_CODEABLE_LABELS = frozenset({
-    "disorder", "finding", "procedure", "observable_entity", "substance",
-    "medicinal_product", "clinical_drug", "situation", "body_structure",
-    "morphologic_abnormality", "regime_therapy", "assessment_scale",
-    "tumor_staging", "organism", "occupation", "physical_object",
-})
+_CODEABLE_LABELS = frozenset(
+    {
+        "disorder",
+        "finding",
+        "procedure",
+        "observable_entity",
+        "substance",
+        "medicinal_product",
+        "clinical_drug",
+        "situation",
+        "body_structure",
+        "morphologic_abnormality",
+        "regime_therapy",
+        "assessment_scale",
+        "tumor_staging",
+        "organism",
+        "occupation",
+        "physical_object",
+    }
+)
 
 _CODING_SCORE_THRESHOLD = float(os.getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70"))
 _CODING_ALT_LOW = float(os.getenv("CODING_ALT_THRESHOLD_LOW", "0.3"))
 _CODING_ALT_ENABLED = os.getenv("CODING_ALT_ENABLED", "true").lower() == "true"
 
 # Semantic tag cross-validation thresholds.
-_TAG_XVAL_AUTO_RECLASSIFY_SCORE = float(os.getenv("TAG_XVAL_AUTO_RECLASSIFY_SCORE", "0.90"))
+_TAG_XVAL_AUTO_RECLASSIFY_SCORE = float(
+    os.getenv("TAG_XVAL_AUTO_RECLASSIFY_SCORE", "0.90")
+)
 _TAG_XVAL_SAME_TAG_CEILING = float(os.getenv("TAG_XVAL_SAME_TAG_CEILING", "0.50"))
 _TAG_XVAL_MIN_DELTA = float(os.getenv("TAG_XVAL_MIN_DELTA", "0.10"))
 
@@ -819,12 +968,17 @@ def _suggest_alt_terms(term: str, entity_label: str) -> list[str]:
         raw_text = response.text.strip()
         match = re.search(r"\[.*\]", raw_text, re.DOTALL)
         if not match:
-            logger.debug("Alt-term LLM: no JSON array for %r -- response: %s", term, raw_text[:120])
+            logger.debug(
+                "Alt-term LLM: no JSON array for %r -- response: %s",
+                term,
+                raw_text[:120],
+            )
             return []
         raw = json.loads(match.group())
         seen_lower = term.strip().lower()
         alts = [
-            s.strip() for s in raw
+            s.strip()
+            for s in raw
             if isinstance(s, str) and s.strip() and s.strip().lower() != seen_lower
         ][:4]
         logger.debug("Alt-term LLM: %r -> %r", term, alts)
@@ -842,7 +996,11 @@ def _try_alt_coding(term: str, entity_label: str) -> dict | None:
     """
     alt_terms = _suggest_alt_terms(term, entity_label)
     if not alt_terms:
-        logger.info("LLM-alt (verify): no alternatives suggested for %r (%s)", term, entity_label)
+        logger.info(
+            "LLM-alt (verify): no alternatives suggested for %r (%s)",
+            term,
+            entity_label,
+        )
         return None
     results = _resolve_terms_via_api(alt_terms)
     best: dict | None = None
@@ -853,7 +1011,10 @@ def _try_alt_coding(term: str, entity_label: str) -> dict | None:
         score = _safe_float(top.get("score"))
         logger.info(
             "LLM-alt (verify): original=%r alt=%r -> concept=%r score=%s",
-            term, alt, top.get("snomed_concept_id", ""), score,
+            term,
+            alt,
+            top.get("snomed_concept_id", ""),
+            score,
         )
         if score >= _CODING_SCORE_THRESHOLD and score > best_score:
             best_score = score
@@ -861,7 +1022,9 @@ def _try_alt_coding(term: str, entity_label: str) -> dict | None:
     if best:
         logger.info(
             "LLM-alt (verify): RESOLVED %r -> %r (%.4f)",
-            term, best.get("snomed_term"), best_score,
+            term,
+            best.get("snomed_term"),
+            best_score,
         )
     else:
         logger.info("LLM-alt (verify): no alternative cleared threshold for %r", term)
@@ -927,7 +1090,8 @@ def _check_terminology_coding(
     tag disagrees with the extracted entity label, the mismatch is flagged.
     """
     codeable = [
-        (i, e) for i, e in enumerate(entities)
+        (i, e)
+        for i, e in enumerate(entities)
         if str(e.get("label", "")) in _CODEABLE_LABELS
         and str(e.get("assertion", "present")).strip().lower() not in _AUTO_CODE_BLOCKED
         and str(e.get("text", "")).strip()
@@ -958,13 +1122,18 @@ def _check_terminology_coding(
         if suggested_label:
             if (
                 tag_delta is not None
-                and tag_delta >= (_TAG_XVAL_AUTO_RECLASSIFY_SCORE - _TAG_XVAL_SAME_TAG_CEILING)
+                and tag_delta
+                >= (_TAG_XVAL_AUTO_RECLASSIFY_SCORE - _TAG_XVAL_SAME_TAG_CEILING)
                 and score is not None
                 and score >= _TAG_XVAL_AUTO_RECLASSIFY_SCORE
             ):
                 logger.info(
                     "Tag cross-validation: auto-reclassifying %r from %s -> %s (delta=%.2f, score=%.2f)",
-                    entity_text, entity_label, suggested_label, tag_delta, score,
+                    entity_text,
+                    entity_label,
+                    suggested_label,
+                    tag_delta,
+                    score,
                 )
                 ent["label"] = suggested_label
                 entity_label = suggested_label
@@ -973,13 +1142,22 @@ def _check_terminology_coding(
             else:
                 logger.info(
                     "Tag cross-validation: mismatch for %r — extracted=%s, suggested=%s (delta=%.2f)",
-                    entity_text, entity_label, suggested_label, tag_delta or 0.0,
+                    entity_text,
+                    entity_label,
+                    suggested_label,
+                    tag_delta or 0.0,
                 )
 
         if coded and score >= _CODING_SCORE_THRESHOLD and not suggested_label:
             continue
 
-        if _CODING_ALT_ENABLED and coded and score is not None and score >= _CODING_ALT_LOW and not suggested_label:
+        if (
+            _CODING_ALT_ENABLED
+            and coded
+            and score is not None
+            and score >= _CODING_ALT_LOW
+            and not suggested_label
+        ):
             alt = _try_alt_coding(entity_text, entity_label)
             if alt:
                 continue
@@ -1005,7 +1183,14 @@ def _check_terminology_coding(
 
         reviews.append(
             _build_review_item(
-                label_id, idx, entity_text, entity_label, coded, top, score, assertion,
+                label_id,
+                idx,
+                entity_text,
+                entity_label,
+                coded,
+                top,
+                score,
+                assertion,
                 decision_tier=tier_val,
                 tier_reason=tier_reason_val,
                 tier_decision=tier_decision_val,
@@ -1017,18 +1202,25 @@ def _check_terminology_coding(
     return reviews
 
 
-
-
 # ---------------------------------------------------------------------------
 # Per-label processing (runs inside the outer ThreadPoolExecutor)
 # ---------------------------------------------------------------------------
 
+
 class _LabelResult:
     """Carries everything needed to write one label's outcome to Neo4j."""
+
     __slots__ = (
-        "label_id", "updated_entities", "quality_score", "agreement",
-        "n_disagreements", "review_items", "first_aws_label", "first_azure_label",
-        "auto_resolved", "auto_resolve_method",
+        "label_id",
+        "updated_entities",
+        "quality_score",
+        "agreement",
+        "n_disagreements",
+        "review_items",
+        "first_aws_label",
+        "first_azure_label",
+        "auto_resolved",
+        "auto_resolve_method",
         "coding_reviews",
         "error",
     )
@@ -1153,7 +1345,31 @@ def _process_label(
                     entity["label"] = triage["resolved_label"]
                     auto_resolved_count += 1
                     auto_resolve_methods.append(str(triage["method"]))
-                    result.review_items.append({
+                    result.review_items.append(
+                        {
+                            "review_id": f"{label_id}:{idx}",
+                            "entity_index": idx,
+                            "entity_text": entity_text,
+                            "current_label": current_label,
+                            "model_a_label": aws_label,
+                            "model_a_rationale": aws_rationale[:500],
+                            "model_a_confidence": aws_confidence,
+                            "model_b_label": azure_label,
+                            "model_b_rationale": azure_rationale[:500],
+                            "model_b_confidence": azure_confidence,
+                            "auto_resolved": True,
+                            "resolved_label": triage["resolved_label"],
+                            "auto_resolve_method": triage["method"],
+                            "auto_resolve_confidence": _safe_float(
+                                triage.get("confidence")
+                            ),
+                            "auto_resolve_reason": str(triage.get("reason", ""))[:500],
+                        }
+                    )
+                    continue
+
+                result.review_items.append(
+                    {
                         "review_id": f"{label_id}:{idx}",
                         "entity_index": idx,
                         "entity_text": entity_text,
@@ -1164,27 +1380,9 @@ def _process_label(
                         "model_b_label": azure_label,
                         "model_b_rationale": azure_rationale[:500],
                         "model_b_confidence": azure_confidence,
-                        "auto_resolved": True,
-                        "resolved_label": triage["resolved_label"],
-                        "auto_resolve_method": triage["method"],
-                        "auto_resolve_confidence": _safe_float(triage.get("confidence")),
-                        "auto_resolve_reason": str(triage.get("reason", ""))[:500],
-                    })
-                    continue
-
-                result.review_items.append({
-                    "review_id": f"{label_id}:{idx}",
-                    "entity_index": idx,
-                    "entity_text": entity_text,
-                    "current_label": current_label,
-                    "model_a_label": aws_label,
-                    "model_a_rationale": aws_rationale[:500],
-                    "model_a_confidence": aws_confidence,
-                    "model_b_label": azure_label,
-                    "model_b_rationale": azure_rationale[:500],
-                    "model_b_confidence": azure_confidence,
-                    "auto_resolved": False,
-                })
+                        "auto_resolved": False,
+                    }
+                )
 
         # Optionally append high-confidence "missing" spans proposed by either model.
         new_candidates: list[dict[str, Any]] = []
@@ -1194,7 +1392,9 @@ def _process_label(
             if not bool(row.get("is_new")):
                 continue
             new_text = str(row.get("new_text") or row.get("text") or "").strip()
-            suggested = _normalise_label(str(row.get("suggested_label", "finding")), "finding")
+            suggested = _normalise_label(
+                str(row.get("suggested_label", "finding")), "finding"
+            )
             conf = _safe_float(row.get("confidence"))
             if not new_text or conf < 0.8:
                 continue
@@ -1233,13 +1433,17 @@ def _process_label(
             coding_mode=_CODING_MODE,
         )
 
-        coding_reviews = _check_terminology_coding(label_id, updated_entities, ignore_texts)
+        coding_reviews = _check_terminology_coding(
+            label_id, updated_entities, ignore_texts
+        )
         result.coding_reviews = coding_reviews
 
         total_entities = max(len(entities), 1)
         result.updated_entities = updated_entities
         result.n_disagreements = n_disagreements
-        result.quality_score = max(0.0, min(1.0, (total_entities - n_disagreements) / total_entities))
+        result.quality_score = max(
+            0.0, min(1.0, (total_entities - n_disagreements) / total_entities)
+        )
         result.agreement = n_disagreements == 0
         result.auto_resolved = auto_resolved_count
         if auto_resolve_methods:
@@ -1297,7 +1501,9 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
         if start < 0:
             start = offset
         end = start + len(stripped)
-        sentences.append({"sentence_id": f"s{idx}", "text": stripped, "start": start, "end": end})
+        sentences.append(
+            {"sentence_id": f"s{idx}", "text": stripped, "start": start, "end": end}
+        )
         offset = end
 
     if not sentences:
@@ -1305,6 +1511,7 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
 
     cfg = get_prompt_config("extraction", version=1)
     from libs.pipeline_graph.subgraphs._extractor import assemble_system_prompt
+
     extraction_prompt = assemble_system_prompt(
         instructions=str(cfg.get("systemPrompt") or ""),
         output_schema_json=cfg.get("outputSchema"),
@@ -1331,13 +1538,15 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
             break
         except Exception as exc:
             msg = str(exc).lower()
-            throttled = any(m in msg for m in ("429", "rate limit", "throttle", "too many requests"))
+            throttled = any(
+                m in msg for m in ("429", "rate limit", "throttle", "too many requests")
+            )
             if throttled:
                 _llm_limiter.on_throttle()
             if attempt >= _LLM_RETRIES:
                 logger.warning("Re-extraction LLM call failed: %s", exc)
                 return None
-            delay = _LLM_BACKOFF_BASE_S * (2 ** attempt)
+            delay = _LLM_BACKOFF_BASE_S * (2**attempt)
             if throttled:
                 delay *= 2.0
             time.sleep(delay)
@@ -1363,7 +1572,18 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
             continue
 
         assertion = str(row.get("assertion", "present")).strip().lower()
-        if assertion not in {"present", "absent", "refuted", "possible", "historical", "planned", "hypothetical", "family", "declined", "cancelled"}:
+        if assertion not in {
+            "present",
+            "absent",
+            "refuted",
+            "possible",
+            "historical",
+            "planned",
+            "hypothetical",
+            "family",
+            "declined",
+            "cancelled",
+        }:
             assertion = "present"
 
         tag = str(row.get("semantic_tag", "finding")).strip().lower()
@@ -1429,7 +1649,11 @@ def _run_re_extraction_phase(labels: list[dict[str, Any]]) -> int:
                 try:
                     entities = future.result()
                 except Exception:
-                    logger.warning("Re-extraction future failed for %s", label_id[:8], exc_info=True)
+                    logger.warning(
+                        "Re-extraction future failed for %s",
+                        label_id[:8],
+                        exc_info=True,
+                    )
                     errors += 1
                     continue
 
@@ -1447,23 +1671,35 @@ def _run_re_extraction_phase(labels: list[dict[str, Any]]) -> int:
                             entities_json=entities_json,
                         )
                 except Exception:
-                    logger.warning("Neo4j write failed during re-extraction for %s", label_id[:8], exc_info=True)
+                    logger.warning(
+                        "Neo4j write failed during re-extraction for %s",
+                        label_id[:8],
+                        exc_info=True,
+                    )
                     errors += 1
                     continue
 
                 extracted += 1
                 if extracted % 100 == 0:
-                    logger.info("Re-extraction progress: %d/%d extracted, %d errors", extracted, len(labels), errors)
+                    logger.info(
+                        "Re-extraction progress: %d/%d extracted, %d errors",
+                        extracted,
+                        len(labels),
+                        errors,
+                    )
     finally:
         write_client.close()
 
-    logger.info("Re-extraction phase complete: %d extracted, %d errors", extracted, errors)
+    logger.info(
+        "Re-extraction phase complete: %d extracted, %d errors", extracted, errors
+    )
     return extracted
 
 
 # ---------------------------------------------------------------------------
 # Neo4j write helper (per-result, uses client-level retry)
 # ---------------------------------------------------------------------------
+
 
 def _write_result_to_graph(client: "PatientGraphClient", result: _VerifyResult) -> None:
     """Persist verification output for a single label to Neo4j.
@@ -1541,6 +1777,7 @@ def _write_result_to_graph(client: "PatientGraphClient", result: _VerifyResult) 
 # Main verification entry point
 # ---------------------------------------------------------------------------
 
+
 def run_verification() -> None:
     """Run full label verification job with parallel LLM calls.
 
@@ -1564,7 +1801,9 @@ def run_verification() -> None:
     fetch_client = PatientGraphClient()
     try:
         with fetch_client.session() as session:
-            rules = parse_rules([dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)])
+            rules = parse_rules(
+                [dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)]
+            )
             ignore_texts = frozenset(
                 str(r["entity_text"])
                 for r in session.run(GET_CODING_IGNORE_RULES)
@@ -1575,14 +1814,17 @@ def run_verification() -> None:
             labels = [dict(r) for r in rows]
             if run_mode == "hitl_only":
                 reviewed = session.run(GET_HITL_REVIEWED_LABEL_IDS)
-                reviewed_ids = {str(r["label_id"]) for r in reviewed if r.get("label_id")}
-                labels = [row for row in labels if str(row.get("label_id", "")) in reviewed_ids]
+                reviewed_ids = {
+                    str(r["label_id"]) for r in reviewed if r.get("label_id")
+                }
+                labels = [
+                    row
+                    for row in labels
+                    if str(row.get("label_id", "")) in reviewed_ids
+                ]
             elif run_mode == "resume":
                 before = len(labels)
-                labels = [
-                    row for row in labels
-                    if not row.get("verified_at")
-                ]
+                labels = [row for row in labels if not row.get("verified_at")]
                 skipped = before - len(labels)
                 logger.info("Resume mode: skipping %d already-verified labels", skipped)
     finally:
@@ -1591,7 +1833,9 @@ def run_verification() -> None:
     _patch_state(total=len(labels))
     logger.info(
         "Label verification started: %d labels, max_workers=%d (~%d concurrent LLM requests)",
-        len(labels), _MAX_WORKERS, _MAX_WORKERS * 2,
+        len(labels),
+        _MAX_WORKERS,
+        _MAX_WORKERS * 2,
     )
 
     # ------------------------------------------------------------------
@@ -1610,7 +1854,10 @@ def run_verification() -> None:
             max_workers=_MAX_WORKERS,
             thread_name_prefix="label-verify",
         ) as pool:
-            futures = {pool.submit(_process_label, row, rules, ignore_texts): row for row in labels}
+            futures = {
+                pool.submit(_process_label, row, rules, ignore_texts): row
+                for row in labels
+            }
             last_progress_log_done = 0
 
             for future in concurrent.futures.as_completed(futures):
@@ -1643,15 +1890,24 @@ def run_verification() -> None:
                     agreements=(1 if result.agreement else 0),
                     disagreements=result.n_disagreements,
                     auto_resolved=result.auto_resolved,
-                    pending_review=sum(1 for item in result.review_items if not item.get("auto_resolved")),
+                    pending_review=sum(
+                        1
+                        for item in result.review_items
+                        if not item.get("auto_resolved")
+                    ),
                 )
                 state_now = get_job_state()
                 done_now = int(state_now.get("done") or 0)
                 total_now = int(state_now.get("total") or 0)
                 log_step = 25 if total_now <= 1000 else 100
-                if done_now >= total_now or done_now - last_progress_log_done >= log_step:
+                if (
+                    done_now >= total_now
+                    or done_now - last_progress_log_done >= log_step
+                ):
                     eta_seconds = state_now.get("eta_seconds")
-                    eta_str = f"{eta_seconds}s" if isinstance(eta_seconds, int) else "unknown"
+                    eta_str = (
+                        f"{eta_seconds}s" if isinstance(eta_seconds, int) else "unknown"
+                    )
                     logger.info(
                         "Verifier progress: %d/%d (%.2f%%), remaining=%d, throughput=%.2f items/min, eta=%s",
                         done_now,
@@ -1663,7 +1919,10 @@ def run_verification() -> None:
                     )
                     last_progress_log_done = done_now
 
-        _patch_state(status=("cancelled" if _stop_requested() else "done"), finished_at=time.time())
+        _patch_state(
+            status=("cancelled" if _stop_requested() else "done"),
+            finished_at=time.time(),
+        )
         logger.info("Label verification completed")
 
     except Exception as exc:

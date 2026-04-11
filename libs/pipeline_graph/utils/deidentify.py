@@ -25,9 +25,7 @@ _NUMERIC_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 
-_POSTCODE_RE = re.compile(
-    r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.IGNORECASE
-)
+_POSTCODE_RE = re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.IGNORECASE)
 
 _NHS_NUMBER_RE = re.compile(r"\b\d{3}\s?\d{3}\s?\d{4}\b")
 

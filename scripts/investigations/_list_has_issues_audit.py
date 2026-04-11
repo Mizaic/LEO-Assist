@@ -1,4 +1,5 @@
 """Print has_issues rows from an audit SQLite DB."""
+
 import json
 import sqlite3
 import sys

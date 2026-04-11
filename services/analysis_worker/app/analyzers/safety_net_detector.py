@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-
 _SAFETY_NET_TERMS = (
     "safety net",
     "symptoms persist",
@@ -49,7 +48,10 @@ def _check_referral_wait(data: dict[str, Any]) -> int | None:
             continue
         if milestone_type == "referral" and referral_date is None:
             referral_date = parsed
-        if milestone_type in {"investigation", "specialist_visit", "diagnosis"} and follow_up_date is None:
+        if (
+            milestone_type in {"investigation", "specialist_visit", "diagnosis"}
+            and follow_up_date is None
+        ):
             follow_up_date = parsed
     if referral_date is None or follow_up_date is None:
         return None

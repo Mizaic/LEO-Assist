@@ -94,7 +94,10 @@ STAGE_PATTERNS: list[tuple[str, str]] = [
     (r"\b(?:c|p|y|r)?t[0-4](?:[a-c])?\b", "tnm_t_component"),
     (r"\b(?:c|p|y|r)?n[0-3](?:[a-c])?\b", "tnm_n_component"),
     (r"\b(?:c|p|y|r)?m[0-1](?:[a-c])?\b", "tnm_m_component"),
-    (r"\b(?:c|p|y|r)?t[0-4](?:[a-c])?\s*(?:n[0-3](?:[a-c])?)\s*(?:m[0-1](?:[a-c])?)\b", "tnm_triplet"),
+    (
+        r"\b(?:c|p|y|r)?t[0-4](?:[a-c])?\s*(?:n[0-3](?:[a-c])?)\s*(?:m[0-1](?:[a-c])?)\b",
+        "tnm_triplet",
+    ),
     (r"\btnm(?:\s+stage)?\b", "tnm_system"),
     (r"\bann\s*arbor(?:\s*stage)?\b", "ann_arbor_system"),
     (r"\bbinet(?:\s*stage)?\b", "binet_system"),
@@ -105,8 +108,14 @@ STAGE_PATTERNS: list[tuple[str, str]] = [
     (r"\br-?iss(?:\s*stage)?\b", "riss_system"),
     (r"\broyal\s+marsden(?:\s*stage)?\b", "royal_marsden_system"),
     (r"\bwilms?(?:\s*tumo?u?r)?(?:\s*stage)?\b", "wilms_system"),
-    (r"\bstage\s*(?:0|i{1,3}|iv|v|vi|vii|viii|ix|x|[1-4][a-c]?|[1-3]s|l1|l2|ms|m)\b", "generic_stage_token"),
-    (r"\b(?:binet|ann\s*arbor|figo|chang|inrg|r-?iss|wilms?|royal\s+marsden|murphy)\s*(?:stage)?\s*(?:a|b|c|i{1,3}|iv|v|[1-4][a-c]?|l1|l2|ms|m)\b", "system_stage_pair"),
+    (
+        r"\bstage\s*(?:0|i{1,3}|iv|v|vi|vii|viii|ix|x|[1-4][a-c]?|[1-3]s|l1|l2|ms|m)\b",
+        "generic_stage_token",
+    ),
+    (
+        r"\b(?:binet|ann\s*arbor|figo|chang|inrg|r-?iss|wilms?|royal\s+marsden|murphy)\s*(?:stage)?\s*(?:a|b|c|i{1,3}|iv|v|[1-4][a-c]?|l1|l2|ms|m)\b",
+        "system_stage_pair",
+    ),
 ]
 
 
@@ -189,19 +198,24 @@ def main() -> None:
                     "patient_id": pid,
                     "episode_id": eid,
                     "diagnosis_date": diag,
-                    "window_start": (d - timedelta(days=WINDOW_BEFORE_DAYS)).isoformat(),
+                    "window_start": (
+                        d - timedelta(days=WINDOW_BEFORE_DAYS)
+                    ).isoformat(),
                     "window_end": (d + timedelta(days=WINDOW_AFTER_DAYS)).isoformat(),
                 }
             )
 
         all_encounters: list[dict[str, Any]] = []
         for i, w in enumerate(windows, 1):
-            rows = pg.run(
-                Q_WINDOW_ENCOUNTERS,
-                patient_id=w["patient_id"],
-                start_date=w["window_start"],
-                end_date=w["window_end"],
-            ) or []
+            rows = (
+                pg.run(
+                    Q_WINDOW_ENCOUNTERS,
+                    patient_id=w["patient_id"],
+                    start_date=w["window_start"],
+                    end_date=w["window_end"],
+                )
+                or []
+            )
             for e in rows:
                 all_encounters.append(
                     {
@@ -251,7 +265,7 @@ def main() -> None:
             for r in rows:
                 phrase = _norm(str(r.get("input_term") or ""))
                 hits = []
-                for h in (r.get("hits") or []):
+                for h in r.get("hits") or []:
                     cid = str(h.get("concept_id") or "")
                     if cid and cid in stage_concepts:
                         hits.append(
@@ -280,7 +294,9 @@ def main() -> None:
             }
             if phrase in exact_hits:
                 best = exact_hits[phrase][0]
-                covered.append({**item, "best_hit": best, "all_hits": exact_hits[phrase]})
+                covered.append(
+                    {**item, "best_hit": best, "all_hits": exact_hits[phrase]}
+                )
             else:
                 missed.append(item)
 

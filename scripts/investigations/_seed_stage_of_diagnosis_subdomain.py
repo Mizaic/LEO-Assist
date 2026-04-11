@@ -31,7 +31,9 @@ from libs.neo4j_client.client import KnowledgeGraphClient  # noqa: E402
 
 VS_ID = "ncda-stage-of-diagnosis"
 VS_NAME = "stage_of_diagnosis"
-MAPPING_PATH = ROOT / "configs" / "snomed" / "snomed_ncda_stage_of_diagnosis_mapping.json"
+MAPPING_PATH = (
+    ROOT / "configs" / "snomed" / "snomed_ncda_stage_of_diagnosis_mapping.json"
+)
 SNOMED_SYSTEM = "http://snomed.info/sct"
 
 

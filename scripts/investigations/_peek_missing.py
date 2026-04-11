@@ -1,4 +1,5 @@
 """Peek at the structure of missing/overcoded findings in the dry-run DB."""
+
 import sqlite3, json
 from pathlib import Path
 from collections import Counter
@@ -7,9 +8,7 @@ con = sqlite3.connect(
     "scripts/investigations/encounter_audit_dryrun/encounter_audit.db"
 )
 
-rows = con.execute(
-    "SELECT result_json FROM encounters WHERE status='done'"
-).fetchall()
+rows = con.execute("SELECT result_json FROM encounters WHERE status='done'").fetchall()
 
 missing_counter: Counter = Counter()
 overcoded_counter: Counter = Counter()

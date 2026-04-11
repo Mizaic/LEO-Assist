@@ -1,4 +1,5 @@
 """Show POSSIBLE_EXISTENCE ConText rules and check for 'likely' gaps."""
+
 import json
 from pathlib import Path
 
@@ -14,12 +15,24 @@ for r in possible:
 
 # Check for likely/probable
 literals = {r["literal"].lower() for r in rules}
-gaps = ["likely", "probably", "probable", "suspected", "suspect", "possibly",
-        "appears to", "seems to", "consistent with", "may have", "might have",
-        "possibly", "possible that"]
+gaps = [
+    "likely",
+    "probably",
+    "probable",
+    "suspected",
+    "suspect",
+    "possibly",
+    "appears to",
+    "seems to",
+    "consistent with",
+    "may have",
+    "might have",
+    "possibly",
+    "possible that",
+]
 print("\nMissing speculative markers:")
 for g in gaps:
     if g not in literals:
-        print(f"  MISSING: \"{g}\"")
+        print(f'  MISSING: "{g}"')
     else:
-        print(f"  present: \"{g}\"")
+        print(f'  present: "{g}"')

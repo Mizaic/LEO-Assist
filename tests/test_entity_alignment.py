@@ -1,4 +1,5 @@
 """Tests for multi-model entity alignment and consensus scoring."""
+
 from __future__ import annotations
 
 import pytest
@@ -87,37 +88,56 @@ class TestEncounterConfidence:
 
     def test_single_entity(self):
         e = AlignedEntity(
-            sentence_id="s0", snomed_concept_id="1", snomed_term="x",
-            text="x", lookup_term="x", semantic_tag="disorder",
-            assertion="present", consensus_confidence=0.8,
+            sentence_id="s0",
+            snomed_concept_id="1",
+            snomed_term="x",
+            text="x",
+            lookup_term="x",
+            semantic_tag="disorder",
+            assertion="present",
+            consensus_confidence=0.8,
         )
         assert _compute_encounter_confidence([e]) == 0.8
 
 
 class TestAlignExtractions:
     def test_simple_consensus(self):
-        model_a = {"terms": [
-            {
-                "sentence_id": "s0",
-                "text": "hypertension",
-                "lookup_term": "hypertension",
-                "semantic_tag": "disorder",
-                "assertion": "present",
-                "coding": {"snomed_concept_id": "38341003", "snomed_term": "Hypertension", "score": 0.95},
-            }
-        ]}
-        model_b = {"terms": [
-            {
-                "sentence_id": "s0",
-                "text": "HTN",
-                "lookup_term": "hypertension",
-                "semantic_tag": "disorder",
-                "assertion": "present",
-                "coding": {"snomed_concept_id": "38341003", "snomed_term": "Hypertension", "score": 0.92},
-            }
-        ]}
+        model_a = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "hypertension",
+                    "lookup_term": "hypertension",
+                    "semantic_tag": "disorder",
+                    "assertion": "present",
+                    "coding": {
+                        "snomed_concept_id": "38341003",
+                        "snomed_term": "Hypertension",
+                        "score": 0.95,
+                    },
+                }
+            ]
+        }
+        model_b = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "HTN",
+                    "lookup_term": "hypertension",
+                    "semantic_tag": "disorder",
+                    "assertion": "present",
+                    "coding": {
+                        "snomed_concept_id": "38341003",
+                        "snomed_term": "Hypertension",
+                        "score": 0.92,
+                    },
+                }
+            ]
+        }
 
-        result = align_extractions([model_a, model_b], encounter_id="enc1", model_ids=["haiku", "gpt5"])
+        result = align_extractions(
+            [model_a, model_b], encounter_id="enc1", model_ids=["haiku", "gpt5"]
+        )
         assert isinstance(result, ConsensusResult)
         assert len(result.aligned_entities) == 1
         entity = result.aligned_entities[0]
@@ -126,16 +146,18 @@ class TestAlignExtractions:
         assert entity.extraction_agreement == 1.0
 
     def test_disagreement(self):
-        model_a = {"terms": [
-            {
-                "sentence_id": "s0",
-                "text": "chest pain",
-                "lookup_term": "chest pain",
-                "semantic_tag": "finding",
-                "assertion": "present",
-                "coding": {"snomed_concept_id": "29857009", "score": 0.9},
-            }
-        ]}
+        model_a = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "chest pain",
+                    "lookup_term": "chest pain",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                    "coding": {"snomed_concept_id": "29857009", "score": 0.9},
+                }
+            ]
+        }
         model_b = {"terms": []}
 
         result = align_extractions([model_a, model_b], encounter_id="enc2")

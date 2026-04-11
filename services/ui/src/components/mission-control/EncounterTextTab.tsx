@@ -67,6 +67,23 @@ function getTagStyle(semanticTag: string | null | undefined): TagStyle {
   return TAG_STYLE_MAP[semanticTag.toLowerCase().trim()] ?? DEFAULT_TAG_STYLE;
 }
 
+function getLinkAssertion(link: CodedLink): string | null {
+  const explicit = (link.assertion ?? "").toString().trim().toLowerCase();
+  if (explicit) return explicit;
+  const context = (link.context ?? {}) as Record<string, unknown>;
+  const fromContext = (context.assertion ?? "").toString().trim().toLowerCase();
+  return fromContext || null;
+}
+
+function isNegatedOrAbsent(link: CodedLink): boolean {
+  const assertion = getLinkAssertion(link);
+  if (assertion === "absent" || assertion === "negated" || assertion === "refuted") {
+    return true;
+  }
+  const context = (link.context ?? {}) as Record<string, unknown>;
+  return context.negated === true;
+}
+
 // Tag filter pills shown above the chip list.
 // When 2+ distinct types exist, pills become clickable toggles.
 function TagLegend({
@@ -242,6 +259,8 @@ function CodesPanel({ enc, codingLoading, codingLinks, codingError }: CodesPanel
                 `Concept ID: ${link.concept_id}`,
               ];
               if (link.semantic_tag) tooltipRows.push(`Type: ${link.semantic_tag}`);
+              const assertion = getLinkAssertion(link);
+              if (assertion) tooltipRows.push(`Assertion: ${assertion}`);
               if (sentenceEvidence) tooltipRows.push(`Sentence: ${sentenceEvidence}`);
               if (link.evidence) tooltipRows.push(`Mention: ${link.evidence}`);
               if (
@@ -253,6 +272,7 @@ function CodesPanel({ enc, codingLoading, codingLinks, codingError }: CodesPanel
               if (typeof link.sentence_index === "number") {
                 tooltipRows.push(`Sentence index: ${link.sentence_index}`);
               }
+              const negatedOrAbsent = isNegatedOrAbsent(link);
               return (
                 <Tooltip
                   key={`${enc.encounter_id}-${link.concept_id}-${link.sentence_index ?? "na"}-${linkIndex}`}
@@ -268,7 +288,8 @@ function CodesPanel({ enc, codingLoading, codingLinks, codingError }: CodesPanel
                     variant="outlined"
                     label={`${link.term || "Unknown term"} (${link.concept_id})`}
                     sx={{
-                      borderColor: style.borderColor,
+                      borderColor: negatedOrAbsent ? "#dc2626" : style.borderColor,
+                      borderWidth: negatedOrAbsent ? 1.25 : 1,
                       bgcolor: style.bgcolor,
                       color: style.color,
                       "& .MuiChip-label": { color: style.color },

@@ -9,6 +9,7 @@ inferred_confidence.
 
 Design controls: DI-LEO-AI-088, R-LEO-AI-062, VT-LEO-AI-088
 """
+
 from __future__ import annotations
 
 import re
@@ -50,118 +51,123 @@ ENCOUNTER_EXCLUSIONS: list[str] = [
 
 POST_CANCER: list[tuple[str, str]] = [
     # Excision -- require cancer-relevant object so hand/eye surgery is excluded
-    (r"\bexcision of (?:lesion|tumour|tumor|cancer|carcinoma|melanoma|bcc|scc|lymph node|lump)\b",
-     "excision of lesion"),
-    (r"\bsurgical excision\b",        "surgical excision"),
-    (r"\bwide local excision\b",      "wide local excision"),
-    (r"\bmohs\b",                     "mohs surgery"),
-    (r"\bsurgical removal\b",         "surgical removal"),
+    (
+        r"\bexcision of (?:lesion|tumour|tumor|cancer|carcinoma|melanoma|bcc|scc|lymph node|lump)\b",
+        "excision of lesion",
+    ),
+    (r"\bsurgical excision\b", "surgical excision"),
+    (r"\bwide local excision\b", "wide local excision"),
+    (r"\bmohs\b", "mohs surgery"),
+    (r"\bsurgical removal\b", "surgical removal"),
     # Systemic / specialist cancer treatment
-    (r"\boncolog",                    "oncology"),
-    (r"\bradiother",                  "radiotherapy"),
-    (r"\bchemother",                  "chemotherapy"),
-    (r"\bimmunother",                 "immunotherapy"),
+    (r"\boncolog", "oncology"),
+    (r"\bradiother", "radiotherapy"),
+    (r"\bchemother", "chemotherapy"),
+    (r"\bimmunother", "immunotherapy"),
     # Lymph node workup (sentinel biopsy implies confirmed malignancy)
-    (r"\bsentinel node\b",            "sentinel node"),
-    (r"\blymph node biopsy\b",        "lymph node biopsy"),
-    (r"\baxillary node\b",            "axillary node"),
+    (r"\bsentinel node\b", "sentinel node"),
+    (r"\blymph node biopsy\b", "lymph node biopsy"),
+    (r"\baxillary node\b", "axillary node"),
     # Pathology / histology -- require result context (not just a request)
-    (r"\bpathology (?:result|report|confirm|specimen|showed|returned|received)\b",
-     "pathology result"),
-    (r"\bhistology (?:result|report|confirm|showed|returned|received)\b",
-     "histology result"),
-    (r"\bbiopsy (?:result|report|confirm|showed|returned|received)\b",
-     "biopsy result"),
-    (r"\bhistolog(?:ically)? confirm",   "histologically confirmed"),
+    (
+        r"\bpathology (?:result|report|confirm|specimen|showed|returned|received)\b",
+        "pathology result",
+    ),
+    (
+        r"\bhistology (?:result|report|confirm|showed|returned|received)\b",
+        "histology result",
+    ),
+    (r"\bbiopsy (?:result|report|confirm|showed|returned|received)\b", "biopsy result"),
+    (r"\bhistolog(?:ically)? confirm", "histologically confirmed"),
     # Staging / MDT
-    (r"\bstage [1-4ivi]+\b",          "staging"),
+    (r"\bstage [1-4ivi]+\b", "staging"),
     (r"\bmdt (?:meeting|referral|discussion)\b", "MDT referral"),
     # Urgent / high-priority recalls that imply active cancer management
-    (r"\bdo not cancel\b",            "urgent recall"),
-    (r"\bpriority [ab1]\b",           "high priority f/u"),
-    (r"\burgent.*follow",             "urgent follow-up"),
-    (r"\boncology referral\b",        "oncology referral"),
-    (r"\bcancer referral",            "cancer referral"),
+    (r"\bdo not cancel\b", "urgent recall"),
+    (r"\bpriority [ab1]\b", "high priority f/u"),
+    (r"\burgent.*follow", "urgent follow-up"),
+    (r"\boncology referral\b", "oncology referral"),
+    (r"\bcancer referral", "cancer referral"),
     # Confirmed cancer terminology
-    (r"\bcarcinoma\b",                "carcinoma"),
-    (r"\bmalign(?:ant)?\b",           "malignant"),
-    (r"\bmalignancy\b",               "malignancy"),
+    (r"\bcarcinoma\b", "carcinoma"),
+    (r"\bmalign(?:ant)?\b", "malignant"),
+    (r"\bmalignancy\b", "malignancy"),
     # Clinical trial enrolment implies confirmed malignancy
-    (r"\bcpms\b",                     "CPMS trial"),
-    (r"\bclinical trial",             "clinical trial"),
+    (r"\bcpms\b", "CPMS trial"),
+    (r"\bclinical trial", "clinical trial"),
 ]
 
 POST_BENIGN: list[tuple[str, str]] = [
     # ---- Topical / ablative treatments for pre-malignant skin lesions ----
-    (r"\befudix\b",                        "Efudix"),
-    (r"\bfluorouracil\b",                  "fluorouracil"),
-    (r"\b5[- ]?fu\b",                      "5-FU"),
-    (r"\bimiquimod\b",                     "imiquimod"),
-    (r"\bphotodynam",                      "photodynamic therapy"),
-    (r"\bcryother",                        "cryotherapy"),
-    (r"\bcurette\b",                       "curettage"),
+    (r"\befudix\b", "Efudix"),
+    (r"\bfluorouracil\b", "fluorouracil"),
+    (r"\b5[- ]?fu\b", "5-FU"),
+    (r"\bimiquimod\b", "imiquimod"),
+    (r"\bphotodynam", "photodynamic therapy"),
+    (r"\bcryother", "cryotherapy"),
+    (r"\bcurette\b", "curettage"),
     # ---- Benign skin conditions ----
-    (r"\bak\b",                            "AK"),
-    (r"\bactinic keratosis\b",             "actinic keratosis"),
-    (r"\bsolar keratosis\b",               "solar keratosis"),
-    (r"\bseborrhoeic\b",                   "seborrhoeic keratosis"),
+    (r"\bak\b", "AK"),
+    (r"\bactinic keratosis\b", "actinic keratosis"),
+    (r"\bsolar keratosis\b", "solar keratosis"),
+    (r"\bseborrhoeic\b", "seborrhoeic keratosis"),
     # ---- Explicit no-cancer language ----
-    (r"\bbenign\b",                        "benign"),
-    (r"\bnot malign",                      "not malignant"),
-    (r"\bnon[- ]?malign",                  "non-malignant"),
+    (r"\bbenign\b", "benign"),
+    (r"\bnot malign", "not malignant"),
+    (r"\bnon[- ]?malign", "non-malignant"),
     (r"\bno evidence of (?:cancer|malign)", "no cancer"),
     (r"\bno (?:cancer|malignancy) found\b", "no cancer found"),
-    (r"\bnot cancer\b",                    "not cancer"),
-    (r"\bno cancer\b",                     "no cancer"),
+    (r"\bnot cancer\b", "not cancer"),
+    (r"\bno cancer\b", "no cancer"),
     # ---- Pathway closure language ----
-    (r"\bno further follow[- ]?up\b",      "no further f/u"),
-    (r"\bdischarg",                        "discharged"),
-    (r"\broutine.*follow",                 "routine f/u"),
-    (r"\breassur",                         "reassured"),
+    (r"\bno further follow[- ]?up\b", "no further f/u"),
+    (r"\bdischarg", "discharged"),
+    (r"\broutine.*follow", "routine f/u"),
+    (r"\breassur", "reassured"),
     # ---- ENT / head and neck benign outcomes ----
-    (r"\bnormal larynx\b",                 "normal larynx"),
-    (r"\bnormal nasendoscopy\b",           "normal nasendoscopy"),
-    (r"\bnasendoscopy.*normal\b",          "normal nasendoscopy"),
-    (r"\blaryngeal.{0,20}normal\b",        "normal larynx"),
-    (r"\blaryngopharyngeal reflux\b",      "laryngopharyngeal reflux"),
-    (r"\blpr\b",                           "LPR"),
-    (r"\bchronic rhinitis\b",              "chronic rhinitis"),
-    (r"\boccipital lymph node\b",          "occipital lymph node"),
-    (r"\baphthous\b",                      "aphthous ulcer"),
-    (r"\bthyroid nodule\b",                "thyroid nodule"),
-    (r"\bbenign thyroid\b",                "benign thyroid"),
-    (r"\bthymic cyst\b",                   "thymic cyst"),
+    (r"\bnormal larynx\b", "normal larynx"),
+    (r"\bnormal nasendoscopy\b", "normal nasendoscopy"),
+    (r"\bnasendoscopy.*normal\b", "normal nasendoscopy"),
+    (r"\blaryngeal.{0,20}normal\b", "normal larynx"),
+    (r"\blaryngopharyngeal reflux\b", "laryngopharyngeal reflux"),
+    (r"\blpr\b", "LPR"),
+    (r"\bchronic rhinitis\b", "chronic rhinitis"),
+    (r"\boccipital lymph node\b", "occipital lymph node"),
+    (r"\baphthous\b", "aphthous ulcer"),
+    (r"\bthyroid nodule\b", "thyroid nodule"),
+    (r"\bbenign thyroid\b", "benign thyroid"),
+    (r"\bthymic cyst\b", "thymic cyst"),
     # ---- Respiratory / lung benign outcomes ----
-    (r"\bemphysema\b",                     "emphysema"),
-    (r"\bcopd\b",                          "COPD"),
-    (r"\bpleural effusion\b",              "pleural effusion"),
+    (r"\bemphysema\b", "emphysema"),
+    (r"\bcopd\b", "COPD"),
+    (r"\bpleural effusion\b", "pleural effusion"),
     (r"\bno (?:lung|pulmonary) (?:cancer|mass|tumou?r)\b", "no lung cancer"),
-    (r"\bno (?:lung|pulmonary) malign",    "no lung malignancy"),
+    (r"\bno (?:lung|pulmonary) malign", "no lung malignancy"),
     # ---- GI benign outcomes ----
-    (r"\bfibroadenoma\b",                  "fibroadenoma"),
-    (r"\birritabl\w+ bowel\b",             "IBS"),
-    (r"\bibs\b",                           "IBS"),
-    (r"\bpolyp\b",                         "polyp"),
-    (r"\bdiverticul",                      "diverticular disease"),
-    (r"\bhaemorrhoid",                     "haemorrhoids"),
-    (r"\bbarrett",                         "Barrett's oesophagus"),
+    (r"\bfibroadenoma\b", "fibroadenoma"),
+    (r"\birritabl\w+ bowel\b", "IBS"),
+    (r"\bibs\b", "IBS"),
+    (r"\bpolyp\b", "polyp"),
+    (r"\bdiverticul", "diverticular disease"),
+    (r"\bhaemorrhoid", "haemorrhoids"),
+    (r"\bbarrett", "Barrett's oesophagus"),
 ]
 
 # Confidence constants
-_CLEAR_BASE   = 0.60
-_CLEAR_STEP   = 0.05
-_CLEAR_CAP    = 0.95
-_WEAK_BASE    = 0.50
-_WEAK_STEP    = 0.05
-_WEAK_CAP     = 0.85
+_CLEAR_BASE = 0.60
+_CLEAR_STEP = 0.05
+_CLEAR_CAP = 0.95
+_WEAK_BASE = 0.50
+_WEAK_STEP = 0.05
+_WEAK_CAP = 0.85
 
 
 @dataclass
 class InferenceResult:
-    verdict: str                          # INFERRED_CANCER | INFERRED_BENIGN | *_WEAK | HITL_REQUIRED
-    inferred_outcome: str | None          # 'cancer' | 'benign' | None
-    inferred_outcome_date: str | None     # ISO date of earliest triggering encounter
-    inferred_confidence: float | None     # 0.0-0.95 or None for HITL_REQUIRED
+    verdict: str  # INFERRED_CANCER | INFERRED_BENIGN | *_WEAK | HITL_REQUIRED
+    inferred_outcome: str | None  # 'cancer' | 'benign' | None
+    inferred_outcome_date: str | None  # ISO date of earliest triggering encounter
+    inferred_confidence: float | None  # 0.0-0.95 or None for HITL_REQUIRED
     inference_signals: list[str] = field(default_factory=list)
 
 
@@ -199,7 +205,7 @@ def score_post_specialist_encounters(
 
     Returns an InferenceResult.
     """
-    cancer_hits: list[tuple[str, str]] = []   # (date, label)
+    cancer_hits: list[tuple[str, str]] = []  # (date, label)
     benign_hits: list[tuple[str, str]] = []
 
     for row in phase2_rows:

@@ -1,4 +1,5 @@
 """Diagnose why the encounter query returns no results."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -6,9 +7,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -49,7 +52,9 @@ r5 = client.run(
 )
 print(f"\nEpisodeOfCare nodes for {SAMPLE_PID}:")
 for row in r5:
-    print("  ref_date:", repr(row["ep.referral_date"]), "  site:", row["ep.cancer_type"])
+    print(
+        "  ref_date:", repr(row["ep.referral_date"]), "  site:", row["ep.cancer_type"]
+    )
 
 # Try querying encounters by patient_id on Encounter (some schemas store pid on encounter)
 r6 = client.run(
@@ -70,9 +75,7 @@ r7 = client.run(
 print(f"\nEncounters (int patient id) for {SAMPLE_PID}:", r7[0]["n"] if r7 else "error")
 
 # Date type check
-r8 = client.run(
-    "MATCH (e:Encounter) RETURN e.date LIMIT 1"
-)
+r8 = client.run("MATCH (e:Encounter) RETURN e.date LIMIT 1")
 if r8:
     d = r8[0]["e.date"]
     print("\nSample e.date:", repr(d), type(d).__name__)

@@ -19,6 +19,7 @@ Outputs (exports/ner/all_domains/):
     qa_report.json                     — full QA metrics
     summary.json                       — updated aggregate stats
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,13 +48,16 @@ logger = logging.getLogger(__name__)
 _deid_validator = DeIdValidator()
 
 DEFAULT_SEED_PATH = ROOT / "exports" / "ner" / "training" / "exclusion_domain_v1.jsonl"
-DEFAULT_INPUT = ROOT / "exports" / "ner" / "all_domains" / "domain_entities_merged.jsonl"
+DEFAULT_INPUT = (
+    ROOT / "exports" / "ner" / "all_domains" / "domain_entities_merged.jsonl"
+)
 DEFAULT_OUT_DIR = ROOT / "exports" / "ner" / "all_domains"
 
 
 # ---------------------------------------------------------------------------
 # Record validation
 # ---------------------------------------------------------------------------
+
 
 def _validate_canonical_record(record: dict[str, Any]) -> list[str]:
     """Re-validate a record already in canonical schema; return rejection reasons."""
@@ -75,7 +79,7 @@ def _validate_canonical_record(record: dict[str, Any]) -> list[str]:
         if start is None or end is None:
             reasons.append(f"entity[{idx}]_missing_offset")
             continue
-        span = text[int(start):int(end)]
+        span = text[int(start) : int(end)]
         if span != ent_text:
             reasons.append(f"entity[{idx}]_offset_mismatch")
 
@@ -85,6 +89,7 @@ def _validate_canonical_record(record: dict[str, Any]) -> list[str]:
 # ---------------------------------------------------------------------------
 # Main QA run
 # ---------------------------------------------------------------------------
+
 
 def run(
     input_path: Path,
@@ -165,7 +170,9 @@ def run(
                 clean_mined += 1
                 clean_records.append(rec)
     else:
-        logger.warning("Merged input not found: %s — proceeding with seed-only corpus", input_path)
+        logger.warning(
+            "Merged input not found: %s — proceeding with seed-only corpus", input_path
+        )
 
     # ---- Pass 2: seed ingestion ----
     seed_audit: dict[str, Any] = {}
@@ -182,7 +189,9 @@ def run(
         # Write seed rejections into rejected output
         with rejected_path.open("a", encoding="utf-8") as rej_f:
             for r in seed_result.rejected_records:
-                rej_f.write(json.dumps({"source": "seed", **r}, ensure_ascii=False) + "\n")
+                rej_f.write(
+                    json.dumps({"source": "seed", **r}, ensure_ascii=False) + "\n"
+                )
 
         logger.info(
             "Seed integration: in=%d kept=%d deduped=%d rejected=%d",
@@ -203,7 +212,9 @@ def run(
             dm = ent.get("domain")
             if dm:
                 domain_entity_counts[dm] += 1
-        domains_in_rec = {e.get("domain") for e in (rec.get("entities") or []) if e.get("domain")}
+        domains_in_rec = {
+            e.get("domain") for e in (rec.get("entities") or []) if e.get("domain")
+        }
         for dm in domains_in_rec:
             per_domain_records[dm].append(rec)
             domain_record_counts[dm] += 1
@@ -256,7 +267,9 @@ def run(
             ],
         },
     }
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     # ---- Update summary.json ----
     existing_summary: dict[str, Any] = {}
@@ -278,7 +291,9 @@ def run(
             }
         }
     )
-    summary_path.write_text(json.dumps(existing_summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(existing_summary, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     logger.info(
         "QA complete: mined_total=%d clean=%d rejected=%d seed_kept=%d final=%d",
@@ -294,6 +309,7 @@ def run(
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)

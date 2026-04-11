@@ -1,12 +1,15 @@
 """Validate the quality of the gold training data after full verification."""
+
 import sys, os, json, warnings
 from pathlib import Path
 from collections import Counter
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 warnings.filterwarnings("ignore")
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 from neo4j import GraphDatabase
@@ -129,7 +132,9 @@ with driver.session() as s:
             assertion = e.get("assertion", "present")
             snomed = e.get("snomed_concept_id", "?")
             snomed_term = e.get("snomed_term", "?")
-            print(f"    - [{e.get('label','?')}] {e.get('text','?')} | {assertion} | {snomed} | {snomed_term}")
+            print(
+                f"    - [{e.get('label','?')}] {e.get('text','?')} | {assertion} | {snomed} | {snomed_term}"
+            )
 
     # 7. Sample disorder entities
     section("7. SAMPLE: DISORDER ENTITY VERDICTS (first 15)")

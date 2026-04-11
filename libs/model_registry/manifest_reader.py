@@ -43,6 +43,7 @@ _REQUIRED_LABEL_VERSION = os.getenv("MODEL_REQUIRED_LABEL_VERSION", "1.0")
 @dataclass
 class ManifestSchema:
     """Parsed training manifest."""
+
     schema_version: str
     deid_version: str
     label_mapping_version: str
@@ -69,6 +70,7 @@ class ManifestSchema:
 @dataclass
 class CompatibilityResult:
     """Result of the compatibility gate check."""
+
     passed: bool
     failures: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -101,7 +103,13 @@ def read_manifest(manifest_path: str | Path) -> ManifestSchema:
     data = json.loads(p.read_text(encoding="utf-8"))
     m = ManifestSchema.from_dict(data)
     missing = [
-        f for f in ("schema_version", "deid_version", "label_mapping_version", "dataset_version")
+        f
+        for f in (
+            "schema_version",
+            "deid_version",
+            "label_mapping_version",
+            "dataset_version",
+        )
         if not getattr(m, f)
     ]
     if missing:
@@ -163,10 +171,19 @@ class CompatibilityGate:
 
         # Check versions match between manifest and model artifact metadata
         checks = [
-            ("schema_version", manifest.schema_version, model_schema_version, self._schema),
+            (
+                "schema_version",
+                manifest.schema_version,
+                model_schema_version,
+                self._schema,
+            ),
             ("deid_version", manifest.deid_version, model_deid_version, self._deid),
-            ("label_mapping_version", manifest.label_mapping_version,
-             model_label_mapping_version, self._label),
+            (
+                "label_mapping_version",
+                manifest.label_mapping_version,
+                model_label_mapping_version,
+                self._label,
+            ),
         ]
         for name, manifest_val, model_val, required_val in checks:
             if manifest_val != model_val:
@@ -193,8 +210,10 @@ class CompatibilityGate:
         if result.passed:
             logger.info(
                 "CompatibilityGate: PASSED (schema=%s deid=%s labels=%s dataset=%s)",
-                manifest.schema_version, manifest.deid_version,
-                manifest.label_mapping_version, manifest.dataset_version,
+                manifest.schema_version,
+                manifest.deid_version,
+                manifest.label_mapping_version,
+                manifest.dataset_version,
             )
         else:
             logger.error(

@@ -1,10 +1,19 @@
 """Deeper audit - investigate score 1.30 anomalies and raw vs valid file differences."""
+
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-VALID_FILE = ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps_valid.json"
-RAW_FILE = ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps.json"
+VALID_FILE = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
+    / "surface_form_gaps_valid.json"
+)
+RAW_FILE = (
+    ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps.json"
+)
 
 valid = json.loads(VALID_FILE.read_text())
 raw = json.loads(RAW_FILE.read_text())
@@ -37,6 +46,7 @@ print(f"\nRaw file: resolver_top_concept_id present in {has_rtci_raw}/{len(raw)}
 above_thresh = [item for item in valid if item.get("resolver_top_score", 0) >= 0.75]
 print(f"\n=== Entries above 0.75 threshold: {len(above_thresh)} ===")
 
+
 # Of those, how many look like sentences (bad surface forms)?
 def is_sentence(text):
     if len(text) > 80:
@@ -44,12 +54,26 @@ def is_sentence(text):
     words = text.split()
     if len(words) >= 7:
         return True
-    starters = ("patient", "reports", "experiencing", "diagnosed",
-                 "ongoing", "history of", "an ", "a ct", "a ultra")
+    starters = (
+        "patient",
+        "reports",
+        "experiencing",
+        "diagnosed",
+        "ongoing",
+        "history of",
+        "an ",
+        "a ct",
+        "a ultra",
+    )
     return any(text.lower().startswith(p) for p in starters)
 
-sentences_above = [item for item in above_thresh if is_sentence(str(item.get("evidence", "")))]
-phrases_above = [item for item in above_thresh if not is_sentence(str(item.get("evidence", "")))]
+
+sentences_above = [
+    item for item in above_thresh if is_sentence(str(item.get("evidence", "")))
+]
+phrases_above = [
+    item for item in above_thresh if not is_sentence(str(item.get("evidence", "")))
+]
 print(f"  Sentences (bad surface forms): {len(sentences_above)}")
 print(f"  Short phrases (usable):        {len(phrases_above)}")
 
@@ -64,5 +88,7 @@ for item in phrases_above[:10]:
     print(f"  [{score:.2f}] {evidence!r}")
     print(f"         expected: {expected!r}")
     print(f"         resolver: {top_result!r}")
-    print(f"         resolver == expected? {expected.split('(')[0].strip().lower() in top_result.lower()}")
+    print(
+        f"         resolver == expected? {expected.split('(')[0].strip().lower() in top_result.lower()}"
+    )
     print()

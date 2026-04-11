@@ -12,7 +12,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 APPROVED_TLS_VERSIONS = {"TLSv1.2", "TLSv1.3"}
 REJECTED_TLS_VERSIONS = {"TLSv1.0", "TLSv1.1", "SSLv3"}
 REQUIRED_ENCRYPTION = "AES256"
@@ -21,6 +20,7 @@ REQUIRED_ENCRYPTION = "AES256"
 # ---------------------------------------------------------------------------
 # VT-030-TC-001: TLS 1.2+ on all service endpoints
 # ---------------------------------------------------------------------------
+
 
 class TestTlsVersionPolicy:
 
@@ -47,6 +47,7 @@ class TestTlsVersionPolicy:
 # VT-030-TC-002: AES-256 encryption at rest
 # ---------------------------------------------------------------------------
 
+
 class TestEncryptionAtRest:
 
     def test_required_encryption_standard_is_aes256(self):
@@ -66,6 +67,7 @@ class TestEncryptionAtRest:
 # ---------------------------------------------------------------------------
 # VT-030-TC-003: Key Vault integration
 # ---------------------------------------------------------------------------
+
 
 class TestKeyVaultConfig:
 

@@ -1,10 +1,14 @@
 """Test gallbladder terms specifically."""
+
 import re, httpx
 
 API = "http://localhost:8001"
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 
-def norm(t): return " ".join(TOKEN_RE.findall(t.lower()))
+
+def norm(t):
+    return " ".join(TOKEN_RE.findall(t.lower()))
+
 
 terms = [
     "upper abdominal mass consistent with enlarged gall bladder",
@@ -33,5 +37,7 @@ for term, results in data.get("results", {}).items():
     print(f"[{flag}] {term!r}")
     for r in results[:3]:
         m = " <-- PINNED" if r.get("snomed_concept_id") in GB else ""
-        print(f"       {r.get('snomed_concept_id')} | {(r.get('snomed_term') or '?')[:55]} "
-              f"score={r.get('score',0):.3f}{m}")
+        print(
+            f"       {r.get('snomed_concept_id')} | {(r.get('snomed_term') or '?')[:55]} "
+            f"score={r.get('score',0):.3f}{m}"
+        )

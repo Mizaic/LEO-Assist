@@ -60,9 +60,11 @@ class PipelineService:
         """
         try:
             from libs.prompts.few_shot_selector import warm_shared_embedder
+
             warm_shared_embedder()
         except Exception:
             import logging
+
             logging.getLogger(__name__).warning(
                 "Embedder pre-warm failed (non-fatal) — model will load on first pipeline run",
                 exc_info=True,

@@ -71,8 +71,7 @@ _INJECTION_RE = re.compile(
     # Common role labels used to hijack turn structure
     r"|^(Human|Assistant|AI|Bot|System)\s*:"
     # Delimiter injection attempts
-    r"|---+\s*(END|STOP|IGNORE|NEW INSTRUCTION)"
-    r")",
+    r"|---+\s*(END|STOP|IGNORE|NEW INSTRUCTION)" r")",
     re.IGNORECASE | re.MULTILINE,
 )
 

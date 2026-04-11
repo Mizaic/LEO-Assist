@@ -18,6 +18,7 @@ Usage examples
   # Custom window (days after referral to search)
   python scripts/test_exclusion_detector.py --patients 4245896566 --window 150
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,6 +34,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "services" / "api"))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 logging.basicConfig(
@@ -50,7 +52,6 @@ from libs.exclusion_detector.detector import (
     detect_exclusion,
     fetch_referrals,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -152,10 +153,13 @@ def _print_result(result: ExclusionResult) -> None:
     print(f"  Patient: {result.patient_id}")
     print(f"  Referral: {result.referral_cancer_type} ({result.referral_date})")
     print(f"  Window: {result.referral_date} -> {result.window_end}")
-    print(f"  Encounters scanned: {result.encounters_scanned}"
-          f" (skipped: {result.encounters_skipped})")
-    print(f"  OUTCOME: {tag}  {result.outcome}"
-          f"  (confidence: {result.confidence:.2f})")
+    print(
+        f"  Encounters scanned: {result.encounters_scanned}"
+        f" (skipped: {result.encounters_skipped})"
+    )
+    print(
+        f"  OUTCOME: {tag}  {result.outcome}" f"  (confidence: {result.confidence:.2f})"
+    )
     print(f"{'='*72}")
 
     if result.encounter_outcomes:
@@ -163,7 +167,8 @@ def _print_result(result: ExclusionResult) -> None:
         for eo in result.encounter_outcomes:
             eo_tag = _OUTCOME_EMOJI.get(eo.outcome, "")
             agreement = (
-                "agreement" if eo.detection_method == "llm_consensus"
+                "agreement"
+                if eo.detection_method == "llm_consensus"
                 else eo.detection_method
             )
             print(f"    {eo_tag} {eo.encounter_date}  [{agreement}]")
@@ -172,14 +177,18 @@ def _print_result(result: ExclusionResult) -> None:
             if eo.reasoning:
                 print(f"       Reason:   {eo.reasoning[:120]}")
             if eo.detection_method.startswith("llm"):
-                print(f"       Models:   A={eo.model_a_outcome}"
-                      f"  B={eo.model_b_outcome}")
+                print(
+                    f"       Models:   A={eo.model_a_outcome}"
+                    f"  B={eo.model_b_outcome}"
+                )
 
     if result.pending_letters:
         print(f"\n  Pending letters ({len(result.pending_letters)}):")
         for pl in result.pending_letters:
-            print(f"    [{pl.detection_method}] {pl.encounter_date}"
-                  f"  {pl.text_excerpt[:100]}")
+            print(
+                f"    [{pl.detection_method}] {pl.encounter_date}"
+                f"  {pl.text_excerpt[:100]}"
+            )
 
     if not result.encounter_outcomes and not result.pending_letters:
         print("\n  No clinically relevant encounters found in window.")
@@ -196,12 +205,14 @@ def _print_summary(results: list[ExclusionResult]) -> None:
         tag = _OUTCOME_EMOJI.get(outcome, "")
         print(f"    {tag}  {outcome}: {count}")
     total_llm = sum(
-        1 for r in results
+        1
+        for r in results
         for eo in r.encounter_outcomes
         if eo.detection_method.startswith("llm")
     )
     total_rule = sum(
-        1 for r in results
+        1
+        for r in results
         for eo in r.encounter_outcomes
         if eo.detection_method == "rule"
     )
@@ -212,6 +223,7 @@ def _print_summary(results: list[ExclusionResult]) -> None:
 # ---------------------------------------------------------------------------
 # Rules-only mode (no LLM calls)
 # ---------------------------------------------------------------------------
+
 
 def _detect_exclusion_rules_only(
     patient_id: str,
@@ -238,7 +250,10 @@ def _detect_exclusion_rules_only(
     )
 
     encounters, window_end = _fetch_post_referral_encounters(
-        patient_client, patient_id, referral_date, window_days,
+        patient_client,
+        patient_id,
+        referral_date,
+        window_days,
     )
 
     result = ExclusionResult(
@@ -260,28 +275,29 @@ def _detect_exclusion_rules_only(
             result.encounters_skipped += 1
             continue
 
-        is_letter = (
-            content_type == "document_transfer"
-            or _is_cancer_letter(text)
-        )
+        is_letter = content_type == "document_transfer" or _is_cancer_letter(text)
         has_cancer_kw = _is_cancer_relevant(text)
 
         if is_letter and not has_cancer_kw:
-            result.pending_letters.append(PendingLetter(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                text_excerpt=text[:200],
-                detection_method="rule",
-            ))
-            result.encounter_outcomes.append(EncounterOutcome(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                outcome="pending_letter",
-                confidence=0.6,
-                evidence_text=text[:100],
-                reasoning="Cancer-specialty letter detected by rule",
-                detection_method="rule",
-            ))
+            result.pending_letters.append(
+                PendingLetter(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    text_excerpt=text[:200],
+                    detection_method="rule",
+                )
+            )
+            result.encounter_outcomes.append(
+                EncounterOutcome(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    outcome="pending_letter",
+                    confidence=0.6,
+                    evidence_text=text[:100],
+                    reasoning="Cancer-specialty letter detected by rule",
+                    detection_method="rule",
+                )
+            )
             continue
 
         if not has_cancer_kw and not is_letter:
@@ -289,61 +305,73 @@ def _detect_exclusion_rules_only(
             continue
 
         if _has_keywords(text, EXCLUSION_KEYWORDS):
-            result.encounter_outcomes.append(EncounterOutcome(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                outcome="cancer_excluded",
-                confidence=0.6,
-                evidence_text=text[:100],
-                reasoning="Strong exclusion keyword (needs LLM verification)",
-                detection_method="rule",
-            ))
+            result.encounter_outcomes.append(
+                EncounterOutcome(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    outcome="cancer_excluded",
+                    confidence=0.6,
+                    evidence_text=text[:100],
+                    reasoning="Strong exclusion keyword (needs LLM verification)",
+                    detection_method="rule",
+                )
+            )
         elif _has_keywords(text, DIAGNOSIS_KEYWORDS):
-            result.encounter_outcomes.append(EncounterOutcome(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                outcome="cancer_confirmed",
-                confidence=0.6,
-                evidence_text=text[:100],
-                reasoning="Cancer diagnosis keyword (needs LLM verification)",
-                detection_method="rule",
-            ))
+            result.encounter_outcomes.append(
+                EncounterOutcome(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    outcome="cancer_confirmed",
+                    confidence=0.6,
+                    evidence_text=text[:100],
+                    reasoning="Cancer diagnosis keyword (needs LLM verification)",
+                    detection_method="rule",
+                )
+            )
         elif _has_keywords(text, INVESTIGATION_KEYWORDS):
-            result.encounter_outcomes.append(EncounterOutcome(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                outcome="still_investigating",
-                confidence=0.4,
-                evidence_text=text[:100],
-                reasoning="Investigation keyword match (needs LLM verification)",
-                detection_method="rule",
-            ))
+            result.encounter_outcomes.append(
+                EncounterOutcome(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    outcome="still_investigating",
+                    confidence=0.4,
+                    evidence_text=text[:100],
+                    reasoning="Investigation keyword match (needs LLM verification)",
+                    detection_method="rule",
+                )
+            )
         elif _has_keywords(text, SOFT_EXCLUSION_KEYWORDS):
-            result.encounter_outcomes.append(EncounterOutcome(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                outcome="cancer_excluded",
-                confidence=0.3,
-                evidence_text=text[:100],
-                reasoning="Soft exclusion keyword (needs LLM verification)",
-                detection_method="rule",
-            ))
+            result.encounter_outcomes.append(
+                EncounterOutcome(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    outcome="cancer_excluded",
+                    confidence=0.3,
+                    evidence_text=text[:100],
+                    reasoning="Soft exclusion keyword (needs LLM verification)",
+                    detection_method="rule",
+                )
+            )
         elif is_letter:
-            result.encounter_outcomes.append(EncounterOutcome(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                outcome="pending_letter",
-                confidence=0.5,
-                evidence_text=text[:100],
-                reasoning="Cancer-specialty letter with keywords",
-                detection_method="rule",
-            ))
-            result.pending_letters.append(PendingLetter(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                text_excerpt=text[:200],
-                detection_method="rule",
-            ))
+            result.encounter_outcomes.append(
+                EncounterOutcome(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    outcome="pending_letter",
+                    confidence=0.5,
+                    evidence_text=text[:100],
+                    reasoning="Cancer-specialty letter with keywords",
+                    detection_method="rule",
+                )
+            )
+            result.pending_letters.append(
+                PendingLetter(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    text_excerpt=text[:200],
+                    detection_method="rule",
+                )
+            )
         else:
             result.encounters_skipped += 1
 
@@ -355,28 +383,38 @@ def _detect_exclusion_rules_only(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Test exclusion detection against Neo4j patient data",
     )
     parser.add_argument(
-        "--patients", type=str, default="",
+        "--patients",
+        type=str,
+        default="",
         help="Comma-separated patient IDs (overrides --limit)",
     )
     parser.add_argument(
-        "--limit", type=int, default=5,
+        "--limit",
+        type=int,
+        default=5,
         help="Number of patients to process (default: 5)",
     )
     parser.add_argument(
-        "--window", type=int, default=100,
+        "--window",
+        type=int,
+        default=100,
         help="Days after referral to search (default: 100)",
     )
     parser.add_argument(
-        "--rules-only", action="store_true",
+        "--rules-only",
+        action="store_true",
         help="Skip LLM calls, use rule-based detection only",
     )
     parser.add_argument(
-        "--json-out", type=str, default="",
+        "--json-out",
+        type=str,
+        default="",
         help="Optional file path to write JSON results",
     )
     args = parser.parse_args()
@@ -392,11 +430,13 @@ def main() -> None:
                 refs = find_referrals_for_patient(client, pid)
                 if refs:
                     ref = refs[0]
-                    targets.append({
-                        "patient_id": pid,
-                        "referral_date": ref["encounter_date"],
-                        "referral_text": ref["referral_text"],
-                    })
+                    targets.append(
+                        {
+                            "patient_id": pid,
+                            "referral_date": ref["encounter_date"],
+                            "referral_text": ref["referral_text"],
+                        }
+                    )
                 else:
                     logger.warning("Patient %s has no referral text — skipping", pid)
         else:
@@ -416,16 +456,29 @@ def main() -> None:
 
             logger.info(
                 "[%d/%d] Patient %s — %s referred %s (window=%d days)",
-                i, len(targets), pid, cancer_type, ref_date, args.window,
+                i,
+                len(targets),
+                pid,
+                cancer_type,
+                ref_date,
+                args.window,
             )
 
             if args.rules_only:
                 result = _detect_exclusion_rules_only(
-                    pid, ref_date, cancer_type, client, args.window,
+                    pid,
+                    ref_date,
+                    cancer_type,
+                    client,
+                    args.window,
                 )
             else:
                 result = detect_exclusion(
-                    pid, ref_date, cancer_type, client, args.window,
+                    pid,
+                    ref_date,
+                    cancer_type,
+                    client,
+                    args.window,
                 )
 
             results.append(result)
@@ -433,7 +486,9 @@ def main() -> None:
 
         _print_summary(results)
         elapsed = time.time() - t0
-        logger.info("Completed in %.1fs (%.1fs per patient)", elapsed, elapsed / len(targets))
+        logger.info(
+            "Completed in %.1fs (%.1fs per patient)", elapsed, elapsed / len(targets)
+        )
 
         if args.json_out:
             _write_json(results, args.json_out)
@@ -445,6 +500,7 @@ def main() -> None:
 
 def _write_json(results: list[ExclusionResult], path: str) -> None:
     import dataclasses
+
     data = [dataclasses.asdict(r) for r in results]
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=str)

@@ -6,6 +6,7 @@ One LangGraph StateGraph for both SNOMED coding and audit:
 Mode is derived from coded_entities: empty = code mode, populated = audit mode.
 Tier selects the Bedrock model: big (Sonnet) for audit, small (Haiku) for runtime.
 """
+
 from __future__ import annotations
 
 import json
@@ -27,10 +28,18 @@ _MAX_TOKENS = {"big": 200_000, "small": 50_000}
 
 # Semantic tags that indicate the terminology server has returned a wrong/
 # unexpected concept for what is expected to be a clinical concept.
-_ORGANISM_TAGS = frozenset({
-    "organism", "virus", "bacterium", "fungus", "parasite",
-    "prion", "archaea", "viroid",
-})
+_ORGANISM_TAGS = frozenset(
+    {
+        "organism",
+        "virus",
+        "bacterium",
+        "fungus",
+        "parasite",
+        "prion",
+        "archaea",
+        "viroid",
+    }
+)
 # Minimum confidence for auto-accepting a no-findings verdict without human review.
 # Override with env var CODING_AGENT_CONF_THRESHOLD (float 0-1).
 _CONF_AUTO_ACCEPT = float(os.getenv("CODING_AGENT_CONF_THRESHOLD", "0.75"))
@@ -43,8 +52,8 @@ class CodingAgentState(TypedDict, total=False):
     patient_id: str
     encounter_text: str
     coded_entities: list[dict]
-    mode: str               # "audit" | "code"
-    tier: str               # "big" | "small"
+    mode: str  # "audit" | "code"
+    tier: str  # "big" | "small"
     apply: bool
     messages: list[dict]
     verdict: dict | None
@@ -187,8 +196,11 @@ def _tool_get_problems(inp: dict) -> dict:
         return {
             "ok": True,
             "problems": [
-                {"concept_id": r.get("concept_id"), "term": r.get("term"),
-                 "semantic_tag": r.get("semantic_tag")}
+                {
+                    "concept_id": r.get("concept_id"),
+                    "term": r.get("term"),
+                    "semantic_tag": r.get("semantic_tag"),
+                }
                 for r in rows
             ],
         }
@@ -218,7 +230,9 @@ def _tool_get_descendants(inp: dict) -> dict:
     tag = str(inp.get("semantic_tag") or "").strip() or None
     try:
         client = TerminologyClient(timeout=8.0, max_retries=0)
-        results = client.get_descendants(cid, depth=depth, limit=limit, semantic_tag=tag)
+        results = client.get_descendants(
+            cid, depth=depth, limit=limit, semantic_tag=tag
+        )
         return {
             "ok": True,
             "concept_id": cid,
@@ -256,125 +270,197 @@ _TOOL_DISPATCH: dict[str, Any] = {
 
 _TOOL_CONFIG: dict[str, Any] = {
     "tools": [
-        {"toolSpec": {
-            "name": "search_snomed",
-            "description": "Search SNOMED CT for a clinical term. Returns up to 10 candidates.",
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "2-5 word clinical term"},
-                    "semantic_tag": {"type": "string", "description": "Expected SNOMED semantic tag (optional)"},
+        {
+            "toolSpec": {
+                "name": "search_snomed",
+                "description": "Search SNOMED CT for a clinical term. Returns up to 10 candidates.",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "2-5 word clinical term",
+                            },
+                            "semantic_tag": {
+                                "type": "string",
+                                "description": "Expected SNOMED semantic tag (optional)",
+                            },
+                        },
+                        "required": ["query"],
+                    }
                 },
-                "required": ["query"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "lookup_concept",
-            "description": "Lookup the preferred term and semantic tag for a known SNOMED concept ID.",
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "concept_id": {"type": "string", "description": "SNOMED concept ID"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "lookup_concept",
+                "description": "Lookup the preferred term and semantic tag for a known SNOMED concept ID.",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "concept_id": {
+                                "type": "string",
+                                "description": "SNOMED concept ID",
+                            },
+                        },
+                        "required": ["concept_id"],
+                    }
                 },
-                "required": ["concept_id"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "resolve_evidence",
-            "description": "Resolve an evidence phrase via the terminology resolver. Detects surface form gaps.",
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "phrase": {"type": "string", "description": "Evidence phrase to resolve"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "resolve_evidence",
+                "description": "Resolve an evidence phrase via the terminology resolver. Detects surface form gaps.",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "phrase": {
+                                "type": "string",
+                                "description": "Evidence phrase to resolve",
+                            },
+                        },
+                        "required": ["phrase"],
+                    }
                 },
-                "required": ["phrase"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "get_patient_demographics",
-            "description": "Get patient age and sex for clinical plausibility checking.",
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "patient_id": {"type": "string", "description": "Patient ID"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "get_patient_demographics",
+                "description": "Get patient age and sex for clinical plausibility checking.",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "patient_id": {
+                                "type": "string",
+                                "description": "Patient ID",
+                            },
+                        },
+                        "required": ["patient_id"],
+                    }
                 },
-                "required": ["patient_id"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "get_patient_problems",
-            "description": "Get active problem list (disorders and findings) for this patient.",
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "patient_id": {"type": "string", "description": "Patient ID"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "get_patient_problems",
+                "description": "Get active problem list (disorders and findings) for this patient.",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "patient_id": {
+                                "type": "string",
+                                "description": "Patient ID",
+                            },
+                        },
+                        "required": ["patient_id"],
+                    }
                 },
-                "required": ["patient_id"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "read_context",
-            "description": "Read +/- 2 sentences around a phrase for disambiguation.",
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "phrase": {"type": "string", "description": "Phrase to locate in the encounter text"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "read_context",
+                "description": "Read +/- 2 sentences around a phrase for disambiguation.",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "phrase": {
+                                "type": "string",
+                                "description": "Phrase to locate in the encounter text",
+                            },
+                        },
+                        "required": ["phrase"],
+                    }
                 },
-                "required": ["phrase"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "get_descendants",
-            "description": (
-                "Return active SNOMED descendants of a concept via IS_A relationships. "
-                "Use to check specificity (e.g. are there more specific child codes than "
-                "what is already coded?) or to verify that a concept ID is in the expected "
-                "clinical hierarchy. Filter by semantic_tag to narrow results."
-            ),
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "concept_id": {"type": "string", "description": "SNOMED concept ID to traverse from"},
-                    "depth": {"type": "integer", "description": "IS_A traversal depth (1-5, default 3)"},
-                    "limit": {"type": "integer", "description": "Max results to return (1-100, default 30)"},
-                    "semantic_tag": {"type": "string", "description": "Filter by semantic tag e.g. 'disorder'"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "get_descendants",
+                "description": (
+                    "Return active SNOMED descendants of a concept via IS_A relationships. "
+                    "Use to check specificity (e.g. are there more specific child codes than "
+                    "what is already coded?) or to verify that a concept ID is in the expected "
+                    "clinical hierarchy. Filter by semantic_tag to narrow results."
+                ),
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "concept_id": {
+                                "type": "string",
+                                "description": "SNOMED concept ID to traverse from",
+                            },
+                            "depth": {
+                                "type": "integer",
+                                "description": "IS_A traversal depth (1-5, default 3)",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "description": "Max results to return (1-100, default 30)",
+                            },
+                            "semantic_tag": {
+                                "type": "string",
+                                "description": "Filter by semantic tag e.g. 'disorder'",
+                            },
+                        },
+                        "required": ["concept_id"],
+                    }
                 },
-                "required": ["concept_id"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "get_related_concepts",
-            "description": (
-                "Return the SNOMED ontology family for a concept via INTERPRETS, "
-                "HAS_COMPONENT, and HAS_ASSOCIATED_FINDING relationships. Most useful "
-                "for observable entity / lab concepts -- returns which procedures measure "
-                "it and which findings are associated."
-            ),
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "concept_id": {"type": "string", "description": "SNOMED concept ID"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "get_related_concepts",
+                "description": (
+                    "Return the SNOMED ontology family for a concept via INTERPRETS, "
+                    "HAS_COMPONENT, and HAS_ASSOCIATED_FINDING relationships. Most useful "
+                    "for observable entity / lab concepts -- returns which procedures measure "
+                    "it and which findings are associated."
+                ),
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "concept_id": {
+                                "type": "string",
+                                "description": "SNOMED concept ID",
+                            },
+                        },
+                        "required": ["concept_id"],
+                    }
                 },
-                "required": ["concept_id"],
-            }},
-        }},
-        {"toolSpec": {
-            "name": "submit_verdict",
-            "description": "Submit the final verdict JSON. This is the terminal action.",
-            "inputSchema": {"json": {
-                "type": "object",
-                "properties": {
-                    "encounter_assessment": {"type": "string"},
-                    "missing": {"type": "array"},
-                    "overcoded": {"type": "array"},
-                    "wrong_assertion": {"type": "array"},
-                    "entities": {"type": "array"},
-                    "confidence": {"type": "number"},
-                    "notes": {"type": "string"},
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "submit_verdict",
+                "description": "Submit the final verdict JSON. This is the terminal action.",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "encounter_assessment": {"type": "string"},
+                            "missing": {"type": "array"},
+                            "overcoded": {"type": "array"},
+                            "wrong_assertion": {"type": "array"},
+                            "entities": {"type": "array"},
+                            "confidence": {"type": "number"},
+                            "notes": {"type": "string"},
+                        },
+                        "required": ["encounter_assessment", "confidence"],
+                    }
                 },
-                "required": ["encounter_assessment", "confidence"],
-            }},
-        }},
+            }
+        },
     ]
 }
 
@@ -455,9 +541,7 @@ def load_encounter(state: CodingAgentState) -> dict:
     max_tokens = _MAX_TOKENS.get(tier, 50_000)
     from libs.prompts.coding_agent_v1 import PROMPT_VERSION
 
-    user_msg = _build_user_message(
-        state.get("encounter_text") or "", coded, mode
-    )
+    user_msg = _build_user_message(state.get("encounter_text") or "", coded, mode)
     return {
         "mode": mode,
         "prompt_version": PROMPT_VERSION,
@@ -575,17 +659,21 @@ def _forced_verdict_call(state: CodingAgentState) -> dict | None:
     tier = state.get("tier") or "big"
     mode = state.get("mode") or "audit"
     messages = list(state.get("messages") or [])
-    messages.append({
-        "role": "user",
-        "content": [{
-            "text": (
-                "You have not yet called submit_verdict. "
-                "Based on your analysis so far, call submit_verdict NOW with "
-                "your best verdict. Use needs_review only if you cannot determine "
-                "correctness. For admin-only encounters use no_clinical_content."
-            ),
-        }],
-    })
+    messages.append(
+        {
+            "role": "user",
+            "content": [
+                {
+                    "text": (
+                        "You have not yet called submit_verdict. "
+                        "Based on your analysis so far, call submit_verdict NOW with "
+                        "your best verdict. Use needs_review only if you cannot determine "
+                        "correctness. For admin-only encounters use no_clinical_content."
+                    ),
+                }
+            ],
+        }
+    )
     try:
         llm = create_llm(tier=tier)
         resp = llm.converse(
@@ -623,18 +711,18 @@ def _apply_confidence_gate(verdict: dict) -> dict:
     if conf < _CONF_AUTO_ACCEPT:
         return verdict
 
-    has_findings = any([
-        verdict.get("missing"),
-        verdict.get("overcoded"),
-        verdict.get("wrong_assertion"),
-    ])
+    has_findings = any(
+        [
+            verdict.get("missing"),
+            verdict.get("overcoded"),
+            verdict.get("wrong_assertion"),
+        ]
+    )
     if has_findings:
         return verdict
 
     promoted = "coded" if not verdict.get("overcoded") else "clean"
-    logger.info(
-        "conf_gate: promoted needs_review -> %s (conf=%.2f)", promoted, conf
-    )
+    logger.info("conf_gate: promoted needs_review -> %s (conf=%.2f)", promoted, conf)
     verdict["encounter_assessment"] = promoted
     verdict.setdefault("notes", "")
     verdict["notes"] = (

@@ -40,6 +40,7 @@ Outputs
   scripts/investigations/surface_form_audit.json  -- machine-readable full report
   stdout                                           -- summary + flagged rows
 """
+
 from __future__ import annotations
 
 import json
@@ -110,20 +111,66 @@ ORDER BY n_rels DESC, sf.form
 # Heuristics
 # ---------------------------------------------------------------------------
 _NEGATIVE_PREFIXES = (
-    "no ", "not ", "absent ", "absence ", "negative ",
-    "history of ", "h/o ", "hx ", "ex-", "ex ",
-    "denied ", "denies ", "never ",
+    "no ",
+    "not ",
+    "absent ",
+    "absence ",
+    "negative ",
+    "history of ",
+    "h/o ",
+    "hx ",
+    "ex-",
+    "ex ",
+    "denied ",
+    "denies ",
+    "never ",
 )
 
 _SYMPTOM_KEYWORDS = {
-    "pain", "ache", "aching", "swelling", "cough", "fever", "nausea",
-    "vomiting", "diarrhoea", "diarrhea", "bleeding", "blood", "fatigue",
-    "tired", "weight loss", "breathless", "dyspnoea", "wheeze", "stridor",
-    "haemoptysis", "haematemesis", "jaundice", "rash", "itch", "lump",
-    "mass", "discharge", "urgency", "frequency", "constipation", "backache",
-    "back pain", "headache", "dizziness", "syncope", "palpitation",
-    "lymphadenopathy", "clubbing", "thrombocytosis", "anaemia", "anemia",
-    "reflux", "dyspepsia", "dysphagia",
+    "pain",
+    "ache",
+    "aching",
+    "swelling",
+    "cough",
+    "fever",
+    "nausea",
+    "vomiting",
+    "diarrhoea",
+    "diarrhea",
+    "bleeding",
+    "blood",
+    "fatigue",
+    "tired",
+    "weight loss",
+    "breathless",
+    "dyspnoea",
+    "wheeze",
+    "stridor",
+    "haemoptysis",
+    "haematemesis",
+    "jaundice",
+    "rash",
+    "itch",
+    "lump",
+    "mass",
+    "discharge",
+    "urgency",
+    "frequency",
+    "constipation",
+    "backache",
+    "back pain",
+    "headache",
+    "dizziness",
+    "syncope",
+    "palpitation",
+    "lymphadenopathy",
+    "clubbing",
+    "thrombocytosis",
+    "anaemia",
+    "anemia",
+    "reflux",
+    "dyspepsia",
+    "dysphagia",
 }
 
 
@@ -171,6 +218,7 @@ def _audit_row(row: dict) -> list[str]:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     print(f"Connecting to knowledge graph: {kg_uri}")
@@ -262,11 +310,14 @@ def main() -> None:
         )
         if "MULTI_MAPPING" in r["flags"]:
             others = [
-                x for x in by_norm[str(r.get("normalized") or "")]
+                x
+                for x in by_norm[str(r.get("normalized") or "")]
                 if x.get("concept_id") != cid
             ]
             if others:
-                print(f"    other targets: {[(x['concept_id'], x['concept_fsn']) for x in others]}")
+                print(
+                    f"    other targets: {[(x['concept_id'], x['concept_fsn']) for x in others]}"
+                )
 
     # Write JSON report
     report = {
@@ -278,7 +329,9 @@ def main() -> None:
         "duplicates": dups,
         "flagged": flagged,
     }
-    OUTPUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
+    OUTPUT_PATH.write_text(
+        json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8"
+    )
     print(f"\nFull report: {OUTPUT_PATH}")
     print(f"  ({len(flagged)} flagged, {clean} clean)")
 

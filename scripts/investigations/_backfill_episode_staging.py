@@ -85,7 +85,9 @@ def _extract(rows: list[dict[str, Any]]) -> tuple[str | None, str | None]:
         concept_name = str(row.get("concept_name") or "")
         text = str(row.get("encounter_text") or "")
         if explicit is None:
-            m = _EXPLICIT_STAGE_RE.search(concept_name) or _EXPLICIT_STAGE_RE.search(text)
+            m = _EXPLICIT_STAGE_RE.search(concept_name) or _EXPLICIT_STAGE_RE.search(
+                text
+            )
             if m:
                 explicit = m.group(0)
         if tnm is None:
@@ -99,8 +101,12 @@ def _extract(rows: list[dict[str, Any]]) -> tuple[str | None, str | None]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Backfill EpisodeOfCare staging fields")
-    ap.add_argument("--apply", action="store_true", help="Write updates (default is dry-run)")
-    ap.add_argument("--limit", type=int, default=0, help="Optional max episodes to process")
+    ap.add_argument(
+        "--apply", action="store_true", help="Write updates (default is dry-run)"
+    )
+    ap.add_argument(
+        "--limit", type=int, default=0, help="Optional max episodes to process"
+    )
     ap.add_argument(
         "--output",
         default="scripts/investigations/output/episode_staging_backfill_report.json",
@@ -127,12 +133,15 @@ def main() -> None:
             end = str(ep.get("end_date") or "")[:10] or start
             if not episode_id or not start:
                 continue
-            rows = client.run(
-                _Q_EVIDENCE,
-                episode_id=episode_id,
-                window_start=start,
-                window_end=end,
-            ) or []
+            rows = (
+                client.run(
+                    _Q_EVIDENCE,
+                    episode_id=episode_id,
+                    window_start=start,
+                    window_end=end,
+                )
+                or []
+            )
             explicit, tnm = _extract(rows)
             source = "coded" if (explicit or tnm) else "text_scan"
             result = engine.resolve_stage(
@@ -146,7 +155,9 @@ def main() -> None:
                 unknown += 1
             else:
                 staged += 1
-            by_source[result.staging_source] = by_source.get(result.staging_source, 0) + 1
+            by_source[result.staging_source] = (
+                by_source.get(result.staging_source, 0) + 1
+            )
 
             if args.apply:
                 client.run(
@@ -180,7 +191,9 @@ def main() -> None:
             "processed": processed,
             "staged": staged,
             "unknown": unknown,
-            "coverage_pct": round((staged * 100.0 / processed), 1) if processed else 0.0,
+            "coverage_pct": (
+                round((staged * 100.0 / processed), 1) if processed else 0.0
+            ),
             "by_source": by_source,
             "preview": preview,
         }

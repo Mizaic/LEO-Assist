@@ -1,4 +1,5 @@
 """Check top missing terms against terminology server to find new surface form candidates."""
+
 import sys
 from pathlib import Path
 import requests

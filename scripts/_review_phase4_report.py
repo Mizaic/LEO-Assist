@@ -6,7 +6,9 @@ hits = [r for r in d["reviews_resolved"] if r.get("resolved_count", 0) > 0]
 total = sum(r["resolved_count"] for r in hits)
 print(f"Reviews that will resolve: {len(hits)} unique texts, {total} total reviews")
 for r in hits:
-    print(f"  {r['entity_text']:45s} -> {r['concept_id']:20s} (count={r['resolved_count']})")
+    print(
+        f"  {r['entity_text']:45s} -> {r['concept_id']:20s} (count={r['resolved_count']})"
+    )
 
 print()
 igns = d["ignore_rules_added"]

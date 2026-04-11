@@ -8,8 +8,12 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from services.analysis_worker.app.analyzers.abnormal_results import detect_abnormal_results
-from services.analysis_worker.app.analyzers.safety_net_detector import detect_safety_net_signals
+from services.analysis_worker.app.analyzers.abnormal_results import (
+    detect_abnormal_results,
+)
+from services.analysis_worker.app.analyzers.safety_net_detector import (
+    detect_safety_net_signals,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +34,17 @@ def detect_safety_net(state: SafetyNetState) -> dict[str, Any]:
     errors = list(state.get("errors") or [])
     alerts: list[dict[str, Any]] = []
 
-    episode_ids = [str(ep.get("episode_id") or ep.get("id") or "") for ep in state.get("episodes") or []]
+    episode_ids = [
+        str(ep.get("episode_id") or ep.get("id") or "")
+        for ep in state.get("episodes") or []
+    ]
     episode_ids = [episode_id for episode_id in episode_ids if episode_id]
     if episode_ids:
         try:
-            from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
+            from libs.neo4j_client.client import (
+                KnowledgeGraphClient,
+                PatientGraphClient,
+            )
 
             patient_client = PatientGraphClient()
             knowledge_client = KnowledgeGraphClient()
@@ -56,9 +66,16 @@ def detect_safety_net(state: SafetyNetState) -> dict[str, Any]:
     if not alerts:
         encounter_text = str(state.get("encounter_text") or "").strip()
         if encounter_text:
+
             class _Client:
                 def run(self, *_args, **_kwargs):
-                    return [{"encounter_id": state.get("encounter_id"), "text": encounter_text, "date": state.get("encounter_date")}]
+                    return [
+                        {
+                            "encounter_id": state.get("encounter_id"),
+                            "text": encounter_text,
+                            "date": state.get("encounter_date"),
+                        }
+                    ]
 
             alerts.extend(
                 detect_abnormal_results(
@@ -71,7 +88,9 @@ def detect_safety_net(state: SafetyNetState) -> dict[str, Any]:
             )
 
     return {
-        "abnormal_results": [a for a in alerts if a.get("severity") in {"warning", "critical"}],
+        "abnormal_results": [
+            a for a in alerts if a.get("severity") in {"warning", "critical"}
+        ],
         "safety_net_alerts": alerts,
         "errors": errors,
     }

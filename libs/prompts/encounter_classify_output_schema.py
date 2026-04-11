@@ -7,8 +7,14 @@ Seeded into Neo4j as the ``outputSchema`` field of the
 ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA: dict = {
     "description": "Return ONLY valid JSON — no explanation, no markdown, no preamble.",
     "type": "object",
-    "required": ["content_type", "domains", "encounter_purpose", "key_clinical_signals",
-                 "expected_semantic_tags", "clinical_significance"],
+    "required": [
+        "content_type",
+        "domains",
+        "encounter_purpose",
+        "key_clinical_signals",
+        "expected_semantic_tags",
+        "clinical_significance",
+    ],
     "properties": {
         "content_type": {
             "type": "string",
@@ -93,12 +99,14 @@ def format_output_schema_block(schema: dict) -> str:
             nullable = isinstance(raw_type, list) and "null" in raw_type
             if "enum" in defn:
                 allowed = ", ".join(f'"{v}"' for v in defn["enum"])
-                lines.append(f'  - **{field}**{req_marker}: one of {allowed}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: one of {allowed}. {desc}")
             elif base_type == "array":
                 items_type = defn.get("items", {}).get("type", "string")
-                lines.append(f'  - **{field}**{req_marker}: array of {items_type}. {desc}')
+                lines.append(
+                    f"  - **{field}**{req_marker}: array of {items_type}. {desc}"
+                )
             else:
                 type_label = f"{base_type}, nullable" if nullable else base_type
-                lines.append(f'  - **{field}**{req_marker}: {type_label}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: {type_label}. {desc}")
 
     return "\n".join(lines)

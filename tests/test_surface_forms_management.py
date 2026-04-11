@@ -24,10 +24,10 @@ from unittest.mock import MagicMock, patch, call
 import pytest
 from fastapi import HTTPException
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_kg(return_values: list):
     """Return a context-manager patch for KnowledgeGraphClient whose
@@ -47,6 +47,7 @@ _KG_PATH = "services.terminology_api.app.routers.surface_forms.KnowledgeGraphCli
 # TC-001  Grouped list returns concepts with surface_forms arrays
 # ---------------------------------------------------------------------------
 
+
 class TestGroupedSurfaceForms:
 
     @patch(_KG_PATH)
@@ -64,8 +65,18 @@ class TestGroupedSurfaceForms:
                     "read_code": "C10..",
                     "icd10": "E11",
                     "surface_forms": [
-                        {"normalized": "diabetes", "form": "diabetes", "source": "manual", "confidence": 1.0},
-                        {"normalized": "t2dm", "form": "T2DM", "source": "hitl_approved", "confidence": 0.95},
+                        {
+                            "normalized": "diabetes",
+                            "form": "diabetes",
+                            "source": "manual",
+                            "confidence": 1.0,
+                        },
+                        {
+                            "normalized": "t2dm",
+                            "form": "T2DM",
+                            "source": "hitl_approved",
+                            "confidence": 0.95,
+                        },
                     ],
                 }
             ],
@@ -73,7 +84,9 @@ class TestGroupedSurfaceForms:
             [{"total": 1}],
         ]
 
-        from services.terminology_api.app.routers.surface_forms import list_grouped_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            list_grouped_surface_forms,
+        )
 
         result = list_grouped_surface_forms(q=None, limit=50, offset=0)
 
@@ -98,19 +111,32 @@ class TestGroupedSurfaceForms:
                     "semantic_tag": "disorder",
                     "read_code": None,
                     "icd10": None,
-                    "surface_forms": [{"normalized": "t2 diabetes", "form": "T2 diabetes", "source": "manual", "confidence": 1.0}],
+                    "surface_forms": [
+                        {
+                            "normalized": "t2 diabetes",
+                            "form": "T2 diabetes",
+                            "source": "manual",
+                            "confidence": 1.0,
+                        }
+                    ],
                 }
             ],
             [{"total": 1}],
         ]
 
-        from services.terminology_api.app.routers.surface_forms import list_grouped_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            list_grouped_surface_forms,
+        )
 
         result = list_grouped_surface_forms(q="T2 diabetes", limit=50, offset=0)
 
         # Verify q was passed through to the Cypher call
         first_call_kwargs = mock_client.run.call_args_list[0]
-        assert first_call_kwargs[1].get("q") == "T2 diabetes" or first_call_kwargs[0][1] == "T2 diabetes" or True
+        assert (
+            first_call_kwargs[1].get("q") == "T2 diabetes"
+            or first_call_kwargs[0][1] == "T2 diabetes"
+            or True
+        )
         assert result["total"] == 1
         assert "T2 diabetes" in result["items"][0]["surface_forms"][0]["form"]
 
@@ -121,7 +147,9 @@ class TestGroupedSurfaceForms:
         MockKG.return_value = mock_client
         mock_client.run.side_effect = [[], []]
 
-        from services.terminology_api.app.routers.surface_forms import list_grouped_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            list_grouped_surface_forms,
+        )
 
         result = list_grouped_surface_forms(q=None, limit=50, offset=0)
 
@@ -132,6 +160,7 @@ class TestGroupedSurfaceForms:
 # ---------------------------------------------------------------------------
 # TC-003  Flat list returns paginated surface forms with concept join
 # ---------------------------------------------------------------------------
+
 
 class TestFlatSurfaceForms:
 
@@ -161,7 +190,9 @@ class TestFlatSurfaceForms:
             [{"total": 1}],
         ]
 
-        from services.terminology_api.app.routers.surface_forms import list_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            list_surface_forms,
+        )
 
         result = list_surface_forms(q=None, concept_id=None, limit=50, offset=0)
 
@@ -177,7 +208,9 @@ class TestFlatSurfaceForms:
         MockKG.return_value = mock_client
         mock_client.run.side_effect = [[], [{"total": 0}]]
 
-        from services.terminology_api.app.routers.surface_forms import list_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            list_surface_forms,
+        )
 
         result = list_surface_forms(q=None, concept_id="73211009", limit=10, offset=0)
         assert result["total"] == 0
@@ -190,6 +223,7 @@ class TestFlatSurfaceForms:
 # ---------------------------------------------------------------------------
 # TC-004  Upsert creates SurfaceForm node when absent
 # ---------------------------------------------------------------------------
+
 
 class TestUpsertMapping:
 
@@ -207,7 +241,10 @@ class TestUpsertMapping:
             }
         ]
 
-        from services.terminology_api.app.routers.surface_forms import upsert_surface_form_mapping, UpsertMappingRequest
+        from services.terminology_api.app.routers.surface_forms import (
+            upsert_surface_form_mapping,
+            UpsertMappingRequest,
+        )
 
         body = UpsertMappingRequest(
             normalized="t2dm",
@@ -231,7 +268,10 @@ class TestUpsertMapping:
         MockKG.return_value = mock_client
         mock_client.run.return_value = []  # MATCH (c:Concept {id:...}) found nothing
 
-        from services.terminology_api.app.routers.surface_forms import upsert_surface_form_mapping, UpsertMappingRequest
+        from services.terminology_api.app.routers.surface_forms import (
+            upsert_surface_form_mapping,
+            UpsertMappingRequest,
+        )
 
         body = UpsertMappingRequest(
             normalized="unknown",
@@ -257,20 +297,28 @@ class TestUpsertMapping:
         # Both calls return the same record — MERGE ensures no duplicate node
         mock_client.run.return_value = [expected]
 
-        from services.terminology_api.app.routers.surface_forms import upsert_surface_form_mapping, UpsertMappingRequest
+        from services.terminology_api.app.routers.surface_forms import (
+            upsert_surface_form_mapping,
+            UpsertMappingRequest,
+        )
 
-        body = UpsertMappingRequest(normalized="t2dm", form="T2DM", concept_id="44054006")
+        body = UpsertMappingRequest(
+            normalized="t2dm", form="T2DM", concept_id="44054006"
+        )
 
         result1 = upsert_surface_form_mapping(body)
         result2 = upsert_surface_form_mapping(body)
 
         assert result1["normalized"] == result2["normalized"] == "t2dm"
-        assert mock_client.run.call_count == 2  # called twice, not zero (idempotency is in Cypher MERGE)
+        assert (
+            mock_client.run.call_count == 2
+        )  # called twice, not zero (idempotency is in Cypher MERGE)
 
 
 # ---------------------------------------------------------------------------
 # TC-005/006/007  DELETE variants
 # ---------------------------------------------------------------------------
+
 
 class TestDeleteSurfaceForm:
 
@@ -281,7 +329,9 @@ class TestDeleteSurfaceForm:
         MockKG.return_value = mock_client
         mock_client.run.return_value = None  # DETACH DELETE returns nothing
 
-        from services.terminology_api.app.routers.surface_forms import delete_surface_form
+        from services.terminology_api.app.routers.surface_forms import (
+            delete_surface_form,
+        )
 
         result = delete_surface_form("t2dm", concept_id=None, keep_concept_id=None)
 
@@ -295,9 +345,13 @@ class TestDeleteSurfaceForm:
         MockKG.return_value = mock_client
         mock_client.run.return_value = [{"removed": 1}]
 
-        from services.terminology_api.app.routers.surface_forms import delete_surface_form
+        from services.terminology_api.app.routers.surface_forms import (
+            delete_surface_form,
+        )
 
-        result = delete_surface_form("t2dm", concept_id="44054006", keep_concept_id=None)
+        result = delete_surface_form(
+            "t2dm", concept_id="44054006", keep_concept_id=None
+        )
 
         assert result["normalized"] == "t2dm"
         assert result["concept_id"] == "44054006"
@@ -310,9 +364,13 @@ class TestDeleteSurfaceForm:
         MockKG.return_value = mock_client
         mock_client.run.return_value = [{"removed": 1}]
 
-        from services.terminology_api.app.routers.surface_forms import delete_surface_form
+        from services.terminology_api.app.routers.surface_forms import (
+            delete_surface_form,
+        )
 
-        result = delete_surface_form("t2dm", concept_id=None, keep_concept_id="44054006")
+        result = delete_surface_form(
+            "t2dm", concept_id=None, keep_concept_id="44054006"
+        )
 
         assert result["normalized"] == "t2dm"
         assert result["kept_concept_id"] == "44054006"
@@ -325,9 +383,13 @@ class TestDeleteSurfaceForm:
         MockKG.return_value = mock_client
         mock_client.run.return_value = []  # no rows → removed defaults to 0
 
-        from services.terminology_api.app.routers.surface_forms import delete_surface_form
+        from services.terminology_api.app.routers.surface_forms import (
+            delete_surface_form,
+        )
 
-        result = delete_surface_form("nonexistent", concept_id="12345", keep_concept_id=None)
+        result = delete_surface_form(
+            "nonexistent", concept_id="12345", keep_concept_id=None
+        )
 
         assert result["removed"] == 0
 
@@ -335,6 +397,7 @@ class TestDeleteSurfaceForm:
 # ---------------------------------------------------------------------------
 # TC-008  Duplicate audit
 # ---------------------------------------------------------------------------
+
 
 class TestDuplicateAudit:
 
@@ -350,13 +413,25 @@ class TestDuplicateAudit:
                 "concept_count": 2,
                 "rel_count": 2,
                 "mappings": [
-                    {"concept_id": "73211009", "concept_fsn": "Diabetes mellitus (disorder)", "confidence": 0.9, "provenance": "manual"},
-                    {"concept_id": "44054006", "concept_fsn": "Diabetes mellitus type 2 (disorder)", "confidence": 0.7, "provenance": "hitl_approved"},
+                    {
+                        "concept_id": "73211009",
+                        "concept_fsn": "Diabetes mellitus (disorder)",
+                        "confidence": 0.9,
+                        "provenance": "manual",
+                    },
+                    {
+                        "concept_id": "44054006",
+                        "concept_fsn": "Diabetes mellitus type 2 (disorder)",
+                        "confidence": 0.7,
+                        "provenance": "hitl_approved",
+                    },
                 ],
             }
         ]
 
-        from services.terminology_api.app.routers.surface_forms import audit_surface_form_duplicates
+        from services.terminology_api.app.routers.surface_forms import (
+            audit_surface_form_duplicates,
+        )
 
         result = audit_surface_form_duplicates()
 
@@ -373,7 +448,9 @@ class TestDuplicateAudit:
         MockKG.return_value = mock_client
         mock_client.run.return_value = []
 
-        from services.terminology_api.app.routers.surface_forms import audit_surface_form_duplicates
+        from services.terminology_api.app.routers.surface_forms import (
+            audit_surface_form_duplicates,
+        )
 
         result = audit_surface_form_duplicates()
         assert result == []
@@ -382,6 +459,7 @@ class TestDuplicateAudit:
 # ---------------------------------------------------------------------------
 # TC-009 / TC-012  Deduplication
 # ---------------------------------------------------------------------------
+
 
 class TestDeduplicate:
 
@@ -392,7 +470,9 @@ class TestDeduplicate:
         MockKG.return_value = mock_client
         mock_client.run.return_value = [{"duplicates_removed": 3}]
 
-        from services.terminology_api.app.routers.surface_forms import deduplicate_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            deduplicate_surface_forms,
+        )
 
         result = deduplicate_surface_forms()
 
@@ -405,7 +485,9 @@ class TestDeduplicate:
         MockKG.return_value = mock_client
         mock_client.run.return_value = []  # no rows when nothing was removed
 
-        from services.terminology_api.app.routers.surface_forms import deduplicate_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            deduplicate_surface_forms,
+        )
 
         result = deduplicate_surface_forms()
 
@@ -418,8 +500,12 @@ class TestDeduplicate:
         MockKG.return_value = mock_client
         mock_client.run.return_value = [{"duplicates_removed": 1}]
 
-        from services.terminology_api.app.routers.surface_forms import deduplicate_surface_forms
-        from services.terminology_api.app.queries.terminology import DEDUPLICATE_SURFACE_FORM_RELS
+        from services.terminology_api.app.routers.surface_forms import (
+            deduplicate_surface_forms,
+        )
+        from services.terminology_api.app.queries.terminology import (
+            DEDUPLICATE_SURFACE_FORM_RELS,
+        )
 
         deduplicate_surface_forms()
 
@@ -432,30 +518,39 @@ class TestDeduplicate:
 # Cypher query content guards
 # ---------------------------------------------------------------------------
 
+
 class TestCypherQueryContent:
     """Verify that Cypher queries contain the expected structural elements.
     These are static analysis tests — no DB needed."""
 
     def test_grouped_query_contains_optional_read_icd10(self):
-        from services.terminology_api.app.queries.terminology import GROUPED_SURFACE_FORMS
+        from services.terminology_api.app.queries.terminology import (
+            GROUPED_SURFACE_FORMS,
+        )
 
         assert "MAPS_TO_READ" in GROUPED_SURFACE_FORMS
         assert "MAPS_TO_ICD10" in GROUPED_SURFACE_FORMS
         assert "OPTIONAL MATCH" in GROUPED_SURFACE_FORMS
 
     def test_deduplicate_uses_confidence_comparison(self):
-        from services.terminology_api.app.queries.terminology import DEDUPLICATE_SURFACE_FORM_RELS
+        from services.terminology_api.app.queries.terminology import (
+            DEDUPLICATE_SURFACE_FORM_RELS,
+        )
 
         assert "confidence" in DEDUPLICATE_SURFACE_FORM_RELS.lower()
         assert "reduce" in DEDUPLICATE_SURFACE_FORM_RELS.lower()
 
     def test_audit_query_filters_rel_count_gt_1(self):
-        from services.terminology_api.app.queries.terminology import AUDIT_SURFACE_FORM_DUPLICATES
+        from services.terminology_api.app.queries.terminology import (
+            AUDIT_SURFACE_FORM_DUPLICATES,
+        )
 
         assert "rel_count > 1" in AUDIT_SURFACE_FORM_DUPLICATES
 
     def test_upsert_query_uses_merge(self):
-        from services.terminology_api.app.queries.terminology import UPSERT_SURFACE_FORM_MAPPING
+        from services.terminology_api.app.queries.terminology import (
+            UPSERT_SURFACE_FORM_MAPPING,
+        )
         import re
 
         # MERGE ensures idempotency.  A standalone CREATE statement at the
@@ -463,30 +558,49 @@ class TestCypherQueryContent:
         # like created_at) would defeat idempotency.
         assert "MERGE" in UPSERT_SURFACE_FORM_MAPPING
         # A bare CREATE clause appears as a word at the start of a Cypher statement
-        bare_create = re.search(r'^\s*CREATE\s+\(', UPSERT_SURFACE_FORM_MAPPING, re.IGNORECASE | re.MULTILINE)
-        assert bare_create is None, "UPSERT query must use MERGE, not a standalone CREATE node clause"
+        bare_create = re.search(
+            r"^\s*CREATE\s+\(",
+            UPSERT_SURFACE_FORM_MAPPING,
+            re.IGNORECASE | re.MULTILINE,
+        )
+        assert (
+            bare_create is None
+        ), "UPSERT query must use MERGE, not a standalone CREATE node clause"
 
     def test_delete_mapping_targets_concept_id(self):
-        from services.terminology_api.app.queries.terminology import DELETE_SURFACE_FORM_MAPPING
+        from services.terminology_api.app.queries.terminology import (
+            DELETE_SURFACE_FORM_MAPPING,
+        )
 
         assert "$concept_id" in DELETE_SURFACE_FORM_MAPPING
         assert "DELETE r" in DELETE_SURFACE_FORM_MAPPING
 
     def test_keep_mapping_excludes_named_concept(self):
-        from services.terminology_api.app.queries.terminology import KEEP_SURFACE_FORM_MAPPING
+        from services.terminology_api.app.queries.terminology import (
+            KEEP_SURFACE_FORM_MAPPING,
+        )
 
         assert "$keep_concept_id" in KEEP_SURFACE_FORM_MAPPING
         assert "<>" in KEEP_SURFACE_FORM_MAPPING
 
     def test_get_concept_for_suggestion_no_patient_fields(self):
         """Privacy: GET_CONCEPT_FOR_SUGGESTION must not select any patient data."""
-        from services.terminology_api.app.queries.terminology import GET_CONCEPT_FOR_SUGGESTION
+        from services.terminology_api.app.queries.terminology import (
+            GET_CONCEPT_FOR_SUGGESTION,
+        )
 
-        prohibited = ["patient_id", "nhs_number", "dob", "encounter_id", "encounter_text", "entity_text"]
+        prohibited = [
+            "patient_id",
+            "nhs_number",
+            "dob",
+            "encounter_id",
+            "encounter_text",
+            "entity_text",
+        ]
         for field in prohibited:
-            assert field not in GET_CONCEPT_FOR_SUGGESTION.lower(), (
-                f"GET_CONCEPT_FOR_SUGGESTION must not reference patient field '{field}'"
-            )
+            assert (
+                field not in GET_CONCEPT_FOR_SUGGESTION.lower()
+            ), f"GET_CONCEPT_FOR_SUGGESTION must not reference patient field '{field}'"
         # Must select concept metadata only
         assert "c.fsn" in GET_CONCEPT_FOR_SUGGESTION
         assert "c.semantic_tag" in GET_CONCEPT_FOR_SUGGESTION

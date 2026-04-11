@@ -16,6 +16,7 @@ Usage::
     system = get_prompt("extraction", version=1)
     system, examples = get_prompt_with_few_shot("guidance_rule_extraction_NG12", version=1)
 """
+
 from __future__ import annotations
 
 import json
@@ -103,15 +104,15 @@ def _normalise_prompt_config_row(
     few_shot_raw = row.get("fewShotExamples") or "[]"
     try:
         examples = (
-            json.loads(few_shot_raw)
-            if isinstance(few_shot_raw, str)
-            else few_shot_raw
+            json.loads(few_shot_raw) if isinstance(few_shot_raw, str) else few_shot_raw
         )
     except (json.JSONDecodeError, TypeError) as exc:
         logger.warning(
             "Prompt %r v%d: fewShotExamples could not be parsed as JSON - "
             "returning empty examples list. LLM output quality may be degraded. Error: %s",
-            name, version, exc,
+            name,
+            version,
+            exc,
         )
         examples = []
     if not isinstance(examples, list):

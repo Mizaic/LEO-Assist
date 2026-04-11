@@ -15,10 +15,10 @@ Covers every layer where the bug existed or where new behaviour was added:
 7. Patient Timeline Query -- GET_PATIENT_CODING_TIMELINE returns
    required fields and is ordered by date.
 """
+
 from __future__ import annotations
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # 1. LLM Extractor
@@ -33,6 +33,7 @@ class TestLlmExtractorAssertions:
             _ASSERTION_TO_CONTEXT,
             _VALID_ASSERTIONS,
         )
+
         return _VALID_ASSERTIONS, _ASSERTION_TO_CONTEXT
 
     def test_declined_in_valid_assertions(self):
@@ -80,6 +81,7 @@ class TestSchemaMapperAssertionAllowlist:
 
     def _map_entity(self, assertion: str) -> str:
         from libs.ner.schema_mapper import map_raw_record
+
         text = "patient declined the flu vaccine"
         raw = {
             "document_id": "doc-001",
@@ -134,6 +136,7 @@ class TestDocumentsQueriesAssertionContext:
             _NON_PRESENT,
             _assertion_context,
         )
+
         return _NON_PRESENT, _assertion_context
 
     def test_declined_in_non_present(self):
@@ -191,6 +194,7 @@ class TestDocumentsQueriesAssertionContext:
         non-present assertions (declined, cancelled, absent, etc.)."""
         from libs.cypher import documents_queries
         import inspect
+
         src = inspect.getsource(documents_queries._build_upsert_query)
         assert "FOREACH" in src, (
             "_build_upsert_query must use FOREACH to gate patient shortcut "
@@ -199,16 +203,23 @@ class TestDocumentsQueriesAssertionContext:
 
     def test_timeline_query_has_required_return_fields(self):
         from libs.cypher.documents_queries import GET_PATIENT_CODING_TIMELINE
+
         for field in (
-            "encounter_date", "encounter_id", "concept_id",
-            "term", "semantic_tag", "r.context", "r.confidence",
+            "encounter_date",
+            "encounter_id",
+            "concept_id",
+            "term",
+            "semantic_tag",
+            "r.context",
+            "r.confidence",
         ):
-            assert field in GET_PATIENT_CODING_TIMELINE, (
-                f"GET_PATIENT_CODING_TIMELINE is missing field '{field}'"
-            )
+            assert (
+                field in GET_PATIENT_CODING_TIMELINE
+            ), f"GET_PATIENT_CODING_TIMELINE is missing field '{field}'"
 
     def test_timeline_query_ordered_by_date(self):
         from libs.cypher.documents_queries import GET_PATIENT_CODING_TIMELINE
+
         assert "ORDER BY e.date" in GET_PATIENT_CODING_TIMELINE
 
 
@@ -222,6 +233,7 @@ class TestTierClassifierDeclinedCancelled:
 
     def _classify(self, assertion: str, mode: str) -> object:
         from libs.coding_engine.tier_classifier import classify_tier
+
         return classify_tier(
             assertion=assertion,
             context_failed=False,
@@ -248,10 +260,12 @@ class TestTierClassifierDeclinedCancelled:
 
     def test_declined_in_auto_code_blocked(self):
         from libs.coding_engine.tier_classifier import _AUTO_CODE_BLOCKED
+
         assert "declined" in _AUTO_CODE_BLOCKED
 
     def test_cancelled_in_auto_code_blocked(self):
         from libs.coding_engine.tier_classifier import _AUTO_CODE_BLOCKED
+
         assert "cancelled" in _AUTO_CODE_BLOCKED
 
     def test_present_high_confidence_is_not_tier3(self):
@@ -271,18 +285,20 @@ class TestLabelVerifierAssertionSets:
         """_AUTO_CODE_BLOCKED is a local constant; verify by source inspection."""
         import inspect
         import services.api.app.services.label_verifier as lv
+
         src = inspect.getsource(lv)
-        assert '"declined"' in src or "'declined'" in src, (
-            "_AUTO_CODE_BLOCKED must contain 'declined'"
-        )
+        assert (
+            '"declined"' in src or "'declined'" in src
+        ), "_AUTO_CODE_BLOCKED must contain 'declined'"
 
     def test_auto_code_blocked_contains_cancelled(self):
         import inspect
         import services.api.app.services.label_verifier as lv
+
         src = inspect.getsource(lv)
-        assert '"cancelled"' in src or "'cancelled'" in src, (
-            "_AUTO_CODE_BLOCKED must contain 'cancelled'"
-        )
+        assert (
+            '"cancelled"' in src or "'cancelled'" in src
+        ), "_AUTO_CODE_BLOCKED must contain 'cancelled'"
 
 
 # ---------------------------------------------------------------------------
@@ -295,11 +311,13 @@ class TestExtractorContractVersion:
 
     def test_contract_version_is_1_2(self):
         from libs.ner.extractor_contract import CONTRACT_VERSION
+
         assert CONTRACT_VERSION == "1.2"
 
     def test_extraction_item_assertion_docstring_mentions_declined(self):
         from libs.ner.extractor_contract import ExtractionItem
         import inspect
+
         src = inspect.getsource(ExtractionItem)
         assert "declined" in src
         assert "cancelled" in src

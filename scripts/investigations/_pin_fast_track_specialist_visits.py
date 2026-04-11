@@ -14,6 +14,7 @@ Run:
     # Verify only (no writes):
     python scripts/investigations/_pin_fast_track_specialist_visits.py --verify-only
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,7 +43,10 @@ import requests
 BASE = "http://localhost:8001"
 PROVENANCE = "pin-fast-track-specialist-visits-2026-04-06"
 INVENTORY = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "fast_track_specialist_encounters.jsonl"
 )
 

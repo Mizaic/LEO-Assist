@@ -1,4 +1,5 @@
 """Verify the numbers the /care/audit and /care/dashboard pages should now show."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -8,16 +9,24 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
 _CLOSED = {
-    "closed", "completed", "merged", "excluded",
-    "closed_benign", "closed_related", "closed_phantom",
-    "stale_no_diagnosis", "stale_post_specialist",
+    "closed",
+    "completed",
+    "merged",
+    "excluded",
+    "closed_benign",
+    "closed_related",
+    "closed_phantom",
+    "stale_no_diagnosis",
+    "stale_post_specialist",
 }
 
 Q_SUMMARY = """
@@ -63,16 +72,21 @@ def main() -> None:
     active = sum(1 for r in rows if r["status"] not in _CLOSED)
     confirmed = sum(1 for r in rows if r["diag_date"] is not None)
 
-    pci_vals = sorted([
-        v for r in rows
-        if (v := _safe_days(r["fp_date"], r.get("referral_date"))) is not None
-        and v >= 0
-    ])
-    di_vals = sorted([
-        v for r in rows
-        if (v := _safe_days(r["fp_date"], r["diag_date"])) is not None
-        and v >= 0
-    ])
+    pci_vals = sorted(
+        [
+            v
+            for r in rows
+            if (v := _safe_days(r["fp_date"], r.get("referral_date"))) is not None
+            and v >= 0
+        ]
+    )
+    di_vals = sorted(
+        [
+            v
+            for r in rows
+            if (v := _safe_days(r["fp_date"], r["diag_date"])) is not None and v >= 0
+        ]
+    )
 
     def median(vals):
         if not vals:
@@ -84,11 +98,20 @@ def main() -> None:
     print(f"  Total pathways  : {total}")
     print(f"  Active          : {active}  (in_progress only)")
     print(f"  Confirmed       : {confirmed}  (completed + inferred cancer)")
-    print(f"  Median PCI      : {median(pci_vals):.0f} days  (n={len(pci_vals)})" if pci_vals else "  Median PCI      : — (no data)")
-    print(f"  Median DI       : {median(di_vals):.0f} days  (n={len(di_vals)})" if di_vals else "  Median DI       : — (no first_presentation_date on any episode)")
+    print(
+        f"  Median PCI      : {median(pci_vals):.0f} days  (n={len(pci_vals)})"
+        if pci_vals
+        else "  Median PCI      : — (no data)"
+    )
+    print(
+        f"  Median DI       : {median(di_vals):.0f} days  (n={len(di_vals)})"
+        if di_vals
+        else "  Median DI       : — (no first_presentation_date on any episode)"
+    )
     print()
     print("  Status breakdown:")
     from collections import Counter
+
     sc = Counter(r["status"] for r in rows)
     for s, n in sorted(sc.items(), key=lambda x: -x[1]):
         flag = " <-- active" if s not in _CLOSED else ""
@@ -96,8 +119,12 @@ def main() -> None:
     print()
     print("  Confirmed breakdown:")
     print(f"    Has diag_date (effective) : {confirmed}")
-    print(f"    of which ep.status=completed : {sum(1 for r in rows if r['status']=='completed')}")
-    print(f"    of which inferred cancer  : {sum(1 for r in rows if r['status']=='stale_post_specialist' and r['diag_date'])}")
+    print(
+        f"    of which ep.status=completed : {sum(1 for r in rows if r['status']=='completed')}"
+    )
+    print(
+        f"    of which inferred cancer  : {sum(1 for r in rows if r['status']=='stale_post_specialist' and r['diag_date'])}"
+    )
 
 
 if __name__ == "__main__":

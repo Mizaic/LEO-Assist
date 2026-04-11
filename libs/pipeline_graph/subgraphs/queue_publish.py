@@ -28,7 +28,11 @@ def publish_to_queue(state: QueuePublishState) -> dict[str, Any]:
     errors = list(state.get("errors") or [])
 
     # Actual publish is performed by WorkflowEngine (has async bus context).
-    logger.info("Queue publish requested: queue=%s delay=%ss", queue_name, schedule_after_seconds)
+    logger.info(
+        "Queue publish requested: queue=%s delay=%ss",
+        queue_name,
+        schedule_after_seconds,
+    )
     return {
         "queue_publish_request": {
             "queue_name": queue_name,
@@ -46,4 +50,3 @@ def build_queue_publish_subgraph() -> CompiledStateGraph:
     g.add_edge(START, "publish_to_queue")
     g.add_edge("publish_to_queue", END)
     return g.compile()
-

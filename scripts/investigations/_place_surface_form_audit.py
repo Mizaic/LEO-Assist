@@ -13,6 +13,7 @@ Output:
 Usage:
     python scripts/investigations/_place_surface_form_audit.py
 """
+
 from __future__ import annotations
 
 import json
@@ -23,9 +24,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import KnowledgeGraphClient
 
@@ -39,160 +42,297 @@ PLACE_CONCEPTS = [
         "concept_id": "4525004",
         "label": "Emergency department patient visit",
         "candidates": [
-            "a&e", "ae", "accident and emergency", "accident & emergency",
-            "emergency department", "ed", "emergency room", "er",
-            "a and e", "a+e", "a & e", "casualty", "emergency dept",
-            "attended a&e", "seen in a&e", "went to a&e",
+            "a&e",
+            "ae",
+            "accident and emergency",
+            "accident & emergency",
+            "emergency department",
+            "ed",
+            "emergency room",
+            "er",
+            "a and e",
+            "a+e",
+            "a & e",
+            "casualty",
+            "emergency dept",
+            "attended a&e",
+            "seen in a&e",
+            "went to a&e",
         ],
     },
     {
         "concept_id": "185202000",
         "label": "Seen in general practitioner surgery",
         "candidates": [
-            "gp surgery", "gp practice", "gp appointment", "gp visit",
-            "gp clinic", "seen by gp", "seen at gp", "attended gp",
-            "general practitioner", "general practice", "primary care",
-            "family doctor", "gp consultation", "gp review",
-            "surgery appointment", "seen in surgery",
+            "gp surgery",
+            "gp practice",
+            "gp appointment",
+            "gp visit",
+            "gp clinic",
+            "seen by gp",
+            "seen at gp",
+            "attended gp",
+            "general practitioner",
+            "general practice",
+            "primary care",
+            "family doctor",
+            "gp consultation",
+            "gp review",
+            "surgery appointment",
+            "seen in surgery",
         ],
     },
     {
         "concept_id": "386472008",
         "label": "Telephone consultation",
         "candidates": [
-            "telephone consultation", "telephone appointment", "phone consultation",
-            "phone call", "telephone call", "tel consult", "telephone consult",
-            "phone appointment", "telephone review", "phone review",
-            "spoke by phone", "called by phone", "telephone advice",
+            "telephone consultation",
+            "telephone appointment",
+            "phone consultation",
+            "phone call",
+            "telephone call",
+            "tel consult",
+            "telephone consult",
+            "phone appointment",
+            "telephone review",
+            "phone review",
+            "spoke by phone",
+            "called by phone",
+            "telephone advice",
         ],
     },
     {
         "concept_id": "439708006",
         "label": "Home visit",
         "candidates": [
-            "home visit", "domiciliary visit", "home call", "visited at home",
-            "seen at home", "house call", "housecall", "home consultation",
-            "domiciliary", "home assessment", "visited patient at home",
+            "home visit",
+            "domiciliary visit",
+            "home call",
+            "visited at home",
+            "seen at home",
+            "house call",
+            "housecall",
+            "home consultation",
+            "domiciliary",
+            "home assessment",
+            "visited patient at home",
         ],
     },
     {
         "concept_id": "185463005",
         "label": "Visit out of hours",
         "candidates": [
-            "out of hours", "ooh", "out-of-hours", "out of hours visit",
-            "ooh visit", "out of hours gp", "ooh gp", "ooh service",
-            "nhs 111", "111", "evening appointment", "weekend appointment",
-            "urgent out of hours", "out of hours consultation",
+            "out of hours",
+            "ooh",
+            "out-of-hours",
+            "out of hours visit",
+            "ooh visit",
+            "out of hours gp",
+            "ooh gp",
+            "ooh service",
+            "nhs 111",
+            "111",
+            "evening appointment",
+            "weekend appointment",
+            "urgent out of hours",
+            "out of hours consultation",
         ],
     },
     {
         "concept_id": "557761000005104",
         "label": "E-mail consultation",
         "candidates": [
-            "email consultation", "e-mail consultation", "email consult",
-            "e-consult", "econsult", "online form", "askmygp",
-            "emailed gp", "electronic consultation", "online consultation request",
-            "sent message to gp", "accubook", "patchs",
+            "email consultation",
+            "e-mail consultation",
+            "email consult",
+            "e-consult",
+            "econsult",
+            "online form",
+            "askmygp",
+            "emailed gp",
+            "electronic consultation",
+            "online consultation request",
+            "sent message to gp",
+            "accubook",
+            "patchs",
         ],
     },
     {
         "concept_id": "719410009",
         "label": "Consultation via video conference",
         "candidates": [
-            "video consultation", "video call", "video appointment",
-            "video conference", "video consult", "online video",
-            "microsoft teams consultation", "teams call", "zoom consultation",
-            "attend anywhere", "video review", "remote video consultation",
-            "online consultation", "virtual consultation", "virtual appointment",
+            "video consultation",
+            "video call",
+            "video appointment",
+            "video conference",
+            "video consult",
+            "online video",
+            "microsoft teams consultation",
+            "teams call",
+            "zoom consultation",
+            "attend anywhere",
+            "video review",
+            "remote video consultation",
+            "online consultation",
+            "virtual consultation",
+            "virtual appointment",
         ],
     },
     {
         "concept_id": "286901000000107",
         "label": "Bowel cancer screening programme",
         "candidates": [
-            "bowel cancer screening", "bowel screening", "colorectal screening",
-            "fit test", "faecal immunochemical test", "fobt",
-            "faecal occult blood test", "bowel scope", "colonoscopy screening",
-            "nhs bowel cancer screening", "bowel cancer check",
+            "bowel cancer screening",
+            "bowel screening",
+            "colorectal screening",
+            "fit test",
+            "faecal immunochemical test",
+            "fobt",
+            "faecal occult blood test",
+            "bowel scope",
+            "colonoscopy screening",
+            "nhs bowel cancer screening",
+            "bowel cancer check",
         ],
     },
     {
         "concept_id": "268547008",
         "label": "Screening for malignant neoplasm of breast",
         "candidates": [
-            "breast screening", "mammogram", "mammography",
-            "breast cancer screening", "nhs breast screening",
-            "breast check", "mammogram appointment", "breast x-ray",
-            "screening mammogram", "breast screening appointment",
+            "breast screening",
+            "mammogram",
+            "mammography",
+            "breast cancer screening",
+            "nhs breast screening",
+            "breast check",
+            "mammogram appointment",
+            "breast x-ray",
+            "screening mammogram",
+            "breast screening appointment",
         ],
     },
     {
         "concept_id": "171149006",
         "label": "Screening for malignant neoplasm of cervix",
         "candidates": [
-            "cervical screening", "smear test", "smear", "cervical smear",
-            "pap smear", "pap test", "cervical cancer screening",
-            "nhs cervical screening", "colposcopy", "hpv test",
-            "cervical check", "routine smear",
+            "cervical screening",
+            "smear test",
+            "smear",
+            "cervical smear",
+            "pap smear",
+            "pap test",
+            "cervical cancer screening",
+            "nhs cervical screening",
+            "colposcopy",
+            "hpv test",
+            "cervical check",
+            "routine smear",
         ],
     },
     {
         "concept_id": "275981009",
         "label": "Screening for malignant neoplasm of lung",
         "candidates": [
-            "lung cancer screening", "lung screening", "ldct",
-            "low dose ct scan", "lung check", "chest ct screening",
-            "targeted lung health check", "tlhc", "lung health check",
+            "lung cancer screening",
+            "lung screening",
+            "ldct",
+            "low dose ct scan",
+            "lung check",
+            "chest ct screening",
+            "targeted lung health check",
+            "tlhc",
+            "lung health check",
         ],
     },
     {
         "concept_id": "307778003",
         "label": "Seen in primary care establishment",
         "candidates": [
-            "primary care", "primary care visit", "seen in primary care",
-            "seen at primary care", "primary care appointment",
-            "community care", "gp led", "community health centre",
-            "health centre", "walk-in centre", "minor injuries unit",
-            "urgent treatment centre", "utc", "ucc", "miu",
+            "primary care",
+            "primary care visit",
+            "seen in primary care",
+            "seen at primary care",
+            "primary care appointment",
+            "community care",
+            "gp led",
+            "community health centre",
+            "health centre",
+            "walk-in centre",
+            "minor injuries unit",
+            "urgent treatment centre",
+            "utc",
+            "ucc",
+            "miu",
         ],
     },
     {
         "concept_id": "185211000",
         "label": "Seen in hospital outpatient department",
         "candidates": [
-            "outpatient", "outpatients", "opd", "outpatient department",
-            "outpatient appointment", "outpatient clinic", "outpatient visit",
-            "hospital outpatient", "seen in outpatients", "clinic appointment",
-            "hospital clinic", "attended outpatients", "seen at hospital",
-            "hospital appointment", "specialist outpatient",
+            "outpatient",
+            "outpatients",
+            "opd",
+            "outpatient department",
+            "outpatient appointment",
+            "outpatient clinic",
+            "outpatient visit",
+            "hospital outpatient",
+            "seen in outpatients",
+            "clinic appointment",
+            "hospital clinic",
+            "attended outpatients",
+            "seen at hospital",
+            "hospital appointment",
+            "specialist outpatient",
         ],
     },
     {
         "concept_id": "185289007",
         "label": "Seen by dental surgeon",
         "candidates": [
-            "dental", "dentist", "dental appointment", "seen by dentist",
-            "dental visit", "dental surgeon", "oral surgeon",
-            "dental consultation", "seen at dentist",
+            "dental",
+            "dentist",
+            "dental appointment",
+            "seen by dentist",
+            "dental visit",
+            "dental surgeon",
+            "oral surgeon",
+            "dental consultation",
+            "seen at dentist",
         ],
     },
     {
         "concept_id": "305856003",
         "label": "Seen by optometry service",
         "candidates": [
-            "optician", "optometry", "eye test", "seen by optician",
-            "optometrist", "eye appointment", "optics appointment",
-            "vision test", "eye examination", "seen at optician",
+            "optician",
+            "optometry",
+            "eye test",
+            "seen by optician",
+            "optometrist",
+            "eye appointment",
+            "optics appointment",
+            "vision test",
+            "eye examination",
+            "seen at optician",
         ],
     },
     {
         "concept_id": "305751001",
         "label": "Seen by community-based nurse",
         "candidates": [
-            "community nurse", "district nurse", "community nursing",
-            "seen by nurse", "nurse visit", "nurse appointment",
-            "practice nurse", "community health nurse", "nurse consultation",
-            "nursing visit", "nurse review", "seen at nurse clinic",
+            "community nurse",
+            "district nurse",
+            "community nursing",
+            "seen by nurse",
+            "nurse visit",
+            "nurse appointment",
+            "practice nurse",
+            "community health nurse",
+            "nurse consultation",
+            "nursing visit",
+            "nurse review",
+            "seen at nurse clinic",
         ],
     },
 ]
@@ -258,17 +398,19 @@ def main() -> None:
             info_rows = kg.run(_CONCEPT_INFO_Q, concept_id=concept_id) or []
             if not info_rows:
                 print(f"\n  [!] CONCEPT NOT IN KG: {concept_id} -- {label}")
-                all_results.append({
-                    "concept_id": concept_id,
-                    "label": label,
-                    "in_kg": False,
-                    "fsn": None,
-                    "preferred_term": None,
-                    "existing_terms": [],
-                    "existing_surface_forms": [],
-                    "descendants": [],
-                    "candidates_checked": [],
-                })
+                all_results.append(
+                    {
+                        "concept_id": concept_id,
+                        "label": label,
+                        "in_kg": False,
+                        "fsn": None,
+                        "preferred_term": None,
+                        "existing_terms": [],
+                        "existing_surface_forms": [],
+                        "descendants": [],
+                        "candidates_checked": [],
+                    }
+                )
                 continue
 
             info = info_rows[0]
@@ -283,8 +425,12 @@ def main() -> None:
             existing_terms: list[str] = []
             existing_sfs: list[str] = []
             if map_rows:
-                existing_terms = [t for t in (map_rows[0].get("existing_terms") or []) if t]
-                existing_sfs = [sf for sf in (map_rows[0].get("existing_surface_forms") or []) if sf]
+                existing_terms = [
+                    t for t in (map_rows[0].get("existing_terms") or []) if t
+                ]
+                existing_sfs = [
+                    sf for sf in (map_rows[0].get("existing_surface_forms") or []) if sf
+                ]
 
             print(f"  Existing terms       : {existing_terms[:8]}")
             print(f"  Existing surf. forms : {existing_sfs[:8]}")
@@ -313,16 +459,20 @@ def main() -> None:
                 t_cid = hit.get("term_concept_id")
 
                 if sf_cid == concept_id or t_cid == concept_id:
-                    already_covered.append({
-                        "form": cand,
-                        "via": "surface_form" if sf_cid == concept_id else "term",
-                    })
+                    already_covered.append(
+                        {
+                            "form": cand,
+                            "via": "surface_form" if sf_cid == concept_id else "term",
+                        }
+                    )
                 elif sf_cid or t_cid:
-                    mapped_to_other.append({
-                        "form": cand,
-                        "mapped_to": sf_cid or t_cid,
-                        "fsn": hit.get("sf_fsn") or hit.get("term_fsn"),
-                    })
+                    mapped_to_other.append(
+                        {
+                            "form": cand,
+                            "mapped_to": sf_cid or t_cid,
+                            "fsn": hit.get("sf_fsn") or hit.get("term_fsn"),
+                        }
+                    )
                 else:
                     missing.append({"form": cand})
 
@@ -336,21 +486,23 @@ def main() -> None:
                 for m in mapped_to_other[:4]:
                     print(f"    {m['form']!r} -> {m['mapped_to']}  {m['fsn']}")
 
-            all_results.append({
-                "concept_id": concept_id,
-                "label": label,
-                "in_kg": True,
-                "fsn": fsn,
-                "preferred_term": preferred_term,
-                "existing_terms": existing_terms,
-                "existing_surface_forms": existing_sfs,
-                "descendants": descendants,
-                "candidates": {
-                    "already_covered": already_covered,
-                    "missing": missing,
-                    "mapped_to_other_concept": mapped_to_other,
-                },
-            })
+            all_results.append(
+                {
+                    "concept_id": concept_id,
+                    "label": label,
+                    "in_kg": True,
+                    "fsn": fsn,
+                    "preferred_term": preferred_term,
+                    "existing_terms": existing_terms,
+                    "existing_surface_forms": existing_sfs,
+                    "descendants": descendants,
+                    "candidates": {
+                        "already_covered": already_covered,
+                        "missing": missing,
+                        "mapped_to_other_concept": mapped_to_other,
+                    },
+                }
+            )
 
     finally:
         kg.close()
@@ -363,11 +515,13 @@ def main() -> None:
     # Summary
     total_missing = sum(
         len(r.get("candidates", {}).get("missing", []))
-        for r in all_results if r.get("in_kg")
+        for r in all_results
+        if r.get("in_kg")
     )
     total_covered = sum(
         len(r.get("candidates", {}).get("already_covered", []))
-        for r in all_results if r.get("in_kg")
+        for r in all_results
+        if r.get("in_kg")
     )
     not_in_kg = [r for r in all_results if not r.get("in_kg")]
 

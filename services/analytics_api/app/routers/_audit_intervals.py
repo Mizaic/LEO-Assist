@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from libs.neo4j_client.client import PatientGraphClient
 
-
 # ---------------------------------------------------------------------------
 # Cypher fragments used by intervals + summary
 # ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ Find medical abbreviations in surface_form_gaps.json that need surface forms.
 An abbreviation is: short (<=8 chars), mostly uppercase, appears as a
 standalone token or small phrase in an evidence string.
 """
+
 import json
 import re
 from collections import defaultdict
@@ -20,20 +21,76 @@ nf = [g for g in gaps if g.get("gap_type") == "not_found"]
 ABBREV_RE = re.compile(r"\b([A-Z]{2,6}(?:[0-9]+[a-zA-Z]?)?)\b")
 
 # Also catch well-known lowercase abbreviations
-KNOWN_LOWER = {"2ww", "gord", "copd", "uti", "dvt", "pe", "mi", "af", "ra",
-               "oa", "hf", "dm", "htn", "ckd", "aki", "sob", "nof", "tia",
-               "ptsd", "ocd", "bmi", "ibs", "pnd", "pvd", "pad", "luts",
-               "bph", "hrqol", "prn", "od", "bd", "tds", "qds"}
+KNOWN_LOWER = {
+    "2ww",
+    "gord",
+    "copd",
+    "uti",
+    "dvt",
+    "pe",
+    "mi",
+    "af",
+    "ra",
+    "oa",
+    "hf",
+    "dm",
+    "htn",
+    "ckd",
+    "aki",
+    "sob",
+    "nof",
+    "tia",
+    "ptsd",
+    "ocd",
+    "bmi",
+    "ibs",
+    "pnd",
+    "pvd",
+    "pad",
+    "luts",
+    "bph",
+    "hrqol",
+    "prn",
+    "od",
+    "bd",
+    "tds",
+    "qds",
+}
 
 IGNORE = {
     # Common English words that happen to be uppercase
-    "GP", "NHS", "LLR", "SPA", "CT", "MRI", "ECG", "CXR", "USS",
+    "GP",
+    "NHS",
+    "LLR",
+    "SPA",
+    "CT",
+    "MRI",
+    "ECG",
+    "CXR",
+    "USS",
     # Already well-known / in resolver
-    "COPD", "UTI", "DVT", "PE", "AF", "RA", "OA",
+    "COPD",
+    "UTI",
+    "DVT",
+    "PE",
+    "AF",
+    "RA",
+    "OA",
     # Too short / too generic
-    "A", "B", "C", "I", "II", "III", "IV", "V", "DM",
+    "A",
+    "B",
+    "C",
+    "I",
+    "II",
+    "III",
+    "IV",
+    "V",
+    "DM",
     # Admin/location
-    "LGI", "QMC", "RCH", "NOK",
+    "LGI",
+    "QMC",
+    "RCH",
+    "NOK",
 }
 
 abbrev_hits: dict[str, dict] = defaultdict(
@@ -46,7 +103,10 @@ for g in nf:
     ev_stripped = ev.strip()
 
     # Whole phrase is a short abbreviation (e.g. "2WW", "SLL", "CLL")
-    if re.match(r"^[A-Z0-9]{2,6}\.?$", ev_stripped) or ev_stripped.lower() in KNOWN_LOWER:
+    if (
+        re.match(r"^[A-Z0-9]{2,6}\.?$", ev_stripped)
+        or ev_stripped.lower() in KNOWN_LOWER
+    ):
         key = ev_stripped.upper().rstrip(".")
         abbrev_hits[key]["count"] += 1
         abbrev_hits[key]["targets"].add(target)
@@ -128,10 +188,14 @@ CLINICAL_ABBREVS = {
 
 for abbrev, meaning in CLINICAL_ABBREVS.items():
     hits = [
-        g for g in nf
-        if re.search(r"\b" + re.escape(abbrev) + r"\b",
-                     g.get("evidence") or "", re.IGNORECASE)
+        g
+        for g in nf
+        if re.search(
+            r"\b" + re.escape(abbrev) + r"\b", g.get("evidence") or "", re.IGNORECASE
+        )
     ]
     if hits:
         targets = sorted({h.get("expected_name") or "" for h in hits})
-        print(f"  {abbrev:<10} {len(hits):>3}x  ({meaning})  -> {', '.join(targets[:3])}")
+        print(
+            f"  {abbrev:<10} {len(hits):>3}x  ({meaning})  -> {', '.join(targets[:3])}"
+        )

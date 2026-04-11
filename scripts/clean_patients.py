@@ -7,6 +7,7 @@ Usage:
     python scripts/clean_patients.py --patients P1,P2,...
     python scripts/clean_patients.py --all --confirm
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,6 +21,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "services" / "api"))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 from libs.cypher.cleanup_queries import (
@@ -69,7 +71,9 @@ def clean_patient(session, patient_id: str) -> dict[str, int]:
 
 def get_all_patient_ids(driver) -> list[str]:
     with driver.session() as session:
-        result = session.run("MATCH (p:Patient) RETURN toString(p.id) AS pid ORDER BY pid")
+        result = session.run(
+            "MATCH (p:Patient) RETURN toString(p.id) AS pid ORDER BY pid"
+        )
         return [row["pid"] for row in result]
 
 
@@ -81,6 +85,7 @@ def main():
     args = parser.parse_args()
 
     from neo4j import GraphDatabase
+
     neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
     neo4j_user = os.getenv("NEO4J_USER", "neo4j")
     neo4j_password = os.getenv("NEO4J_PASSWORD", "")

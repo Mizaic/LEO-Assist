@@ -6,6 +6,7 @@ For each episode, shows:
 - ALL diagnosis anchor concepts (the actual triggering codes)
 - Whether those triggering codes are in our site-key lookup tables
 """
+
 import sys
 from pathlib import Path
 
@@ -13,9 +14,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -57,13 +60,20 @@ def main() -> None:
 
     # Load the lookup tables
     import json
+
     site_by_id = {
-        "276581000000102": "brain", "276341000000100": "breast",
-        "254837009": "breast", "372130007": "melanoma",
-        "399068003": "prostate", "93689003": "bladder",
-        "363358000": "lung", "363495004": "leukaemia",
+        "276581000000102": "brain",
+        "276341000000100": "breast",
+        "254837009": "breast",
+        "372130007": "melanoma",
+        "399068003": "prostate",
+        "93689003": "bladder",
+        "363358000": "lung",
+        "363495004": "leukaemia",
     }
-    desc_map_path = ROOT / "configs" / "snomed" / "snomed_cancer_type_descendant_site_map.json"
+    desc_map_path = (
+        ROOT / "configs" / "snomed" / "snomed_cancer_type_descendant_site_map.json"
+    )
     try:
         with open(desc_map_path) as f:
             desc_map = json.load(f).get("descendants", {})
@@ -74,8 +84,16 @@ def main() -> None:
         ep_id = r.get("ep_id", "")
         patient_id = r.get("patient_id", "")
         ref_date = r.get("ref_date", "")
-        ref_concepts = [c for c in (r.get("ref_concepts") or []) if c.get("cid") and c.get("cid") != "None"]
-        diag_concepts = [c for c in (r.get("diag_concepts") or []) if c.get("cid") and c.get("cid") != "None"]
+        ref_concepts = [
+            c
+            for c in (r.get("ref_concepts") or [])
+            if c.get("cid") and c.get("cid") != "None"
+        ]
+        diag_concepts = [
+            c
+            for c in (r.get("diag_concepts") or [])
+            if c.get("cid") and c.get("cid") != "None"
+        ]
 
         # Deduplicate by cid
         ref_by_cid = {c["cid"]: c for c in ref_concepts}
@@ -96,7 +114,11 @@ def main() -> None:
             tag = c.get("tag", "")
             in_site = site_by_id.get(cid)
             in_desc = desc_map.get(cid)
-            coverage = f"-> {in_site}" if in_site else (f"-> {in_desc} (desc)" if in_desc else "NOT IN LOOKUP")
+            coverage = (
+                f"-> {in_site}"
+                if in_site
+                else (f"-> {in_desc} (desc)" if in_desc else "NOT IN LOOKUP")
+            )
             flag = " *** UNRESOLVED NUMERIC NAME ***" if name == cid else ""
             print(f"    {cid}: {name} [{tag}] {coverage}{flag}")
 

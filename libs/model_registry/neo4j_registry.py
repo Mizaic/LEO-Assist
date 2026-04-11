@@ -50,7 +50,8 @@ def _row_to_record(row: dict[str, Any]) -> ModelRecord:
         canary_recall=row.get("canary_recall"),
         canary_cohort=row.get("canary_cohort"),
         rollback_target_version=row.get("rollback_target_version"),
-        registered_at=row.get("registered_at") or datetime.now(timezone.utc).isoformat(),
+        registered_at=row.get("registered_at")
+        or datetime.now(timezone.utc).isoformat(),
         promoted_at=row.get("promoted_at"),
         notes=_null_to_empty(row.get("notes")),
     )
@@ -90,7 +91,8 @@ class Neo4jModelRegistry:
         from libs.cypher.schema_constraints import PATIENT_SCHEMA_CONSTRAINTS
 
         model_constraints = [
-            c for c in PATIENT_SCHEMA_CONSTRAINTS
+            c
+            for c in PATIENT_SCHEMA_CONSTRAINTS
             if "ModelVersion" in c or "ModelRegistryConfig" in c
         ]
         for q in model_constraints:
@@ -179,8 +181,10 @@ class Neo4jModelRegistry:
         self._save_record(record)
         logger.info(
             "ModelRegistry: registered %s v%s (dataset=%s schema=%s)",
-            record.model_name, record.model_version,
-            record.training_dataset_version, record.schema_version,
+            record.model_name,
+            record.model_version,
+            record.training_dataset_version,
+            record.schema_version,
         )
         return record
 
@@ -204,21 +208,30 @@ class Neo4jModelRegistry:
             record.status = ModelStatus.OFFLINE_VALIDATED
             logger.info(
                 "ModelRegistry: v%s offline validated (P=%.3f R=%.3f)",
-                version, precision, recall,
+                version,
+                precision,
+                recall,
             )
         else:
             record.status = ModelStatus.DEPRECATED
             logger.warning(
                 "ModelRegistry: v%s failed offline validation (P=%.3f R=%.3f) "
                 "- thresholds P>=%.2f R>=%.2f",
-                version, precision, recall, _MIN_PRECISION, _MIN_RECALL,
+                version,
+                precision,
+                recall,
+                _MIN_PRECISION,
+                _MIN_RECALL,
             )
-        self._update_record(version, {
-            "offline_precision": record.offline_precision,
-            "offline_recall": record.offline_recall,
-            "notes": record.notes,
-            "status": record.status,
-        })
+        self._update_record(
+            version,
+            {
+                "offline_precision": record.offline_precision,
+                "offline_recall": record.offline_recall,
+                "notes": record.notes,
+                "status": record.status,
+            },
+        )
         return record
 
     def start_canary(
@@ -246,13 +259,18 @@ class Neo4jModelRegistry:
         record = self._get(version)
         record.canary_precision = round(precision, 4)
         record.canary_recall = round(recall, 4)
-        self._update_record(version, {
-            "canary_precision": record.canary_precision,
-            "canary_recall": record.canary_recall,
-        })
+        self._update_record(
+            version,
+            {
+                "canary_precision": record.canary_precision,
+                "canary_recall": record.canary_recall,
+            },
+        )
         logger.info(
             "ModelRegistry: v%s canary result (P=%.3f R=%.3f)",
-            version, precision, recall,
+            version,
+            precision,
+            recall,
         )
         return record
 
@@ -314,20 +332,28 @@ class Neo4jModelRegistry:
             logger.warning(
                 "ModelRegistry: v%s FORCE-PROMOTED - gate thresholds not met "
                 "(P=%.3f R=%.3f, required P>=%.2f R>=%.2f)",
-                version, record.canary_precision, record.canary_recall,
-                _MIN_CANARY_PRECISION, _MIN_CANARY_RECALL,
+                version,
+                record.canary_precision,
+                record.canary_recall,
+                _MIN_CANARY_PRECISION,
+                _MIN_CANARY_RECALL,
             )
 
-        self._update_record(version, {
-            "status": record.status,
-            "promoted_at": promoted_at,
-            "rollback_target_version": record.rollback_target_version,
-            "notes": record.notes,
-        })
+        self._update_record(
+            version,
+            {
+                "status": record.status,
+                "promoted_at": promoted_at,
+                "rollback_target_version": record.rollback_target_version,
+                "notes": record.notes,
+            },
+        )
         self._set_active_version(version)
         logger.info(
             "ModelRegistry: v%s PROMOTED to active (rollback_target=%s force=%s)",
-            version, record.rollback_target_version, force,
+            version,
+            record.rollback_target_version,
+            force,
         )
         self._signal_reload(version)
         return record
@@ -348,7 +374,8 @@ class Neo4jModelRegistry:
         self._set_active_version(target_ver)
         logger.warning(
             "ModelRegistry: ROLLBACK - demoted v%s, restored v%s",
-            active_ver, target_ver,
+            active_ver,
+            target_ver,
         )
         self._signal_reload(target_ver)
         return self._get(target_ver)
@@ -368,7 +395,8 @@ class Neo4jModelRegistry:
             data = resp.json()
             logger.info(
                 "ModelRegistry: inference service reloaded to v%s in %dms",
-                data.get("active_version"), data.get("elapsed_ms", 0),
+                data.get("active_version"),
+                data.get("elapsed_ms", 0),
             )
         except Exception:
             logger.warning(

@@ -130,7 +130,9 @@ from libs.utils.logging import logging_context
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/training", tags=["training"])
-PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip("/")
+PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip(
+    "/"
+)
 
 from app.routers._training_askleo import register_askleo_routes
 
@@ -159,7 +161,9 @@ async def _proxy_pipeline_worker_json(
     try:
         return resp.json()
     except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Pipeline worker returned invalid JSON") from exc
+        raise HTTPException(
+            status_code=502, detail="Pipeline worker returned invalid JSON"
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -366,18 +370,30 @@ def list_labels(
 
 
 @router.post("/labels/{label_id}/exclude")
-def exclude_label(label_id: str, body: ExcludeLabelRequest, scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def exclude_label(
+    label_id: str,
+    body: ExcludeLabelRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Mark a training label as excluded (soft delete — preserves the record)."""
     if not body.reason or not body.reason.strip():
         raise HTTPException(status_code=422, detail="reason must be non-empty")
     client = PatientGraphClient()
     try:
         with client.session() as session:
-            row = session.run(EXCLUDE_TRAINING_LABEL, label_id=label_id, reason=body.reason.strip()).single()
+            row = session.run(
+                EXCLUDE_TRAINING_LABEL, label_id=label_id, reason=body.reason.strip()
+            ).single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Label {label_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Label {label_id!r} not found"
+                )
         logger.info("TrainingLabel excluded: %s reason=%r", label_id[:8], body.reason)
-        return {"label_id": label_id, "include": False, "excluded_reason": body.reason.strip()}
+        return {
+            "label_id": label_id,
+            "include": False,
+            "excluded_reason": body.reason.strip(),
+        }
     finally:
         client.close()
 
@@ -388,14 +404,18 @@ def exclude_label(label_id: str, body: ExcludeLabelRequest, scope: CallerScope =
 
 
 @router.post("/labels/{label_id}/include")
-def include_label(label_id: str, scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def include_label(
+    label_id: str, scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, Any]:
     """Re-include a previously excluded training label."""
     client = PatientGraphClient()
     try:
         with client.session() as session:
             row = session.run(INCLUDE_TRAINING_LABEL, label_id=label_id).single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Label {label_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Label {label_id!r} not found"
+                )
         logger.info("TrainingLabel re-included: %s", label_id[:8])
         return {"label_id": label_id, "include": True}
     finally:
@@ -408,13 +428,33 @@ def include_label(label_id: str, scope: CallerScope = Depends(get_caller_scope))
 
 _VALID_ENTITY_LABELS: frozenset[str] = frozenset(
     {
-        "disorder", "finding", "procedure", "observable_entity",
-        "qualifier_value", "substance", "medicinal_product", "clinical_drug",
-        "situation", "event", "body_structure", "tumor_staging",
-        "assessment_scale", "staging_scale", "regime_therapy", "record_artifact",
-        "physical_object", "organism", "morphologic_abnormality", "occupation",
-        "attribute", "environment", "product",
-        "X_TEMPORAL", "X_DOSAGE", "X_FREQUENCY", "X_ROUTE",
+        "disorder",
+        "finding",
+        "procedure",
+        "observable_entity",
+        "qualifier_value",
+        "substance",
+        "medicinal_product",
+        "clinical_drug",
+        "situation",
+        "event",
+        "body_structure",
+        "tumor_staging",
+        "assessment_scale",
+        "staging_scale",
+        "regime_therapy",
+        "record_artifact",
+        "physical_object",
+        "organism",
+        "morphologic_abnormality",
+        "occupation",
+        "attribute",
+        "environment",
+        "product",
+        "X_TEMPORAL",
+        "X_DOSAGE",
+        "X_FREQUENCY",
+        "X_ROUTE",
     }
 )
 
@@ -445,15 +485,19 @@ def update_label_entities(
                 ),
             )
         if not ent.get("text", "").strip():
-            raise HTTPException(status_code=422, detail=f"Entity #{i}: text must be non-empty")
-        validated.append({
-            "text": ent["text"].strip(),
-            "label": label_val,
-            "start": ent.get("start", 0),
-            "end": ent.get("end", 0),
-            **({"assertion": ent["assertion"]} if "assertion" in ent else {}),
-            **({"confidence": ent["confidence"]} if "confidence" in ent else {}),
-        })
+            raise HTTPException(
+                status_code=422, detail=f"Entity #{i}: text must be non-empty"
+            )
+        validated.append(
+            {
+                "text": ent["text"].strip(),
+                "label": label_val,
+                "start": ent.get("start", 0),
+                "end": ent.get("end", 0),
+                **({"assertion": ent["assertion"]} if "assertion" in ent else {}),
+                **({"confidence": ent["confidence"]} if "confidence" in ent else {}),
+            }
+        )
 
     entities_json = json.dumps(validated)
     client = PatientGraphClient()
@@ -465,7 +509,9 @@ def update_label_entities(
                 entities_json=entities_json,
             ).single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Label {label_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Label {label_id!r} not found"
+                )
         logger.info(
             "TrainingLabel entities updated: %s count=%d", label_id[:8], len(validated)
         )
@@ -487,19 +533,27 @@ async def verify_all_labels(
 ) -> dict[str, Any]:
     """Trigger background dual-model verification over included labels."""
     _ = scope
-    payload = {"mode": "all", "reset_pending": False} if body is None else body.model_dump()
-    return await _proxy_pipeline_worker_json("POST", "/label-verify/start", json_body=payload)
+    payload = (
+        {"mode": "all", "reset_pending": False} if body is None else body.model_dump()
+    )
+    return await _proxy_pipeline_worker_json(
+        "POST", "/label-verify/start", json_body=payload
+    )
 
 
 @router.post("/labels/verify-all/cancel")
-async def cancel_verify_all(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+async def cancel_verify_all(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Request graceful cancellation of running label verification job."""
     _ = scope
     return await _proxy_pipeline_worker_json("POST", "/label-verify/stop")
 
 
 @router.get("/labels/verify-all/status")
-async def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+async def verification_status(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Return current background verification status plus corpus stats."""
     _ = scope
     return await _proxy_pipeline_worker_json("GET", "/label-verify/status")
@@ -606,14 +660,19 @@ def resolve_verification_review(
                 review_id=review_id,
             ).single()
             if not review_row:
-                raise HTTPException(status_code=404, detail=f"Review {review_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Review {review_id!r} not found"
+                )
 
             label_row = session.run(
                 GET_TRAINING_LABEL_BY_ID,
                 label_id=review_row["label_id"],
             ).single()
             if not label_row:
-                raise HTTPException(status_code=404, detail=f"Label {review_row['label_id']!r} not found")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Label {review_row['label_id']!r} not found",
+                )
 
             if body.resolve_only:
                 entities_json = label_row["entities_json"] or "[]"
@@ -629,7 +688,9 @@ def resolve_verification_review(
                     model_b_was_correct=model_b_was_correct,
                 ).single()
                 if not result_row:
-                    raise HTTPException(status_code=404, detail=f"Review {review_id!r} not found")
+                    raise HTTPException(
+                        status_code=404, detail=f"Review {review_id!r} not found"
+                    )
                 return {
                     "review_id": result_row["review_id"],
                     "label_id": result_row["label_id"],
@@ -648,13 +709,18 @@ def resolve_verification_review(
                     (
                         i
                         for i, ent in enumerate(entities)
-                        if str(ent.get("text", "")) == str(review_row.get("entity_text", ""))
-                        and str(ent.get("label", "")) == str(review_row.get("current_label", ""))
+                        if str(ent.get("text", ""))
+                        == str(review_row.get("entity_text", ""))
+                        and str(ent.get("label", ""))
+                        == str(review_row.get("current_label", ""))
                     ),
                     -1,
                 )
                 if fallback_idx == -1:
-                    raise HTTPException(status_code=422, detail=f"Invalid entity index {idx} for this label")
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Invalid entity index {idx} for this label",
+                    )
                 idx = fallback_idx
 
             if body.remove_entity:
@@ -668,7 +734,10 @@ def resolve_verification_review(
                         i
                         for i, ent in enumerate(entities)
                         if str(ent.get("text", "")).strip() == target_text
-                        and (not target_label or str(ent.get("label", "")) == target_label)
+                        and (
+                            not target_label
+                            or str(ent.get("label", "")) == target_label
+                        )
                     ]
                     if candidates:
                         remove_idx = min(candidates, key=lambda i: abs(i - idx))
@@ -698,7 +767,9 @@ def resolve_verification_review(
                     model_b_was_correct=False,
                 ).single()
                 if not result_row:
-                    raise HTTPException(status_code=404, detail=f"Review {review_id!r} not found")
+                    raise HTTPException(
+                        status_code=404, detail=f"Review {review_id!r} not found"
+                    )
                 return {
                     "review_id": result_row["review_id"],
                     "label_id": result_row["label_id"],
@@ -712,7 +783,9 @@ def resolve_verification_review(
             existing_text = str(entities[idx].get("text", ""))
             resolved_text = (body.resolved_text or existing_text).strip()
             if not resolved_text:
-                raise HTTPException(status_code=422, detail="resolved_text must be non-empty")
+                raise HTTPException(
+                    status_code=422, detail="resolved_text must be non-empty"
+                )
 
             encounter_text = str(label_row.get("text", ""))
             old_start = int(entities[idx].get("start", 0) or 0)
@@ -793,7 +866,9 @@ def resolve_verification_review(
                 model_b_was_correct=model_b_was_correct,
             ).single()
             if not result_row:
-                raise HTTPException(status_code=404, detail=f"Review {review_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Review {review_id!r} not found"
+                )
 
         return {
             "review_id": result_row["review_id"],
@@ -807,13 +882,17 @@ def resolve_verification_review(
 
 
 @router.get("/labels/verifier-scorecard")
-def get_verifier_scorecard(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def get_verifier_scorecard(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Per-model accuracy scorecard across all resolved label verification reviews."""
     client = PatientGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_LABEL_VERIFIER_SCORECARD).single()
-            breakdown_rows = [dict(r) for r in session.run(GET_LABEL_VERIFIER_SCORECARD_BREAKDOWN)]
+            breakdown_rows = [
+                dict(r) for r in session.run(GET_LABEL_VERIFIER_SCORECARD_BREAKDOWN)
+            ]
         if not row:
             return {"total_resolved": 0}
         data = dict(row)
@@ -826,11 +905,15 @@ def get_verifier_scorecard(scope: CallerScope = Depends(get_caller_scope)) -> di
             n = int(r.get("n") or 0)
             model_a_correct = int(r.get("model_a_correct") or 0)
             model_b_correct = int(r.get("model_b_correct") or 0)
-            label_bucket = by_label.setdefault(label, {"total": 0, "model_a_correct": 0, "model_b_correct": 0})
+            label_bucket = by_label.setdefault(
+                label, {"total": 0, "model_a_correct": 0, "model_b_correct": 0}
+            )
             label_bucket["total"] += n
             label_bucket["model_a_correct"] += model_a_correct
             label_bucket["model_b_correct"] += model_b_correct
-            bucket = by_resolver.setdefault(resolver, {"total": 0, "model_a_correct": 0, "model_b_correct": 0})
+            bucket = by_resolver.setdefault(
+                resolver, {"total": 0, "model_a_correct": 0, "model_b_correct": 0}
+            )
             bucket["total"] += n
             bucket["model_a_correct"] += model_a_correct
             bucket["model_b_correct"] += model_b_correct
@@ -838,16 +921,24 @@ def get_verifier_scorecard(scope: CallerScope = Depends(get_caller_scope)) -> di
         label_accuracy = {
             k: {
                 "total": v["total"],
-                "model_a_accuracy": round(v["model_a_correct"] / v["total"], 4) if v["total"] else None,
-                "model_b_accuracy": round(v["model_b_correct"] / v["total"], 4) if v["total"] else None,
+                "model_a_accuracy": (
+                    round(v["model_a_correct"] / v["total"], 4) if v["total"] else None
+                ),
+                "model_b_accuracy": (
+                    round(v["model_b_correct"] / v["total"], 4) if v["total"] else None
+                ),
             }
             for k, v in by_label.items()
         }
         resolver_accuracy = {
             k: {
                 "total": v["total"],
-                "model_a_accuracy": round(v["model_a_correct"] / v["total"], 4) if v["total"] else None,
-                "model_b_accuracy": round(v["model_b_correct"] / v["total"], 4) if v["total"] else None,
+                "model_a_accuracy": (
+                    round(v["model_a_correct"] / v["total"], 4) if v["total"] else None
+                ),
+                "model_b_accuracy": (
+                    round(v["model_b_correct"] / v["total"], 4) if v["total"] else None
+                ),
             }
             for k, v in by_resolver.items()
         }
@@ -857,14 +948,22 @@ def get_verifier_scorecard(scope: CallerScope = Depends(get_caller_scope)) -> di
         auto_b_correct = sum(v["model_b_correct"] for v in auto_rows)
         return {
             **data,
-            "model_a_accuracy": round(data["model_a_correct"] / total, 4) if total else None,
-            "model_b_accuracy": round(data["model_b_correct"] / total, 4) if total else None,
+            "model_a_accuracy": (
+                round(data["model_a_correct"] / total, 4) if total else None
+            ),
+            "model_b_accuracy": (
+                round(data["model_b_correct"] / total, 4) if total else None
+            ),
             "per_label": label_accuracy,
             "by_resolved_by": resolver_accuracy,
             "auto_triage_accuracy": {
                 "total": auto_total,
-                "model_a_accuracy": round(auto_a_correct / auto_total, 4) if auto_total else None,
-                "model_b_accuracy": round(auto_b_correct / auto_total, 4) if auto_total else None,
+                "model_a_accuracy": (
+                    round(auto_a_correct / auto_total, 4) if auto_total else None
+                ),
+                "model_b_accuracy": (
+                    round(auto_b_correct / auto_total, 4) if auto_total else None
+                ),
             },
         }
     finally:
@@ -877,7 +976,9 @@ def get_verifier_scorecard(scope: CallerScope = Depends(get_caller_scope)) -> di
 
 
 @router.get("/post-processor-rules")
-def list_post_processor_rules(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def list_post_processor_rules(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """List all persisted post-processor rules."""
     client = PatientGraphClient()
     try:
@@ -897,15 +998,24 @@ def create_post_processor_rule(
     """Create or update a post-processor rule used by export and runtime pipeline."""
     valid_actions = {"suppress", "rewrite", "relabel"}
     if body.action not in valid_actions:
-        raise HTTPException(status_code=422, detail=f"action must be one of {sorted(valid_actions)}")
+        raise HTTPException(
+            status_code=422, detail=f"action must be one of {sorted(valid_actions)}"
+        )
     if body.context_regex:
         _validate_regex(body.context_regex)
     if body.action in {"rewrite", "relabel"} and not body.rewrite_label:
-        raise HTTPException(status_code=422, detail="rewrite_label is required for rewrite/relabel actions")
+        raise HTTPException(
+            status_code=422,
+            detail="rewrite_label is required for rewrite/relabel actions",
+        )
     if body.action == "rewrite" and not body.rewrite_text:
-        raise HTTPException(status_code=422, detail="rewrite_text is required for rewrite action")
+        raise HTTPException(
+            status_code=422, detail="rewrite_text is required for rewrite action"
+        )
     if not body.match_text and not body.match_label and not body.context_regex:
-        raise HTTPException(status_code=422, detail="at least one matcher must be provided")
+        raise HTTPException(
+            status_code=422, detail="at least one matcher must be provided"
+        )
 
     rule_id = str(uuid.uuid4())
     client = PatientGraphClient()
@@ -947,7 +1057,9 @@ def update_post_processor_rule(
                 active=body.active,
             ).single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Rule {rule_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Rule {rule_id!r} not found"
+                )
         return {"rule_id": row["rule_id"], "active": row["active"]}
     finally:
         client.close()
@@ -959,14 +1071,18 @@ def update_post_processor_rule(
 
 
 @router.get("/labels/{label_id}")
-def get_label(label_id: str, scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def get_label(
+    label_id: str, scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, Any]:
     """Return full detail for a single training label."""
     client = PatientGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_TRAINING_LABEL_BY_ID, label_id=label_id).single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Label {label_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Label {label_id!r} not found"
+                )
             return dict(row)
     finally:
         client.close()
@@ -978,7 +1094,9 @@ def get_label(label_id: str, scope: CallerScope = Depends(get_caller_scope)) -> 
 
 
 @router.post("/labels/bulk-import")
-def bulk_import_labels(body: BulkImportRequest, scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def bulk_import_labels(
+    body: BulkImportRequest, scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, Any]:
     """Bulk-upsert training labels from offline scripts (anchor mining, QA).
 
     Called by ``scripts/qa_all_domains_ner.py`` after a QA pass to ingest
@@ -998,7 +1116,9 @@ def bulk_import_labels(body: BulkImportRequest, scope: CallerScope = Depends(get
     )
     logger.info(
         "bulk-import: %d labels ingested source=%s ref=%s",
-        len(label_ids), body.source, body.source_ref,
+        len(label_ids),
+        body.source,
+        body.source_ref,
     )
     return {
         "imported": len(label_ids),
@@ -1030,8 +1150,11 @@ def export_preview(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, 
 
         return {
             "exportable_label_count": total,
-            "ready_to_train": total >= int(__import__("os").getenv("TRAINING_MIN_LABEL_COUNT", "50")),
-            "min_required": int(__import__("os").getenv("TRAINING_MIN_LABEL_COUNT", "50")),
+            "ready_to_train": total
+            >= int(__import__("os").getenv("TRAINING_MIN_LABEL_COUNT", "50")),
+            "min_required": int(
+                __import__("os").getenv("TRAINING_MIN_LABEL_COUNT", "50")
+            ),
             "by_label_type": by_label,
         }
     finally:
@@ -1158,7 +1281,10 @@ def correct_entity_label(
         updated = row["updated_count"] if row else 0
         logger.info(
             "Entity label corrected: %r -> %r by %s (%d reviews updated)",
-            body.entity_text, body.entity_label, body.corrected_by, updated,
+            body.entity_text,
+            body.entity_label,
+            body.corrected_by,
+            updated,
         )
         return {
             "entity_text": body.entity_text,
@@ -1169,10 +1295,20 @@ def correct_entity_label(
         client.close()
 
 
-_VALID_ASSERTIONS = frozenset({
-    "present", "absent", "refuted", "possible", "historical", "planned",
-    "hypothetical", "family", "declined", "cancelled",
-})
+_VALID_ASSERTIONS = frozenset(
+    {
+        "present",
+        "absent",
+        "refuted",
+        "possible",
+        "historical",
+        "planned",
+        "hypothetical",
+        "family",
+        "declined",
+        "cancelled",
+    }
+)
 
 
 class CorrectAssertionRequest(BaseModel):
@@ -1205,10 +1341,14 @@ def correct_assertion(
                 assertion=body.assertion,
             ).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"Review {review_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Review {review_id!r} not found"
+            )
         logger.info(
             "Assertion overridden: review=%s assertion=%r by %s",
-            review_id[:12], body.assertion, body.corrected_by,
+            review_id[:12],
+            body.assertion,
+            body.corrected_by,
         )
         return {"review_id": review_id, "assertion": body.assertion}
     finally:
@@ -1320,7 +1460,9 @@ def resolve_coding_review(
                 review_id=review_id,
             ).single()
             entity_text = str(cr_row["entity_text"]) if cr_row else ""
-            original_concept_id = str(cr_row["original_concept_id"] or "") if cr_row else ""
+            original_concept_id = (
+                str(cr_row["original_concept_id"] or "") if cr_row else ""
+            )
             resolved_entity_text = (body.resolved_entity_text or "").strip()
             if resolved_entity_text:
                 entity_text = resolved_entity_text
@@ -1367,11 +1509,14 @@ def resolve_coding_review(
                 coding_client.close()
                 logger.info(
                     "Confirmed surface form mapping: %r -> %s (%s)",
-                    entity_text, body.resolved_concept_id, body.resolved_term,
+                    entity_text,
+                    body.resolved_concept_id,
+                    body.resolved_term,
                 )
             except Exception:
                 logger.warning(
-                    "Failed to upsert surface form mapping for %r", entity_text,
+                    "Failed to upsert surface form mapping for %r",
+                    entity_text,
                     exc_info=True,
                 )
 
@@ -1388,17 +1533,16 @@ def resolve_coding_review(
                     reviewer=f"cascade:{body.reviewer}",
                     resolved_assertion=body.resolved_assertion,
                 ).single()
-                cascade_count = (cascade_row["resolved_count"] if cascade_row else 0)
+                cascade_count = cascade_row["resolved_count"] if cascade_row else 0
         except Exception:
-            logger.warning(
-                "Cascade resolve failed for %r", entity_text, exc_info=True
-            )
+            logger.warning("Cascade resolve failed for %r", entity_text, exc_info=True)
         finally:
             cascade_client.close()
         if cascade_count:
             logger.info(
                 "Cascade-resolved %d additional reviews for %r",
-                cascade_count, entity_text,
+                cascade_count,
+                entity_text,
             )
 
     return {
@@ -1448,12 +1592,15 @@ def _create_surface_form_task_for_correction(
         client.close()
         logger.info(
             "SurfaceFormTask queued for second review: %r -> %s (task=%s)",
-            entity_text, resolved_concept_id, task_id,
+            entity_text,
+            resolved_concept_id,
+            task_id,
         )
         return True
     except Exception:
         logger.warning(
-            "Failed to create SurfaceFormTask for %r", entity_text,
+            "Failed to create SurfaceFormTask for %r",
+            entity_text,
             exc_info=True,
         )
         return False
@@ -1539,7 +1686,6 @@ def batch_resolve_coding_review(
     }
 
 
-
 # Ask LEO endpoints (ask_leo_coding, ask_leo_rank_candidates, ask_leo_smart)
 # are registered via _training_askleo.register_askleo_routes(router) above.
 
@@ -1605,9 +1751,13 @@ def _write_coding_ignore_rule(
                 reason=reason or "ignored via coding review",
                 created_by=created_by,
             )
-        logger.info("Coding ignore rule created: %r (label=%r)", normalized, entity_label)
+        logger.info(
+            "Coding ignore rule created: %r (label=%r)", normalized, entity_label
+        )
     except Exception:
-        logger.warning("Failed to write coding ignore rule for %r", normalized, exc_info=True)
+        logger.warning(
+            "Failed to write coding ignore rule for %r", normalized, exc_info=True
+        )
     finally:
         client.close()
 
@@ -1648,9 +1798,13 @@ def delete_coding_ignore_rule(
 
 _RECHECK_BATCH_LIMIT = 500
 _RECHECK_TERM_CHUNK = int(__import__("os").getenv("RECHECK_TERM_CHUNK", "50"))
-_RECHECK_THRESHOLD = float(__import__("os").getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70"))
+_RECHECK_THRESHOLD = float(
+    __import__("os").getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70")
+)
 _RECHECK_ALT_LOW = float(__import__("os").getenv("CODING_ALT_THRESHOLD_LOW", "0.3"))
-_TERMINOLOGY_URL = __import__("os").getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
+_TERMINOLOGY_URL = (
+    __import__("os").getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
+)
 
 # ---------------------------------------------------------------------------
 # Recheck job state (module-level, updated by background thread)
@@ -1687,7 +1841,9 @@ def _call_terminology_chunk(
             resp.raise_for_status()
             return (resp.json() or {}).get("results") or {}
     except Exception:
-        logger.warning("Terminology chunk call failed (%d terms)", len(terms), exc_info=True)
+        logger.warning(
+            "Terminology chunk call failed (%d terms)", len(terms), exc_info=True
+        )
         return {}
 
 
@@ -1698,7 +1854,7 @@ def _call_terminology_batch(
     """POST terms to the terminology resolve endpoint in chunks to avoid timeouts."""
     merged: dict[str, list] = {}
     for i in range(0, len(terms), _RECHECK_TERM_CHUNK):
-        chunk = terms[i: i + _RECHECK_TERM_CHUNK]
+        chunk = terms[i : i + _RECHECK_TERM_CHUNK]
         merged.update(_call_terminology_chunk(chunk, expected_tags=expected_tags))
     return merged
 
@@ -1803,16 +1959,27 @@ def _recheck_suggest_alts(term: str, entity_label: str) -> list[str]:
         if not match:
             logger.info(
                 "RECHECK: [LLM_SUGGEST] term=%r label=%s -- no JSON array in response: %s",
-                term, entity_label, raw_text[:120],
+                term,
+                entity_label,
+                raw_text[:120],
             )
             return []
         raw = _json.loads(match.group())
         seen = term.strip().lower()
-        alts = [s.strip() for s in raw if isinstance(s, str) and s.strip().lower() != seen][:4]
-        logger.info("RECHECK: [LLM_SUGGEST] term=%r label=%s -> alts=%r", term, entity_label, alts)
+        alts = [
+            s.strip() for s in raw if isinstance(s, str) and s.strip().lower() != seen
+        ][:4]
+        logger.info(
+            "RECHECK: [LLM_SUGGEST] term=%r label=%s -> alts=%r",
+            term,
+            entity_label,
+            alts,
+        )
         return alts
     except Exception:
-        logger.warning("RECHECK: [LLM_SUGGEST] LLM call failed for term=%r", term, exc_info=True)
+        logger.warning(
+            "RECHECK: [LLM_SUGGEST] LLM call failed for term=%r", term, exc_info=True
+        )
         return []
 
 
@@ -1824,7 +1991,11 @@ def _recheck_alt_coding(term: str, entity_label: str) -> tuple[dict, str] | None
     """
     alt_terms = _recheck_suggest_alts(term, entity_label)
     if not alt_terms:
-        logger.info("RECHECK: [LLM_ALT] term=%r label=%s -- LLM returned no alternatives", term, entity_label)
+        logger.info(
+            "RECHECK: [LLM_ALT] term=%r label=%s -- LLM returned no alternatives",
+            term,
+            entity_label,
+        )
         return None
 
     results = _call_terminology_batch(alt_terms)
@@ -1840,7 +2011,11 @@ def _recheck_alt_coding(term: str, entity_label: str) -> tuple[dict, str] | None
         snomed_term = top.get("snomed_term", "")
         logger.info(
             "RECHECK: [LLM_ALT_PROBE] original=%r alt=%r -> concept=%r snomed=%r score=%.4f",
-            term, alt, concept_id, snomed_term, score,
+            term,
+            alt,
+            concept_id,
+            snomed_term,
+            score,
         )
         if score >= _RECHECK_THRESHOLD and score > best_score:
             best_score = score
@@ -1850,11 +2025,19 @@ def _recheck_alt_coding(term: str, entity_label: str) -> tuple[dict, str] | None
     if best:
         logger.info(
             "RECHECK: [LLM_ALT_RESOLVED] term=%r via alt=%r -> concept=%r snomed=%r score=%.4f",
-            term, best_alt, best.get("snomed_concept_id"), best.get("snomed_term"), best_score,
+            term,
+            best_alt,
+            best.get("snomed_concept_id"),
+            best.get("snomed_term"),
+            best_score,
         )
         return best, best_alt
 
-    logger.info("RECHECK: [LLM_ALT_NO_MATCH] term=%r -- no alternative cleared threshold=%.2f", term, _RECHECK_THRESHOLD)
+    logger.info(
+        "RECHECK: [LLM_ALT_NO_MATCH] term=%r -- no alternative cleared threshold=%.2f",
+        term,
+        _RECHECK_THRESHOLD,
+    )
     return None
 
 
@@ -1878,7 +2061,9 @@ def _apply_recheck_item(
     if normalized in ignore_texts:
         logger.info(
             "RECHECK: [IGNORED] term=%r label=%s review=%s -- matched ignore rule",
-            entity_text, entity_label, review_id,
+            entity_text,
+            entity_label,
+            review_id,
         )
         session.run(
             AUTO_RESOLVE_CODING_REVIEW,
@@ -1901,17 +2086,27 @@ def _apply_recheck_item(
     if not coded:
         logger.info(
             "RECHECK: [UNCODED] term=%r label=%s review=%s -- terminology returned no concept",
-            entity_text, entity_label, review_id,
+            entity_text,
+            entity_label,
+            review_id,
         )
     elif score is not None and score >= _RECHECK_THRESHOLD:
         logger.info(
             "RECHECK: [DIRECT] term=%r label=%s -> concept=%r snomed=%r score=%.4f review=%s",
-            entity_text, entity_label, concept_id, term, score, review_id,
+            entity_text,
+            entity_label,
+            concept_id,
+            term,
+            score,
+            review_id,
         )
     elif try_alternatives and score is not None and score >= _RECHECK_ALT_LOW:
         logger.info(
             "RECHECK: [NEAR_MISS] term=%r label=%s score=%.4f -- trying LLM alternatives review=%s",
-            entity_text, entity_label, score, review_id,
+            entity_text,
+            entity_label,
+            score,
+            review_id,
         )
         alt_result = _recheck_alt_coding(entity_text, entity_label)
         if alt_result:
@@ -1926,7 +2121,10 @@ def _apply_recheck_item(
     else:
         logger.info(
             "RECHECK: [LOW_SCORE] term=%r label=%s score=%s -- below alt threshold, staying in queue review=%s",
-            entity_text, entity_label, f"{score:.4f}" if score is not None else "None", review_id,
+            entity_text,
+            entity_label,
+            f"{score:.4f}" if score is not None else "None",
+            review_id,
         )
 
     session.run(
@@ -1957,7 +2155,13 @@ def _apply_recheck_item(
         logger.info(
             "RECHECK: [FINALISED] term=%r -> concept=%r snomed=%r score=%.4f"
             " method=%r review=%s writeback=%s",
-            entity_text, concept_id, term, score, resolved_by, review_id, writeback_ok,
+            entity_text,
+            concept_id,
+            term,
+            score,
+            resolved_by,
+            review_id,
+            writeback_ok,
         )
         if resolved_by.startswith("llm_alt:"):
             return "resolved_llm", writeback_ok
@@ -1978,7 +2182,11 @@ def _apply_recheck_item(
             resolved_by_esc = f"escalation:{esc.model_tier}"
             logger.info(
                 "RECHECK: [ESCALATED] term=%r -> concept=%r tier=%s conf=%.2f review=%s",
-                entity_text, esc.concept_id, esc.model_tier, esc.confidence, review_id,
+                entity_text,
+                esc.concept_id,
+                esc.model_tier,
+                esc.confidence,
+                review_id,
             )
             session.run(
                 AUTO_RESOLVE_CODING_REVIEW,
@@ -1996,7 +2204,9 @@ def _apply_recheck_item(
 
     logger.info(
         "RECHECK: [PENDING] term=%r label=%s -- not resolved, remains in queue review=%s",
-        entity_text, entity_label, review_id,
+        entity_text,
+        entity_label,
+        review_id,
     )
     if not coded:
         return "pending_uncoded", False
@@ -2049,9 +2259,7 @@ def _run_recheck_job(
                             else _RECHECK_BATCH_LIMIT
                         )
                         fetch_limit = min(_RECHECK_BATCH_LIMIT, remaining_budget)
-                        rows = session.run(
-                            GET_PENDING_FOR_RECHECK, limit=fetch_limit
-                        )
+                        rows = session.run(GET_PENDING_FOR_RECHECK, limit=fetch_limit)
                         pending = [dict(r) for r in rows]
                 finally:
                     client.close()
@@ -2100,7 +2308,11 @@ def _run_recheck_job(
                                 ignore_texts,
                                 try_alternatives,
                             )
-                            if outcome in {"resolved_direct", "resolved_llm", "ignored"}:
+                            if outcome in {
+                                "resolved_direct",
+                                "resolved_llm",
+                                "ignored",
+                            }:
                                 batch_resolved += 1
                             if outcome == "resolved_direct":
                                 counters["resolved_direct"] += 1
@@ -2144,7 +2356,9 @@ def _run_recheck_job(
                 if item_limit > 0 and total_rechecked >= item_limit:
                     logger.info(
                         "RECHECK: [LIMIT_REACHED] job=%s processed=%d limit=%d -- stopping",
-                        job_id, total_rechecked, item_limit,
+                        job_id,
+                        total_rechecked,
+                        item_limit,
                     )
                     break
 
@@ -2263,11 +2477,19 @@ def coding_review_stats(
     try:
         with client.session() as session:
             row = session.run(GET_CODING_REVIEW_STATS).single()
-        return dict(row) if row else {
-            "total": 0, "coded": 0, "uncoded": 0,
-            "resolved": 0, "pending": 0, "low_confidence": 0,
-            "assertion_flagged": 0,
-        }
+        return (
+            dict(row)
+            if row
+            else {
+                "total": 0,
+                "coded": 0,
+                "uncoded": 0,
+                "resolved": 0,
+                "pending": 0,
+                "low_confidence": 0,
+                "assertion_flagged": 0,
+            }
+        )
     finally:
         client.close()
 
@@ -2276,10 +2498,16 @@ def coding_review_stats(
 # Context rules -- user-defined ConText rules stored in Neo4j.
 # ---------------------------------------------------------------------------
 
-_VALID_CATEGORIES = frozenset({
-    "NEGATED_EXISTENCE", "POSSIBLE_EXISTENCE", "HISTORICAL",
-    "HYPOTHETICAL", "FAMILY", "DECLINED",
-})
+_VALID_CATEGORIES = frozenset(
+    {
+        "NEGATED_EXISTENCE",
+        "POSSIBLE_EXISTENCE",
+        "HISTORICAL",
+        "HYPOTHETICAL",
+        "FAMILY",
+        "DECLINED",
+    }
+)
 _VALID_DIRECTIONS = frozenset({"FORWARD", "BACKWARD", "BIDIRECTIONAL"})
 
 
@@ -2311,7 +2539,9 @@ def list_context_rules(
     client = PatientGraphClient()
     try:
         with client.session() as session:
-            rows = session.run(GET_CONTEXT_RULES, active_only=active_only, org_id=org_id)
+            rows = session.run(
+                GET_CONTEXT_RULES, active_only=active_only, org_id=org_id
+            )
             custom = [{**dict(r), "source": "custom"} for r in rows]
     finally:
         client.close()
@@ -2333,7 +2563,9 @@ def create_context_rule(
     if not body.literal.strip():
         raise HTTPException(status_code=422, detail="literal must not be empty")
     if len(body.literal) > 200:
-        raise HTTPException(status_code=422, detail="literal must not exceed 200 characters")
+        raise HTTPException(
+            status_code=422, detail="literal must not exceed 200 characters"
+        )
     if body.category not in _VALID_CATEGORIES:
         raise HTTPException(
             status_code=422,
@@ -2363,18 +2595,31 @@ def create_context_rule(
             )
         logger.info(
             "ContextRule created: %s %r -> %s by %s (org=%s)",
-            rule_id[:8], body.literal, body.category, scope.email, org_id,
+            rule_id[:8],
+            body.literal,
+            body.category,
+            scope.email,
+            org_id,
         )
-        return {"rule_id": rule_id, "literal": body.literal, "category": body.category, "org_id": org_id}
+        return {
+            "rule_id": rule_id,
+            "literal": body.literal,
+            "category": body.category,
+            "org_id": org_id,
+        }
     finally:
         client.close()
 
     # Rebuild the ConText NLP pipeline so the new rule takes effect immediately.
     try:
         from libs.ner.context_engine import reload_nlp
+
         reload_nlp()
     except Exception:
-        logger.warning("ConText pipeline reload failed after rule creation (non-fatal)", exc_info=True)
+        logger.warning(
+            "ConText pipeline reload failed after rule creation (non-fatal)",
+            exc_info=True,
+        )
 
 
 @router.patch("/context-rules/{rule_id}/deactivate")
@@ -2397,9 +2642,13 @@ def deactivate_context_rule(
     # Rebuild the ConText NLP pipeline so the removed rule is no longer applied.
     try:
         from libs.ner.context_engine import reload_nlp
+
         reload_nlp()
     except Exception:
-        logger.warning("ConText pipeline reload failed after rule deactivation (non-fatal)", exc_info=True)
+        logger.warning(
+            "ConText pipeline reload failed after rule deactivation (non-fatal)",
+            exc_info=True,
+        )
 
 
 # -- Surface form approval --------------------------------------------------
@@ -2458,7 +2707,9 @@ def revoke_surface_form(
 
         logger.info(
             "SurfaceForm revoked: %r  cascade_encounters=%d  by=%s",
-            normalized, len(encounter_ids), scope.email,
+            normalized,
+            len(encounter_ids),
+            scope.email,
         )
         return {
             "normalized": normalized,
@@ -2557,7 +2808,17 @@ def get_training_candidate_stats(
     try:
         with client.session() as session:
             row = session.run(GET_TRAINING_CANDIDATE_STATS).single()
-        return dict(row) if row else {"total": 0, "pending": 0, "processing": 0, "completed": 0, "failed": 0}
+        return (
+            dict(row)
+            if row
+            else {
+                "total": 0,
+                "pending": 0,
+                "processing": 0,
+                "completed": 0,
+                "failed": 0,
+            }
+        )
     finally:
         client.close()
 
@@ -2607,9 +2868,13 @@ def get_training_candidate(
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
-            row = session.run(GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id).single()
+            row = session.run(
+                GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id
+            ).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Candidate {candidate_id!r} not found"
+            )
         return dict(row)
     finally:
         client.close()
@@ -2628,7 +2893,9 @@ def delete_training_candidate(
                 candidate_id=candidate_id,
             ).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Candidate {candidate_id!r} not found"
+            )
         payload = dict(row)
         logger.info(
             "TrainingCandidate deleted id=%s gold_labels=%s surface_form_tasks=%s actor=%s",
@@ -2655,7 +2922,9 @@ def mark_training_candidate_completed(
                 candidate_id=candidate_id,
             ).single()
             if not candidate_row:
-                raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Candidate {candidate_id!r} not found"
+                )
 
             gold_row = session.run(
                 GET_GOLD_LABEL_BY_CANDIDATE_ID,
@@ -2673,7 +2942,9 @@ def mark_training_candidate_completed(
                 status="completed",
             ).single()
             if not update_row:
-                raise HTTPException(status_code=500, detail="Failed to update candidate status")
+                raise HTTPException(
+                    status_code=500, detail="Failed to update candidate status"
+                )
 
         logger.info(
             "TrainingCandidate marked completed id=%s label=%s actor=%s",
@@ -2698,7 +2969,11 @@ def get_gold_label_stats(
     try:
         with client.session() as session:
             row = session.run(GET_GOLD_LABEL_STATS).single()
-        return dict(row) if row else {"total": 0, "avg_quality_score": 0.0, "high_quality": 0}
+        return (
+            dict(row)
+            if row
+            else {"total": 0, "avg_quality_score": 0.0, "high_quality": 0}
+        )
     finally:
         client.close()
 
@@ -2744,7 +3019,9 @@ def get_gold_label(
         with client.session() as session:
             row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"GoldLabel {label_id!r} not found"
+            )
         return dict(row)
     finally:
         client.close()
@@ -2786,7 +3063,9 @@ def ensure_gold_label_for_candidate(
                 candidate_id=candidate_id,
             ).single()
             if not candidate_row:
-                raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Candidate {candidate_id!r} not found"
+                )
 
             row = session.run(
                 GET_GOLD_LABEL_BY_CANDIDATE_ID,
@@ -2809,7 +3088,9 @@ def ensure_gold_label_for_candidate(
             )
             created = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
             if not created:
-                raise HTTPException(status_code=500, detail="Failed to create GoldLabel")
+                raise HTTPException(
+                    status_code=500, detail="Failed to create GoldLabel"
+                )
             return dict(created)
     finally:
         client.close()
@@ -2828,7 +3109,9 @@ def delete_gold_label_and_reset_candidate(
                 label_id=label_id,
             ).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"GoldLabel {label_id!r} not found"
+            )
         return dict(row)
     finally:
         client.close()
@@ -2859,17 +3142,29 @@ def update_gold_label_entities(
                 ),
             )
         if not ent.get("text", "").strip():
-            raise HTTPException(status_code=422, detail=f"Entity #{i}: text must be non-empty")
-        validated.append({
-            "text": ent["text"].strip(),
-            "label": label_val,
-            **({"start": ent["start"]} if "start" in ent else {}),
-            **({"end": ent["end"]} if "end" in ent else {}),
-            **({"assertion": ent["assertion"]} if "assertion" in ent else {}),
-            **({"confidence": ent["confidence"]} if "confidence" in ent else {}),
-            **({"snomed_concept_id": ent["snomed_concept_id"]} if "snomed_concept_id" in ent else {}),
-            **({"semantic_tag": ent["semantic_tag"]} if "semantic_tag" in ent else {}),
-        })
+            raise HTTPException(
+                status_code=422, detail=f"Entity #{i}: text must be non-empty"
+            )
+        validated.append(
+            {
+                "text": ent["text"].strip(),
+                "label": label_val,
+                **({"start": ent["start"]} if "start" in ent else {}),
+                **({"end": ent["end"]} if "end" in ent else {}),
+                **({"assertion": ent["assertion"]} if "assertion" in ent else {}),
+                **({"confidence": ent["confidence"]} if "confidence" in ent else {}),
+                **(
+                    {"snomed_concept_id": ent["snomed_concept_id"]}
+                    if "snomed_concept_id" in ent
+                    else {}
+                ),
+                **(
+                    {"semantic_tag": ent["semantic_tag"]}
+                    if "semantic_tag" in ent
+                    else {}
+                ),
+            }
+        )
 
     entities_json = json.dumps(validated)
     client = KnowledgeGraphClient()
@@ -2881,7 +3176,9 @@ def update_gold_label_entities(
                 entities_json=entities_json,
             ).single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"GoldLabel {label_id!r} not found"
+                )
         logger.info(
             "GoldLabel entities updated: %s count=%d", label_id[:8], len(validated)
         )
@@ -2958,7 +3255,9 @@ def get_surface_form_task(
         with client.session() as session:
             row = session.run(GET_SURFACE_FORM_TASK_BY_ID, task_id=task_id).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"SurfaceFormTask {task_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"SurfaceFormTask {task_id!r} not found"
+            )
         return dict(row)
     finally:
         client.close()
@@ -2971,7 +3270,9 @@ def resolve_surface_form_task(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     if body.status not in {"approved", "rejected", "modified"}:
-        raise HTTPException(status_code=422, detail="status must be approved|rejected|modified")
+        raise HTTPException(
+            status_code=422, detail="status must be approved|rejected|modified"
+        )
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
@@ -2983,7 +3284,9 @@ def resolve_surface_form_task(
                 resolved_by=body.resolved_by or "operations_ui",
             ).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"SurfaceFormTask {task_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"SurfaceFormTask {task_id!r} not found"
+            )
         return {"task_id": row["task_id"], "status": row["status"]}
     finally:
         client.close()
@@ -3090,9 +3393,7 @@ def get_corpus_stats(
         for tag, cnt in entity_type_breakdown.items()
         if cnt < _IMBALANCE_MIN
     ]
-    safety_critical_blocked = any(
-        cnt < _SAFETY_MIN for cnt in safety_counts.values()
-    )
+    safety_critical_blocked = any(cnt < _SAFETY_MIN for cnt in safety_counts.values())
 
     return {
         "gold_count": gold_count,
@@ -3111,11 +3412,18 @@ def get_corpus_stats(
 
 # ── Source node sample preview ──────────────────────────────────────────────
 
+
 @router.get("/schema/sample-node")
 def get_sample_node(
-    node_label: str = Query(..., description="Node label to sample (e.g. EncounterCandidate)"),
-    graph: str = Query("patient", description="Which graph to query: 'patient' or 'knowledge'"),
-    text_property: str = Query("text", description="Property to highlight as the main text field"),
+    node_label: str = Query(
+        ..., description="Node label to sample (e.g. EncounterCandidate)"
+    ),
+    graph: str = Query(
+        "patient", description="Which graph to query: 'patient' or 'knowledge'"
+    ),
+    text_property: str = Query(
+        "text", description="Property to highlight as the main text field"
+    ),
 ):
     """Return one sample node so users can verify field names in the source configurator.
 
@@ -3123,24 +3431,38 @@ def get_sample_node(
     300 characters, and Neo4j datetime objects are converted to ISO strings.
     The selected text_property is surfaced first in the response.
     """
-    _REDACT = {"nhs_number", "date_of_birth", "dob", "birthdate", "birthDate", "postcode"}
+    _REDACT = {
+        "nhs_number",
+        "date_of_birth",
+        "dob",
+        "birthdate",
+        "birthDate",
+        "postcode",
+    }
     _MAX_TEXT = 300
 
     try:
-        client: Any = KnowledgeGraphClient() if graph == "knowledge" else PatientGraphClient()
+        client: Any = (
+            KnowledgeGraphClient() if graph == "knowledge" else PatientGraphClient()
+        )
         try:
             with client.session() as session:
-                rows = list(session.run(
-                    f"MATCH (n:{node_label}) RETURN properties(n) AS props LIMIT 1"
-                ))
+                rows = list(
+                    session.run(
+                        f"MATCH (n:{node_label}) RETURN properties(n) AS props LIMIT 1"
+                    )
+                )
         finally:
             client.close()
 
         if not rows:
             from fastapi.responses import JSONResponse as _JSONResponse
+
             return _JSONResponse(
                 status_code=404,
-                content={"detail": f"No {node_label} nodes found in the {graph} graph."},
+                content={
+                    "detail": f"No {node_label} nodes found in the {graph} graph."
+                },
             )
 
         raw: dict = dict(rows[0]["props"])
@@ -3160,9 +3482,15 @@ def get_sample_node(
             ordered[text_property] = preview.pop(text_property)
         ordered.update(preview)
 
-        return {"nodeLabel": node_label, "graph": graph, "textProperty": text_property, "properties": ordered}
+        return {
+            "nodeLabel": node_label,
+            "graph": graph,
+            "textProperty": text_property,
+            "properties": ordered,
+        }
 
     except Exception as exc:
         from fastapi.responses import JSONResponse as _JSONResponse
+
         logger.warning("sample-node error for %s/%s: %s", graph, node_label, exc)
         return _JSONResponse(status_code=500, content={"detail": str(exc)})

@@ -10,6 +10,7 @@ Output: scripts/investigations/encounter_audit/fast_track_referral_encounters.js
 Run:
     python scripts/investigations/_inventory_fast_track_referral_encounters.py
 """
+
 from __future__ import annotations
 
 import json
@@ -22,10 +23,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -106,7 +109,7 @@ def main() -> None:
         with client.session() as session:
             results = list(session.run(_Q_TEXT))
             print(f"Found {len(results)} encounters with fast-track referral text.")
-            unique_patients = len({r['patient_id'] for r in results})
+            unique_patients = len({r["patient_id"] for r in results})
             print(f"Unique patients: {unique_patients}")
             print()
 
@@ -123,20 +126,24 @@ def main() -> None:
                 ref_doc_result = session.run(_Q_DOC_COUNT, eid=encounter_id).single()
                 referral_doc_count = int(ref_doc_result["n"]) if ref_doc_result else 0
 
-                all_doc_result = session.run(_Q_ALL_DOC_COUNT, eid=encounter_id).single()
+                all_doc_result = session.run(
+                    _Q_ALL_DOC_COUNT, eid=encounter_id
+                ).single()
                 all_doc_count = int(all_doc_result["n"]) if all_doc_result else 0
 
                 for phrase in phrases:
                     if phrase:
                         phrase_counter[phrase.lower()] += 1
-                    rows.append({
-                        "patient_id": patient_id,
-                        "encounter_id": encounter_id,
-                        "date": date,
-                        "matched_phrase": phrase,
-                        "referral_doc_count": referral_doc_count,
-                        "all_doc_count": all_doc_count,
-                    })
+                    rows.append(
+                        {
+                            "patient_id": patient_id,
+                            "encounter_id": encounter_id,
+                            "date": date,
+                            "matched_phrase": phrase,
+                            "referral_doc_count": referral_doc_count,
+                            "all_doc_count": all_doc_count,
+                        }
+                    )
 
                 if phrases and phrases[0] and referral_doc_count == 0:
                     uncoded_count += 1
@@ -150,7 +157,9 @@ def main() -> None:
 
     unique_patients_out = len({r["patient_id"] for r in rows})
     unique_encounters_out = len({r["encounter_id"] for r in rows})
-    unique_phrases_out = len({r["matched_phrase"].lower() for r in rows if r["matched_phrase"]})
+    unique_phrases_out = len(
+        {r["matched_phrase"].lower() for r in rows if r["matched_phrase"]}
+    )
 
     print(f"Written {len(rows)} rows to {OUT_FILE}")
     print(f"  Unique patients   : {unique_patients_out}")

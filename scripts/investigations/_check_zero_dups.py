@@ -1,5 +1,8 @@
 import requests
-r = requests.get("http://localhost:8001/terminology/surface-forms/duplicates", timeout=30)
+
+r = requests.get(
+    "http://localhost:8001/terminology/surface-forms/duplicates", timeout=30
+)
 data = r.json()
 print(f"Remaining duplicates: {len(data)}")
 for d in data:

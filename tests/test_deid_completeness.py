@@ -22,12 +22,12 @@ Threat coverage (DC-TM-SEC-002):
   GAP-008    Incomplete de-identification before LLM submission
   TODO:MANUAL De-identification completeness assessment
 """
+
 from __future__ import annotations
 
 import pytest
 
 from libs.utils.deidentify import deidentify_text
-
 
 # ============================================================================
 # CORPUS: Names in SystmOne CAPS,Forename format — MUST be caught
@@ -35,8 +35,14 @@ from libs.utils.deidentify import deidentify_text
 
 SYSTMONE_NAMES = [
     # South Asian
-    ("PATEL, Rajesh (Medical Secretary Access Role)", "South Asian male — SystmOne role format"),
-    ("BEGUM, Senuara (Admin/Clinical Support Access Role)", "South Asian female — SystmOne role"),
+    (
+        "PATEL, Rajesh (Medical Secretary Access Role)",
+        "South Asian male — SystmOne role format",
+    ),
+    (
+        "BEGUM, Senuara (Admin/Clinical Support Access Role)",
+        "South Asian female — SystmOne role",
+    ),
     ("KHAN, Mohammed (Clerical Access Role)", "South Asian male — common surname"),
     ("AGARWAL, Priya (Dr)", "South Asian female — title format"),
     ("CHOWDHURY, Abdul (Mr)", "South Asian male — title format"),
@@ -82,7 +88,9 @@ SYSTMONE_NAMES = [
 class TestSystmOneNameFormat:
     """Names in CAPS, Forename (Role/Title) format — regex MUST catch these."""
 
-    @pytest.mark.parametrize("name,description", SYSTMONE_NAMES, ids=[d for _, d in SYSTMONE_NAMES])
+    @pytest.mark.parametrize(
+        "name,description", SYSTMONE_NAMES, ids=[d for _, d in SYSTMONE_NAMES]
+    )
     def test_systmone_name_redacted(self, name, description):
         text = f"Encounter recorded by {name} on clinic day."
         result = deidentify_text(text)
@@ -121,7 +129,9 @@ HONORIFIC_NAMES = [
 class TestHonorificNameFormat:
     """Title + Surname format — regex MUST catch these."""
 
-    @pytest.mark.parametrize("name,description", HONORIFIC_NAMES, ids=[d for _, d in HONORIFIC_NAMES])
+    @pytest.mark.parametrize(
+        "name,description", HONORIFIC_NAMES, ids=[d for _, d in HONORIFIC_NAMES]
+    )
     def test_honorific_name_redacted(self, name, description):
         text = f"Referral letter from {name} received today."
         result = deidentify_text(text)
@@ -154,7 +164,9 @@ CAPS_BARE_NAMES = [
 class TestCapsBareName:
     """ALL-CAPS SURNAME, Forename without role/title — regex MUST catch."""
 
-    @pytest.mark.parametrize("name,description", CAPS_BARE_NAMES, ids=[d for _, d in CAPS_BARE_NAMES])
+    @pytest.mark.parametrize(
+        "name,description", CAPS_BARE_NAMES, ids=[d for _, d in CAPS_BARE_NAMES]
+    )
     def test_caps_bare_name_redacted(self, name, description):
         text = f"Clinical note by {name} regarding follow-up."
         result = deidentify_text(text)
@@ -199,8 +211,13 @@ class TestFreeTextFirstNames:
     The test documents the known gap and will start passing once NER is deployed.
     """
 
-    @pytest.mark.parametrize("name,description", FREETEXT_NAMES, ids=[d for _, d in FREETEXT_NAMES])
-    @pytest.mark.xfail(reason="GAP-008: regex cannot catch bare first names; requires NER pass", strict=False)
+    @pytest.mark.parametrize(
+        "name,description", FREETEXT_NAMES, ids=[d for _, d in FREETEXT_NAMES]
+    )
+    @pytest.mark.xfail(
+        reason="GAP-008: regex cannot catch bare first names; requires NER pass",
+        strict=False,
+    )
     def test_freetext_name_redacted(self, name, description):
         text = f"Discussed treatment plan with {name} who reports improvement."
         result = deidentify_text(text)
@@ -211,9 +228,11 @@ class TestFreeTextFirstNames:
 # NER SECOND PASS — multicultural name detection with spaCy
 # ============================================================================
 
+
 def _spacy_available(model: str) -> bool:
     try:
         import spacy
+
         spacy.load(model, disable=["tagger", "parser", "lemmatizer"])
         return True
     except Exception:
@@ -275,12 +294,16 @@ class TestNerLargeModelAccuracy:
     large model for adequate multicultural PII coverage.
     """
 
-    @pytest.mark.parametrize("name,description", NER_LG_CATCHES, ids=[d for _, d in NER_LG_CATCHES])
+    @pytest.mark.parametrize(
+        "name,description", NER_LG_CATCHES, ids=[d for _, d in NER_LG_CATCHES]
+    )
     def test_ner_lg_catches_name(self, name, description):
         import os
+
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("DEIDENTIFY_NER_MODEL", "en_core_web_lg")
             import libs.utils.deidentify as deid_mod
+
             deid_mod._NER_NLP = None
             deid_mod._NER_MODEL = None
             text = f"Discussed treatment plan with {name} who reports improvement."
@@ -288,13 +311,19 @@ class TestNerLargeModelAccuracy:
         assert name not in result, f"NER(lg) MISSED: {name} ({description})"
         assert "[PERSON]" in result
 
-    @pytest.mark.parametrize("name,description", NER_LG_MISSES, ids=[d for _, d in NER_LG_MISSES])
-    @pytest.mark.xfail(reason="en_core_web_lg misclassifies this name; known gap", strict=False)
+    @pytest.mark.parametrize(
+        "name,description", NER_LG_MISSES, ids=[d for _, d in NER_LG_MISSES]
+    )
+    @pytest.mark.xfail(
+        reason="en_core_web_lg misclassifies this name; known gap", strict=False
+    )
     def test_ner_lg_known_miss(self, name, description):
         import os
+
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("DEIDENTIFY_NER_MODEL", "en_core_web_lg")
             import libs.utils.deidentify as deid_mod
+
             deid_mod._NER_NLP = None
             deid_mod._NER_MODEL = None
             text = f"Discussed treatment plan with {name} who reports improvement."
@@ -313,12 +342,18 @@ class TestNerSmallModelBias:
     All tests here are xfail: they demonstrate the small model's failures.
     """
 
-    @pytest.mark.parametrize("name,description", NER_SM_MISSES, ids=[d for _, d in NER_SM_MISSES])
-    @pytest.mark.xfail(reason="en_core_web_sm has multicultural name bias; use en_core_web_lg", strict=False)
+    @pytest.mark.parametrize(
+        "name,description", NER_SM_MISSES, ids=[d for _, d in NER_SM_MISSES]
+    )
+    @pytest.mark.xfail(
+        reason="en_core_web_sm has multicultural name bias; use en_core_web_lg",
+        strict=False,
+    )
     def test_sm_model_misclassifies(self, name, description):
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("DEIDENTIFY_NER_MODEL", "en_core_web_sm")
             import libs.utils.deidentify as deid_mod
+
             deid_mod._NER_NLP = None
             deid_mod._NER_MODEL = None
             text = f"Discussed treatment plan with {name} who reports improvement."
@@ -341,7 +376,9 @@ NHS_NUMBERS = [
 
 class TestNhsNumbers:
 
-    @pytest.mark.parametrize("nhs,description", NHS_NUMBERS, ids=[d for _, d in NHS_NUMBERS])
+    @pytest.mark.parametrize(
+        "nhs,description", NHS_NUMBERS, ids=[d for _, d in NHS_NUMBERS]
+    )
     def test_nhs_number_redacted(self, nhs, description):
         text = f"Patient NHS number is {nhs} and needs follow-up."
         result = deidentify_text(text)
@@ -368,7 +405,9 @@ POSTCODES = [
 
 class TestPostcodes:
 
-    @pytest.mark.parametrize("postcode,description", POSTCODES, ids=[d for _, d in POSTCODES])
+    @pytest.mark.parametrize(
+        "postcode,description", POSTCODES, ids=[d for _, d in POSTCODES]
+    )
     def test_postcode_redacted(self, postcode, description):
         text = f"Patient address includes {postcode} in their records."
         result = deidentify_text(text)
@@ -392,13 +431,16 @@ PHONES = [
 
 class TestPhoneNumbers:
 
-    @pytest.mark.parametrize("phone,description", [
-        ("07700 900 123", "UK mobile"),
-        ("+44 7911 123456", "international mobile"),
-        ("0116 254 9568", "Leicester landline"),
-        ("020 7946 0958", "London landline"),
-        ("07700900123", "mobile contiguous"),
-    ])
+    @pytest.mark.parametrize(
+        "phone,description",
+        [
+            ("07700 900 123", "UK mobile"),
+            ("+44 7911 123456", "international mobile"),
+            ("0116 254 9568", "Leicester landline"),
+            ("020 7946 0958", "London landline"),
+            ("07700900123", "mobile contiguous"),
+        ],
+    )
     def test_phone_redacted(self, phone, description):
         text = f"Contact patient on {phone} to arrange appointment."
         result = deidentify_text(text)
@@ -467,7 +509,9 @@ ADDRESSES = [
 
 class TestAddresses:
 
-    @pytest.mark.parametrize("address,description", ADDRESSES, ids=[d for _, d in ADDRESSES])
+    @pytest.mark.parametrize(
+        "address,description", ADDRESSES, ids=[d for _, d in ADDRESSES]
+    )
     def test_address_redacted(self, address, description):
         text = f"Patient lives at {address}, Leicestershire."
         result = deidentify_text(text)
@@ -489,7 +533,9 @@ FACILITIES = [
 
 class TestFacilityNames:
 
-    @pytest.mark.parametrize("facility,description", FACILITIES, ids=[d for _, d in FACILITIES])
+    @pytest.mark.parametrize(
+        "facility,description", FACILITIES, ids=[d for _, d in FACILITIES]
+    )
     def test_facility_redacted(self, facility, description):
         text = f"Patient referred to {facility} for assessment."
         result = deidentify_text(text)
@@ -501,6 +547,7 @@ class TestFacilityNames:
 # ============================================================================
 # INTEGRATED CLINICAL SCENARIOS — realistic multi-PII encounters
 # ============================================================================
+
 
 class TestIntegratedScenarios:
     """Full clinical encounter text with multiple PII items."""
@@ -611,6 +658,7 @@ class TestIntegratedScenarios:
 # RESIDUAL RATE METRIC — summary statistics
 # ============================================================================
 
+
 class TestResidualRateReport:
     """Calculate and report the residual PII rate for the regex engine.
 
@@ -623,7 +671,12 @@ class TestResidualRateReport:
             "systmone_names": [(n, d) for n, d in SYSTMONE_NAMES],
             "honorific_names": [(n, d) for n, d in HONORIFIC_NAMES],
             "caps_bare_names": [(n, d) for n, d in CAPS_BARE_NAMES],
-            "nhs_numbers": [("943 476 5919", ""), ("9434765919", ""), ("123 456 7890", ""), ("999 888 7777", "")],
+            "nhs_numbers": [
+                ("943 476 5919", ""),
+                ("9434765919", ""),
+                ("123 456 7890", ""),
+                ("999 888 7777", ""),
+            ],
             "postcodes": [(p, d) for p, d in POSTCODES],
             "emails": [(e, d) for e, d in EMAILS],
             "dates": [(dt, d) for dt, d in DATES],
@@ -647,7 +700,11 @@ class TestResidualRateReport:
                 else:
                     leaked.append(f"  {category}: {pii_value} ({desc})")
 
-            results[category] = {"total": len(items), "caught": caught, "rate": caught / len(items) if items else 0}
+            results[category] = {
+                "total": len(items),
+                "caught": caught,
+                "rate": caught / len(items) if items else 0,
+            }
 
         overall_rate = total_caught / total_items if total_items else 0
 
@@ -658,11 +715,19 @@ class TestResidualRateReport:
             "=" * 70,
         ]
         for cat, r in results.items():
-            status = "PASS" if r["rate"] == 1.0 else f"GAPS ({r['total'] - r['caught']} missed)"
-            report_lines.append(f"  {cat:25s}  {r['caught']:3d}/{r['total']:3d}  ({r['rate']:.0%})  {status}")
+            status = (
+                "PASS"
+                if r["rate"] == 1.0
+                else f"GAPS ({r['total'] - r['caught']} missed)"
+            )
+            report_lines.append(
+                f"  {cat:25s}  {r['caught']:3d}/{r['total']:3d}  ({r['rate']:.0%})  {status}"
+            )
 
         report_lines.append("-" * 70)
-        report_lines.append(f"  {'OVERALL':25s}  {total_caught:3d}/{total_items:3d}  ({overall_rate:.0%})")
+        report_lines.append(
+            f"  {'OVERALL':25s}  {total_caught:3d}/{total_items:3d}  ({overall_rate:.0%})"
+        )
 
         if leaked:
             report_lines.append("")
@@ -670,7 +735,9 @@ class TestResidualRateReport:
             report_lines.extend(leaked)
 
         report_lines.append("")
-        report_lines.append(f"Free-text first names (KNOWN GAP): {len(FREETEXT_NAMES)} items — requires NER pass")
+        report_lines.append(
+            f"Free-text first names (KNOWN GAP): {len(FREETEXT_NAMES)} items — requires NER pass"
+        )
         report_lines.append("=" * 70)
 
         # Print to pytest output

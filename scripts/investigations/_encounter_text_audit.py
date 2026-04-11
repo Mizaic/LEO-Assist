@@ -8,6 +8,7 @@ For each stale episode patient:
 
 Also show the overall coding_status breakdown across the cohort.
 """
+
 import sys, re
 from pathlib import Path
 from collections import defaultdict
@@ -15,9 +16,11 @@ from collections import defaultdict
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -67,14 +70,14 @@ _CANCER_PATTERNS = re.compile(
     r"mastectomy|colectomy|resection|excision of|biopsy confirmed|histology|"
     r"diagnosis of|diagnosed with|confirmed|adenocarcinoma|sarcoma|squamous cell|"
     r"basal cell|glioblastoma|mesothelioma)\b",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 _TREATMENT_PATTERNS = re.compile(
     r"\b(chemotherapy|radiotherapy|immunotherapy|hormone therapy|tamoxifen|letrozole|"
     r"mastectomy|lumpectomy|excision|colectomy|resection|nephrectomy|prostatectomy|"
     r"cystectomy|orchiectomy|thyroidectomy|surgery|operation|SACT|systemic anti-cancer|"
     r"clinical trial|oncology clinic|started treatment)\b",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 # Stale episodes: patient + referral date
@@ -97,7 +100,7 @@ MATCH (ep:EpisodeOfCare) RETURN DISTINCT ep.patient_id AS pid
 
 def _snippet(text: str, n_chars: int = 400) -> str:
     text = (text or "").strip()
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text[:n_chars] + ("..." if len(text) > n_chars else "")
 
 
@@ -123,29 +126,36 @@ def main():
         # 2. Per-episode text audit
         for pid, ref_date, label in STALE_EPISODES:
             from datetime import date, timedelta
+
             ref_dt = date.fromisoformat(ref_date)
             window_end = (ref_dt + timedelta(days=180)).isoformat()
 
             print()
             print("=" * 70)
-            print(f"Patient {pid}  |  {label}  |  ref={ref_date}  window={ref_date}..{window_end}")
+            print(
+                f"Patient {pid}  |  {label}  |  ref={ref_date}  window={ref_date}..{window_end}"
+            )
             print("=" * 70)
 
             # Coded concepts in window
             with pg.session() as s:
-                coded = s.run(_Q_CODED_CONCEPTS, pid=pid,
-                              from_date=ref_date, to_date=window_end).data()
+                coded = s.run(
+                    _Q_CODED_CONCEPTS, pid=pid, from_date=ref_date, to_date=window_end
+                ).data()
             if coded:
                 print(f"  Coded concepts ({len(coded)}):")
                 for c in coded:
-                    print(f"    {c['date']}  [{c['assertion']}]  {c['concept']}  ({c['tag']})")
+                    print(
+                        f"    {c['date']}  [{c['assertion']}]  {c['concept']}  ({c['tag']})"
+                    )
             else:
                 print("  Coded concepts: NONE")
 
             # Text encounters in window
             with pg.session() as s:
-                texts = s.run(_Q_TEXT_ENCOUNTERS, pid=pid,
-                              from_date=ref_date, to_date=window_end).data()
+                texts = s.run(
+                    _Q_TEXT_ENCOUNTERS, pid=pid, from_date=ref_date, to_date=window_end
+                ).data()
             print(f"\n  Clinical text encounters ({len(texts)}):")
             for t in texts:
                 sig = t.get("significance") or "?"

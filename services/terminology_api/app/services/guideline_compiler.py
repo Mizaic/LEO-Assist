@@ -73,6 +73,7 @@ class CompilePolicy:
     allowed_concept_ids: frozenset[str] = frozenset()
     enforce_action_scope: bool = False
 
+
 _FETCH_ACTIVE_RULES = """
 MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)
     -[:HAS_RULE]->(rule:AppropriatenessRule {status: 'active'})
@@ -123,6 +124,7 @@ RETURN
     at.unit              AS unit
 ORDER BY rule.id, concept.conceptId
 """
+
 
 def _kg_driver():
     """Return a synchronous Neo4j driver for the knowledge graph."""
@@ -255,7 +257,11 @@ class GuidelineCompiler:
                         self._build_fetch_active_rules_query(scope),
                         statuses=statuses,
                         scope_id=scope.scope_id,
-                        scope_domain_id=scope.scope_id.split(":", 1)[0] if scope.scope_type == "subdomain" else scope.scope_id,
+                        scope_domain_id=(
+                            scope.scope_id.split(":", 1)[0]
+                            if scope.scope_type == "subdomain"
+                            else scope.scope_id
+                        ),
                     )
                 )
                 applies_to_records = list(
@@ -263,7 +269,11 @@ class GuidelineCompiler:
                         self._build_fetch_applies_to_query(scope),
                         statuses=statuses,
                         scope_id=scope.scope_id,
-                        scope_domain_id=scope.scope_id.split(":", 1)[0] if scope.scope_type == "subdomain" else scope.scope_id,
+                        scope_domain_id=(
+                            scope.scope_id.split(":", 1)[0]
+                            if scope.scope_type == "subdomain"
+                            else scope.scope_id
+                        ),
                     )
                 )
                 policy = self._build_policy(
@@ -373,9 +383,17 @@ ORDER BY rule.id, concept.conceptId
                 domain_id = domain_id or parts[0]
                 subdomain_name = subdomain_name or parts[1]
         if policy_mode == "advisory" and not domain_id:
-            return CompilePolicy(mode="advisory", allowed_concept_ids=frozenset(), enforce_action_scope=False)
+            return CompilePolicy(
+                mode="advisory",
+                allowed_concept_ids=frozenset(),
+                enforce_action_scope=False,
+            )
         if not domain_id or not subdomain_name:
-            return CompilePolicy(mode=policy_mode, allowed_concept_ids=frozenset(), enforce_action_scope=False)
+            return CompilePolicy(
+                mode=policy_mode,
+                allowed_concept_ids=frozenset(),
+                enforce_action_scope=False,
+            )
         allowed = self._load_allowed_concepts(
             session,
             domain_id,
@@ -428,7 +446,9 @@ ORDER BY rule.id, concept.conceptId
                     continue
                 allowed.add(code)
                 if include_descendants:
-                    for cid in self._closure_ids(session, code, max(0, int(depth or 0)), 0):
+                    for cid in self._closure_ids(
+                        session, code, max(0, int(depth or 0)), 0
+                    ):
                         allowed.add(str(cid))
         return allowed
 
@@ -472,14 +492,10 @@ ORDER BY rule.id, concept.conceptId
         parts = ["MATCH (t:SnomedConcept {conceptId: $concept_id})", "WITH t"]
         collect_parts = ["collect(DISTINCT t.conceptId)"]
         if dc > 0:
-            parts.append(
-                f"OPTIONAL MATCH (d:SnomedConcept)-[:IS_A*1..{dc}]->(t)"
-            )
+            parts.append(f"OPTIONAL MATCH (d:SnomedConcept)-[:IS_A*1..{dc}]->(t)")
             collect_parts.append("collect(DISTINCT d.conceptId)")
         if dp > 0:
-            parts.append(
-                f"OPTIONAL MATCH (t)-[:IS_A*1..{dp}]->(a:SnomedConcept)"
-            )
+            parts.append(f"OPTIONAL MATCH (t)-[:IS_A*1..{dp}]->(a:SnomedConcept)")
             collect_parts.append("collect(DISTINCT a.conceptId)")
 
         q = "\n".join(parts)
@@ -496,7 +512,10 @@ ORDER BY rule.id, concept.conceptId
                 "falling back to exact-match only. IS_A hierarchy expansion is DISABLED "
                 "for this concept. Rules using it will only fire on exact code matches, "
                 "not descendant concepts. Error: %s",
-                concept_id, dc, dp, exc,
+                concept_id,
+                dc,
+                dp,
+                exc,
             )
             result = [concept_id]
 
@@ -543,7 +562,9 @@ ORDER BY rule.id, concept.conceptId
         policy = policy or CompilePolicy()
         by_rule: dict[str, dict] = {}
         by_group: dict[str, dict] = {}  # group_id → {rule_id, mode, int_ids}
-        self._compile_stats["rules_seen"] = len({str(r["rule_id"]) for r in records if r.get("rule_id")})
+        self._compile_stats["rules_seen"] = len(
+            {str(r["rule_id"]) for r in records if r.get("rule_id")}
+        )
 
         for row in records:
             rule_id = str(row["rule_id"])
@@ -553,37 +574,41 @@ ORDER BY rule.id, concept.conceptId
             if rule_id not in by_rule:
                 action_json = row.get("action_json")
                 by_rule[rule_id] = {
-                    "rule_id":                 rule_id,
-                    "name":                    row["name"],
-                    "strength":                row["strength"],
-                    "schema_version":          int(row.get("schema_version") or 1),
-                    "logic_json":              row.get("logic_json"),
-                    "action_json":             json.loads(action_json) if isinstance(action_json, str) and action_json else None,
-                    "guideline_id":            row["guideline_id"],
-                    "guideline_title":         row["guideline_title"],
-                    "chapter_title":           row.get("chapter_title"),
+                    "rule_id": rule_id,
+                    "name": row["name"],
+                    "strength": row["strength"],
+                    "schema_version": int(row.get("schema_version") or 1),
+                    "logic_json": row.get("logic_json"),
+                    "action_json": (
+                        json.loads(action_json)
+                        if isinstance(action_json, str) and action_json
+                        else None
+                    ),
+                    "guideline_id": row["guideline_id"],
+                    "guideline_title": row["guideline_title"],
+                    "chapter_title": row.get("chapter_title"),
                     "recommendation_verbatim": row.get("recommendation_verbatim", ""),
-                    "group_ids_ordered":       [],  # preserves insertion order
-                    "applies_to":              [],
+                    "group_ids_ordered": [],  # preserves insertion order
+                    "applies_to": [],
                     "action_concept_id": row.get("action_concept_id"),
-                    "action_name":       row.get("action_name"),
-                    "action_priority":   row.get("action_priority", "routine"),
-                    "action_due_days":   row.get("action_due_days"),
+                    "action_name": row.get("action_name"),
+                    "action_priority": row.get("action_priority", "routine"),
+                    "action_due_days": row.get("action_due_days"),
                     "guideline_domain_id": row.get("guideline_domain_id"),
                 }
             else:
                 rule = by_rule[rule_id]
                 if not rule["action_concept_id"] and row.get("action_concept_id"):
                     rule["action_concept_id"] = row["action_concept_id"]
-                    rule["action_name"]        = row.get("action_name")
-                    rule["action_priority"]    = row.get("action_priority", "routine")
-                    rule["action_due_days"]    = row.get("action_due_days")
+                    rule["action_name"] = row.get("action_name")
+                    rule["action_priority"] = row.get("action_priority", "routine")
+                    rule["action_due_days"] = row.get("action_due_days")
 
             if not group_id:
                 continue
 
             if group_id not in by_group:
-                raw_mode  = str(row.get("group_mode") or "ALL").upper()
+                raw_mode = str(row.get("group_mode") or "ALL").upper()
                 predicate = str(row.get("predicate") or "PRESENT")
                 # Backward compat: old data writes type="ANY" + predicate="ABSENT"
                 # to mean "none of these may be present" → NOT semantics.
@@ -597,49 +622,66 @@ ORDER BY rule.id, concept.conceptId
             if not concept_id:
                 continue
 
-            if policy.allowed_concept_ids and str(concept_id) not in policy.allowed_concept_ids:
+            if (
+                policy.allowed_concept_ids
+                and str(concept_id) not in policy.allowed_concept_ids
+            ):
                 self._compile_stats["policy_violations"] += 1
                 self._compile_stats["out_of_scope_concepts"] += 1
                 if policy.mode == "strict":
                     continue
 
-            d_child  = int(distance_child_override if distance_child_override is not None else row.get("distance_child") or 0)
-            d_parent = int(distance_parent_override if distance_parent_override is not None else row.get("distance_parent") or 0)
-            closure  = self._closure_ids(session, str(concept_id), d_child, d_parent)
+            d_child = int(
+                distance_child_override
+                if distance_child_override is not None
+                else row.get("distance_child") or 0
+            )
+            d_parent = int(
+                distance_parent_override
+                if distance_parent_override is not None
+                else row.get("distance_parent") or 0
+            )
+            closure = self._closure_ids(session, str(concept_id), d_child, d_parent)
             if policy.allowed_concept_ids:
-                closure = [cid for cid in closure if str(cid) in policy.allowed_concept_ids]
+                closure = [
+                    cid for cid in closure if str(cid) in policy.allowed_concept_ids
+                ]
                 if not closure:
                     self._compile_stats["policy_violations"] += 1
                     self._compile_stats["out_of_scope_concepts"] += 1
                     if policy.mode == "strict":
                         continue
                     closure = [str(concept_id)]
-            int_ids  = [self._store.get_or_assign_int_id(cid) for cid in closure]
+            int_ids = [self._store.get_or_assign_int_id(cid) for cid in closure]
             by_group[group_id]["int_ids"].extend(int_ids)
 
         # Merge APPLIES_TO demographic constraints into their rules
-        for row in (applies_to_records or []):
+        for row in applies_to_records or []:
             rule_id = str(row["rule_id"])
             if rule_id not in by_rule:
                 continue
             concept_id = row.get("concept_id")
-            operator   = row.get("operator")
-            value      = row.get("value")
+            operator = row.get("operator")
+            value = row.get("value")
             if not concept_id or not operator:
                 continue
-            by_rule[rule_id]["applies_to"].append({
-                "concept_id":    concept_id,
-                "preferred_term": row.get("preferred_term", ""),
-                "semantic_tag":  row.get("semantic_tag", ""),
-                "raw_term":      row.get("raw_term", ""),
-                "operator":      operator,
-                "value":         float(value) if value is not None else None,
-                "unit":          row.get("unit"),
-            })
+            by_rule[rule_id]["applies_to"].append(
+                {
+                    "concept_id": concept_id,
+                    "preferred_term": row.get("preferred_term", ""),
+                    "semantic_tag": row.get("semantic_tag", ""),
+                    "raw_term": row.get("raw_term", ""),
+                    "operator": operator,
+                    "value": float(value) if value is not None else None,
+                    "unit": row.get("unit"),
+                }
+            )
 
         compiled_rules = []
         for rule_data in by_rule.values():
-            if int(rule_data.get("schema_version") or 1) == 2 and rule_data.get("logic_json"):
+            if int(rule_data.get("schema_version") or 1) == 2 and rule_data.get(
+                "logic_json"
+            ):
                 compiled = self._compile_schema_v2_rule(
                     rule_data,
                     session,
@@ -708,7 +750,10 @@ ORDER BY rule.id, concept.conceptId
                     criterion.get("node_id"),
                 )
                 return None
-            if policy.allowed_concept_ids and str(concept_id) not in policy.allowed_concept_ids:
+            if (
+                policy.allowed_concept_ids
+                and str(concept_id) not in policy.allowed_concept_ids
+            ):
                 self._compile_stats["policy_violations"] += 1
                 self._compile_stats["out_of_scope_concepts"] += 1
                 if policy.mode == "strict":
@@ -716,11 +761,21 @@ ORDER BY rule.id, concept.conceptId
             closure = self._closure_ids(
                 session,
                 str(concept_id),
-                int(distance_child_override if distance_child_override is not None else criterion.get("distance_child") or 3),
-                int(distance_parent_override if distance_parent_override is not None else criterion.get("distance_parent") or 0),
+                int(
+                    distance_child_override
+                    if distance_child_override is not None
+                    else criterion.get("distance_child") or 3
+                ),
+                int(
+                    distance_parent_override
+                    if distance_parent_override is not None
+                    else criterion.get("distance_parent") or 0
+                ),
             )
             if policy.allowed_concept_ids:
-                closure = [cid for cid in closure if str(cid) in policy.allowed_concept_ids]
+                closure = [
+                    cid for cid in closure if str(cid) in policy.allowed_concept_ids
+                ]
                 if not closure and policy.mode == "strict":
                     return None
                 if not closure:
@@ -777,9 +832,15 @@ ORDER BY rule.id, concept.conceptId
         distance_parent_override: int | None = None,
     ) -> dict[str, Any] | None:
         try:
-            logic_tree = json.loads(rule_data["logic_json"]) if isinstance(rule_data.get("logic_json"), str) else rule_data.get("logic_json")
+            logic_tree = (
+                json.loads(rule_data["logic_json"])
+                if isinstance(rule_data.get("logic_json"), str)
+                else rule_data.get("logic_json")
+            )
         except Exception as exc:
-            logger.error("Invalid schema v2 logicJson for rule %s: %s", rule_data["rule_id"], exc)
+            logger.error(
+                "Invalid schema v2 logicJson for rule %s: %s", rule_data["rule_id"], exc
+            )
             return None
         compiled_tree = self._compile_logic_tree_node(
             logic_tree,
@@ -800,7 +861,8 @@ ORDER BY rule.id, concept.conceptId
             if (
                 policy.allowed_concept_ids
                 and policy.enforce_action_scope
-                and str(rule_data["action_concept_id"]) not in policy.allowed_concept_ids
+                and str(rule_data["action_concept_id"])
+                not in policy.allowed_concept_ids
             ):
                 self._compile_stats["policy_violations"] += 1
                 self._compile_stats["out_of_scope_actions"] += 1
@@ -822,7 +884,8 @@ ORDER BY rule.id, concept.conceptId
             if action_json.get("snomed_concept_id"):
                 action = {
                     "concept_id": action_json["snomed_concept_id"],
-                    "name": action_json.get("preferred_term") or action_json.get("term"),
+                    "name": action_json.get("preferred_term")
+                    or action_json.get("term"),
                     "priority": rule_data.get("action_priority") or "routine",
                     "due_days": rule_data.get("action_due_days"),
                 }
@@ -863,29 +926,30 @@ ORDER BY rule.id, concept.conceptId
             if (
                 policy.allowed_concept_ids
                 and policy.enforce_action_scope
-                and str(rule_data["action_concept_id"]) not in policy.allowed_concept_ids
+                and str(rule_data["action_concept_id"])
+                not in policy.allowed_concept_ids
             ):
                 self._compile_stats["policy_violations"] += 1
                 self._compile_stats["out_of_scope_actions"] += 1
             else:
                 action = {
                     "concept_id": rule_data["action_concept_id"],
-                    "name":       rule_data.get("action_name"),
-                    "priority":   rule_data.get("action_priority") or "routine",
-                    "due_days":   rule_data.get("action_due_days"),
+                    "name": rule_data.get("action_name"),
+                    "priority": rule_data.get("action_priority") or "routine",
+                    "due_days": rule_data.get("action_due_days"),
                 }
 
         return {
-            "rule_id":                 rule_data["rule_id"],
-            "name":                    rule_data["name"],
-            "strength":                rule_data["strength"],
-            "schema_version":          1,
-            "guideline_id":            rule_data["guideline_id"],
-            "guideline_title":         rule_data["guideline_title"],
-            "guideline_domain_id":     rule_data.get("guideline_domain_id"),
-            "chapter_title":           rule_data.get("chapter_title"),
+            "rule_id": rule_data["rule_id"],
+            "name": rule_data["name"],
+            "strength": rule_data["strength"],
+            "schema_version": 1,
+            "guideline_id": rule_data["guideline_id"],
+            "guideline_title": rule_data["guideline_title"],
+            "guideline_domain_id": rule_data.get("guideline_domain_id"),
+            "chapter_title": rule_data.get("chapter_title"),
             "recommendation_verbatim": rule_data["recommendation_verbatim"],
-            "criteria_groups":         groups,
-            "action":                  action,
-            "applies_to":              rule_data.get("applies_to") or [],
+            "criteria_groups": groups,
+            "action": action,
+            "applies_to": rule_data.get("applies_to") or [],
         }

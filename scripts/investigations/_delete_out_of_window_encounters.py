@@ -207,18 +207,21 @@ RETURN count(d) AS deleted
 
 # -- Helpers -----------------------------------------------------------------
 
+
 def _collect_all_ids(session, keep_from: str, keep_to: str) -> list[str]:
     """Page through all target encounter IDs without loading everything at once."""
     all_ids: list[str] = []
     skip = 0
     while True:
-        rows = list(session.run(
-            _Q_PAGE_ENCOUNTER_IDS,
-            keep_from=keep_from,
-            keep_to=keep_to,
-            skip=skip,
-            limit=BATCH_SIZE,
-        ))
+        rows = list(
+            session.run(
+                _Q_PAGE_ENCOUNTER_IDS,
+                keep_from=keep_from,
+                keep_to=keep_to,
+                skip=skip,
+                limit=BATCH_SIZE,
+            )
+        )
         batch = [r["encounter_id"] for r in rows]
         all_ids.extend(batch)
         if len(batch) < BATCH_SIZE:
@@ -238,8 +241,13 @@ def _run_batched(session, query: str, all_ids: list[str], label: str) -> int:
         row = session.run(query, enc_ids=chunk).single()
         n = (row or {}).get("deleted", 0)
         total += n
-        log.info("  %s batch %d/%d -> %d deleted",
-                 label, i, -(-len(all_ids) // BATCH_SIZE), n)
+        log.info(
+            "  %s batch %d/%d -> %d deleted",
+            label,
+            i,
+            -(-len(all_ids) // BATCH_SIZE),
+            n,
+        )
     return total
 
 
@@ -257,24 +265,33 @@ def _run_batched_kg(kg_client, query: str, all_ids: list[str], label: str) -> in
 
 # -- Dry-run -----------------------------------------------------------------
 
+
 def _dry_run(session, keep_from: str, keep_to: str, all_ids: list[str]) -> None:
     log.info("--- DRY-RUN AUDIT ---")
 
     row = session.run(_Q_COUNT_TARGET, keep_from=keep_from, keep_to=keep_to).single()
     log.info(
         "Encounters to delete: %d across %d distinct patients",
-        row["encounter_count"], row["patient_count"],
+        row["encounter_count"],
+        row["patient_count"],
     )
 
     null_row = session.run(_Q_COUNT_NULL_DATE).single()
-    log.info("Encounters with NULL date (will be skipped): %d", null_row["null_date_count"])
+    log.info(
+        "Encounters with NULL date (will be skipped): %d", null_row["null_date_count"]
+    )
     if null_row["null_date_count"]:
         samples = list(session.run(_Q_SAMPLE_NULL_DATE))
         for s in samples:
-            log.info("  null-date sample: enc=%s patient=%s",
-                     s["encounter_id"], s["patient_id"])
+            log.info(
+                "  null-date sample: enc=%s patient=%s",
+                s["encounter_id"],
+                s["patient_id"],
+            )
 
-    doc_row = session.run(_Q_COUNT_DOCUMENTS, keep_from=keep_from, keep_to=keep_to).single()
+    doc_row = session.run(
+        _Q_COUNT_DOCUMENTS, keep_from=keep_from, keep_to=keep_to
+    ).single()
     log.info("DOCUMENTS relationships to remove: %d", doc_row["doc_count"])
 
     if all_ids:
@@ -287,10 +304,14 @@ def _dry_run(session, keep_from: str, keep_to: str, all_ids: list[str]) -> None:
         rev_row = session.run(_Q_COUNT_CODING_REVIEWS, enc_ids=all_ids).single()
         log.info("CodingReview rows to remove: %d", rev_row["review_count"])
 
-    isp_row = session.run(_Q_COUNT_IS_PART_OF, keep_from=keep_from, keep_to=keep_to).single()
+    isp_row = session.run(
+        _Q_COUNT_IS_PART_OF, keep_from=keep_from, keep_to=keep_to
+    ).single()
     log.info("IS_PART_OF edges to remove: %d", isp_row["is_part_of_count"])
 
-    alert_row = session.run(_Q_COUNT_ALERTS, keep_from=keep_from, keep_to=keep_to).single()
+    alert_row = session.run(
+        _Q_COUNT_ALERTS, keep_from=keep_from, keep_to=keep_to
+    ).single()
     log.info("SafetyNetAlert.TRIGGERED_AT edges affected: %d", alert_row["alert_count"])
 
     log.info("--- END DRY-RUN (no changes made) ---")
@@ -298,6 +319,7 @@ def _dry_run(session, keep_from: str, keep_to: str, all_ids: list[str]) -> None:
 
 
 # -- Apply -------------------------------------------------------------------
+
 
 def _apply(pg_session, all_ids: list[str]) -> dict[str, int]:
     stats: dict[str, int] = {}
@@ -328,9 +350,12 @@ def _apply(pg_session, all_ids: list[str]) -> dict[str, int]:
 def _apply_kg(all_ids: list[str]) -> int:
     try:
         from libs.neo4j_client.client import KnowledgeGraphClient
+
         kg = KnowledgeGraphClient()
         log.info("Step 5/5: Deleting CodingDecision nodes from knowledge graph ...")
-        total = _run_batched_kg(kg, _Q_DELETE_CODING_DECISIONS, all_ids, "coding_decisions")
+        total = _run_batched_kg(
+            kg, _Q_DELETE_CODING_DECISIONS, all_ids, "coding_decisions"
+        )
         kg.close()
         return total
     except Exception as exc:  # noqa: BLE001
@@ -340,25 +365,30 @@ def _apply_kg(all_ids: list[str]) -> int:
 
 # -- Main --------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--apply", action="store_true",
+        "--apply",
+        action="store_true",
         help="Commit the delete. Omit for dry-run (default).",
     )
     parser.add_argument(
-        "--keep-from", default=DEFAULT_KEEP_FROM,
+        "--keep-from",
+        default=DEFAULT_KEEP_FROM,
         help=f"Earliest date to KEEP (inclusive, ISO format). Default: {DEFAULT_KEEP_FROM}",
     )
     parser.add_argument(
-        "--keep-to", default=DEFAULT_KEEP_TO,
+        "--keep-to",
+        default=DEFAULT_KEEP_TO,
         help=f"Latest date to KEEP (inclusive, ISO format). Default: {DEFAULT_KEEP_TO}",
     )
     parser.add_argument(
-        "--export-ids", metavar="PATH",
+        "--export-ids",
+        metavar="PATH",
         help="JSONL file to write deleted encounter IDs to before applying.",
     )
     args = parser.parse_args()
@@ -368,10 +398,12 @@ def main() -> None:
 
     log.info(
         "Window to KEEP: %s to %s (inclusive). Encounters outside this window will be deleted.",
-        keep_from, keep_to,
+        keep_from,
+        keep_to,
     )
 
     from libs.neo4j_client.client import PatientGraphClient
+
     pg = PatientGraphClient()
 
     with pg.session() as session:

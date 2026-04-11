@@ -1,4 +1,5 @@
 """Backwards-compatible re-export. Canonical location: libs/classifiers/encounter_classifier.py"""
+
 from libs.classifiers.encounter_classifier import (  # noqa: F401
     ClassificationResult,
     PatientEncounterIndex,

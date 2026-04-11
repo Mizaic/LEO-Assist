@@ -12,6 +12,7 @@ Fix 2: Delete 'Seen in GP surgery' (185202000) from encounters where
 
 Prints counts before deleting. Requires --yes to commit.
 """
+
 import argparse
 import sys
 from pathlib import Path
@@ -101,7 +102,9 @@ RETURN count(r) AS deleted
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Systematic coding fixes (no LLM)")
-    p.add_argument("--yes", action="store_true", help="Commit deletes (default dry-run)")
+    p.add_argument(
+        "--yes", action="store_true", help="Commit deletes (default dry-run)"
+    )
     args = p.parse_args()
 
     client = PatientGraphClient()

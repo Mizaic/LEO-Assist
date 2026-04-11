@@ -76,7 +76,9 @@ def test_coding_check_applies_drop_and_force_review(monkeypatch):
     )
     assert len(out["entities"]) == 1
     assert out["entities"][0]["_tier_override"] == 2
-    assert out["entities"][0]["_tier_override_reason"] == "llm_coding_check_force_review"
+    assert (
+        out["entities"][0]["_tier_override_reason"] == "llm_coding_check_force_review"
+    )
 
 
 def test_extraction_check_keeps_referral_procedure_as_present(monkeypatch):

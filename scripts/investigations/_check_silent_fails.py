@@ -1,12 +1,16 @@
 """Check verbatim text for silent CH002 failures."""
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
@@ -29,6 +33,6 @@ with driver.session() as s:
         row = s.run(QUERY, rid=t).single()
         if row:
             print(f"=== {row['id']} ({row['title']}) ===")
-            print(row['verbatim'] or "(empty)")
+            print(row["verbatim"] or "(empty)")
             print()
 driver.close()

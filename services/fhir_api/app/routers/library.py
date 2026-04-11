@@ -18,8 +18,15 @@ def search_libraries(
     _count: int = Query(default=100, alias="_count"),
     _offset: int = Query(default=0, alias="_offset"),
 ):
-    items, total = library_service.search_libraries(name=name, status=status, count=_count, offset=_offset)
-    return {"resourceType": "Bundle", "type": "searchset", "total": total, "entry": [{"resource": l} for l in items]}
+    items, total = library_service.search_libraries(
+        name=name, status=status, count=_count, offset=_offset
+    )
+    return {
+        "resourceType": "Bundle",
+        "type": "searchset",
+        "total": total,
+        "entry": [{"resource": l} for l in items],
+    }
 
 
 @router.get("/Library/{library_id}")

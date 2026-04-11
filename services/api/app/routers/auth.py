@@ -128,6 +128,7 @@ def _is_tenant_allowed(tid: str) -> bool:
     try:
         from libs.neo4j_client.client import PatientGraphClient
         from libs.cypher.admin_queries import GET_ORG_BY_ENTRA_TENANT
+
         client = PatientGraphClient()
         rows = client.run(GET_ORG_BY_ENTRA_TENANT, entra_tenant_id=tid)
         client.close()
@@ -169,7 +170,9 @@ def _verify_id_token(id_token: str) -> dict:
         last_error: JWTError | None = None
         for aud in audiences:
             try:
-                return jwt.decode(id_token, jwks, algorithms=["RS256"], audience=aud, options=opts)
+                return jwt.decode(
+                    id_token, jwks, algorithms=["RS256"], audience=aud, options=opts
+                )
             except JWTError as exc:
                 last_error = exc
         if last_error:
@@ -178,7 +181,9 @@ def _verify_id_token(id_token: str) -> dict:
                 last_error,
                 type(last_error).__name__,
             )
-            raise HTTPException(status_code=401, detail="Token verification failed") from last_error
+            raise HTTPException(
+                status_code=401, detail="Token verification failed"
+            ) from last_error
         raise HTTPException(status_code=401, detail="Token verification failed")
     except HTTPException:
         raise
@@ -195,6 +200,7 @@ def _get_session_config() -> tuple[int, int, bool]:
     try:
         from libs.neo4j_client.client import PatientGraphClient
         from libs.cypher.admin_queries import GET_SYSTEM_CONFIG
+
         client = PatientGraphClient()
         rows = client.run(GET_SYSTEM_CONFIG, id="auth")
         client.close()
@@ -225,6 +231,7 @@ def login(request: Request, next_url: str = "/"):
     if not client_id:
         raise HTTPException(500, "Azure AD not configured")
     import secrets as _secrets
+
     nonce = _secrets.token_urlsafe(16)
     state = next_url
     params = {
@@ -238,7 +245,11 @@ def login(request: Request, next_url: str = "/"):
     }
     url = f"{AUTH_URL}?{urlencode(params)}"
     resp = RedirectResponse(url=url, status_code=302)
-    cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in ("false", "0", "no")
+    cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in (
+        "false",
+        "0",
+        "no",
+    )
     resp.set_cookie(
         "leo_oauth_nonce",
         nonce,
@@ -271,7 +282,9 @@ def callback(
     expected_nonce = request.cookies.get("leo_oauth_nonce")
     if not expected_nonce:
         logger.warning("OAuth callback missing nonce cookie -- possible CSRF")
-        return RedirectResponse(url=f"{fe}/sign-in?error=csrf_nonce_missing", status_code=302)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=csrf_nonce_missing", status_code=302
+        )
     client_secret = _env_ad_client_secret()
     if not client_secret:
         raise HTTPException(500, "Azure AD client secret not configured")
@@ -290,7 +303,9 @@ def callback(
         )
     if r.status_code != 200:
         logger.error("Token exchange failed: %s %s", r.status_code, r.text[:200])
-        return RedirectResponse(url=f"{fe}/sign-in?error=token_exchange_failed", status_code=302)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=token_exchange_failed", status_code=302
+        )
 
     token_data = r.json()
     access_token = token_data.get("access_token")
@@ -308,7 +323,9 @@ def callback(
         id_claims = _verify_id_token(id_token)
     except HTTPException as exc:
         emit_token_rejected(reason=exc.detail, ip=client_ip)
-        emit_login_failure(reason="token_verification_failed", ip=client_ip, detail=exc.detail)
+        emit_login_failure(
+            reason="token_verification_failed", ip=client_ip, detail=exc.detail
+        )
         return RedirectResponse(
             url=f"{fe}/sign-in?error=token_verification_failed",
             status_code=302,
@@ -317,10 +334,15 @@ def callback(
     # Reject v1.0 tokens (sts.windows.net issuer) — requires accessTokenAcceptedVersion: 2 in Azure AD manifest.
     iss = id_claims.get("iss", "")
     if "sts.windows.net" in iss:
-        logger.warning("Rejecting v1.0 token (iss=%s). Set accessTokenAcceptedVersion: 2 in Azure AD app manifest.", iss)
+        logger.warning(
+            "Rejecting v1.0 token (iss=%s). Set accessTokenAcceptedVersion: 2 in Azure AD app manifest.",
+            iss,
+        )
         emit_token_rejected(reason="v1_issuer", ip=client_ip)
         emit_login_failure(reason="token_v1_not_allowed", ip=client_ip)
-        return RedirectResponse(url=f"{fe}/sign-in?error=token_v1_not_allowed", status_code=302)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=token_v1_not_allowed", status_code=302
+        )
 
     # Multi-tenant trust boundary: validate the tid (tenant ID) claim against the
     # allowlist of onboarded organisations. Tokens from unknown tenants are rejected
@@ -330,7 +352,9 @@ def callback(
         logger.warning("Rejecting token from unknown tenant tid=%s", tid)
         emit_token_rejected(reason="tenant_not_allowed", ip=client_ip)
         emit_login_failure(reason="tenant_not_allowed", ip=client_ip)
-        return RedirectResponse(url=f"{fe}/sign-in?error=tenant_not_allowed", status_code=302)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=tenant_not_allowed", status_code=302
+        )
 
     email = (
         id_claims.get("preferred_username")
@@ -392,7 +416,11 @@ def callback(
         normalized_state = "/dashboard"
     redirect_url = f"{fe}{normalized_state}"
     resp = RedirectResponse(url=redirect_url, status_code=302)
-    cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in ("false", "0", "no")
+    cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in (
+        "false",
+        "0",
+        "no",
+    )
     resp.set_cookie(
         key=COOKIE_NAME,
         value=session_id,

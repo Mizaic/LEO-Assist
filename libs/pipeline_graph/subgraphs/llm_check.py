@@ -160,12 +160,20 @@ def _apply_scope_guard_after_extraction_check(
         if new_assertion == SUPPRESSED:
             to_remove.append(idx)
             changes.append(
-                {"type": "drop", "index": idx, "reason": "scope_guard_post_extraction_check"}
+                {
+                    "type": "drop",
+                    "index": idx,
+                    "reason": "scope_guard_post_extraction_check",
+                }
             )
         elif new_assertion is not None:
             ent["assertion"] = new_assertion
             changes.append(
-                {"type": "assertion_corrected", "index": idx, "assertion": new_assertion}
+                {
+                    "type": "assertion_corrected",
+                    "index": idx,
+                    "assertion": new_assertion,
+                }
             )
     if not to_remove:
         return entities
@@ -188,7 +196,9 @@ def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
         llm = create_llm(tier=tier)
         response = llm.converse(
             system=prompt,
-            messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=True)}],
+            messages=[
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=True)}
+            ],
             temperature=0.0,
             max_tokens=1200,
             json_mode=True,
@@ -212,8 +222,12 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
 
     if drop_indices:
         for idx in sorted(drop_indices):
-            changes.append({"type": "drop", "index": idx, "reason": "ner_false_positive"})
-        entities = [entity for i, entity in enumerate(entities) if i not in drop_indices]
+            changes.append(
+                {"type": "drop", "index": idx, "reason": "ner_false_positive"}
+            )
+        entities = [
+            entity for i, entity in enumerate(entities) if i not in drop_indices
+        ]
 
     for row in result.get("correct_assertion", []):
         if not isinstance(row, dict):
@@ -232,7 +246,9 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
         if final_assertion != assertion.strip().lower():
             entities[idx]["_assertion_guard"] = "referral_procedure"
         entities[idx]["_llm_check_source"] = "assertion_corrected"
-        changes.append({"type": "assertion_corrected", "index": idx, "assertion": final_assertion})
+        changes.append(
+            {"type": "assertion_corrected", "index": idx, "assertion": final_assertion}
+        )
 
     for row in result.get("correct_label", []):
         if not isinstance(row, dict):
@@ -278,7 +294,9 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
         entities.append(new_entity)
         changes.append({"type": "added", "text": text, "label": label})
 
-    entities = _apply_scope_guard_after_extraction_check(encounter_text, entities, changes)
+    entities = _apply_scope_guard_after_extraction_check(
+        encounter_text, entities, changes
+    )
 
     return {"entities": entities, "llm_check_changes": changes}
 
@@ -307,7 +325,9 @@ def _apply_coding_check(state: LLMCheckState) -> dict[str, Any]:
     if drop_indices:
         for idx in sorted(drop_indices):
             changes.append({"type": "drop", "index": idx, "reason": "coding_mismatch"})
-        entities = [entity for i, entity in enumerate(entities) if i not in drop_indices]
+        entities = [
+            entity for i, entity in enumerate(entities) if i not in drop_indices
+        ]
 
     return {"entities": entities, "llm_check_changes": changes}
 
@@ -342,4 +362,3 @@ def build_coding_check_subgraph() -> CompiledStateGraph:
     g.add_edge(START, "coding_check")
     g.add_edge("coding_check", END)
     return g.compile()
-

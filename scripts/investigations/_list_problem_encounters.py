@@ -5,6 +5,7 @@ Outputs:
 - scripts/investigations/encounter_audit/problem_encounters.jsonl
   (one JSON object per encounter: encounter_id, patient_id, date, assessment, confidence)
 """
+
 import json
 import sqlite3
 from pathlib import Path
@@ -30,8 +31,7 @@ PROBLEM_LABELS = {
 db = sqlite3.connect(str(DB_PATH))
 db.row_factory = sqlite3.Row
 
-rows = db.execute(
-    """
+rows = db.execute("""
     SELECT encounter_id, patient_id, date,
            json_extract(result_json, '$.encounter_assessment') AS assessment,
            json_extract(result_json, '$.confidence') AS confidence,
@@ -39,8 +39,7 @@ rows = db.execute(
     FROM encounters
     WHERE status = 'done'
     ORDER BY date
-    """
-).fetchall()
+    """).fetchall()
 
 buckets: dict[str, list] = {}
 records: list[dict] = []
@@ -68,10 +67,10 @@ for label, items in sorted(buckets.items(), key=lambda x: -len(x[1])):
     print(f"  {label:<20} {len(items):>5}")
 print(f"  {'TOTAL':<20} {total:>5}")
 
-OUT_PATH.write_text(
-    "\n".join(json.dumps(r) for r in records), encoding="utf-8"
-)
+OUT_PATH.write_text("\n".join(json.dumps(r) for r in records), encoding="utf-8")
 print(f"\nWritten {len(records)} records to:\n  {OUT_PATH}")
 print("\nSample (first 5):")
 for r in records[:5]:
-    print(f"  {r['date']}  {r['assessment']:<20}  {r['encounter_id']}  conf={r['confidence']}")
+    print(
+        f"  {r['date']}  {r['assessment']:<20}  {r['encounter_id']}  conf={r['confidence']}"
+    )

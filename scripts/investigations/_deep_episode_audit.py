@@ -8,6 +8,7 @@ is NOT picking up.
 Run:
     python scripts/investigations/_deep_episode_audit.py
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -43,11 +44,17 @@ _START = "2010-01-01"
 _END = "2030-12-31"
 
 _SPECIALIST_INV = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "fast_track_specialist_encounters.jsonl"
 )
 _REFERRAL_INV = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "fast_track_referral_encounters.jsonl"
 )
 
@@ -78,17 +85,36 @@ ORDER BY ep.referral_date
 
 # Cancer-related semantic tags / keywords to flag as potentially missed
 _CANCER_KEYWORDS = {
-    "malignant", "carcinoma", "melanoma", "lymphoma", "leukaemia",
-    "leukemia", "sarcoma", "neoplasm", "tumour", "tumor", "cancer",
-    "metasta", "adenocarcinoma", "myeloma",
+    "malignant",
+    "carcinoma",
+    "melanoma",
+    "lymphoma",
+    "leukaemia",
+    "leukemia",
+    "sarcoma",
+    "neoplasm",
+    "tumour",
+    "tumor",
+    "cancer",
+    "metasta",
+    "adenocarcinoma",
+    "myeloma",
 }
 _BENIGN_KEYWORDS = {
-    "no evidence of cancer", "benign", "no malignancy", "cancer excluded",
-    "not cancer", "normal biopsy", "negative biopsy",
+    "no evidence of cancer",
+    "benign",
+    "no malignancy",
+    "cancer excluded",
+    "not cancer",
+    "normal biopsy",
+    "negative biopsy",
 }
 _SPECIALIST_KEYWORDS = {
-    "seen in fast track", "seen in 2ww", "2ww clinic",
-    "fast track suspected", "cancer clinic",
+    "seen in fast track",
+    "seen in 2ww",
+    "2ww clinic",
+    "fast track suspected",
+    "cancer clinic",
 }
 
 
@@ -150,7 +176,9 @@ def _audit_patient(pid: str, session, registry, patient_client) -> dict:
             coded_specialists.append(row)
         if _is_cancer_concept(name) and assertion == "present":
             coded_cancers.append(row)
-        if (_is_benign_concept(name) or doc["concept_id"] == 395100000) and assertion == "present":
+        if (
+            _is_benign_concept(name) or doc["concept_id"] == 395100000
+        ) and assertion == "present":
             coded_benign.append(row)
 
     # 3. Run anchor detection
@@ -167,34 +195,23 @@ def _audit_patient(pid: str, session, registry, patient_client) -> dict:
 
     # 5. Find missed concepts: coded in graph but NOT detected as anchors
     detected_ref_enc = {
-        str(a.get("encounter_id") or "")[:12]
-        for a in anchors.referral_anchors
+        str(a.get("encounter_id") or "")[:12] for a in anchors.referral_anchors
     }
     detected_diag_enc = {
-        str(a.get("encounter_id") or "")[:12]
-        for a in anchors.diagnosis_anchors
+        str(a.get("encounter_id") or "")[:12] for a in anchors.diagnosis_anchors
     }
     detected_spec_enc = {
-        str(a.get("encounter_id") or "")[:12]
-        for a in anchors.specialist_visit_anchors
+        str(a.get("encounter_id") or "")[:12] for a in anchors.specialist_visit_anchors
     }
     detected_benign_enc = {
-        str(a.get("encounter_id") or "")[:12]
-        for a in anchors.benign_closure_anchors
+        str(a.get("encounter_id") or "")[:12] for a in anchors.benign_closure_anchors
     }
 
-    missed_cancers = [
-        c for c in coded_cancers
-        if c["enc"] not in detected_diag_enc
-    ]
+    missed_cancers = [c for c in coded_cancers if c["enc"] not in detected_diag_enc]
     missed_specialists = [
-        c for c in coded_specialists
-        if c["enc"] not in detected_spec_enc
+        c for c in coded_specialists if c["enc"] not in detected_spec_enc
     ]
-    missed_benign = [
-        c for c in coded_benign
-        if c["enc"] not in detected_benign_enc
-    ]
+    missed_benign = [c for c in coded_benign if c["enc"] not in detected_benign_enc]
 
     in_progress_episodes = [e for e in episodes if e["status"] == "in_progress"]
 
@@ -235,7 +252,9 @@ def main() -> None:
     print(f"Auditing {len(patient_ids)} patients ...\n")
 
     registry = _load_registry("cancer_audit")
-    print(f"Registry milestone types: {list(registry.get_milestone_domains().keys())}\n")
+    print(
+        f"Registry milestone types: {list(registry.get_milestone_domains().keys())}\n"
+    )
 
     # Show which concept IDs are in each bucket
     for domain_name, cfg in registry.get_milestone_domains().items():
@@ -286,28 +305,34 @@ def main() -> None:
     total_in_progress = sum(r["in_progress_episodes"] for r in results)
     patients_with_open = sum(1 for r in results if r["in_progress_episodes"] > 0)
     patients_with_missed_cancer = [
-        r for r in results
-        if r["in_progress_episodes"] > 0 and r["missed_cancers"]
+        r for r in results if r["in_progress_episodes"] > 0 and r["missed_cancers"]
     ]
     patients_with_missed_benign = [
-        r for r in results
-        if r["in_progress_episodes"] > 0 and r["missed_benign"]
+        r for r in results if r["in_progress_episodes"] > 0 and r["missed_benign"]
     ]
 
     print(f"\nTotal in_progress episodes: {total_in_progress}")
     print(f"Patients with open episodes: {patients_with_open}")
-    print(f"Patients with MISSED cancer concepts (open episodes): {len(patients_with_missed_cancer)}")
-    print(f"Patients with MISSED benign concepts (open episodes): {len(patients_with_missed_benign)}")
+    print(
+        f"Patients with MISSED cancer concepts (open episodes): {len(patients_with_missed_cancer)}"
+    )
+    print(
+        f"Patients with MISSED benign concepts (open episodes): {len(patients_with_missed_benign)}"
+    )
 
     # Detail the missed concepts
     if patients_with_missed_cancer:
-        print("\n--- Patients with coded cancer concepts NOT detected as diagnosis anchors ---")
+        print(
+            "\n--- Patients with coded cancer concepts NOT detected as diagnosis anchors ---"
+        )
         missed_concept_freq: dict[str, int] = defaultdict(int)
         for r in patients_with_missed_cancer:
             print(f"\n  pid={r['pid']}  open_episodes={r['in_progress_episodes']}")
             print(f"    Episodes:")
             for ep in r["episodes"]:
-                print(f"      {ep['status']:<15} {ep['type']:<20} ref={ep['ref_date']}  end={ep['end_date']}  spec={ep['spec_seen']}")
+                print(
+                    f"      {ep['status']:<15} {ep['type']:<20} ref={ep['ref_date']}  end={ep['end_date']}  spec={ep['spec_seen']}"
+                )
             print(f"    Missed cancer concepts (coded but not anchored):")
             for mc in r["missed_cancers"][:10]:
                 print(f"      {mc['date']}  {mc['cid']:>12}  {mc['name']}")
@@ -319,7 +344,9 @@ def main() -> None:
             print(f"  {cnt:3d}x  {cid:>12}  {name}")
 
     if patients_with_missed_benign:
-        print("\n--- Patients with coded benign concepts NOT detected as benign closure anchors ---")
+        print(
+            "\n--- Patients with coded benign concepts NOT detected as benign closure anchors ---"
+        )
         for r in patients_with_missed_benign[:10]:
             print(f"\n  pid={r['pid']}  open_episodes={r['in_progress_episodes']}")
             for mc in r["missed_benign"][:5]:
@@ -327,15 +354,18 @@ def main() -> None:
 
     # Patients with ALL episodes in_progress (zero completed, zero closed_benign)
     all_open = [
-        r for r in results
+        r
+        for r in results
         if r["total_episodes"] > 0
         and all(ep["status"] == "in_progress" for ep in r["episodes"])
     ]
     if all_open:
         print(f"\n--- {len(all_open)} patients where EVERY episode is in_progress ---")
         for r in all_open:
-            print(f"  pid={r['pid']}  episodes={r['total_episodes']}  "
-                  f"coded_cancer={r['coded_cancers']}  coded_benign={r['coded_benign']}")
+            print(
+                f"  pid={r['pid']}  episodes={r['total_episodes']}  "
+                f"coded_cancer={r['coded_cancers']}  coded_benign={r['coded_benign']}"
+            )
 
 
 if __name__ == "__main__":

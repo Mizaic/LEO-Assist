@@ -40,6 +40,7 @@ Ground truth JSON format:
 Design control: DI-LEO-AI-072, VT-LEO-AI-072
 Risk: R-LEO-AI-047 (undetected coding regression)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -190,11 +191,14 @@ def _run_audit_llm(
     Returns a dict with: assessment, missing_concepts, overcoded_concepts.
     """
     # Build the same prompt structure as the main audit script
-    coded_summary = "\n".join(
-        f"  - [{r['concept_id']}] {r['term']} ({r['semantic_tag']}) "
-        f"evidence: '{r['evidence']}'"
-        for r in coded_items[:20]
-    ) or "  (no coded concepts)"
+    coded_summary = (
+        "\n".join(
+            f"  - [{r['concept_id']}] {r['term']} ({r['semantic_tag']}) "
+            f"evidence: '{r['evidence']}'"
+            for r in coded_items[:20]
+        )
+        or "  (no coded concepts)"
+    )
 
     prompt = f"""You are a clinical coding auditor. Review whether the SNOMED CT codes
 assigned to this encounter are correct and complete.
@@ -226,7 +230,11 @@ Respond in JSON:
             result = json.loads(result)
         except json.JSONDecodeError:
             logger.warning("Could not parse LLM JSON response")
-            result = {"assessment": "error", "missing_concepts": [], "overcoded_concepts": []}
+            result = {
+                "assessment": "error",
+                "missing_concepts": [],
+                "overcoded_concepts": [],
+            }
     return result
 
 
@@ -256,9 +264,20 @@ def _compute_metrics(
 
     precision = tp / (tp + fp) if (tp + fp) > 0 else 1.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 1.0
-    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+    f1 = (
+        (2 * precision * recall / (precision + recall))
+        if (precision + recall) > 0
+        else 0.0
+    )
 
-    return {"precision": precision, "recall": recall, "f1": f1, "tp": tp, "fp": fp, "fn": fn}
+    return {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+    }
 
 
 def _aggregate_domain_metrics(
@@ -372,8 +391,10 @@ def _write_audit_run(
         validation_recall=overall["recall"],
         validation_f1=overall["f1"],
         validation_by_domain=json.dumps(
-            {d: {"precision": v["precision"], "recall": v["recall"], "f1": v["f1"]}
-             for d, v in by_domain.items()}
+            {
+                d: {"precision": v["precision"], "recall": v["recall"], "f1": v["f1"]}
+                for d, v in by_domain.items()
+            }
         ),
     )
     logger.info("AuditRun written to Neo4j: %s", meta["run_id"])
@@ -442,7 +463,8 @@ def main() -> None:
         missing = set(encounter_ids) - gt_covered
         logger.warning(
             "%d encounters not in ground truth -- they will be skipped: %s...",
-            len(missing), list(missing)[:5],
+            len(missing),
+            list(missing)[:5],
         )
 
     client = PatientGraphClient()
@@ -464,8 +486,13 @@ def main() -> None:
         domain = meta["domain"]
         gt = ground_truth[enc_id]
 
-        logger.info("[%d/%d] Auditing %s (domain: %s)",
-                    i + 1, len(encounter_ids), enc_id, domain)
+        logger.info(
+            "[%d/%d] Auditing %s (domain: %s)",
+            i + 1,
+            len(encounter_ids),
+            enc_id,
+            domain,
+        )
 
         text, coded = _load_encounter_from_neo4j(client, patient_id, enc_id)
         if not text:
@@ -486,30 +513,38 @@ def main() -> None:
         }
 
         # Ground truth: what SHOULD be coded but may be missing
-        gt_should_be_coded: set[str] = set(str(x) for x in gt.get("should_be_coded", []))
+        gt_should_be_coded: set[str] = set(
+            str(x) for x in gt.get("should_be_coded", [])
+        )
         gt_should_not: set[str] = set(str(x) for x in gt.get("should_not_be_coded", []))
 
         metrics = _compute_metrics(auditor_missing, gt_should_be_coded, gt_should_not)
 
-        encounter_results.append({
-            "encounter_id": enc_id,
-            "patient_id": patient_id,
-            "domain": domain,
-            "auditor_assessment": llm_result.get("assessment", "unknown"),
-            "auditor_missing_count": len(auditor_missing),
-            "gt_should_be_coded_count": len(gt_should_be_coded),
-            "metrics": metrics,
-            "clinician_reviewed_by": gt.get("clinician_reviewed_by", ""),
-            "notes": gt.get("notes", ""),
-        })
+        encounter_results.append(
+            {
+                "encounter_id": enc_id,
+                "patient_id": patient_id,
+                "domain": domain,
+                "auditor_assessment": llm_result.get("assessment", "unknown"),
+                "auditor_missing_count": len(auditor_missing),
+                "gt_should_be_coded_count": len(gt_should_be_coded),
+                "metrics": metrics,
+                "clinician_reviewed_by": gt.get("clinician_reviewed_by", ""),
+                "notes": gt.get("notes", ""),
+            }
+        )
 
     # Aggregate metrics
     domain_metrics = _aggregate_domain_metrics(encounter_results)
 
     # Overall metrics (macro-average across domains)
     if domain_metrics:
-        overall_precision = sum(v["precision"] for v in domain_metrics.values()) / len(domain_metrics)
-        overall_recall = sum(v["recall"] for v in domain_metrics.values()) / len(domain_metrics)
+        overall_precision = sum(v["precision"] for v in domain_metrics.values()) / len(
+            domain_metrics
+        )
+        overall_recall = sum(v["recall"] for v in domain_metrics.values()) / len(
+            domain_metrics
+        )
         overall_f1 = sum(v["f1"] for v in domain_metrics.values()) / len(domain_metrics)
     else:
         overall_precision = overall_recall = overall_f1 = 0.0
@@ -528,8 +563,14 @@ def main() -> None:
 
     completed_at = datetime.utcnow().isoformat() + "Z"
     report = _build_report(
-        encounter_results, domain_metrics, overall_metrics,
-        safety_failures, run_id, model_version, started_at, completed_at,
+        encounter_results,
+        domain_metrics,
+        overall_metrics,
+        safety_failures,
+        run_id,
+        model_version,
+        started_at,
+        completed_at,
     )
 
     # Write output
@@ -574,7 +615,9 @@ def main() -> None:
         )
         sys.exit(2)
     else:
-        logger.info("All safety-critical recall thresholds met. Auditor validation PASSED.")
+        logger.info(
+            "All safety-critical recall thresholds met. Auditor validation PASSED."
+        )
 
 
 if __name__ == "__main__":

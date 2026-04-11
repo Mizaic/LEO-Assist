@@ -100,7 +100,9 @@ def _require_redis():
     return r
 
 
-def save_session(session_id: str, data: dict[str, Any], ttl_seconds: int = SESSION_TTL) -> None:
+def save_session(
+    session_id: str, data: dict[str, Any], ttl_seconds: int = SESSION_TTL
+) -> None:
     r = _require_redis()
     key = f"{SESSION_PREFIX}{session_id}"
     result = _redis_op(r.setex, key, ttl_seconds, json.dumps(data, default=str))

@@ -77,16 +77,18 @@ def extract_rows(config_dir: Path) -> tuple[list[dict[str, Any]], dict[str, int]
                 continue
             seen.add(key)
             stats["rows_eligible"] += 1
-            rows.append({
-                "form": form,
-                "normalized": normalized,
-                "concept_id": concept_id_str,
-                "confidence": 1.0,
-                "approved_by": "ncda_guideline_loader",
-                "source": "ncda_preapproved",
-                "status": "approved",
-                "provenance": "guideline_config_loader",
-            })
+            rows.append(
+                {
+                    "form": form,
+                    "normalized": normalized,
+                    "concept_id": concept_id_str,
+                    "confidence": 1.0,
+                    "approved_by": "ncda_guideline_loader",
+                    "source": "ncda_preapproved",
+                    "status": "approved",
+                    "provenance": "guideline_config_loader",
+                }
+            )
 
     return rows, stats
 
@@ -111,8 +113,14 @@ def main() -> None:
         default=DEFAULT_CONFIG_DIR.resolve(),
         help="Directory containing snomed_ncda_*.json files",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Parse and report stats only, no Neo4j writes")
-    parser.add_argument("--batch-size", type=int, default=500, help="Batch size for Neo4j writes")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Parse and report stats only, no Neo4j writes",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=500, help="Batch size for Neo4j writes"
+    )
     parser.add_argument(
         "--report-missing",
         action="store_true",
@@ -146,17 +154,28 @@ def main() -> None:
             concepts_not_found = len(missing_rows)
 
             if concepts_not_found:
-                log.warning("%d rows skipped (Concept not in graph)", concepts_not_found)
+                log.warning(
+                    "%d rows skipped (Concept not in graph)", concepts_not_found
+                )
                 if args.report_missing:
                     # Group by concept_id with sample surface forms
                     by_concept: dict[str, list[str]] = defaultdict(list)
                     for r in missing_rows:
                         by_concept[r["concept_id"]].append(r["form"])
                     log.info("Missing concept IDs (not in UK SNOMED graph):")
-                    for cid in sorted(by_concept.keys(), key=lambda x: int(x) if x.lstrip("-").isdigit() else 0):
+                    for cid in sorted(
+                        by_concept.keys(),
+                        key=lambda x: int(x) if x.lstrip("-").isdigit() else 0,
+                    ):
                         forms = by_concept[cid][:5]  # up to 5 examples
-                        more = f" ... +{len(by_concept[cid]) - 5} more" if len(by_concept[cid]) > 5 else ""
-                        log.info("  %s: %s%s", cid, ", ".join(repr(f) for f in forms), more)
+                        more = (
+                            f" ... +{len(by_concept[cid]) - 5} more"
+                            if len(by_concept[cid]) > 5
+                            else ""
+                        )
+                        log.info(
+                            "  %s: %s%s", cid, ", ".join(repr(f) for f in forms), more
+                        )
 
             if args.dry_run:
                 log.info("Dry run - no writes performed.")

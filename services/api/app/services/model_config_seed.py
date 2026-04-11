@@ -21,48 +21,48 @@ logger = logging.getLogger(__name__)
 _MODEL_ID_ENVS: dict[str, dict[str, str]] = {
     "aws": {
         "small": "AWS_SMALL_MODEL",
-        "big":   "AWS_BIG_MODEL",
-        "max":   "AWS_MAX_MODEL",
+        "big": "AWS_BIG_MODEL",
+        "max": "AWS_MAX_MODEL",
     },
     "azure": {
         "small": "AZURE_OPENAI_SMALL_MODEL",
-        "big":   "AZURE_OPENAI_BIG_MODEL",
+        "big": "AZURE_OPENAI_BIG_MODEL",
     },
 }
 
 _MODEL_ID_DEFAULTS: dict[str, dict[str, str]] = {
     "aws": {
         "small": "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "big":   "eu.anthropic.claude-sonnet-4-6",
-        "max":   "eu.anthropic.claude-opus-4-6-v1",
+        "big": "eu.anthropic.claude-sonnet-4-6",
+        "max": "eu.anthropic.claude-opus-4-6-v1",
     },
     "azure": {
         "small": "gpt-5-mini",
-        "big":   "gpt-5.2-chat",
+        "big": "gpt-5.2-chat",
     },
 }
 
 _DISPLAY_NAMES: dict[str, dict[str, str]] = {
     "aws": {
         "small": "Claude Haiku (AWS Bedrock)",
-        "big":   "Claude Sonnet (AWS Bedrock)",
-        "max":   "Claude Opus (AWS Bedrock)",
+        "big": "Claude Sonnet (AWS Bedrock)",
+        "max": "Claude Opus (AWS Bedrock)",
     },
     "azure": {
         "small": "GPT-5 mini (Azure OpenAI)",
-        "big":   "GPT-5 (Azure OpenAI)",
+        "big": "GPT-5 (Azure OpenAI)",
     },
 }
 
 _COST_ENV_PREFIXES: dict[str, dict[str, str]] = {
     "aws": {
         "small": "AWS_BEDROCK_MODEL_SMALL_MODEL",
-        "big":   "AWS_BEDROCK_MODEL_BIG_MODEL",
-        "max":   "AWS_BEDROCK_MODEL_MAX_MODEL",
+        "big": "AWS_BEDROCK_MODEL_BIG_MODEL",
+        "max": "AWS_BEDROCK_MODEL_MAX_MODEL",
     },
     "azure": {
         "small": "AZURE_OPENAI_SMALL_MODEL",
-        "big":   "AZURE_OPENAI_BIG_MODEL",
+        "big": "AZURE_OPENAI_BIG_MODEL",
     },
 }
 
@@ -79,15 +79,15 @@ _COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
         # eu.anthropic.claude-haiku-4-5-20251001-v1:0
         "small": {"input": 1.10, "cached": 0.110, "output": 5.50},
         # eu.anthropic.claude-sonnet-4-6
-        "big":   {"input": 3.30, "cached": 0.330, "output": 16.50},
+        "big": {"input": 3.30, "cached": 0.330, "output": 16.50},
         # eu.anthropic.claude-opus-4-6-v1
-        "max":   {"input": 5.50, "cached": 0.550, "output": 27.50},
+        "max": {"input": 5.50, "cached": 0.550, "output": 27.50},
     },
     "azure": {
         # azure/eu/gpt-5-mini-2025-08-07
         "small": {"input": 0.275, "cached": 0.028, "output": 2.20},
         # azure/eu/gpt-5-2025-08-07
-        "big":   {"input": 1.375, "cached": 0.138, "output": 11.00},
+        "big": {"input": 1.375, "cached": 0.138, "output": 11.00},
     },
 }
 
@@ -97,15 +97,23 @@ def _model_seed_row(provider: str, tier: str) -> dict:
     model_id_env = _MODEL_ID_ENVS[provider][tier]
     defaults = _COST_DEFAULTS[provider][tier]
     return {
-        "key":              f"{provider}:{tier}",
-        "provider":         provider,
-        "tier":             tier,
-        "display_name":     _DISPLAY_NAMES[provider][tier],
-        "model_id":         os.getenv(model_id_env, _MODEL_ID_DEFAULTS[provider][tier]),
-        "cost_per_1m_input":  float(os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN",          str(defaults["input"]))),
-        "cost_per_1m_cached": float(os.getenv(f"{prefix}_COST_PER_1M_CACHED_INPUT_TOKEN",   str(defaults["cached"]))),
-        "cost_per_1m_output": float(os.getenv(f"{prefix}_COST_PER_1M_OUTPUT_TOKEN",         str(defaults["output"]))),
-        "is_active":        True,
+        "key": f"{provider}:{tier}",
+        "provider": provider,
+        "tier": tier,
+        "display_name": _DISPLAY_NAMES[provider][tier],
+        "model_id": os.getenv(model_id_env, _MODEL_ID_DEFAULTS[provider][tier]),
+        "cost_per_1m_input": float(
+            os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", str(defaults["input"]))
+        ),
+        "cost_per_1m_cached": float(
+            os.getenv(
+                f"{prefix}_COST_PER_1M_CACHED_INPUT_TOKEN", str(defaults["cached"])
+            )
+        ),
+        "cost_per_1m_output": float(
+            os.getenv(f"{prefix}_COST_PER_1M_OUTPUT_TOKEN", str(defaults["output"]))
+        ),
+        "is_active": True,
     }
 
 
@@ -122,13 +130,16 @@ def seed_model_configs(client) -> None:
         CREATE_CONSTRAINT_MODEL_CONFIG,
         UPSERT_MODEL_CONFIG,
     )
+
     try:
         with client.session() as session:
             session.run(CREATE_CONSTRAINT_MODEL_CONFIG)
             total = session.run(COUNT_MODEL_CONFIGS).single()["total"]
 
         if total > 0:
-            logger.info("ModelConfig: %d node(s) already in Neo4j — skipping seed", total)
+            logger.info(
+                "ModelConfig: %d node(s) already in Neo4j — skipping seed", total
+            )
             return
 
         logger.info("ModelConfig: no nodes found — bootstrapping from defaults")

@@ -8,6 +8,7 @@ originals (safe to re-run).
 Run:
     python scripts/migrate_model_versions_to_kg.py
 """
+
 from __future__ import annotations
 import os
 import sys
@@ -15,12 +16,14 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 try:
     from dotenv import load_dotenv
+
     load_dotenv("secrets/.env.config", override=False)
     load_dotenv("secrets/.env", override=False)
 except ImportError:
     pass
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception:
     pass
@@ -33,11 +36,15 @@ def main() -> None:
     pg = PatientGraphClient()
     with pg.session() as s:
         nodes = s.run("MATCH (m:ModelVersion) RETURN properties(m) AS p").data()
-        cfg   = s.run("MATCH (c:ModelRegistryConfig) RETURN c.active_version AS av").data()
+        cfg = s.run(
+            "MATCH (c:ModelRegistryConfig) RETURN c.active_version AS av"
+        ).data()
     pg.close()
 
     active_ver = cfg[0]["av"] if cfg else None
-    print(f"Found {len(nodes)} ModelVersion node(s) in Patient Graph  (active={active_ver})")
+    print(
+        f"Found {len(nodes)} ModelVersion node(s) in Patient Graph  (active={active_ver})"
+    )
 
     if not nodes:
         print("Nothing to migrate.")
@@ -46,7 +53,7 @@ def main() -> None:
     kg = KnowledgeGraphClient()
     with kg.session() as s:
         for row in nodes:
-            p   = row["p"]
+            p = row["p"]
             ver = p.get("version") or p.get("model_version") or ""
             s.run(
                 CREATE_MODEL_VERSION,

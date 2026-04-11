@@ -65,6 +65,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 logging.basicConfig(
@@ -80,20 +81,33 @@ ALL_MILESTONES = ["referral", "diagnosis", "treatment_start", "specialist_visit"
 # Default clinical windows (days) for missing-milestone investigations
 _DEFAULT_WINDOWS: dict[str, dict[str, tuple[int, int]]] = {
     # (days_before_anchor, days_after_anchor)
-    "diagnosis":        {"referral":  (30, 180), "all": (0, 0)},
-    "specialist_visit": {"referral":  (0, 90),   "all": (0, 0)},
-    "treatment_start":  {"diagnosis": (30, 365),  "all": (0, 0)},
+    "diagnosis": {"referral": (30, 180), "all": (0, 0)},
+    "specialist_visit": {"referral": (0, 90), "all": (0, 0)},
+    "treatment_start": {"diagnosis": (30, 365), "all": (0, 0)},
 }
 
-SNIPPET_LEN = 200   # chars of encounter text to include in candidates
+SNIPPET_LEN = 200  # chars of encounter text to include in candidates
 TOP_CANDIDATES = 5  # max candidates per missing milestone per patient
 
 # Canonical keyword and context rules used by audit scoring (kept local to avoid
 # dependency on removed hybrid fallback module).
 MILESTONE_KEYWORDS: dict[str, list[str]] = {
     "referral": ["2ww", "two week wait", "fast track", "urgent referral", "referral"],
-    "diagnosis": ["diagnosed", "biopsy", "histology", "malignant", "carcinoma", "cancer"],
-    "treatment_start": ["commenced", "started", "chemotherapy", "radiotherapy", "surgery"],
+    "diagnosis": [
+        "diagnosed",
+        "biopsy",
+        "histology",
+        "malignant",
+        "carcinoma",
+        "cancer",
+    ],
+    "treatment_start": [
+        "commenced",
+        "started",
+        "chemotherapy",
+        "radiotherapy",
+        "surgery",
+    ],
     "specialist_visit": ["clinic", "seen by", "oncology", "consultant", "mdt"],
 }
 CONFIRMED_RE = re.compile(
@@ -114,13 +128,16 @@ MILESTONE_EXPECTED_TAG = {
 
 # ─── Neo4j helpers ───────────────────────────────────────────────────────────
 
+
 def _get_patient_client():
     from libs.neo4j_client.client import PatientGraphClient
+
     return PatientGraphClient()
 
 
 def _get_kg_client():
     from libs.neo4j_client.client import KnowledgeGraphClient
+
     return KnowledgeGraphClient()
 
 
@@ -143,7 +160,10 @@ def get_patient_date_range(patient_id: str, client) -> tuple[str, str]:
         pid=patient_id,
     )
     if rows:
-        return (rows[0].get("min_d") or "2000-01-01", rows[0].get("max_d") or "2030-12-31")
+        return (
+            rows[0].get("min_d") or "2000-01-01",
+            rows[0].get("max_d") or "2030-12-31",
+        )
     return ("2000-01-01", "2030-12-31")
 
 
@@ -163,11 +183,14 @@ def get_encounters_in_window(
         "       toString(e.date) AS date, "
         "       coalesce(e.text, e.flags, '') AS text "
         "ORDER BY e.date ASC",
-        pid=patient_id, start=start, end=end,
+        pid=patient_id,
+        start=start,
+        end=end,
     )
 
 
 # ─── Encounter scoring ───────────────────────────────────────────────────────
+
 
 def _get_milestone_keywords() -> dict[str, list[str]]:
     return MILESTONE_KEYWORDS
@@ -217,10 +240,7 @@ def score_encounter_for_milestone(
     sentences = split_sentences(text)
     keywords = _get_milestone_keywords().get(milestone_type, [])
 
-    relevant = [
-        s for s in sentences
-        if any(kw in s.lower() for kw in keywords)
-    ]
+    relevant = [s for s in sentences if any(kw in s.lower() for kw in keywords)]
     if not relevant:
         return 0.0, "none"
 
@@ -235,10 +255,10 @@ def score_encounter_for_milestone(
         )
         label = disambiguate_llm(best, milestone_type + " milestone", milestone_type)
         _signal_map = {
-            "confirmed":  ("confirmed",  density),
-            "suspected":  ("suspected",  density * 0.35),
-            "historical": ("ambiguous",  density * 0.5),
-            "irrelevant": ("none",       0.0),
+            "confirmed": ("confirmed", density),
+            "suspected": ("suspected", density * 0.35),
+            "historical": ("ambiguous", density * 0.5),
+            "irrelevant": ("none", 0.0),
         }
         signal, score = _signal_map.get(label, ("none", 0.0))
         return score, signal
@@ -258,6 +278,7 @@ def score_encounter_for_milestone(
 
 
 # ─── Clinical window computation ─────────────────────────────────────────────
+
 
 def _add_days(date_str: str, days: int) -> str:
     dt = datetime.date.fromisoformat(date_str[:10])
@@ -313,6 +334,7 @@ def compute_investigation_window(
 
 # ─── Deep investigation ──────────────────────────────────────────────────────
 
+
 def _run_resolver_sync(sentences: list[str], expected_tag: str | None) -> dict:
     """Call the async resolver from a synchronous context via a thread.
 
@@ -330,7 +352,9 @@ def _run_resolver_sync(sentences: list[str], expected_tag: str | None) -> dict:
         "top_k": 3,
     }
     try:
-        resp = requests.post(f"{base_url}/terminology/resolve", json=payload, timeout=30)
+        resp = requests.post(
+            f"{base_url}/terminology/resolve", json=payload, timeout=30
+        )
         resp.raise_for_status()
         data = resp.json()
         results = data.get("results", {})
@@ -367,7 +391,9 @@ def investigate_missing(
     scored: list[tuple[float, str, dict]] = []
     for enc in encounters:
         text = enc.get("text") or ""
-        score, signal = score_encounter_for_milestone(text, milestone_type, deep_mode=deep_mode)
+        score, signal = score_encounter_for_milestone(
+            text, milestone_type, deep_mode=deep_mode
+        )
         if score > 0:
             scored.append((score, signal, enc))
 
@@ -399,24 +425,32 @@ def investigate_missing(
         # Deep mode: run resolver on relevant sentences and classify with LLM
         if deep_mode and sentences:
             relevant_sentences = [
-                s for s in sentences
-                if any(kw in s.lower() for kw in keywords)
-            ][:5]  # top 5 sentences to resolver
+                s for s in sentences if any(kw in s.lower() for kw in keywords)
+            ][
+                :5
+            ]  # top 5 sentences to resolver
             if relevant_sentences:
                 expected_tag = MILESTONE_EXPECTED_TAG.get(milestone_type)
                 resolver_results = _run_resolver_sync(relevant_sentences, expected_tag)
                 resolver_hits = []
                 for sent, candidates_list in resolver_results.items():
                     for cand in (candidates_list or [])[:2]:
-                        if cand.get("snomed_concept_id") and cand.get("score", 0) >= 0.4:
-                            llm_label = disambiguate_llm(sent, cand.get("snomed_term", ""), milestone_type)
-                            resolver_hits.append({
-                                "sentence": sent[:200],
-                                "snomed_id": cand["snomed_concept_id"],
-                                "snomed_term": cand.get("snomed_term", ""),
-                                "score": round(float(cand.get("score", 0)), 3),
-                                "llm_label": llm_label,
-                            })
+                        if (
+                            cand.get("snomed_concept_id")
+                            and cand.get("score", 0) >= 0.4
+                        ):
+                            llm_label = disambiguate_llm(
+                                sent, cand.get("snomed_term", ""), milestone_type
+                            )
+                            resolver_hits.append(
+                                {
+                                    "sentence": sent[:200],
+                                    "snomed_id": cand["snomed_concept_id"],
+                                    "snomed_term": cand.get("snomed_term", ""),
+                                    "score": round(float(cand.get("score", 0)), 3),
+                                    "llm_label": llm_label,
+                                }
+                            )
                 if resolver_hits:
                     entry["resolver_hits"] = sorted(
                         resolver_hits, key=lambda h: -h["score"]
@@ -430,7 +464,7 @@ def investigate_missing(
         notes = "No domain keyword hits in investigation window."
     else:
         best_signal = top[0][1]
-        best_score  = top[0][0]
+        best_score = top[0][0]
         if best_signal == "confirmed" and best_score >= 0.3:
             assessment = "found_soft"
             notes = (
@@ -464,6 +498,7 @@ def investigate_missing(
 
 
 # ─── Per-patient audit ────────────────────────────────────────────────────────
+
 
 def audit_patient(
     patient_id: str,
@@ -501,9 +536,9 @@ def audit_patient(
         }
 
     anchors: dict[str, list] = {
-        "referral":         result.referral_anchors,
-        "diagnosis":        result.diagnosis_anchors,
-        "treatment_start":  result.treatment_anchors,
+        "referral": result.referral_anchors,
+        "diagnosis": result.diagnosis_anchors,
+        "treatment_start": result.treatment_anchors,
         "specialist_visit": result.specialist_visit_anchors,
     }
     missing = [m for m, lst in anchors.items() if not lst]
@@ -546,13 +581,14 @@ def audit_patient(
 
 # ─── VnV statistics ──────────────────────────────────────────────────────────
 
+
 def compute_vnv_stats(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Compute population-level VnV proxy statistics from audit results."""
     n_patients = len(results)
     n_encounters = sum(r.get("encounter_count", 0) for r in results)
     all_dates = [d for r in results for d in r.get("date_range", []) if d]
     date_from = min(all_dates) if all_dates else "n/a"
-    date_to   = max(all_dates) if all_dates else "n/a"
+    date_to = max(all_dates) if all_dates else "n/a"
 
     # Detection coverage per milestone
     coverage: dict[str, int] = {m: 0 for m in ALL_MILESTONES}
@@ -595,7 +631,8 @@ def compute_vnv_stats(results: list[dict[str, Any]]) -> dict[str, Any]:
             "date_to": date_to,
             "median_enc_per_patient": (
                 sorted(r.get("encounter_count", 0) for r in results)[n_patients // 2]
-                if n_patients else 0
+                if n_patients
+                else 0
             ),
         },
         "detection_coverage": {
@@ -611,8 +648,7 @@ def compute_vnv_stats(results: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "tier_attribution": tier_counts,
         "false_negative_proxy": {
-            m: assessment_counts[m]["found_soft"]
-            for m in ALL_MILESTONES
+            m: assessment_counts[m]["found_soft"] for m in ALL_MILESTONES
         },
         "assessment_breakdown": assessment_counts,
     }
@@ -628,9 +664,11 @@ def print_vnv_summary(stats: dict[str, Any]) -> None:
     logger.info("  Date range: %s → %s", pop["date_from"], pop["date_to"])
     logger.info("  Median enc/patient: %d", pop["median_enc_per_patient"])
     logger.info("-" * 70)
-    logger.info("  Complete 4-milestone pathway: %d patients (%.1f%%)",
-                stats["complete_pathway"]["count"],
-                stats["complete_pathway"]["pct"])
+    logger.info(
+        "  Complete 4-milestone pathway: %d patients (%.1f%%)",
+        stats["complete_pathway"]["count"],
+        stats["complete_pathway"]["pct"],
+    )
     logger.info("-" * 70)
     for m in ALL_MILESTONES:
         cov = stats["detection_coverage"][m]
@@ -640,11 +678,15 @@ def print_vnv_summary(stats: dict[str, Any]) -> None:
         logger.info(
             "  %-20s found=%d (%.0f%%)  tiers: concept=%d hybrid=%d regex=%d  "
             "found_soft=%d possibly_missing=%d truly_missing=%d",
-            m, cov["found"], cov["pct"],
+            m,
+            cov["found"],
+            cov["pct"],
             tiers["concept"] + tiers.get("concept+hybrid", 0),
             tiers["hybrid"],
             tiers["regex"],
-            fn, assmt["possibly_missing"], assmt["truly_missing"],
+            fn,
+            assmt["possibly_missing"],
+            assmt["truly_missing"],
         )
     logger.info("=" * 70)
     logger.info(
@@ -656,43 +698,70 @@ def print_vnv_summary(stats: dict[str, Any]) -> None:
 
 # ─── Summary CSV ─────────────────────────────────────────────────────────────
 
+
 def write_summary_csv(results: list[dict[str, Any]], path: Path) -> None:
     fieldnames = [
-        "patient_id", "encounter_count", "date_from", "date_to",
-        "detection_method", "missing_count",
-        "referral", "diagnosis", "treatment_start", "specialist_visit",
-        "referral_assessment", "diagnosis_assessment",
-        "treatment_assessment", "specialist_assessment",
+        "patient_id",
+        "encounter_count",
+        "date_from",
+        "date_to",
+        "detection_method",
+        "missing_count",
+        "referral",
+        "diagnosis",
+        "treatment_start",
+        "specialist_visit",
+        "referral_assessment",
+        "diagnosis_assessment",
+        "treatment_assessment",
+        "specialist_assessment",
     ]
     with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
         for r in results:
             if r.get("error"):
-                writer.writerow({"patient_id": r["patient_id"], "detection_method": "ERROR"})
+                writer.writerow(
+                    {"patient_id": r["patient_id"], "detection_method": "ERROR"}
+                )
                 continue
             anchors = r.get("anchors", {})
             inv = r.get("investigation", {})
-            writer.writerow({
-                "patient_id": r["patient_id"],
-                "encounter_count": r.get("encounter_count", ""),
-                "date_from": (r.get("date_range") or [""])[0],
-                "date_to":   (r.get("date_range") or ["", ""])[1],
-                "detection_method": r.get("detection_method", ""),
-                "missing_count": len(r.get("missing", [])),
-                "referral":        "found" if anchors.get("referral") else "missing",
-                "diagnosis":       "found" if anchors.get("diagnosis") else "missing",
-                "treatment_start": "found" if anchors.get("treatment_start") else "missing",
-                "specialist_visit":"found" if anchors.get("specialist_visit") else "missing",
-                "referral_assessment":    inv.get("referral", {}).get("assessment", ""),
-                "diagnosis_assessment":   inv.get("diagnosis", {}).get("assessment", ""),
-                "treatment_assessment":   inv.get("treatment_start", {}).get("assessment", ""),
-                "specialist_assessment":  inv.get("specialist_visit", {}).get("assessment", ""),
-            })
+            writer.writerow(
+                {
+                    "patient_id": r["patient_id"],
+                    "encounter_count": r.get("encounter_count", ""),
+                    "date_from": (r.get("date_range") or [""])[0],
+                    "date_to": (r.get("date_range") or ["", ""])[1],
+                    "detection_method": r.get("detection_method", ""),
+                    "missing_count": len(r.get("missing", [])),
+                    "referral": "found" if anchors.get("referral") else "missing",
+                    "diagnosis": "found" if anchors.get("diagnosis") else "missing",
+                    "treatment_start": (
+                        "found" if anchors.get("treatment_start") else "missing"
+                    ),
+                    "specialist_visit": (
+                        "found" if anchors.get("specialist_visit") else "missing"
+                    ),
+                    "referral_assessment": inv.get("referral", {}).get(
+                        "assessment", ""
+                    ),
+                    "diagnosis_assessment": inv.get("diagnosis", {}).get(
+                        "assessment", ""
+                    ),
+                    "treatment_assessment": inv.get("treatment_start", {}).get(
+                        "assessment", ""
+                    ),
+                    "specialist_assessment": inv.get("specialist_visit", {}).get(
+                        "assessment", ""
+                    ),
+                }
+            )
     logger.info("Summary CSV → %s", path)
 
 
 # ─── Checkpointing ───────────────────────────────────────────────────────────
+
 
 def load_existing_ids(jsonl_path: Path) -> set[str]:
     """Return set of patient_ids already present in an existing JSONL file."""
@@ -712,33 +781,58 @@ def load_existing_ids(jsonl_path: Path) -> set[str]:
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
+
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description=textwrap.dedent("""\
+    p = argparse.ArgumentParser(description=textwrap.dedent("""\
             Anchor Audit — Phase 1 of ISO 13485 V&V.
             Runs canonical anchor detection for every patient and produces
             a JSONL ground-truth file + VnV proxy statistics.
-        """)
+        """))
+    p.add_argument(
+        "--patients", help="Comma-separated patient IDs to audit (default: all)"
     )
-    p.add_argument("--patients", help="Comma-separated patient IDs to audit (default: all)")
-    p.add_argument("--limit", type=int, default=0,
-                   help="Max patients to process (0 = all, default 0)")
-    p.add_argument("--window-days", type=int, default=None,
-                   help="Override per-milestone investigation windows (days)")
-    p.add_argument("--output-dir", default="exports",
-                   help="Directory for output files (default: exports/)")
-    p.add_argument("--concurrency", type=int, default=1,
-                   help="Number of patients to process concurrently (default 1)")
-    p.add_argument("--verbose", action="store_true",
-                   help="Log each encounter snippet during investigation")
-    p.add_argument("--resume", action="store_true",
-                   help="Skip patients already present in the output JSONL")
-    p.add_argument("--no-deep", action="store_true",
-                   help=(
-                       "Disable deep-audit mode (SNOMED hierarchy expansion, LLM "
-                       "disambiguation, resolver-based investigation).  Faster but "
-                       "less thorough — not recommended for ground-truth audits."
-                   ))
+    p.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Max patients to process (0 = all, default 0)",
+    )
+    p.add_argument(
+        "--window-days",
+        type=int,
+        default=None,
+        help="Override per-milestone investigation windows (days)",
+    )
+    p.add_argument(
+        "--output-dir",
+        default="exports",
+        help="Directory for output files (default: exports/)",
+    )
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="Number of patients to process concurrently (default 1)",
+    )
+    p.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Log each encounter snippet during investigation",
+    )
+    p.add_argument(
+        "--resume",
+        action="store_true",
+        help="Skip patients already present in the output JSONL",
+    )
+    p.add_argument(
+        "--no-deep",
+        action="store_true",
+        help=(
+            "Disable deep-audit mode (SNOMED hierarchy expansion, LLM "
+            "disambiguation, resolver-based investigation).  Faster but "
+            "less thorough — not recommended for ground-truth audits."
+        ),
+    )
     return p.parse_args()
 
 
@@ -749,7 +843,7 @@ def main() -> int:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     jsonl_path = out_dir / f"anchor_audit_{ts}.jsonl"
-    csv_path   = out_dir / f"anchor_audit_{ts}_summary.csv"
+    csv_path = out_dir / f"anchor_audit_{ts}_summary.csv"
 
     # ── Patient list ──────────────────────────────────────────────────────
     client = _get_patient_client()
@@ -765,19 +859,23 @@ def main() -> int:
         client.close()
 
     if args.limit:
-        all_rows = all_rows[:args.limit]
+        all_rows = all_rows[: args.limit]
 
     # Resume: filter out already-processed patients
     if args.resume:
         done_ids = load_existing_ids(jsonl_path)
         all_rows = [r for r in all_rows if r["patient_id"] not in done_ids]
-        logger.info("Resume: %d patients left after skipping %d", len(all_rows), len(done_ids))
+        logger.info(
+            "Resume: %d patients left after skipping %d", len(all_rows), len(done_ids)
+        )
 
     deep_mode = not args.no_deep
 
     logger.info(
         "Audit starting: %d patients, deep_mode=%s, window_days=%s",
-        len(all_rows), deep_mode, args.window_days,
+        len(all_rows),
+        deep_mode,
+        args.window_days,
     )
     if deep_mode:
         logger.info(
@@ -806,10 +904,15 @@ def main() -> int:
                     try:
                         kg_session = kg_client._driver.session()
                     except Exception:
-                        logger.warning("Could not open KG session — hierarchy expansion disabled for %s", pid)
+                        logger.warning(
+                            "Could not open KG session — hierarchy expansion disabled for %s",
+                            pid,
+                        )
                 try:
                     res = audit_patient(
-                        pid, enc_count, c,
+                        pid,
+                        enc_count,
+                        c,
                         window_days=args.window_days,
                         deep_mode=deep_mode,
                         kg_session=kg_session,
@@ -824,7 +927,8 @@ def main() -> int:
                 c.close()
             logger.info(
                 "  %s  enc=%d  missing=%s  method=%s",
-                pid, enc_count,
+                pid,
+                enc_count,
                 res.get("missing", []),
                 res.get("detection_method", "?"),
             )
@@ -867,7 +971,8 @@ def main() -> int:
         "  3. Add manual_label / labelled_by / labelled_at for each\n"
         "  4. Save as anchor_audit_%s_labelled.jsonl\n"
         "  5. Run: python scripts/vnv_anchor_report.py --input <labelled file>",
-        jsonl_path, ts,
+        jsonl_path,
+        ts,
     )
     return 0
 

@@ -7,6 +7,7 @@ to a local directory. Requires: pip install huggingface_hub datasets
 Usage:
     python scripts/download_hf_cancer_datasets.py [--output-dir DIR] [--limit N] [--dry-run]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -110,7 +111,12 @@ def main() -> int:
             f.write(json.dumps(r) + "\n")
 
     ok = sum(1 for r in results if r["status"] == "ok")
-    logger.info("Done. %d succeeded, %d failed. Results: %s", ok, len(results) - ok, results_path)
+    logger.info(
+        "Done. %d succeeded, %d failed. Results: %s",
+        ok,
+        len(results) - ok,
+        results_path,
+    )
     return 0 if ok > 0 else 1
 
 

@@ -23,10 +23,19 @@ def _make_encounter_session_sides(concept_ids=("111", "222")):
     return [
         [{"encounter_id": "e1"}],  # GET_ENCOUNTER
         MagicMock(single=MagicMock(return_value={"concept_ids": list(concept_ids)})),
-        MagicMock(single=MagicMock(return_value={"deleted": 3})),    # DELETE_ENCOUNTER_DOCUMENTS
-        MagicMock(single=MagicMock(return_value={"deleted": 1})),    # DELETE_ENCOUNTER_EPISODE_LINKS
-        [{"shortcuts_deleted": 1}, {"shortcuts_deleted": 2}],        # CLEANUP_PATIENT_SHORTCUTS
-        MagicMock(single=MagicMock(return_value={"deleted": 4})),    # RESET_ENCOUNTER_REVIEW_QUEUE
+        MagicMock(
+            single=MagicMock(return_value={"deleted": 3})
+        ),  # DELETE_ENCOUNTER_DOCUMENTS
+        MagicMock(
+            single=MagicMock(return_value={"deleted": 1})
+        ),  # DELETE_ENCOUNTER_EPISODE_LINKS
+        [
+            {"shortcuts_deleted": 1},
+            {"shortcuts_deleted": 2},
+        ],  # CLEANUP_PATIENT_SHORTCUTS
+        MagicMock(
+            single=MagicMock(return_value={"deleted": 4})
+        ),  # RESET_ENCOUNTER_REVIEW_QUEUE
         MagicMock(single=MagicMock(return_value={"llm_usage_deleted": 2})),
         MagicMock(single=MagicMock(return_value={"decisions_deleted": 5})),
         MagicMock(single=MagicMock(return_value={"encounters_cleared": 1})),
@@ -122,7 +131,8 @@ class TestResetEncounter:
         ]
         reset_encounter("p1", "e1", session)
         shortcut_calls = [
-            c for c in session.run.call_args_list
+            c
+            for c in session.run.call_args_list
             if c.args and c.args[0] == CLEANUP_PATIENT_SHORTCUTS_FOR_CONCEPTS
         ]
         assert shortcut_calls == []
@@ -134,7 +144,8 @@ class TestResetEncounter:
         reset_encounter("p1", "e1", session)
 
         docs_calls = [
-            c for c in session.run.call_args_list
+            c
+            for c in session.run.call_args_list
             if c.args and c.args[0] == DELETE_ENCOUNTER_DOCUMENTS
         ]
         assert len(docs_calls) == 1
@@ -142,14 +153,16 @@ class TestResetEncounter:
         assert docs_calls[0].kwargs["encounter_id"] == "e1"
 
         concept_calls = [
-            c for c in session.run.call_args_list
+            c
+            for c in session.run.call_args_list
             if c.args and c.args[0] == LIST_ENCOUNTER_DOCUMENT_CONCEPT_IDS
         ]
         assert len(concept_calls) == 1
         assert concept_calls[0].kwargs["encounter_id"] == "e1"
 
         shortcut_calls = [
-            c for c in session.run.call_args_list
+            c
+            for c in session.run.call_args_list
             if c.args and c.args[0] == CLEANUP_PATIENT_SHORTCUTS_FOR_CONCEPTS
         ]
         assert len(shortcut_calls) == 1

@@ -1,17 +1,20 @@
 """Find every SurfaceForm that might resolve 'type 2 diabetes' to 410657003."""
+
 import os, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI",     "bolt://localhost:7688")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "bolt://localhost:7688")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 driver = GraphDatabase.driver(kg_uri, auth=(kg_user, kg_pass))
@@ -34,7 +37,9 @@ rows = run(
 )
 print(f"  Found {len(rows)} mapping(s) to 410657003:")
 for r in rows:
-    print(f"    norm='{r['norm']}'  form='{r['form']}'  conf={r['conf']}  prov={r['prov']}")
+    print(
+        f"    norm='{r['norm']}'  form='{r['form']}'  conf={r['conf']}  prov={r['prov']}"
+    )
 
 # 2. Find all normalized forms that contain 'type 2' or 'diabetes'
 print("\n=== All SurfaceForm nodes matching 'type 2' or 'diabetes' ===")

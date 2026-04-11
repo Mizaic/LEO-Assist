@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 BANNED_PATTERNS = (
@@ -56,4 +55,6 @@ def test_no_legacy_pipeline_import_references() -> None:
                 if pat in content:
                     offenders.append(f"{path.relative_to(ROOT)} :: {pat}")
 
-    assert not offenders, "Legacy pipeline references found:\n" + "\n".join(sorted(offenders))
+    assert not offenders, "Legacy pipeline references found:\n" + "\n".join(
+        sorted(offenders)
+    )

@@ -2,7 +2,14 @@
 
 _LEAF_DECISION = {
     "type": "object",
-    "required": ["node_id", "status", "selected_concept_id", "reason", "confidence", "retry_search_terms"],
+    "required": [
+        "node_id",
+        "status",
+        "selected_concept_id",
+        "reason",
+        "confidence",
+        "retry_search_terms",
+    ],
     "properties": {
         "node_id": {"type": "string"},
         "status": {"type": "string", "enum": ["verified", "retry_search", "rejected"]},
@@ -19,9 +26,18 @@ _LEAF_DECISION = {
 
 _ACTION_DECISION = {
     "type": "object",
-    "required": ["status", "selected_concept_id", "reason", "confidence", "retry_search_terms"],
+    "required": [
+        "status",
+        "selected_concept_id",
+        "reason",
+        "confidence",
+        "retry_search_terms",
+    ],
     "properties": {
-        "status": {"type": "string", "enum": ["verified", "retry_search", "rejected", "not_required"]},
+        "status": {
+            "type": "string",
+            "enum": ["verified", "retry_search", "rejected", "not_required"],
+        },
         "selected_concept_id": {"type": ["string", "null"]},
         "reason": {"type": "string"},
         "confidence": {"type": "number"},
@@ -38,7 +54,10 @@ GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA: dict = {
     "type": "object",
     "required": ["overall_status", "leaf_decisions", "action_decision"],
     "properties": {
-        "overall_status": {"type": "string", "enum": ["verified", "retry_search", "rejected"]},
+        "overall_status": {
+            "type": "string",
+            "enum": ["verified", "retry_search", "rejected"],
+        },
         "leaf_decisions": {"type": "array", "items": _LEAF_DECISION},
         "action_decision": _ACTION_DECISION,
     },

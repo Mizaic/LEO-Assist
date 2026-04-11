@@ -1,13 +1,20 @@
 """Sample HITL coding review items from Neo4j."""
+
 import json, os, sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).resolve().parents[1] / "secrets" / ".env")
-load_dotenv(Path(__file__).resolve().parents[1] / "secrets" / ".env.secrets", override=True)
+load_dotenv(
+    Path(__file__).resolve().parents[1] / "secrets" / ".env.secrets", override=True
+)
 from neo4j import GraphDatabase
 
-d = GraphDatabase.driver(os.getenv("NEO4J_URI"), auth=("neo4j", os.getenv("NEO4J_PASSWORD")))
+d = GraphDatabase.driver(
+    os.getenv("NEO4J_URI"), auth=("neo4j", os.getenv("NEO4J_PASSWORD"))
+)
 d.verify_connectivity()
 s = d.session()
 
@@ -49,7 +56,9 @@ rows = s.run("""
     ORDER BY cnt DESC LIMIT 20
 """)
 for r in rows:
-    print(f"  [{r['cnt']:4d}]  {r['extracted']} -> {r['suggested']}  avg_delta={r['avg_delta']}")
+    print(
+        f"  [{r['cnt']:4d}]  {r['extracted']} -> {r['suggested']}  avg_delta={r['avg_delta']}"
+    )
 
 # --- 4. Sample 10 HITL items with full shape
 print("\n=== SAMPLE HITL ITEMS (full shape) ===")
@@ -84,9 +93,13 @@ for i, r in enumerate(rows, 1):
     print(f"       score:         {r['score']}")
     print(f"       semantic_tag:  {r['semantic_tag']}")
     print(f"       assertion:     {r['assertion']}")
-    print(f"       tier:          {r['decision_tier']} / {r['tier_decision']} / {r['tier_reason']}")
-    if r['suggested_label']:
-        print(f"       TAG MISMATCH:  suggested={r['suggested_label']}  delta={r['tag_mismatch_delta']}")
+    print(
+        f"       tier:          {r['decision_tier']} / {r['tier_decision']} / {r['tier_reason']}"
+    )
+    if r["suggested_label"]:
+        print(
+            f"       TAG MISMATCH:  suggested={r['suggested_label']}  delta={r['tag_mismatch_delta']}"
+        )
     print(f"       encounter:     {r['encounter_text_preview']}")
 
 # --- 5. Coded vs uncoded
@@ -100,7 +113,9 @@ r = s.run("""
         sum(CASE WHEN cr.suggested_label IS NOT NULL THEN 1 ELSE 0 END) AS tag_mismatches,
         count(cr) AS total
 """).single()
-print(f"  total={r['total']}  coded={r['coded']}  uncoded={r['uncoded']}  tag_mismatches={r['tag_mismatches']}")
+print(
+    f"  total={r['total']}  coded={r['coded']}  uncoded={r['uncoded']}  tag_mismatches={r['tag_mismatches']}"
+)
 
 s.close()
 d.close()

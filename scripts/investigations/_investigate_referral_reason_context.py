@@ -114,7 +114,13 @@ def _symptom_from_doc(doc: dict[str, Any]) -> bool:
     if not name or _EXCLUDE_NAME_RE.search(name):
         return False
     tag = str(doc.get("semantic_tag") or "").lower().replace("_", " ")
-    if tag in {"procedure", "environment", "place", "physical_object", "record artifact"}:
+    if tag in {
+        "procedure",
+        "environment",
+        "place",
+        "physical_object",
+        "record artifact",
+    }:
         return False
     return bool(_SYMPTOM_TERM_RE.search(name))
 
@@ -151,12 +157,15 @@ def main() -> None:
                 continue
             start = (ref_day - timedelta(days=21)).isoformat()
             end = (ref_day + timedelta(days=3)).isoformat()
-            rows = pc.run(
-                Q_WINDOW,
-                pid=pid,
-                start_date=start,
-                end_date=end,
-            ) or []
+            rows = (
+                pc.run(
+                    Q_WINDOW,
+                    pid=pid,
+                    start_date=start,
+                    end_date=end,
+                )
+                or []
+            )
 
             symptom_hits: list[str] = []
             inv_hits: list[str] = []
@@ -166,8 +175,16 @@ def main() -> None:
                 day = str(r.get("encounter_date") or "")
                 docs = [d for d in (r.get("docs") or []) if d.get("concept_id")]
                 clues = _extract_text_clues(str(r.get("text") or ""))
-                doc_symptoms = [str(d.get("concept_name") or "") for d in docs if _symptom_from_doc(d)]
-                doc_investigations = [str(d.get("concept_name") or "") for d in docs if _investigation_from_doc(d)]
+                doc_symptoms = [
+                    str(d.get("concept_name") or "")
+                    for d in docs
+                    if _symptom_from_doc(d)
+                ]
+                doc_investigations = [
+                    str(d.get("concept_name") or "")
+                    for d in docs
+                    if _investigation_from_doc(d)
+                ]
                 symptom_hits.extend(doc_symptoms + clues["symptom_terms"])
                 inv_hits.extend(doc_investigations + clues["investigation_terms"])
                 ref_hits.extend(clues["referral_terms"])
@@ -186,7 +203,9 @@ def main() -> None:
                 by_day[day]["doc_symptoms"].update(doc_symptoms)
                 by_day[day]["doc_investigations"].update(doc_investigations)
                 by_day[day]["text_symptom_terms"].update(clues["symptom_terms"])
-                by_day[day]["text_investigation_terms"].update(clues["investigation_terms"])
+                by_day[day]["text_investigation_terms"].update(
+                    clues["investigation_terms"]
+                )
                 by_day[day]["text_referral_terms"].update(clues["referral_terms"])
 
             has_symptom = bool(symptom_hits)
@@ -223,7 +242,9 @@ def main() -> None:
                             "doc_symptoms": sorted(v["doc_symptoms"]),
                             "doc_investigations": sorted(v["doc_investigations"]),
                             "text_symptom_terms": sorted(v["text_symptom_terms"]),
-                            "text_investigation_terms": sorted(v["text_investigation_terms"]),
+                            "text_investigation_terms": sorted(
+                                v["text_investigation_terms"]
+                            ),
                             "text_referral_terms": sorted(v["text_referral_terms"]),
                         }
                         for d, v in sorted(by_day.items())
@@ -242,7 +263,12 @@ def main() -> None:
             "episodes": episodes,
         }
         OUT.write_text(json.dumps(out, indent=2), encoding="utf-8")
-        print(json.dumps({"excluded_count": len(eps), "classification_counts": dict(summary)}, indent=2))
+        print(
+            json.dumps(
+                {"excluded_count": len(eps), "classification_counts": dict(summary)},
+                indent=2,
+            )
+        )
         print(f"wrote: {OUT}")
     finally:
         pc.close()
@@ -250,4 +276,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

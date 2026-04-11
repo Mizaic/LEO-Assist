@@ -5,6 +5,7 @@ This queries the KG to find which domains contain the concept IDs appearing
 in IS_PART_OF diagnosis encounters, and checks which ones are actually the
 diagnosis-bucket triggers (vs noise from co-coded encounter concepts).
 """
+
 import sys
 from pathlib import Path
 
@@ -12,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
@@ -58,7 +61,9 @@ def main() -> None:
         ids=cids,
     )
     if not vs_rows:
-        print("None of the co-coded concept IDs found in cancer_types or stage_of_diagnosis ValueSets.")
+        print(
+            "None of the co-coded concept IDs found in cancer_types or stage_of_diagnosis ValueSets."
+        )
         print("Checking if the KG uses FHIR ValueSet structure instead...")
 
         # Try FHIR ValueSet structure
@@ -93,7 +98,9 @@ def main() -> None:
         "LIMIT 3"
     )
     if not ct_rows:
-        print("  No ValueSet nodes with domain='cancer_types' found. Trying FHIRValueSet...")
+        print(
+            "  No ValueSet nodes with domain='cancer_types' found. Trying FHIRValueSet..."
+        )
         fhir_vs = kgc.run(
             "MATCH (vs) WHERE vs.domain = 'cancer_types' "
             "RETURN labels(vs) AS labels, keys(vs) AS props LIMIT 3"

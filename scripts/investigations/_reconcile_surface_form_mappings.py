@@ -14,6 +14,7 @@ Usage:
   python scripts/investigations/_reconcile_surface_form_mappings.py --apply
   python scripts/investigations/_reconcile_surface_form_mappings.py --category symptom
 """
+
 from __future__ import annotations
 
 import json
@@ -128,7 +129,9 @@ def main() -> None:
             before_ids = [str(x.get("concept_id")) for x in before]
 
             need_upsert = concept_id not in before_ids
-            need_keep = bool(before_ids) and any(cid != concept_id for cid in before_ids)
+            need_keep = bool(before_ids) and any(
+                cid != concept_id for cid in before_ids
+            )
 
             if not need_upsert and not need_keep:
                 continue
@@ -141,26 +144,32 @@ def main() -> None:
 
             if APPLY:
                 if need_upsert:
-                    out = kg.run(
-                        UPSERT_SURFACE_FORM_MAPPING,
-                        normalized=normalized,
-                        form=r["form"],
-                        concept_id=concept_id,
-                        confidence=0.98,
-                        source="manual_curation",
-                        provenance="surface_form_reconcile_2026",
-                    ) or []
+                    out = (
+                        kg.run(
+                            UPSERT_SURFACE_FORM_MAPPING,
+                            normalized=normalized,
+                            form=r["form"],
+                            concept_id=concept_id,
+                            confidence=0.98,
+                            source="manual_curation",
+                            provenance="surface_form_reconcile_2026",
+                        )
+                        or []
+                    )
                     if out:
                         total_upserts += 1
                         print("  upsert: OK")
                     else:
                         print("  upsert: WARN no row returned")
                 if need_keep:
-                    keep = kg.run(
-                        KEEP_SURFACE_FORM_MAPPING,
-                        normalized=normalized,
-                        keep_concept_id=concept_id,
-                    ) or []
+                    keep = (
+                        kg.run(
+                            KEEP_SURFACE_FORM_MAPPING,
+                            normalized=normalized,
+                            keep_concept_id=concept_id,
+                        )
+                        or []
+                    )
                     removed = int(keep[0].get("removed", 0)) if keep else 0
                     total_keeps += removed
                     print(f"  prune-other-maps: removed={removed}")
@@ -182,11 +191,14 @@ def main() -> None:
         print("\nVerifying exact-surface lookup responses ...")
         verify_fail = 0
         for r in rows:
-            out = kg.run(
-                EXACT_SURFACE_FORM_QUERY,
-                normalized=r["normalized"],
-                k=3,
-            ) or []
+            out = (
+                kg.run(
+                    EXACT_SURFACE_FORM_QUERY,
+                    normalized=r["normalized"],
+                    k=3,
+                )
+                or []
+            )
             if not out:
                 verify_fail += 1
                 print(f"  NO RESULT  {r['normalized']!r}")
@@ -211,4 +223,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -91,31 +91,37 @@ def main() -> None:
     try:
         row = (c.run(Q) or [{}])[0]
         reasons = c.run(Q_REASON_BREAKDOWN) or []
-        dist = c.run(
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE ep.referral_date IS NOT NULL "
-            "  AND NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
-            "  AND EXISTS { MATCH (:Encounter)-[rr:IS_PART_OF]->(ep) WHERE rr.milestone_type = 'referral' } "
-            "  AND ep.first_presentation_date IS NOT NULL "
-            "  AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
-            "WITH duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days AS d "
-            "WHERE d >= 0 "
-            "RETURN d AS days, count(*) AS n ORDER BY d"
-        ) or []
-        long_rows = c.run(
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE ep.referral_date IS NOT NULL "
-            "  AND NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
-            "  AND EXISTS { MATCH (:Encounter)-[rr:IS_PART_OF]->(ep) WHERE rr.milestone_type = 'referral' } "
-            "  AND ep.first_presentation_date IS NOT NULL "
-            "  AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
-            "WITH ep, duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days AS d "
-            "WHERE d > 14 "
-            "RETURN ep.episode_id AS episode_id, ep.patient_id AS patient_id, ep.cancer_type AS cancer_type, "
-            "       ep.first_presentation_date AS fp, ep.referral_date AS ref, d AS days, "
-            "       ep.presenting_complaint AS complaint "
-            "ORDER BY days DESC LIMIT 20"
-        ) or []
+        dist = (
+            c.run(
+                "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+                "WHERE ep.referral_date IS NOT NULL "
+                "  AND NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+                "  AND EXISTS { MATCH (:Encounter)-[rr:IS_PART_OF]->(ep) WHERE rr.milestone_type = 'referral' } "
+                "  AND ep.first_presentation_date IS NOT NULL "
+                "  AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+                "WITH duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days AS d "
+                "WHERE d >= 0 "
+                "RETURN d AS days, count(*) AS n ORDER BY d"
+            )
+            or []
+        )
+        long_rows = (
+            c.run(
+                "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+                "WHERE ep.referral_date IS NOT NULL "
+                "  AND NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+                "  AND EXISTS { MATCH (:Encounter)-[rr:IS_PART_OF]->(ep) WHERE rr.milestone_type = 'referral' } "
+                "  AND ep.first_presentation_date IS NOT NULL "
+                "  AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+                "WITH ep, duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days AS d "
+                "WHERE d > 14 "
+                "RETURN ep.episode_id AS episode_id, ep.patient_id AS patient_id, ep.cancer_type AS cancer_type, "
+                "       ep.first_presentation_date AS fp, ep.referral_date AS ref, d AS days, "
+                "       ep.presenting_complaint AS complaint "
+                "ORDER BY days DESC LIMIT 20"
+            )
+            or []
+        )
     finally:
         c.close()
     print(row)
@@ -132,4 +138,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

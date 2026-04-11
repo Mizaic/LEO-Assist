@@ -58,6 +58,7 @@ class TestCodingModeEnvVar:
     @patch.dict("os.environ", {}, clear=False)
     def test_missing_defaults_to_hitl(self):
         import os
+
         os.environ.pop("CODING_MODE", None)
         settings = get_settings()
         assert settings.coding_mode == CodingMode.HITL
@@ -72,12 +73,14 @@ class TestPayloadTierClassification:
 
     def _make_pipeline(self, mode: str = "hitl"):
         from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
+
         mock_pc = MagicMock()
         mock_kc = MagicMock()
         return CodingPipeline(mock_pc, mock_kc, coding_mode=mode)
 
     def _make_item(self, assertion="present", normalized="cough"):
         from libs.ner.extractor_contract import ExtractionItem
+
         return ExtractionItem(
             sentence_id="s0",
             text=normalized,
@@ -102,10 +105,21 @@ class TestPayloadTierClassification:
         pipeline = self._make_pipeline("autonomous")
         sentences = [SentenceChunk(sentence_id="s0", text="cough", start=0, end=5)]
         extracted = {"s0": [self._make_item()]}
-        resolved = {"cough": [{"snomed_concept_id": "123", "score": 0.96, "surface_form_status": "approved"}]}
+        resolved = {
+            "cough": [
+                {
+                    "snomed_concept_id": "123",
+                    "score": 0.96,
+                    "surface_form_status": "approved",
+                }
+            ]
+        }
 
         payload = pipeline._build_sentences_payload(
-            sentences, extracted, resolved, self._make_extractor(),
+            sentences,
+            extracted,
+            resolved,
+            self._make_extractor(),
         )
         term = payload[0]["terms"][0]
         assert term["decision_tier"] == 1
@@ -118,10 +132,21 @@ class TestPayloadTierClassification:
         pipeline = self._make_pipeline("autonomous")
         sentences = [SentenceChunk(sentence_id="s0", text="no cough", start=0, end=8)]
         extracted = {"s0": [self._make_item(assertion="absent")]}
-        resolved = {"cough": [{"snomed_concept_id": "123", "score": 0.96, "surface_form_status": "approved"}]}
+        resolved = {
+            "cough": [
+                {
+                    "snomed_concept_id": "123",
+                    "score": 0.96,
+                    "surface_form_status": "approved",
+                }
+            ]
+        }
 
         payload = pipeline._build_sentences_payload(
-            sentences, extracted, resolved, self._make_extractor(),
+            sentences,
+            extracted,
+            resolved,
+            self._make_extractor(),
         )
         term = payload[0]["terms"][0]
         assert term["decision_tier"] == 3
@@ -133,10 +158,17 @@ class TestPayloadTierClassification:
         pipeline = self._make_pipeline("autonomous")
         sentences = [SentenceChunk(sentence_id="s0", text="cough", start=0, end=5)]
         extracted = {"s0": [self._make_item()]}
-        resolved = {"cough": [{"snomed_concept_id": "123", "score": 0.80, "surface_form_status": ""}]}
+        resolved = {
+            "cough": [
+                {"snomed_concept_id": "123", "score": 0.80, "surface_form_status": ""}
+            ]
+        }
 
         payload = pipeline._build_sentences_payload(
-            sentences, extracted, resolved, self._make_extractor(),
+            sentences,
+            extracted,
+            resolved,
+            self._make_extractor(),
         )
         term = payload[0]["terms"][0]
         assert term["decision_tier"] == 2
@@ -232,9 +264,17 @@ class TestWriteCodingDecisions:
         sentences_payload = [
             {
                 "sentence_id": "s0",
-                "terms": [{"text": "t", "semantic_tag": "f", "assertion": "present",
-                           "decision_tier": 1, "tier_decision": "auto_coded",
-                           "tier_reason": "test", "coding": {"score": 0.9}}],
+                "terms": [
+                    {
+                        "text": "t",
+                        "semantic_tag": "f",
+                        "assertion": "present",
+                        "decision_tier": 1,
+                        "tier_decision": "auto_coded",
+                        "tier_reason": "test",
+                        "coding": {"score": 0.9},
+                    }
+                ],
             },
         ]
         pipeline._write_coding_decisions("e", "p", sentences_payload)

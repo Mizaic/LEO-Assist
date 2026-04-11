@@ -20,6 +20,7 @@ Usage
         --from-file exports/training/anchor_review_results.jsonl \\
         --output   exports/training/target_rules_by_domain.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,7 +34,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s"
+)
 logger = logging.getLogger("export_target_rules")
 
 EXCLUDE_DOMAINS = {"NON_CANCER", "AMBIGUOUS", "DISAGREEMENT"}
@@ -73,6 +76,7 @@ def _deduplicate_rules(rules: list[str]) -> list[str]:
 # Source: Neo4j
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _load_from_neo4j() -> dict[str, list[str]]:
     """Pull TargetRules from Neo4j via GET_REVIEWED_TARGET_RULES."""
     from libs.neo4j_client.client import PatientGraphClient
@@ -98,6 +102,7 @@ def _load_from_neo4j() -> dict[str, list[str]]:
 # ──────────────────────────────────────────────────────────────────────────────
 # Source: JSONL file (anchor_review_results.jsonl)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _load_from_file(path: str) -> dict[str, list[str]]:
     """Load rules from a review results JSONL file."""
@@ -136,6 +141,7 @@ def _load_from_file(path: str) -> dict[str, list[str]]:
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def export_target_rules(
     from_file: str | None,
     output_path: str,
@@ -167,8 +173,11 @@ def export_target_rules(
     logger.info("=" * 60)
     for domain, rules in deduped.items():
         logger.info("  %-35s %4d rules", domain, len(rules))
-    logger.info("  Total: %d rules across %d domains",
-                output["total_rules"], output["total_domains"])
+    logger.info(
+        "  Total: %d rules across %d domains",
+        output["total_rules"],
+        output["total_domains"],
+    )
     logger.info("  Output: %s", output_path)
     logger.info("=" * 60)
 
@@ -180,11 +189,13 @@ def main():
         description="Export deduplicated TargetRules by domain"
     )
     parser.add_argument(
-        "--from-file", default=None,
+        "--from-file",
+        default=None,
         help="Read from an anchor_review_results.jsonl file instead of Neo4j",
     )
     parser.add_argument(
-        "--output", default="exports/training/target_rules_by_domain.json",
+        "--output",
+        default="exports/training/target_rules_by_domain.json",
         help="Output JSON path",
     )
     args = parser.parse_args()

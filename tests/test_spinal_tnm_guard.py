@@ -7,6 +7,7 @@ or manual-therapy markers, while preserving valid cancer staging entities.
 DI: DI-LEO-AI-093
 Risk: R-LEO-AI-066
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,6 @@ from libs.ner.scope_guard import (
     is_spinal_context,
     reclassify_assertion,
 )
-
 
 # ---------------------------------------------------------------------------
 # VT-093-TC-001 and VT-093-TC-002
@@ -209,9 +209,7 @@ class TestAlreadyReclassifiedAssertionUnaffected:
 class TestIsSpinalContext:
     def test_nags_snags_physiotherapy_detected(self) -> None:
         """VT-093-TC-008: NAGs/SNAGs + physiotherapy sentence detected."""
-        assert is_spinal_context(
-            "did NAGs C3 and SNAGs T4 in physiotherapy session"
-        )
+        assert is_spinal_context("did NAGs C3 and SNAGs T4 in physiotherapy session")
 
     def test_facet_detected(self) -> None:
         """Facet joint reference detected."""
@@ -239,9 +237,7 @@ class TestIsSpinalContext:
 
     def test_oncology_sentence_not_detected(self) -> None:
         """VT-093-TC-009: Oncology sentence without spinal markers not detected."""
-        assert not is_spinal_context(
-            "T4 colorectal cancer confirmed at MDT meeting"
-        )
+        assert not is_spinal_context("T4 colorectal cancer confirmed at MDT meeting")
 
     def test_plain_clinical_sentence_not_detected(self) -> None:
         """Standard clinical sentence without spinal markers not detected."""

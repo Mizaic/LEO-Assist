@@ -28,6 +28,7 @@ This script:
 Run:
     python scripts/investigations/_writeback_missed_cancer_diagnoses.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -127,12 +128,14 @@ def _check_e14(session) -> None:
     print("  E14 -- breast cancer (pid=4709023328)")
     print()
 
-    rows = list(session.run(
-        _Q_DOCS_WINDOW,
-        patient_id="4709023328",
-        after="2025-09-04",
-        before="2025-09-06",
-    ))
+    rows = list(
+        session.run(
+            _Q_DOCS_WINDOW,
+            patient_id="4709023328",
+            after="2025-09-04",
+            before="2025-09-06",
+        )
+    )
     breast_ids = {254837009, 1306292009, 363346000}
     found = [r for r in rows if r["concept_id"] in breast_ids]
 
@@ -155,12 +158,14 @@ def _fix_e20(session) -> None:
     print()
 
     # What's currently coded in Nov-Dec 2024?
-    rows = list(session.run(
-        _Q_DOCS_WINDOW,
-        patient_id="6040304227",
-        after="2024-11-01",
-        before="2024-12-31",
-    ))
+    rows = list(
+        session.run(
+            _Q_DOCS_WINDOW,
+            patient_id="6040304227",
+            after="2024-11-01",
+            before="2024-12-31",
+        )
+    )
     scc_ids = {402815007, 93761005, 372130007, 28899001}
     if any(r["concept_id"] in scc_ids for r in rows):
         print("  [OK] SCC concept already coded in Nov-Dec 2024. No write-back needed.")
@@ -168,16 +173,20 @@ def _fix_e20(session) -> None:
 
     print("  Coded in Nov-Dec 2024:")
     for r in rows:
-        print(f"    {r['enc_date']}  {r['concept_id']}  {(r['concept_name'] or '')[:45]}")
+        print(
+            f"    {r['enc_date']}  {r['concept_id']}  {(r['concept_name'] or '')[:45]}"
+        )
     print()
 
     # Find the biopsy / histology encounter
-    encs = list(session.run(
-        _Q_ENCOUNTERS_WINDOW,
-        patient_id="6040304227",
-        after="2024-11-15",
-        before="2024-11-20",
-    ))
+    encs = list(
+        session.run(
+            _Q_ENCOUNTERS_WINDOW,
+            patient_id="6040304227",
+            after="2024-11-15",
+            before="2024-11-20",
+        )
+    )
     if not encs:
         print("  [WARN] No encounter in 2024-11-15 to 2024-11-20 window.")
         print("         Cannot write-back. Rerun pipeline for this patient.")
@@ -193,7 +202,11 @@ def _fix_e20(session) -> None:
     concept = _resolve_term("squamous cell carcinoma of skin")
     if concept:
         cid = concept.get("conceptId") or concept.get("concept_id")
-        cname = concept.get("preferredTerm") or concept.get("name") or "Squamous cell carcinoma of skin"
+        cname = (
+            concept.get("preferredTerm")
+            or concept.get("name")
+            or "Squamous cell carcinoma of skin"
+        )
         semantic_tag = concept.get("semanticTag", "disorder")
         print(f"  Resolved: {cid}  {cname}")
     else:
@@ -213,15 +226,19 @@ def _fix_e20(session) -> None:
         "completely excised 5mm peripheral and deep margin (histopathology confirmed)"
     )
     try:
-        wb = list(session.run(
-            _Q_UPSERT_DOCS,
-            enc_id=target_enc_id,
-            concept_id=cid,
-            concept_name=cname,
-            evidence_sentence=evidence,
-        ))
+        wb = list(
+            session.run(
+                _Q_UPSERT_DOCS,
+                enc_id=target_enc_id,
+                concept_id=cid,
+                concept_name=cname,
+                evidence_sentence=evidence,
+            )
+        )
         if wb:
-            print(f"  [WRITTEN] enc={wb[0]['enc_id'][:20]}  concept={wb[0]['concept_id']}")
+            print(
+                f"  [WRITTEN] enc={wb[0]['enc_id'][:20]}  concept={wb[0]['concept_id']}"
+            )
             # Add HAS_SITUATION to patient graph
             session.run(
                 _Q_ADD_PATIENT_SITUATION,
@@ -230,7 +247,9 @@ def _fix_e20(session) -> None:
             )
             print("  [WRITTEN] HAS_SITUATION added to patient graph.")
         else:
-            print("  [WARN] Upsert matched 0 rows. Check encounter ID and concept node.")
+            print(
+                "  [WARN] Upsert matched 0 rows. Check encounter ID and concept node."
+            )
     except Exception as exc:
         print(f"  [FAIL] {exc}")
 

@@ -15,6 +15,7 @@ Run (dry run first):
 Run (apply):
     python scripts/investigations/_write_back_benign_closures.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -230,8 +231,13 @@ def process(dry_run: bool = True) -> None:
         print(f"\n  pid={patient_id}  window={from_date} -> {to_date}")
         print(f"  evidence: {evidence[:80]}")
 
-        encs = _run(client, _FIND_ENCOUNTER_Q,
-                    patient_id=patient_id, from_date=from_date, to_date=to_date)
+        encs = _run(
+            client,
+            _FIND_ENCOUNTER_Q,
+            patient_id=patient_id,
+            from_date=from_date,
+            to_date=to_date,
+        )
         if not encs:
             print(f"    [SKIP] No encounters found in date window")
             not_found += 1
@@ -241,10 +247,13 @@ def process(dry_run: bool = True) -> None:
         enc = encs[0]
         eid = enc["eid"]
         edate = enc["edate"]
-        print(f"    target encounter: {eid[:8]}... date={edate} ({len(encs)} in window)")
+        print(
+            f"    target encounter: {eid[:8]}... date={edate} ({len(encs)} in window)"
+        )
 
-        already = _run(client, _CHECK_CODED_Q,
-                       eid=eid, concept_id=_NO_CANCER_CONCEPT_ID)
+        already = _run(
+            client, _CHECK_CODED_Q, eid=eid, concept_id=_NO_CANCER_CONCEPT_ID
+        )
         if already and already[0].get("already_coded", 0) > 0:
             print(f"    [SKIP] 395100000 already coded on this encounter")
             skipped += 1
@@ -255,10 +264,13 @@ def process(dry_run: bool = True) -> None:
             written += 1
             continue
 
-        rows = _run(client, _WRITE_BACK_Q,
-                    eid=eid,
-                    concept_id=_NO_CANCER_CONCEPT_ID,
-                    evidence=evidence)
+        rows = _run(
+            client,
+            _WRITE_BACK_Q,
+            eid=eid,
+            concept_id=_NO_CANCER_CONCEPT_ID,
+            evidence=evidence,
+        )
         if rows:
             print(f"    [DONE] wrote 395100000 -> enc={eid[:8]}... date={edate}")
             written += 1
@@ -268,7 +280,9 @@ def process(dry_run: bool = True) -> None:
 
     print()
     mode = "DRY RUN" if dry_run else "APPLIED"
-    print(f"[{mode}] total={total}  written={written}  skipped_already_coded={skipped}  not_found={not_found}")
+    print(
+        f"[{mode}] total={total}  written={written}  skipped_already_coded={skipped}  not_found={not_found}"
+    )
     if dry_run:
         print("Re-run with --apply to commit writes to Neo4j.")
 

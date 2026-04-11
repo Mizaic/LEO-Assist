@@ -10,7 +10,13 @@ Both share the same format_output_schema_block() renderer (flat-object style).
 EPISODE_BUILDER_OUTPUT_SCHEMA: dict = {
     "description": "Return ONLY a single valid JSON object — no markdown, no preamble.",
     "type": "object",
-    "required": ["status", "confidence", "reasoning", "diagnosis_date", "treatment_date"],
+    "required": [
+        "status",
+        "confidence",
+        "reasoning",
+        "diagnosis_date",
+        "treatment_date",
+    ],
     "properties": {
         "status": {
             "type": "string",
@@ -43,7 +49,12 @@ EPISODE_BUILDER_OUTPUT_SCHEMA: dict = {
 EPISODE_CONSOLIDATION_OUTPUT_SCHEMA: dict = {
     "description": "Return ONLY a single valid JSON object — no markdown, no preamble.",
     "type": "object",
-    "required": ["should_merge", "primary_episode_id", "reasoning", "merged_cancer_type"],
+    "required": [
+        "should_merge",
+        "primary_episode_id",
+        "reasoning",
+        "merged_cancer_type",
+    ],
     "properties": {
         "should_merge": {
             "type": "boolean",
@@ -83,7 +94,11 @@ def format_output_schema_block(schema: dict) -> str:
         lines.append("Return a JSON object with these fields:")
         lines.append("")
         for field, defn in props.items():
-            req_marker = " (required)" if field in required else " (optional, null if not present)"
+            req_marker = (
+                " (required)"
+                if field in required
+                else " (optional, null if not present)"
+            )
             desc = defn.get("description", "")
             raw_type = defn.get("type", "string")
             base_type = (
@@ -94,9 +109,9 @@ def format_output_schema_block(schema: dict) -> str:
             nullable = isinstance(raw_type, list) and "null" in raw_type
             if "enum" in defn:
                 allowed = ", ".join(f'"{v}"' for v in defn["enum"])
-                lines.append(f'  - **{field}**{req_marker}: one of {allowed}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: one of {allowed}. {desc}")
             else:
                 type_label = f"{base_type}, nullable" if nullable else base_type
-                lines.append(f'  - **{field}**{req_marker}: {type_label}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: {type_label}. {desc}")
 
     return "\n".join(lines)

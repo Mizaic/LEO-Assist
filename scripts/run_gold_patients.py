@@ -29,6 +29,7 @@ Usage examples
   # Only run analysis (after extraction already done)
   python scripts/run_gold_patients.py --patients 9990000002 --analysis-only
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,6 +47,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "services" / "api"))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 logging.basicConfig(
@@ -63,6 +65,7 @@ for _noisy in ("httpx", "httpcore", "botocore", "urllib3", "sentence_transformer
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def get_patient_ids(driver, limit: int) -> list[str]:
     """Fetch patients ordered by encounter count (most encounters first)."""
     with driver.session() as session:
@@ -78,6 +81,7 @@ def get_patient_ids(driver, limit: int) -> list[str]:
 
 def _make_driver():
     from neo4j import GraphDatabase
+
     return GraphDatabase.driver(
         os.getenv("NEO4J_URI", "bolt://localhost:7687"),
         auth=(
@@ -91,9 +95,11 @@ def _make_driver():
 # Step 1 — Clean
 # ---------------------------------------------------------------------------
 
+
 def step_clean(driver, patient_ids: list[str]) -> None:
     logger.info("Step 1: Cleaning %d patient(s)...", len(patient_ids))
     from scripts.clean_patients import clean_patient
+
     t0 = time.time()
     with driver.session() as session:
         for pid in patient_ids:
@@ -106,6 +112,7 @@ def step_clean(driver, patient_ids: list[str]) -> None:
 # Steps 2-3 — Classify + Extract
 # ---------------------------------------------------------------------------
 
+
 def step_extract(
     patient_ids: list[str],
     *,
@@ -113,7 +120,10 @@ def step_extract(
     workers: int = 4,
 ) -> dict:
     """Classify encounters and run V3 extraction for clinical ones."""
-    logger.info("Step 2-3: Encounter classification + V3 extraction (%d patient(s))...", len(patient_ids))
+    logger.info(
+        "Step 2-3: Encounter classification + V3 extraction (%d patient(s))...",
+        len(patient_ids),
+    )
 
     from app.db.neo4j_client import PatientGraphClient, CodingGraphClient
     from app.services.encounter_classifier import (
@@ -152,7 +162,9 @@ def step_extract(
         total_encounters += len(encounters)
         logger.info("  Patient %s: %d total encounters", patient_id, len(encounters))
 
-        index = build_patient_encounter_index(patient_id, encounters, orchestration_run_id)
+        index = build_patient_encounter_index(
+            patient_id, encounters, orchestration_run_id
+        )
         if not dry_run:
             persist_patient_encounter_classification(
                 patient_client=patient_client,
@@ -179,7 +191,10 @@ def step_extract(
         for i, encounter_id in enumerate(clinical_ids, 1):
             logger.info(
                 "  Patient %s: extracting encounter %d/%d (%s)",
-                patient_id, i, len(clinical_ids), encounter_id,
+                patient_id,
+                i,
+                len(clinical_ids),
+                encounter_id,
             )
             try:
                 _run_id, stats = service.run_single_encounter(
@@ -192,7 +207,8 @@ def step_extract(
                 queued_for_review += stats.queued_for_review
                 rejected_hard_fail += stats.rejected_hard_fail
                 auto_approved += sum(
-                    1 for ev in events
+                    1
+                    for ev in events
                     if ev.get("type") == "persist_completed" and ev.get("auto_approved")
                 )
                 events.clear()
@@ -238,9 +254,13 @@ def step_extract(
 # Step 4 — Sync gold → DOCUMENTS
 # ---------------------------------------------------------------------------
 
+
 def step_sync_gold(patient_ids: list[str]) -> dict:
     """Write DOCUMENTS relationships for all approved EncounterCandidates."""
-    logger.info("Step 4: Syncing gold (writing DOCUMENTS) for %d patient(s)...", len(patient_ids))
+    logger.info(
+        "Step 4: Syncing gold (writing DOCUMENTS) for %d patient(s)...",
+        len(patient_ids),
+    )
     from app.db.neo4j_client import PatientGraphClient
     from app.services.sync_service import sync_gold_to_patient
 
@@ -258,20 +278,22 @@ def step_sync_gold(patient_ids: list[str]) -> dict:
                 total_synced += enc_synced
                 total_links += links
                 if result.get("error"):
-                    logger.warning(
-                        "  Patient %s sync: %s", patient_id, result["error"]
-                    )
+                    logger.warning("  Patient %s sync: %s", patient_id, result["error"])
                 else:
                     logger.info(
                         "  Patient %s synced: %d encounters → %d DOCUMENTS links",
-                        patient_id, enc_synced, links,
+                        patient_id,
+                        enc_synced,
+                        links,
                     )
     finally:
         client.close()
 
     logger.info(
         "Step 4 complete in %.1fs: %d encounters synced, %d DOCUMENTS links written",
-        time.time() - t0, total_synced, total_links,
+        time.time() - t0,
+        total_synced,
+        total_links,
     )
     return {"encounters_synced": total_synced, "links_created": total_links}
 
@@ -280,16 +302,19 @@ def step_sync_gold(patient_ids: list[str]) -> dict:
 # Steps 5-7 — Anchors + Episodes + Safety-net + KPIs
 # ---------------------------------------------------------------------------
 
+
 async def _run_analysis_async(patient_id: str, start_date: str, end_date: str) -> None:
     """Run the full analysis pipeline for a single patient (async)."""
     from libs.message_bus.base import Message
     from services.analysis_worker.app.services.job_handler import handle_analysis_job
 
-    msg = Message(body={
-        "patient_id": patient_id,
-        "start_date": start_date,
-        "end_date": end_date,
-    })
+    msg = Message(
+        body={
+            "patient_id": patient_id,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+    )
     await handle_analysis_job(msg)
 
 
@@ -304,7 +329,10 @@ def step_analyse(
     t0 = time.time()
 
     for patient_id in patient_ids:
-        logger.info("  Analysing patient %s (anchors → episodes → safety-net → KPIs)...", patient_id)
+        logger.info(
+            "  Analysing patient %s (anchors → episodes → safety-net → KPIs)...",
+            patient_id,
+        )
         try:
             asyncio.run(_run_analysis_async(patient_id, start_date, end_date))
             logger.info("  Patient %s analysis complete", patient_id)
@@ -317,6 +345,7 @@ def step_analyse(
 # ---------------------------------------------------------------------------
 # Validation summary
 # ---------------------------------------------------------------------------
+
 
 def step_validate(driver, patient_ids: list[str]) -> None:
     """Print a final summary of what was written to Neo4j."""
@@ -366,18 +395,42 @@ def step_validate(driver, patient_ids: list[str]) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser(description="Run gold pipeline (7 steps)")
     parser.add_argument("--patients", type=str, help="Comma-separated patient IDs")
-    parser.add_argument("--limit", type=int, default=50, help="Number of patients if --patients not given")
-    parser.add_argument("--dry-run", action="store_true", help="Skip all persistence (extraction only)")
-    parser.add_argument("--skip-clean", action="store_true", help="Skip step 1 (cleanup)")
-    parser.add_argument("--skip-extract", action="store_true", help="Skip steps 2-3 (classification + extraction)")
-    parser.add_argument("--analysis-only", action="store_true", help="Run steps 4-7 only")
-    parser.add_argument("--skip-analysis", action="store_true", help="Skip steps 5-7 (anchors, episodes, safety-net)")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Number of patients if --patients not given",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Skip all persistence (extraction only)"
+    )
+    parser.add_argument(
+        "--skip-clean", action="store_true", help="Skip step 1 (cleanup)"
+    )
+    parser.add_argument(
+        "--skip-extract",
+        action="store_true",
+        help="Skip steps 2-3 (classification + extraction)",
+    )
+    parser.add_argument(
+        "--analysis-only", action="store_true", help="Run steps 4-7 only"
+    )
+    parser.add_argument(
+        "--skip-analysis",
+        action="store_true",
+        help="Skip steps 5-7 (anchors, episodes, safety-net)",
+    )
     parser.add_argument("--workers", type=int, default=4, help="Extraction parallelism")
-    parser.add_argument("--start-date", type=str, default="2000-01-01", help="Analysis window start")
-    parser.add_argument("--end-date", type=str, default="2030-12-31", help="Analysis window end")
+    parser.add_argument(
+        "--start-date", type=str, default="2000-01-01", help="Analysis window start"
+    )
+    parser.add_argument(
+        "--end-date", type=str, default="2030-12-31", help="Analysis window end"
+    )
     args = parser.parse_args()
 
     if args.analysis_only:
@@ -445,7 +498,8 @@ def main():
     logger.info("GOLD PIPELINE COMPLETE in %.1fs (%.1f min)", elapsed, elapsed / 60)
     logger.info("=" * 60)
     if extract_summary:
-        logger.info("  Extraction:   total=%d clinical=%d processed=%d auto_approved=%d review=%d",
+        logger.info(
+            "  Extraction:   total=%d clinical=%d processed=%d auto_approved=%d review=%d",
             extract_summary.get("total_encounters", 0),
             extract_summary.get("total_clinical", 0),
             extract_summary.get("processed_encounters", 0),
@@ -453,7 +507,8 @@ def main():
             extract_summary.get("queued_for_review", 0),
         )
     if sync_summary:
-        logger.info("  Sync gold:    %d encounters → %d DOCUMENTS",
+        logger.info(
+            "  Sync gold:    %d encounters → %d DOCUMENTS",
             sync_summary.get("encounters_synced", 0),
             sync_summary.get("links_created", 0),
         )

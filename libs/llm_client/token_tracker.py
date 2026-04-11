@@ -53,7 +53,9 @@ def extract_token_counts(response: Any, provider: str) -> Dict[str, Any]:
         counts["cache_read_input_tokens"] = bu.get("cache_read_input_tokens", 0)
     elif provider == "azure":
         prompt_details = meta.get("token_usage", {}).get("prompt_tokens_details")
-        completion_details = meta.get("token_usage", {}).get("completion_tokens_details")
+        completion_details = meta.get("token_usage", {}).get(
+            "completion_tokens_details"
+        )
         counts["input_token_details"] = prompt_details
         counts["output_token_details"] = completion_details
     return counts

@@ -11,13 +11,13 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 import pytest
 
-
 CONFIDENCE_THRESHOLD = 0.70
 
 
 # ---------------------------------------------------------------------------
 # VT-004-TC-001: LLM called only below confidence threshold
 # ---------------------------------------------------------------------------
+
 
 class TestConfidenceThresholdGating:
 
@@ -51,13 +51,16 @@ class TestConfidenceThresholdGating:
 # VT-004-TC-002: Structured JSON output validated
 # ---------------------------------------------------------------------------
 
+
 class TestStructuredJsonValidation:
 
     def test_valid_json_parsed_correctly(self):
         """Valid JSON with expected keys is parsed without error."""
         from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
 
-        result = LLMExtractor._parse_json('{"terms": [{"text": "cough", "assertion": "present"}]}')
+        result = LLMExtractor._parse_json(
+            '{"terms": [{"text": "cough", "assertion": "present"}]}'
+        )
         assert "terms" in result
         assert len(result["terms"]) == 1
         assert result["terms"][0]["text"] == "cough"
@@ -94,6 +97,7 @@ class TestStructuredJsonValidation:
 # ---------------------------------------------------------------------------
 # VT-004-TC-003: Hard-fail on LLM unavailability
 # ---------------------------------------------------------------------------
+
 
 class TestLlmUnavailabilityHardFail:
 

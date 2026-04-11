@@ -19,6 +19,7 @@ Usage::
     )
     print(response.text)
 """
+
 from __future__ import annotations
 
 import logging
@@ -60,6 +61,7 @@ _AZURE_DEFAULTS = {
 @dataclass(frozen=True)
 class LLMResponse:
     """Unified response from any provider."""
+
     text: str
     input_tokens: int
     output_tokens: int
@@ -74,8 +76,8 @@ class LLMResponse:
 # most audit verdicts, and it keeps per-record cost reasonable.
 _REASONING_BUDGET_BY_TIER: dict[str, int] = {
     "small": int(os.getenv("AUDIT_REASONING_BUDGET_SMALL", "2000")),
-    "big":   int(os.getenv("AUDIT_REASONING_BUDGET_BIG",   "8000")),
-    "max":   int(os.getenv("AUDIT_REASONING_BUDGET_MAX",  "10000")),
+    "big": int(os.getenv("AUDIT_REASONING_BUDGET_BIG", "8000")),
+    "max": int(os.getenv("AUDIT_REASONING_BUDGET_MAX", "10000")),
 }
 _DEFAULT_REASONING_BUDGET = int(os.getenv("AUDIT_REASONING_BUDGET_TOKENS", "8000"))
 
@@ -85,8 +87,8 @@ _DEFAULT_REASONING_BUDGET = int(os.getenv("AUDIT_REASONING_BUDGET_TOKENS", "8000
 # Big/max use "high" — only called on escalated records, worth the extra thinking.
 _AZURE_REASONING_EFFORT_BY_TIER: dict[str, str] = {
     "small": os.getenv("AZURE_REASONING_EFFORT_SMALL", "low"),
-    "big":   os.getenv("AZURE_REASONING_EFFORT_BIG",   "high"),
-    "max":   os.getenv("AZURE_REASONING_EFFORT_MAX",   "high"),
+    "big": os.getenv("AZURE_REASONING_EFFORT_BIG", "high"),
+    "max": os.getenv("AZURE_REASONING_EFFORT_MAX", "high"),
 }
 _AZURE_REASONING_EFFORT = os.getenv("AZURE_REASONING_EFFORT", "high")  # legacy override
 
@@ -137,6 +139,7 @@ class LLMClient:
     def _init_bedrock(self) -> Any:
         import boto3
         from botocore.config import Config
+
         cfg = Config(
             connect_timeout=60,
             read_timeout=300,
@@ -195,9 +198,13 @@ class LLMClient:
         """
         client = self._get_client()
         if self.provider == "aws":
-            return self._converse_bedrock(client, system, messages, max_tokens, temperature, tool_config)
+            return self._converse_bedrock(
+                client, system, messages, max_tokens, temperature, tool_config
+            )
         else:
-            return self._converse_azure(client, system, messages, max_tokens, temperature, json_mode=json_mode)
+            return self._converse_azure(
+                client, system, messages, max_tokens, temperature, json_mode=json_mode
+            )
 
     def _converse_bedrock(
         self,
@@ -221,16 +228,17 @@ class LLMClient:
 
         # Extended thinking: temperature must be 1.0 (Bedrock hard requirement).
         # maxTokens must cover both thinking budget AND the response — add them.
-        effective_temp      = 1.0 if self.use_reasoning else temperature
-        effective_max_tokens = max_tokens + self.reasoning_budget if self.use_reasoning else max_tokens
+        effective_temp = 1.0 if self.use_reasoning else temperature
+        effective_max_tokens = (
+            max_tokens + self.reasoning_budget if self.use_reasoning else max_tokens
+        )
 
-        prompt_caching_mode = str(os.getenv("BEDROCK_PROMPT_CACHING", "auto")).strip().lower()
-        use_cachepoint = (
-            prompt_caching_mode in {"on", "true", "1", "yes"}
-            or (
-                prompt_caching_mode == "auto"
-                and self.model_id not in _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS
-            )
+        prompt_caching_mode = (
+            str(os.getenv("BEDROCK_PROMPT_CACHING", "auto")).strip().lower()
+        )
+        use_cachepoint = prompt_caching_mode in {"on", "true", "1", "yes"} or (
+            prompt_caching_mode == "auto"
+            and self.model_id not in _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS
         )
         system_blocks = (
             [{"text": system}, {"cachePoint": {"type": "default"}}]
@@ -242,7 +250,10 @@ class LLMClient:
             model_id=self.model_id,
             system=system_blocks,
             messages=bedrock_messages,
-            inferenceConfig={"maxTokens": effective_max_tokens, "temperature": effective_temp},
+            inferenceConfig={
+                "maxTokens": effective_max_tokens,
+                "temperature": effective_temp,
+            },
         )
 
         if self.use_reasoning:
@@ -256,7 +267,8 @@ class LLMClient:
                 # Extended thinking and tool_config cannot be combined on Bedrock.
                 logger.warning(
                     "use_reasoning=True is incompatible with tool_config on Bedrock — "
-                    "tools disabled for this call (%s)", self.model_id,
+                    "tools disabled for this call (%s)",
+                    self.model_id,
                 )
         elif tool_config is not None:
             converse_kwargs["toolConfig"] = tool_config
@@ -274,7 +286,9 @@ class LLMClient:
             converse_kwargs["system"] = [{"text": system}]
             response = converse_with_retry(client, **converse_kwargs)
 
-        output_content = response.get("output", {}).get("message", {}).get("content", [])
+        output_content = (
+            response.get("output", {}).get("message", {}).get("content", [])
+        )
         text_parts: list[str] = []
         tool_uses: list[dict[str, Any]] = []
         for item in output_content:
@@ -300,7 +314,11 @@ class LLMClient:
                 self.model_id,
                 stop_reason,
                 usage.get("outputTokens", 0),
-                sum(1 for item in output_content if isinstance(item, dict) and "reasoningContent" in item),
+                sum(
+                    1
+                    for item in output_content
+                    if isinstance(item, dict) and "reasoningContent" in item
+                ),
             )
 
         return LLMResponse(
@@ -351,7 +369,9 @@ class LLMClient:
 
         if self.use_reasoning:
             # Pick tier-appropriate effort; individual override via azure_reasoning_effort.
-            effort = _AZURE_REASONING_EFFORT_BY_TIER.get(self.tier, self.azure_reasoning_effort)
+            effort = _AZURE_REASONING_EFFORT_BY_TIER.get(
+                self.tier, self.azure_reasoning_effort
+            )
             kwargs["reasoning_effort"] = effort
             # max_completion_tokens must cover reasoning tokens + response tokens.
             # GPT-5/o-series reasoning can consume thousands of tokens internally;
@@ -377,8 +397,13 @@ class LLMClient:
         logger.debug(
             "Azure call START: model=%s endpoint=%s api_version=%s key=****%s "
             "max_completion_tokens=%s reasoning_effort=%s use_reasoning=%s",
-            self.model_id, _endpoint, _api_version, _key_hint,
-            kwargs.get("max_completion_tokens"), kwargs.get("reasoning_effort"), self.use_reasoning,
+            self.model_id,
+            _endpoint,
+            _api_version,
+            _key_hint,
+            kwargs.get("max_completion_tokens"),
+            kwargs.get("reasoning_effort"),
+            self.use_reasoning,
         )
 
         last_exc: Exception | None = None
@@ -391,12 +416,18 @@ class LLMClient:
                 if attempt > 1:
                     logger.info(
                         "Azure %s: recovered on attempt %d/%d (%.1fs).",
-                        self.model_id, attempt, _max_retries, elapsed,
+                        self.model_id,
+                        attempt,
+                        _max_retries,
+                        elapsed,
                     )
                 else:
                     logger.debug(
                         "Azure %s: OK in %.1fs (attempt %d/%d).",
-                        self.model_id, elapsed, attempt, _max_retries,
+                        self.model_id,
+                        elapsed,
+                        attempt,
+                        _max_retries,
                     )
                 break
 
@@ -408,16 +439,28 @@ class LLMClient:
                         "Azure %s: TIMEOUT after %.1fs on final attempt %d/%d. "
                         "endpoint=%s model=%s key=****%s — check Azure portal for "
                         "deployment health and regional capacity.",
-                        self.model_id, elapsed, attempt, _max_retries,
-                        _endpoint, self.model_id, _key_hint,
+                        self.model_id,
+                        elapsed,
+                        attempt,
+                        _max_retries,
+                        _endpoint,
+                        self.model_id,
+                        _key_hint,
                     )
                     raise
-                delay = min(_max_delay, _base_delay * (2 ** (attempt - 1))) + random.uniform(0, 0.5)
+                delay = min(
+                    _max_delay, _base_delay * (2 ** (attempt - 1))
+                ) + random.uniform(0, 0.5)
                 logger.warning(
                     "Azure %s: TIMEOUT after %.1fs on attempt %d/%d — retrying in %.1fs. "
                     "endpoint=%s key=****%s",
-                    self.model_id, elapsed, attempt, _max_retries, delay,
-                    _endpoint, _key_hint,
+                    self.model_id,
+                    elapsed,
+                    attempt,
+                    _max_retries,
+                    delay,
+                    _endpoint,
+                    _key_hint,
                 )
                 time.sleep(delay)
                 continue
@@ -430,14 +473,26 @@ class LLMClient:
                         "Azure %s: CONNECTION ERROR after %.1fs on final attempt %d/%d. "
                         "endpoint=%s key=****%s — is the endpoint reachable from this host? "
                         "Error: %s",
-                        self.model_id, elapsed, attempt, _max_retries,
-                        _endpoint, _key_hint, exc,
+                        self.model_id,
+                        elapsed,
+                        attempt,
+                        _max_retries,
+                        _endpoint,
+                        _key_hint,
+                        exc,
                     )
                     raise
-                delay = min(_max_delay, _base_delay * (2 ** (attempt - 1))) + random.uniform(0, 0.5)
+                delay = min(
+                    _max_delay, _base_delay * (2 ** (attempt - 1))
+                ) + random.uniform(0, 0.5)
                 logger.warning(
                     "Azure %s: connection error after %.1fs on attempt %d/%d — retrying in %.1fs: %s",
-                    self.model_id, elapsed, attempt, _max_retries, delay, exc,
+                    self.model_id,
+                    elapsed,
+                    attempt,
+                    _max_retries,
+                    delay,
+                    exc,
                 )
                 time.sleep(delay)
                 continue
@@ -446,11 +501,18 @@ class LLMClient:
                 elapsed = time.monotonic() - t0
                 if exc.status_code in _RETRYABLE_STATUS and attempt < _max_retries:
                     last_exc = exc
-                    delay = min(_max_delay, _base_delay * (2 ** (attempt - 1))) + random.uniform(0, 0.5)
+                    delay = min(
+                        _max_delay, _base_delay * (2 ** (attempt - 1))
+                    ) + random.uniform(0, 0.5)
                     logger.warning(
                         "Azure %s: HTTP %d after %.1fs on attempt %d/%d — retrying in %.1fs. "
                         "response_id=%s body=%.200s",
-                        self.model_id, exc.status_code, elapsed, attempt, _max_retries, delay,
+                        self.model_id,
+                        exc.status_code,
+                        elapsed,
+                        attempt,
+                        _max_retries,
+                        delay,
                         getattr(exc, "request_id", "?"),
                         str(getattr(exc, "response", ""))[:200],
                     )
@@ -459,8 +521,12 @@ class LLMClient:
                 logger.error(
                     "Azure %s: HTTP %s after %.1fs (not retrying). "
                     "endpoint=%s model=%s key=****%s request_id=%s body=%.300s",
-                    self.model_id, exc.status_code, elapsed,
-                    _endpoint, self.model_id, _key_hint,
+                    self.model_id,
+                    exc.status_code,
+                    elapsed,
+                    _endpoint,
+                    self.model_id,
+                    _key_hint,
                     getattr(exc, "request_id", "?"),
                     str(getattr(exc, "response", ""))[:300],
                 )
@@ -471,11 +537,17 @@ class LLMClient:
                 # Graceful fallback: if the API rejects reasoning_effort (shouldn't
                 # happen for gpt-5 / gpt-5-mini, but guards against mis-config),
                 # retry without it using a standard call (one-time only).
-                if self.use_reasoning and kwargs.get("reasoning_effort") is not None and attempt == 1:
+                if (
+                    self.use_reasoning
+                    and kwargs.get("reasoning_effort") is not None
+                    and attempt == 1
+                ):
                     logger.warning(
                         "Azure model %s rejected reasoning params after %.1fs — "
                         "retrying without reasoning_effort: %s",
-                        self.model_id, elapsed, exc,
+                        self.model_id,
+                        elapsed,
+                        exc,
                     )
                     kwargs.pop("reasoning_effort", None)
                     kwargs["max_completion_tokens"] = max_tokens
@@ -484,7 +556,12 @@ class LLMClient:
                     continue
                 logger.error(
                     "Azure %s: unexpected error after %.1fs on attempt %d/%d: %s",
-                    self.model_id, elapsed, attempt, _max_retries, exc, exc_info=True,
+                    self.model_id,
+                    elapsed,
+                    attempt,
+                    _max_retries,
+                    exc,
+                    exc_info=True,
                 )
                 raise
 
@@ -499,14 +576,25 @@ class LLMClient:
         if self.use_reasoning and reasoning_tokens:
             logger.debug(
                 "Azure %s reasoning_tokens=%d response_tokens=%d",
-                self.model_id, reasoning_tokens,
+                self.model_id,
+                reasoning_tokens,
                 (usage.completion_tokens - reasoning_tokens) if usage else 0,
             )
         return LLMResponse(
-            text=choice.message.content.strip() if choice and choice.message.content else "",
+            text=(
+                choice.message.content.strip()
+                if choice and choice.message.content
+                else ""
+            ),
             input_tokens=usage.prompt_tokens if usage else 0,
             output_tokens=usage.completion_tokens if usage else 0,
-            cached_input_tokens=getattr(getattr(usage, "prompt_tokens_details", None), "cached_tokens", 0) if usage else 0,
+            cached_input_tokens=(
+                getattr(
+                    getattr(usage, "prompt_tokens_details", None), "cached_tokens", 0
+                )
+                if usage
+                else 0
+            ),
             stop_reason=choice.finish_reason if choice else "",
             model_id=self.model_id,
         )
@@ -554,11 +642,21 @@ def create_llm(
             defaults = _AWS_DEFAULTS if provider == "aws" else _AZURE_DEFAULTS
             model_id = os.getenv(env_key, defaults.get(tier, ""))
         if not model_id:
-            raise ValueError(f"No model configured for provider={provider}, tier={tier}")
+            raise ValueError(
+                f"No model configured for provider={provider}, tier={tier}"
+            )
 
     # Tier-appropriate thinking budget — smaller models don't need 8k thinking tokens.
-    budget = reasoning_budget if reasoning_budget is not None else _REASONING_BUDGET_BY_TIER.get(tier, _DEFAULT_REASONING_BUDGET)
-    effort = azure_reasoning_effort if azure_reasoning_effort is not None else _AZURE_REASONING_EFFORT
+    budget = (
+        reasoning_budget
+        if reasoning_budget is not None
+        else _REASONING_BUDGET_BY_TIER.get(tier, _DEFAULT_REASONING_BUDGET)
+    )
+    effort = (
+        azure_reasoning_effort
+        if azure_reasoning_effort is not None
+        else _AZURE_REASONING_EFFORT
+    )
 
     return LLMClient(
         provider=provider,

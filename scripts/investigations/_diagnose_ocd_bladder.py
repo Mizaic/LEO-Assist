@@ -1,16 +1,20 @@
 """Diagnose OCD abbreviation and bladder cancer fast-track issues."""
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 driver = GraphDatabase.driver(kg_uri, auth=(kg_user, kg_pass))
@@ -27,7 +31,9 @@ with driver.session() as s:
         print(f"  {r['id']} | {r['fsn']} conf={r['conf']} [{r['prov']}]")
 
     # Does 191736004 exist?
-    r2 = s.run("MATCH (c:Concept {id: '191736004'}) RETURN c.id AS id, c.fsn AS fsn, c.active AS active").data()
+    r2 = s.run(
+        "MATCH (c:Concept {id: '191736004'}) RETURN c.id AS id, c.fsn AS fsn, c.active AS active"
+    ).data()
     print(f"\nConcept 191736004: {r2}")
 
     # What Term nodes use 'ocd' as normalized_form?

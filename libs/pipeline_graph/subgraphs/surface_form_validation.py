@@ -44,7 +44,9 @@ def _find_mismatches(state: SurfaceFormValidationState) -> dict[str, Any]:
             continue
         concept_id = str(ent.get("snomed_concept_id") or ent.get("concept_id") or "")
         expected_label = ent.get("semantic_tag") or ent.get("label")
-        resolved = client.resolve([text], expected_tags={text: expected_label} if expected_label else None)
+        resolved = client.resolve(
+            [text], expected_tags={text: expected_label} if expected_label else None
+        )
         candidates = resolved.get(text, [])
         if not candidates:
             mismatches.append(
@@ -84,7 +86,11 @@ def _find_mismatches(state: SurfaceFormValidationState) -> dict[str, Any]:
                 },
             }
         )
-    return {"entities": entities, "surface_form_mismatches": mismatches, "errors": errors}
+    return {
+        "entities": entities,
+        "surface_form_mismatches": mismatches,
+        "errors": errors,
+    }
 
 
 def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
@@ -102,7 +108,10 @@ def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
 
     if state.get("dry_run"):
         import logging as _logging
-        _logging.getLogger(__name__).info("dry_run=True — skipping SurfaceFormTask writes")
+
+        _logging.getLogger(__name__).info(
+            "dry_run=True — skipping SurfaceFormTask writes"
+        )
         return {"entities": entities, "surface_form_tasks_created": 0, "errors": errors}
 
     try:
@@ -118,7 +127,9 @@ def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
                     if suggested and confidence >= threshold:
                         ent["snomed_concept_id"] = suggested.get("concept_id")
                         ent["term"] = suggested.get("term")
-                        ent["semantic_tag"] = suggested.get("semantic_tag") or ent.get("semantic_tag")
+                        ent["semantic_tag"] = suggested.get("semantic_tag") or ent.get(
+                            "semantic_tag"
+                        )
                         ent["surface_form_validated"] = True
                         ent["surface_form_auto_corrected"] = True
                         continue
@@ -150,7 +161,11 @@ def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
     except Exception as exc:
         logger.exception("surface_form_validation failed")
         errors.append(f"surface_form_validation: {exc}")
-    return {"entities": entities, "surface_form_tasks_created": tasks_created, "errors": errors}
+    return {
+        "entities": entities,
+        "surface_form_tasks_created": tasks_created,
+        "errors": errors,
+    }
 
 
 def build_surface_form_validation_subgraph() -> CompiledStateGraph:
@@ -161,4 +176,3 @@ def build_surface_form_validation_subgraph() -> CompiledStateGraph:
     g.add_edge("validate_surface_forms", "apply_or_queue")
     g.add_edge("apply_or_queue", END)
     return g.compile()
-

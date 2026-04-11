@@ -93,7 +93,7 @@ async def invoke_with_retry(
         except (ReadTimeoutError, ConnectTimeoutError) as exc:
             last_exc = exc
             if attempt < max_retries - 1:
-                delay = min(2 ** attempt, 30) + random.uniform(0, 1)
+                delay = min(2**attempt, 30) + random.uniform(0, 1)
                 await asyncio.sleep(delay)
             else:
                 raise
@@ -102,7 +102,7 @@ async def invoke_with_retry(
             err = str(exc).lower()
             if any(kw in err for kw in ("throttling", "too many tokens", "rate")):
                 if attempt < max_retries - 1:
-                    delay = min(2 * 2 ** attempt, 60) + random.uniform(0, 2)
+                    delay = min(2 * 2**attempt, 60) + random.uniform(0, 2)
                     await asyncio.sleep(delay)
                 else:
                     raise
@@ -142,5 +142,7 @@ async def invoke_with_fallback(
             m = azure.bind_tools(tools) if tools else azure
             return await m.ainvoke(messages, config)
         except Exception as azure_err:
-            logger.error("Both Bedrock and Azure failed: %s / %s", bedrock_err, azure_err)
+            logger.error(
+                "Both Bedrock and Azure failed: %s / %s", bedrock_err, azure_err
+            )
             raise

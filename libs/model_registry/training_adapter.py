@@ -50,8 +50,18 @@ _SUPPORTED_DEID_VERSIONS = frozenset({"1.0"})
 _SUPPORTED_LABEL_VERSIONS = frozenset({"1.0"})
 
 _VALID_ASSERTIONS = frozenset(
-    {"present", "absent", "refuted", "possible", "historical", "planned",
-     "hypothetical", "family", "declined", "cancelled"}
+    {
+        "present",
+        "absent",
+        "refuted",
+        "possible",
+        "historical",
+        "planned",
+        "hypothetical",
+        "family",
+        "declined",
+        "cancelled",
+    }
 )
 
 _LABEL_TO_SEMANTIC_TAG: dict[str, str] = {
@@ -73,6 +83,7 @@ class AdapterError(ValueError):
 @dataclass
 class TrainingRecord:
     """Parsed training record from the NER training dataset."""
+
     text: str
     entities: list[dict[str, Any]]
     sentence_id: str
@@ -151,7 +162,8 @@ class TrainingAdapter:
             except Exception as exc:
                 logger.warning(
                     "TrainingAdapter: skipping entity in sentence=%s: %s",
-                    record.sentence_id, exc,
+                    record.sentence_id,
+                    exc,
                 )
         return items
 

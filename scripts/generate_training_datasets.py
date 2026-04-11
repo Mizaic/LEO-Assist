@@ -45,7 +45,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s"
+)
 logger = logging.getLogger("gen_training")
 
 
@@ -54,7 +56,8 @@ logger = logging.getLogger("gen_training")
 # ──────────────────────────────────────────────────────────────────────────────
 
 _STAFF_NAME_RE = re.compile(
-    r"^Surgery:\s+[A-Z][A-Za-z'-]+,\s+[A-Z]", re.IGNORECASE,
+    r"^Surgery:\s+[A-Z][A-Za-z'-]+,\s+[A-Z]",
+    re.IGNORECASE,
 )
 _CONTACT_SURGERY_RE = re.compile(r"contact the surgery", re.IGNORECASE)
 _BARIATRIC_TEMPLATE_RE = re.compile(r"bariatric surgery outside the UK", re.IGNORECASE)
@@ -101,6 +104,7 @@ def _phrase_is_excluded(phrase: str) -> bool:
 # ──────────────────────────────────────────────────────────────────────────────
 # Per-milestone anchor filtering
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _clean_referral_anchor(anchor: dict) -> dict | None:
     """Keep only cancer-pathway referrals; exclude generic GP/A&E/community."""
@@ -166,6 +170,7 @@ _CLEANERS = {
 # Investigation candidate promotion
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _promotable_investigation_candidates(
     investigation: dict,
     milestone_type: str,
@@ -198,9 +203,13 @@ def _promotable_investigation_candidates(
         for rh in resolver_hits:
             if rh.get("llm_label") == "confirmed" and rh.get("score", 0) >= 0.55:
                 concept_name = rh.get("snomed_term", "")
-                if milestone_type == "diagnosis" and _CLINIC_FINDING_RE.search(concept_name):
+                if milestone_type == "diagnosis" and _CLINIC_FINDING_RE.search(
+                    concept_name
+                ):
                     continue
-                if milestone_type == "diagnosis" and _NEGATION_RE.search(rh.get("sentence", "")):
+                if milestone_type == "diagnosis" and _NEGATION_RE.search(
+                    rh.get("sentence", "")
+                ):
                     continue
                 best_confirmed = rh
                 break
@@ -230,6 +239,7 @@ def _promotable_investigation_candidates(
 # Negative example extraction
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _extract_negatives_from_investigation(
     investigation: dict,
     milestone_type: str,
@@ -256,23 +266,28 @@ def _extract_negatives_from_investigation(
             is_negative = True
             reason = "negated_mention"
         elif milestone_type == "diagnosis":
-            if all(
-                rh.get("llm_label") in ("irrelevant", "suspected")
-                for rh in resolver_hits
-                if rh.get("llm_label")
-            ) and resolver_hits:
+            if (
+                all(
+                    rh.get("llm_label") in ("irrelevant", "suspected")
+                    for rh in resolver_hits
+                    if rh.get("llm_label")
+                )
+                and resolver_hits
+            ):
                 is_negative = True
                 reason = "llm_all_irrelevant_or_suspected"
 
         if is_negative:
-            negatives.append({
-                "encounter_id": cand.get("encounter_id", ""),
-                "encounter_date": cand.get("date", ""),
-                "snippet": snippet[:200],
-                "label": 0,
-                "reason": reason,
-                "milestone_type": milestone_type,
-            })
+            negatives.append(
+                {
+                    "encounter_id": cand.get("encounter_id", ""),
+                    "encounter_date": cand.get("date", ""),
+                    "snippet": snippet[:200],
+                    "label": 0,
+                    "reason": reason,
+                    "milestone_type": milestone_type,
+                }
+            )
 
     return negatives
 
@@ -303,8 +318,11 @@ def _build_evidence_cache(
     Returns a dict keyed by ``encounter_id|concept_id`` → {evidence, encounter_text}.
     Batches by patient to minimize round-trips.
     """
-    patient_ids = {rec["patient_id"] for rec in records
-                   if rec.get("detection_method") == "concept" and rec.get("patient_id")}
+    patient_ids = {
+        rec["patient_id"]
+        for rec in records
+        if rec.get("detection_method") == "concept" and rec.get("patient_id")
+    }
 
     cache: dict[str, dict] = {}
     for pid in sorted(patient_ids):
@@ -321,8 +339,12 @@ def _build_evidence_cache(
             logger.warning("Evidence query failed for patient %s", pid, exc_info=True)
 
     ev_count = sum(1 for v in cache.values() if v["evidence"])
-    logger.info("  Enrichment: %d patients → %d DOCUMENTS links, %d with evidence property",
-                len(patient_ids), len(cache), ev_count)
+    logger.info(
+        "  Enrichment: %d patients → %d DOCUMENTS links, %d with evidence property",
+        len(patient_ids),
+        len(cache),
+        ev_count,
+    )
     return cache
 
 
@@ -393,20 +415,26 @@ def _enrich_records_with_evidence(
 # Main pipeline
 # ──────────────────────────────────────────────────────────────────────────────
 
-def process_audit_file(input_path: str, output_dir: str, enrich: bool = False) -> dict[str, Any]:
+
+def process_audit_file(
+    input_path: str, output_dir: str, enrich: bool = False
+) -> dict[str, Any]:
     os.makedirs(output_dir, exist_ok=True)
 
     milestones = ["referral", "diagnosis", "treatment_start", "specialist_visit"]
     positive_records: dict[str, list[dict]] = {m: [] for m in milestones}
     negative_records: dict[str, list[dict]] = {m: [] for m in milestones}
-    stats: dict[str, dict] = {m: {
-        "concept_positives": 0,
-        "hybrid_positives": 0,
-        "promoted_positives": 0,
-        "excluded_anchors": 0,
-        "negatives": 0,
-        "patients_with_positive": 0,
-    } for m in milestones}
+    stats: dict[str, dict] = {
+        m: {
+            "concept_positives": 0,
+            "hybrid_positives": 0,
+            "promoted_positives": 0,
+            "excluded_anchors": 0,
+            "negatives": 0,
+            "patients_with_positive": 0,
+        }
+        for m in milestones
+    }
 
     with open(input_path, "r", encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
@@ -452,7 +480,9 @@ def process_audit_file(input_path: str, output_dir: str, enrich: bool = False) -
                 # Promote high-confidence investigation candidates
                 inv_block = investigation.get(milestone, {})
                 if inv_block:
-                    promoted = _promotable_investigation_candidates(inv_block, milestone)
+                    promoted = _promotable_investigation_candidates(
+                        inv_block, milestone
+                    )
                     for entry in promoted:
                         record = {"patient_id": patient_id, "label": 1, **entry}
                         positive_records[milestone].append(record)
@@ -472,6 +502,7 @@ def process_audit_file(input_path: str, output_dir: str, enrich: bool = False) -
     # Enrich with evidence text spans from Neo4j
     if enrich:
         from libs.neo4j_client import PatientGraphClient
+
         logger.info("  Connecting to patient graph for evidence enrichment...")
         pg_client = PatientGraphClient()
         try:
@@ -503,7 +534,10 @@ def process_audit_file(input_path: str, output_dir: str, enrich: bool = False) -
         neg_count = len(negative_records[milestone])
         logger.info(
             "  %s: %d positives + %d negatives → %s",
-            milestone, pos_count, neg_count, out_path,
+            milestone,
+            pos_count,
+            neg_count,
+            out_path,
         )
         stats[milestone]["total_positives"] = pos_count
         stats[milestone]["total_negatives"] = neg_count
@@ -518,19 +552,24 @@ def process_audit_file(input_path: str, output_dir: str, enrich: bool = False) -
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate per-milestone training datasets")
+    parser = argparse.ArgumentParser(
+        description="Generate per-milestone training datasets"
+    )
     parser.add_argument(
-        "--input", required=True,
+        "--input",
+        required=True,
         help="Path to anchor_audit JSONL file",
     )
     parser.add_argument(
-        "--output-dir", default=None,
+        "--output-dir",
+        default=None,
         help="Output directory (default: <input_dir>/training)",
     )
     parser.add_argument(
-        "--enrich", action="store_true",
+        "--enrich",
+        action="store_true",
         help="Pull evidence text spans from the patient graph's :DOCUMENTS "
-             "relationships (requires PATIENT_NEO4J_URI env var)",
+        "relationships (requires PATIENT_NEO4J_URI env var)",
     )
     args = parser.parse_args()
 

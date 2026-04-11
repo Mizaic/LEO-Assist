@@ -12,9 +12,15 @@ ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA: dict = {
     "items": {
         "type": "object",
         "required": [
-            "line_number", "original_concept_id", "domain",
-            "concept_correct", "suggested_concept_id", "suggested_concept_name",
-            "assertion", "rationale", "target_rule",
+            "line_number",
+            "original_concept_id",
+            "domain",
+            "concept_correct",
+            "suggested_concept_id",
+            "suggested_concept_name",
+            "assertion",
+            "rationale",
+            "target_rule",
         ],
         "properties": {
             "line_number": {
@@ -56,7 +62,13 @@ ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA: dict = {
             },
             "assertion": {
                 "type": "string",
-                "enum": ["present", "historical", "negated", "hypothetical", "family_history"],
+                "enum": [
+                    "present",
+                    "historical",
+                    "negated",
+                    "hypothetical",
+                    "family_history",
+                ],
                 "description": "Clinical assertion status of the event described in the evidence text.",
             },
             "rationale": {
@@ -91,7 +103,11 @@ def format_output_schema_block(schema: dict) -> str:
         lines.append("Each object in the array must have these fields:")
         lines.append("")
         for field, defn in item_props.items():
-            req_marker = " (required)" if field in item_required else " (optional, null if not applicable)"
+            req_marker = (
+                " (required)"
+                if field in item_required
+                else " (optional, null if not applicable)"
+            )
             desc = defn.get("description", "")
             raw_type = defn.get("type", "string")
             base_type = (
@@ -102,9 +118,9 @@ def format_output_schema_block(schema: dict) -> str:
             nullable = isinstance(raw_type, list) and "null" in raw_type
             if "enum" in defn:
                 allowed = ", ".join(f'"{v}"' for v in defn["enum"])
-                lines.append(f'  - **{field}**{req_marker}: one of {allowed}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: one of {allowed}. {desc}")
             else:
                 type_label = f"{base_type}, nullable" if nullable else base_type
-                lines.append(f'  - **{field}**{req_marker}: {type_label}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: {type_label}. {desc}")
 
     return "\n".join(lines)

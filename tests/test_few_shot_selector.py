@@ -17,13 +17,24 @@ class _DummyEmbedder:
 def test_selector_picks_top_k_by_similarity() -> None:
     pool = [
         {"category": "observable", "description": "lab", "input": "egfr low"},
-        {"category": "assertion:absent", "description": "negation", "input": "no fever"},
-        {"category": "multi-entity", "description": "mixed", "input": "ecg and chest pain"},
+        {
+            "category": "assertion:absent",
+            "description": "negation",
+            "input": "no fever",
+        },
+        {
+            "category": "multi-entity",
+            "description": "mixed",
+            "input": "ecg and chest pain",
+        },
     ]
     vectors = {
         "category=observable\ndescription=lab\ninput=egfr low": [1.0, 0.0],
         "category=assertion:absent\ndescription=negation\ninput=no fever": [0.0, 1.0],
-        "category=multi-entity\ndescription=mixed\ninput=ecg and chest pain": [0.7, 0.7],
+        "category=multi-entity\ndescription=mixed\ninput=ecg and chest pain": [
+            0.7,
+            0.7,
+        ],
         "egfr 38 mmol": [1.0, 0.0],
     }
     selector = FewShotSelector(dynamic_pool=pool, embedder=_DummyEmbedder(vectors))

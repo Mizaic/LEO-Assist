@@ -24,8 +24,15 @@ def search_measures(
     _count: int = Query(default=100, alias="_count"),
     _offset: int = Query(default=0, alias="_offset"),
 ):
-    items, total = measure_service.search_measures(name=name, status=status, count=_count, offset=_offset)
-    return {"resourceType": "Bundle", "type": "searchset", "total": total, "entry": [{"resource": m} for m in items]}
+    items, total = measure_service.search_measures(
+        name=name, status=status, count=_count, offset=_offset
+    )
+    return {
+        "resourceType": "Bundle",
+        "type": "searchset",
+        "total": total,
+        "entry": [{"resource": m} for m in items],
+    }
 
 
 @router.get("/Measure/{measure_id}")
@@ -54,7 +61,9 @@ def preview_measure_query(
 ):
     """Preview query results without creating a Library. Requires org_id for scope params."""
     if not org_id:
-        raise HTTPException(400, "org_id is required for preview (select an organisation in the header)")
+        raise HTTPException(
+            400, "org_id is required for preview (select an organisation in the header)"
+        )
     email = tenant.user_email
     if not email:
         raise HTTPException(401, "User email not found in token")
@@ -76,6 +85,7 @@ def preview_measure_query(
         raise HTTPException(400, str(e)) from e
     params = {**cypher_params, param_name: ods_code}
     from libs.neo4j_client.client import PatientGraphClient
+
     patient_client = PatientGraphClient()
     try:
         results = patient_client.run(cypher, **params)
@@ -158,9 +168,13 @@ def evaluate_measure(
     if ce_status:
         params["ce_status"] = [s.strip() for s in ce_status.split(",") if s.strip()]
     if ce_status_exclude:
-        params["ce_status_exclude"] = [s.strip() for s in ce_status_exclude.split(",") if s.strip()]
+        params["ce_status_exclude"] = [
+            s.strip() for s in ce_status_exclude.split(",") if s.strip()
+        ]
     if ce_condition_type:
-        params["ce_condition_type"] = [s.strip() for s in ce_condition_type.split(",") if s.strip()]
+        params["ce_condition_type"] = [
+            s.strip() for s in ce_condition_type.split(",") if s.strip()
+        ]
     if ce_referral_date_start:
         params["ce_referral_date_start"] = ce_referral_date_start
     if ce_referral_date_end:

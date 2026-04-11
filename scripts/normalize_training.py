@@ -33,6 +33,7 @@ Usage
         --input-dir exports/training \\
         --output   exports/training/all_training_merged.jsonl
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,7 +47,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s"
+)
 logger = logging.getLogger("normalize_training")
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -54,10 +57,12 @@ logger = logging.getLogger("normalize_training")
 # ──────────────────────────────────────────────────────────────────────────────
 
 _FAST_TRACK_CLINIC_RE = re.compile(
-    r"Seen in fast track suspected .+ clinic", re.IGNORECASE,
+    r"Seen in fast track suspected .+ clinic",
+    re.IGNORECASE,
 )
 _FAST_TRACK_REFERRAL_RE = re.compile(
-    r"Fast track referral for suspected", re.IGNORECASE,
+    r"Fast track referral for suspected",
+    re.IGNORECASE,
 )
 _2WW_REFERRAL_RE = re.compile(
     r"\b2ww\b|two.week.wait referral|\brefer\b.{0,30}\bsuspected cancer\b",
@@ -126,17 +131,25 @@ def _canonical(
         "text": text,
         "concept_id": str(record["concept_id"]) if record.get("concept_id") else None,
         "concept_name": record.get("concept_name") or None,
-        "confidence": float(record["confidence"]) if record.get("confidence") is not None else None,
+        "confidence": (
+            float(record["confidence"])
+            if record.get("confidence") is not None
+            else None
+        ),
         "detection_method": record.get("detection_method") or None,
         "assertion": assertion,
         "source_file": source_file,
-        "exclusion_reason": exclusion_reason or record.get("exclusion_reason") or record.get("reason") or None,
+        "exclusion_reason": exclusion_reason
+        or record.get("exclusion_reason")
+        or record.get("reason")
+        or None,
     }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Cross-label promotion
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _cross_label_promotions(
     record: dict,
@@ -158,9 +171,7 @@ def _cross_label_promotions(
 
     # "Seen in fast track suspected X clinic" → positive for specialist_visit
     if source_milestone != "specialist_visit" and _FAST_TRACK_CLINIC_RE.search(text):
-        promoted.append(
-            _canonical(record, "specialist_visit", source_file, label=1)
-        )
+        promoted.append(_canonical(record, "specialist_visit", source_file, label=1))
 
     # "Fast track referral for suspected..." → positive for referral
     if source_milestone != "referral" and (
@@ -168,9 +179,7 @@ def _cross_label_promotions(
     ):
         # Don't promote if it already looks like a clinic attendance
         if not _FAST_TRACK_CLINIC_RE.search(text):
-            promoted.append(
-                _canonical(record, "referral", source_file, label=1)
-            )
+            promoted.append(_canonical(record, "referral", source_file, label=1))
 
     return promoted
 
@@ -192,8 +201,7 @@ def process_input_dir(input_dir: str, output_path: str) -> dict[str, Any]:
     output_records: list[dict] = []
 
     stats: dict[str, Any] = {
-        m: {"positives": 0, "negatives": 0, "promoted": 0}
-        for m in MILESTONE_FILES
+        m: {"positives": 0, "negatives": 0, "promoted": 0} for m in MILESTONE_FILES
     }
     cross_promoted = 0
 
@@ -221,9 +229,7 @@ def process_input_dir(input_dir: str, output_path: str) -> dict[str, Any]:
                 source_file = filename
 
                 # Emit canonical record for this milestone
-                output_records.append(
-                    _canonical(raw, milestone, source_file)
-                )
+                output_records.append(_canonical(raw, milestone, source_file))
 
                 if label == 1:
                     file_positives += 1
@@ -242,7 +248,10 @@ def process_input_dir(input_dir: str, output_path: str) -> dict[str, Any]:
         stats[milestone]["negatives"] = file_negatives
         logger.info(
             "  %-20s %4d pos  %4d neg  %4d cross-promoted",
-            milestone, file_positives, file_negatives, file_promoted,
+            milestone,
+            file_positives,
+            file_negatives,
+            file_promoted,
         )
 
     # Deduplicate: same encounter_id + milestone_type + label → keep first
@@ -268,7 +277,10 @@ def process_input_dir(input_dir: str, output_path: str) -> dict[str, Any]:
     for m, s in stats.items():
         logger.info(
             "  %-20s pos=%d neg=%d promoted_in=%d",
-            m, s["positives"], s["negatives"], s["promoted"],
+            m,
+            s["positives"],
+            s["negatives"],
+            s["promoted"],
         )
     logger.info("  Cross-label promotions total: %d", cross_promoted)
     logger.info("  Duplicates removed:           %d", duplicates_removed)
@@ -288,11 +300,13 @@ def process_input_dir(input_dir: str, output_path: str) -> dict[str, Any]:
 def main():
     parser = argparse.ArgumentParser(description="Normalise training JSONL files")
     parser.add_argument(
-        "--input-dir", default="exports/training",
+        "--input-dir",
+        default="exports/training",
         help="Directory containing the four milestone training JSONL files",
     )
     parser.add_argument(
-        "--output", default=None,
+        "--output",
+        default=None,
         help="Output JSONL path (default: <input-dir>/all_training_merged.jsonl)",
     )
     args = parser.parse_args()

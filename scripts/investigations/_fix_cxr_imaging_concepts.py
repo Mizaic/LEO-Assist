@@ -18,6 +18,7 @@ Correct SNOMED IDs (verified in graph):
 - 786838002  = Nodule of lung (disorder)              [already correct]
 - 60046008   = Pleural effusion (disorder)            [already correct]
 """
+
 import os
 import re
 import sys
@@ -27,9 +28,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase  # noqa: E402
 
@@ -79,10 +82,10 @@ NEW_FORMS = [
 # Wrong MAPS_TO edges to DELETE (ground glass was wrongly pointing to skin eruption)
 _BAD_EDGES = [
     # normalized_form -> wrong_cid to delete
-    ("ground glass lung opacity",  "271807003"),
-    ("ground glass opacity",       "271807003"),
-    ("ground glass opacity lung",  "271807003"),
-    ("ggo lung",                   "271807003"),
+    ("ground glass lung opacity", "271807003"),
+    ("ground glass opacity", "271807003"),
+    ("ground glass opacity lung", "271807003"),
+    ("ggo lung", "271807003"),
     ("pulmonary ground glass opacity", "271807003"),
 ]
 

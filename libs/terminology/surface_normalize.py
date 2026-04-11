@@ -24,6 +24,7 @@ Two functions are exported:
     stored ``r.evidence`` values in Neo4j (which may pre-date the runtime
     stripping).
 """
+
 from __future__ import annotations
 
 import re

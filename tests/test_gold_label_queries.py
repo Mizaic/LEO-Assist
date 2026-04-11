@@ -11,4 +11,3 @@ def test_gold_label_query_contains_required_fields() -> None:
 
 def test_gold_label_indexes_present() -> None:
     assert any("gold_label_id" in s for s in q.CREATE_GOLD_LABEL_INDEXES)
-

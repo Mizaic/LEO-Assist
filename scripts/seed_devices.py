@@ -11,6 +11,7 @@ Run:
 Only seeds when no Device nodes exist; skips if any are already present
 to avoid overwriting user-modified device config.
 """
+
 from __future__ import annotations
 
 import json
@@ -28,6 +29,7 @@ load_dotenv(Path("secrets/.env"), override=False)
 
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception as e:
     print(f"[warn] Key Vault load skipped: {e}")
@@ -173,7 +175,7 @@ DEVICES: list[dict] = [
         "default_model_id": "medspacy_clinical_ner",
         "endpoint_env_var": "CODING_MODEL_ENDPOINT",
         "notes": "Deployed NER model. Runs at CODING_MODEL_ENDPOINT (default: http://localhost:8004). "
-                 "Used when extractor backend is 'model' or 'auto'.",
+        "Used when extractor backend is 'model' or 'auto'.",
     },
 ]
 

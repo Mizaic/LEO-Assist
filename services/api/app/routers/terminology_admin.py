@@ -92,8 +92,12 @@ def _event_generator(events: "queue.Queue[dict | None]"):
 @router.get("/sync/stream")
 def terminology_sync_stream(
     _: Annotated[CallerScope, Depends(require_admin)],
-    packages: Annotated[str, Query(description="Comma-separated: snomed,dmd")] = "snomed,dmd",
-    phases: Annotated[str, Query(description="Comma-separated phase numbers, or 'auto'")] = "auto",
+    packages: Annotated[
+        str, Query(description="Comma-separated: snomed,dmd")
+    ] = "snomed,dmd",
+    phases: Annotated[
+        str, Query(description="Comma-separated phase numbers, or 'auto'")
+    ] = "auto",
 ):
     """Stream a TRUD download + Neo4j load as Server-Sent Events."""
     pkg_list = [p.strip() for p in packages.split(",") if p.strip()]

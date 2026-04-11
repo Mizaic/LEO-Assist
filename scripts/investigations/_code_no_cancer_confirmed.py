@@ -9,6 +9,7 @@ Run:
     python scripts/investigations/_code_no_cancer_confirmed.py --dry-run
     python scripts/investigations/_code_no_cancer_confirmed.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,15 +22,17 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
-CONCEPT_ID   = 395100000
+CONCEPT_ID = 395100000
 CONCEPT_NAME = "No evidence of cancer found (situation)"
-CONCEPT_TAG  = "situation"
-REL_TYPE     = "HAS_SITUATION"
+CONCEPT_TAG = "situation"
+REL_TYPE = "HAS_SITUATION"
 
 # The 3 confirmed encounters: (patient_id, encounter_id, evidence_text)
 CONFIRMED = [
@@ -162,7 +165,9 @@ def pin_surface_forms(dry_run: bool) -> None:
     session.headers.update(get_service_auth_header())
     base = "http://localhost:8001"
 
-    print(f"Pinning {len(SURFACE_FORM_PINS)} surface forms -> {CONCEPT_ID} ({CONCEPT_NAME})")
+    print(
+        f"Pinning {len(SURFACE_FORM_PINS)} surface forms -> {CONCEPT_ID} ({CONCEPT_NAME})"
+    )
     ok_count = fail_count = skip_count = 0
 
     for form in SURFACE_FORM_PINS:
@@ -172,11 +177,11 @@ def pin_surface_forms(dry_run: bool) -> None:
             continue
         norm = normalize_surface(form)
         payload = {
-            "form":       form,
+            "form": form,
             "normalized": norm,
             "concept_id": str(CONCEPT_ID),
             "confidence": 1.0,
-            "source":     "manual",
+            "source": "manual",
             "provenance": "no-cancer-phrase-audit-2026-04-06",
         }
         try:
@@ -221,7 +226,9 @@ def write_documents(dry_run: bool, run_id: str) -> None:
                     continue
 
                 if dry_run:
-                    print(f"  [DRY ] enc={encounter_id[:8]}  pid={patient_id}  ev={evidence!r}")
+                    print(
+                        f"  [DRY ] enc={encounter_id[:8]}  pid={patient_id}  ev={evidence!r}"
+                    )
                     written += 1
                     continue
 
@@ -238,7 +245,9 @@ def write_documents(dry_run: bool, run_id: str) -> None:
                     context=json.dumps({"assertion": "present", "negated": False}),
                     run_id=run_id,
                 )
-                print(f"  [WRITE] enc={encounter_id[:8]}  pid={patient_id}  ev={evidence!r}")
+                print(
+                    f"  [WRITE] enc={encounter_id[:8]}  pid={patient_id}  ev={evidence!r}"
+                )
                 written += 1
     finally:
         client.close()
@@ -258,6 +267,7 @@ def main(dry_run: bool) -> None:
     if not dry_run:
         print("\nVerifying ...")
         from libs.neo4j_client.client import PatientGraphClient
+
         client = PatientGraphClient()
         with client.session() as s:
             for _, eid, evidence, _ in CONFIRMED:

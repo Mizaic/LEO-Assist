@@ -65,6 +65,7 @@ RETURN t.label_id AS label_id
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--execute", action="store_true", default=False)
     args = parser.parse_args()
@@ -79,7 +80,10 @@ def main():
 
     with driver.session() as session:
         rows = list(session.run(GET_RESOLVED_LAB_TESTS))
-        logger.info("Found %d (label_id, entity_text) pairs from resolved lab test reviews", len(rows))
+        logger.info(
+            "Found %d (label_id, entity_text) pairs from resolved lab test reviews",
+            len(rows),
+        )
 
         for row in rows:
             entity_text = row["entity_text"]
@@ -88,7 +92,10 @@ def main():
 
             changed = False
             for ent in entities:
-                if ent.get("text") == entity_text and ent.get("label") == "observable_entity":
+                if (
+                    ent.get("text") == entity_text
+                    and ent.get("label") == "observable_entity"
+                ):
                     ent["label"] = "procedure"
                     changed = True
 
@@ -99,7 +106,9 @@ def main():
             new_json = json.dumps(entities)
             if execute:
                 try:
-                    session.run(UPDATE_ENTITIES_JSON, label_id=label_id, entities_json=new_json)
+                    session.run(
+                        UPDATE_ENTITIES_JSON, label_id=label_id, entities_json=new_json
+                    )
                     updated += 1
                     logger.debug("  Updated %s: %r -> procedure", label_id, entity_text)
                 except Exception as exc:
@@ -107,10 +116,18 @@ def main():
                     errors += 1
             else:
                 updated += 1
-                logger.debug("  [DRY] Would update %s: %r -> procedure", label_id, entity_text)
+                logger.debug(
+                    "  [DRY] Would update %s: %r -> procedure", label_id, entity_text
+                )
 
     driver.close()
-    logger.info("=== Done (%s) === updated=%d | skipped=%d | errors=%d", mode, updated, skipped, errors)
+    logger.info(
+        "=== Done (%s) === updated=%d | skipped=%d | errors=%d",
+        mode,
+        updated,
+        skipped,
+        errors,
+    )
 
 
 if __name__ == "__main__":

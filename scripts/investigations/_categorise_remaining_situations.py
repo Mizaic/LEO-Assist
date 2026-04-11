@@ -1,16 +1,27 @@
 """Categorise the 276 remaining GCL situation edges as wrong vs legitimate."""
+
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 rows = json.loads(
-    (ROOT / "scripts" / "investigations" / "gcl_remaining_situations.json").read_text(encoding="utf-8")
+    (ROOT / "scripts" / "investigations" / "gcl_remaining_situations.json").read_text(
+        encoding="utf-8"
+    )
 )
 
 LEGIT_SIGNALS = (
-    "declined", "offered", "done", "excluded", "ruled out",
-    "history", "screening", "discussed with patient",
-    "family history", "h/o", "cancer history",
+    "declined",
+    "offered",
+    "done",
+    "excluded",
+    "ruled out",
+    "history",
+    "screening",
+    "discussed with patient",
+    "family history",
+    "h/o",
+    "cancer history",
 )
 
 wrong = []

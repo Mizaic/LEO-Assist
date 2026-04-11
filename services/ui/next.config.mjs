@@ -1,3 +1,5 @@
+// aca-image: ui build/deploy verification (comment only; no runtime effect).
+
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";

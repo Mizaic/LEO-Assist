@@ -1,22 +1,33 @@
 """Check the 8 'in remission' encounters to verify cancer context before pinning."""
+
 import sys, json
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
-INVENTORY = ROOT / "scripts" / "investigations" / "encounter_audit" / "no_cancer_phrase_inventory.jsonl"
+INVENTORY = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
+    / "no_cancer_phrase_inventory.jsonl"
+)
 
 with INVENTORY.open() as fh:
     rows = [json.loads(l) for l in fh]
 
 remission_encs = [
-    r["encounter_id"] for r in rows
+    r["encounter_id"]
+    for r in rows
     if "in remission" in r.get("matched_phrases", [])
     and not r.get("already_coded_395100000")
     and not r.get("excluded")

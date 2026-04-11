@@ -22,6 +22,7 @@ data.access             -- Patient-level data accessed
 data.modification       -- Patient/entity data mutated
 security.token_rejected -- JWT rejected (v1.0 issuer, bad sig, expired)
 """
+
 from __future__ import annotations
 
 import json
@@ -45,6 +46,7 @@ def _emit(event_type: str, **fields: Any) -> None:
 # ---------------------------------------------------------------------------
 # Authentication events
 # ---------------------------------------------------------------------------
+
 
 def emit_login_success(*, email: str, ip: str, session_id_prefix: str) -> None:
     _emit(
@@ -79,6 +81,7 @@ def emit_token_rejected(*, reason: str, ip: str) -> None:
 # Authorisation events
 # ---------------------------------------------------------------------------
 
+
 def emit_authz_denied(*, email: str, ip: str, route: str, reason: str) -> None:
     _emit("authz.denied", email=email, ip=ip, route=route, reason=reason)
 
@@ -105,7 +108,10 @@ def emit_admin_action(
 # Data access / modification events
 # ---------------------------------------------------------------------------
 
-def emit_data_access(*, email: str, ip: str, resource: str, patient_id_hash: str = "") -> None:
+
+def emit_data_access(
+    *, email: str, ip: str, resource: str, patient_id_hash: str = ""
+) -> None:
     _emit(
         "data.access",
         email=email,

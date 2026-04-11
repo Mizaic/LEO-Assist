@@ -50,7 +50,10 @@ def _tenant_from_jwt(token: str) -> TenantContext:
     jwks = _get_jwks(tenant_id)
     try:
         claims = _decode_with_audiences_and_issuers(
-            token, jwks, _get_expected_audiences(client_id), _get_expected_issuers(tenant_id)
+            token,
+            jwks,
+            _get_expected_audiences(client_id),
+            _get_expected_issuers(tenant_id),
         )
     except JWTError:
         try:

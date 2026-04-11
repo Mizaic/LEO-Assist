@@ -1,4 +1,5 @@
 """List all terminology server endpoints related to surface forms."""
+
 import requests, json
 
 r = requests.get("http://localhost:8001/openapi.json", timeout=10)

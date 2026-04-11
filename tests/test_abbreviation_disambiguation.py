@@ -7,6 +7,7 @@ Verifies:
   - Dual-path parity: escalation prompt contains same rules
   - Non-blocked terms pass through unchanged
 """
+
 from __future__ import annotations
 
 import pytest
@@ -20,10 +21,10 @@ from libs.terminology.client import (
 from libs.prompts.extraction_v1 import EXTRACTION_SYSTEM_V1
 from libs.llm_client.escalation import _CANDIDATES_SYSTEM
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_term(concept_id: str, tag: str = "finding") -> ResolvedTerm:
     return ResolvedTerm(
@@ -43,6 +44,7 @@ def _make_dict(key: str, concept_id: str) -> dict:
 # VT-081-TC-001: NAD is in the always-ignore set
 # ---------------------------------------------------------------------------
 
+
 class TestNADAlwaysIgnore:
     """NAD is always-ignored: the resolver must return nothing for this term."""
 
@@ -53,21 +55,30 @@ class TestNADAlwaysIgnore:
         # NAD moved from blocklist to always-ignore; blocklist should be empty
         assert "nad" not in _ABBREV_BLOCKED_CONCEPTS
 
-    @pytest.mark.parametrize("concept_id", [
-        "131143000",   # Nicotinamide adenine dinucleotide (substance)
-        "104695007",   # Glutamate dehydrogenase NAD measurement (procedure)
-        "124316006",   # Deficiency of NAD kinase (disorder)
-        "281900007",   # No abnormality detected (finding) -- also suppressed
-    ])
+    @pytest.mark.parametrize(
+        "concept_id",
+        [
+            "131143000",  # Nicotinamide adenine dinucleotide (substance)
+            "104695007",  # Glutamate dehydrogenase NAD measurement (procedure)
+            "124316006",  # Deficiency of NAD kinase (disorder)
+            "281900007",  # No abnormality detected (finding) -- also suppressed
+        ],
+    )
     def test_all_nad_concepts_suppressed_resolved_term(self, concept_id: str) -> None:
         """Every concept is suppressed for 'nad' -- including the GP meaning."""
         candidates = [_make_term(concept_id)]
         result = _filter_abbrev_noise("nad", candidates)
         assert result == [], f"Expected empty result for NAD but got {result}"
 
-    @pytest.mark.parametrize("concept_id", [
-        "131143000", "104695007", "124316006", "281900007",
-    ])
+    @pytest.mark.parametrize(
+        "concept_id",
+        [
+            "131143000",
+            "104695007",
+            "124316006",
+            "281900007",
+        ],
+    )
     def test_all_nad_concepts_suppressed_raw_dict(self, concept_id: str) -> None:
         candidates = [_make_dict("snomed_concept_id", concept_id)]
         result = _filter_abbrev_noise("nad", candidates)
@@ -87,6 +98,7 @@ class TestNADAlwaysIgnore:
 # ---------------------------------------------------------------------------
 # VT-081-TC-002: Non-blocked terms pass through unchanged
 # ---------------------------------------------------------------------------
+
 
 class TestNonBlockedTermsUnchanged:
     def test_htn_not_in_blocklist(self) -> None:
@@ -111,6 +123,7 @@ class TestNonBlockedTermsUnchanged:
 # VT-081-TC-003: Both object types handled
 # ---------------------------------------------------------------------------
 
+
 class TestFilterPolymorphism:
     def test_resolvedterm_objects_suppressed_for_nad(self) -> None:
         r = _make_term("281900007")
@@ -132,6 +145,7 @@ class TestFilterPolymorphism:
 # VT-081-TC-004 to TC-006: Extraction prompt content checks
 # ---------------------------------------------------------------------------
 
+
 class TestExtractionPromptRules:
     def test_admin_only_lines_do_not_extract_rule_present(self) -> None:
         """Purely admin lines must not get invented clinical entities."""
@@ -152,60 +166,93 @@ class TestExtractionPromptRules:
 
     def test_nad_prompt_says_do_not_code(self) -> None:
         """Prompt must tell LLM not to code NAD."""
-        assert any(phrase in EXTRACTION_SYSTEM_V1 for phrase in [
-            "Do NOT extract",
-            "never extract",
-            "NAD -> never extract",
-        ])
+        assert any(
+            phrase in EXTRACTION_SYSTEM_V1
+            for phrase in [
+                "Do NOT extract",
+                "never extract",
+                "NAD -> never extract",
+            ]
+        )
 
     def test_ca_disambiguation_present(self) -> None:
         prompt_lower = EXTRACTION_SYSTEM_V1.lower()
         assert "ca" in prompt_lower
-        assert "organ" in prompt_lower or "body site" in prompt_lower or "site" in prompt_lower
+        assert (
+            "organ" in prompt_lower
+            or "body site" in prompt_lower
+            or "site" in prompt_lower
+        )
 
     def test_ca_requires_site_context(self) -> None:
-        assert any(phrase in EXTRACTION_SYSTEM_V1 for phrase in [
-            '"CA" alone',
-            "CA alone",
-            "without an organ",
-            "leave uncoded",
-            "NOT be extracted",
-        ])
+        assert any(
+            phrase in EXTRACTION_SYSTEM_V1
+            for phrase in [
+                '"CA" alone',
+                "CA alone",
+                "without an organ",
+                "leave uncoded",
+                "NOT be extracted",
+            ]
+        )
 
     def test_msk_specialty_tag_rule_present(self) -> None:
         assert "MSK" in EXTRACTION_SYSTEM_V1
-        assert any(phrase in EXTRACTION_SYSTEM_V1 for phrase in [
-            "specialty", "category", "body system", "specialty tag",
-        ])
+        assert any(
+            phrase in EXTRACTION_SYSTEM_V1
+            for phrase in [
+                "specialty",
+                "category",
+                "body system",
+                "specialty tag",
+            ]
+        )
 
 
 # ---------------------------------------------------------------------------
 # VT-081-TC-007 to TC-010: Escalation prompt parity (dual-path consistency)
 # ---------------------------------------------------------------------------
 
+
 class TestEscalationPromptParity:
     def test_ca_rule_in_candidates_system(self) -> None:
-        assert any(phrase in _CANDIDATES_SYSTEM for phrase in [
-            "CA without", "CA alone", "no organ", "organ/site", "organ or body site",
-        ])
+        assert any(
+            phrase in _CANDIDATES_SYSTEM
+            for phrase in [
+                "CA without",
+                "CA alone",
+                "no organ",
+                "organ/site",
+                "organ or body site",
+            ]
+        )
 
     def test_msk_rule_in_candidates_system(self) -> None:
-        assert any(phrase in _CANDIDATES_SYSTEM for phrase in [
-            "MSK alone", "MSK", "specialty tag", "specialty or system",
-        ])
+        assert any(
+            phrase in _CANDIDATES_SYSTEM
+            for phrase in [
+                "MSK alone",
+                "MSK",
+                "specialty tag",
+                "specialty or system",
+            ]
+        )
 
     def test_nad_rule_in_candidates_system(self) -> None:
         """Escalation prompt must state NAD is not_codeable."""
-        assert any(phrase in _CANDIDATES_SYSTEM for phrase in [
-            "not_codeable",
-            "NAD",
-            "No apparent distress",
-            "cannot be determined",
-        ])
+        assert any(
+            phrase in _CANDIDATES_SYSTEM
+            for phrase in [
+                "not_codeable",
+                "NAD",
+                "No apparent distress",
+                "cannot be determined",
+            ]
+        )
 
     def test_nad_escalation_says_not_codeable(self) -> None:
         """The NAD rule in the escalation prompt must lead to not_codeable."""
-        nad_section = _CANDIDATES_SYSTEM[_CANDIDATES_SYSTEM.find("NAD"):]
+        nad_section = _CANDIDATES_SYSTEM[_CANDIDATES_SYSTEM.find("NAD") :]
         first_line = nad_section[:300]
         assert "not_codeable" in first_line or "leave" in first_line.lower()
 

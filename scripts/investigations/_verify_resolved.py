@@ -1,4 +1,5 @@
 """Quick spot-check on the formerly-unknown completed episodes."""
+
 import sys
 from pathlib import Path
 
@@ -6,9 +7,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -18,9 +21,12 @@ def main() -> None:
     client = PatientGraphClient()
 
     pids = [
-        "6261656266", "6509504022",  # breast cancer via FP anchor
-        "4587343129", "4822890058",  # haematological / haematuria
-        "7319972905", "4246870471",  # bowel / carcinoid
+        "6261656266",
+        "6509504022",  # breast cancer via FP anchor
+        "4587343129",
+        "4822890058",  # haematological / haematuria
+        "7319972905",
+        "4246870471",  # bowel / carcinoid
     ]
     rows = client.run(
         "MATCH (ep:EpisodeOfCare) "
@@ -30,7 +36,9 @@ def main() -> None:
         "ORDER BY ep.patient_id, ep.referral_date",
         pids=pids,
     )
-    print(f"{'Patient':<15} {'Ref Date':<12} {'Cancer Type':<22} {'Status':<12} {'HITL'}")
+    print(
+        f"{'Patient':<15} {'Ref Date':<12} {'Cancer Type':<22} {'Status':<12} {'HITL'}"
+    )
     print("-" * 70)
     for r in rows:
         print(

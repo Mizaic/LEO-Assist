@@ -3,6 +3,7 @@
 Any service that receives X-Leo-Session can verify it by reading from Redis.
 Requires REDIS_URL env var (set from Key Vault in production, .env locally).
 """
+
 from __future__ import annotations
 
 import json
@@ -28,6 +29,7 @@ def _get_client():
         return None
     try:
         import redis
+
         _client = redis.from_url(
             url,
             decode_responses=True,

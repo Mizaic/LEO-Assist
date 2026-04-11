@@ -10,6 +10,7 @@ Categories we look for:
   OBS      - observable entities / lab tests with thresholds
   QUALIFY  - "new-onset", "unexplained", "persistent", "recurrent"
 """
+
 import os
 import re
 import sys
@@ -112,7 +113,9 @@ def main() -> None:
             print(f"  text: {snippet}...")
 
         for cat, matches in flags.items():
-            safe = [m.encode("ascii", errors="replace").decode("ascii") for m in matches]
+            safe = [
+                m.encode("ascii", errors="replace").decode("ascii") for m in matches
+            ]
             print(f"  [{cat}] {safe}")
             if cat == "IMAGING":
                 imaging_needed.append((rec["id"], rec["title"], matches))

@@ -1,4 +1,5 @@
 from libs.neo4j_client.client import PatientGraphClient
+
 c = PatientGraphClient()
 rows = c.run(
     "MATCH (o:Organization) WHERE o.id IN ['C82070', 'C82061'] "

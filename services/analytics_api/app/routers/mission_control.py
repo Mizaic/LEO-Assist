@@ -176,7 +176,9 @@ def _truncate_audit_text(raw: Optional[str], max_len: int = 800) -> Optional[str
 
 def _pipeline_queue_depth() -> Optional[int]:
     conn = os.getenv("AZURE_SERVICE_BUS_CONNECTION_STRING", "").strip()
-    queue_name = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs").strip() or "pipeline-jobs"
+    queue_name = (
+        os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs").strip() or "pipeline-jobs"
+    )
     if not conn:
         return None
     try:
@@ -692,7 +694,11 @@ async def get_patient_rebuild_status(
     if state == "queued" and queue_depth is not None:
         queue_position_estimate = max(queue_depth - 1, 0)
     if state in {"queued", "running"} and median_s is not None:
-        if state == "queued" and queue_position_estimate is not None and throughput_per_minute:
+        if (
+            state == "queued"
+            and queue_position_estimate is not None
+            and throughput_per_minute
+        ):
             wait_seconds = int((queue_position_estimate / throughput_per_minute) * 60.0)
             eta_seconds_estimate = max(wait_seconds + int(median_s), int(median_s))
         elif state == "running":

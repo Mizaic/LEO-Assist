@@ -17,6 +17,7 @@ Logic:
     - private_letter in phase 1: flag as "outcome blocked"
     - no post-signals at all: flag as UNRESOLVABLE -> HITL
 """
+
 from __future__ import annotations
 import re
 import sys
@@ -27,18 +28,20 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
 
-PATIENT_ID       = "4203796334"
-REFERRAL_DATE    = "2024-08-05"
-SPECIALIST_DATE  = "2024-08-30"   # first dermatology attendance
-END_DATE         = "2025-02-01"   # ~180 days from referral
+PATIENT_ID = "4203796334"
+REFERRAL_DATE = "2024-08-05"
+SPECIALIST_DATE = "2024-08-30"  # first dermatology attendance
+END_DATE = "2025-02-01"  # ~180 days from referral
 
 Q = """
 MATCH (p:Patient {id: $pid})-[:HAS_ENCOUNTER]->(enc:Encounter)
@@ -53,56 +56,56 @@ ORDER BY enc.date, enc.id
 
 POST_CANCER = [
     # treatment implying confirmed malignancy
-    (r"\bexcis",           "excision"),
-    (r"\bmohs\b",          "mohs surgery"),
+    (r"\bexcis", "excision"),
+    (r"\bmohs\b", "mohs surgery"),
     (r"\bwide local excision\b", "wide local excision"),
-    (r"\bsurgical removal\b",    "surgical removal"),
-    (r"\boncolog",         "oncology"),
-    (r"\bradiother",       "radiotherapy"),
-    (r"\bchemother",       "chemotherapy"),
-    (r"\bimmunother",      "immunotherapy"),
+    (r"\bsurgical removal\b", "surgical removal"),
+    (r"\boncolog", "oncology"),
+    (r"\bradiother", "radiotherapy"),
+    (r"\bchemother", "chemotherapy"),
+    (r"\bimmunother", "immunotherapy"),
     (r"\bsentinel node\b", "sentinel node biopsy"),
-    (r"\blymph node\b",    "lymph node"),
-    (r"\bpatholog",        "pathology result"),
-    (r"\bhistolog",        "histology result"),
+    (r"\blymph node\b", "lymph node"),
+    (r"\bpatholog", "pathology result"),
+    (r"\bhistolog", "histology result"),
     (r"\bbiopsy result\b", "biopsy result"),
     (r"\bstage [1-4ivi]+\b", "staging"),
     (r"\bdo not cancel\b", "urgent recall"),
-    (r"\bpriority [ab1]\b","high priority follow-up"),
-    (r"\burgent.*follow",  "urgent follow-up"),
+    (r"\bpriority [ab1]\b", "high priority follow-up"),
+    (r"\burgent.*follow", "urgent follow-up"),
     (r"\bcancer referral", "cancer referral"),
     (r"\bscc\b(?!.*suspected)", "SCC confirmed"),
     (r"\bbcc\b(?!.*suspected)", "BCC confirmed"),
-    (r"\bmelanoma\b",      "melanoma"),
-    (r"\bcarcinoma\b",     "carcinoma"),
-    (r"\bmalign",          "malignant"),
-    (r"\bclinical trial",  "clinical trial enrolment"),
-    (r"\bcpms\b",          "CPMS trial"),
+    (r"\bmelanoma\b", "melanoma"),
+    (r"\bcarcinoma\b", "carcinoma"),
+    (r"\bmalign", "malignant"),
+    (r"\bclinical trial", "clinical trial enrolment"),
+    (r"\bcpms\b", "CPMS trial"),
 ]
 
 POST_BENIGN = [
-    (r"\befudix\b",             "Efudix prescribed"),
-    (r"\bfluorouracil\b",       "fluorouracil prescribed"),
-    (r"\b5[- ]?fu\b",           "5-FU prescribed"),
-    (r"\bimiquimod\b",          "imiquimod prescribed"),
-    (r"\bphotodynam",           "photodynamic therapy"),
-    (r"\bcryother",             "cryotherapy"),
-    (r"\bcurette\b",            "curettage"),
-    (r"\bak\b",                 "actinic keratosis (AK)"),
-    (r"\bactinic keratosis\b",  "actinic keratosis"),
-    (r"\bsolar keratosis\b",    "solar keratosis"),
-    (r"\bseborrhoeic\b",        "seborrhoeic keratosis"),
-    (r"\bbenign\b",             "benign"),
-    (r"\bnot malign",           "not malignant"),
-    (r"\bnon[- ]?malign",       "non-malignant"),
+    (r"\befudix\b", "Efudix prescribed"),
+    (r"\bfluorouracil\b", "fluorouracil prescribed"),
+    (r"\b5[- ]?fu\b", "5-FU prescribed"),
+    (r"\bimiquimod\b", "imiquimod prescribed"),
+    (r"\bphotodynam", "photodynamic therapy"),
+    (r"\bcryother", "cryotherapy"),
+    (r"\bcurette\b", "curettage"),
+    (r"\bak\b", "actinic keratosis (AK)"),
+    (r"\bactinic keratosis\b", "actinic keratosis"),
+    (r"\bsolar keratosis\b", "solar keratosis"),
+    (r"\bseborrhoeic\b", "seborrhoeic keratosis"),
+    (r"\bbenign\b", "benign"),
+    (r"\bnot malign", "not malignant"),
+    (r"\bnon[- ]?malign", "non-malignant"),
     (r"\bno evidence of cancer\b", "no cancer found"),
     (r"\bno further follow[- ]?up\b", "no further follow-up"),
-    (r"\bdischarg",             "discharged"),
-    (r"\broutine.*follow",      "routine follow-up"),
-    (r"\b6 months?\b.*review",  "6-month routine review"),
-    (r"\breassur",              "reassured"),
-    (r"\bnot cancer\b",         "not cancer"),
-    (r"\bwait and see\b",       "watchful waiting"),
+    (r"\bdischarg", "discharged"),
+    (r"\broutine.*follow", "routine follow-up"),
+    (r"\b6 months?\b.*review", "6-month routine review"),
+    (r"\breassur", "reassured"),
+    (r"\bnot cancer\b", "not cancer"),
+    (r"\bwait and see\b", "watchful waiting"),
 ]
 
 PRIVATE_MARKERS = [
@@ -149,13 +152,17 @@ def main() -> None:
     finally:
         client.close()
 
-    print(f"=== Patient {PATIENT_ID} | {REFERRAL_DATE} -> {END_DATE} | {len(rows)} encounters ===")
+    print(
+        f"=== Patient {PATIENT_ID} | {REFERRAL_DATE} -> {END_DATE} | {len(rows)} encounters ==="
+    )
     print(f"    Referral date   : {REFERRAL_DATE}")
-    print(f"    Specialist date : {SPECIALIST_DATE}  (signals before this are PRE-outcome)")
+    print(
+        f"    Specialist date : {SPECIALIST_DATE}  (signals before this are PRE-outcome)"
+    )
     print()
 
     phase1_rows = [r for r in rows if r["date"] <= SPECIALIST_DATE]
-    phase2_rows = [r for r in rows if r["date"] >  SPECIALIST_DATE]
+    phase2_rows = [r for r in rows if r["date"] > SPECIALIST_DATE]
 
     # -- Phase 1 summary ------------------------------------------------------
     private_in_phase1 = any(
@@ -167,15 +174,23 @@ def main() -> None:
         for r in phase1_rows
     )
 
-    print(f"PHASE 1 -- pre-outcome ({len(phase1_rows)} encounters, up to {SPECIALIST_DATE}):")
-    print(f"  Specialist attendance confirmed : {'YES' if specialist_confirmed else 'NO'}")
-    print(f"  Private/blocked letter present  : {'YES -- outcome hidden' if private_in_phase1 else 'no'}")
+    print(
+        f"PHASE 1 -- pre-outcome ({len(phase1_rows)} encounters, up to {SPECIALIST_DATE}):"
+    )
+    print(
+        f"  Specialist attendance confirmed : {'YES' if specialist_confirmed else 'NO'}"
+    )
+    print(
+        f"  Private/blocked letter present  : {'YES -- outcome hidden' if private_in_phase1 else 'no'}"
+    )
 
     # -- Phase 2 -- post-specialist signals only ------------------------------
-    post_cancer_hits: list[tuple[str, str, str]] = []   # (date, label, snippet)
+    post_cancer_hits: list[tuple[str, str, str]] = []  # (date, label, snippet)
     post_benign_hits: list[tuple[str, str, str]] = []
 
-    print(f"\nPHASE 2 -- post-specialist ({len(phase2_rows)} encounters, {SPECIALIST_DATE}+1 onwards):")
+    print(
+        f"\nPHASE 2 -- post-specialist ({len(phase2_rows)} encounters, {SPECIALIST_DATE}+1 onwards):"
+    )
 
     cur_date = None
     for r in phase2_rows:
@@ -196,15 +211,15 @@ def main() -> None:
             post_benign_hits.append((r["date"], label, snippet))
 
         flags_short = flags[:70].replace("\n", " ")
-        text_short  = text[:150].replace("\n", " ")
+        text_short = text[:150].replace("\n", " ")
         print(f"  [{r['enc_id'][-8:]}]  {flags_short}")
         print(f"           {text_short}")
         if c_hits:
             for label, snip in c_hits:
-                print(f"           >> [CANCER POST-SIGNAL]  {label}: \"{snip}\"")
+                print(f'           >> [CANCER POST-SIGNAL]  {label}: "{snip}"')
         if b_hits:
             for label, snip in b_hits:
-                print(f"           >> [BENIGN POST-SIGNAL]  {label}: \"{snip}\"")
+                print(f'           >> [BENIGN POST-SIGNAL]  {label}: "{snip}"')
         if not c_hits and not b_hits:
             print(f"           (no outcome signals)")
 
@@ -224,25 +239,25 @@ def main() -> None:
 
     if nc == 0 and nb == 0 and private_in_phase1:
         verdict = "UNRESOLVABLE -- outcome letter is private, no post-clinic signals"
-        flag    = "HITL_REQUIRED"
+        flag = "HITL_REQUIRED"
     elif nc == 0 and nb == 0:
         verdict = "UNRESOLVABLE -- no post-specialist signals of any kind"
-        flag    = "HITL_REQUIRED"
+        flag = "HITL_REQUIRED"
     elif nb > 0 and nc == 0:
         verdict = "INFERRED BENIGN -- benign-only post-clinic signals"
-        flag    = "INFERRED_BENIGN"
+        flag = "INFERRED_BENIGN"
     elif nc > 0 and nb == 0:
         verdict = "INFERRED CANCER -- cancer-only post-clinic signals"
-        flag    = "INFERRED_CANCER"
+        flag = "INFERRED_CANCER"
     elif nc > nb:
         verdict = f"INFERRED CANCER (weighted: {nc} cancer vs {nb} benign)"
-        flag    = "INFERRED_CANCER_WEAK"
+        flag = "INFERRED_CANCER_WEAK"
     elif nb > nc:
         verdict = f"INFERRED BENIGN (weighted: {nb} benign vs {nc} cancer)"
-        flag    = "INFERRED_BENIGN_WEAK"
+        flag = "INFERRED_BENIGN_WEAK"
     else:
         verdict = "AMBIGUOUS -- equal cancer and benign signals"
-        flag    = "HITL_REQUIRED"
+        flag = "HITL_REQUIRED"
 
     print(f"\n  >> {verdict}")
     print(f"  >> flag: {flag}")

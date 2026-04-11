@@ -118,9 +118,15 @@ class TestLLMCostConfig:
     def test_from_env_defaults(self, monkeypatch) -> None:
         monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "aws")
         monkeypatch.setenv("PIPELINE_MODEL_TIER", "small")
-        monkeypatch.setenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN", "1.00")
-        monkeypatch.setenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", "0.01")
-        monkeypatch.setenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", "5.00")
+        monkeypatch.setenv(
+            "AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN", "1.00"
+        )
+        monkeypatch.setenv(
+            "AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", "0.01"
+        )
+        monkeypatch.setenv(
+            "AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", "5.00"
+        )
         cfg = LLMCostConfig.from_env()
         assert cfg.cost_per_1m_input == 1.0
         assert cfg.cost_per_1m_cached_input == 0.01
@@ -130,7 +136,9 @@ class TestLLMCostConfig:
         monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
         monkeypatch.setenv("PIPELINE_MODEL_TIER", "big")
         monkeypatch.setenv("AZURE_OPENAI_BIG_MODEL_COST_PER_1M_INPUT_TOKEN", "1.25")
-        monkeypatch.setenv("AZURE_OPENAI_BIG_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", "0.13")
+        monkeypatch.setenv(
+            "AZURE_OPENAI_BIG_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", "0.13"
+        )
         monkeypatch.setenv("AZURE_OPENAI_BIG_MODEL_COST_PER_1M_OUTPUT_TOKEN", "10")
         cfg = LLMCostConfig.from_env()
         assert cfg.cost_per_1m_input == 1.25

@@ -12,7 +12,9 @@ import pytest
 class TestExtractCypherAndHash:
 
     def test_extracts_cypher_from_library(self):
-        from services.fhir_api.app.services.measure_service import extract_cypher_and_hash
+        from services.fhir_api.app.services.measure_service import (
+            extract_cypher_and_hash,
+        )
 
         cypher_b64 = base64.b64encode(b"MATCH (n) RETURN n LIMIT 10").decode()
         hash_b64 = base64.b64encode(b"abc123hash").decode()
@@ -29,21 +31,27 @@ class TestExtractCypherAndHash:
         assert cypher_hash == "abc123hash"
 
     def test_empty_content(self):
-        from services.fhir_api.app.services.measure_service import extract_cypher_and_hash
+        from services.fhir_api.app.services.measure_service import (
+            extract_cypher_and_hash,
+        )
 
         cypher, cypher_hash = extract_cypher_and_hash({"content": []})
         assert cypher == ""
         assert cypher_hash == ""
 
     def test_no_content_key(self):
-        from services.fhir_api.app.services.measure_service import extract_cypher_and_hash
+        from services.fhir_api.app.services.measure_service import (
+            extract_cypher_and_hash,
+        )
 
         cypher, cypher_hash = extract_cypher_and_hash({})
         assert cypher == ""
         assert cypher_hash == ""
 
     def test_only_cypher_no_hash(self):
-        from services.fhir_api.app.services.measure_service import extract_cypher_and_hash
+        from services.fhir_api.app.services.measure_service import (
+            extract_cypher_and_hash,
+        )
 
         cypher_b64 = base64.b64encode(b"RETURN 1").decode()
         library = {"content": [{"title": "cypher", "data": cypher_b64}]}
@@ -67,7 +75,9 @@ class TestEvaluateMeasure:
             "library": ["Library/lib-1"],
         }
 
-        cypher_b64 = base64.b64encode(b"MATCH (n) WHERE n.org = $org RETURN count(n) AS cnt").decode()
+        cypher_b64 = base64.b64encode(
+            b"MATCH (n) WHERE n.org = $org RETURN count(n) AS cnt"
+        ).decode()
         mock_get_lib.return_value = {
             "content": [{"title": "cypher", "data": cypher_b64}],
         }

@@ -23,6 +23,7 @@ Usage
   python scripts/investigations/_fix_knowledge_graph_mappings.py            # live
   python scripts/investigations/_fix_knowledge_graph_mappings.py --dry-run  # preview counts
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,15 +36,17 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI",      "bolt://localhost:7688")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "bolt://localhost:7688")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
@@ -51,7 +54,7 @@ kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 # Broad catch-all concept IDs that GCL wrongly uses as targets
 # ---------------------------------------------------------------------------
 _BROAD_CATCH_ALL = [
-    "74732009",   # Mental disorder (disorder) -- used for 700+ specific MH terms
+    "74732009",  # Mental disorder (disorder) -- used for 700+ specific MH terms
     "128462008",  # Metastatic malignant neoplasm (disorder)
     "372130007",  # Malignant neoplasm of skin (disorder)
 ]
@@ -71,10 +74,20 @@ _WRONG_SITUATION_IDS = [
 
 # History/absence prefixes that make a situation code *correct* (don't delete these)
 _OK_SITUATION_PREFIXES = (
-    "history of ", "h/o ", "hx ", "hx. ",
-    "no ", "not ", "never ", "absent ", "absence of ",
-    "ex-smoker", "ex smoker", "former smoker",
-    "family history", "fh of ",
+    "history of ",
+    "h/o ",
+    "hx ",
+    "hx. ",
+    "no ",
+    "not ",
+    "never ",
+    "absent ",
+    "absence of ",
+    "ex-smoker",
+    "ex smoker",
+    "former smoker",
+    "family history",
+    "fh of ",
 )
 
 # ---------------------------------------------------------------------------
@@ -260,7 +273,8 @@ def _fix_wrong_situations(session, dry_run: bool) -> None:
     print("3. GCL SITUATION EDGES WITH BETTER DISORDER ALTERNATIVE")
 
     r_count = _run(
-        session, _COUNT_SITUATION_WITH_ALT,
+        session,
+        _COUNT_SITUATION_WITH_ALT,
         situation_ids=_WRONG_SITUATION_IDS,
         ok_prefixes=list(_OK_SITUATION_PREFIXES),
     )
@@ -276,7 +290,8 @@ def _fix_wrong_situations(session, dry_run: bool) -> None:
         print("   [DRY-RUN] Would delete these edges")
         return
     r_del = _run(
-        session, _DELETE_SITUATION_WITH_ALT,
+        session,
+        _DELETE_SITUATION_WITH_ALT,
         situation_ids=_WRONG_SITUATION_IDS,
         ok_prefixes=list(_OK_SITUATION_PREFIXES),
     )
@@ -288,7 +303,8 @@ def _report_remaining_situations(session) -> None:
     print("\n" + "=" * 70)
     print("4. REMAINING GCL SITUATION EDGES (no good alternative - need attention)")
     rows = _run(
-        session, _REMAINING_SITUATIONS,
+        session,
+        _REMAINING_SITUATIONS,
         ok_prefixes=list(_OK_SITUATION_PREFIXES),
     )
     print(f"   {len(rows)} remaining situation edges without a better mapping")

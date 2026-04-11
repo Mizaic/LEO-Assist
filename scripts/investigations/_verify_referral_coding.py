@@ -5,6 +5,7 @@ Checks each encounter from the inventory and reports its current coding status.
 Run:
     python scripts/investigations/_verify_referral_coding.py
 """
+
 from __future__ import annotations
 
 import json
@@ -15,12 +16,20 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
-INVENTORY = ROOT / "scripts" / "investigations" / "encounter_audit" / "fast_track_referral_encounters.jsonl"
+INVENTORY = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
+    / "fast_track_referral_encounters.jsonl"
+)
 
 _Q_DOCS = """
 MATCH (e:Encounter)-[r:DOCUMENTS]->(c)
@@ -50,6 +59,7 @@ RETURN count(hp) AS has_procedure_count
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     with INVENTORY.open() as fh:
@@ -62,10 +72,16 @@ def main() -> None:
         if eid not in by_enc:
             by_enc[eid] = row
 
-    uncoded_before = [r for r in all_rows if r.get("referral_doc_count", 0) == 0 and r.get("matched_phrase")]
+    uncoded_before = [
+        r
+        for r in all_rows
+        if r.get("referral_doc_count", 0) == 0 and r.get("matched_phrase")
+    ]
     uncoded_enc_ids = {r["encounter_id"] for r in uncoded_before}
 
-    print(f"Inventory: {len(by_enc)} unique encounters ({len(uncoded_enc_ids)} were uncoded at time of inventory)")
+    print(
+        f"Inventory: {len(by_enc)} unique encounters ({len(uncoded_enc_ids)} were uncoded at time of inventory)"
+    )
     print()
 
     now_coded = []
@@ -83,14 +99,20 @@ def main() -> None:
                 phrase = row.get("matched_phrase", "")
                 if docs:
                     concept_ids = [d["concept_id"] for d in docs]
-                    hp = session.run(_Q_PATIENT_HAS, eid=eid, concept_ids=concept_ids).single()
+                    hp = session.run(
+                        _Q_PATIENT_HAS, eid=eid, concept_ids=concept_ids
+                    ).single()
                     has_proc = hp["has_procedure_count"] if hp else 0
-                    now_coded.append({
-                        "encounter_id": eid,
-                        "phrase": phrase,
-                        "concepts": [(d["concept_id"], d["name"], d["source"]) for d in docs],
-                        "patient_has_procedure": has_proc > 0,
-                    })
+                    now_coded.append(
+                        {
+                            "encounter_id": eid,
+                            "phrase": phrase,
+                            "concepts": [
+                                (d["concept_id"], d["name"], d["source"]) for d in docs
+                            ],
+                            "patient_has_procedure": has_proc > 0,
+                        }
+                    )
                 else:
                     still_missing.append({"encounter_id": eid, "phrase": phrase})
 
@@ -106,7 +128,11 @@ def main() -> None:
     if now_coded:
         print("Coded encounters:")
         for r in now_coded:
-            has_rel = "HAS_PROCEDURE ok" if r["patient_has_procedure"] else "!! HAS_PROCEDURE missing"
+            has_rel = (
+                "HAS_PROCEDURE ok"
+                if r["patient_has_procedure"]
+                else "!! HAS_PROCEDURE missing"
+            )
             print(f"  enc={r['encounter_id'][:8]}...  [{has_rel}]")
             print(f"    phrase   : {r['phrase'][:70]}")
             for cid, name, src in r["concepts"]:

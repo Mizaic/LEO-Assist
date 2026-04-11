@@ -2,14 +2,16 @@
 Definitively confirm each written surface form by using the q= search filter.
 This bypasses pagination entirely.
 """
+
 import requests, time
 
 BASE = "http://localhost:8001"
 
 
 def check(term: str) -> tuple[bool, str]:
-    r = requests.get(f"{BASE}/terminology/surface-forms",
-                     params={"q": term}, timeout=15)
+    r = requests.get(
+        f"{BASE}/terminology/surface-forms", params={"q": term}, timeout=15
+    )
     if r.status_code != 200:
         return False, f"HTTP {r.status_code}"
     data = r.json()
@@ -29,19 +31,46 @@ def check(term: str) -> tuple[bool, str]:
 
 spot = [
     # Previous abbreviation batch
-    "2ww", "twoc", "ooh", "htn", "sll", "cll", "adt",
+    "2ww",
+    "twoc",
+    "ooh",
+    "htn",
+    "sll",
+    "cll",
+    "adt",
     # NAD - must be absent
     "nad",
     # Corrected synonyms
-    "tiredness", "tired", "low mood", "decreased appetite",
-    "vomiting", "rectal bleeding", "bruising", "lump",
-    "swollen glands", "lymph node swelling", "reflux", "confusion",
-    "backache", "breathlessness", "night sweats", "dizziness",
+    "tiredness",
+    "tired",
+    "low mood",
+    "decreased appetite",
+    "vomiting",
+    "rectal bleeding",
+    "bruising",
+    "lump",
+    "swollen glands",
+    "lymph node swelling",
+    "reflux",
+    "confusion",
+    "backache",
+    "breathlessness",
+    "night sweats",
+    "dizziness",
     # Lab phrases
-    "glycosuria", "glucose +", "proteinuria", "protein +",
-    "psa elevated", "psa raised", "low hb", "hb low",
-    "raised creatinine", "neutrophilia", "eosinophilia",
-    "leucocytes in urine", "urine glucose positive",
+    "glycosuria",
+    "glucose +",
+    "proteinuria",
+    "protein +",
+    "psa elevated",
+    "psa raised",
+    "low hb",
+    "hb low",
+    "raised creatinine",
+    "neutrophilia",
+    "eosinophilia",
+    "leucocytes in urine",
+    "urine glucose positive",
 ]
 
 print(f"{'Status':<6} {'Term':<30} {'Detail'}")

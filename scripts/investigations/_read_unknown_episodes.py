@@ -1,5 +1,6 @@
 """Read place of presentation, referral route, and first presentation details
 for the 17 unknown-type completed episodes."""
+
 import sys
 from pathlib import Path
 
@@ -7,9 +8,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -34,7 +37,9 @@ def main() -> None:
 
     print(f"Unknown completed episodes: {len(rows)}")
     print()
-    print(f"{'Patient':<15} {'Ref Date':<12} {'Route':<18} {'Place of Presentation':<35} {'Complaint'}")
+    print(
+        f"{'Patient':<15} {'Ref Date':<12} {'Route':<18} {'Place of Presentation':<35} {'Complaint'}"
+    )
     print("-" * 110)
 
     place_counts: dict[str, int] = {}
@@ -81,7 +86,9 @@ def main() -> None:
     for r in ep_rows:
         concepts = [c for c in (r.get("fp_concepts") or []) if c]
         if concepts:
-            print(f"  Patient {r['pid']} ({r['ref_date']}): {', '.join(str(c) for c in concepts[:5])}")
+            print(
+                f"  Patient {r['pid']} ({r['ref_date']}): {', '.join(str(c) for c in concepts[:5])}"
+            )
 
     client.close()
 

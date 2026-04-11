@@ -1,4 +1,5 @@
 """Seed encounter_audit_v4/ with the same 100 done encounters from the dryrun DB."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -25,12 +26,19 @@ def main() -> None:
     src.close()
     print(f"Seeding {len(rows)} encounters into {DST_DB}")
     from scripts.investigations._audit_db import CheckpointDB
+
     dst = CheckpointDB(DST_DB)
-    dst.insert_encounters([
-        {"encounter_id": r["encounter_id"], "patient_id": r["patient_id"],
-         "date": r["date"], "text_len": r["text_len"]}
-        for r in rows
-    ])
+    dst.insert_encounters(
+        [
+            {
+                "encounter_id": r["encounter_id"],
+                "patient_id": r["patient_id"],
+                "date": r["date"],
+                "text_len": r["text_len"],
+            }
+            for r in rows
+        ]
+    )
     dst.close()
     print("Done.")
 

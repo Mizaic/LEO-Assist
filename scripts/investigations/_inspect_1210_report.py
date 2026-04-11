@@ -1,4 +1,5 @@
 """Inspect the dry-run report for 1.2.10 action candidates."""
+
 import json
 from pathlib import Path
 

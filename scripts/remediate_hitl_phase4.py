@@ -57,6 +57,7 @@ logger = logging.getLogger(__name__)
 # Neo4j
 # ---------------------------------------------------------------------------
 
+
 def get_neo4j_driver():
     uri = os.getenv("NEO4J_URI", "")
     user = os.getenv("NEO4J_USER", "neo4j")
@@ -172,6 +173,7 @@ REVIEWER = "remediate_hitl_phase4.py"
 # Dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SurfaceFormEntry:
     form: str
@@ -215,7 +217,9 @@ class Report:
             "dry_run": self.dry_run,
             "summary": {
                 "surface_forms_added": len(self.surface_forms_added),
-                "reviews_resolved": sum(r.get("resolved_count", 0) for r in self.reviews_resolved),
+                "reviews_resolved": sum(
+                    r.get("resolved_count", 0) for r in self.reviews_resolved
+                ),
                 "entities_json_updated": len(self.entities_json_updated),
                 "ignore_rules_added": len(self.ignore_rules_added),
                 "errors": len(self.errors),
@@ -232,67 +236,104 @@ class Report:
 # Core write functions
 # ---------------------------------------------------------------------------
 
-def _sf(form, concept_id, concept_fsn, entity_label,
-        assertion="present", confidence=0.95) -> SurfaceFormEntry:
+
+def _sf(
+    form, concept_id, concept_fsn, entity_label, assertion="present", confidence=0.95
+) -> SurfaceFormEntry:
     return SurfaceFormEntry(
-        form=form, concept_id=concept_id, concept_fsn=concept_fsn,
-        entity_label=entity_label, assertion=assertion, confidence=confidence,
+        form=form,
+        concept_id=concept_id,
+        concept_fsn=concept_fsn,
+        entity_label=entity_label,
+        assertion=assertion,
+        confidence=confidence,
     )
 
 
-def upsert_surface_form(session, entry: SurfaceFormEntry, execute: bool, report: Report):
+def upsert_surface_form(
+    session, entry: SurfaceFormEntry, execute: bool, report: Report
+):
     normalized = _normalize(entry.form)
     if execute:
         try:
             session.run(
                 UPSERT_SURFACE_FORM,
-                normalized=normalized, form=entry.form, concept_id=entry.concept_id,
-                source="hitl_remediation", created_by=REVIEWER,
-                confidence=entry.confidence, provenance=entry.provenance,
+                normalized=normalized,
+                form=entry.form,
+                concept_id=entry.concept_id,
+                source="hitl_remediation",
+                created_by=REVIEWER,
+                confidence=entry.confidence,
+                provenance=entry.provenance,
             ).single()
-            report.surface_forms_added.append({
-                "form": entry.form, "normalized": normalized,
-                "concept_id": entry.concept_id, "concept_fsn": entry.concept_fsn,
-            })
+            report.surface_forms_added.append(
+                {
+                    "form": entry.form,
+                    "normalized": normalized,
+                    "concept_id": entry.concept_id,
+                    "concept_fsn": entry.concept_fsn,
+                }
+            )
             logger.debug("  SF upserted: %r -> %s", entry.form, entry.concept_id)
         except Exception as exc:
-            report.errors.append({"op": "upsert_surface_form", "form": entry.form, "error": str(exc)})
+            report.errors.append(
+                {"op": "upsert_surface_form", "form": entry.form, "error": str(exc)}
+            )
             logger.warning("  SF FAILED %r: %s", entry.form, exc)
     else:
-        report.surface_forms_added.append({
-            "form": entry.form, "normalized": normalized,
-            "concept_id": entry.concept_id, "concept_fsn": entry.concept_fsn,
-            "dry_run": True,
-        })
+        report.surface_forms_added.append(
+            {
+                "form": entry.form,
+                "normalized": normalized,
+                "concept_id": entry.concept_id,
+                "concept_fsn": entry.concept_fsn,
+                "dry_run": True,
+            }
+        )
 
 
-def batch_resolve(session, entity_text, concept_id, concept_fsn,
-                  assertion, execute, report):
+def batch_resolve(
+    session, entity_text, concept_id, concept_fsn, assertion, execute, report
+):
     if execute:
         try:
             result = session.run(
                 BATCH_RESOLVE_BY_ENTITY_TEXT,
-                entity_text=entity_text, resolved_concept_id=concept_id,
-                resolved_term=concept_fsn, reviewer=REVIEWER,
+                entity_text=entity_text,
+                resolved_concept_id=concept_id,
+                resolved_term=concept_fsn,
+                reviewer=REVIEWER,
                 resolved_assertion=assertion,
             ).single()
             resolved_count = result["resolved_count"] if result else 0
-            report.reviews_resolved.append({
-                "entity_text": entity_text, "concept_id": concept_id,
-                "resolved_count": resolved_count, "assertion": assertion,
-            })
+            report.reviews_resolved.append(
+                {
+                    "entity_text": entity_text,
+                    "concept_id": concept_id,
+                    "resolved_count": resolved_count,
+                    "assertion": assertion,
+                }
+            )
             logger.debug("  Resolved %d reviews for %r", resolved_count, entity_text)
         except Exception as exc:
-            report.errors.append({"op": "batch_resolve", "entity_text": entity_text, "error": str(exc)})
+            report.errors.append(
+                {"op": "batch_resolve", "entity_text": entity_text, "error": str(exc)}
+            )
             logger.warning("  Resolve FAILED %r: %s", entity_text, exc)
     else:
-        pending_row = session.run(GET_UNRESOLVED_FOR_TEXT, entity_text=entity_text).single()
+        pending_row = session.run(
+            GET_UNRESOLVED_FOR_TEXT, entity_text=entity_text
+        ).single()
         pending_count = pending_row["pending_count"] if pending_row else 0
-        report.reviews_resolved.append({
-            "entity_text": entity_text, "concept_id": concept_id,
-            "resolved_count": pending_count, "assertion": assertion,
-            "dry_run": True,
-        })
+        report.reviews_resolved.append(
+            {
+                "entity_text": entity_text,
+                "concept_id": concept_id,
+                "resolved_count": pending_count,
+                "assertion": assertion,
+                "dry_run": True,
+            }
+        )
 
 
 def upsert_ignore_rule(session, entry: IgnoreRuleEntry, execute: bool, report: Report):
@@ -300,36 +341,64 @@ def upsert_ignore_rule(session, entry: IgnoreRuleEntry, execute: bool, report: R
         try:
             session.run(
                 UPSERT_CODING_IGNORE_RULE,
-                entity_text=entry.entity_text, rule_id=str(uuid.uuid4()),
-                entity_label=entry.entity_label, reason=entry.reason,
+                entity_text=entry.entity_text,
+                rule_id=str(uuid.uuid4()),
+                entity_label=entry.entity_label,
+                reason=entry.reason,
                 created_by=REVIEWER,
             )
             result = session.run(
-                ALSO_RESOLVE_IGNORE, entity_text=entry.entity_text, reviewer=REVIEWER,
+                ALSO_RESOLVE_IGNORE,
+                entity_text=entry.entity_text,
+                reviewer=REVIEWER,
             ).single()
             resolved_count = result["resolved_count"] if result else 0
-            report.ignore_rules_added.append({
-                "entity_text": entry.entity_text, "reason": entry.reason,
-                "resolved_count": resolved_count,
-            })
-            logger.info("  Ignore rule added: %r (resolved %d)", entry.entity_text, resolved_count)
+            report.ignore_rules_added.append(
+                {
+                    "entity_text": entry.entity_text,
+                    "reason": entry.reason,
+                    "resolved_count": resolved_count,
+                }
+            )
+            logger.info(
+                "  Ignore rule added: %r (resolved %d)",
+                entry.entity_text,
+                resolved_count,
+            )
         except Exception as exc:
-            report.errors.append({"op": "upsert_ignore_rule", "entity_text": entry.entity_text, "error": str(exc)})
+            report.errors.append(
+                {
+                    "op": "upsert_ignore_rule",
+                    "entity_text": entry.entity_text,
+                    "error": str(exc),
+                }
+            )
             logger.warning("  Ignore rule FAILED %r: %s", entry.entity_text, exc)
     else:
-        pending_row = session.run(GET_UNRESOLVED_FOR_TEXT, entity_text=entry.entity_text).single()
+        pending_row = session.run(
+            GET_UNRESOLVED_FOR_TEXT, entity_text=entry.entity_text
+        ).single()
         pending_count = pending_row["pending_count"] if pending_row else 0
-        report.ignore_rules_added.append({
-            "entity_text": entry.entity_text, "reason": entry.reason,
-            "resolved_count": pending_count, "dry_run": True,
-        })
+        report.ignore_rules_added.append(
+            {
+                "entity_text": entry.entity_text,
+                "reason": entry.reason,
+                "resolved_count": pending_count,
+                "dry_run": True,
+            }
+        )
 
 
-def update_entities_json_for_text(session, entity_text, old_label, new_label,
-                                  execute, report):
-    rows = list(session.run(
-        GET_LABELS_WITH_ENTITY_TEXT, entity_text=entity_text, entity_label=old_label,
-    ))
+def update_entities_json_for_text(
+    session, entity_text, old_label, new_label, execute, report
+):
+    rows = list(
+        session.run(
+            GET_LABELS_WITH_ENTITY_TEXT,
+            entity_text=entity_text,
+            entity_label=old_label,
+        )
+    )
     for row in rows:
         label_id = row["label_id"]
         entities = json.loads(row["entities_json"] or "[]")
@@ -345,53 +414,173 @@ def update_entities_json_for_text(session, entity_text, old_label, new_label,
             try:
                 session.run(
                     UPDATE_TRAINING_LABEL_ENTITIES,
-                    label_id=label_id, entities_json=new_json,
+                    label_id=label_id,
+                    entities_json=new_json,
                 )
-                report.entities_json_updated.append({
-                    "label_id": label_id, "entity_text": entity_text,
-                    "old_label": old_label, "new_label": new_label,
-                })
+                report.entities_json_updated.append(
+                    {
+                        "label_id": label_id,
+                        "entity_text": entity_text,
+                        "old_label": old_label,
+                        "new_label": new_label,
+                    }
+                )
             except Exception as exc:
-                report.errors.append({
-                    "op": "update_entities_json", "label_id": label_id, "error": str(exc),
-                })
+                report.errors.append(
+                    {
+                        "op": "update_entities_json",
+                        "label_id": label_id,
+                        "error": str(exc),
+                    }
+                )
         else:
-            report.entities_json_updated.append({
-                "label_id": label_id, "entity_text": entity_text,
-                "old_label": old_label, "new_label": new_label, "dry_run": True,
-            })
+            report.entities_json_updated.append(
+                {
+                    "label_id": label_id,
+                    "entity_text": entity_text,
+                    "old_label": old_label,
+                    "new_label": new_label,
+                    "dry_run": True,
+                }
+            )
 
 
 # ---------------------------------------------------------------------------
 # Phase 4 data
 # ---------------------------------------------------------------------------
 
+
 def build_surface_forms() -> list[SurfaceFormEntry]:
     entries: list[SurfaceFormEntry] = []
 
     # -- 4a: Generic / head-and-neck / colorectal / LGI suspected cancers ---
     CANCERS = [
-        ("Suspected cancer", "162572001", "Malignant neoplastic disease suspected (situation)", "situation"),
-        ("suspected cancer", "162572001", "Malignant neoplastic disease suspected (situation)", "situation"),
-        ("?cancer", "162572001", "Malignant neoplastic disease suspected (situation)", "situation"),
-        ("Malignancy suspected", "162572001", "Malignant neoplastic disease suspected (situation)", "situation"),
-        ("malignancy suspected", "162572001", "Malignant neoplastic disease suspected (situation)", "situation"),
-        ("suspected malignancy", "162572001", "Malignant neoplastic disease suspected (situation)", "situation"),
-        ("Suspected malignancy", "162572001", "Malignant neoplastic disease suspected (situation)", "situation"),
-        ("Suspected head and neck cancer", "315277001", "Malignant neoplasm of head and/or neck suspected (situation)", "situation"),
-        ("suspected head and neck cancer", "315277001", "Malignant neoplasm of head and/or neck suspected (situation)", "situation"),
-        ("?head and neck cancer", "315277001", "Malignant neoplasm of head and/or neck suspected (situation)", "situation"),
-        ("Ca head and neck", "315277001", "Malignant neoplasm of head and/or neck suspected (situation)", "situation"),
-        ("suspected colorectal cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("Suspected colorectal cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("?colorectal cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("Suspected lower gastrointestinal cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("suspected lower gastrointestinal cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("Suspected lgi cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("suspected lgi cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("?lgi cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("?lg cx", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
-        ("?LGI cancer", "315274008", "Malignant neoplasm of lower gastrointestinal tract suspected (situation)", "situation"),
+        (
+            "Suspected cancer",
+            "162572001",
+            "Malignant neoplastic disease suspected (situation)",
+            "situation",
+        ),
+        (
+            "suspected cancer",
+            "162572001",
+            "Malignant neoplastic disease suspected (situation)",
+            "situation",
+        ),
+        (
+            "?cancer",
+            "162572001",
+            "Malignant neoplastic disease suspected (situation)",
+            "situation",
+        ),
+        (
+            "Malignancy suspected",
+            "162572001",
+            "Malignant neoplastic disease suspected (situation)",
+            "situation",
+        ),
+        (
+            "malignancy suspected",
+            "162572001",
+            "Malignant neoplastic disease suspected (situation)",
+            "situation",
+        ),
+        (
+            "suspected malignancy",
+            "162572001",
+            "Malignant neoplastic disease suspected (situation)",
+            "situation",
+        ),
+        (
+            "Suspected malignancy",
+            "162572001",
+            "Malignant neoplastic disease suspected (situation)",
+            "situation",
+        ),
+        (
+            "Suspected head and neck cancer",
+            "315277001",
+            "Malignant neoplasm of head and/or neck suspected (situation)",
+            "situation",
+        ),
+        (
+            "suspected head and neck cancer",
+            "315277001",
+            "Malignant neoplasm of head and/or neck suspected (situation)",
+            "situation",
+        ),
+        (
+            "?head and neck cancer",
+            "315277001",
+            "Malignant neoplasm of head and/or neck suspected (situation)",
+            "situation",
+        ),
+        (
+            "Ca head and neck",
+            "315277001",
+            "Malignant neoplasm of head and/or neck suspected (situation)",
+            "situation",
+        ),
+        (
+            "suspected colorectal cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "Suspected colorectal cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "?colorectal cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "Suspected lower gastrointestinal cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "suspected lower gastrointestinal cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "Suspected lgi cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "suspected lgi cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "?lgi cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "?lg cx",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
+        (
+            "?LGI cancer",
+            "315274008",
+            "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "situation",
+        ),
     ]
     for form, cid, fsn, label in CANCERS:
         entries.append(_sf(form, cid, fsn, label))
@@ -404,8 +593,18 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
         ("Infection", "40733004", "Infectious disease (disorder)", "disorder"),
         ("fracture", "125605004", "Fracture of bone (disorder)", "disorder"),
         ("Fracture", "125605004", "Fracture of bone (disorder)", "disorder"),
-        ("Acute Kidney Injury", "14669001", "Acute kidney injury (disorder)", "disorder"),
-        ("acute kidney injury", "14669001", "Acute kidney injury (disorder)", "disorder"),
+        (
+            "Acute Kidney Injury",
+            "14669001",
+            "Acute kidney injury (disorder)",
+            "disorder",
+        ),
+        (
+            "acute kidney injury",
+            "14669001",
+            "Acute kidney injury (disorder)",
+            "disorder",
+        ),
         ("AKI", "14669001", "Acute kidney injury (disorder)", "disorder"),
     ]
     for form, cid, fsn, label in COMMON:
@@ -415,19 +614,32 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
     IBS_CID = "10743008"
     IBS_FSN = "Irritable bowel syndrome (disorder)"
     IBS_FORMS = [
-        "IBS", "Irritable colon", "irritable colon",
-        "Adaptive colitis", "adaptive colitis",
-        "Membranous colitis", "membranous colitis",
-        "Spastic colon", "spastic colon",
-        "Irritable bowel syndrome", "irritable bowel syndrome",
-        "Mucous colitis", "mucous colitis",
-        "Colon spasm", "colon spasm",
-        "Functional bowel disease", "functional bowel disease",
-        "Nervous colitis", "nervous colitis",
+        "IBS",
+        "Irritable colon",
+        "irritable colon",
+        "Adaptive colitis",
+        "adaptive colitis",
+        "Membranous colitis",
+        "membranous colitis",
+        "Spastic colon",
+        "spastic colon",
+        "Irritable bowel syndrome",
+        "irritable bowel syndrome",
+        "Mucous colitis",
+        "mucous colitis",
+        "Colon spasm",
+        "colon spasm",
+        "Functional bowel disease",
+        "functional bowel disease",
+        "Nervous colitis",
+        "nervous colitis",
         "IBS - Irritable bowel syndrome",
-        "Irritable bowel", "irritable bowel",
-        "Spastic colitis", "spastic colitis",
-        "Irritable colon syndrome", "irritable colon syndrome",
+        "Irritable bowel",
+        "irritable bowel",
+        "Spastic colitis",
+        "spastic colitis",
+        "Irritable colon syndrome",
+        "irritable colon syndrome",
         "IC - Irritable colon",
     ]
     for form in IBS_FORMS:
@@ -437,19 +649,27 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
     HTN_CID = "38458008"
     HTN_FSN = "Hypertensive disorder, systemic arterial (disorder)"
     HTN_FORMS = [
-        "High blood pressure", "high blood pressure",
-        "Hypertensive vascular disease", "hypertensive vascular disease",
-        "Hypertensive vascular degeneration", "hypertensive vascular degeneration",
-        "Hypertension", "hypertension",
+        "High blood pressure",
+        "high blood pressure",
+        "Hypertensive vascular disease",
+        "hypertensive vascular disease",
+        "Hypertensive vascular degeneration",
+        "hypertensive vascular degeneration",
+        "Hypertension",
+        "hypertension",
         "BP - High blood pressure",
-        "Systemic arterial hypertension", "systemic arterial hypertension",
+        "Systemic arterial hypertension",
+        "systemic arterial hypertension",
         "HBP - High blood pressure",
         "HT - Hypertension",
-        "High blood pressure disorder", "high blood pressure disorder",
+        "High blood pressure disorder",
+        "high blood pressure disorder",
         "BP+ - Hypertension",
         "Hypertensive disorder, systemic arterial",
-        "Hypertensive disorder", "hypertensive disorder",
-        "HTN - Hypertension", "HTN",
+        "Hypertensive disorder",
+        "hypertensive disorder",
+        "HTN - Hypertension",
+        "HTN",
         "Hypertensive disorder, systemic arterial (disorder)",
     ]
     for form in HTN_FORMS:
@@ -459,8 +679,11 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
     CVA_CID = "230690007"
     CVA_FSN = "Cerebrovascular accident (disorder)"
     CVA_FORMS = [
-        "CVA", "Cerebrovascular accident", "cerebrovascular accident",
-        "Stroke", "stroke",
+        "CVA",
+        "Cerebrovascular accident",
+        "cerebrovascular accident",
+        "Stroke",
+        "stroke",
     ]
     for form in CVA_FORMS:
         entries.append(_sf(form, CVA_CID, CVA_FSN, "disorder"))
@@ -469,10 +692,14 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
     TIA_CID = "266257000"
     TIA_FSN = "Transient ischemic attack (disorder)"
     TIA_FORMS = [
-        "Transient ischaemic attack", "transient ischaemic attack",
-        "Transient cerebral ischemia", "transient cerebral ischemia",
-        "Transient ischemic attack", "transient ischemic attack",
-        "Transient cerebral ischaemia", "transient cerebral ischaemia",
+        "Transient ischaemic attack",
+        "transient ischaemic attack",
+        "Transient cerebral ischemia",
+        "transient cerebral ischemia",
+        "Transient ischemic attack",
+        "transient ischemic attack",
+        "Transient cerebral ischaemia",
+        "transient cerebral ischaemia",
         "Transient ischemic attack (disorder)",
         "TIA - transient ischemic attack",
         "TIA - transient ischaemic attack",
@@ -485,11 +712,15 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
     LIVER_CID = "197321007"
     LIVER_FSN = "Steatosis of liver (disorder)"
     LIVER_FORMS = [
-        "Steatosis of liver", "steatosis of liver",
+        "Steatosis of liver",
+        "steatosis of liver",
         "Steatosis of liver (disorder)",
-        "Fatty liver", "fatty liver",
-        "Hepatic lipidosis", "hepatic lipidosis",
-        "Steatotic liver disease", "steatotic liver disease",
+        "Fatty liver",
+        "fatty liver",
+        "Hepatic lipidosis",
+        "hepatic lipidosis",
+        "Steatotic liver disease",
+        "steatotic liver disease",
         "SLD - steatotic liver disease",
     ]
     for form in LIVER_FORMS:
@@ -499,14 +730,21 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
     MYC_CID = "3218000"
     MYC_FSN = "Mycosis (disorder)"
     MYC_FORMS = [
-        "Mycosis", "mycosis",
-        "Fungal infection", "fungal infection",
-        "Disease caused by fungus", "disease caused by fungus",
-        "Fungal infectious disease", "fungal infectious disease",
-        "Fungus infection", "fungus infection",
-        "Mycoses", "mycoses",
+        "Mycosis",
+        "mycosis",
+        "Fungal infection",
+        "fungal infection",
+        "Disease caused by fungus",
+        "disease caused by fungus",
+        "Fungal infectious disease",
+        "fungal infectious disease",
+        "Fungus infection",
+        "fungus infection",
+        "Mycoses",
+        "mycoses",
         "Mycosis (disorder)",
-        "Mycotic disease", "mycotic disease",
+        "Mycotic disease",
+        "mycotic disease",
     ]
     for form in MYC_FORMS:
         entries.append(_sf(form, MYC_CID, MYC_FSN, "disorder"))
@@ -518,22 +756,62 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
         ("Never Smoked", "266919005", "Never smoked tobacco (finding)", "finding"),
         ("never smoked", "266919005", "Never smoked tobacco (finding)", "finding"),
         ("Never smoked", "266919005", "Never smoked tobacco (finding)", "finding"),
-        ("Ex-cigarette smoker", "281018007", "Ex-cigarette smoker (finding)", "finding"),
-        ("ex-cigarette smoker", "281018007", "Ex-cigarette smoker (finding)", "finding"),
-        ("Ex cigarette smoker", "281018007", "Ex-cigarette smoker (finding)", "finding"),
+        (
+            "Ex-cigarette smoker",
+            "281018007",
+            "Ex-cigarette smoker (finding)",
+            "finding",
+        ),
+        (
+            "ex-cigarette smoker",
+            "281018007",
+            "Ex-cigarette smoker (finding)",
+            "finding",
+        ),
+        (
+            "Ex cigarette smoker",
+            "281018007",
+            "Ex-cigarette smoker (finding)",
+            "finding",
+        ),
         ("ex smoker", "281018007", "Ex-cigarette smoker (finding)", "finding"),
         ("Ex smoker", "281018007", "Ex-cigarette smoker (finding)", "finding"),
-        ("smoking cannabis", "347841000119106", "Long-term current use of cannabis (situation)", "situation"),
-        ("Smoking cannabis", "347841000119106", "Long-term current use of cannabis (situation)", "situation"),
-        ("cannabis use", "347841000119106", "Long-term current use of cannabis (situation)", "situation"),
+        (
+            "smoking cannabis",
+            "347841000119106",
+            "Long-term current use of cannabis (situation)",
+            "situation",
+        ),
+        (
+            "Smoking cannabis",
+            "347841000119106",
+            "Long-term current use of cannabis (situation)",
+            "situation",
+        ),
+        (
+            "cannabis use",
+            "347841000119106",
+            "Long-term current use of cannabis (situation)",
+            "situation",
+        ),
     ]
     for form, cid, fsn, label in SMOKING:
         entries.append(_sf(form, cid, fsn, label))
 
     # -- 4j: Miscellaneous clinical terms -------------------------------------
     MISC = [
-        ("smear HPV positive", "293201000119102", "History of human papillomavirus infection (situation)", "situation"),
-        ("HPV positive", "293201000119102", "History of human papillomavirus infection (situation)", "situation"),
+        (
+            "smear HPV positive",
+            "293201000119102",
+            "History of human papillomavirus infection (situation)",
+            "situation",
+        ),
+        (
+            "HPV positive",
+            "293201000119102",
+            "History of human papillomavirus infection (situation)",
+            "situation",
+        ),
         ("Lives with partner", "408821002", "Lives with partner (finding)", "finding"),
         ("lives with partner", "408821002", "Lives with partner (finding)", "finding"),
         ("feels like a cyst", "441457006", "Cyst (disorder)", "disorder"),
@@ -550,17 +828,57 @@ def build_surface_forms() -> list[SurfaceFormEntry]:
     # -- 4k: Misspellings & brand names ----------------------------------------
     MISSPELLINGS = [
         ("haematemisis", "8765009", "Hematemesis (disorder)", "disorder"),
-        ("Dehydrocodien", "775592007", "Product containing only dihydrocodeine (medicinal product)", "medicinal_product"),
-        ("dehydrocodien", "775592007", "Product containing only dihydrocodeine (medicinal product)", "medicinal_product"),
-        ("Dehydrocodeine", "775592007", "Product containing only dihydrocodeine (medicinal product)", "medicinal_product"),
-        ("dehydrocodeine", "775592007", "Product containing only dihydrocodeine (medicinal product)", "medicinal_product"),
+        (
+            "Dehydrocodien",
+            "775592007",
+            "Product containing only dihydrocodeine (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "dehydrocodien",
+            "775592007",
+            "Product containing only dihydrocodeine (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "Dehydrocodeine",
+            "775592007",
+            "Product containing only dihydrocodeine (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "dehydrocodeine",
+            "775592007",
+            "Product containing only dihydrocodeine (medicinal product)",
+            "medicinal_product",
+        ),
         ("hoseiry", "228183008", "Hosiery (physical object)", "physical_object"),
         ("hosiery", "228183008", "Hosiery (physical object)", "physical_object"),
         ("Hosiery", "228183008", "Hosiery (physical object)", "physical_object"),
-        ("Fluclox", "775979003", "Product containing only flucloxacillin (medicinal product)", "medicinal_product"),
-        ("fluclox", "775979003", "Product containing only flucloxacillin (medicinal product)", "medicinal_product"),
-        ("flucloxacillin", "775979003", "Product containing only flucloxacillin (medicinal product)", "medicinal_product"),
-        ("Flucloxacillin", "775979003", "Product containing only flucloxacillin (medicinal product)", "medicinal_product"),
+        (
+            "Fluclox",
+            "775979003",
+            "Product containing only flucloxacillin (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "fluclox",
+            "775979003",
+            "Product containing only flucloxacillin (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "flucloxacillin",
+            "775979003",
+            "Product containing only flucloxacillin (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "Flucloxacillin",
+            "775979003",
+            "Product containing only flucloxacillin (medicinal product)",
+            "medicinal_product",
+        ),
         ("Cosmocol", "11980301000001107", "CosmoCol (product)", "medicinal_product"),
         ("cosmocol", "11980301000001107", "CosmoCol (product)", "medicinal_product"),
         ("CosmoCol", "11980301000001107", "CosmoCol (product)", "medicinal_product"),
@@ -619,13 +937,18 @@ def build_fixes() -> list[Phase4Fix]:
 # Phase runner
 # ---------------------------------------------------------------------------
 
+
 def run_phase4(driver, execute: bool, report: Report):
     surface_forms = build_surface_forms()
     ignore_rules = build_ignore_rules()
     fixes = build_fixes()
 
-    logger.info("Phase 4: %d surface forms, %d ignore rules, %d fixes",
-                len(surface_forms), len(ignore_rules), len(fixes))
+    logger.info(
+        "Phase 4: %d surface forms, %d ignore rules, %d fixes",
+        len(surface_forms),
+        len(ignore_rules),
+        len(fixes),
+    )
 
     resolved_texts: set[str] = set()
 
@@ -637,9 +960,13 @@ def run_phase4(driver, execute: bool, report: Report):
             upsert_surface_form(session, entry, execute, report)
             if entry.form not in resolved_texts:
                 batch_resolve(
-                    session, entity_text=entry.form, concept_id=entry.concept_id,
-                    concept_fsn=entry.concept_fsn, assertion=entry.assertion,
-                    execute=execute, report=report,
+                    session,
+                    entity_text=entry.form,
+                    concept_id=entry.concept_id,
+                    concept_fsn=entry.concept_fsn,
+                    assertion=entry.assertion,
+                    execute=execute,
+                    report=report,
                 )
                 resolved_texts.add(entry.form)
 
@@ -649,23 +976,47 @@ def run_phase4(driver, execute: bool, report: Report):
 
         # Fixes (surface form + resolve + entities_json update)
         for fix in fixes:
-            logger.info("  Fix: %r -> %s | %s", fix.entity_text, fix.new_concept_id, fix.new_concept_fsn)
-            sf_entry = _sf(fix.entity_text, fix.new_concept_id, fix.new_concept_fsn,
-                           fix.new_entity_label, assertion=fix.assertion)
+            logger.info(
+                "  Fix: %r -> %s | %s",
+                fix.entity_text,
+                fix.new_concept_id,
+                fix.new_concept_fsn,
+            )
+            sf_entry = _sf(
+                fix.entity_text,
+                fix.new_concept_id,
+                fix.new_concept_fsn,
+                fix.new_entity_label,
+                assertion=fix.assertion,
+            )
             upsert_surface_form(session, sf_entry, execute, report)
 
             batch_resolve(
-                session, entity_text=fix.entity_text, concept_id=fix.new_concept_id,
-                concept_fsn=fix.new_concept_fsn, assertion=fix.assertion,
-                execute=execute, report=report,
+                session,
+                entity_text=fix.entity_text,
+                concept_id=fix.new_concept_id,
+                concept_fsn=fix.new_concept_fsn,
+                assertion=fix.assertion,
+                execute=execute,
+                report=report,
             )
 
-            for from_label in ["finding", "disorder", "situation", "observable_entity", "procedure", "qualifier_value"]:
+            for from_label in [
+                "finding",
+                "disorder",
+                "situation",
+                "observable_entity",
+                "procedure",
+                "qualifier_value",
+            ]:
                 if from_label != fix.new_entity_label:
                     update_entities_json_for_text(
-                        session, entity_text=fix.entity_text,
-                        old_label=from_label, new_label=fix.new_entity_label,
-                        execute=execute, report=report,
+                        session,
+                        entity_text=fix.entity_text,
+                        old_label=from_label,
+                        new_label=fix.new_entity_label,
+                        execute=execute,
+                        report=report,
                     )
 
     logger.info("Phase 4 complete.")
@@ -675,10 +1026,15 @@ def run_phase4(driver, execute: bool, report: Report):
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser(description="HITL Queue Remediation — Phase 4")
-    parser.add_argument("--execute", action="store_true", default=False,
-                        help="Actually write to Neo4j (default: dry-run)")
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        default=False,
+        help="Actually write to Neo4j (default: dry-run)",
+    )
     args = parser.parse_args()
 
     execute = args.execute
@@ -705,8 +1061,12 @@ def main():
         "=== Summary (%s) === "
         "surface_forms=%d | reviews_resolved=%d | entities_json_updated=%d "
         "| ignore_rules=%d | errors=%d",
-        mode, s["surface_forms_added"], s["reviews_resolved"],
-        s["entities_json_updated"], s["ignore_rules_added"], s["errors"],
+        mode,
+        s["surface_forms_added"],
+        s["reviews_resolved"],
+        s["entities_json_updated"],
+        s["ignore_rules_added"],
+        s["errors"],
     )
 
     if report.errors:

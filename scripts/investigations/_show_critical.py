@@ -1,4 +1,5 @@
 """Show all critical-severity missing codes found so far."""
+
 import json
 import sqlite3
 
@@ -16,7 +17,7 @@ print(f"{'PATIENT':<15} {'DATE':<12} {'SEV':<8} {'TERM'}")
 print("-" * 90)
 
 by_patient: dict[str, list] = {}
-for (enc_id, r) in done_rows:
+for enc_id, r in done_rows:
     if not r:
         continue
     d = json.loads(r)
@@ -47,10 +48,7 @@ for patient, entries in sorted(by_patient.items()):
         f"({len(crits)} critical, {len(highs)} high, {total} total) ==="
     )
     for e in sorted(entries, key=lambda x: (x["date"], x["severity"])):
-        print(
-            f"  [{e['severity'].upper():<8}] {e['date']}  "
-            f"{e['term']}"
-        )
+        print(f"  [{e['severity'].upper():<8}] {e['date']}  " f"{e['term']}")
         if e["reason"]:
             print(f"             Reason: {e['reason']}")
 

@@ -96,7 +96,9 @@ def get_llm_cache() -> InMemoryLLMCache:
         max_size = int(os.getenv("LLM_CACHE_SIZE", "10000"))
         ttl = int(os.getenv("LLM_CACHE_TTL_SECONDS", "0")) or None
         _global_cache = InMemoryLLMCache(max_size=max_size, ttl_seconds=ttl)
-        logger.info("Initialized LLM cache: max_size=%d ttl=%s", max_size, ttl or "none")
+        logger.info(
+            "Initialized LLM cache: max_size=%d ttl=%s", max_size, ttl or "none"
+        )
     return _global_cache
 
 

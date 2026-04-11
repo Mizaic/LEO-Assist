@@ -1,15 +1,18 @@
 """Inspect what is actually stored in the terminology server for specific
 surface forms. Tries several API patterns to find the stored mappings.
 """
+
 import sys, requests, json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.auth.service_auth import get_service_auth_header
 
@@ -41,7 +44,14 @@ for form in FORMS:
         "/terminology/surface-forms/mappings",
     ]
     for path in paths:
-        status, body = try_get(path, params={"form": form} if "mappings" not in path and path == "/terminology/surface-forms" else None)
+        status, body = try_get(
+            path,
+            params=(
+                {"form": form}
+                if "mappings" not in path and path == "/terminology/surface-forms"
+                else None
+            ),
+        )
         if status not in (404, 405, 422):
             print(f"  [{status}] GET {path} (form={form})")
             print(f"    {json.dumps(body)[:300]}")
@@ -62,10 +72,12 @@ for form in ["NAFLD", "type 2 diabetes"]:
         results = body.get("results", body)
         hits = results.get(form, results.get(form.lower(), []))
         for h in hits[:3]:
-            print(f"    concept_id={h.get('snomed_concept_id')} "
-                  f"score={h.get('score', '?')} "
-                  f"source={h.get('source', '?')} "
-                  f"term={h.get('snomed_term', '?')[:50]}")
+            print(
+                f"    concept_id={h.get('snomed_concept_id')} "
+                f"score={h.get('score', '?')} "
+                f"source={h.get('source', '?')} "
+                f"term={h.get('snomed_term', '?')[:50]}"
+            )
     print()
 
 # 3. Try DELETE endpoints to remove wrong mappings

@@ -1,4 +1,5 @@
 """Deep-dive on the current remediation run - what are we actually learning?"""
+
 import sqlite3, pathlib, json
 from collections import Counter
 
@@ -46,7 +47,7 @@ rows = conn.execute("""
     SELECT concept_id, sonnet_reason, applied
     FROM remediated ORDER BY rowid DESC LIMIT 300
 """).fetchall()
-recent_skips = [r for r in rows if not r[2] and r[1] == 'terminology_not_found']
+recent_skips = [r for r in rows if not r[2] and r[1] == "terminology_not_found"]
 skip_terms = Counter(r[0] for r in recent_skips)
 print(f"  Skipped (no term) in last 300: {len(recent_skips)}")
 for term, n in skip_terms.most_common(15):
@@ -98,13 +99,21 @@ print("=" * 70)
 enc = conn.execute("SELECT COUNT(*) FROM enc_processed").fetchone()[0]
 total = conn.execute("SELECT COUNT(*) FROM remediated").fetchone()[0]
 applied = conn.execute("SELECT COUNT(*) FROM remediated WHERE applied=1").fetchone()[0]
-add_applied = conn.execute("SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=1").fetchone()[0]
-del_applied = conn.execute("SELECT COUNT(*) FROM remediated WHERE action='delete' AND applied=1").fetchone()[0]
-upd_applied = conn.execute("SELECT COUNT(*) FROM remediated WHERE action='update_assertion' AND applied=1").fetchone()[0]
+add_applied = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=1"
+).fetchone()[0]
+del_applied = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE action='delete' AND applied=1"
+).fetchone()[0]
+upd_applied = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE action='update_assertion' AND applied=1"
+).fetchone()[0]
 
 print(f"  Encounters processed : {enc}/10136 ({100*enc/10136:.1f}%)")
 print(f"  Total proposed       : {total}")
-print(f"  Applied total        : {applied}  (ADD={add_applied}  DEL={del_applied}  UPD={upd_applied})")
+print(
+    f"  Applied total        : {applied}  (ADD={add_applied}  DEL={del_applied}  UPD={upd_applied})"
+)
 print(f"  Remaining encounters : ~{10136-enc}")
 
 conn.close()

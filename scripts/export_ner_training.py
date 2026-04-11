@@ -22,6 +22,7 @@ Usage
     python scripts/export_ner_training.py --output-dir /tmp/ner_export
     python scripts/export_ner_training.py --dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -63,7 +64,13 @@ _GOLD_SOURCES = {"reviewer_correction", "approved", "gold"}
 _SILVER_SOURCES = {"provisional", "terminology_api", "llm_auto_detected"}
 _ALLOWED_SOURCES = _GOLD_SOURCES | _SILVER_SOURCES
 
-_SAFETY_CRITICAL_TAGS = {"cancer", "oncology", "safeguarding", "mental_health", "suicide"}
+_SAFETY_CRITICAL_TAGS = {
+    "cancer",
+    "oncology",
+    "safeguarding",
+    "mental_health",
+    "suicide",
+}
 _SAFETY_CRITICAL_ASSERTIONS = {"present", "historical"}
 _SAFETY_MIN = 20
 _IMBALANCE_MIN = 50
@@ -110,7 +117,9 @@ LIMIT 2000
 # PII detection helpers
 # ---------------------------------------------------------------------------
 
-_ENC_PATTERN = re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.I)
+_ENC_PATTERN = re.compile(
+    r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.I
+)
 _PID_PATTERN = re.compile(r"\bpatient[_\-]?id\s*[=:]\s*[^\s,]+", re.I)
 
 
@@ -128,6 +137,7 @@ def _post_export_scan(path: Path) -> list[str]:
 # Assertion extraction
 # ---------------------------------------------------------------------------
 
+
 def _extract_assertion(context_json: str) -> str:
     try:
         ctx = json.loads(context_json)
@@ -139,6 +149,7 @@ def _extract_assertion(context_json: str) -> str:
 # ---------------------------------------------------------------------------
 # Build JSONL records
 # ---------------------------------------------------------------------------
+
 
 def _build_record(
     sentence: str,
@@ -165,12 +176,14 @@ def _build_record(
 # Stratification report
 # ---------------------------------------------------------------------------
 
+
 def _build_stratification_report(
     gold_rows: list[dict],
     silver_rows: list[dict],
     neg_count: int,
 ) -> str:
     from collections import Counter
+
     tag_counts: Counter = Counter()
     assertion_counts: Counter = Counter()
     safety_counts: Counter = Counter()
@@ -224,8 +237,10 @@ def _build_stratification_report(
 # Main export logic
 # ---------------------------------------------------------------------------
 
+
 def _is_safety_critical_blocked(rows: list[dict]) -> bool:
     from collections import Counter
+
     counts: Counter = Counter()
     for row in rows:
         tag = str(row.get("semantic_tag") or "").lower()
@@ -243,9 +258,12 @@ def export(output_dir: Path, dry_run: bool) -> None:
     try:
         logger.info("Querying DOCUMENTS with evidence sentences ...")
         with client.session() as session:
-            rows = [dict(r) for r in session.run(
-                _Q_DOCUMENTS, allowed_sources=list(_ALLOWED_SOURCES)
-            )]
+            rows = [
+                dict(r)
+                for r in session.run(
+                    _Q_DOCUMENTS, allowed_sources=list(_ALLOWED_SOURCES)
+                )
+            ]
             logger.info("Querying negative sentences ...")
             neg_rows = [dict(r) for r in session.run(_Q_NEGATIVE_SENTENCES)]
     finally:
@@ -265,9 +283,9 @@ def export(output_dir: Path, dry_run: bool) -> None:
         quarantine = output_dir / "ner_phi_quarantine.txt"
         quarantine.write_text("\n".join(phi_violations), encoding="utf-8")
         logger.error(
-            "evidence.phi_detected count=%d -- export ABORTED. "
-            "Quarantine file: %s",
-            len(phi_violations), quarantine,
+            "evidence.phi_detected count=%d -- export ABORTED. " "Quarantine file: %s",
+            len(phi_violations),
+            quarantine,
         )
         sys.exit(1)
 
@@ -318,7 +336,9 @@ def export(output_dir: Path, dry_run: bool) -> None:
     if dry_run:
         logger.info(
             "[DRY RUN] Would write gold=%d silver=%d neg=%d",
-            len(gold_records), len(silver_records), len(neg_records),
+            len(gold_records),
+            len(silver_records),
+            len(neg_records),
         )
         return
 
@@ -337,15 +357,26 @@ def export(output_dir: Path, dry_run: bool) -> None:
         if violations:
             logger.error(
                 "Post-export scan found ID patterns in %s:\n%s",
-                path, "\n".join(violations[:5]),
+                path,
+                "\n".join(violations[:5]),
             )
             gold_path.unlink(missing_ok=True)
             silver_path.unlink(missing_ok=True)
             sys.exit(1)
 
     report = _build_stratification_report(
-        [r for g in grouped.values() if g["source"] in _GOLD_SOURCES for r in g["spans"]],
-        [r for g in grouped.values() if g["source"] not in _GOLD_SOURCES for r in g["spans"]],
+        [
+            r
+            for g in grouped.values()
+            if g["source"] in _GOLD_SOURCES
+            for r in g["spans"]
+        ],
+        [
+            r
+            for g in grouped.values()
+            if g["source"] not in _GOLD_SOURCES
+            for r in g["spans"]
+        ],
         len(neg_records),
     )
     report_path.write_text(report, encoding="utf-8")
@@ -368,7 +399,10 @@ def export(output_dir: Path, dry_run: bool) -> None:
 
     logger.info(
         "Export complete: gold=%d silver=%d neg=%d safety_blocked=%s",
-        len(gold_records), len(silver_records), len(neg_records), safety_blocked,
+        len(gold_records),
+        len(silver_records),
+        len(neg_records),
+        safety_blocked,
     )
     logger.info("Output: %s", output_dir.resolve())
 

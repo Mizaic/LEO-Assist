@@ -1,4 +1,5 @@
 """Find pleural-related concepts that actually exist in Neo4j."""
+
 import os
 import sys
 from pathlib import Path
@@ -22,15 +23,13 @@ pwd = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 driver = GraphDatabase.driver(uri, auth=(user, pwd))
 with driver.session() as s:
-    rows = list(s.run(
-        """
+    rows = list(s.run("""
         MATCH (c:Concept)
         WHERE toLower(c.fsn) CONTAINS 'pleural'
         RETURN c.id AS cid, c.fsn AS fsn, c.semantic_tag AS tag
         ORDER BY c.fsn
         LIMIT 30
-        """
-    ))
+        """))
 driver.close()
 
 print(f"Found {len(rows)} pleural concepts in graph:\n")

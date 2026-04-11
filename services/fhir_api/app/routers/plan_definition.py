@@ -28,7 +28,9 @@ def _normalize_plan_resource(resource: Dict[str, Any], source: str) -> Dict[str,
     return normalized
 
 
-def _load_plan_record(client: KnowledgeGraphClient, plan_id: str) -> Optional[Dict[str, Any]]:
+def _load_plan_record(
+    client: KnowledgeGraphClient, plan_id: str
+) -> Optional[Dict[str, Any]]:
     rows = client.run(
         "MATCH (pd:PlanDefinition {id: $pid}) "
         "RETURN pd.rawJson AS rawJson, coalesce(pd.source, 'user') AS source LIMIT 1",
@@ -43,6 +45,7 @@ def _load_plan_record(client: KnowledgeGraphClient, plan_id: str) -> Optional[Di
 
 
 # ── Search ─────────────────────────────────────────────────────────────────────
+
 
 @router.get("/PlanDefinition")
 def search_plan_definitions(
@@ -59,10 +62,14 @@ def search_plan_definitions(
             "RETURN pd.rawJson AS rawJson, coalesce(pd.source, 'user') AS source "
             "ORDER BY pd.name "
             "SKIP $offset LIMIT $limit",
-            status=status, offset=_offset, limit=_count,
+            status=status,
+            offset=_offset,
+            limit=_count,
         )
         items = [
-            _normalize_plan_resource(json.loads(r["rawJson"]), r.get("source") or "user")
+            _normalize_plan_resource(
+                json.loads(r["rawJson"]), r.get("source") or "user"
+            )
             for r in rows
             if r.get("rawJson")
         ]
@@ -87,6 +94,7 @@ def search_plan_definitions(
 
 # ── Single fetch ───────────────────────────────────────────────────────────────
 
+
 @router.get("/PlanDefinition/{plan_id}")
 def get_plan_definition(plan_id: str):
     client = KnowledgeGraphClient()
@@ -100,6 +108,7 @@ def get_plan_definition(plan_id: str):
 
 
 # ── Version history ────────────────────────────────────────────────────────────
+
 
 @router.get("/PlanDefinition/{plan_id}/_history")
 def get_plan_definition_history(plan_id: str):
@@ -134,10 +143,12 @@ def get_plan_definition_history(plan_id: str):
                 "lastUpdated": r.get("publishedAt") or "",
                 "versionNotes": r.get("versionNotes") or "",
             }
-            entries.append({
-                "fullUrl": f"PlanDefinition/{plan_id}/_history/{r['versionId']}",
-                "resource": resource,
-            })
+            entries.append(
+                {
+                    "fullUrl": f"PlanDefinition/{plan_id}/_history/{r['versionId']}",
+                    "resource": resource,
+                }
+            )
 
         return {
             "resourceType": "Bundle",
@@ -151,6 +162,7 @@ def get_plan_definition_history(plan_id: str):
 
 # ── Restore a previous version ─────────────────────────────────────────────────
 
+
 @router.post("/PlanDefinition/{plan_id}/_restore/{version_id}")
 def restore_plan_definition_version(plan_id: str, version_id: int):
     """Restore a previous published snapshot to live. Creates a new version entry."""
@@ -159,10 +171,13 @@ def restore_plan_definition_version(plan_id: str, version_id: int):
         rows = client.run(
             "MATCH (:PlanDefinition {id: $pid})-[:HAS_VERSION]->(v:PlanDefinitionVersion {versionId: $vid}) "
             "RETURN v.rawJson AS rawJson LIMIT 1",
-            pid=plan_id, vid=version_id,
+            pid=plan_id,
+            vid=version_id,
         )
         if not rows or not rows[0].get("rawJson"):
-            raise HTTPException(404, f"Version {version_id} not found for PlanDefinition/{plan_id}")
+            raise HTTPException(
+                404, f"Version {version_id} not found for PlanDefinition/{plan_id}"
+            )
         raw: Dict[str, Any] = json.loads(rows[0]["rawJson"])
     finally:
         client.close()
@@ -175,6 +190,7 @@ def restore_plan_definition_version(plan_id: str, version_id: int):
 
 # ── Create (new pathway) ───────────────────────────────────────────────────────
 
+
 @router.post("/PlanDefinition", status_code=201)
 def create_plan_definition(resource: Dict[str, Any]):
     """Create a new PlanDefinition with a server-generated ID and return it."""
@@ -185,6 +201,7 @@ def create_plan_definition(resource: Dict[str, Any]):
 
 
 # ── Upsert (create / update) ───────────────────────────────────────────────────
+
 
 @router.put("/PlanDefinition/{plan_id}")
 def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
@@ -288,6 +305,7 @@ def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, A
 
 # ── Delete ─────────────────────────────────────────────────────────────────────
 
+
 @router.delete("/PlanDefinition/{plan_id}", status_code=204)
 def delete_plan_definition(plan_id: str):
     client = KnowledgeGraphClient()
@@ -295,7 +313,9 @@ def delete_plan_definition(plan_id: str):
         resource = _load_plan_record(client, plan_id)
         if not resource:
             raise HTTPException(404, f"PlanDefinition/{plan_id} not found")
-        if resource.get("source") == "seed" or bool((resource.get("meta") or {}).get("seeded")):
+        if resource.get("source") == "seed" or bool(
+            (resource.get("meta") or {}).get("seeded")
+        ):
             raise HTTPException(403, "Seeded pathways cannot be deleted from the UI.")
         client.run(
             "MATCH (pd:PlanDefinition {id: $pid}) "
@@ -309,6 +329,7 @@ def delete_plan_definition(plan_id: str):
 
 
 # ── $apply ─────────────────────────────────────────────────────────────────────
+
 
 @router.post("/PlanDefinition/{plan_id}/$apply")
 def apply_plan_definition(plan_id: str, body: Dict[str, Any]):
@@ -338,7 +359,8 @@ def apply_plan_definition(plan_id: str, body: Dict[str, Any]):
             "       a.trigger_name AS triggerName, a.condition AS condition, "
             "       ad.subgraphId AS subgraphId, ad.id AS activityId "
             "ORDER BY a.sequence",
-            pid=plan_id, evt=event_type,
+            pid=plan_id,
+            evt=event_type,
         )
         matched = [
             {
@@ -365,6 +387,7 @@ def apply_plan_definition(plan_id: str, body: Dict[str, Any]):
 
 
 # ── Internal helpers ───────────────────────────────────────────────────────────
+
 
 def _ui_actions_to_fhir(
     ui_actions: List[Dict[str, Any]],
@@ -417,7 +440,9 @@ def _ui_actions_to_fhir(
     return fhir_actions
 
 
-def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str, Any]) -> None:
+def _upsert_action(
+    client: KnowledgeGraphClient, plan_id: str, action: Dict[str, Any]
+) -> None:
     # canvas_id is the user-defined node ID (e.g. "step_extract").  It is only
     # unique *within* a plan; across plans it can collide.  We therefore store
     # Action nodes in Neo4j with a plan-scoped composite id
@@ -435,7 +460,9 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
     elif not isinstance(trigger_name, str):
         trigger_name = str(trigger_name) if trigger_name else ""
 
-    definition_ref = action.get("definitionCanonical") or action.get("definitionUri", "")
+    definition_ref = action.get("definitionCanonical") or action.get(
+        "definitionUri", ""
+    )
     related_defs = action.get("relatedAction") or []
     related_ids = [r.get("actionId", "") for r in related_defs]
     # Store the original canvas-level actionId values in relatedActionEdges so
@@ -509,5 +536,6 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
             "MATCH (a:Action {id: $scoped_id}) "
             "MATCH (ad:ActivityDefinition {id: $adid}) "
             "MERGE (a)-[:USES_DEFINITION]->(ad)",
-            scoped_id=scoped_id, adid=activity_id,
+            scoped_id=scoped_id,
+            adid=activity_id,
         )

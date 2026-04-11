@@ -20,12 +20,9 @@ from app.services.context_reconciler import reconcile_context
 from app.services.neo4j_store import create_review_task, upsert_candidate
 from app.services.term_patcher import batch_patch_surface_terms
 
-
 ROOT = Path(__file__).resolve().parents[4]
 SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
-TERM_RE = re.compile(
-    r"\b([A-Za-z][A-Za-z\-]{2,}(?:\s+[A-Za-z][A-Za-z\-]{2,}){0,3})\b"
-)
+TERM_RE = re.compile(r"\b([A-Za-z][A-Za-z\-]{2,}(?:\s+[A-Za-z][A-Za-z\-]{2,}){0,3})\b")
 READ_CODE_RE = re.compile(r"\(([A-Za-z0-9.]{3,8})\)")
 
 _DEFAULT_WORKERS = 4
@@ -111,32 +108,40 @@ class TrainingCreatorService:
         stats = PipelineStats()
         workers = max(1, min(workers, _MAX_WORKERS))
 
-        self._emit(progress_hook, {
-            "type": "run_started",
-            "run_id": run_id,
-            "patient_count": len(patient_ids),
-            "dry_run": dry_run,
-            "workers": workers,
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "run_started",
+                "run_id": run_id,
+                "patient_count": len(patient_ids),
+                "dry_run": dry_run,
+                "workers": workers,
+            },
+        )
 
         all_work: list[tuple[str, dict]] = []
         for patient_id in patient_ids:
-            encounters = self._fetch_encounters(
-                patient_id, max_encounters_per_patient
+            encounters = self._fetch_encounters(patient_id, max_encounters_per_patient)
+            self._emit(
+                progress_hook,
+                {
+                    "type": "patient_started",
+                    "run_id": run_id,
+                    "patient_id": patient_id,
+                    "encounter_count": len(encounters),
+                },
             )
-            self._emit(progress_hook, {
-                "type": "patient_started",
-                "run_id": run_id,
-                "patient_id": patient_id,
-                "encounter_count": len(encounters),
-            })
             for enc in encounters:
                 all_work.append((patient_id, enc))
 
         if workers <= 1 or len(all_work) <= 1:
             for patient_id, enc in all_work:
                 self._process_encounter(
-                    patient_id, enc, run_id, dry_run, stats,
+                    patient_id,
+                    enc,
+                    run_id,
+                    dry_run,
+                    stats,
                     progress_hook=progress_hook,
                 )
         else:
@@ -144,11 +149,14 @@ class TrainingCreatorService:
                 all_work, run_id, dry_run, stats, workers, progress_hook
             )
 
-        self._emit(progress_hook, {
-            "type": "run_completed",
-            "run_id": run_id,
-            **stats.snapshot(),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "run_completed",
+                "run_id": run_id,
+                **stats.snapshot(),
+            },
+        )
         return run_id, stats
 
     # ------------------------------------------------------------------
@@ -179,7 +187,11 @@ class TrainingCreatorService:
                 wid = _next_worker_id()
                 fut = pool.submit(
                     self._process_encounter,
-                    patient_id, enc, run_id, dry_run, stats,
+                    patient_id,
+                    enc,
+                    run_id,
+                    dry_run,
+                    stats,
                     progress_hook=progress_hook,
                     worker_id=wid,
                 )
@@ -189,13 +201,16 @@ class TrainingCreatorService:
                 exc = fut.exception()
                 if exc:
                     pid, e = futures[fut]
-                    self._emit(progress_hook, {
-                        "type": "encounter_error",
-                        "run_id": run_id,
-                        "patient_id": pid,
-                        "encounter_id": str(e.get("encounter_id")),
-                        "error": str(exc),
-                    })
+                    self._emit(
+                        progress_hook,
+                        {
+                            "type": "encounter_error",
+                            "run_id": run_id,
+                            "patient_id": pid,
+                            "encounter_id": str(e.get("encounter_id")),
+                            "error": str(exc),
+                        },
+                    )
 
     # ------------------------------------------------------------------
     # Single-encounter pipeline
@@ -221,35 +236,50 @@ class TrainingCreatorService:
         if worker_id is not None:
             base["worker_id"] = worker_id
 
-        self._emit(progress_hook, {
-            "type": "encounter_started", **base, **stats.snapshot(),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "encounter_started",
+                **base,
+                **stats.snapshot(),
+            },
+        )
         self._emit(progress_hook, {"type": "encounter_loaded", **base})
 
         candidate = self._build_candidate(
-            patient_id, encounter, run_id=run_id,
-            progress_hook=progress_hook, extra=base,
+            patient_id,
+            encounter,
+            run_id=run_id,
+            progress_hook=progress_hook,
+            extra=base,
         )
 
         self._emit(progress_hook, {"type": "validation_started", **base})
         result = self.validate_encounter_payload(candidate)
         candidate["hard_fail_reasons"] = result.hard_fails
         candidate["warning_reasons"] = result.warnings
-        self._emit(progress_hook, {
-            "type": "validation_completed", **base,
-            "hard_fail_count": len(result.hard_fails),
-            "warning_count": len(result.warnings),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "validation_completed",
+                **base,
+                "hard_fail_count": len(result.hard_fails),
+                "warning_count": len(result.warnings),
+            },
+        )
 
         stats.record(bool(result.hard_fails), bool(result.warnings))
 
-        self._persist_candidate(
-            candidate, result, dry_run, base, stats, progress_hook
-        )
+        self._persist_candidate(candidate, result, dry_run, base, stats, progress_hook)
 
-        self._emit(progress_hook, {
-            "type": "encounter_processed", **base, **stats.snapshot(),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "encounter_processed",
+                **base,
+                **stats.snapshot(),
+            },
+        )
 
     # ------------------------------------------------------------------
     # Build candidate
@@ -270,11 +300,15 @@ class TrainingCreatorService:
 
         self._emit(progress_hook, {"type": "deidentify_started", **ctx})
         deidentified = self.deidentify_text(encounter_text)
-        self._emit(progress_hook, {
-            "type": "deidentify_completed", **ctx,
-            "input_chars": len(encounter_text),
-            "output_chars": len(deidentified),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "deidentify_completed",
+                **ctx,
+                "input_chars": len(encounter_text),
+                "output_chars": len(deidentified),
+            },
+        )
 
         # Keep one mutable candidate record per patient+encounter.
         candidate_id = str(
@@ -287,7 +321,9 @@ class TrainingCreatorService:
         deidentified_hash = self.stable_hash({"text": deidentified})
 
         sentences = self._build_sentences(
-            deidentified, progress_hook=progress_hook, extra=ctx,
+            deidentified,
+            progress_hook=progress_hook,
+            extra=ctx,
         )
 
         event = self.build_audit_event(
@@ -356,20 +392,26 @@ class TrainingCreatorService:
                 progress_hook=progress_hook,
                 extra=ctx,
             )
-            sentences.append({
-                "sentence_id": f"s{sentence_idx}",
-                "start": start,
-                "end": end,
-                "text": text,
-                "section": None,
-                "terms": terms,
-            })
+            sentences.append(
+                {
+                    "sentence_id": f"s{sentence_idx}",
+                    "start": start,
+                    "end": end,
+                    "text": text,
+                    "section": None,
+                    "terms": terms,
+                }
+            )
             sentence_idx += 1
 
-        self._emit(progress_hook, {
-            "type": "sentence_split_completed", **ctx,
-            "sentence_count": len(sentences),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "sentence_split_completed",
+                **ctx,
+                "sentence_count": len(sentences),
+            },
+        )
         return sentences
 
     # ------------------------------------------------------------------
@@ -395,24 +437,37 @@ class TrainingCreatorService:
             patched_map = batch_patch_surface_terms(surface_texts, session)
 
         terms = self._assemble_terms(
-            matches, patched_map, sentence_text,
-            sentence_id, sentence_start,
+            matches,
+            patched_map,
+            sentence_text,
+            sentence_id,
+            sentence_start,
         )
         read_terms = self._extract_read_codes(
-            sentence_text, sentence_id, sentence_start,
+            sentence_text,
+            sentence_id,
+            sentence_start,
             start_idx=len(terms),
             seen={m["lowered"] for m in matches},
         )
         terms.extend(read_terms)
 
-        self._emit(progress_hook, {
-            "type": "coding_resolve_completed", **ctx,
-            "resolution_count": len(surface_texts),
-        })
-        self._emit(progress_hook, {
-            "type": "term_extraction_completed", **ctx,
-            "term_count": len(terms),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "coding_resolve_completed",
+                **ctx,
+                "resolution_count": len(surface_texts),
+            },
+        )
+        self._emit(
+            progress_hook,
+            {
+                "type": "term_extraction_completed",
+                **ctx,
+                "term_count": len(terms),
+            },
+        )
         return terms
 
     # ------------------------------------------------------------------
@@ -429,12 +484,14 @@ class TrainingCreatorService:
             if lowered in seen:
                 continue
             seen.add(lowered)
-            matches.append({
-                "idx": idx,
-                "text": text,
-                "lowered": lowered,
-                "match": m,
-            })
+            matches.append(
+                {
+                    "idx": idx,
+                    "text": text,
+                    "lowered": lowered,
+                    "match": m,
+                }
+            )
         return matches
 
     @staticmethod
@@ -457,24 +514,29 @@ class TrainingCreatorService:
         for entry in matches:
             m = entry["match"]
             patched = patched_map.get(entry["text"], {})
-            coding = patched.get("coding", {
-                "snomed_concept_id": None,
-                "read_code": None,
-                "snomed_term": None,
-                "score": 0.0,
-                "source": "neo4j_hybrid",
-            })
-            terms.append({
-                "term_id": f"{sentence_id}_t{entry['idx']}",
-                "text": entry["text"],
-                "span_start": sentence_start + m.start(1),
-                "span_end": sentence_start + m.end(1),
-                "context": ctx_dict,
-                "coding": coding,
-                "evidence_text": sentence_text,
-                "extraction_method": "surface_patch_v2",
-                "extraction_confidence": coding.get("score", 0.0),
-            })
+            coding = patched.get(
+                "coding",
+                {
+                    "snomed_concept_id": None,
+                    "read_code": None,
+                    "snomed_term": None,
+                    "score": 0.0,
+                    "source": "neo4j_hybrid",
+                },
+            )
+            terms.append(
+                {
+                    "term_id": f"{sentence_id}_t{entry['idx']}",
+                    "text": entry["text"],
+                    "span_start": sentence_start + m.start(1),
+                    "span_end": sentence_start + m.end(1),
+                    "context": ctx_dict,
+                    "coding": coding,
+                    "evidence_text": sentence_text,
+                    "extraction_method": "surface_patch_v2",
+                    "extraction_confidence": coding.get("score", 0.0),
+                }
+            )
         return terms
 
     @staticmethod
@@ -502,23 +564,25 @@ class TrainingCreatorService:
             if key in seen:
                 continue
             seen.add(key)
-            terms.append({
-                "term_id": f"{sentence_id}_t{idx}",
-                "text": read_code,
-                "span_start": sentence_start + m.start(1),
-                "span_end": sentence_start + m.end(1),
-                "context": ctx_dict,
-                "coding": {
-                    "snomed_concept_id": None,
-                    "read_code": read_code,
-                    "snomed_term": None,
-                    "score": 0.6,
-                    "source": "inline_read_code",
-                },
-                "evidence_text": sentence_text,
-                "extraction_method": "inline_read_code",
-                "extraction_confidence": 0.6,
-            })
+            terms.append(
+                {
+                    "term_id": f"{sentence_id}_t{idx}",
+                    "text": read_code,
+                    "span_start": sentence_start + m.start(1),
+                    "span_end": sentence_start + m.end(1),
+                    "context": ctx_dict,
+                    "coding": {
+                        "snomed_concept_id": None,
+                        "read_code": read_code,
+                        "snomed_term": None,
+                        "score": 0.6,
+                        "source": "inline_read_code",
+                    },
+                    "evidence_text": sentence_text,
+                    "extraction_method": "inline_read_code",
+                    "extraction_confidence": 0.6,
+                }
+            )
         return terms
 
     def _fetch_encounters(
@@ -560,10 +624,14 @@ class TrainingCreatorService:
                     priority=priority,
                     warning_count=len(result.warnings),
                 )
-        self._emit(progress_hook, {
-            "type": "persist_completed", **base,
-            "queued": not bool(result.hard_fails),
-        })
+        self._emit(
+            progress_hook,
+            {
+                "type": "persist_completed",
+                **base,
+                "queued": not bool(result.hard_fails),
+            },
+        )
 
     @staticmethod
     def _emit(

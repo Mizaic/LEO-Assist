@@ -14,6 +14,7 @@ Bad items from pass 1:
   confusion                        -> 40917007 Clouded consciousness (verify)
   reflux                           -> 235595009 GERD disorder (acceptable, verify)
 """
+
 from __future__ import annotations
 
 import json
@@ -53,36 +54,40 @@ def top_id(hits: list[dict]) -> tuple[str, str]:
 
 targeted = [
     # (label, query, semantic_tag)
-    ("decrease in appetite (for decreased/not eating)",   "decrease in appetite",  "finding"),
-    ("vomiting plain",                                    "vomiting",              "finding"),
-    ("lymphadenopathy",                                   "lymphadenopathy",       "finding"),
-    ("lymph node enlarged",                               "enlarged lymph node",   "finding"),
-    ("skin eruption / rash",                              "skin eruption",         "finding"),
-    ("lump / body mass finding",                          "lump",                  "finding"),
-    ("bruising (non-qualifier)",                          "bruising",              "finding"),
-    ("depressed mood",                                    "depressed mood",        "finding"),
-    ("low mood (direct)",                                 "low mood",              "finding"),
-    ("rectal haemorrhage",                                "rectal haemorrhage",    "finding"),
-    ("confusion / confusional state",                     "confusion",             "finding"),
-    ("confusional state",                                 "confusional state",     "finding"),
+    (
+        "decrease in appetite (for decreased/not eating)",
+        "decrease in appetite",
+        "finding",
+    ),
+    ("vomiting plain", "vomiting", "finding"),
+    ("lymphadenopathy", "lymphadenopathy", "finding"),
+    ("lymph node enlarged", "enlarged lymph node", "finding"),
+    ("skin eruption / rash", "skin eruption", "finding"),
+    ("lump / body mass finding", "lump", "finding"),
+    ("bruising (non-qualifier)", "bruising", "finding"),
+    ("depressed mood", "depressed mood", "finding"),
+    ("low mood (direct)", "low mood", "finding"),
+    ("rectal haemorrhage", "rectal haemorrhage", "finding"),
+    ("confusion / confusional state", "confusion", "finding"),
+    ("confusional state", "confusional state", "finding"),
     # verify reflux finding vs disorder
-    ("reflux finding",                                    "reflux",                "finding"),
+    ("reflux finding", "reflux", "finding"),
     # structured result phrases
-    ("blood in urine - dipstick",                         "blood in urine",        "finding"),
-    ("glycosuria",                                        "glycosuria",            "finding"),
-    ("proteinuria",                                       "proteinuria",           "finding"),
-    ("nitrites in urine",                                 "nitrites in urine",     "finding"),
-    ("leucocytes in urine",                               "leucocytes in urine",   "finding"),
-    ("elevated C-reactive protein",                       "elevated CRP",          "finding"),
-    ("elevated PSA",                                      "elevated PSA",          "finding"),
-    ("low haemoglobin",                                   "low haemoglobin",       "finding"),
-    ("reduced eGFR",                                      "reduced eGFR",          "finding"),
-    ("elevated HbA1c",                                    "elevated HbA1c",        "finding"),
-    ("raised creatinine",                                 "raised creatinine",     "finding"),
-    ("thrombocytopenia",                                  "thrombocytopenia",      "finding"),
-    ("anaemia",                                           "anaemia",               "finding"),
-    ("neutrophilia",                                      "neutrophilia",          "finding"),
-    ("eosinophilia",                                      "eosinophilia",          "finding"),
+    ("blood in urine - dipstick", "blood in urine", "finding"),
+    ("glycosuria", "glycosuria", "finding"),
+    ("proteinuria", "proteinuria", "finding"),
+    ("nitrites in urine", "nitrites in urine", "finding"),
+    ("leucocytes in urine", "leucocytes in urine", "finding"),
+    ("elevated C-reactive protein", "elevated CRP", "finding"),
+    ("elevated PSA", "elevated PSA", "finding"),
+    ("low haemoglobin", "low haemoglobin", "finding"),
+    ("reduced eGFR", "reduced eGFR", "finding"),
+    ("elevated HbA1c", "elevated HbA1c", "finding"),
+    ("raised creatinine", "raised creatinine", "finding"),
+    ("thrombocytopenia", "thrombocytopenia", "finding"),
+    ("anaemia", "anaemia", "finding"),
+    ("neutrophilia", "neutrophilia", "finding"),
+    ("eosinophilia", "eosinophilia", "finding"),
 ]
 
 for label, query, tag in targeted:

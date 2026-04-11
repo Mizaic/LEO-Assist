@@ -12,4 +12,3 @@ def test_gold_label_id_uses_text_and_entities() -> None:
     e1 = '[{"text":"chest pain"}]'
     e2 = '[{"text":"chest discomfort"}]'
     assert _gold_label_id("note", e1) != _gold_label_id("note", e2)
-

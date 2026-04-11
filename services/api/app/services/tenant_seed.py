@@ -164,7 +164,11 @@ def _seed_roles(client: PatientGraphClient) -> None:
     if not new_roles:
         logger.debug("[Tenant] All roles already present; skipping role seed")
         return
-    logger.info("[Tenant] Seeding %d new roles: %s", len(new_roles), [r["name"] for r in new_roles])
+    logger.info(
+        "[Tenant] Seeding %d new roles: %s",
+        len(new_roles),
+        [r["name"] for r in new_roles],
+    )
     for role in new_roles:
         client.run(
             "MERGE (r:Role {name: $name})"
@@ -224,7 +228,10 @@ def _seed_platform_admins(client: PatientGraphClient) -> None:
     rows = client.run("MATCH (pr:Practitioner) RETURN count(pr) AS cnt")
     existing = rows[0]["cnt"] if rows else 0
     if existing > 0:
-        logger.debug("[Tenant] %d Practitioner(s) already present; skipping platform admin seed", existing)
+        logger.debug(
+            "[Tenant] %d Practitioner(s) already present; skipping platform admin seed",
+            existing,
+        )
         return
     admins = _parse_seed_admins()
     for email, name in admins:
@@ -262,7 +269,10 @@ def _seed_prompt_configs(client: PatientGraphClient) -> None:
         rows = client.run("MATCH (p:PromptConfig) RETURN count(p) AS cnt")
         existing = rows[0]["cnt"] if rows else 0
         if existing > 0:
-            logger.debug("[Tenant] %d PromptConfig(s) already present; skipping prompt seed", existing)
+            logger.debug(
+                "[Tenant] %d PromptConfig(s) already present; skipping prompt seed",
+                existing,
+            )
             return
         from libs.cypher.prompt_config_queries import UPSERT_SEED_PROMPT
         from libs.prompts.registry import list_prompts, _REGISTRY
@@ -283,7 +293,9 @@ def _seed_prompt_configs(client: PatientGraphClient) -> None:
                 few_shot_examples="[]",
                 max_few_shot=10,
             )
-        logger.info("[Tenant] PromptConfig nodes seeded (%d prompts)", len(list_prompts()))
+        logger.info(
+            "[Tenant] PromptConfig nodes seeded (%d prompts)", len(list_prompts())
+        )
     except Exception as exc:
         logger.warning("[Tenant] PromptConfig seed failed (non-fatal): %s", exc)
 

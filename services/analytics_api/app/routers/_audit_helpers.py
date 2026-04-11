@@ -17,9 +17,7 @@ logger = logging.getLogger(__name__)
 # Match templates
 # ---------------------------------------------------------------------------
 
-_EPISODE_EXCLUDE = (
-    "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
-)
+_EPISODE_EXCLUDE = "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
 
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {id: $org}) "
@@ -162,9 +160,7 @@ def _fetch_benchmark_metrics(
         if practice_rows and (org_ods_code or org_id):
             ods = org_ods_code or org_id
             for mid, prows in practice_rows.items():
-                matched = next(
-                    (pr for pr in prows if pr.get("scope_id") == ods), None
-                )
+                matched = next((pr for pr in prows if pr.get("scope_id") == ods), None)
                 if matched is None:
                     norm_id = (org_id or "").lower().replace(" ", "").replace("-", "")
                     matched = next(
@@ -233,9 +229,7 @@ def _run_multi_scope(
         org_ods_code = _resolve_org_ods_code(effective_org, client)
         if alliance_id:
             a_base, a_params = _ORG_PATIENT_MATCH, {"org": alliance_id}
-            a_base, a_params = _add_date_filters(
-                a_base, a_params, date_from, date_to
-            )
+            a_base, a_params = _add_date_filters(a_base, a_params, date_from, date_to)
             try:
                 alliance_data = query_fn(a_base, a_params, client)
             except Exception:

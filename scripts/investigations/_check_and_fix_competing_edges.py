@@ -5,6 +5,7 @@ This script:
   1. Shows ALL MAPS_TO edges for each form
   2. Deletes all edges EXCEPT the one pointing to the correct concept
 """
+
 from __future__ import annotations
 
 import os
@@ -34,22 +35,22 @@ pwd = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 # form -> correct concept ID
 CORRECT: dict[str, str] = {
     "direct access upper gastrointestinal endoscopy": "76009000",
-    "upper gastrointestinal endoscopy":               "76009000",
-    "direct access endoscopy":                        "76009000",
-    "OGD":                                            "76009000",
-    "gastroscopy":                                    "76009000",
-    "PSA test":                                       "63476009",
-    "PSA":                                            "63476009",
-    "urgent ultrasound":                              "16310003",
-    "direct access ultrasound":                       "16310003",
-    "CA125":                                          "909121000000107",
-    "CA 125":                                         "909121000000107",
-    "CA-125":                                         "909121000000107",
-    "urine dipstick":                                 "167226008",
-    "full blood count":                               "26604007",
-    "FBC":                                            "26604007",
-    "faecal occult blood test":                       "104435004",
-    "FOBT":                                           "104435004",
+    "upper gastrointestinal endoscopy": "76009000",
+    "direct access endoscopy": "76009000",
+    "OGD": "76009000",
+    "gastroscopy": "76009000",
+    "PSA test": "63476009",
+    "PSA": "63476009",
+    "urgent ultrasound": "16310003",
+    "direct access ultrasound": "16310003",
+    "CA125": "909121000000107",
+    "CA 125": "909121000000107",
+    "CA-125": "909121000000107",
+    "urine dipstick": "167226008",
+    "full blood count": "26604007",
+    "FBC": "26604007",
+    "faecal occult blood test": "104435004",
+    "FOBT": "104435004",
 }
 
 _FETCH = """
@@ -93,8 +94,10 @@ def main() -> None:
             print(f"  {form!r}")
             for e in edges:
                 marker = "KEEP" if e["cid"] == correct_cid else "DEL "
-                print(f"    [{marker}] {e['cid']} | {(e['fsn'] or '?')[:55]} "
-                      f"| conf={e['conf']} | prov={e['prov']}")
+                print(
+                    f"    [{marker}] {e['cid']} | {(e['fsn'] or '?')[:55]} "
+                    f"| conf={e['conf']} | prov={e['prov']}"
+                )
 
             if competing:
                 rows = list(s.run(_DELETE_EXCEPT, form=form, keep_cid=correct_cid))
@@ -113,26 +116,32 @@ def main() -> None:
     print("\nVerification via live resolver:")
     verify = [
         ("direct access upper gastrointestinal endoscopy", "76009000"),
-        ("PSA test",                                       "63476009"),
-        ("urgent ultrasound",                              "16310003"),
-        ("CA125",                                          "909121000000107"),
-        ("urine dipstick",                                 "167226008"),
-        ("full blood count",                               "26604007"),
-        ("faecal occult blood test",                       "104435004"),
-        ("OGD",                                            "76009000"),
-        ("gastroscopy",                                    "76009000"),
+        ("PSA test", "63476009"),
+        ("urgent ultrasound", "16310003"),
+        ("CA125", "909121000000107"),
+        ("urine dipstick", "167226008"),
+        ("full blood count", "26604007"),
+        ("faecal occult blood test", "104435004"),
+        ("OGD", "76009000"),
+        ("gastroscopy", "76009000"),
     ]
     try:
-        r = requests.post("http://localhost:8001/terminology/resolve",
-                          json={"terms": [t for t, _ in verify], "top_k": 1},
-                          timeout=60)
+        r = requests.post(
+            "http://localhost:8001/terminology/resolve",
+            json={"terms": [t for t, _ in verify], "top_k": 1},
+            timeout=60,
+        )
         if r.ok:
             results = r.json().get("results", {})
             passed = 0
             for term, expected in verify:
                 candidates = results.get(term, [])
                 got = candidates[0].get("snomed_concept_id") if candidates else "?"
-                got_term = (candidates[0].get("snomed_term") or "?")[:50] if candidates else "?"
+                got_term = (
+                    (candidates[0].get("snomed_term") or "?")[:50]
+                    if candidates
+                    else "?"
+                )
                 status = "PASS" if got == expected else "FAIL"
                 if status == "PASS":
                     passed += 1

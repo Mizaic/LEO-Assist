@@ -5,6 +5,7 @@ Queries:
   2. Show the Term nodes that match these texts in SNOMED
   3. Show what the resolver's EXACT_SURFACE_FORM_QUERY actually returns
 """
+
 from __future__ import annotations
 
 import os
@@ -30,13 +31,13 @@ user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 pwd = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 CHECK_FORMS = [
-    ("PSA test",             "63476009"),
-    ("urgent ultrasound",    "16310003"),
-    ("CA125",                "909121000000107"),
-    ("urine dipstick",       "167226008"),
-    ("full blood count",     "26604007"),
+    ("PSA test", "63476009"),
+    ("urgent ultrasound", "16310003"),
+    ("CA125", "909121000000107"),
+    ("urine dipstick", "167226008"),
+    ("full blood count", "26604007"),
     ("faecal occult blood test", "104435004"),
-    ("gastroscopy",          "76009000"),
+    ("gastroscopy", "76009000"),
 ]
 
 # -- Raw SNOMED Term matches (what the Term lookup branch finds) ------
@@ -85,8 +86,10 @@ def main() -> None:
             print(f"  SurfaceForm (case-insensitive, {len(sf_ci_rows)} rows):")
             for r in sf_ci_rows:
                 hit = "**CORRECT**" if r["cid"] == want_cid else "WRONG"
-                print(f"    [{hit}] {r['cid']} conf={r['conf']} prov={r['prov']}"
-                      f" sf_text={r['sf_text']!r}")
+                print(
+                    f"    [{hit}] {r['cid']} conf={r['conf']} prov={r['prov']}"
+                    f" sf_text={r['sf_text']!r}"
+                )
 
             # SurfaceForm - case-sensitive exact (as resolver uses)
             sf_cs_rows = list(s.run(_SF_EXACT, text=form))

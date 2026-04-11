@@ -16,7 +16,6 @@ from fastapi.testclient import TestClient
 
 from app.routers.domains import router
 
-
 # ── Test app setup ───────────────────────────────────────────────────────
 
 
@@ -48,12 +47,26 @@ class TestDomainSourceFilter:
     def test_returns_all_domains_when_no_filter(self, test_client):
         """GET /domains without source param returns all domains."""
         domains = [
-            {"id": "cancer_audit", "name": "Cancer Audit", "description": "", "source": "platform", "subdomain_count": 3},
-            {"id": "nice:cancer", "name": "Cancer", "description": "", "source": "nice", "subdomain_count": 0},
+            {
+                "id": "cancer_audit",
+                "name": "Cancer Audit",
+                "description": "",
+                "source": "platform",
+                "subdomain_count": 3,
+            },
+            {
+                "id": "nice:cancer",
+                "name": "Cancer",
+                "description": "",
+                "source": "nice",
+                "subdomain_count": 0,
+            },
         ]
 
-        with patch("app.routers.domains.KnowledgeGraphClient") as mock_cls, \
-             patch("app.routers.domains._ensure_default_domain"):
+        with (
+            patch("app.routers.domains.KnowledgeGraphClient") as mock_cls,
+            patch("app.routers.domains._ensure_default_domain"),
+        ):
             mock_cls.return_value = _kg_run_mock(domains)
             resp = test_client.get("/domains")
 
@@ -64,11 +77,19 @@ class TestDomainSourceFilter:
     def test_source_filter_passed_to_cypher(self, test_client):
         """GET /domains?source=nice passes source param to Neo4j Cypher."""
         nice_domain = [
-            {"id": "nice:cancer", "name": "Cancer", "description": "", "source": "nice", "subdomain_count": 0},
+            {
+                "id": "nice:cancer",
+                "name": "Cancer",
+                "description": "",
+                "source": "nice",
+                "subdomain_count": 0,
+            },
         ]
 
-        with patch("app.routers.domains.KnowledgeGraphClient") as mock_cls, \
-             patch("app.routers.domains._ensure_default_domain"):
+        with (
+            patch("app.routers.domains.KnowledgeGraphClient") as mock_cls,
+            patch("app.routers.domains._ensure_default_domain"),
+        ):
             mock_client = MagicMock()
             mock_client.run.return_value = nice_domain
             mock_client.close = MagicMock()
@@ -87,11 +108,19 @@ class TestDomainSourceFilter:
     def test_domain_response_includes_source_field(self, test_client):
         """GET /domains returns source field in each domain."""
         domains = [
-            {"id": "cancer_audit", "name": "Cancer Audit", "description": "", "source": "platform", "subdomain_count": 2},
+            {
+                "id": "cancer_audit",
+                "name": "Cancer Audit",
+                "description": "",
+                "source": "platform",
+                "subdomain_count": 2,
+            },
         ]
 
-        with patch("app.routers.domains.KnowledgeGraphClient") as mock_cls, \
-             patch("app.routers.domains._ensure_default_domain"):
+        with (
+            patch("app.routers.domains.KnowledgeGraphClient") as mock_cls,
+            patch("app.routers.domains._ensure_default_domain"),
+        ):
             mock_cls.return_value = _kg_run_mock(domains)
             resp = test_client.get("/domains")
 
@@ -123,7 +152,9 @@ class TestDomainDeleteProtection:
         """DELETE should return 403 for platform-sourced domains."""
         with patch("app.routers.domains.KnowledgeGraphClient") as mock_cls:
             mock_client = MagicMock()
-            mock_client.run.return_value = [{"id": "cancer_audit", "source": "platform"}]
+            mock_client.run.return_value = [
+                {"id": "cancer_audit", "source": "platform"}
+            ]
             mock_client.close = MagicMock()
             mock_cls.return_value = mock_client
 

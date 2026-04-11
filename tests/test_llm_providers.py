@@ -97,9 +97,14 @@ class TestInvokeWithFallback:
         mock_azure = AsyncMock()
         mock_azure.ainvoke.return_value = "azure_result"
 
-        with patch("libs.llm_client.providers._USE_AZURE_PRIMARY", False), \
-             patch("libs.llm_client.providers.get_azure_model", return_value=mock_azure), \
-             patch("libs.llm_client.providers.invoke_with_retry", side_effect=Exception("bedrock down")):
+        with (
+            patch("libs.llm_client.providers._USE_AZURE_PRIMARY", False),
+            patch("libs.llm_client.providers.get_azure_model", return_value=mock_azure),
+            patch(
+                "libs.llm_client.providers.invoke_with_retry",
+                side_effect=Exception("bedrock down"),
+            ),
+        ):
             result = await invoke_with_fallback(model, ["msg"])
         assert result == "azure_result"
 
@@ -110,8 +115,10 @@ class TestInvokeWithFallback:
         mock_azure = AsyncMock()
         mock_azure.ainvoke.return_value = "azure_primary"
 
-        with patch("libs.llm_client.providers._USE_AZURE_PRIMARY", True), \
-             patch("libs.llm_client.providers.get_azure_model", return_value=mock_azure):
+        with (
+            patch("libs.llm_client.providers._USE_AZURE_PRIMARY", True),
+            patch("libs.llm_client.providers.get_azure_model", return_value=mock_azure),
+        ):
             result = await invoke_with_fallback(MagicMock(), ["msg"])
         assert result == "azure_primary"
 
@@ -123,6 +130,7 @@ class TestGetAzureModel:
         monkeypatch.delenv("AZURE_OPENAI_API_KEY", raising=False)
 
         from libs.llm_client.providers import get_azure_model
+
         with pytest.raises(ValueError, match="credentials not configured"):
             get_azure_model()
 
@@ -131,18 +139,22 @@ class TestBedrockModelId:
 
     def test_default_model_id(self):
         from libs.llm_client.providers import _bedrock_model_id
+
         mid = _bedrock_model_id()
         assert "anthropic" in mid or "claude" in mid
 
 
 # ── LLMClient tool_config tests (VT-LEO-AI-047, DI-LEO-AI-054) ───────────────
 
+
 class TestLLMClientToolUse:
     """Tests for LLMClient.converse() tool_config and LLMResponse.tool_uses.
     Covers VT-047-TC-001 and TC-002 from the factory perspective.
     """
 
-    def _make_bedrock_response(self, content: list, stop_reason: str = "end_turn") -> dict:
+    def _make_bedrock_response(
+        self, content: list, stop_reason: str = "end_turn"
+    ) -> dict:
         return {
             "output": {"message": {"content": content}},
             "usage": {"inputTokens": 20, "outputTokens": 10},
@@ -155,11 +167,15 @@ class TestLLMClientToolUse:
         """
         from libs.llm_client.factory import LLMClient
 
-        with patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry, \
-             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()):
+        with (
+            patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry,
+            patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()),
+        ):
             mock_retry.return_value = self._make_bedrock_response([{"text": "verdict"}])
             client = LLMClient(provider="aws", model_id="test-model")
-            resp = client.converse(system="s", messages=[{"role": "user", "content": "t"}])
+            resp = client.converse(
+                system="s", messages=[{"role": "user", "content": "t"}]
+            )
 
         _, kwargs = mock_retry.call_args
         assert "toolConfig" not in kwargs
@@ -172,8 +188,10 @@ class TestLLMClientToolUse:
 
         tool_config = {"tools": [{"toolSpec": {"name": "test_tool"}}]}
 
-        with patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry, \
-             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()):
+        with (
+            patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry,
+            patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()),
+        ):
             mock_retry.return_value = self._make_bedrock_response([{"text": "ok"}])
             client = LLMClient(provider="aws", model_id="test-model")
             resp = client.converse(
@@ -197,8 +215,10 @@ class TestLLMClientToolUse:
             }
         }
 
-        with patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry, \
-             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()):
+        with (
+            patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry,
+            patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()),
+        ):
             mock_retry.return_value = self._make_bedrock_response(
                 [tool_use_block], stop_reason="tool_use"
             )
@@ -218,8 +238,10 @@ class TestLLMClientToolUse:
         """LLMResponse collects both text and tool_use content blocks."""
         from libs.llm_client.factory import LLMClient
 
-        with patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry, \
-             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()):
+        with (
+            patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry,
+            patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()),
+        ):
             mock_retry.return_value = self._make_bedrock_response(
                 [
                     {"text": "Thinking about this..."},
@@ -262,14 +284,22 @@ class TestLLMClientToolUse:
         """cached_input_tokens is parsed from canonical Bedrock usage key."""
         from libs.llm_client.factory import LLMClient
 
-        with patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry, \
-             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()):
+        with (
+            patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry,
+            patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()),
+        ):
             mock_retry.return_value = {
                 "output": {"message": {"content": [{"text": "ok"}]}},
-                "usage": {"inputTokens": 20, "outputTokens": 10, "cacheReadInputTokens": 7},
+                "usage": {
+                    "inputTokens": 20,
+                    "outputTokens": 10,
+                    "cacheReadInputTokens": 7,
+                },
                 "stopReason": "end_turn",
             }
             client = LLMClient(provider="aws", model_id="test-model")
-            resp = client.converse(system="s", messages=[{"role": "user", "content": "t"}])
+            resp = client.converse(
+                system="s", messages=[{"role": "user", "content": "t"}]
+            )
 
         assert resp.cached_input_tokens == 7

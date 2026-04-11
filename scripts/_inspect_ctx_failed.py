@@ -1,15 +1,20 @@
 """Inspect entities with context_detection_failed flag."""
+
 import sys, os, json, warnings
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 warnings.filterwarnings("ignore")
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 from neo4j import GraphDatabase
 
-d = GraphDatabase.driver(os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD")))
+d = GraphDatabase.driver(
+    os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD"))
+)
 with d.session() as s:
     rows = s.run(
         "MATCH (t:TrainingLabel) WHERE t.include = true AND t.entities_json IS NOT NULL "
@@ -49,6 +54,7 @@ with d.session() as s:
 
     # Check assertion distribution of flagged entities
     from collections import Counter
+
     assertions = Counter()
     for r in ctx_failed_labels:
         ents = json.loads(r["ej"] or "[]")

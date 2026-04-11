@@ -72,7 +72,9 @@ def _json_request(
     if payload is not None:
         data = json.dumps(payload).encode("utf-8")
         headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url=url, method=method.upper(), data=data, headers=headers)
+    req = urllib.request.Request(
+        url=url, method=method.upper(), data=data, headers=headers
+    )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode("utf-8", errors="replace")
@@ -127,7 +129,11 @@ def _logic_leaf_count(node: dict[str, Any] | None) -> int:
     kind = str(node.get("kind") or "").upper()
     if kind == "CONCEPT":
         return 1
-    return sum(_logic_leaf_count(ch) for ch in (node.get("children") or []) if isinstance(ch, dict))
+    return sum(
+        _logic_leaf_count(ch)
+        for ch in (node.get("children") or [])
+        if isinstance(ch, dict)
+    )
 
 
 def _collect_search_term_lengths(node: dict[str, Any] | None, out: list[int]) -> None:
@@ -175,7 +181,9 @@ def _derive_failure_categories(
         ]
     ).lower()
     categories: list[str] = []
-    if VAGUE_RE.search(text) or any(tok in text for tok in ("suggestive of", "compatible with", "consistent with")):
+    if VAGUE_RE.search(text) or any(
+        tok in text for tok in ("suggestive of", "compatible with", "consistent with")
+    ):
         categories.append("vague_composite_findings")
     if INVESTIGATION_RE.search(text):
         categories.append("investigation_mapping")
@@ -194,7 +202,9 @@ def _derive_failure_categories(
     return sorted(set(categories))
 
 
-def _run_case(base_url: str, case: RecommendationCase, timeout: float) -> dict[str, Any]:
+def _run_case(
+    base_url: str, case: RecommendationCase, timeout: float
+) -> dict[str, Any]:
     encoded = urllib.parse.quote(case.rec_id, safe="")
     url = f"{base_url.rstrip('/')}/guidance/rules/test/{encoded}"
     started = time.perf_counter()
@@ -207,14 +217,23 @@ def _run_case(base_url: str, case: RecommendationCase, timeout: float) -> dict[s
     errors = body.get("errors") if isinstance(body.get("errors"), list) else []
     error_prefixes = _extract_error_prefixes([str(e) for e in errors])
     coded = body.get("coded_criteria")
-    raw = body.get("raw_criteria") if isinstance(body.get("raw_criteria"), dict) else None
+    raw = (
+        body.get("raw_criteria") if isinstance(body.get("raw_criteria"), dict) else None
+    )
     would_write = bool(body.get("would_write", False))
-    logic_tree = coded.get("logic_tree") if isinstance(coded, dict) and isinstance(coded.get("logic_tree"), dict) else None
+    logic_tree = (
+        coded.get("logic_tree")
+        if isinstance(coded, dict) and isinstance(coded.get("logic_tree"), dict)
+        else None
+    )
     leaf_count = _logic_leaf_count(logic_tree)
 
     search_term_lengths: list[int] = []
     if raw:
-        _collect_search_term_lengths(raw.get("logic_tree") if isinstance(raw.get("logic_tree"), dict) else None, search_term_lengths)
+        _collect_search_term_lengths(
+            raw.get("logic_tree") if isinstance(raw.get("logic_tree"), dict) else None,
+            search_term_lengths,
+        )
 
     if status >= 500:
         outcome = "http_error"
@@ -262,10 +281,18 @@ def _run_case_direct(case: RecommendationCase, subgraph: Any) -> dict[str, Any]:
     started = time.perf_counter()
     if not case.verbatim.strip():
         status = 422
-        body: dict[str, Any] = {"detail": "Recommendation has no verbatim text stored.", "coded_criteria": None, "errors": []}
+        body: dict[str, Any] = {
+            "detail": "Recommendation has no verbatim text stored.",
+            "coded_criteria": None,
+            "errors": [],
+        }
     elif not case.is_normative:
         status = 422
-        body = {"detail": "Recommendation is non-normative cross-reference.", "coded_criteria": None, "errors": []}
+        body = {
+            "detail": "Recommendation is non-normative cross-reference.",
+            "coded_criteria": None,
+            "errors": [],
+        }
     else:
         try:
             result = subgraph.invoke(
@@ -287,12 +314,19 @@ def _run_case_direct(case: RecommendationCase, subgraph: Any) -> dict[str, Any]:
                 "raw_criteria": result.get("raw_criteria"),
                 "errors": result.get("errors") or [],
                 "would_write": result.get("coded_criteria") is not None
-                and not any("terminology_api_unavailable" in str(e) for e in (result.get("errors") or [])),
+                and not any(
+                    "terminology_api_unavailable" in str(e)
+                    for e in (result.get("errors") or [])
+                ),
             }
             status = 200 if body["coded_criteria"] is not None else 422
         except Exception as exc:
             status = 500
-            body = {"detail": f"Extraction pipeline error: {exc}", "coded_criteria": None, "errors": [str(exc)]}
+            body = {
+                "detail": f"Extraction pipeline error: {exc}",
+                "coded_criteria": None,
+                "errors": [str(exc)],
+            }
     elapsed_ms = int((time.perf_counter() - started) * 1000)
     if not isinstance(body, dict):
         body = {"detail": "No JSON body returned."}
@@ -300,14 +334,23 @@ def _run_case_direct(case: RecommendationCase, subgraph: Any) -> dict[str, Any]:
     errors = body.get("errors") if isinstance(body.get("errors"), list) else []
     error_prefixes = _extract_error_prefixes([str(e) for e in errors])
     coded = body.get("coded_criteria")
-    raw = body.get("raw_criteria") if isinstance(body.get("raw_criteria"), dict) else None
+    raw = (
+        body.get("raw_criteria") if isinstance(body.get("raw_criteria"), dict) else None
+    )
     would_write = bool(body.get("would_write", False))
-    logic_tree = coded.get("logic_tree") if isinstance(coded, dict) and isinstance(coded.get("logic_tree"), dict) else None
+    logic_tree = (
+        coded.get("logic_tree")
+        if isinstance(coded, dict) and isinstance(coded.get("logic_tree"), dict)
+        else None
+    )
     leaf_count = _logic_leaf_count(logic_tree)
 
     search_term_lengths: list[int] = []
     if raw:
-        _collect_search_term_lengths(raw.get("logic_tree") if isinstance(raw.get("logic_tree"), dict) else None, search_term_lengths)
+        _collect_search_term_lengths(
+            raw.get("logic_tree") if isinstance(raw.get("logic_tree"), dict) else None,
+            search_term_lengths,
+        )
 
     if status >= 500:
         outcome = "http_error"
@@ -351,7 +394,9 @@ def _run_case_direct(case: RecommendationCase, subgraph: Any) -> dict[str, Any]:
     }
 
 
-def _load_recommendations(base_url: str, code: str, timeout: float) -> list[RecommendationCase]:
+def _load_recommendations(
+    base_url: str, code: str, timeout: float
+) -> list[RecommendationCase]:
     url = f"{base_url.rstrip('/')}/nice/{urllib.parse.quote(code)}/subgraph"
     status, body = _json_request("GET", url, timeout=timeout)
     if status >= 400 or not isinstance(body, dict):
@@ -448,7 +493,9 @@ def _write_reports(
         "failure_category_counts": dict(category_counts),
         "results": results,
     }
-    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     lines = [
         f"# {code} guidance coverage audit",
@@ -476,7 +523,11 @@ def _write_reports(
 
     lines += ["", "## Non-success recommendations", ""]
     for row in [r for r in results if r["outcome"] != "success"]:
-        errs = ", ".join(row["error_prefixes"]) if row["error_prefixes"] else (row.get("detail") or "")
+        errs = (
+            ", ".join(row["error_prefixes"])
+            if row["error_prefixes"]
+            else (row.get("detail") or "")
+        )
         lines.append(
             f"- `{row['rec_id']}` — {row['outcome']} (HTTP {row['status_code']})"
             + (f" — {errs}" if errs else "")
@@ -493,7 +544,9 @@ def _write_reports(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Audit NG12 guidance extraction coverage.")
+    parser = argparse.ArgumentParser(
+        description="Audit NG12 guidance extraction coverage."
+    )
     parser.add_argument("--code", default="NG12", help="Guideline code (default: NG12)")
     parser.add_argument(
         "--api-base",
@@ -506,8 +559,12 @@ def main() -> int:
         default="direct",
         help="http: call API endpoints, direct: call router functions in-process (default: direct)",
     )
-    parser.add_argument("--timeout-seconds", type=float, default=300.0, help="Per-request timeout.")
-    parser.add_argument("--workers", type=int, default=3, help="Parallel workers for extraction tests.")
+    parser.add_argument(
+        "--timeout-seconds", type=float, default=300.0, help="Per-request timeout."
+    )
+    parser.add_argument(
+        "--workers", type=int, default=3, help="Parallel workers for extraction tests."
+    )
     parser.add_argument(
         "--output-dir",
         default="reports/guidance_coverage",
@@ -532,17 +589,26 @@ def main() -> int:
         subgraph = None
     normative = [r for r in recs if r.is_normative and r.verbatim.strip()]
     if not normative:
-        raise RuntimeError(f"No normative recommendations with verbatim text found for {code}.")
+        raise RuntimeError(
+            f"No normative recommendations with verbatim text found for {code}."
+        )
 
-    print(f"Loaded {len(recs)} recommendations ({len(normative)} normative with text) for {code}.")
+    print(
+        f"Loaded {len(recs)} recommendations ({len(normative)} normative with text) for {code}."
+    )
     started = time.perf_counter()
 
     results: list[dict[str, Any]] = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, int(args.workers))) as pool:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=max(1, int(args.workers))
+    ) as pool:
         if args.mode == "direct":
             futs = [pool.submit(_run_case_direct, rec, subgraph) for rec in normative]
         else:
-            futs = [pool.submit(_run_case, args.api_base, rec, args.timeout_seconds) for rec in normative]
+            futs = [
+                pool.submit(_run_case, args.api_base, rec, args.timeout_seconds)
+                for rec in normative
+            ]
         for idx, fut in enumerate(concurrent.futures.as_completed(futs), start=1):
             row = fut.result()
             results.append(row)
@@ -556,7 +622,9 @@ def main() -> int:
 
     elapsed = int((time.perf_counter() - started) * 1000)
     output_dir = Path(args.output_dir)
-    json_path, md_path = _write_reports(code, sorted(results, key=lambda r: r["rec_id"]), output_dir)
+    json_path, md_path = _write_reports(
+        code, sorted(results, key=lambda r: r["rec_id"]), output_dir
+    )
     print(f"Completed in {elapsed} ms")
     print(f"JSON report: {json_path}")
     print(f"Markdown report: {md_path}")
@@ -569,4 +637,3 @@ if __name__ == "__main__":
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         raise
-

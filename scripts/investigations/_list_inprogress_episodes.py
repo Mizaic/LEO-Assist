@@ -5,6 +5,7 @@ episodes alongside.
 Run:
     python scripts/investigations/_list_inprogress_episodes.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -15,9 +16,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 _Q_OPEN = """
@@ -67,6 +70,7 @@ def _age_label(ref_str: str | None) -> str:
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     open_rows = client.run(_Q_OPEN) or []
@@ -93,13 +97,17 @@ def main() -> None:
     spec_seen_count = 0
     mixed_patients = 0  # patients with BOTH open and closed episodes
 
-    print(f"{'PID':<14} {'SITE':<22} {'REF DATE':<12} {'AGE':<8} {'SPEC':<5} {'OTHER EPISODES'}")
+    print(
+        f"{'PID':<14} {'SITE':<22} {'REF DATE':<12} {'AGE':<8} {'SPEC':<5} {'OTHER EPISODES'}"
+    )
     print("-" * 90)
 
     for pid in sorted(pids):
         open_eps = open_by_pid[pid]
         all_eps = all_by_pid[pid]
-        closed_eps = [e for e in all_eps if e["status"] in ("completed", "closed_benign")]
+        closed_eps = [
+            e for e in all_eps if e["status"] in ("completed", "closed_benign")
+        ]
         has_closed = bool(closed_eps)
         if has_closed:
             mixed_patients += 1
@@ -118,8 +126,7 @@ def main() -> None:
             # Describe other episodes on same patient
             if closed_eps:
                 other = ", ".join(
-                    f"{e['status']}:{(e.get('site') or '?')[:12]}"
-                    for e in closed_eps
+                    f"{e['status']}:{(e.get('site') or '?')[:12]}" for e in closed_eps
                 )
             else:
                 other = "--"
@@ -133,7 +140,9 @@ def main() -> None:
     print(f"  Total in_progress episodes : {len(open_rows)}")
     print(f"  Distinct patients          : {len(pids)}")
     print(f"  Patients with OTHER closed/completed episodes (mixed) : {mixed_patients}")
-    print(f"  Patients with ONLY in_progress episodes               : {len(pids) - mixed_patients}")
+    print(
+        f"  Patients with ONLY in_progress episodes               : {len(pids) - mixed_patients}"
+    )
     print()
     print("  Referral age distribution:")
     for bucket in ("<3 mo", "3-6 mo", "6-12 mo", "1-2 yr", ">2 yr", "no-ref-date", "?"):

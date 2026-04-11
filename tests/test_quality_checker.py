@@ -30,13 +30,21 @@ class TestQualityIssue:
 class TestQualityReport:
 
     def test_to_dict(self):
-        from services.analysis_worker.app.analyzers.quality_checker import QualityReport, QualityIssue
+        from services.analysis_worker.app.analyzers.quality_checker import (
+            QualityReport,
+            QualityIssue,
+        )
 
         report = QualityReport(total_checked=10, compliant_count=8)
-        report.issues.append(QualityIssue(
-            episode_id="ep-1", issue_type="outlier", severity="high",
-            description="test", suggested_action="test",
-        ))
+        report.issues.append(
+            QualityIssue(
+                episode_id="ep-1",
+                issue_type="outlier",
+                severity="high",
+                description="test",
+                suggested_action="test",
+            )
+        )
         d = report.to_dict()
         assert d["total_checked"] == 10
         assert d["compliant_count"] == 8
@@ -58,7 +66,10 @@ class TestRunQualityChecks:
         instance = MockPG.return_value
         instance.run.return_value = []
 
-        from services.analysis_worker.app.analyzers.quality_checker import run_quality_checks
+        from services.analysis_worker.app.analyzers.quality_checker import (
+            run_quality_checks,
+        )
+
         report = run_quality_checks()
 
         assert report.total_checked == 0
@@ -79,7 +90,10 @@ class TestRunQualityChecks:
             [],  # _check_coding_contradictions
         ]
 
-        from services.analysis_worker.app.analyzers.quality_checker import run_quality_checks
+        from services.analysis_worker.app.analyzers.quality_checker import (
+            run_quality_checks,
+        )
+
         report = run_quality_checks()
 
         assert report.total_checked == 5

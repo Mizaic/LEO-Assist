@@ -21,7 +21,9 @@ _COHORT_STATUS_DEFAULT = "confirmed"
 _COHORT_STATUSES_DEFAULT = ["confirmed", "excluded", "inconclusive"]
 
 
-def _expand_params_for_cypher(params: Dict[str, Any], required_param_names: List[str]) -> Dict[str, Any]:
+def _expand_params_for_cypher(
+    params: Dict[str, Any], required_param_names: List[str]
+) -> Dict[str, Any]:
     """Expand request params with Cypher param names and sensible defaults.
 
     The cypher_generator produces params like _cohort_status, f0_referral_date_start,
@@ -40,13 +42,29 @@ def _expand_params_for_cypher(params: Dict[str, Any], required_param_names: List
 
     # Map date params: period/referral date range -> f*_referral_date_start/end
     for name in required_param_names:
-        if name.endswith("_referral_date_start") and period_start and name not in expanded:
+        if (
+            name.endswith("_referral_date_start")
+            and period_start
+            and name not in expanded
+        ):
             expanded[name] = period_start
-        elif name.endswith("_referral_date_end") and period_end and name not in expanded:
+        elif (
+            name.endswith("_referral_date_end") and period_end and name not in expanded
+        ):
             expanded[name] = period_end
-        elif name.endswith("_start") and "referral" in name and period_start and name not in expanded:
+        elif (
+            name.endswith("_start")
+            and "referral" in name
+            and period_start
+            and name not in expanded
+        ):
             expanded[name] = period_start
-        elif name.endswith("_end") and "referral" in name and period_end and name not in expanded:
+        elif (
+            name.endswith("_end")
+            and "referral" in name
+            and period_end
+            and name not in expanded
+        ):
             expanded[name] = period_end
 
     # _cohort_status: single value from ce_status or default
@@ -57,7 +75,10 @@ def _expand_params_for_cypher(params: Dict[str, Any], required_param_names: List
             expanded["_cohort_status"] = _COHORT_STATUS_DEFAULT
 
     # _cohort_statuses: list from ce_status or default
-    if "_cohort_statuses" in required_param_names and "_cohort_statuses" not in expanded:
+    if (
+        "_cohort_statuses" in required_param_names
+        and "_cohort_statuses" not in expanded
+    ):
         if len(ce_status_list) > 1:
             expanded["_cohort_statuses"] = ce_status_list
         else:
@@ -65,9 +86,15 @@ def _expand_params_for_cypher(params: Dict[str, Any], required_param_names: List
 
     # f*_status: from ce_status (first) or default
     for name in required_param_names:
-        if name.endswith("_status") and name != "_cohort_status" and name != "_cohort_statuses":
+        if (
+            name.endswith("_status")
+            and name != "_cohort_status"
+            and name != "_cohort_statuses"
+        ):
             if name not in expanded:
-                expanded[name] = ce_status_list[0] if ce_status_list else _COHORT_STATUS_DEFAULT
+                expanded[name] = (
+                    ce_status_list[0] if ce_status_list else _COHORT_STATUS_DEFAULT
+                )
 
     return expanded
 
@@ -79,12 +106,16 @@ def get_measure(measure_id: str) -> Optional[Dict[str, Any]]:
             "MATCH (m:Measure {id: $mid}) RETURN m.rawJson AS rawJson LIMIT 1",
             mid=measure_id,
         )
-        return json.loads(rows[0]["rawJson"]) if rows and rows[0].get("rawJson") else None
+        return (
+            json.loads(rows[0]["rawJson"]) if rows and rows[0].get("rawJson") else None
+        )
     finally:
         client.close()
 
 
-def upsert_measure(measure_id: str, resource: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def upsert_measure(
+    measure_id: str, resource: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
     client = KnowledgeGraphClient()
     try:
         client.run(
@@ -122,14 +153,18 @@ def search_measures(
         count_rows = client.run(
             "MATCH (m:Measure) WHERE ($name IS NULL OR m.name CONTAINS $name) "
             "AND ($status IS NULL OR m.status = $status) RETURN count(m) AS total",
-            name=name, status=status,
+            name=name,
+            status=status,
         )
         total = count_rows[0]["total"] if count_rows else 0
         rows = client.run(
             "MATCH (m:Measure) WHERE ($name IS NULL OR m.name CONTAINS $name) "
             "AND ($status IS NULL OR m.status = $status) "
             "RETURN m.rawJson AS rawJson ORDER BY m.name SKIP $offset LIMIT $limit",
-            name=name, status=status, offset=offset, limit=count,
+            name=name,
+            status=status,
+            offset=offset,
+            limit=count,
         )
         items = [json.loads(r["rawJson"]) for r in rows if r.get("rawJson")]
         return items, total
@@ -157,7 +192,9 @@ def evaluate_measure(
     if not library_refs:
         return {"error": "Measure has no library reference"}
 
-    library_id = library_refs[0].split("/")[-1] if "/" in library_refs[0] else library_refs[0]
+    library_id = (
+        library_refs[0].split("/")[-1] if "/" in library_refs[0] else library_refs[0]
+    )
     library = _get_library(library_id)
     if not library:
         return {"error": f"Library/{library_id} not found"}
@@ -168,11 +205,17 @@ def evaluate_measure(
 
     required_param_names = _PARAM_RE.findall(cypher)
     expanded_params = _expand_params_for_cypher(params, required_param_names)
-    cypher_params = {p: expanded_params.get(p) for p in required_param_names if expanded_params.get(p) is not None}
+    cypher_params = {
+        p: expanded_params.get(p)
+        for p in required_param_names
+        if expanded_params.get(p) is not None
+    }
 
     missing = [p for p in required_param_names if p not in cypher_params]
     if missing:
-        return {"error": f"Measure Cypher expects parameters that could not be resolved: {missing}"}
+        return {
+            "error": f"Measure Cypher expects parameters that could not be resolved: {missing}"
+        }
 
     patient_client = PatientGraphClient()
     try:
@@ -182,7 +225,9 @@ def evaluate_measure(
 
     org_id = params.get("_org_id")
     org_name = params.get("_org_name")
-    return _build_measure_report(measure_id, measure, results, org_id=org_id, org_name=org_name)
+    return _build_measure_report(
+        measure_id, measure, results, org_id=org_id, org_name=org_name
+    )
 
 
 def extract_cypher_and_hash(library: Dict[str, Any]) -> Tuple[str, str]:
@@ -203,7 +248,9 @@ def _get_library(library_id: str) -> Optional[Dict[str, Any]]:
             "MATCH (l:Library {id: $lid}) RETURN l.rawJson AS rawJson LIMIT 1",
             lid=library_id,
         )
-        return json.loads(rows[0]["rawJson"]) if rows and rows[0].get("rawJson") else None
+        return (
+            json.loads(rows[0]["rawJson"]) if rows and rows[0].get("rawJson") else None
+        )
     finally:
         client.close()
 
@@ -288,14 +335,20 @@ def _build_measure_report(
 
         set_id = benchmark_config.get("benchmarkSetId")
         metric_mapping = benchmark_config.get("metricMapping") or []
-        metric_id = metric_mapping[0].get("benchmarkMetricId") if metric_mapping else None
+        metric_id = (
+            metric_mapping[0].get("benchmarkMetricId") if metric_mapping else None
+        )
 
         if set_id and metric_id:
             benchmarks = benchmark_service.get_benchmark_comparison(set_id, metric_id)
             if benchmarks:
-                label = benchmarks[0].get("label", metric_id) if benchmarks else metric_id
+                label = (
+                    benchmarks[0].get("label", metric_id) if benchmarks else metric_id
+                )
                 unit = benchmarks[0].get("unit", "pct")
-                practice_live = _results_to_practice_benchmark(results, metric_id, unit, label)
+                practice_live = _results_to_practice_benchmark(
+                    results, metric_id, unit, label
+                )
                 if practice_live:
                     practice_live["scope_name"] = org_name or "Practice"
                 # Replace practice row with live data; keep alliance and england (2018)
@@ -313,10 +366,12 @@ def _build_measure_report(
                             out.append(pt)
                     else:
                         out.append(pt)
-                extensions.append({
-                    "url": "http://example.org/fhir/StructureDefinition/benchmark-comparison",
-                    "valueString": json.dumps(out, default=str),
-                })
+                extensions.append(
+                    {
+                        "url": "http://example.org/fhir/StructureDefinition/benchmark-comparison",
+                        "valueString": json.dumps(out, default=str),
+                    }
+                )
 
     return {
         "resourceType": "MeasureReport",

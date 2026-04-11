@@ -69,9 +69,7 @@ def _ensure_registry(kg: KnowledgeGraphClient) -> DomainRegistry:
     )
 
 
-def _q_comorbidities(
-    base: str, params: dict, client: PatientGraphClient
-) -> dict:
+def _q_comorbidities(base: str, params: dict, client: PatientGraphClient) -> dict:
     """Query comorbidity prevalence from HAS_DISEASE relationships.
 
     Top-level concepts are loaded from the cancer_audit/comorbidities subdomain.
@@ -86,9 +84,7 @@ def _q_comorbidities(
         return {"comorbidities": [], "total_patients": 0}
 
     try:
-        concept_groups = registry.get_concept_id_groups(
-            "comorbidities", kg, depth=3
-        )
+        concept_groups = registry.get_concept_id_groups("comorbidities", kg, depth=3)
     finally:
         kg.close()
 

@@ -16,8 +16,13 @@ LABEL_VERIFICATION_OUTPUT_SCHEMA: dict = {
             "items": {
                 "type": "object",
                 "required": [
-                    "entity_index", "suggested_label", "confidence",
-                    "rule_triggered", "rationale", "is_new", "new_text",
+                    "entity_index",
+                    "suggested_label",
+                    "confidence",
+                    "rule_triggered",
+                    "rationale",
+                    "is_new",
+                    "new_text",
                 ],
                 "properties": {
                     "entity_index": {
@@ -31,14 +36,33 @@ LABEL_VERIFICATION_OUTPUT_SCHEMA: dict = {
                         "type": "string",
                         "description": "The correct NER label selected from the allowed labels list.",
                         "enum": [
-                            "disorder", "finding", "procedure", "observable_entity",
-                            "qualifier_value", "substance", "medicinal_product",
-                            "clinical_drug", "situation", "event", "body_structure",
-                            "tumor_staging", "assessment_scale", "staging_scale",
-                            "regime_therapy", "record_artifact", "physical_object",
-                            "organism", "morphologic_abnormality", "occupation",
-                            "attribute", "environment", "product",
-                            "X_TEMPORAL", "X_DOSAGE", "X_FREQUENCY", "X_ROUTE",
+                            "disorder",
+                            "finding",
+                            "procedure",
+                            "observable_entity",
+                            "qualifier_value",
+                            "substance",
+                            "medicinal_product",
+                            "clinical_drug",
+                            "situation",
+                            "event",
+                            "body_structure",
+                            "tumor_staging",
+                            "assessment_scale",
+                            "staging_scale",
+                            "regime_therapy",
+                            "record_artifact",
+                            "physical_object",
+                            "organism",
+                            "morphologic_abnormality",
+                            "occupation",
+                            "attribute",
+                            "environment",
+                            "product",
+                            "X_TEMPORAL",
+                            "X_DOSAGE",
+                            "X_FREQUENCY",
+                            "X_ROUTE",
                         ],
                     },
                     "confidence": {
@@ -85,8 +109,10 @@ def format_output_schema_block(schema: dict) -> str:
     required: list[str] = props.get(array_name, {}).get("items", {}).get("required", [])
 
     if items_props:
-        lines.append(f'Return a JSON object with a single key "{array_name}" whose value is an array.')
-        lines.append(f'Each item in the array must be an object with these fields:')
+        lines.append(
+            f'Return a JSON object with a single key "{array_name}" whose value is an array.'
+        )
+        lines.append(f"Each item in the array must be an object with these fields:")
         lines.append("")
         for field, defn in items_props.items():
             raw_type = defn.get("type", "string")
@@ -102,10 +128,10 @@ def format_output_schema_block(schema: dict) -> str:
             if "enum" in defn:
                 enum_vals = defn["enum"]
                 allowed = ", ".join(f'"{v}"' for v in enum_vals)
-                lines.append(f'  - **{field}**{req_marker}: one of {allowed}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: one of {allowed}. {desc}")
             else:
                 type_label = f"{base_type}, nullable" if nullable else base_type
-                lines.append(f'  - **{field}**{req_marker}: {type_label}. {desc}')
+                lines.append(f"  - **{field}**{req_marker}: {type_label}. {desc}")
 
         lines.append("")
         lines.append(

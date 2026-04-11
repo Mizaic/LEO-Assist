@@ -1,4 +1,5 @@
 """Operational reports: sitrep and cohort builder."""
+
 from __future__ import annotations
 
 import logging
@@ -103,6 +104,7 @@ def get_cohort(
 def _safe_run(client: Any, query: str) -> list[dict]:
     try:
         from libs.neo4j_client.client import run_with_retry
+
         return run_with_retry(client, query)
     except Exception as exc:
         logger.debug("sitrep query skipped: %s", exc)

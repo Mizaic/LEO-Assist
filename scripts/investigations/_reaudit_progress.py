@@ -1,10 +1,17 @@
 """Quick progress check for the problem-encounters re-audit."""
+
 import json
 import sqlite3
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DB = ROOT / "scripts" / "investigations" / "encounter_audit_reaudit" / "encounter_audit.db"
+DB = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit_reaudit"
+    / "encounter_audit.db"
+)
 
 con = sqlite3.connect(str(DB))
 total = con.execute("SELECT COUNT(*) FROM encounters").fetchone()[0]
@@ -15,9 +22,12 @@ assess_rows = con.execute(
     "SELECT json_extract(result_json, '$.encounter_assessment') as a, COUNT(*) n"
     " FROM encounters WHERE status='done' GROUP BY a ORDER BY n DESC"
 ).fetchall()
-cost = con.execute(
-    "SELECT SUM(cost_usd) FROM encounters WHERE status='done'"
-).fetchone()[0] or 0.0
+cost = (
+    con.execute("SELECT SUM(cost_usd) FROM encounters WHERE status='done'").fetchone()[
+        0
+    ]
+    or 0.0
+)
 gaps = con.execute("SELECT COUNT(*) FROM surface_form_gaps").fetchone()[0]
 ner = con.execute("SELECT COUNT(*) FROM ner_examples").fetchone()[0]
 con.close()

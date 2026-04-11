@@ -57,7 +57,9 @@ class ConsensusResult:
     arbitrator_verdict: Any = ""
     arbitrator_model_id: str = ""
     agreed: bool = False
-    single_model_fallback: bool = False  # True when only one provider succeeded (unvalidated)
+    single_model_fallback: bool = (
+        False  # True when only one provider succeeded (unvalidated)
+    )
     model_ids: list[str] = field(default_factory=list)
     # Aggregated token counts across ALL provider calls in this consensus run
     # (small model A + small model B + optional Sonnet arbitrator).
@@ -86,14 +88,13 @@ def _call_provider(
     )
 
 
-
 def _sum_tokens(responses: list[LLMResponse | None]) -> dict[str, int]:
     """Sum token fields across a list of LLMResponse objects (None entries skipped)."""
     return {
-        "input_tokens":        sum(r.input_tokens        for r in responses if r),
-        "output_tokens":       sum(r.output_tokens       for r in responses if r),
+        "input_tokens": sum(r.input_tokens for r in responses if r),
+        "output_tokens": sum(r.output_tokens for r in responses if r),
         "cached_input_tokens": sum(r.cached_input_tokens for r in responses if r),
-        "llm_calls":           sum(1                     for r in responses if r),
+        "llm_calls": sum(1 for r in responses if r),
     }
 
 
@@ -168,7 +169,9 @@ def run_consensus(
 
     tok = _sum_tokens([resp])
     if not verdict:
-        logger.error("Consensus (%s): failed after retry -- returning fail_verdict", label)
+        logger.error(
+            "Consensus (%s): failed after retry -- returning fail_verdict", label
+        )
         return ConsensusResult(
             verdict=fail_verdict,
             reason=f"{label} call/parse failed",

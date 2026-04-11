@@ -30,7 +30,9 @@ class TestDaysBetween:
 class TestCountConsultations:
 
     def test_returns_count(self):
-        from services.analysis_worker.app.analyzers.kpi_calculator import _count_consultations
+        from services.analysis_worker.app.analyzers.kpi_calculator import (
+            _count_consultations,
+        )
 
         mock_client = MagicMock()
         mock_client.run.return_value = [{"cnt": 5}]
@@ -38,7 +40,9 @@ class TestCountConsultations:
         assert _count_consultations("P1", "2024-01-01", "2024-03-01", mock_client) == 5
 
     def test_empty_result(self):
-        from services.analysis_worker.app.analyzers.kpi_calculator import _count_consultations
+        from services.analysis_worker.app.analyzers.kpi_calculator import (
+            _count_consultations,
+        )
 
         mock_client = MagicMock()
         mock_client.run.return_value = []
@@ -49,7 +53,9 @@ class TestCountConsultations:
 class TestComputeEpisodeKPIs:
 
     def test_all_milestones_present(self):
-        from services.analysis_worker.app.analyzers.kpi_calculator import _compute_episode_kpis
+        from services.analysis_worker.app.analyzers.kpi_calculator import (
+            _compute_episode_kpis,
+        )
 
         milestones = {
             "first_presentation": "2024-01-01",
@@ -70,7 +76,9 @@ class TestComputeEpisodeKPIs:
         assert metrics["consultations_before_referral"] == 3
 
     def test_partial_milestones(self):
-        from services.analysis_worker.app.analyzers.kpi_calculator import _compute_episode_kpis
+        from services.analysis_worker.app.analyzers.kpi_calculator import (
+            _compute_episode_kpis,
+        )
 
         milestones = {"referral": "2024-01-15"}
         mock_client = MagicMock()
@@ -79,7 +87,9 @@ class TestComputeEpisodeKPIs:
         assert kpis == []
 
     def test_referral_and_diagnosis_only(self):
-        from services.analysis_worker.app.analyzers.kpi_calculator import _compute_episode_kpis
+        from services.analysis_worker.app.analyzers.kpi_calculator import (
+            _compute_episode_kpis,
+        )
 
         milestones = {
             "referral": "2024-01-15",
@@ -107,8 +117,10 @@ class TestCalculateKPIs:
 
         mock_client = MagicMock()
         mock_client.run.side_effect = [
-            [{"milestone": "referral", "earliest_date": "2024-01-15"},
-             {"milestone": "diagnosis", "earliest_date": "2024-02-01"}],
+            [
+                {"milestone": "referral", "earliest_date": "2024-01-15"},
+                {"milestone": "diagnosis", "earliest_date": "2024-02-01"},
+            ],
             [],  # persist kpi 1
         ]
 

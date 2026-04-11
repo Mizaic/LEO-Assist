@@ -61,6 +61,7 @@ _INVESTIGATION_TEXT_RE = re.compile(
 
 # -- Anchor classifier helpers ----------------------------------------------
 
+
 def _anchor_is_present(anchor: dict[str, Any]) -> bool:
     return str(anchor.get("assertion") or "present").strip().lower() in ("", "present")
 
@@ -117,6 +118,7 @@ def _anchor_in_pre_referral_window(
 
 # -- Main first-presentation functions ---------------------------------------
 
+
 def _first_presentation_from_anchors(
     anchors: AnchorResult,
     ref_date: date | None,
@@ -126,9 +128,7 @@ def _first_presentation_from_anchors(
     if not anchors.first_presentation_anchors or ref_date is None:
         return None, None, None, None
 
-    window_start = ref_date - timedelta(
-        days=cfg.FIRST_PRESENTATION_LOOKBACK_DAYS
-    )
+    window_start = ref_date - timedelta(days=cfg.FIRST_PRESENTATION_LOOKBACK_DAYS)
     qualifying = [
         a
         for a in anchors.first_presentation_anchors
@@ -226,16 +226,17 @@ def _first_presentation_from_referral_context(
             day_clues[d]["investigations"].add(name)
 
     try:
-        text_rows = patient_client.run(
-            cypher.REFERRAL_CONTEXT_TEXT_Q,
-            patient_id=patient_id,
-            start_date=start_day.isoformat(),
-            end_date=end_day.isoformat(),
-        ) or []
-    except Exception:  # noqa: BLE001
-        logger.warning(
-            "Referral context text query failed for patient %s", patient_id
+        text_rows = (
+            patient_client.run(
+                cypher.REFERRAL_CONTEXT_TEXT_Q,
+                patient_id=patient_id,
+                start_date=start_day.isoformat(),
+                end_date=end_day.isoformat(),
+            )
+            or []
         )
+    except Exception:  # noqa: BLE001
+        logger.warning("Referral context text query failed for patient %s", patient_id)
         text_rows = []
 
     for row in text_rows:

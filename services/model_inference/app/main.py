@@ -25,6 +25,8 @@ Environment variables
 See .env.example [Model Inference Service] section.
 """
 
+# aca-image: model-inference build/deploy verification (no runtime effect).
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -84,11 +86,13 @@ def _resolve_startup_version() -> str:
     """
     try:
         from libs.model_registry.registry import get_registry
+
         active = get_registry().get_active()
         if active:
             logger.info(
                 "Inference service: active version from registry — v%s (status=%s)",
-                active.model_version, active.status,
+                active.model_version,
+                active.status,
             )
             return active.model_version
         logger.warning(
@@ -136,6 +140,7 @@ app = FastAPI(
 # Request / response models
 # ------------------------------------------------------------------
 
+
 class SentenceIn(BaseModel):
     sentence_id: str
     text: str
@@ -174,6 +179,7 @@ class ReloadRequest(BaseModel):
 # ------------------------------------------------------------------
 # Routes
 # ------------------------------------------------------------------
+
 
 @app.get("/health")
 def health() -> dict[str, Any]:
@@ -218,17 +224,19 @@ def extract(req: ExtractRequest) -> ExtractResponse:
         for ent in doc.ents:
             label = ent.label_
             confidence = float(getattr(ent, "kb_id_", 0.0) or 0.0)
-            entities.append(EntityOut(
-                sentence_id=sent.sentence_id,
-                text=ent.text,
-                label=label,
-                semantic_tag=label.lower(),
-                span_start=sent.start + ent.start_char,
-                span_end=sent.start + ent.end_char,
-                confidence=round(confidence, 4),
-                normalized=ent.text,
-                source_meta={"model_label": label},
-            ))
+            entities.append(
+                EntityOut(
+                    sentence_id=sent.sentence_id,
+                    text=ent.text,
+                    label=label,
+                    semantic_tag=label.lower(),
+                    span_start=sent.start + ent.start_char,
+                    span_end=sent.start + ent.end_char,
+                    confidence=round(confidence, 4),
+                    normalized=ent.text,
+                    source_meta={"model_label": label},
+                )
+            )
 
     return ExtractResponse(
         model_name=_loader.model_name,
@@ -257,9 +265,7 @@ async def reload_model(req: ReloadRequest) -> dict[str, Any]:
 
     # Fast-path: already on this version — no download needed.
     if _loader.active_version == req.version:
-        logger.info(
-            "Reload requested for v%s — already active, no-op", req.version
-        )
+        logger.info("Reload requested for v%s — already active, no-op", req.version)
         return {"active_version": _loader.active_version, "elapsed_ms": 0}
 
     start = time.monotonic()
@@ -284,6 +290,7 @@ async def reload_model(req: ReloadRequest) -> dict[str, Any]:
 async def list_versions() -> dict[str, Any]:
     """List available model versions in the blob store."""
     from libs.model_store import ModelStore
+
     store = ModelStore()
     try:
         versions = await asyncio.to_thread(store.list_versions)

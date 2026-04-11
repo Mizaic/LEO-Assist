@@ -1,4 +1,5 @@
 """Encounter coding quality service -- reads from audit SQLite DBs."""
+
 from __future__ import annotations
 
 import json
@@ -25,8 +26,7 @@ def get_coding_summary(db_path: str) -> CodingIssueSummary:
     try:
         cur = con.cursor()
         cur.execute(
-            "SELECT assessment, count(*) AS cnt "
-            "FROM encounters GROUP BY assessment"
+            "SELECT assessment, count(*) AS cnt " "FROM encounters GROUP BY assessment"
         )
         status_rows = {r[0]: r[1] for r in cur.fetchall()}
 
@@ -110,16 +110,18 @@ def get_coding_issues(
                 res = json.loads(r[4] or "{}")
             except Exception:
                 res = {}
-            rows.append(CodingIssueRow(
-                encounter_id=r[0] or "",
-                patient_id=r[1],
-                date=r[2],
-                assessment=r[3] or "",
-                missing_critical=int(res.get("missing_critical") or 0),
-                missing_high=int(res.get("missing_high") or 0),
-                overcoded=int(res.get("overcoded") or 0),
-                wrong_assertion=int(res.get("wrong_assertion") or 0),
-            ))
+            rows.append(
+                CodingIssueRow(
+                    encounter_id=r[0] or "",
+                    patient_id=r[1],
+                    date=r[2],
+                    assessment=r[3] or "",
+                    missing_critical=int(res.get("missing_critical") or 0),
+                    missing_high=int(res.get("missing_high") or 0),
+                    overcoded=int(res.get("overcoded") or 0),
+                    wrong_assertion=int(res.get("wrong_assertion") or 0),
+                )
+            )
         return rows
     finally:
         con.close()
@@ -130,13 +132,9 @@ def get_coding_progress(db_path: str) -> dict:
     con = _connect(db_path)
     try:
         cur = con.cursor()
-        cur.execute(
-            "SELECT status, count(*) FROM encounters GROUP BY status"
-        )
+        cur.execute("SELECT status, count(*) FROM encounters GROUP BY status")
         counts = {r[0]: r[1] for r in cur.fetchall()}
-        cur.execute(
-            "SELECT max(updated_at) FROM encounters WHERE status = 'done'"
-        )
+        cur.execute("SELECT max(updated_at) FROM encounters WHERE status = 'done'")
         row = cur.fetchone()
         last_updated = row[0] if row else None
         return {

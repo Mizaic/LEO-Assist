@@ -1,4 +1,5 @@
 """Seed encounter_audit_v3/ with the same 100 done encounters from the dryrun DB."""
+
 from __future__ import annotations
 
 import sqlite3

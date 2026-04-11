@@ -2,6 +2,7 @@
 Investigation: Why are head & neck cancer pathway episodes disproportionately stale?
 6 out of 12 head_and_neck episodes are stale_post_specialist.
 """
+
 import sys
 from pathlib import Path
 from datetime import timedelta
@@ -9,9 +10,11 @@ from datetime import timedelta
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -19,14 +22,45 @@ CANCER_TYPE = "head_and_neck"
 
 # Clinical terms that indicate the encounter is outcome-relevant
 OUTCOME_KEYWORDS = [
-    "biopsy", "pathology", "histology", "FNA", "fine needle",
-    "malignant", "benign", "cancer", "carcinoma", "tumour", "tumor",
-    "lymphoma", "thyroid", "oesophageal", "barrett", "laryngeal",
-    "nasopharyngeal", "tonsillitis", "hoarseness", "nodule", "cyst",
-    "one-stop", "one stop", "neck lump", "salivary", "discharge",
-    "clear", "normal", "no evidence", "no malignancy", "not malignant",
-    "reassured", "watchful waiting", "surveillance", "follow-up",
-    "radiotherapy", "chemotherapy", "surgery", "resection",
+    "biopsy",
+    "pathology",
+    "histology",
+    "FNA",
+    "fine needle",
+    "malignant",
+    "benign",
+    "cancer",
+    "carcinoma",
+    "tumour",
+    "tumor",
+    "lymphoma",
+    "thyroid",
+    "oesophageal",
+    "barrett",
+    "laryngeal",
+    "nasopharyngeal",
+    "tonsillitis",
+    "hoarseness",
+    "nodule",
+    "cyst",
+    "one-stop",
+    "one stop",
+    "neck lump",
+    "salivary",
+    "discharge",
+    "clear",
+    "normal",
+    "no evidence",
+    "no malignancy",
+    "not malignant",
+    "reassured",
+    "watchful waiting",
+    "surveillance",
+    "follow-up",
+    "radiotherapy",
+    "chemotherapy",
+    "surgery",
+    "resection",
 ]
 
 
@@ -58,8 +92,9 @@ def get_all_head_neck_episodes(client: PatientGraphClient) -> list:
         return [dict(r) for r in result]
 
 
-def get_encounters_in_window(client: PatientGraphClient, patient_id: str,
-                             start_date, end_date) -> list:
+def get_encounters_in_window(
+    client: PatientGraphClient, patient_id: str, start_date, end_date
+) -> list:
     query = """
     MATCH (p:Patient {id: $pid})-[:HAS_ENCOUNTER]->(enc:Encounter)
     WHERE enc.date >= $start AND enc.date <= $end
@@ -94,11 +129,13 @@ def date_plus(d, days=365):
     if d is None:
         return None
     # Handle Neo4j Date objects and strings
-    if hasattr(d, 'year'):
+    if hasattr(d, "year"):
         from datetime import date
+
         base = date(d.year, d.month, d.day)
     else:
         from datetime import date
+
         parts = str(d)[:10].split("-")
         base = date(int(parts[0]), int(parts[1]), int(parts[2]))
     return base + timedelta(days=days)
@@ -158,12 +195,14 @@ def analyse_stale_episode(client: PatientGraphClient, ep: dict):
         marker = ""
         if hits:
             marker = " <-- KEYWORDS: " + ", ".join(hits[:6])
-            outcome_candidates.append({
-                "date": date_str,
-                "flags": flags,
-                "keywords": hits,
-                "snippet": snippet,
-            })
+            outcome_candidates.append(
+                {
+                    "date": date_str,
+                    "flags": flags,
+                    "keywords": hits,
+                    "snippet": snippet,
+                }
+            )
 
         print(f"  {date_str}  flags={flags}{marker}")
         if hits:
@@ -192,13 +231,26 @@ def _interpret_findings(ep: dict, candidates: list, all_encounters: list):
         "skin": ["melanoma", "squamous cell", "basal cell"],
     }
     benign_signals = [
-        "benign", "tonsillitis", "hoarseness", "nodule", "cyst",
-        "salivary", "reassured", "no malignancy", "not malignant",
-        "normal", "no evidence", "clear",
+        "benign",
+        "tonsillitis",
+        "hoarseness",
+        "nodule",
+        "cyst",
+        "salivary",
+        "reassured",
+        "no malignancy",
+        "not malignant",
+        "normal",
+        "no evidence",
+        "clear",
     ]
     treatment_signals = [
-        "radiotherapy", "chemotherapy", "surgery", "resection",
-        "excision", "biopsy confirmed",
+        "radiotherapy",
+        "chemotherapy",
+        "surgery",
+        "resection",
+        "excision",
+        "biopsy confirmed",
     ]
 
     found_diff_cancers = []
@@ -219,8 +271,12 @@ def _interpret_findings(ep: dict, candidates: list, all_encounters: list):
             found_pathology.append(c["date"])
 
     if found_diff_cancers:
-        print(f"  -> POSSIBLE WRONG CANCER TYPE: found signals for {set(found_diff_cancers)}")
-        print("     Episode is classified head_and_neck but text suggests different primary.")
+        print(
+            f"  -> POSSIBLE WRONG CANCER TYPE: found signals for {set(found_diff_cancers)}"
+        )
+        print(
+            "     Episode is classified head_and_neck but text suggests different primary."
+        )
 
     if found_benign:
         print(f"  -> BENIGN OUTCOME SIGNALS on dates: {found_benign}")
@@ -232,7 +288,9 @@ def _interpret_findings(ep: dict, candidates: list, all_encounters: list):
 
     if found_pathology:
         print(f"  -> PATHOLOGY/BIOPSY RESULTS on dates: {found_pathology}")
-        print("     Delayed pathology result may exist -- check if inferred_outcome_date")
+        print(
+            "     Delayed pathology result may exist -- check if inferred_outcome_date"
+        )
         print("     was set before the biopsy date.")
 
     # Check timing
@@ -241,11 +299,13 @@ def _interpret_findings(ep: dict, candidates: list, all_encounters: list):
     if spec_date and ref_date:
         try:
             from datetime import date
+
             def to_date(d):
-                if hasattr(d, 'year'):
+                if hasattr(d, "year"):
                     return date(d.year, d.month, d.day)
                 parts = str(d)[:10].split("-")
                 return date(int(parts[0]), int(parts[1]), int(parts[2]))
+
             r = to_date(ref_date)
             s = to_date(spec_date)
             days_to_spec = (s - r).days
@@ -255,13 +315,22 @@ def _interpret_findings(ep: dict, candidates: list, all_encounters: list):
         except Exception:
             pass
 
-    if not found_diff_cancers and not found_benign and not found_treatment and not found_pathology:
+    if (
+        not found_diff_cancers
+        and not found_benign
+        and not found_treatment
+        and not found_pathology
+    ):
         print("  -> Outcome keywords present but not definitive.")
         print("     Manual review of encounter text recommended.")
 
     # Check for one-stop clinic
     for c in candidates:
-        if "one-stop" in " ".join(c["keywords"]) or "one stop" in " ".join(c["keywords"]) or "neck lump" in " ".join(c["keywords"]):
+        if (
+            "one-stop" in " ".join(c["keywords"])
+            or "one stop" in " ".join(c["keywords"])
+            or "neck lump" in " ".join(c["keywords"])
+        ):
             print("  -> ONE-STOP / NECK LUMP CLINIC mention found:")
             print(f"     {c['date']}: {c['snippet'][:200]}")
 
@@ -288,9 +357,15 @@ def main():
     print_separator("-")
     for ep in episodes:
         ref = str(ep["referral_date"])[:10] if ep["referral_date"] else "N/A"
-        spec = str(ep["specialist_visit_date"])[:10] if ep["specialist_visit_date"] else "N/A"
+        spec = (
+            str(ep["specialist_visit_date"])[:10]
+            if ep["specialist_visit_date"]
+            else "N/A"
+        )
         out = ep["inferred_outcome"] or "None"
-        print(f"  {ep['episode_id']}  pat={ep['patient_id']}  status={ep['status']}  ref={ref}  spec={spec}  outcome={out}")
+        print(
+            f"  {ep['episode_id']}  pat={ep['patient_id']}  status={ep['status']}  ref={ref}  spec={spec}  outcome={out}"
+        )
 
     stale_episodes = [ep for ep in episodes if ep["status"] == "stale_post_specialist"]
     print(f"\n\nSTALE_POST_SPECIALIST EPISODES: {len(stale_episodes)}")
@@ -301,13 +376,21 @@ def main():
 
     print("\n\nSUMMARY TABLE")
     print_separator()
-    print(f"{'Episode':30} {'Patient':15} {'Ref date':12} {'Spec date':12} {'Signals found'}")
+    print(
+        f"{'Episode':30} {'Patient':15} {'Ref date':12} {'Spec date':12} {'Signals found'}"
+    )
     print_separator("-")
     for ep in stale_episodes:
         ref = str(ep["referral_date"])[:10] if ep["referral_date"] else "N/A"
-        spec = str(ep["specialist_visit_date"])[:10] if ep["specialist_visit_date"] else "N/A"
+        spec = (
+            str(ep["specialist_visit_date"])[:10]
+            if ep["specialist_visit_date"]
+            else "N/A"
+        )
         sigs = str(ep["inference_signals"] or "")[:40]
-        print(f"  {str(ep['episode_id']):28} {str(ep['patient_id']):15} {ref:12} {spec:12} {sigs}")
+        print(
+            f"  {str(ep['episode_id']):28} {str(ep['patient_id']):15} {ref:12} {spec:12} {sigs}"
+        )
 
     print("\nInvestigation complete.")
 

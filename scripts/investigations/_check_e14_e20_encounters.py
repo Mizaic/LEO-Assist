@@ -1,4 +1,5 @@
 """Quick lookup of encounter IDs and coded concepts for E14 and E20 patients."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -6,9 +7,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -38,7 +41,9 @@ with client.session() as s:
     rows = list(s.run(Q, pids=["4709023328", "6040304227"], after="2024-01-01"))
     for r in rows:
         cname = (r["cname"] or "")[:50]
-        print(f"  pid={r['pid']}  {r['enc_date']}  enc={r['enc_id'][:12]}  {r['cid']}  {cname}")
+        print(
+            f"  pid={r['pid']}  {r['enc_date']}  enc={r['enc_id'][:12]}  {r['cid']}  {cname}"
+        )
 
     print()
     print("=== Checking if cancer concept nodes exist in KG ===")

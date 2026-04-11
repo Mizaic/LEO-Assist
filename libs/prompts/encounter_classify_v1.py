@@ -67,4 +67,3 @@ If YES → clinical.
   medication_review, immunisation, screening, procedure, follow_up,
   discharge_summary, clinic_letter, admin\
 """
-

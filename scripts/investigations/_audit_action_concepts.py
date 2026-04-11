@@ -9,6 +9,7 @@ For each action term:
 Usage:
     python scripts/investigations/_audit_action_concepts.py
 """
+
 from __future__ import annotations
 
 import json
@@ -26,10 +27,11 @@ TIMEOUT = 60
 # Terminology API helpers                                              #
 # ------------------------------------------------------------------ #
 
+
 def resolve(terms: list[str], top_k: int = 8) -> dict[str, list[dict]]:
-    r = requests.post(f"{BASE}/resolve",
-                      json={"terms": terms, "top_k": top_k},
-                      timeout=TIMEOUT)
+    r = requests.post(
+        f"{BASE}/resolve", json={"terms": terms, "top_k": top_k}, timeout=TIMEOUT
+    )
     r.raise_for_status()
     return r.json().get("results", {})
 
@@ -45,13 +47,15 @@ def search(q: str, tag: str | None = None, limit: int = 20) -> list[dict]:
     return r.json()
 
 
-def descendants(concept_id: str, depth: int = 3, tag: str | None = None,
-                limit: int = 100) -> list[dict]:
+def descendants(
+    concept_id: str, depth: int = 3, tag: str | None = None, limit: int = 100
+) -> list[dict]:
     params: dict[str, Any] = {"depth": depth, "limit": limit}
     if tag:
         params["semantic_tag"] = tag
-    r = requests.get(f"{BASE}/concepts/{concept_id}/descendants",
-                     params=params, timeout=TIMEOUT)
+    r = requests.get(
+        f"{BASE}/concepts/{concept_id}/descendants", params=params, timeout=TIMEOUT
+    )
     if r.status_code == 404:
         return []
     r.raise_for_status()
@@ -73,34 +77,38 @@ def related(concept_id: str) -> dict:
 # (action_text, current_code_from_dry_run, expected_tag)
 ACTIONS = [
     # Upper GI
-    ("direct access upper gastrointestinal endoscopy",  "880451000000106", "procedure"),
-    ("upper gastrointestinal endoscopy",                "880451000000106", "procedure"),
-    ("OGD",                                             None,              "procedure"),
-    ("gastroscopy",                                     None,              "procedure"),
+    ("direct access upper gastrointestinal endoscopy", "880451000000106", "procedure"),
+    ("upper gastrointestinal endoscopy", "880451000000106", "procedure"),
+    ("OGD", None, "procedure"),
+    ("gastroscopy", None, "procedure"),
     # Lower GI
-    ("direct access colonoscopy",                       "73761001",        "procedure"),
-    ("colonoscopy",                                     "73761001",        "procedure"),
-    ("flexible sigmoidoscopy",                          None,              "procedure"),
-    ("CT colonography",                                 None,              "procedure"),
+    ("direct access colonoscopy", "73761001", "procedure"),
+    ("colonoscopy", "73761001", "procedure"),
+    ("flexible sigmoidoscopy", None, "procedure"),
+    ("CT colonography", None, "procedure"),
     # Imaging
-    ("urgent chest X-ray",                              "399208008",       "procedure"),
-    ("urgent direct access CT scan",                    "116152004",       "procedure"),
-    ("CT scan of the chest abdomen and pelvis",         None,              "procedure"),
-    ("urgent CT abdomen and pelvis",                    None,              "procedure"),
+    ("urgent chest X-ray", "399208008", "procedure"),
+    ("urgent direct access CT scan", "116152004", "procedure"),
+    ("CT scan of the chest abdomen and pelvis", None, "procedure"),
+    ("urgent CT abdomen and pelvis", None, "procedure"),
     # Referrals (spot check a few)
-    ("fast track referral for suspected lung cancer",   "276491000000101", "procedure"),
-    ("fast track referral for suspected colorectal cancer", "276401000000108", "procedure"),
+    ("fast track referral for suspected lung cancer", "276491000000101", "procedure"),
+    (
+        "fast track referral for suspected colorectal cancer",
+        "276401000000108",
+        "procedure",
+    ),
     # Haematology
-    ("full blood count",                                None,              "procedure"),
-    ("blood film",                                      None,              "procedure"),
-    ("serum protein electrophoresis",                   None,              "procedure"),
+    ("full blood count", None, "procedure"),
+    ("blood film", None, "procedure"),
+    ("serum protein electrophoresis", None, "procedure"),
     # Other investigations
-    ("urine dipstick",                                  None,              "procedure"),
-    ("faecal occult blood test",                        None,              "procedure"),
-    ("PSA test",                                        None,              "procedure"),
-    ("CA125",                                           None,              "procedure"),
-    ("urgent ultrasound",                               None,              "procedure"),
-    ("chest X-ray",                                     "399208008",       "procedure"),
+    ("urine dipstick", None, "procedure"),
+    ("faecal occult blood test", None, "procedure"),
+    ("PSA test", None, "procedure"),
+    ("CA125", None, "procedure"),
+    ("urgent ultrasound", None, "procedure"),
+    ("chest X-ray", "399208008", "procedure"),
 ]
 
 
@@ -113,10 +121,21 @@ def _tag(concept: dict) -> str:
 
 def _is_bad_tag(term_str: str) -> bool:
     """True if the concept is a management/education/record type, not a procedure."""
-    bad_prefixes = ("management of", "education about", "provision of",
-                    "care plan", "record artifact", "qualifier value",
-                    "situation", "finding", "disorder", "substance",
-                    "body structure", "organism", "occupation")
+    bad_prefixes = (
+        "management of",
+        "education about",
+        "provision of",
+        "care plan",
+        "record artifact",
+        "qualifier value",
+        "situation",
+        "finding",
+        "disorder",
+        "substance",
+        "body structure",
+        "organism",
+        "occupation",
+    )
     low = term_str.lower()
     return any(low.startswith(p) or f"({p})" in low for p in bad_prefixes)
 
@@ -136,12 +155,13 @@ def _score_candidate(c: dict, target_tag: str) -> float:
 def _best_from_list(candidates: list[dict], target_tag: str) -> dict | None:
     if not candidates:
         return None
-    scored = sorted(candidates, key=lambda c: _score_candidate(c, target_tag), reverse=True)
+    scored = sorted(
+        candidates, key=lambda c: _score_candidate(c, target_tag), reverse=True
+    )
     return scored[0]
 
 
-def audit_action(action_text: str, current_id: str | None,
-                 target_tag: str) -> dict:
+def audit_action(action_text: str, current_id: str | None, target_tag: str) -> dict:
     """Run full hierarchy-aware audit for one action term."""
     result: dict[str, Any] = {
         "action_text": action_text,
@@ -181,20 +201,29 @@ def audit_action(action_text: str, current_id: str | None,
         desc = descendants(resolver_id, depth=3, tag=target_tag, limit=50)
         if desc:
             result["hierarchy_candidates"].extend(
-                {"id": d.get("snomed_concept_id"), "term": (d.get("term") or "")[:70],
-                 "via": "descendant"}
+                {
+                    "id": d.get("snomed_concept_id"),
+                    "term": (d.get("term") or "")[:70],
+                    "via": "descendant",
+                }
                 for d in desc[:10]
             )
 
         # Get related concepts (find associated procedures)
         rel = related(resolver_id)
         if rel:
-            for rel_type in ("component_of_procedures", "has_components",
-                             "interpreted_by_findings"):
+            for rel_type in (
+                "component_of_procedures",
+                "has_components",
+                "interpreted_by_findings",
+            ):
                 for item in (rel.get(rel_type) or [])[:5]:
                     result["related_procedures"].append(
-                        {"id": item.get("id"), "term": (item.get("fsn") or "")[:70],
-                         "rel": rel_type}
+                        {
+                            "id": item.get("id"),
+                            "term": (item.get("fsn") or "")[:70],
+                            "rel": rel_type,
+                        }
                     )
 
     # -- Step 4: Recommend the best concept ----------------------------
@@ -204,11 +233,13 @@ def audit_action(action_text: str, current_id: str | None,
     if searched:
         # Normalise search result shape to match resolver shape
         for s in searched[:5]:
-            all_candidates.append({
-                "snomed_concept_id": s.get("snomed_concept_id") or s.get("id"),
-                "snomed_term": s.get("snomed_term") or s.get("term") or "",
-                "score": s.get("score", 0.5),
-            })
+            all_candidates.append(
+                {
+                    "snomed_concept_id": s.get("snomed_concept_id") or s.get("id"),
+                    "snomed_term": s.get("snomed_term") or s.get("term") or "",
+                    "score": s.get("score", 0.5),
+                }
+            )
 
     best = _best_from_list(all_candidates, target_tag)
     if best:
@@ -221,8 +252,11 @@ def audit_action(action_text: str, current_id: str | None,
     resolver_term = (result["resolver_top"] or {}).get("term", "")
     if _is_bad_tag(resolver_term):
         result["flag"] = "WRONG_TYPE"
-    elif current_id and result["recommendation"] and \
-            result["recommendation"]["id"] != current_id:
+    elif (
+        current_id
+        and result["recommendation"]
+        and result["recommendation"]["id"] != current_id
+    ):
         result["flag"] = "BETTER_AVAILABLE"
 
     return result
@@ -231,6 +265,7 @@ def audit_action(action_text: str, current_id: str | None,
 # ------------------------------------------------------------------ #
 # Main                                                                 #
 # ------------------------------------------------------------------ #
+
 
 def main() -> None:
     print("Auditing NG12 action concepts via terminology API hierarchy traversal")
@@ -249,10 +284,14 @@ def main() -> None:
         res_top = r["resolver_top"] or {}
         rec = r["recommendation"] or {}
 
-        print(f"    Resolver top : {res_top.get('id')} | "
-              f"{res_top.get('term', '?')[:55]} | score={res_top.get('score')}")
-        print(f"    Search top   : {(r['search_top'] or {}).get('id')} | "
-              f"{(r['search_top'] or {}).get('term', '?')[:55]}")
+        print(
+            f"    Resolver top : {res_top.get('id')} | "
+            f"{res_top.get('term', '?')[:55]} | score={res_top.get('score')}"
+        )
+        print(
+            f"    Search top   : {(r['search_top'] or {}).get('id')} | "
+            f"{(r['search_top'] or {}).get('term', '?')[:55]}"
+        )
         if r["hierarchy_candidates"]:
             print("    Hierarchy children (top 3):")
             for h in r["hierarchy_candidates"][:3]:
@@ -266,16 +305,18 @@ def main() -> None:
         if flag != "OK":
             print(f"    *** FLAG: {flag}")
             print(f"    Recommendation: {rec.get('id')} | {rec.get('term', '?')[:55]}")
-            fixes_needed.append({
-                "action_text": action_text,
-                "current_id": current_id,
-                "flag": flag,
-                "recommended_id": rec.get("id"),
-                "recommended_term": rec.get("term"),
-                "resolver_top_id": res_top.get("id"),
-                "resolver_top_term": res_top.get("term"),
-                "hierarchy_candidates": r["hierarchy_candidates"][:5],
-            })
+            fixes_needed.append(
+                {
+                    "action_text": action_text,
+                    "current_id": current_id,
+                    "flag": flag,
+                    "recommended_id": rec.get("id"),
+                    "recommended_term": rec.get("term"),
+                    "resolver_top_id": res_top.get("id"),
+                    "resolver_top_term": res_top.get("term"),
+                    "hierarchy_candidates": r["hierarchy_candidates"][:5],
+                }
+            )
 
     print("\n" + "=" * 70)
     print(f"SUMMARY: {len(fixes_needed)} action(s) need attention")
@@ -287,8 +328,9 @@ def main() -> None:
 
     # Write JSON for the fix script to consume
     out = Path(__file__).parent / "action_concept_audit.json"
-    out.write_text(json.dumps(fixes_needed, indent=2, ensure_ascii=True),
-                   encoding="utf-8")
+    out.write_text(
+        json.dumps(fixes_needed, indent=2, ensure_ascii=True), encoding="utf-8"
+    )
     print(f"\nFull audit written to: {out}")
 
 

@@ -44,10 +44,11 @@ router = APIRouter(tags=["model-configs"])
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
+
 class ModelConfigCreate(BaseModel):
-    key: str            # e.g. "aws:small" or "custom:my-model"
-    provider: str       # e.g. "aws" | "azure" | "custom"
-    tier: str           # e.g. "small" | "big" | "max"
+    key: str  # e.g. "aws:small" or "custom:my-model"
+    provider: str  # e.g. "aws" | "azure" | "custom"
+    tier: str  # e.g. "small" | "big" | "max"
     displayName: str
     modelId: str
     costPer1mInput: float = 0.0
@@ -74,26 +75,31 @@ class ServiceConfigUpdate(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _row_to_dict(row: dict) -> dict[str, Any]:
     return {
-        "key":                row.get("key", ""),
-        "provider":           row.get("provider", ""),
-        "tier":               row.get("tier", ""),
-        "displayName":        row.get("displayName", ""),
-        "modelId":            row.get("modelId", ""),
-        "costPer1mInput":     float(row.get("costPer1mInput") or 0),
+        "key": row.get("key", ""),
+        "provider": row.get("provider", ""),
+        "tier": row.get("tier", ""),
+        "displayName": row.get("displayName", ""),
+        "modelId": row.get("modelId", ""),
+        "costPer1mInput": float(row.get("costPer1mInput") or 0),
         "costPer1mCachedInput": float(row.get("costPer1mCachedInput") or 0),
-        "costPer1mOutput":    float(row.get("costPer1mOutput") or 0),
-        "isActive":           bool(row.get("isActive", True)),
-        "source":             row.get("source", "seed"),
-        "updatedAt":          str(row.get("updatedAt") or ""),
+        "costPer1mOutput": float(row.get("costPer1mOutput") or 0),
+        "isActive": bool(row.get("isActive", True)),
+        "source": row.get("source", "seed"),
+        "updatedAt": str(row.get("updatedAt") or ""),
     }
 
 
 def _service_row_to_dict(row: dict) -> dict[str, Any]:
     raw_config = row.get("configJson") or "{}"
     try:
-        config = json.loads(raw_config) if isinstance(raw_config, str) else dict(raw_config or {})
+        config = (
+            json.loads(raw_config)
+            if isinstance(raw_config, str)
+            else dict(raw_config or {})
+        )
     except Exception:
         config = {}
     return {
@@ -108,6 +114,7 @@ def _service_row_to_dict(row: dict) -> dict[str, Any]:
 
 
 # ── ModelConfig CRUD ──────────────────────────────────────────────────────────
+
 
 @router.get("/model-configs")
 def list_model_configs(scope: CallerScope = Depends(get_caller_scope)):
@@ -245,6 +252,7 @@ def upsert_service_config(
 
 # ── LLM spend analytics ───────────────────────────────────────────────────────
 
+
 @router.get("/analytics/llm-spend/patient")
 def patient_llm_spend(
     patient_id: str = Query(...),
@@ -276,30 +284,32 @@ def patient_llm_spend(
             except Exception:
                 usage = {}
         enc = {
-            "candidateId":  row.get("candidateId", ""),
-            "encounterId":  row.get("encounterId", ""),
-            "updatedAt":    str(row.get("updatedAt") or ""),
-            "modelName":    row.get("modelName", ""),
-            "inputTokens":  int(usage.get("input_tokens", 0)),
+            "candidateId": row.get("candidateId", ""),
+            "encounterId": row.get("encounterId", ""),
+            "updatedAt": str(row.get("updatedAt") or ""),
+            "modelName": row.get("modelName", ""),
+            "inputTokens": int(usage.get("input_tokens", 0)),
             "outputTokens": int(usage.get("output_tokens", 0)),
             "cachedTokens": int(usage.get("cached_input_tokens", 0)),
-            "costUsd":      float(usage.get("cost_usd") or 0),
+            "costUsd": float(usage.get("cost_usd") or 0),
         }
         encounters.append(enc)
-        total_input   += enc["inputTokens"]
-        total_output  += enc["outputTokens"]
-        total_cached  += enc["cachedTokens"]
-        total_cost    += enc["costUsd"]
+        total_input += enc["inputTokens"]
+        total_output += enc["outputTokens"]
+        total_cached += enc["cachedTokens"]
+        total_cost += enc["costUsd"]
 
     return {
-        "patientId":    patient_id,
-        "encounters":   encounters,
+        "patientId": patient_id,
+        "encounters": encounters,
         "totals": {
-            "inputTokens":  total_input,
+            "inputTokens": total_input,
             "outputTokens": total_output,
             "cachedTokens": total_cached,
-            "costUsd":      round(total_cost, 6),
-            "cacheHitRate": round(total_cached / total_input, 4) if total_input > 0 else 0,
+            "costUsd": round(total_cost, 6),
+            "cacheHitRate": (
+                round(total_cached / total_input, 4) if total_input > 0 else 0
+            ),
         },
     }
 
@@ -352,35 +362,37 @@ def run_llm_spend(
 
     runs = [
         {
-            "runId":        row.get("runId", ""),
-            "patientId":    row.get("patientId", ""),
-            "encounterId":  row.get("encounterId", ""),
-            "status":       row.get("status", ""),
-            "durationMs":   int(row.get("durationMs") or 0),
-            "inputTokens":  int(row.get("inputTokens") or 0),
+            "runId": row.get("runId", ""),
+            "patientId": row.get("patientId", ""),
+            "encounterId": row.get("encounterId", ""),
+            "status": row.get("status", ""),
+            "durationMs": int(row.get("durationMs") or 0),
+            "inputTokens": int(row.get("inputTokens") or 0),
             "outputTokens": int(row.get("outputTokens") or 0),
             "cachedTokens": int(row.get("cachedTokens") or 0),
-            "costUsd":      float(row.get("costUsd") or 0),
-            "createdAt":    str(row.get("createdAt") or ""),
+            "costUsd": float(row.get("costUsd") or 0),
+            "createdAt": str(row.get("createdAt") or ""),
         }
         for row in rows
     ]
 
     agg = agg_rows[0] if agg_rows else {}
-    total_input   = int(agg.get("inputTokens") or 0)
-    total_output  = int(agg.get("outputTokens") or 0)
-    total_cached  = int(agg.get("cachedTokens") or 0)
-    total_cost    = float(agg.get("costUsd") or 0)
-    run_count     = int(agg.get("runCount") or 0)
+    total_input = int(agg.get("inputTokens") or 0)
+    total_output = int(agg.get("outputTokens") or 0)
+    total_cached = int(agg.get("cachedTokens") or 0)
+    total_cost = float(agg.get("costUsd") or 0)
+    run_count = int(agg.get("runCount") or 0)
 
     return {
         "runs": runs,
         "totals": {
-            "runCount":     run_count,
-            "inputTokens":  total_input,
+            "runCount": run_count,
+            "inputTokens": total_input,
             "outputTokens": total_output,
             "cachedTokens": total_cached,
-            "costUsd":      round(total_cost, 6),
-            "cacheHitRate": round(total_cached / total_input, 4) if total_input > 0 else 0,
+            "costUsd": round(total_cost, 6),
+            "cacheHitRate": (
+                round(total_cached / total_input, 4) if total_input > 0 else 0
+            ),
         },
     }

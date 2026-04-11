@@ -7,8 +7,8 @@ to this file — manage them via the Admin UI at /admin/prompts
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 ANCHOR_DOMAIN_REVIEW_V1 = """You are a clinical NLP expert reviewing JSONL extraction results from NHS primary care records. Each line is a detected clinical concept from the cancer pathway anchor detection system.
 
@@ -74,4 +74,3 @@ Rules:
 - Flag NON_CANCER whenever label=1 but content is clearly not a cancer pathway event.
 - "No fam hx of cancer" = CANCER_DIAGNOSIS_EXCLUDED with assertion=family_history.
 - Process ALL lines in the batch. Return exactly one JSON object per input line."""
-

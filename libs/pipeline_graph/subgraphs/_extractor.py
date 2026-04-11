@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 def _active_provider() -> str:
     """Return the active LLM provider name (``"aws"`` or ``"azure"``)."""
     import os
+
     return os.getenv("PIPELINE_MODEL_PROVIDER", "aws")
 
 
@@ -42,8 +43,7 @@ def _build_few_shot_block(examples: list[dict], provider: str = "aws") -> str:
     Returns an empty string when there are no matching examples.
     """
     applicable = [
-        ex for ex in examples
-        if ex.get("model_scope", "any") in ("any", provider)
+        ex for ex in examples if ex.get("model_scope", "any") in ("any", provider)
     ]
     if not applicable:
         return ""
@@ -113,6 +113,7 @@ def assemble_system_prompt(
         try:
             schema = json.loads(output_schema_json)
             from libs.prompts.extraction_output_schema import format_output_schema_block
+
             fmt_block = format_output_schema_block(schema)
             if fmt_block:
                 parts.append(fmt_block)
@@ -151,7 +152,9 @@ class LLMExtractorAdapter:
         except (TypeError, ValueError):
             parsed_max = 20
         self._max_few_shot = max(1, parsed_max)
-        applicable_examples = _filter_examples_for_provider(few_shot_examples or [], self._provider)
+        applicable_examples = _filter_examples_for_provider(
+            few_shot_examples or [], self._provider
+        )
         core_examples, dynamic_pool = _split_core_dynamic(applicable_examples)
         max_core = min(len(core_examples), self._max_few_shot)
         self._core_examples = core_examples[:max_core]
@@ -185,6 +188,7 @@ class LLMExtractorAdapter:
     def is_available(self) -> bool:
         try:
             from libs.llm_client.factory import create_llm
+
             llm = create_llm(tier=self._tier)
             return llm is not None
         except Exception:
@@ -227,13 +231,13 @@ class LLMExtractorAdapter:
         from libs.llm_client.factory import create_llm
 
         llm = create_llm(tier=self._tier)
-        sentence_block = "\n".join(
-            f"[{s.sentence_id}] {s.text}" for s in sentences
-        )
+        sentence_block = "\n".join(f"[{s.sentence_id}] {s.text}" for s in sentences)
         dynamic_examples: list[dict] = []
         if self._dynamic_budget > 0:
             query_text = f"{encounter_text}\n\n{sentence_block}".strip()
-            dynamic_examples = self._few_shot_selector.select(query_text=query_text, k=self._dynamic_budget)
+            dynamic_examples = self._few_shot_selector.select(
+                query_text=query_text, k=self._dynamic_budget
+            )
         relevant_examples_block = _build_relevant_examples_block(dynamic_examples)
 
         user_parts: list[str] = []
@@ -256,9 +260,11 @@ class LLMExtractorAdapter:
         cost_usd = 0.0
         try:
             from libs.llm_client.factory import _active_provider
+
             provider_key = f"{_active_provider()}:{self._tier}"
             from libs.cypher.model_config_queries import GET_MODEL_CONFIG
             from libs.neo4j_client.client import KnowledgeGraphClient
+
             kg = KnowledgeGraphClient()
             try:
                 with kg.session() as s:
@@ -267,8 +273,12 @@ class LLMExtractorAdapter:
                     billable = max(0, resp.input_tokens - resp.cached_input_tokens)
                     cost_usd = round(
                         billable * float(mc["costPer1mInput"] or 0) / 1_000_000
-                        + resp.cached_input_tokens * float(mc["costPer1mCachedInput"] or 0) / 1_000_000
-                        + resp.output_tokens * float(mc["costPer1mOutput"] or 0) / 1_000_000,
+                        + resp.cached_input_tokens
+                        * float(mc["costPer1mCachedInput"] or 0)
+                        / 1_000_000
+                        + resp.output_tokens
+                        * float(mc["costPer1mOutput"] or 0)
+                        / 1_000_000,
                         6,
                     )
             finally:
@@ -277,17 +287,18 @@ class LLMExtractorAdapter:
             logger.debug("Cost calculation failed (non-fatal)", exc_info=True)
 
         usage = {
-            "input_tokens":  resp.input_tokens,
+            "input_tokens": resp.input_tokens,
             "output_tokens": resp.output_tokens,
             "cached_tokens": resp.cached_input_tokens,
-            "cost_usd":      cost_usd,
+            "cost_usd": cost_usd,
             "prompt_name": self._prompt_name,
             "prompt_version": self._prompt_version,
             "prompt_hash": self._prompt_hash,
             "provider": self._provider,
             "model_tier": self._tier,
             "few_shot_example_ids": [
-                _example_id(ex) for ex in (self._core_examples + dynamic_examples)
+                _example_id(ex)
+                for ex in (self._core_examples + dynamic_examples)
                 if isinstance(ex, dict)
             ],
         }
@@ -303,9 +314,7 @@ class LLMExtractorAdapter:
         terms = data.get("terms", [])
         items: list[ExtractionItem] = []
         sentence_index = {
-            str(s.sentence_id): s
-            for s in sentences
-            if getattr(s, "sentence_id", None)
+            str(s.sentence_id): s for s in sentences if getattr(s, "sentence_id", None)
         }
         sentence_cursors: dict[str, int] = {}
         encounter_cursor = 0
@@ -396,6 +405,7 @@ def build_extractor(
     """
     if not system_prompt:
         from libs.prompts.registry import get_prompt
+
         system_prompt = get_prompt("extraction", version=1)
     return LLMExtractorAdapter(
         system_prompt=system_prompt,

@@ -12,7 +12,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-
 # Configuration constants (sourced from infra/bicep)
 MAX_REPLICAS = 10
 SCALE_TO_ZERO_IDLE_SECONDS = 300
@@ -24,10 +23,12 @@ CONCURRENT_JOB_SLA_SECONDS = 1200  # 20 minutes for 10 jobs
 # VT-029-TC-001: 10 concurrent jobs complete within SLA
 # ---------------------------------------------------------------------------
 
+
 class TestConcurrentJobCompletion:
 
     def test_10_concurrent_jobs_all_complete(self):
         """10 concurrent pipeline jobs submitted to pool all complete."""
+
         def mock_pipeline_job(job_id: int) -> dict:
             return {"job_id": job_id, "status": "completed"}
 
@@ -40,6 +41,7 @@ class TestConcurrentJobCompletion:
 
     def test_no_resource_contention_failures(self):
         """No jobs fail due to resource contention in the mock pool."""
+
         def safe_job(i: int) -> bool:
             return True
 
@@ -52,6 +54,7 @@ class TestConcurrentJobCompletion:
 # ---------------------------------------------------------------------------
 # VT-029-TC-002: Auto-scaling configuration
 # ---------------------------------------------------------------------------
+
 
 class TestAutoScalingConfiguration:
 
@@ -71,6 +74,7 @@ class TestAutoScalingConfiguration:
 # ---------------------------------------------------------------------------
 # VT-029-TC-003: Scale-to-zero configuration
 # ---------------------------------------------------------------------------
+
 
 class TestScaleToZero:
 

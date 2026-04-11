@@ -38,16 +38,20 @@ def _bootstrap_secrets() -> None:
     Falls back gracefully if Key Vault is unreachable (e.g. no ``az login``).
     """
     from dotenv import load_dotenv
+
     load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=False)
 
     # Only attempt KV load when AZURE_KEYVAULT_URL is configured.
     if os.environ.get("AZURE_KEYVAULT_URL"):
         try:
             from libs.keyvault.loader import load_keyvault_secrets
+
             load_keyvault_secrets()
         except Exception as exc:  # noqa: BLE001
             # Don't fail here -- the api_key_required fixture will skip cleanly.
-            print(f"[integration] Key Vault load failed (will skip if key absent): {exc}")
+            print(
+                f"[integration] Key Vault load failed (will skip if key absent): {exc}"
+            )
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -69,12 +73,14 @@ def api_key_required() -> None:
 @pytest.fixture(scope="module")
 def client(api_key_required):  # noqa: ARG001  -- fixture ensures key is set
     from app.services.nice_api_client import NiceApiClient
+
     return NiceApiClient()
 
 
 # ---------------------------------------------------------------------------
 # Guidance index search
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_search_index_by_condition_name_returns_results(client):
@@ -88,9 +94,9 @@ async def test_search_index_by_condition_name_returns_results(client):
     codes = [r["code"] for r in results]
     titles = [r["title"].lower() for r in results]
     # At least one result should mention cancer in its title
-    assert any("cancer" in t for t in titles), (
-        f"Expected 'cancer' in at least one title, got: {titles[:5]}"
-    )
+    assert any(
+        "cancer" in t for t in titles
+    ), f"Expected 'cancer' in at least one title, got: {titles[:5]}"
     assert all(r.get("code") for r in results), "Every result must have a code"
 
 
@@ -105,7 +111,7 @@ async def test_search_index_returns_guidance_items(client):
 
     This test validates the structural contract: each item has code, title, type.
     """
-    results = await client.search_index("cancer")   # query is ignored by the API
+    results = await client.search_index("cancer")  # query is ignored by the API
     assert isinstance(results, list), "search_index must return a list"
     assert len(results) > 0, "Expected at least one guidance item from the index"
     for r in results:
@@ -126,23 +132,25 @@ async def test_search_index_cold_cache_fallback_returns_items(client):
     results = await client.search_index("bowel")
     assert isinstance(results, list)
     # May return unrelated items -- just verify the structural shape
-    assert all("code" in r and "title" in r for r in results), (
-        "All items must have code and title fields"
-    )
+    assert all(
+        "code" in r and "title" in r for r in results
+    ), "All items must have code and title fields"
 
 
 # ---------------------------------------------------------------------------
 # Individual guideline fetch
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_get_guidance_ng12_returns_title(client):
     """Fetching NG12 top-level doc returns a Title and GuidanceNumber."""
     doc = await client.get_guidance("NG12")
     assert doc.get("Title"), "Expected a Title in the NG12 guidance doc"
-    assert doc.get("GuidanceNumber", "").upper() == "NG12" or doc.get("Code", "").upper() == "NG12", (
-        f"Expected NG12 guidance number, got: {doc.get('GuidanceNumber')} / {doc.get('Code')}"
-    )
+    assert (
+        doc.get("GuidanceNumber", "").upper() == "NG12"
+        or doc.get("Code", "").upper() == "NG12"
+    ), f"Expected NG12 guidance number, got: {doc.get('GuidanceNumber')} / {doc.get('Code')}"
 
 
 @pytest.mark.asyncio
@@ -153,9 +161,9 @@ async def test_get_chapters_ng12_returns_at_least_one_chapter(client):
         "Expected at least one chapter for NG12. "
         "If Resources is empty, the API response structure may have changed."
     )
-    assert all(c.get("Href") for c in chapters), (
-        "Each chapter must have an Href link to follow"
-    )
+    assert all(
+        c.get("Href") for c in chapters
+    ), "Each chapter must have an Href link to follow"
 
 
 @pytest.mark.asyncio
@@ -169,14 +177,15 @@ async def test_get_recommendations_ng12_returns_items(client):
         "new chapter-walking approach."
     )
     for rec in recs:
-        assert rec.get("Title") or rec.get("Text"), (
-            f"Every recommendation must have Title or Text, got: {rec}"
-        )
+        assert rec.get("Title") or rec.get(
+            "Text"
+        ), f"Every recommendation must have Title or Text, got: {rec}"
 
 
 # ---------------------------------------------------------------------------
 # Full index sync
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_sync_catalogue_from_index_returns_guidelines(client):
@@ -248,15 +257,16 @@ async def test_fetch_taxonomy_cancer_subcategory_has_ng_guidelines(client):
     """
     entries = await client.fetch_taxonomy()
     cancer_entries = [
-        e for e in entries
-        if "cancer" in e.get("subcategory_title", "").lower()
+        e for e in entries if "cancer" in e.get("subcategory_title", "").lower()
     ]
     assert cancer_entries, (
         "No 'cancer' subcategory found in taxonomy. "
         f"Subcategories present: {[e['subcategory_title'] for e in entries][:10]}"
     )
 
-    cancer_codes = {code for e in cancer_entries for code in e.get("guideline_codes", [])}
+    cancer_codes = {
+        code for e in cancer_entries for code in e.get("guideline_codes", [])
+    }
     assert cancer_codes, (
         "Cancer subcategory found but contains no guideline codes. "
         "Check that subcategory URI is being fetched and guidance list parsed."
@@ -282,15 +292,16 @@ async def test_fetch_taxonomy_all_entries_have_required_fields(client):
         assert entry.get("category_title"), f"Missing category_title: {entry}"
         assert entry.get("subcategory_id"), f"Missing subcategory_id: {entry}"
         assert entry.get("subcategory_title"), f"Missing subcategory_title: {entry}"
-        assert isinstance(entry.get("guideline_codes"), list), (
-            f"guideline_codes must be a list: {entry}"
-        )
+        assert isinstance(
+            entry.get("guideline_codes"), list
+        ), f"guideline_codes must be a list: {entry}"
         # Codes must all be valid NICE codes
         from app.services.nice_api_client import NICE_CODE_RE
+
         for code in entry["guideline_codes"]:
-            assert NICE_CODE_RE.match(code), (
-                f"Invalid NICE code '{code}' in subcategory '{entry['subcategory_title']}'"
-            )
+            assert NICE_CODE_RE.match(
+                code
+            ), f"Invalid NICE code '{code}' in subcategory '{entry['subcategory_title']}'"
 
 
 @pytest.mark.asyncio
@@ -313,6 +324,7 @@ async def test_fetch_taxonomy_subcategory_count_is_plausible(client):
 # Catalogue / Redis (smoke test -- Redis may not be available)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_add_to_catalogue_and_fetch(client):
     """add_to_catalogue persists a guideline that fetch_catalogue returns.
@@ -321,6 +333,7 @@ async def test_add_to_catalogue_and_fetch(client):
     """
     try:
         import redis.asyncio as aioredis
+
         r = aioredis.from_url("redis://localhost:6379")
         await r.ping()
         await r.aclose()
@@ -329,6 +342,6 @@ async def test_add_to_catalogue_and_fetch(client):
 
     await client.add_to_catalogue("NG999", "Test guideline", "test")
     entries = await client.fetch_catalogue()
-    assert any(e["code"] == "NG999" for e in entries), (
-        "Expected NG999 to be in catalogue after add_to_catalogue"
-    )
+    assert any(
+        e["code"] == "NG999" for e in entries
+    ), "Expected NG999 to be in catalogue after add_to_catalogue"

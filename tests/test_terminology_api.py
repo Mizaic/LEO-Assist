@@ -261,7 +261,9 @@ class TestResolveRouterRetry:
         def _always_fail(*args, **kwargs):
             raise ServiceUnavailable("persistent outage")
 
-        monkeypatch.setattr(resolve_router._resolver, "resolve_candidates", _always_fail)
+        monkeypatch.setattr(
+            resolve_router._resolver, "resolve_candidates", _always_fail
+        )
 
         body = resolve_router.ResolveRequest(terms=["cough"])
         with pytest.raises(HTTPException) as exc_info:

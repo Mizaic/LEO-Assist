@@ -60,6 +60,7 @@ async def _publish_to_pipeline(message: PipelineJobMessage) -> dict[str, str]:
     try:
         from libs.message_bus.factory import create_message_bus
         from libs.message_bus.base import Message
+
         bus = create_message_bus()
         await bus.send(
             PIPELINE_QUEUE,
@@ -81,7 +82,8 @@ async def receive_lab_result(payload: LabResultPayload) -> dict[str, str]:
     """Receive a lab result notification from an external system."""
     logger.info(
         "Lab result received for patient %s (test=%s)",
-        payload.patient_id, payload.test_code,
+        payload.patient_id,
+        payload.test_code,
     )
     message = PipelineJobMessage(
         patient_id=payload.patient_id,
@@ -96,7 +98,8 @@ async def receive_referral_response(payload: ReferralResponsePayload) -> dict[st
     """Receive a referral response from eRS or another system."""
     logger.info(
         "Referral response received for patient %s (referral=%s)",
-        payload.patient_id, payload.referral_id,
+        payload.patient_id,
+        payload.referral_id,
     )
     message = PipelineJobMessage(
         patient_id=payload.patient_id,
@@ -111,7 +114,8 @@ async def receive_clinician_action(payload: ClinicianActionPayload) -> dict[str,
     """Receive a clinician decision from the Primary Care UI."""
     logger.info(
         "Clinician action: %s for patient %s",
-        payload.action_type, payload.patient_id,
+        payload.action_type,
+        payload.patient_id,
     )
     message = PipelineJobMessage(
         patient_id=payload.patient_id,
@@ -136,11 +140,14 @@ async def schedule_timer_event(
     """Schedule a safety net timer event for future delivery."""
     logger.info(
         "Scheduling timer for patient %s, action %s in %ds",
-        patient_id, action_id, delay_seconds,
+        patient_id,
+        action_id,
+        delay_seconds,
     )
     try:
         from libs.message_bus.factory import create_message_bus
         from libs.message_bus.base import Message
+
         bus = create_message_bus()
         message = Message(
             body={
@@ -161,4 +168,6 @@ async def schedule_timer_event(
         return {"status": "scheduled", "delay_seconds": str(delay_seconds)}
     except Exception as exc:
         logger.error("Failed to schedule timer: %s", exc, exc_info=True)
-        raise HTTPException(status_code=503, detail="Timer scheduling unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="Timer scheduling unavailable"
+        ) from exc

@@ -7,12 +7,12 @@ Defects fixed:
 
 Tests are pure-Python unit tests (no live Neo4j or HTTP calls).
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # 1. Cypher -- BATCH_RESOLVE_BY_ENTITY_TEXT contains the new fields
@@ -24,6 +24,7 @@ class TestBatchResolveCypher:
 
     def _query(self) -> str:
         from libs.cypher.coding_review_queries import BATCH_RESOLVE_BY_ENTITY_TEXT
+
         return BATCH_RESOLVE_BY_ENTITY_TEXT
 
     def test_resolved_assertion_param_present(self):
@@ -60,6 +61,7 @@ class TestBatchResolveCodingReviewRequest:
 
     def _model(self):
         from app.routers.training import BatchResolveCodingReviewRequest
+
         return BatchResolveCodingReviewRequest
 
     def test_resolved_assertion_defaults_present(self):
@@ -221,8 +223,9 @@ class TestSingleResolveCascade:
 class TestRecheckDirectWriteback:
     """resolved_direct path must write a SurfaceForm mapping."""
 
-    def _run_recheck_item(self, *, scored_coding=None, mock_writeback=None,
-                          try_alternatives: bool = False):
+    def _run_recheck_item(
+        self, *, scored_coding=None, mock_writeback=None, try_alternatives: bool = False
+    ):
         from app.routers.training import _apply_recheck_item
 
         mock_session = MagicMock()
@@ -249,7 +252,11 @@ class TestRecheckDirectWriteback:
             "app.routers.training._writeback_recheck_surface_form", wb
         ) as wb_mock:
             outcome, ok = _apply_recheck_item(
-                mock_session, item, results_map, frozenset(), try_alternatives,
+                mock_session,
+                item,
+                results_map,
+                frozenset(),
+                try_alternatives,
             )
         return outcome, ok, wb_mock
 
@@ -302,9 +309,11 @@ class TestRecheckDirectWriteback:
 class TestRecheckEscalationWriteback:
     """Escalation path must use esc.concept_id and write a SurfaceForm."""
 
-    def _make_esc(self, concept_id="38341003", concept_term="Hypertensive disorder",
-                  resolved=True):
+    def _make_esc(
+        self, concept_id="38341003", concept_term="Hypertensive disorder", resolved=True
+    ):
         from libs.llm_client.escalation import EscalationResult
+
         return EscalationResult(
             resolved=resolved,
             concept_id=concept_id,
@@ -333,7 +342,11 @@ class TestRecheckEscalationWriteback:
             patch("app.routers.training._writeback_recheck_surface_form", wb),
         ):
             outcome, ok = _apply_recheck_item(
-                mock_session, item, results_map, frozenset(), try_alternatives=True,
+                mock_session,
+                item,
+                results_map,
+                frozenset(),
+                try_alternatives=True,
             )
         return outcome, ok, wb
 
@@ -354,6 +367,7 @@ class TestRecheckEscalationWriteback:
     def test_escalation_no_concept_id_skips_writeback(self):
         """If escalation result has no concept_id, item remains pending."""
         from libs.llm_client.escalation import EscalationResult
+
         esc = EscalationResult(resolved=False, concept_id=None, concept_term=None)
         wb = MagicMock()
         outcome, _, _ = self._run_escalation(esc, writeback_mock=wb)

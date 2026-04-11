@@ -6,6 +6,8 @@ CCI scoring, benchmark queries.
 Ported from auditor_2 (IMD, CCI, benchmarks) and VRB (dashboard queries).
 """
 
+# aca-image: analytics-api build/deploy verification (no runtime effect).
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,15 +26,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from libs.utils.logging import configure_logging
 
-from services.analytics_api.app.routers.cohorts import router as cohort_router, seed_nhs_cohorts
+from services.analytics_api.app.routers.cohorts import (
+    router as cohort_router,
+    seed_nhs_cohorts,
+)
 from services.analytics_api.app.routers.dashboards import router as dashboard_router
 from services.analytics_api.app.routers.domains import router as domain_router
 from services.analytics_api.app.routers.imd import router as imd_router
 from services.analytics_api.app.routers.cci import router as cci_router
 from services.analytics_api.app.routers.benchmarks import router as benchmark_router
 from services.analytics_api.app.routers.org_context import router as org_context_router
-from services.analytics_api.app.routers.audit import router as audit_router, _ensure_registry
-from services.analytics_api.app.routers.mission_control import router as mission_control_router
+from services.analytics_api.app.routers.audit import (
+    router as audit_router,
+    _ensure_registry,
+)
+from services.analytics_api.app.routers.mission_control import (
+    router as mission_control_router,
+)
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -62,6 +72,7 @@ async def lifespan(_app: FastAPI):
         logger.warning("NHS cohort seeding skipped (graph unavailable?): %s", exc)
     try:
         from libs.neo4j_client.client import KnowledgeGraphClient
+
         kg = KnowledgeGraphClient()
         try:
             registry = _ensure_registry(kg)
@@ -111,7 +122,9 @@ app.include_router(imd_router, prefix="/analytics", tags=["imd"])
 app.include_router(cci_router, prefix="/analytics", tags=["cci"])
 app.include_router(benchmark_router, prefix="/analytics", tags=["benchmarks"])
 app.include_router(audit_router, prefix="/analytics", tags=["audit"])
-app.include_router(mission_control_router, prefix="/analytics", tags=["mission-control"])
+app.include_router(
+    mission_control_router, prefix="/analytics", tags=["mission-control"]
+)
 
 
 @app.get("/health")

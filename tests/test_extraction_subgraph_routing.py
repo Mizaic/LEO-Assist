@@ -38,7 +38,14 @@ def test_extract_entities_uses_ner_provider_when_requested(monkeypatch):
         {
             "encounter_text": "Patient has asthma.",
             "extraction_method": "ner",
-            "sentences": [{"sentence_id": "s0", "text": "Patient has asthma.", "start": 0, "end": 19}],
+            "sentences": [
+                {
+                    "sentence_id": "s0",
+                    "text": "Patient has asthma.",
+                    "start": 0,
+                    "end": 19,
+                }
+            ],
         }
     )
     assert len(result["entities"]) == 1

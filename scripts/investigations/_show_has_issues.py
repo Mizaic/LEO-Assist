@@ -1,4 +1,5 @@
 """Show full detail for all has_issues encounters in v2."""
+
 from __future__ import annotations
 
 import json
@@ -18,8 +19,11 @@ rows = con.execute(
 ).fetchall()
 con.close()
 
-issues = [r for r in rows if json.loads(r["result_json"] or "{}").get(
-    "encounter_assessment") == "has_issues"]
+issues = [
+    r
+    for r in rows
+    if json.loads(r["result_json"] or "{}").get("encounter_assessment") == "has_issues"
+]
 
 for r in issues:
     d = json.loads(r["result_json"])
@@ -57,6 +61,8 @@ for r in issues:
         print(f"  WRONG ASSERTION ({len(wrong)}):")
         for w in wrong:
             print(f"    [{w.get('conceptId','?')}] {w.get('name','?')}")
-            print(f"      {w.get('current_assertion','?')} -> {w.get('suggested_assertion','?')}")
+            print(
+                f"      {w.get('current_assertion','?')} -> {w.get('suggested_assertion','?')}"
+            )
             print(f"      sev={w.get('severity','?')}  reason: {w.get('reason','')}")
     print()

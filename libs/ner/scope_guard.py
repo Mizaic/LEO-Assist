@@ -29,6 +29,7 @@ Distinction between suppression and hypothetical:
   - Safety netting   = patient instructions ("call 999 if...") -- no entity
   - Hypothetical     = conditional clinical plan ("start X if no improvement")
 """
+
 from __future__ import annotations
 
 import logging
@@ -122,6 +123,18 @@ _MED_INSTRUCTION_RE = re.compile(
 
 _MED_FORM_OR_DOSE_RE = re.compile(
     r"\b(?:mg|mcg|g|ml|capsules?|tablets?|tabs?|patch(?:es)?|inhaler|drops?)\b",
+    re.IGNORECASE,
+)
+
+_SIDE_EFFECT_COUNSELLING_RE = re.compile(
+    r"\b(?:"
+    r"advised\s+at\s+increased\s+risk\s+of"
+    r"|increased\s+risk\s+of\s+(?:s/?e|side\s+effects?)"
+    r"|side\s+effects?\s+(?:such\s+as|including)"
+    r"|look\s+out\s+for\s+these"
+    r"|report\s+back\s+to\s+(?:the\s+)?surgery"
+    r"|advised\s+to\s+look\s+out"
+    r")\b",
     re.IGNORECASE,
 )
 
@@ -231,7 +244,11 @@ def reclassify_assertion(
     if entity_assertion not in ("present", ""):
         return None
 
-    label = f"{entity_text!r} [{entity_semantic_tag}]" if entity_text else entity_semantic_tag
+    label = (
+        f"{entity_text!r} [{entity_semantic_tag}]"
+        if entity_text
+        else entity_semantic_tag
+    )
 
     if is_safety_netting_sentence(sentence_text):
         logger.info(
@@ -261,6 +278,15 @@ def reclassify_assertion(
                     sentence_text,
                 )
                 return SUPPRESSED
+
+    if tag in {"finding", "disorder"}:
+        if _SIDE_EFFECT_COUNSELLING_RE.search(sentence_text):
+            logger.info(
+                "scope_guard: %s -> SUPPRESSED (side-effect counselling context, not current patient finding) | sent: %.120s",
+                label,
+                sentence_text,
+            )
+            return SUPPRESSED
 
     if tag == "disorder" and has_hedged_diagnosis(sentence_text):
         logger.info(

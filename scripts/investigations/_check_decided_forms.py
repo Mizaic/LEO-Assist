@@ -1,4 +1,5 @@
 """Check current MAPS_TO edges for multi-mapped forms with decisions."""
+
 from neo4j import GraphDatabase
 
 NORMS = [

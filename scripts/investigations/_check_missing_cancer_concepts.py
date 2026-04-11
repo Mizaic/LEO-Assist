@@ -1,4 +1,5 @@
 """Check why specific cancer concepts miss IS_A expansion, and probe related endpoint utility."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -88,10 +91,14 @@ def main() -> None:
         for cid in MISSING_CANCER_IDS:
             rows = kg.run(_Q_CONCEPT_EXISTS, cid=cid)
             if not rows:
-                print(f"  {cid}: NOT FOUND as :Concept node (only exists as Disease/Clinical_finding)")
+                print(
+                    f"  {cid}: NOT FOUND as :Concept node (only exists as Disease/Clinical_finding)"
+                )
             else:
                 r = rows[0]
-                print(f"  {cid}: FOUND -- active={r['active']} tag={r['tag']}  fsn={r['fsn']}")
+                print(
+                    f"  {cid}: FOUND -- active={r['active']} tag={r['tag']}  fsn={r['fsn']}"
+                )
 
             # Try to find path to cancer root
             depth_rows = kg.run(_Q_DEPTH_TO_ROOT, cid=cid, root=CANCER_ROOT)
@@ -100,9 +107,13 @@ def main() -> None:
             else:
                 anc_rows = kg.run(_Q_ISA_ANCESTORS_INACTIVE, cid=cid)
                 if anc_rows:
-                    print(f"    Ancestors found ({len(anc_rows)}), but root {CANCER_ROOT} not reachable")
+                    print(
+                        f"    Ancestors found ({len(anc_rows)}), but root {CANCER_ROOT} not reachable"
+                    )
                     for a in anc_rows[:5]:
-                        print(f"      {a['ancestor_id']} (active={a['active']}) {str(a['ancestor_fsn'])[:60]}")
+                        print(
+                            f"      {a['ancestor_id']} (active={a['active']}) {str(a['ancestor_fsn'])[:60]}"
+                        )
                 else:
                     print(f"    No IS_A ancestors found at all")
             print()
@@ -110,19 +121,27 @@ def main() -> None:
         print("=== HAS_ASSOCIATED_FINDING: procedures -> cancer findings ===")
         proc_rows = kg.run(_Q_PROCEDURE_TO_CANCER)
         if not proc_rows:
-            print("  No HAS_ASSOCIATED_FINDING relationships from procedures to cancer concepts found")
+            print(
+                "  No HAS_ASSOCIATED_FINDING relationships from procedures to cancer concepts found"
+            )
         else:
             for r in proc_rows:
-                print(f"  {r['proc_id']} {str(r['proc_fsn'])[:50]:50s} -> {r['finding_id']} {str(r['finding_fsn'])[:50]}")
+                print(
+                    f"  {r['proc_id']} {str(r['proc_fsn'])[:50]:50s} -> {r['finding_id']} {str(r['finding_fsn'])[:50]}"
+                )
 
         print()
-        print("=== Encounter procedures in patient data that link via HAS_ASSOCIATED_FINDING to cancer ===")
+        print(
+            "=== Encounter procedures in patient data that link via HAS_ASSOCIATED_FINDING to cancer ==="
+        )
         enc_rows = kg.run(_Q_ENCOUNTER_PROCS_WITH_CANCER_FINDING)
         if not enc_rows:
             print("  None found -- HAS_ASSOCIATED_FINDING data may not be loaded")
         else:
             for r in enc_rows:
-                print(f"  {r['enc_count']:>4}x {str(r['proc_name'])[:55]:55s} -> {str(r['finding_name'])[:50]}")
+                print(
+                    f"  {r['enc_count']:>4}x {str(r['proc_name'])[:55]:55s} -> {str(r['finding_name'])[:50]}"
+                )
 
     finally:
         kg.close()

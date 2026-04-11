@@ -3,6 +3,7 @@
 Outputs a summary of what was resolved, how, and common patterns that can inform
 few-shot examples and deterministic rules.
 """
+
 from __future__ import annotations
 
 import json
@@ -40,7 +41,9 @@ def main() -> None:
     print(f"  Found {len(rows)} HITL resolutions\n")
     for r in rows:
         print(f"  Entity: {r['entity_text']!r}")
-        print(f"    Original: {r['original_label']}  AWS: {r['aws_label']}  Azure: {r['azure_label']}")
+        print(
+            f"    Original: {r['original_label']}  AWS: {r['aws_label']}  Azure: {r['azure_label']}"
+        )
         print(f"    RESOLVED: {r['resolved_label']}  by: {r['resolved_by']}")
         print(f"    Context: {r['encounter_snippet']!r}")
         print()
@@ -62,7 +65,9 @@ def main() -> None:
             ORDER BY n DESC
         """))
     for r in rows:
-        print(f"  {r['from_label']} -> {r['to_label']}  (n={r['n']})  examples: {r['examples']}")
+        print(
+            f"  {r['from_label']} -> {r['to_label']}  (n={r['n']})  examples: {r['examples']}"
+        )
     print()
 
     print("=" * 80)
@@ -111,9 +116,15 @@ def main() -> None:
         total = r["total"] or 0
         print(f"  Total resolved: {total}")
         if total:
-            print(f"  AWS correct: {r['aws_correct']} ({100*r['aws_correct']/total:.1f}%)")
-            print(f"  Azure correct: {r['azure_correct']} ({100*r['azure_correct']/total:.1f}%)")
-            print(f"  Both correct: {r['both_correct']} ({100*r['both_correct']/total:.1f}%)")
+            print(
+                f"  AWS correct: {r['aws_correct']} ({100*r['aws_correct']/total:.1f}%)"
+            )
+            print(
+                f"  Azure correct: {r['azure_correct']} ({100*r['azure_correct']/total:.1f}%)"
+            )
+            print(
+                f"  Both correct: {r['both_correct']} ({100*r['both_correct']/total:.1f}%)"
+            )
             print(f"  Both wrong: {r['both_wrong']} ({100*r['both_wrong']/total:.1f}%)")
     print()
 

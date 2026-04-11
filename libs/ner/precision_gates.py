@@ -7,6 +7,7 @@ frequently appear in non-malignant contexts.
 Each rule returns a list of rejection/warning reasons (empty = pass).
 Callers can treat any non-empty list as grounds for rejection.
 """
+
 from __future__ import annotations
 
 import re
@@ -90,11 +91,11 @@ GENERIC_BODY_PART_TERMS: frozenset[str] = frozenset(
 # Surface forms that are very frequently false positives across all domains
 GLOBAL_FP_SURFACE_FORMS: frozenset[str] = frozenset(
     {
-        "mass",           # too generic — needs qualifier
-        "lesion",         # too generic
-        "lump",           # too generic without malignancy context
-        "node",           # lymph node — too generic
-        "change",         # "change in bowel habit" is fine but bare "change" is not
+        "mass",  # too generic — needs qualifier
+        "lesion",  # too generic
+        "lump",  # too generic without malignancy context
+        "node",  # lymph node — too generic
+        "change",  # "change in bowel habit" is fine but bare "change" is not
     }
 )
 
@@ -123,10 +124,18 @@ _FIT_NOTE_CONTEXT_RE = re.compile(
 )
 
 _CKD_EPI_FORMULA_RE = re.compile(r"\bCKD[- ]?EPI\b", re.IGNORECASE)
-_CKD_ENTITY_TERMS = frozenset({
-    "ckd", "chronic kidney disease", "kidney disease", "renal disease",
-    "renal failure", "kidney failure", "nephropathy", "renal impairment",
-})
+_CKD_ENTITY_TERMS = frozenset(
+    {
+        "ckd",
+        "chronic kidney disease",
+        "kidney disease",
+        "renal disease",
+        "renal failure",
+        "kidney failure",
+        "nephropathy",
+        "renal impairment",
+    }
+)
 
 _URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 
@@ -176,6 +185,7 @@ def _has_non_cancer_context(text: str) -> bool:
 # Per-entity gate
 # ---------------------------------------------------------------------------
 
+
 def check_entity(
     entity: dict[str, Any],
     sentence_text: str,
@@ -216,15 +226,23 @@ def check_entity(
 
             # Reject: generic body part term mapped malignantly without malignancy context
             if etext in GENERIC_BODY_PART_TERMS and not has_cancer_signal:
-                reasons.append("cancer_types_generic_body_part_without_malignancy_context")
+                reasons.append(
+                    "cancer_types_generic_body_part_without_malignancy_context"
+                )
 
             # Reject: screening context without cancer signal
-            if "screening" in context and not _has_malignancy_signal(sentence_text.lower()):
+            if "screening" in context and not _has_malignancy_signal(
+                sentence_text.lower()
+            ):
                 if "2ww" not in context and "suspected" not in context:
-                    reasons.append("cancer_types_screening_context_without_cancer_signal")
+                    reasons.append(
+                        "cancer_types_screening_context_without_cancer_signal"
+                    )
 
         # Block semantic-only global FP terms
-        if etext in GLOBAL_FP_SURFACE_FORMS and not _has_malignancy_signal(sentence_text.lower()):
+        if etext in GLOBAL_FP_SURFACE_FORMS and not _has_malignancy_signal(
+            sentence_text.lower()
+        ):
             reasons.append("generic_fp_surface_form_without_malignancy_context")
 
     # ---- Lab-value diagnostic inference hardening ----
@@ -258,7 +276,14 @@ def check_entity(
     # qualifier_value is also exempt: staging codes (T1, N0, M0, G1, G2) are
     # intentionally short and clinically meaningful.
     _MODIFIER_LABELS = frozenset(
-        {"x_negation_cue", "x_temporal", "x_dosage", "x_frequency", "x_route", "qualifier_value"}
+        {
+            "x_negation_cue",
+            "x_temporal",
+            "x_dosage",
+            "x_frequency",
+            "x_route",
+            "qualifier_value",
+        }
     )
     if len(etext) <= 2 and label not in _MODIFIER_LABELS:
         reasons.append("entity_text_too_short")
@@ -268,7 +293,10 @@ def check_entity(
         reasons.append("entity_text_purely_numeric")
 
     # Placeholder tokens leaked into entity text
-    if re.search(r"\[(PERSON|DATE|POSTCODE|ADDRESS|NHS_NUMBER|EMAIL|PHONE|ORGANISATION)\]", entity.get("text") or ""):
+    if re.search(
+        r"\[(PERSON|DATE|POSTCODE|ADDRESS|NHS_NUMBER|EMAIL|PHONE|ORGANISATION)\]",
+        entity.get("text") or "",
+    ):
         reasons.append("entity_text_contains_deid_placeholder")
 
     # Zero-confidence entities with no SNOMED mapping are low value
@@ -282,6 +310,7 @@ def check_entity(
 # ---------------------------------------------------------------------------
 # Record-level gate
 # ---------------------------------------------------------------------------
+
 
 def check_record_entities(record: dict[str, Any]) -> list[str]:
     """Check all entities in a canonical record; return aggregated reasons.

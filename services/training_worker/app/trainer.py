@@ -29,7 +29,9 @@ _CONFIG_PATH = Path(__file__).parent / "config" / "base.cfg"
 _TIMEOUT_S = int(os.getenv("TRAINING_JOB_TIMEOUT_S", "3600"))
 _HF_MODEL = os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT")
 _FROZEN = os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer")
-_ALLOW_TRANSFORMER_FREEZE = os.getenv("TRAINING_ALLOW_TRANSFORMER_FREEZE", "false").lower() in ("1", "true", "yes")
+_ALLOW_TRANSFORMER_FREEZE = os.getenv(
+    "TRAINING_ALLOW_TRANSFORMER_FREEZE", "false"
+).lower() in ("1", "true", "yes")
 
 
 def _register_nvidia_dll_dirs() -> None:
@@ -60,6 +62,7 @@ def _probe_cupy_cuda() -> tuple[bool, str]:
         _register_nvidia_dll_dirs()
         import cupy
         import cupy.cublas  # thinc/spaCy require this on GPU startup
+
         # Touch runtime APIs to fail fast if CUDA DLLs are genuinely missing.
         cupy.cuda.runtime.getDeviceCount()
         cupy.array([1.0])
@@ -91,7 +94,9 @@ def _resolve_training_accelerator() -> AcceleratorDecision:
     ok, reason = _probe_cupy_cuda()
     if ok:
         return decision
-    logger.warning("CuPy/CUDA training preflight failed — falling back to CPU: %s", reason)
+    logger.warning(
+        "CuPy/CUDA training preflight failed — falling back to CPU: %s", reason
+    )
     return AcceleratorDecision(
         requested=decision.requested,
         resolved="cpu",
@@ -168,10 +173,9 @@ def run_training(
 
     accelerator = _resolve_training_accelerator()
     use_gpu = accelerator.resolved in {"cuda", "mps"}
-    mps_fail_fast = (
-        accelerator.resolved == "mps"
-        and os.getenv("TRAINING_MPS_FAIL_FAST", "true").lower() in ("1", "true", "yes")
-    )
+    mps_fail_fast = accelerator.resolved == "mps" and os.getenv(
+        "TRAINING_MPS_FAIL_FAST", "true"
+    ).lower() in ("1", "true", "yes")
     frozen_components = [c.strip() for c in _FROZEN.split(",") if c.strip()]
     if "transformer" in frozen_components and not _ALLOW_TRANSFORMER_FREEZE:
         frozen_components = [c for c in frozen_components if c != "transformer"]
@@ -218,7 +222,9 @@ def run_training(
         if _is_gpu_runtime_error(lines):
             _log("Detected GPU runtime error; retrying training on CPU.")
         else:
-            _log(f"GPU training exited with code {returncode}; retrying once on CPU for isolation.")
+            _log(
+                f"GPU training exited with code {returncode}; retrying once on CPU for isolation."
+            )
         current_gpu = False
         returncode, lines = _run_spacy_train(
             work_dir=work_dir,
@@ -235,8 +241,14 @@ def run_training(
     # --- Attempt 3: unfreeze transformer if dim-error seen ------------------
     # Uses whatever device succeeded (or was last tried) — never escalates
     # back to GPU after falling back to CPU.
-    if returncode != 0 and _is_transformer_listener_dim_error(lines) and "transformer" in frozen_components:
-        _log("Detected transformer-listener init error; retrying with transformer unfrozen.")
+    if (
+        returncode != 0
+        and _is_transformer_listener_dim_error(lines)
+        and "transformer" in frozen_components
+    ):
+        _log(
+            "Detected transformer-listener init error; retrying with transformer unfrozen."
+        )
         retry_frozen = [c for c in frozen_components if c != "transformer"]
         returncode, lines = _run_spacy_train(
             work_dir=work_dir,
@@ -313,24 +325,24 @@ def _write_filled_config(
     annotating_str = json_list(annotating_list)
 
     config_text = re.sub(
-        r'\$\{vars\.hf_model_name\}',
+        r"\$\{vars\.hf_model_name\}",
         f'"{_HF_MODEL}"',
         config_text,
     )
     config_text = re.sub(
-        r'frozen_components\s*=\s*\[.*?\]',
-        f'frozen_components = {frozen_str}',
+        r"frozen_components\s*=\s*\[.*?\]",
+        f"frozen_components = {frozen_str}",
         config_text,
     )
     config_text = re.sub(
-        r'annotating_components\s*=\s*\[.*?\]',
-        f'annotating_components = {annotating_str}',
+        r"annotating_components\s*=\s*\[.*?\]",
+        f"annotating_components = {annotating_str}",
         config_text,
     )
 
     if use_gpu:
         config_text = re.sub(
-            r'gpu_allocator\s*=\s*null',
+            r"gpu_allocator\s*=\s*null",
             'gpu_allocator = "pytorch"',
             config_text,
         )
@@ -389,11 +401,18 @@ def _run_spacy_train(
         use_gpu=use_gpu,
     )
     cmd = [
-        sys.executable, "-u", "-m", "spacy", "train",
+        sys.executable,
+        "-u",
+        "-m",
+        "spacy",
+        "train",
         str(filled_config),
-        "--output", str(output_dir),
-        "--paths.train", str(train_path),
-        "--paths.dev", str(dev_path),
+        "--output",
+        str(output_dir),
+        "--paths.train",
+        str(train_path),
+        "--paths.dev",
+        str(dev_path),
     ]
     if use_gpu:
         cmd.extend(["--gpu-id", "0"])

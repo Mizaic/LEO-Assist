@@ -1,4 +1,5 @@
 """Quick smoke test: verify fixed surface forms resolve to correct SNOMED IDs."""
+
 import requests
 
 TERM_API = "http://localhost:8001/terminology/resolve"
@@ -52,10 +53,7 @@ for term, expected_cid in TESTS:
         source = results[0].get("source", "") if results else ""
 
         if top_cid == expected_cid:
-            print(
-                f"  [PASS] {term!r:40s}  {top_cid}  [{source}]"
-                f"  {top_fsn[:55]}"
-            )
+            print(f"  [PASS] {term!r:40s}  {top_cid}  [{source}]" f"  {top_fsn[:55]}")
             passed += 1
         else:
             print(

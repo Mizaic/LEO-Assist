@@ -4,6 +4,7 @@ The note says 'Likely some central sensitisation' which should be 'possible'.
 The DOCUMENTS edge was written before context JSON was supported (ctx=None).
 We set context JSON and audit_flag directly.
 """
+
 from __future__ import annotations
 
 import os
@@ -57,7 +58,9 @@ def main() -> None:
                 print(f"OK -- updated {updated} DOCUMENTS edge(s).")
                 print("  Central sensitization (789494008) now assertion=possible.")
             else:
-                print("No matching edge found -- already corrected or encounter absent.")
+                print(
+                    "No matching edge found -- already corrected or encounter absent."
+                )
     finally:
         driver.close()
 

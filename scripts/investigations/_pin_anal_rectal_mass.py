@@ -1,16 +1,20 @@
 """Pin surface forms for anal and rectal mass concepts.
 
-  1812681000000102 | Mass of anal structure (finding)
-  248523006        | Rectal mass (finding)
+1812681000000102 | Mass of anal structure (finding)
+248523006        | Rectal mass (finding)
 """
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 

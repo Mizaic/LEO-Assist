@@ -1,29 +1,38 @@
 """Switch calprotectin to observable entity concept."""
+
 import os, sys, re
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
-CORRECT_CID = "1031581000000104"   # Calprotectin level (observable entity)
-WRONG_CID   = "442069007"          # Calprotectin (substance)
+CORRECT_CID = "1031581000000104"  # Calprotectin level (observable entity)
+WRONG_CID = "442069007"  # Calprotectin (substance)
 
 FORMS = [
-    "calproctectin", "calprotectin",
-    "faecal calprotectin", "fecal calprotectin", "stool calprotectin",
+    "calproctectin",
+    "calprotectin",
+    "faecal calprotectin",
+    "fecal calprotectin",
+    "stool calprotectin",
 ]
+
 
 def _norm(t):
     return " ".join(re.findall(r"[a-z0-9]+", t.lower()))
+
 
 _DEL = "MATCH (sf:SurfaceForm {normalized: $n})-[m:MAPS_TO]->(c:Concept {id: $cid}) DELETE m"
 _UPSERT = """

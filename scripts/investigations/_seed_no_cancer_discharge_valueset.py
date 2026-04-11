@@ -18,6 +18,7 @@ Run:
     # Verify only (no writes):
     python scripts/investigations/_seed_no_cancer_discharge_valueset.py --verify-only
 """
+
 from __future__ import annotations
 
 import argparse
@@ -140,13 +141,13 @@ def run_seed(kg: KnowledgeGraphClient) -> None:
         semantic_tags=_VALUESET_RAW["semanticTags"],
         raw_json=raw_json,
     )
-    for r in (rows or []):
+    for r in rows or []:
         print(f"  Upserted: {r.get('id')}")
 
     print()
     print("Linking to episode-detector AuditDomain nodes ...")
     rows = kg.run(_LINK_TO_EPISODE_DOMAINS, vs_id=_VS_ID)
-    for r in (rows or []):
+    for r in rows or []:
         print(f"  Linked: {r.get('domain_id')} -> {_VS_ID}")
 
     print()

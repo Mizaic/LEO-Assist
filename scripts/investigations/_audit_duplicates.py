@@ -12,6 +12,7 @@ Outputs:
   duplicate_audit.json         - full audit with recommended action
   duplicates_to_remove.json    - mappings flagged for deletion (review before running)
 """
+
 from __future__ import annotations
 
 import json
@@ -27,8 +28,8 @@ BASE = "http://localhost:8001"
 # Concept IDs for common over-broad / wrong pre-existing mappings
 # ---------------------------------------------------------------------------
 TOO_BROAD = {
-    "74732009",   # Mental disorder (disorder) -- only correct if text literally says "mental disorder"
-    "21522001",   # Abdominal pain -- fine for specific phrases, but watch for overuse
+    "74732009",  # Mental disorder (disorder) -- only correct if text literally says "mental disorder"
+    "21522001",  # Abdominal pain -- fine for specific phrases, but watch for overuse
 }
 
 # Provenance trust order (lower = higher trust / more deliberately curated)
@@ -114,20 +115,23 @@ def main() -> None:
         action, reason, remove_ids = recommend(norm, mappings)
         by_action[action] = by_action.get(action, 0) + 1
 
-        audit.append({
-            "normalized": norm,
-            "form": form,
-            "rel_count": entry.get("rel_count"),
-            "mappings": mappings,
-            "action": action,
-            "reason": reason,
-            "remove_concept_ids": remove_ids,
-        })
+        audit.append(
+            {
+                "normalized": norm,
+                "form": form,
+                "rel_count": entry.get("rel_count"),
+                "mappings": mappings,
+                "action": action,
+                "reason": reason,
+                "remove_concept_ids": remove_ids,
+            }
+        )
 
         if remove_ids:
             for cid in remove_ids:
-                to_remove_list.append({"normalized": norm, "concept_id": cid,
-                                        "reason": reason})
+                to_remove_list.append(
+                    {"normalized": norm, "concept_id": cid, "reason": reason}
+                )
 
     # Print summary
     print(f"{'Action':<10} {'Count'}")
@@ -170,13 +174,16 @@ def apply_removals() -> None:
     sys.path.insert(0, str(_ROOT))
     sys.path.insert(0, str(_ROOT / "services" / "api"))
     from dotenv import load_dotenv
+
     load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
     try:
         from libs.keyvault.loader import load_keyvault_secrets
+
         load_keyvault_secrets()
     except Exception as e:
         print(f"KV: {e}")
     from libs.auth.service_auth import get_service_auth_header
+
     h = get_service_auth_header()
 
     removal_file = _P("scripts/investigations/duplicates_to_remove.json")
@@ -198,7 +205,9 @@ def apply_removals() -> None:
         )
         if r.status_code == 200:
             removed = r.json().get("removed", 0)
-            print(f"  OK   {norm!r:35} removed mapping -> {cid}  (rels removed: {removed})")
+            print(
+                f"  OK   {norm!r:35} removed mapping -> {cid}  (rels removed: {removed})"
+            )
             ok += 1
         else:
             print(f"  FAIL {norm!r:35} {r.status_code}: {r.text[:100]}")

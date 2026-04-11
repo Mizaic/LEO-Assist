@@ -30,7 +30,9 @@ class InMemoryQueueAdapter(MessageBusAdapter):
             if schedule_after_seconds and schedule_after_seconds > 0:
                 await asyncio.sleep(schedule_after_seconds)
             await self._queues[queue_or_topic].put(message)
-            logger.debug("Enqueued message %s on %s", message.message_id, queue_or_topic)
+            logger.debug(
+                "Enqueued message %s on %s", message.message_id, queue_or_topic
+            )
 
         if schedule_after_seconds and schedule_after_seconds > 0:
             task = asyncio.create_task(_enqueue())

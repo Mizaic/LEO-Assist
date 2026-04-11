@@ -20,7 +20,10 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel
 
 from services.terminology_api.app.services.bitmap_store import BitmapStore
-from services.terminology_api.app.services.guideline_compiler import CompileScope, GuidelineCompiler
+from services.terminology_api.app.services.guideline_compiler import (
+    CompileScope,
+    GuidelineCompiler,
+)
 from services.terminology_api.app.services.guideline_evaluator import GuidelineEvaluator
 
 logger = logging.getLogger(__name__)
@@ -39,13 +42,17 @@ class EvaluateRequest(BaseModel):
     ``APPLIES_TO`` constraints (e.g. age >= 40).  Rules that require an age
     check are skipped when this is not supplied."""
     patient_sex: str | None = None
-    scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = "global"
+    scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = (
+        "global"
+    )
     scope_id: str = "default"
     ruleset_version: str | None = None
 
 
 class CompileRequest(BaseModel):
-    scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = "global"
+    scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = (
+        "global"
+    )
     scope_id: str = "default"
     policy_mode: Literal["advisory", "strict"] = "advisory"
     include_rule_statuses: list[str] = ["active"]
@@ -59,7 +66,9 @@ class CompileRequest(BaseModel):
 
 
 class ActivateRequest(BaseModel):
-    scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = "global"
+    scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = (
+        "global"
+    )
     scope_id: str = "default"
 
 
@@ -135,7 +144,12 @@ def list_versions(
     versions = store.list_versions(scope_type=scope_type, scope_id=scope_id)
     current = store.get_current_version_name(scope_type=scope_type, scope_id=scope_id)
     return [
-        {"version": v, "active": v == current, "scope_type": scope_type, "scope_id": scope_id}
+        {
+            "version": v,
+            "active": v == current,
+            "scope_type": scope_type,
+            "scope_id": scope_id,
+        }
         for v in versions
     ]
 
@@ -150,7 +164,9 @@ def list_compiled(
     current = store.get_current_version_name(scope_type=scope_type, scope_id=scope_id)
     rows: list[dict] = []
     for version in versions:
-        ruleset = store.get_ruleset(version, scope_type=scope_type, scope_id=scope_id) or {}
+        ruleset = (
+            store.get_ruleset(version, scope_type=scope_type, scope_id=scope_id) or {}
+        )
         rows.append(
             {
                 "version": version,
@@ -174,13 +190,17 @@ def activate_version(version: str, body: ActivateRequest | None = None) -> dict:
     """
     body = body or ActivateRequest()
     store = BitmapStore()
-    ruleset = store.get_ruleset(version, scope_type=body.scope_type, scope_id=body.scope_id)
+    ruleset = store.get_ruleset(
+        version, scope_type=body.scope_type, scope_id=body.scope_id
+    )
     if not ruleset:
         raise HTTPException(
             status_code=404,
             detail=f"Ruleset version {version!r} not found. Compile it first.",
         )
-    store.set_current_version(version, scope_type=body.scope_type, scope_id=body.scope_id)
+    store.set_current_version(
+        version, scope_type=body.scope_type, scope_id=body.scope_id
+    )
     return {
         "version": version,
         "activated": True,
@@ -194,11 +214,17 @@ def rollback_version(body: ActivateRequest | None = None) -> dict:
     body = body or ActivateRequest()
     store = BitmapStore()
     versions = store.list_versions(scope_type=body.scope_type, scope_id=body.scope_id)
-    current = store.get_current_version_name(scope_type=body.scope_type, scope_id=body.scope_id)
+    current = store.get_current_version_name(
+        scope_type=body.scope_type, scope_id=body.scope_id
+    )
     if len(versions) < 2:
-        raise HTTPException(status_code=400, detail="No prior version available for rollback.")
+        raise HTTPException(
+            status_code=400, detail="No prior version available for rollback."
+        )
     previous = [v for v in versions if v != current][-1]
-    store.set_current_version(previous, scope_type=body.scope_type, scope_id=body.scope_id)
+    store.set_current_version(
+        previous, scope_type=body.scope_type, scope_id=body.scope_id
+    )
     return {
         "rolled_back_to": previous,
         "scope_type": body.scope_type,
@@ -243,28 +269,38 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
     """Background task: compile rules and update job status."""
     try:
         compiler = GuidelineCompiler()
-        scope = CompileScope.from_values(request_body.get("scope_type"), request_body.get("scope_id"))
+        scope = CompileScope.from_values(
+            request_body.get("scope_type"), request_body.get("scope_id")
+        )
         summary = await compiler.compile_and_store(
             version,
             scope=scope,
             policy_mode=request_body.get("policy_mode", "advisory"),
-            include_rule_statuses=list(request_body.get("include_rule_statuses") or ["active"]),
+            include_rule_statuses=list(
+                request_body.get("include_rule_statuses") or ["active"]
+            ),
             policy_domain_id=request_body.get("policy_domain_id"),
             policy_subdomain_name=request_body.get("policy_subdomain_name"),
-            policy_include_descendants=bool(request_body.get("policy_include_descendants", True)),
+            policy_include_descendants=bool(
+                request_body.get("policy_include_descendants", True)
+            ),
             policy_depth=int(request_body.get("policy_depth") or 3),
             enforce_action_scope=bool(request_body.get("enforce_action_scope", False)),
             distance_child_override=request_body.get("distance_child_override"),
             distance_parent_override=request_body.get("distance_parent_override"),
         )
-        _compile_jobs[job_id].update({
-            "status": "done",
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-            **summary,
-        })
+        _compile_jobs[job_id].update(
+            {
+                "status": "done",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                **summary,
+            }
+        )
     except Exception as exc:
         logger.exception("Bitmap compile failed for version %s", version)
-        _compile_jobs[job_id].update({
-            "status": "error",
-            "error": str(exc),
-        })
+        _compile_jobs[job_id].update(
+            {
+                "status": "error",
+                "error": str(exc),
+            }
+        )

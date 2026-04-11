@@ -1,4 +1,5 @@
 """Check what node type/properties encounters DOCUMENTS to, and what conceptId they carry."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -66,22 +69,30 @@ def main() -> None:
             print()
             print("=== Sample DOCUMENTS target node properties ===")
             for r in s.run(_Q_DOC_SAMPLE).data():
-                print(f"  conceptId={r['conceptId']}  id={r['id']}  code={r['code']}  name={str(r['name'])[:60]}  lbls={r['lbls']}")
+                print(
+                    f"  conceptId={r['conceptId']}  id={r['id']}  code={r['code']}  name={str(r['name'])[:60]}  lbls={r['lbls']}"
+                )
 
             print()
             print("=== Cancer-related DOCUMENTS target nodes ===")
             for r in s.run(_Q_CANCER_DIAG_CONCEPT).data():
-                print(f"  conceptId={r['conceptId']}  cid={r['cid']}  name={str(r['name'])[:70]}  lbls={r['lbls']}")
+                print(
+                    f"  conceptId={r['conceptId']}  cid={r['cid']}  name={str(r['name'])[:70]}  lbls={r['lbls']}"
+                )
 
             print()
             print("=== What _ANCHOR_QUERY actually returns (concept_id field) ===")
             for r in s.run(_Q_ANCHOR_QUERY_SAMPLE).data():
-                print(f"  concept_id={r['concept_id']}  name={str(r['concept_name'])[:60]}")
+                print(
+                    f"  concept_id={r['concept_id']}  name={str(r['concept_name'])[:60]}"
+                )
 
             print()
             print("=== IS_A from malignant/carcinoma DOCUMENTS nodes ===")
             for r in s.run(_Q_ISA_FROM_DOCUMENTS).data():
-                print(f"  cid={r['cid']}  {str(r['name'])[:50]}  IS_A parent.id={r['parent_id']}")
+                print(
+                    f"  cid={r['cid']}  {str(r['name'])[:50]}  IS_A parent.id={r['parent_id']}"
+                )
     finally:
         client.close()
 

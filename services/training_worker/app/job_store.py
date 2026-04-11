@@ -35,8 +35,10 @@ class TrainingJob:
         self.hf_model_name = hf_model_name
         self.notes = notes
         self.triggered_by = triggered_by
-        self.status: str = "queued"          # queued | running | evaluating | uploading | done | failed | cancelled
-        self.phase: str = ""                 # export | qa | train | evaluate | upload | register
+        self.status: str = (
+            "queued"  # queued | running | evaluating | uploading | done | failed | cancelled
+        )
+        self.phase: str = ""  # export | qa | train | evaluate | upload | register
         self.log_lines: list[str] = []
         self.metrics: dict[str, Any] = {}
         self.artifact_uri: str = ""
@@ -56,7 +58,7 @@ class TrainingJob:
             "status": self.status,
             "phase": self.phase,
             # Keep list payloads light; UI only needs recent tail.
-            "log_lines": self.log_lines[-max(0, log_tail):] if log_tail > 0 else [],
+            "log_lines": self.log_lines[-max(0, log_tail) :] if log_tail > 0 else [],
             "log_line_count": len(self.log_lines),
             "metrics": self.metrics,
             "artifact_uri": self.artifact_uri,
@@ -65,9 +67,17 @@ class TrainingJob:
             "created_at": self.created_at,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
-            "elapsed_s": round(
-                ((self.finished_at or time.time()) - (self.started_at or self.created_at)), 1
-            ) if self.started_at else None,
+            "elapsed_s": (
+                round(
+                    (
+                        (self.finished_at or time.time())
+                        - (self.started_at or self.created_at)
+                    ),
+                    1,
+                )
+                if self.started_at
+                else None
+            ),
         }
 
 
@@ -83,6 +93,7 @@ class TrainingJobStore:
         if self._redis is None:
             try:
                 import redis as _redis
+
                 self._redis = _redis.from_url(REDIS_URL)
             except Exception:
                 logger.debug("Redis unavailable — SSE relay will be silent")
@@ -93,7 +104,10 @@ class TrainingJobStore:
         with self._lock:
             self._jobs[job.job_id] = job
             self._evict_old_jobs()
-        self._publish(job.job_id, {"type": "job_created", "job_id": job.job_id, "status": job.status})
+        self._publish(
+            job.job_id,
+            {"type": "job_created", "job_id": job.job_id, "status": job.status},
+        )
         return job
 
     def get(self, job_id: str) -> Optional[TrainingJob]:
@@ -102,9 +116,12 @@ class TrainingJobStore:
 
     def list_all(self, *, log_tail: int = 25) -> list[dict[str, Any]]:
         with self._lock:
-            return [j.to_dict(log_tail=log_tail) for j in sorted(
-                self._jobs.values(), key=lambda j: j.created_at, reverse=True
-            )]
+            return [
+                j.to_dict(log_tail=log_tail)
+                for j in sorted(
+                    self._jobs.values(), key=lambda j: j.created_at, reverse=True
+                )
+            ]
 
     def update(self, job: TrainingJob, **fields) -> None:
         """Update job fields and publish progress event."""
@@ -112,22 +129,28 @@ class TrainingJobStore:
             for k, v in fields.items():
                 setattr(job, k, v)
         event_type = f"training_{fields.get('phase', job.phase) or 'progress'}"
-        self._publish(job.job_id, {
-            "type": event_type,
-            "job_id": job.job_id,
-            "status": job.status,
-            "phase": job.phase,
-            **{k: v for k, v in fields.items() if k not in ("log_lines",)},
-        })
+        self._publish(
+            job.job_id,
+            {
+                "type": event_type,
+                "job_id": job.job_id,
+                "status": job.status,
+                "phase": job.phase,
+                **{k: v for k, v in fields.items() if k not in ("log_lines",)},
+            },
+        )
 
     def append_log(self, job: TrainingJob, line: str) -> None:
         with self._lock:
             job.log_lines.append(line)
-        self._publish(job.job_id, {
-            "type": "training_log",
-            "job_id": job.job_id,
-            "line": line,
-        })
+        self._publish(
+            job.job_id,
+            {
+                "type": "training_log",
+                "job_id": job.job_id,
+                "line": line,
+            },
+        )
 
     def _evict_old_jobs(self) -> None:
         """Drop oldest terminal jobs when the store exceeds _MAX_JOBS.
@@ -141,7 +164,7 @@ class TrainingJobStore:
             (j for j in self._jobs.values() if j.status in terminal),
             key=lambda j: j.created_at,
         )
-        for job in evictable[:len(self._jobs) - _MAX_JOBS]:
+        for job in evictable[: len(self._jobs) - _MAX_JOBS]:
             del self._jobs[job.job_id]
 
     def _publish(self, job_id: str, payload: dict[str, Any]) -> None:

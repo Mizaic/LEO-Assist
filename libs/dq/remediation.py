@@ -3,6 +3,7 @@
 IMPORTANT: Never call with dry_run=False unless the caller has reviewed the
 dry-run preview and explicitly confirmed the operation.
 """
+
 from __future__ import annotations
 
 import logging
@@ -81,12 +82,14 @@ def delete_patient(
             operation="delete_patient",
             dry_run=True,
             affected_count=total,
-            affected_items=[{
-                "patient_id": patient_id,
-                "encounters": enc,
-                "episodes": ep,
-                "documents": doc,
-            }],
+            affected_items=[
+                {
+                    "patient_id": patient_id,
+                    "encounters": enc,
+                    "episodes": ep,
+                    "documents": doc,
+                }
+            ],
             message=f"DRY RUN: would delete {total} nodes/edges for patient {patient_id}",
         )
 
@@ -110,9 +113,7 @@ def delete_episodes(
     """Delete episodes matching filters. Always dry_run=True by default."""
     from libs.neo4j_client.client import run_with_retry
 
-    preview = run_with_retry(
-        client, _EPISODES_PREVIEW_Q, status=status, site=site
-    )
+    preview = run_with_retry(client, _EPISODES_PREVIEW_Q, status=status, site=site)
     ep_count = int((preview[0] or {}).get("ep_count") or 0) if preview else 0
 
     if dry_run:
@@ -124,9 +125,7 @@ def delete_episodes(
             message=f"DRY RUN: would delete {ep_count} episodes",
         )
 
-    logger.warning(
-        "Deleting episodes status=%s site=%s", status, site
-    )
+    logger.warning("Deleting episodes status=%s site=%s", status, site)
     run_with_retry(client, _EPISODES_DELETE_Q, status=status, site=site)
     return RemediationResult(
         operation="delete_episodes",
@@ -148,8 +147,10 @@ def fix_assertions(
     from libs.neo4j_client.client import run_with_retry
 
     preview = run_with_retry(
-        client, _ASSERTION_PREVIEW_Q,
-        encounter_id=encounter_id, old_assertion=old_assertion,
+        client,
+        _ASSERTION_PREVIEW_Q,
+        encounter_id=encounter_id,
+        old_assertion=old_assertion,
     )
     edge_count = int((preview[0] or {}).get("edge_count") or 0) if preview else 0
 
@@ -158,11 +159,13 @@ def fix_assertions(
             operation="fix_assertions",
             dry_run=True,
             affected_count=edge_count,
-            affected_items=[{
-                "encounter_id": encounter_id,
-                "old": old_assertion,
-                "new": new_assertion,
-            }],
+            affected_items=[
+                {
+                    "encounter_id": encounter_id,
+                    "old": old_assertion,
+                    "new": new_assertion,
+                }
+            ],
             message=(
                 f"DRY RUN: would change {edge_count} edges "
                 f"from '{old_assertion}' to '{new_assertion}' "
@@ -171,7 +174,8 @@ def fix_assertions(
         )
 
     run_with_retry(
-        client, _ASSERTION_FIX_Q,
+        client,
+        _ASSERTION_FIX_Q,
         encounter_id=encounter_id,
         old_assertion=old_assertion,
         new_assertion=new_assertion,
@@ -180,13 +184,14 @@ def fix_assertions(
         operation="fix_assertions",
         dry_run=False,
         affected_count=edge_count,
-        affected_items=[{
-            "encounter_id": encounter_id,
-            "old": old_assertion,
-            "new": new_assertion,
-        }],
+        affected_items=[
+            {
+                "encounter_id": encounter_id,
+                "old": old_assertion,
+                "new": new_assertion,
+            }
+        ],
         message=(
-            f"Updated {edge_count} DOCUMENTS edges "
-            f"on encounter {encounter_id}"
+            f"Updated {edge_count} DOCUMENTS edges " f"on encounter {encounter_id}"
         ),
     )

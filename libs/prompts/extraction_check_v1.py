@@ -119,4 +119,3 @@ EXTRACTION_CHECK_EXAMPLES_V1 = [
         "output": '{"drop":[],"correct_assertion":[],"correct_label":[],"add":[]}',
     },
 ]
-

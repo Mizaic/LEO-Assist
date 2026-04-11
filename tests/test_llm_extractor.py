@@ -79,7 +79,9 @@ class TestParseJson:
     def test_json_with_surrounding_text(self):
         from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
 
-        result = LLMExtractor._parse_json('Here is the result: {"terms": [{"text": "cough"}]}')
+        result = LLMExtractor._parse_json(
+            'Here is the result: {"terms": [{"text": "cough"}]}'
+        )
         assert "terms" in result
 
     def test_empty_string(self):
@@ -114,10 +116,24 @@ class TestParseTerms:
         ext = self._make_extractor()
         sentences = [MagicMock(sentence_id="s0"), MagicMock(sentence_id="s1")]
 
-        payload = {"terms": [
-            {"sentence_id": "s0", "text": "cough", "lookup_term": "cough", "semantic_tag": "finding", "assertion": "present"},
-            {"sentence_id": "s1", "text": "headache", "lookup_term": "headache", "semantic_tag": "finding", "assertion": "absent"},
-        ]}
+        payload = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "cough",
+                    "lookup_term": "cough",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                },
+                {
+                    "sentence_id": "s1",
+                    "text": "headache",
+                    "lookup_term": "headache",
+                    "semantic_tag": "finding",
+                    "assertion": "absent",
+                },
+            ]
+        }
         result = ext._parse_terms(payload, sentences)
         assert len(result) == 2
         assert result[0].assertion == "present"
@@ -129,10 +145,12 @@ class TestParseTerms:
         ext = self._make_extractor()
         sentences = [MagicMock(sentence_id="s0")]
 
-        payload = {"terms": [
-            {"sentence_id": "s0", "text": "valid"},
-            {"sentence_id": "s99", "text": "invalid_sid"},
-        ]}
+        payload = {
+            "terms": [
+                {"sentence_id": "s0", "text": "valid"},
+                {"sentence_id": "s99", "text": "invalid_sid"},
+            ]
+        }
         result = ext._parse_terms(payload, sentences)
         assert len(result) == 1
 
@@ -140,9 +158,11 @@ class TestParseTerms:
         ext = self._make_extractor()
         sentences = [MagicMock(sentence_id="s0")]
 
-        payload = {"terms": [
-            {"sentence_id": "s0", "text": "cough", "assertion": "INVALID"},
-        ]}
+        payload = {
+            "terms": [
+                {"sentence_id": "s0", "text": "cough", "assertion": "INVALID"},
+            ]
+        }
         result = ext._parse_terms(payload, sentences)
         assert result[0].assertion == "present"
 
@@ -217,9 +237,7 @@ class TestExtractText:
     def test_extract_from_response(self):
         from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
 
-        response = {
-            "output": {"message": {"content": [{"text": '{"terms": []}'}]}}
-        }
+        response = {"output": {"message": {"content": [{"text": '{"terms": []}'}]}}}
         result = LLMExtractor._extract_text(response)
         assert result == '{"terms": []}'
 

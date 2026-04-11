@@ -6,6 +6,7 @@ Pruned in this run:
 - chest x ray findings suggestive of mesothelioma: keep 1290960005, drop 60046008
 - chest signs compatible with pleural disease: keep 272016000, drop 88075009
 """
+
 import os
 import sys
 from pathlib import Path
@@ -14,9 +15,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from libs.terminology.surface_normalize import normalize_surface  # noqa: E402
 from neo4j import GraphDatabase  # noqa: E402

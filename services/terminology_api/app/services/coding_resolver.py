@@ -56,7 +56,9 @@ logger = logging.getLogger(__name__)
 # Semantic tags that belong to the lab-domain observable/procedure/finding family.
 # When a resolved concept carries one of these tags, the resolver can look up
 # INTERPRETS / HAS_COMPONENT / HAS_ASSOCIATED_FINDING neighbours.
-LAB_DOMAIN_TAGS: frozenset[str] = frozenset({"observable entity", "procedure", "finding"})
+LAB_DOMAIN_TAGS: frozenset[str] = frozenset(
+    {"observable entity", "procedure", "finding"}
+)
 
 TAG_GROUPS: dict[str, str] = {
     "disorder": "clinical",
@@ -94,29 +96,37 @@ _MIN_SCORE = 0.15
 # Tags that are never clinically meaningful as a primary coding result.
 # These are hard-blocked when an expected clinical tag is provided,
 # and soft-excluded (score floor raised to 0.5) even without an expected tag.
-_NON_CLINICAL_TAGS: frozenset[str] = frozenset({
-    "qualifier value",
-    "attribute",
-    "staging scale",
-    "tumor staging",
-    "record artifact",
-    "geographic location",
-    "cell structure",
-    "environment",
-    "occupation",
-    "organism",
-    "physical object",
-    "event",
-    "namespace concept",
-    "inactive concept",
-    "special concept",
-})
+_NON_CLINICAL_TAGS: frozenset[str] = frozenset(
+    {
+        "qualifier value",
+        "attribute",
+        "staging scale",
+        "tumor staging",
+        "record artifact",
+        "geographic location",
+        "cell structure",
+        "environment",
+        "occupation",
+        "organism",
+        "physical object",
+        "event",
+        "namespace concept",
+        "inactive concept",
+        "special concept",
+    }
+)
 
 # Clinical tag groups -- when an expected tag is one of these groups,
 # hard-block any result whose tag is non-clinical.
-_CLINICAL_GROUPS: frozenset[str] = frozenset({
-    "clinical", "pharma", "procedure", "observable", "anatomy",
-})
+_CLINICAL_GROUPS: frozenset[str] = frozenset(
+    {
+        "clinical",
+        "pharma",
+        "procedure",
+        "observable",
+        "anatomy",
+    }
+)
 
 # Maximum number of tokens before we skip the raw (non-phrase) fulltext query.
 # Long phrases produce dangerous partial word matches (e.g. "see" -> Holy See).
@@ -168,15 +178,18 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
     if not cid:
         return
     cid = str(cid)
-    base = merged.setdefault(cid, {
-        "concept_id": cid,
-        "fsn": rec.get("fsn"),
-        "semantic_tag": rec.get("semantic_tag"),
-        "read_codes": sorted(set(rec.get("read_codes") or [])),
-        "lexical_raw": 0.0,
-        "vector_raw": 0.0,
-        "surface_form_status": "",
-    })
+    base = merged.setdefault(
+        cid,
+        {
+            "concept_id": cid,
+            "fsn": rec.get("fsn"),
+            "semantic_tag": rec.get("semantic_tag"),
+            "read_codes": sorted(set(rec.get("read_codes") or [])),
+            "lexical_raw": 0.0,
+            "vector_raw": 0.0,
+            "surface_form_status": "",
+        },
+    )
     sf_status = rec.get("surface_form_status") or ""
     if sf_status:
         base["surface_form_status"] = sf_status
@@ -189,7 +202,9 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
 
 def _has_lexical_candidates(merged: dict[str, dict[str, Any]]) -> bool:
     """Return True once exact/fulltext produced at least one candidate."""
-    return any(float(candidate.get("lexical_raw", 0.0)) > 0.0 for candidate in merged.values())
+    return any(
+        float(candidate.get("lexical_raw", 0.0)) > 0.0 for candidate in merged.values()
+    )
 
 
 def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
@@ -204,12 +219,14 @@ def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
     ):
         for item in row.get(key) or []:
             if item and item.get("id") and item.get("fsn"):
-                related.append({
-                    "id": str(item["id"]),
-                    "fsn": str(item["fsn"]),
-                    "semantic_tag": str(item.get("semantic_tag") or ""),
-                    "rel": str(item.get("rel") or key),
-                })
+                related.append(
+                    {
+                        "id": str(item["id"]),
+                        "fsn": str(item["fsn"]),
+                        "semantic_tag": str(item.get("semantic_tag") or ""),
+                        "rel": str(item.get("rel") or key),
+                    }
+                )
     return related
 
 
@@ -271,9 +288,13 @@ class CodingResolver:
         - ``HAS_ASSOCIATED_FINDING`` — directly associated findings
         """
         try:
-            rows = list(neo4j_session.run(RELATED_CONCEPTS_QUERY, concept_id=concept_id))
+            rows = list(
+                neo4j_session.run(RELATED_CONCEPTS_QUERY, concept_id=concept_id)
+            )
         except Exception:
-            logger.warning("get_related_concepts query failed for %s", concept_id, exc_info=True)
+            logger.warning(
+                "get_related_concepts query failed for %s", concept_id, exc_info=True
+            )
             return []
 
         if not rows:
@@ -289,7 +310,9 @@ class CodingResolver:
         if not concept_ids:
             return {}
         try:
-            rows = list(neo4j_session.run(BATCH_RELATED_CONCEPTS_QUERY, concept_ids=concept_ids))
+            rows = list(
+                neo4j_session.run(BATCH_RELATED_CONCEPTS_QUERY, concept_ids=concept_ids)
+            )
         except Exception:
             logger.warning("batch_get_related_concepts query failed", exc_info=True)
             return {}
@@ -322,7 +345,9 @@ class CodingResolver:
         # Compute embeddings for all terms in one batch (GPU/CPU SentenceTransformer)
         embeddings = self._embed(unique_texts)
         t_embed = time.perf_counter()
-        logger.debug("[resolver] embed  terms=%d  elapsed=%.3fs", len(unique_texts), t_embed - t0)
+        logger.debug(
+            "[resolver] embed  terms=%d  elapsed=%.3fs", len(unique_texts), t_embed - t0
+        )
 
         # merged[term][concept_id] = {lexical_raw, vector_raw, ...}
         merged_all: dict[str, dict[str, dict[str, Any]]] = {t: {} for t in unique_texts}
@@ -335,7 +360,9 @@ class CodingResolver:
         t_exact = time.perf_counter()
         logger.debug(
             "[resolver] exact  terms=%d  hits=%d  elapsed=%.3fs",
-            len(unique_texts), len(exact_hit_terms), t_exact - t_embed,
+            len(unique_texts),
+            len(exact_hit_terms),
+            t_exact - t_embed,
         )
 
         # ── Batch fulltext branch (1-3 round trips total) ──────────────────────
@@ -347,7 +374,8 @@ class CodingResolver:
         t_fulltext = time.perf_counter()
         logger.debug(
             "[resolver] fulltext  terms_needed=%d  elapsed=%.3fs",
-            len(fulltext_needed), t_fulltext - t_exact,
+            len(fulltext_needed),
+            t_fulltext - t_exact,
         )
 
         # ── Vector branch (1-2 round trips per term, run after exact+fulltext) ──
@@ -356,17 +384,25 @@ class CodingResolver:
         # vector is usually marginally useful but disproportionately expensive.
         # Set TERMINOLOGY_ENABLE_VECTOR=false to disable entirely (e.g. for eval runs
         # where AuraDB vector index latency would otherwise dominate request time).
-        vector_enabled = os.getenv("TERMINOLOGY_ENABLE_VECTOR", "true").lower() != "false"
-        vector_needed = [t for t in unique_texts if not _has_lexical_candidates(merged_all[t])]
+        vector_enabled = (
+            os.getenv("TERMINOLOGY_ENABLE_VECTOR", "true").lower() != "false"
+        )
+        vector_needed = [
+            t for t in unique_texts if not _has_lexical_candidates(merged_all[t])
+        ]
         if embeddings and vector_needed and vector_enabled:
             for text in vector_needed:
                 idx = unique_texts.index(text)
-                self._run_vector_for_term(text, embeddings[idx], neo4j_session, merged_all[text])
+                self._run_vector_for_term(
+                    text, embeddings[idx], neo4j_session, merged_all[text]
+                )
         t_vector = time.perf_counter()
         if embeddings:
             logger.debug(
                 "[resolver] vector  terms_needed=%d  skipped=%d  elapsed=%.3fs",
-                len(vector_needed), len(unique_texts) - len(vector_needed), t_vector - t_fulltext,
+                len(vector_needed),
+                len(unique_texts) - len(vector_needed),
+                t_vector - t_fulltext,
             )
 
         # ── Score fusion and candidate ranking (pure Python, no I/O) ───────────
@@ -397,13 +433,18 @@ class CodingResolver:
         if enrich_lab_domain:
             lab_concept_ids: list[str] = []
             for candidates in results.values():
-                if candidates and (candidates[0].semantic_tag or "").lower() in LAB_DOMAIN_TAGS:
+                if (
+                    candidates
+                    and (candidates[0].semantic_tag or "").lower() in LAB_DOMAIN_TAGS
+                ):
                     if candidates[0].snomed_concept_id:
                         lab_concept_ids.append(candidates[0].snomed_concept_id)
 
             if lab_concept_ids:
                 t_enrich_start = time.perf_counter()
-                related_by_id = self._batch_get_related_concepts(lab_concept_ids, neo4j_session)
+                related_by_id = self._batch_get_related_concepts(
+                    lab_concept_ids, neo4j_session
+                )
                 enriched = 0
                 for candidates in results.values():
                     if not candidates:
@@ -416,7 +457,9 @@ class CodingResolver:
                             enriched += 1
                 logger.info(
                     "[resolver] enrichment  lab_terms=%d  enriched=%d  elapsed=%.3fs",
-                    len(lab_concept_ids), enriched, time.perf_counter() - t_enrich_start,
+                    len(lab_concept_ids),
+                    enriched,
+                    time.perf_counter() - t_enrich_start,
                 )
 
         return {text: results.get(text, []) for text in term_texts}
@@ -447,9 +490,11 @@ class CodingResolver:
         # Probe SurfaceForm label existence once (cached on instance)
         if self._surface_form_exact_ok is None:
             try:
-                probe = list(session.run(
-                    "CALL db.labels() YIELD label WHERE label = 'SurfaceForm' RETURN 1 AS ok LIMIT 1"
-                ))
+                probe = list(
+                    session.run(
+                        "CALL db.labels() YIELD label WHERE label = 'SurfaceForm' RETURN 1 AS ok LIMIT 1"
+                    )
+                )
                 self._surface_form_exact_ok = bool(probe)
                 if not self._surface_form_exact_ok:
                     self._surface_form_fulltext_ok = False
@@ -458,10 +503,12 @@ class CodingResolver:
 
         hit_terms: set[str] = set()
         try:
-            rows = list(session.run(
-                BATCH_EXACT_QUERY,
-                normalized_terms=list(norm_to_terms.keys()),
-            ))
+            rows = list(
+                session.run(
+                    BATCH_EXACT_QUERY,
+                    normalized_terms=list(norm_to_terms.keys()),
+                )
+            )
             for row in rows:
                 norm = row["input_term"]
                 hits = row.get("hits") or []
@@ -471,18 +518,25 @@ class CodingResolver:
                         _push(merged_all[orig_term], hit, "lexical")
                         hit_terms.add(orig_term)
         except Exception:
-            logger.debug("BATCH_EXACT_QUERY failed — falling back to per-term exact", exc_info=True)
+            logger.debug(
+                "BATCH_EXACT_QUERY failed — falling back to per-term exact",
+                exc_info=True,
+            )
             # Fallback: per-term exact queries
             for term in terms:
                 norm = normalized_map[term]
                 if not norm:
                     continue
                 try:
-                    for rec in session.run(EXACT_QUERY, normalized=norm, k=self.k_exact):
+                    for rec in session.run(
+                        EXACT_QUERY, normalized=norm, k=self.k_exact
+                    ):
                         _push(merged_all[term], dict(rec), "lexical")
                         hit_terms.add(term)
                     if self._surface_form_exact_ok:
-                        for rec in session.run(EXACT_SURFACE_FORM_QUERY, normalized=norm, k=self.k_exact):
+                        for rec in session.run(
+                            EXACT_SURFACE_FORM_QUERY, normalized=norm, k=self.k_exact
+                        ):
                             _push(merged_all[term], dict(rec), "lexical")
                             hit_terms.add(term)
                 except Exception:
@@ -510,7 +564,9 @@ class CodingResolver:
 
         for ft_q, _ in variant_to_terms.items():
             try:
-                rows = list(session.run(BATCH_FULLTEXT_QUERY, ft_query=ft_q, k=self.k_fulltext))
+                rows = list(
+                    session.run(BATCH_FULLTEXT_QUERY, ft_query=ft_q, k=self.k_fulltext)
+                )
                 # The UNION query returns hits for the single ft_query string.
                 # We associate those hits back to all terms that produced this variant.
                 for term in variant_to_terms[ft_q]:
@@ -524,7 +580,9 @@ class CodingResolver:
                 # Fall back to individual queries for this variant
                 for term in variant_to_terms[ft_q]:
                     try:
-                        for rec in session.run(FULLTEXT_QUERY, ft_query=ft_q, k=self.k_fulltext):
+                        for rec in session.run(
+                            FULLTEXT_QUERY, ft_query=ft_q, k=self.k_fulltext
+                        ):
                             _push(merged_all[term], dict(rec), "lexical")
                     except Exception:
                         pass
@@ -646,16 +704,19 @@ class CodingResolver:
         try:
             return self._embedder.encode(texts)
         except Exception:
-            if (
-                getattr(self._embedder, "resolved_device", "") == "mps"
-                and os.getenv("VECTOR_MPS_FAIL_FAST", "true").lower() in ("1", "true", "yes")
-            ):
+            if getattr(self._embedder, "resolved_device", "") == "mps" and os.getenv(
+                "VECTOR_MPS_FAIL_FAST", "true"
+            ).lower() in ("1", "true", "yes"):
                 raise
             logger.warning("Embedding failed — vector branch disabled", exc_info=True)
             return None
 
     def _resolve_single(
-        self, mention: str, session, embedding: list[float] | None, expected_tag: str | None = None
+        self,
+        mention: str,
+        session,
+        embedding: list[float] | None,
+        expected_tag: str | None = None,
     ) -> list[CodingCandidate]:
         """Resolve a single term using sequential per-term queries.
 
@@ -672,14 +733,20 @@ class CodingResolver:
             if self._surface_form_exact_ok is not False:
                 try:
                     if self._surface_form_exact_ok is None:
-                        probe = list(session.run(
-                            "CALL db.labels() YIELD label WHERE label = 'SurfaceForm' RETURN 1 AS ok LIMIT 1"
-                        ))
+                        probe = list(
+                            session.run(
+                                "CALL db.labels() YIELD label WHERE label = 'SurfaceForm' RETURN 1 AS ok LIMIT 1"
+                            )
+                        )
                         self._surface_form_exact_ok = bool(probe)
                         if not self._surface_form_exact_ok:
                             self._surface_form_fulltext_ok = False
                     if self._surface_form_exact_ok:
-                        for rec in session.run(EXACT_SURFACE_FORM_QUERY, normalized=normalized, k=self.k_exact):
+                        for rec in session.run(
+                            EXACT_SURFACE_FORM_QUERY,
+                            normalized=normalized,
+                            k=self.k_exact,
+                        ):
                             _push(merged, dict(rec), "lexical")
                 except Exception:
                     self._surface_form_exact_ok = False
@@ -687,13 +754,19 @@ class CodingResolver:
         # Branch 2: fulltext
         for ft_query in _build_fulltext_queries(mention):
             try:
-                for rec in session.run(FULLTEXT_QUERY, ft_query=ft_query, k=self.k_fulltext):
+                for rec in session.run(
+                    FULLTEXT_QUERY, ft_query=ft_query, k=self.k_fulltext
+                ):
                     _push(merged, dict(rec), "lexical")
             except Exception:
                 continue
             if self._surface_form_fulltext_ok is not False:
                 try:
-                    for rec in session.run(FULLTEXT_SURFACE_FORM_QUERY, ft_query=ft_query, k=self.k_fulltext):
+                    for rec in session.run(
+                        FULLTEXT_SURFACE_FORM_QUERY,
+                        ft_query=ft_query,
+                        k=self.k_fulltext,
+                    ):
                         _push(merged, dict(rec), "lexical")
                     if self._surface_form_fulltext_ok is None:
                         self._surface_form_fulltext_ok = True

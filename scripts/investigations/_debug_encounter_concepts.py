@@ -1,4 +1,5 @@
 """Debug why the encounter concept query returns 0 results."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -22,11 +25,15 @@ try:
     print("DOCUMENTS relationships:", r1)
 
     # Any nodes with conceptId?
-    r2 = kg.run("MATCH (c) WHERE c.conceptId IS NOT NULL RETURN labels(c)[0] AS lbl, count(*) AS cnt LIMIT 10")
+    r2 = kg.run(
+        "MATCH (c) WHERE c.conceptId IS NOT NULL RETURN labels(c)[0] AS lbl, count(*) AS cnt LIMIT 10"
+    )
     print("Nodes with conceptId:", r2)
 
     # Sample of what Encounter DOCUMENTS to
-    r3 = kg.run("MATCH (e:Encounter)-[:DOCUMENTS]->(c) RETURN labels(c) AS lbls, c.conceptId AS cid, c.name AS name LIMIT 5")
+    r3 = kg.run(
+        "MATCH (e:Encounter)-[:DOCUMENTS]->(c) RETURN labels(c) AS lbls, c.conceptId AS cid, c.name AS name LIMIT 5"
+    )
     print("Sample encounter docs:")
     for r in r3 or []:
         print(f"  {r['lbls']} conceptId={r['cid']} name={r['name']}")

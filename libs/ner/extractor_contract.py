@@ -28,23 +28,23 @@ class ExtractionItem:
     """
 
     sentence_id: str
-    text: str               # exact NER span — used as r.evidence for traceability
+    text: str  # exact NER span — used as r.evidence for traceability
     span_start: int
     span_end: int
     semantic_tag: str
-    assertion: str          # present | absent | refuted | possible | historical | planned | hypothetical | family | declined | cancelled
+    assertion: str  # present | absent | refuted | possible | historical | planned | hypothetical | family | declined | cancelled
     confidence: float
-    normalized: str         # lookup term or normalised surface form
+    normalized: str  # lookup term or normalised surface form
     source_meta: dict[str, Any] = field(default_factory=dict)
     relations: list[dict[str, Any]] = field(default_factory=list)
 
     # Structured measurement fields — populated for observable entities
-    numeric_value: str = ""       # e.g. "145/69", "7.2", "64.5"
-    unit: str = ""                # e.g. "mmHg", "%", "kg", "mmol/L"
-    reference_range: str = ""     # e.g. "130-180", ">90", "3.5-5.0"
+    numeric_value: str = ""  # e.g. "145/69", "7.2", "64.5"
+    unit: str = ""  # e.g. "mmHg", "%", "kg", "mmol/L"
+    reference_range: str = ""  # e.g. "130-180", ">90", "3.5-5.0"
 
     # Provenance — stamped at write time from the provider that produced this item
-    source: str = "unknown"           # "llm" | "model"
+    source: str = "unknown"  # "llm" | "model"
     model_name: str = ""
     model_version: str = ""
     contract_version: str = CONTRACT_VERSION

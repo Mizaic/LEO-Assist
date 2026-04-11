@@ -5,6 +5,7 @@ Shows:
 2. Surface forms currently in the terminology service
 3. How encounters get coded when a surface form is absent
 """
+
 import json
 import sqlite3
 import sys
@@ -18,7 +19,13 @@ sys.path.insert(0, str(ROOT))
 TERMINOLOGY_URL = "http://localhost:8001/terminology"
 
 # -- 1. Surface form gaps from re-audit ---------------------------------
-REAUDIT_DB = ROOT / "scripts" / "investigations" / "encounter_audit_reaudit" / "encounter_audit.db"
+REAUDIT_DB = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit_reaudit"
+    / "encounter_audit.db"
+)
 MAIN_DB = ROOT / "scripts" / "investigations" / "encounter_audit" / "encounter_audit.db"
 
 for label, db_path in [("re-audit", REAUDIT_DB), ("main (30k)", MAIN_DB)]:
@@ -61,7 +68,9 @@ except Exception as exc:
     print(f"  Could not reach terminology API: {exc}")
 
 # -- 3. Surface form gaps feed file ------------------------------------
-gaps_file = ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps.json"
+gaps_file = (
+    ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps.json"
+)
 if gaps_file.exists():
     gaps = json.loads(gaps_file.read_text(encoding="utf-8"))
     print(f"\n=== surface_form_gaps.json (feed file) ===")

@@ -15,7 +15,6 @@ from libs.ner.lab_value_guard import (
 )
 from libs.ner.precision_gates import check_entity
 
-
 # ---------------------------------------------------------------------------
 # is_lab_result_sentence
 # ---------------------------------------------------------------------------
@@ -28,10 +27,14 @@ class TestIsLabResultSentence:
         )
 
     def test_sodium_with_value(self) -> None:
-        assert is_lab_result_sentence("Serum sodium level (XE2q0) 142 mmol/L [135 - 145]")
+        assert is_lab_result_sentence(
+            "Serum sodium level (XE2q0) 142 mmol/L [135 - 145]"
+        )
 
     def test_haemoglobin_with_value(self) -> None:
-        assert is_lab_result_sentence("Haemoglobin concentration (Xa96v) 106 g/L [130-180]")
+        assert is_lab_result_sentence(
+            "Haemoglobin concentration (Xa96v) 106 g/L [130-180]"
+        )
 
     def test_creatinine_with_value(self) -> None:
         assert is_lab_result_sentence("Creatinine 115 umol/L")
@@ -100,7 +103,9 @@ class TestSuppressCKDFromFormula:
         )
 
     def test_egfr_with_low_value(self) -> None:
-        low_egfr = "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 25 mL/min"
+        low_egfr = (
+            "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 25 mL/min"
+        )
         assert should_suppress_disorder(
             entity_text="CKD stage 4",
             entity_semantic_tag="disorder",
@@ -213,7 +218,9 @@ class TestDoNotSuppressLegitimateDisorders:
 
 class TestFilterInferredDiagnoses:
     def test_filters_disorder_keeps_observable(self) -> None:
-        sentence = "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 69 mL/min"
+        sentence = (
+            "eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 69 mL/min"
+        )
         entities = [
             {
                 "text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres",

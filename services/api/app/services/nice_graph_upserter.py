@@ -282,7 +282,9 @@ class NiceGraphUpserter:
         driver = _kg_driver()
         try:
             with driver.session() as session:
-                result = session.run(_SUPERSEDE_EXISTING_RULES, guideline_id=guideline_id)
+                result = session.run(
+                    _SUPERSEDE_EXISTING_RULES, guideline_id=guideline_id
+                )
                 record = result.single()
                 superseded = int(record["superseded_count"]) if record else 0
                 session.run(_DETACH_GUIDELINE_CONTENT_LINKS, guideline_id=guideline_id)
@@ -290,7 +292,8 @@ class NiceGraphUpserter:
             driver.close()
         logger.info(
             "Guideline %s: archived content for re-ingest (%d rule(s) superseded)",
-            guideline_id, superseded,
+            guideline_id,
+            superseded,
         )
         return superseded
 
@@ -448,23 +451,24 @@ class NiceGraphUpserter:
                         except Exception:
                             logger.debug(
                                 "Could not link guideline %s to subcategory %s",
-                                code, sub_id,
+                                code,
+                                sub_id,
                             )
         finally:
             driver.close()
 
         logger.info(
             "Taxonomy upsert: %d categories, %d subcategories, %d domains",
-            counts["categories"], counts["subcategories"], counts["domains"],
+            counts["categories"],
+            counts["subcategories"],
+            counts["domains"],
         )
         return counts
 
 
 def _extract_code(guidance_json: dict[str, Any]) -> str:
     return (
-        guidance_json.get("GuidanceNumber")
-        or guidance_json.get("Code")
-        or "UNKNOWN"
+        guidance_json.get("GuidanceNumber") or guidance_json.get("Code") or "UNKNOWN"
     ).upper()
 
 

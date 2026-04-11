@@ -1,4 +1,5 @@
 """Quick summary of the duplicate_audit.json file."""
+
 import json
 from pathlib import Path
 
@@ -19,11 +20,11 @@ print("\n--- Remove entries (sample top 20) ---")
 removes = [a for a in audit if a["action"] == "remove"]
 for a in removes[:20]:
     norm = a["normalized"]
-    keeping = [m for m in a["mappings"] if m["concept_id"] not in a["remove_concept_ids"]]
+    keeping = [
+        m for m in a["mappings"] if m["concept_id"] not in a["remove_concept_ids"]
+    ]
     removing = [m for m in a["mappings"] if m["concept_id"] in a["remove_concept_ids"]]
-    keep_str = ", ".join(
-        f"{m['concept_id']} {m['concept_fsn'][:45]}" for m in keeping
-    )
+    keep_str = ", ".join(f"{m['concept_id']} {m['concept_fsn'][:45]}" for m in keeping)
     rem_str = ", ".join(
         f"{m['concept_id']} {m['concept_fsn'][:45]} [{m['provenance']}]"
         for m in removing
@@ -37,4 +38,6 @@ for a in keeps[:10]:
     norm = a["normalized"]
     print(f"  {norm!r:35s}  mappings: {len(a['mappings'])}")
     for m in a["mappings"]:
-        print(f"    {m['concept_id']:22s}  {m['concept_fsn'][:55]}  [{m['provenance']}]")
+        print(
+            f"    {m['concept_id']:22s}  {m['concept_fsn'][:55]}  [{m['provenance']}]"
+        )

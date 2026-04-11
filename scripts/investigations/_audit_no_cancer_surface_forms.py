@@ -8,6 +8,7 @@ Run:
     python scripts/investigations/_audit_no_cancer_surface_forms.py
     python scripts/investigations/_audit_no_cancer_surface_forms.py --fix
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,9 +19,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.auth.service_auth import get_service_auth_header
 import requests
@@ -65,7 +68,11 @@ def _fetch_surface_forms(concept_id: str) -> list[dict]:
         return []
     r.raise_for_status()
     data = r.json()
-    return data.get("items") or data.get("surface_forms") or (data if isinstance(data, list) else [])
+    return (
+        data.get("items")
+        or data.get("surface_forms")
+        or (data if isinstance(data, list) else [])
+    )
 
 
 def _delete_surface_form(form_id: str) -> bool:
@@ -92,7 +99,9 @@ def main(fix: bool) -> None:
     ok_forms: list[dict] = []
 
     for sf in forms:
-        form_text = sf.get("form") or sf.get("surface_form") or sf.get("normalized") or ""
+        form_text = (
+            sf.get("form") or sf.get("surface_form") or sf.get("normalized") or ""
+        )
         is_bad = is_screening_form(form_text)
         if is_bad:
             bad.append(sf)
@@ -101,13 +110,17 @@ def main(fix: bool) -> None:
 
     print(f"Legitimate forms ({len(ok_forms)}):")
     for sf in ok_forms:
-        form_text = sf.get("form") or sf.get("surface_form") or sf.get("normalized") or ""
+        form_text = (
+            sf.get("form") or sf.get("surface_form") or sf.get("normalized") or ""
+        )
         print(f"  [OK ] {form_text!r}")
 
     print()
     print(f"Screening false positives ({len(bad)}):")
     for sf in bad:
-        form_text = sf.get("form") or sf.get("surface_form") or sf.get("normalized") or ""
+        form_text = (
+            sf.get("form") or sf.get("surface_form") or sf.get("normalized") or ""
+        )
         fid = sf.get("id") or sf.get("form_id") or ""
         tag = "[FIX]" if fix else "[BAD]"
         print(f"  {tag} id={fid}  form={form_text!r}")

@@ -79,7 +79,9 @@ def get_related_concepts(concept_id: str) -> RelatedConceptsResult:
         client.close()
 
     if not rows:
-        raise HTTPException(status_code=404, detail=f"Concept {concept_id} not found or inactive")
+        raise HTTPException(
+            status_code=404, detail=f"Concept {concept_id} not found or inactive"
+        )
 
     row = rows[0]
 
@@ -113,8 +115,12 @@ def get_related_concepts(concept_id: str) -> RelatedConceptsResult:
 def get_descendants(
     concept_id: str,
     depth: int = Query(default=3, ge=1, le=5, description="IS_A traversal depth"),
-    limit: int = Query(default=300, ge=1, le=500, description="Maximum number of results"),
-    semantic_tag: Optional[str] = Query(default=None, description="Filter by semantic tag"),
+    limit: int = Query(
+        default=300, ge=1, le=500, description="Maximum number of results"
+    ),
+    semantic_tag: Optional[str] = Query(
+        default=None, description="Filter by semantic tag"
+    ),
 ):
     """Return active SNOMED descendants of a concept via IS_A relationships."""
     query = DESCENDANTS_TEMPLATE.format(depth=int(depth))
@@ -127,7 +133,10 @@ def get_descendants(
             limit=limit,
         )
         if rows is None:
-            raise HTTPException(status_code=404, detail=f"Concept {concept_id} not found or has no descendants")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Concept {concept_id} not found or has no descendants",
+            )
         return rows
     finally:
         client.close()
@@ -145,7 +154,9 @@ def suggest_aliases_for_concept(concept_id: str):
         client.close()
 
     if not rows:
-        raise HTTPException(status_code=404, detail=f"Concept {concept_id} not found or inactive")
+        raise HTTPException(
+            status_code=404, detail=f"Concept {concept_id} not found or inactive"
+        )
 
     row = rows[0]
     concept_fsn: str = row["concept_fsn"]
@@ -187,7 +198,9 @@ def suggest_aliases_for_concept(concept_id: str):
         suggestions = [
             s.strip()
             for s in raw
-            if isinstance(s, str) and s.strip() and s.strip().lower() not in existing_lower
+            if isinstance(s, str)
+            and s.strip()
+            and s.strip().lower() not in existing_lower
         ]
         return {"suggestions": suggestions[:10], "concept_id": concept_id}
     except Exception as exc:  # noqa: BLE001

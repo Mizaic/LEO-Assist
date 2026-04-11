@@ -1,5 +1,7 @@
 """FastAPI app for HITL training creator MVP."""
 
+# aca-image: core-api build/deploy verification (no runtime effect).
+
 from __future__ import annotations
 
 import logging
@@ -13,6 +15,7 @@ configure_logging(service_name="core-api")
 # PyRuSH uses loguru, not stdlib logging — disable its DEBUG spam
 try:
     from loguru import logger as _loguru_logger
+
     _loguru_logger.disable("PyRuSH")
     _loguru_logger.disable("PyRuSH.PyRuSHSentencizer")
 except ImportError:
@@ -91,7 +94,10 @@ def _validate_startup_deps():
         if url:
             try:
                 import redis
-                client = redis.from_url(url, decode_responses=True, socket_connect_timeout=5)
+
+                client = redis.from_url(
+                    url, decode_responses=True, socket_connect_timeout=5
+                )
                 client.ping()
                 client.close()
             except ImportError as e:
@@ -121,6 +127,7 @@ async def lifespan(app: object):
             client.close()
         except Exception as exc:
             import logging
+
             logging.getLogger(__name__).warning(
                 "[Tenant] Seed failed (non-fatal): %s", exc
             )
@@ -129,11 +136,13 @@ async def lifespan(app: object):
         try:
             from app.db.neo4j_client import CodingGraphClient
             from app.services.model_config_seed import seed_model_configs
+
             client = CodingGraphClient()
             seed_model_configs(client)
             client.close()
         except Exception as exc:
             import logging
+
             logging.getLogger(__name__).warning(
                 "[ModelConfig] Seed failed (non-fatal): %s", exc
             )
@@ -142,11 +151,13 @@ async def lifespan(app: object):
         try:
             from app.db.neo4j_client import CodingGraphClient
             from app.services.service_config_seed import seed_service_configs
+
             client = CodingGraphClient()
             seed_service_configs(client)
             client.close()
         except Exception as exc:
             import logging
+
             logging.getLogger(__name__).warning(
                 "[ServiceConfig] Seed failed (non-fatal): %s", exc
             )
@@ -154,9 +165,11 @@ async def lifespan(app: object):
     def _prompt_seed():
         try:
             from scripts.seed_prompt_configs import seed_if_missing
+
             seed_if_missing()
         except Exception as exc:
             import logging
+
             logging.getLogger(__name__).warning(
                 "[PromptSeed] Seed failed (non-fatal): %s", exc
             )
@@ -165,11 +178,13 @@ async def lifespan(app: object):
         try:
             from app.db.neo4j_client import PatientGraphClient
             from app.services.loop_config_seed import seed_loop_configs
+
             client = PatientGraphClient()
             seed_loop_configs(client)
             client.close()
         except Exception as exc:
             import logging
+
             logging.getLogger(__name__).warning(
                 "[LoopConfig] Seed failed (non-fatal): %s", exc
             )
@@ -242,7 +257,10 @@ async def require_xhr_for_mutations(request: Request, call_next):
         and not any(request.url.path.startswith(p) for p in skip_prefixes)
         and request.headers.get("X-Requested-With", "").lower() != "xmlhttprequest"
     ):
-        return Response(status_code=403, content="CSRF check failed: X-Requested-With header required")
+        return Response(
+            status_code=403,
+            content="CSRF check failed: X-Requested-With header required",
+        )
     return await call_next(request)
 
 
@@ -264,6 +282,7 @@ async def add_security_headers(request: Request, call_next):
         "max-age=63072000; includeSubDomains; preload"
     )
     return response
+
 
 app.include_router(admin_router)
 app.include_router(onboarding_router)

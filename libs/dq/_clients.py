@@ -3,6 +3,7 @@
 All environment variables are read at call time (not module load) so that
 tests can patch them without import-order issues.
 """
+
 from __future__ import annotations
 
 import os

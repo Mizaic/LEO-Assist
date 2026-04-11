@@ -20,8 +20,15 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient, run_with_retry
-from app.models.contracts import LLMUsageResponse, PipelineRunRequest, PipelineRunResponse
-from app.models.neo4j_schema import DELETE_ENCOUNTER_DOCUMENTS, RESET_ENCOUNTER_REVIEW_QUEUE
+from app.models.contracts import (
+    LLMUsageResponse,
+    PipelineRunRequest,
+    PipelineRunResponse,
+)
+from app.models.neo4j_schema import (
+    DELETE_ENCOUNTER_DOCUMENTS,
+    RESET_ENCOUNTER_REVIEW_QUEUE,
+)
 from app.services.pipeline_service import PipelineService, _REMOVED_MSG
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
 
@@ -33,8 +40,14 @@ router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
 SUBGRAPH_PORTS: dict[str, dict[str, object]] = {
     "encounter_loader": {"reads": ["encounter_id"], "writes": ["encounter_text"]},
-    "extraction": {"reads": ["encounter_text"], "writes": ["entities", "sentences", "errors"]},
-    "post_processing": {"reads": ["entities", "encounter_text"], "writes": ["entities", "errors"]},
+    "extraction": {
+        "reads": ["encounter_text"],
+        "writes": ["entities", "sentences", "errors"],
+    },
+    "post_processing": {
+        "reads": ["entities", "encounter_text"],
+        "writes": ["entities", "errors"],
+    },
     "extraction_check": {
         "reads": ["entities", "encounter_text", "model_tier", "prompt_config"],
         "writes": ["entities", "llm_check_result", "llm_check_changes", "errors"],
@@ -45,19 +58,40 @@ SUBGRAPH_PORTS: dict[str, dict[str, object]] = {
         "writes": ["entities", "llm_check_result", "llm_check_changes", "errors"],
     },
     "tier_classify": {"reads": ["entities"], "writes": ["entities", "tier_decisions"]},
-    "verification": {"reads": ["entities", "encounter_text"], "writes": ["is_verified", "verification_result", "errors"]},
-    "persist": {"reads": ["entities", "encounter_id", "patient_id", "output_target"], "writes": ["documents_written", "training_labels_written"]},
-    "sbar": {"reads": ["entities", "encounter_text", "patient_id"], "writes": ["sbar_report"]},
+    "verification": {
+        "reads": ["entities", "encounter_text"],
+        "writes": ["is_verified", "verification_result", "errors"],
+    },
+    "persist": {
+        "reads": ["entities", "encounter_id", "patient_id", "output_target"],
+        "writes": ["documents_written", "training_labels_written"],
+    },
+    "sbar": {
+        "reads": ["entities", "encounter_text", "patient_id"],
+        "writes": ["sbar_report"],
+    },
     "compliance": {"reads": ["entities"], "writes": ["compliance_result"]},
     "anchor_detect": {"reads": ["entities"], "writes": ["anchors"]},
     "episode_build": {"reads": ["entities", "patient_id"], "writes": ["episodes"]},
-    "safety_net": {"reads": ["entities", "patient_id"], "writes": ["safety_net_alerts"]},
+    "safety_net": {
+        "reads": ["entities", "patient_id"],
+        "writes": ["safety_net_alerts"],
+    },
     "quality_check": {"reads": ["entities"], "writes": ["quality_issues"]},
-    "next_best_action": {"reads": ["entities", "patient_id"], "writes": ["recommendations"]},
-    "surface_form_validation": {"reads": ["entities"], "writes": ["entities", "errors"]},
+    "next_best_action": {
+        "reads": ["entities", "patient_id"],
+        "writes": ["recommendations"],
+    },
+    "surface_form_validation": {
+        "reads": ["entities"],
+        "writes": ["entities", "errors"],
+    },
     "rest_connector": {"reads": ["*"], "writes": ["connector_response", "errors"]},
     "queue_publish": {"reads": ["*"], "writes": ["queued", "errors"]},
-    "guidance_rule_extraction": {"reads": ["recommendation", "guideline_id"], "writes": ["coded_criteria", "errors"]},
+    "guidance_rule_extraction": {
+        "reads": ["recommendation", "guideline_id"],
+        "writes": ["coded_criteria", "errors"],
+    },
 }
 
 
@@ -93,9 +127,10 @@ class RunAllPatientsRequest(BaseModel):
     expected_patient_count: int | None = None
 
 
-
 @router.get("/subgraphs")
-def list_pipeline_subgraphs(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, object]:
+def list_pipeline_subgraphs(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, object]:
     _ = scope  # reserved for future role-specific filtering
     items: list[dict[str, object]] = []
     for subgraph_id, port_meta in SUBGRAPH_PORTS.items():
@@ -197,6 +232,7 @@ def _require_patients_in_scope(scope: CallerScope, patient_ids: list[str]) -> No
     if scope.is_admin:
         return
     from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+
     client = LibPGClient()
     try:
         rows = client.run(
@@ -216,7 +252,9 @@ def _require_patients_in_scope(scope: CallerScope, patient_ids: list[str]) -> No
         client.close()
 
 
-def _expand_patients_to_clinical_encounters(patient_ids: list[str]) -> list[dict[str, str]]:
+def _expand_patients_to_clinical_encounters(
+    patient_ids: list[str],
+) -> list[dict[str, str]]:
     """Resolve patient IDs into clinical encounter jobs."""
     from libs.neo4j_client.client import PatientGraphClient as LibPGClient
 
@@ -335,9 +373,7 @@ def get_creator() -> PipelineService:
     patient_client.initialize_schema()
     coding_client = CodingGraphClient()
     coding_client.initialize_schema()
-    return PipelineService(
-        patient_client=patient_client, coding_client=coding_client
-    )
+    return PipelineService(patient_client=patient_client, coding_client=coding_client)
 
 
 def _format_sse(event_type: str, payload: dict[str, object]) -> str:
@@ -361,6 +397,7 @@ def _resolve_cohort_patients(cohort_id: str) -> list[str]:
     """Resolve a cohort ID to patient IDs via the Patient Graph."""
     import json as _json
     from libs.neo4j_client.client import PatientGraphClient
+
     pg = PatientGraphClient()
     try:
         rows = pg.run(
@@ -370,13 +407,19 @@ def _resolve_cohort_patients(cohort_id: str) -> list[str]:
         if not rows:
             return []
         filters_raw = rows[0].get("filters", "{}")
-        filters = _json.loads(filters_raw) if isinstance(filters_raw, str) else filters_raw
+        filters = (
+            _json.loads(filters_raw) if isinstance(filters_raw, str) else filters_raw
+        )
         where_parts, params = [], {}
         if filters.get("org_id"):
-            where_parts.append("EXISTS { MATCH (p)-[:REGISTERED_AT]->(o:Organization {id: $org_id}) }")
+            where_parts.append(
+                "EXISTS { MATCH (p)-[:REGISTERED_AT]->(o:Organization {id: $org_id}) }"
+            )
             params["org_id"] = filters["org_id"]
         if filters.get("episode_status"):
-            where_parts.append("EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) WHERE ep.status IN $ep_statuses }")
+            where_parts.append(
+                "EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) WHERE ep.status IN $ep_statuses }"
+            )
             params["ep_statuses"] = filters["episode_status"]
         where_clause = " AND ".join(where_parts) if where_parts else "true"
         result = pg.run(
@@ -390,6 +433,7 @@ def _resolve_cohort_patients(cohort_id: str) -> list[str]:
 
 def _resolve_org_patients(org_id: str) -> list[str]:
     from libs.neo4j_client.client import PatientGraphClient
+
     pg = PatientGraphClient()
     try:
         rows = pg.run(
@@ -468,11 +512,17 @@ def stream_progress(run_id: str):
                 except (json.JSONDecodeError, TypeError):
                     continue
                 events.put(data)
-                if data.get("type") in {"run_completed", "pipeline_error", "run_error",
-                                        "extraction_done"}:
+                if data.get("type") in {
+                    "run_completed",
+                    "pipeline_error",
+                    "run_error",
+                    "extraction_done",
+                }:
                     break
         except Exception as exc:
-            events.put({"type": "pipeline_error", "message": str(exc), "run_id": run_id})
+            events.put(
+                {"type": "pipeline_error", "message": str(exc), "run_id": run_id}
+            )
         finally:
             events.put(None)
 
@@ -485,8 +535,10 @@ def stream_progress(run_id: str):
                 event = events.get(timeout=2.0)
             except queue.Empty:
                 idle_ticks += 1
-                yield _format_sse("heartbeat", {"type": "heartbeat", "ts": time.time(),
-                                                "run_id": run_id})
+                yield _format_sse(
+                    "heartbeat",
+                    {"type": "heartbeat", "ts": time.time(), "run_id": run_id},
+                )
                 if idle_ticks > (_PROGRESS_IDLE_TIMEOUT_S // 2):
                     break
                 continue
@@ -550,36 +602,41 @@ def _clean_patients(patient_ids: list[str]) -> dict:
         with pg.session() as session:
             for pid in patient_ids:
                 for query_name, query in [
-                    ("review_queue",       RESET_PATIENT_REVIEW_QUEUE),
-                    ("documents",          RESET_PATIENT_DOCUMENTS),
-                    ("direct_semantic",    RESET_PATIENT_DIRECT_SEMANTIC),
-                    ("llm_usage",          RESET_PATIENT_LLM_USAGE),
-                    ("coding_decisions",   RESET_PATIENT_CODING_DECISIONS),
-                    ("sentences_payload",  RESET_PATIENT_SENTENCES_PAYLOAD),
-                    ("alerts",             RESET_PATIENT_ALERTS),
-                    ("episodes",           RESET_PATIENT_EPISODES),
-                    ("legacy_alerts",      RESET_PATIENT_LEGACY_ALERTS),
-                    ("legacy_episodes",    RESET_PATIENT_LEGACY_EPISODES),
+                    ("review_queue", RESET_PATIENT_REVIEW_QUEUE),
+                    ("documents", RESET_PATIENT_DOCUMENTS),
+                    ("direct_semantic", RESET_PATIENT_DIRECT_SEMANTIC),
+                    ("llm_usage", RESET_PATIENT_LLM_USAGE),
+                    ("coding_decisions", RESET_PATIENT_CODING_DECISIONS),
+                    ("sentences_payload", RESET_PATIENT_SENTENCES_PAYLOAD),
+                    ("alerts", RESET_PATIENT_ALERTS),
+                    ("episodes", RESET_PATIENT_EPISODES),
+                    ("legacy_alerts", RESET_PATIENT_LEGACY_ALERTS),
+                    ("legacy_episodes", RESET_PATIENT_LEGACY_EPISODES),
                 ]:
                     r = session.run(query, patient_id=pid).single()
                     count = 0
                     if r:
-                        count = int(r.get(
-                            "deleted",
-                            r.get("links_deleted",
-                                  r.get("direct_deleted", 0))
-                        ) or 0)
+                        count = int(
+                            r.get(
+                                "deleted",
+                                r.get("links_deleted", r.get("direct_deleted", 0)),
+                            )
+                            or 0
+                        )
                     totals[query_name] = totals.get(query_name, 0) + count
                     logger.info(
                         "Patient reset step=%s patient=%s deleted=%d",
-                        query_name, pid, count,
+                        query_name,
+                        pid,
+                        count,
                     )
     finally:
         pg.close()
 
     logger.info(
         "Patient reset complete patients=%s totals=%s",
-        patient_ids, totals,
+        patient_ids,
+        totals,
     )
 
     # Clear Redis checkpoints so retries get a genuinely fresh run
@@ -593,7 +650,8 @@ def _clean_patients(patient_ids: list[str]) -> dict:
         totals["redis_checkpoints_cleared"] = redis_deleted
         logger.info(
             "Patient reset cleared Redis checkpoints patients=%s count=%d",
-            patient_ids, redis_deleted,
+            patient_ids,
+            redis_deleted,
         )
     except Exception:
         logger.warning(
@@ -607,12 +665,19 @@ def _clean_patients(patient_ids: list[str]) -> dict:
 async def gold_training_stats(_: CallerScope = Depends(get_caller_scope)) -> dict:
     """Return counts of TrainingCandidates by status for the run UI."""
     from libs.cypher.training_candidate_queries import GET_TRAINING_CANDIDATE_STATS
+
     client = CodingGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_TRAINING_CANDIDATE_STATS).single()
             if not row:
-                return {"total": 0, "pending": 0, "processing": 0, "completed": 0, "failed": 0}
+                return {
+                    "total": 0,
+                    "pending": 0,
+                    "processing": 0,
+                    "completed": 0,
+                    "failed": 0,
+                }
             return dict(row)
     finally:
         client.close()
@@ -643,21 +708,25 @@ async def run_gold_training(
         with client.session() as session:
             if payload.mode == "specific" and payload.candidate_ids:
                 for cid in payload.candidate_ids:
-                    row = session.run(GET_TRAINING_CANDIDATE_BY_ID, candidate_id=cid).single()
+                    row = session.run(
+                        GET_TRAINING_CANDIDATE_BY_ID, candidate_id=cid
+                    ).single()
                     if row:
                         candidates.append(dict(row))
             else:
                 # All pending candidates (paginated in batches of 500)
                 skip = 0
                 while True:
-                    batch = list(session.run(
-                        GET_TRAINING_CANDIDATES_PAGE,
-                        status="pending",
-                        source=None,
-                        search=None,
-                        skip=skip,
-                        limit=500,
-                    ))
+                    batch = list(
+                        session.run(
+                            GET_TRAINING_CANDIDATES_PAGE,
+                            status="pending",
+                            source=None,
+                            search=None,
+                            skip=skip,
+                            limit=500,
+                        )
+                    )
                     if not batch:
                         break
                     candidates.extend(dict(r) for r in batch)
@@ -668,7 +737,9 @@ async def run_gold_training(
         client.close()
 
     if not candidates:
-        raise HTTPException(status_code=404, detail="No matching TrainingCandidates found.")
+        raise HTTPException(
+            status_code=404, detail="No matching TrainingCandidates found."
+        )
 
     run_id = str(uuid.uuid4())
     bus = create_message_bus()
@@ -677,14 +748,14 @@ async def run_gold_training(
             msg = Message(
                 body={
                     "event_type": "gold-training-run",
-                    "patient_id": "",          # not patient-scoped
+                    "patient_id": "",  # not patient-scoped
                     "encounter_id": None,
                     "plan_definition_id": payload.plan_definition_id,
                     "context": {
-                        "candidate_id":     cand["candidate_id"],
-                        "encounter_text":   cand.get("text", ""),
-                        "output_target":    "gold_training",
-                        "dry_run":          payload.preview,
+                        "candidate_id": cand["candidate_id"],
+                        "encounter_text": cand.get("text", ""),
+                        "output_target": "gold_training",
+                        "dry_run": payload.preview,
                     },
                 },
                 correlation_id=run_id,
@@ -694,10 +765,10 @@ async def run_gold_training(
         await bus.close()
 
     return {
-        "run_id":    run_id,
-        "queued":    len(candidates),
-        "mode":      payload.mode,
-        "preview":   payload.preview,
+        "run_id": run_id,
+        "queued": len(candidates),
+        "mode": payload.mode,
+        "preview": payload.preview,
         "stream_path": f"/api/pipeline/progress/{run_id}",
     }
 
@@ -755,7 +826,8 @@ async def run_patient(
             cleaned_totals = _clean_patients([patient_id])
             logger.info(
                 "full_pipeline reset complete patient=%s cleaned=%s",
-                patient_id, cleaned_totals,
+                patient_id,
+                cleaned_totals,
             )
             encounter_jobs = _expand_patients_to_clinical_encounters([patient_id])
             if not encounter_jobs:
@@ -782,7 +854,9 @@ async def run_patient(
                     exc_info=True,
                 )
         else:  # pragma: no cover - Literal keeps this unreachable
-            raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported action: {payload.action}"
+            )
     except RuntimeError as exc:
         raise HTTPException(
             status_code=502,
@@ -812,7 +886,9 @@ async def run_cohort(
 ):
     patient_ids = [pid.strip() for pid in payload.patient_ids if pid and pid.strip()]
     if not patient_ids:
-        raise HTTPException(status_code=400, detail="At least one patient_id is required")
+        raise HTTPException(
+            status_code=400, detail="At least one patient_id is required"
+        )
     _require_patients_in_scope(scope, patient_ids)
 
     run_id = str(uuid.uuid4())
@@ -865,7 +941,9 @@ async def run_cohort(
         elif payload.action == "run_analysis":
             queued = await _publish_analysis_jobs(patient_ids, run_id=run_id)
         else:  # pragma: no cover
-            raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported action: {payload.action}"
+            )
     except RuntimeError as exc:
         raise HTTPException(
             status_code=502,
@@ -896,7 +974,9 @@ async def run_all_patients(
     """Bulk reset and reprocess all scoped patients with explicit safety gates."""
     patient_ids = _resolve_scope_patients(scope, payload.org_id)
     if not patient_ids:
-        raise HTTPException(status_code=404, detail="No patients found for the selected scope")
+        raise HTTPException(
+            status_code=404, detail="No patients found for the selected scope"
+        )
 
     encounter_jobs = _expand_patients_to_clinical_encounters(patient_ids)
     patient_count = len(patient_ids)
@@ -981,11 +1061,12 @@ def clean_patients_endpoint(
 
 # ── HITL Classification Review ─────────────────────────────────────────────
 
+
 class ClassificationVoteRequest(BaseModel):
     encounter_id: str
-    correct_type: str          # "clinical" | "admin_only" | "document_transfer"
-    model_a_type: str          # what model A originally said
-    model_b_type: str          # what model B originally said
+    correct_type: str  # "clinical" | "admin_only" | "document_transfer"
+    model_a_type: str  # what model A originally said
+    model_b_type: str  # what model B originally said
     notes: str = ""
     reviewer: str = "unknown"
 
@@ -1016,7 +1097,9 @@ async def get_classification_disagreements(
     try:
         with client.session() as session:
             if patient_id:
-                rows = session.run(GET_CLASSIFICATION_DISAGREEMENTS, patient_id=patient_id)
+                rows = session.run(
+                    GET_CLASSIFICATION_DISAGREEMENTS, patient_id=patient_id
+                )
             else:
                 rows = session.run(GET_ALL_DISAGREEMENTS, skip=skip, limit=limit)
 
@@ -1097,7 +1180,12 @@ async def get_classification_scorecard(
             result = session.run(GET_MODEL_SCORECARD)
             row = result.single()
             if not row or row["total_votes"] == 0:
-                return {"model_a_correct": 0, "model_b_correct": 0, "both_wrong": 0, "total_votes": 0}
+                return {
+                    "model_a_correct": 0,
+                    "model_b_correct": 0,
+                    "both_wrong": 0,
+                    "total_votes": 0,
+                }
             total = row["total_votes"]
             return {
                 "model_a_label": "Claude Haiku (AWS)",
@@ -1213,7 +1301,11 @@ async def get_gold_dataset_stats(
         # Parse sentences_json → term stats
         sentences_raw = row.get("sentences_json") or "[]"
         try:
-            sentences = json.loads(sentences_raw) if isinstance(sentences_raw, str) else sentences_raw
+            sentences = (
+                json.loads(sentences_raw)
+                if isinstance(sentences_raw, str)
+                else sentences_raw
+            )
         except (json.JSONDecodeError, TypeError):
             sentences = []
 
@@ -1230,9 +1322,17 @@ async def get_gold_dataset_stats(
         # Per-tag candidate quality
         for tag in tags_in_candidate:
             if tag not in per_tag:
-                per_tag[tag] = {"approved": 0, "edited": 0, "rejected": 0, "escalated": 0, "total": 0}
+                per_tag[tag] = {
+                    "approved": 0,
+                    "edited": 0,
+                    "rejected": 0,
+                    "escalated": 0,
+                    "total": 0,
+                }
             per_tag[tag]["total"] += 1
-            bucket = action if action in ("edited", "rejected", "escalated") else "approved"
+            bucket = (
+                action if action in ("edited", "rejected", "escalated") else "approved"
+            )
             per_tag[tag][bucket] = per_tag[tag].get(bucket, 0) + 1
 
     total = len(rows)
@@ -1251,31 +1351,47 @@ async def get_gold_dataset_stats(
         human_verified = approved + edited
         approval_rate = round(human_verified / t * 100, 1) if t > 0 else None
         rejection_rate = round(rejected / t * 100, 1) if t > 0 else None
-        scorecard.append({
-            "tag": tag,
-            "total_candidates": t,
-            "approved": approved,
-            "edited": edited,
-            "rejected": rejected,
-            "escalated": escalated,
-            "human_verified": human_verified,
-            "approval_rate_pct": approval_rate,
-            "rejection_rate_pct": rejection_rate,
-            "gold_entities": gold_entities_by_tag.get(tag, 0),
-        })
+        scorecard.append(
+            {
+                "tag": tag,
+                "total_candidates": t,
+                "approved": approved,
+                "edited": edited,
+                "rejected": rejected,
+                "escalated": escalated,
+                "human_verified": human_verified,
+                "approval_rate_pct": approval_rate,
+                "rejection_rate_pct": rejection_rate,
+                "gold_entities": gold_entities_by_tag.get(tag, 0),
+            }
+        )
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_reviewed": total,
         "outcomes": outcome_counts,
-        "overall_approval_rate_pct": round(
-            sum(1 for r in rows if r.get("last_action") in ("approve", "edit") or r.get("approval_status") == "approved") / total * 100, 1
-        ) if total > 0 else None,
+        "overall_approval_rate_pct": (
+            round(
+                sum(
+                    1
+                    for r in rows
+                    if r.get("last_action") in ("approve", "edit")
+                    or r.get("approval_status") == "approved"
+                )
+                / total
+                * 100,
+                1,
+            )
+            if total > 0
+            else None
+        ),
         "reviewers": sorted(reviewer_set),
         "gold_entities_by_tag": gold_entities_by_tag,
         "total_gold_entities": sum(gold_entities_by_tag.values()),
         "patients_covered": len(gold_patients),
-        "encounters_covered": sum(1 for r in rows if r.get("approval_status") in ("approved",)),
+        "encounters_covered": sum(
+            1 for r in rows if r.get("approval_status") in ("approved",)
+        ),
         "date_from": min(dates) if dates else None,
         "date_to": max(dates) if dates else None,
         "per_tag_scorecard": scorecard,
@@ -1378,7 +1494,9 @@ async def get_classification_prompt_preview(
     return {
         "base_prompt": base_prompt,
         "few_shot_section": few_shot_section if few_shot_section else None,
-        "combined_prompt": base_prompt + few_shot_section if few_shot_section else base_prompt,
+        "combined_prompt": (
+            base_prompt + few_shot_section if few_shot_section else base_prompt
+        ),
         "using_few_shot": bool(few_shot_section),
         "example_counts": counts,
         "total_examples": sum(counts.values()),
@@ -1414,25 +1532,47 @@ async def get_classification_report(
         client.close()
 
     if not voted_rows:
-        return {"total_reviewed": 0, "audit_trail": [], "message": "No votes recorded yet"}
+        return {
+            "total_reviewed": 0,
+            "audit_trail": [],
+            "message": "No votes recorded yet",
+        }
 
     total = len(voted_rows)
 
     def per_class_metrics(predicted_field: str) -> dict:
         metrics = {}
         for cls in CLASSES:
-            tp = sum(1 for r in voted_rows if r[predicted_field] == cls and r["human_verdict"] == cls)
-            fp = sum(1 for r in voted_rows if r[predicted_field] == cls and r["human_verdict"] != cls)
-            fn = sum(1 for r in voted_rows if r[predicted_field] != cls and r["human_verdict"] == cls)
+            tp = sum(
+                1
+                for r in voted_rows
+                if r[predicted_field] == cls and r["human_verdict"] == cls
+            )
+            fp = sum(
+                1
+                for r in voted_rows
+                if r[predicted_field] == cls and r["human_verdict"] != cls
+            )
+            fn = sum(
+                1
+                for r in voted_rows
+                if r[predicted_field] != cls and r["human_verdict"] == cls
+            )
             precision = tp / (tp + fp) if (tp + fp) > 0 else None
             recall = tp / (tp + fn) if (tp + fn) > 0 else None
-            f1 = 2 * precision * recall / (precision + recall) if precision and recall else None
+            f1 = (
+                2 * precision * recall / (precision + recall)
+                if precision and recall
+                else None
+            )
             metrics[cls] = {
                 "tp": tp,
                 "fp": fp,
                 "fn": fn,
                 "support": tp + fn,
-                "precision_pct": round(precision * 100, 1) if precision is not None else None,
+                "precision_pct": (
+                    round(precision * 100, 1) if precision is not None else None
+                ),
                 "recall_pct": round(recall * 100, 1) if recall is not None else None,
                 "f1_pct": round(f1 * 100, 1) if f1 is not None else None,
             }

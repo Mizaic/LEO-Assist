@@ -5,6 +5,7 @@ Verifies:
   - Distribution of visit dates
   - How many would NOT be stale if measured from visit date (< 90 days ago)
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -13,10 +14,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -63,12 +66,16 @@ def main() -> None:
             print("=== stale_post_specialist summary ===")
             print(f"  Total episodes         : {summary['total']}")
             print(f"  With visit_date stored : {summary['with_visit_date']}")
-            print(f"  Visit within 90 days   : {summary['within_90d']}  <- would NOT be stale under correct date-math")
+            print(
+                f"  Visit within 90 days   : {summary['within_90d']}  <- would NOT be stale under correct date-math"
+            )
             print(f"  Earliest visit date    : {summary['earliest_visit']}")
             print(f"  Latest visit date      : {summary['latest_visit']}")
             print()
             rows = list(s.run(_Q_SAMPLE))
-            print(f"{'ref_date':<14} {'visit_date':<14} {'days_visit':>10} {'days_ref':>10}")
+            print(
+                f"{'ref_date':<14} {'visit_date':<14} {'days_visit':>10} {'days_ref':>10}"
+            )
             for row in rows:
                 print(
                     f"{str(row['ref_date'] or ''):<14} "

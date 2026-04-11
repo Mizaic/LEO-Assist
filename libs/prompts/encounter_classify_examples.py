@@ -41,7 +41,6 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
         "input": "Event has been made private by another organisation.",
         "output": '{"content_type": "admin_only", "domains": [], "encounter_purpose": ["admin"], "key_clinical_signals": [], "expected_semantic_tags": [], "clinical_significance": "low"}',
     },
-
     # ── Document transfer ─────────────────────────────────────────────────────
     {
         "category": "classify:document_transfer",
@@ -57,7 +56,6 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
         "input": "Outpatient letter received from oncology department. Filed to record.",
         "output": '{"content_type": "document_transfer", "domains": ["oncology"], "encounter_purpose": ["clinic_letter"], "key_clinical_signals": [], "expected_semantic_tags": [], "clinical_significance": "low"}',
     },
-
     # ── Clinical: acute ───────────────────────────────────────────────────────
     {
         "category": "classify:clinical-acute",
@@ -81,7 +79,6 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
         ),
         "output": '{"content_type": "clinical", "domains": ["oncology", "gastroenterology"], "encounter_purpose": ["consultation", "referral"], "key_clinical_signals": ["change in bowel habit", "rectal bleeding", "weight loss", "positive FIT", "2WW referral"], "expected_semantic_tags": ["finding", "observable entity", "situation"], "clinical_significance": "high"}',
     },
-
     # ── Clinical: chronic disease monitoring ──────────────────────────────────
     {
         "category": "classify:clinical-chronic",
@@ -104,7 +101,6 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
         ),
         "output": '{"content_type": "clinical", "domains": ["cardiovascular", "renal"], "encounter_purpose": ["telephone", "medication_review", "follow_up"], "key_clinical_signals": ["hypertension", "CKD stage 3b", "eGFR 43", "BP 138/82"], "expected_semantic_tags": ["disorder", "observable entity", "substance"], "clinical_significance": "medium"}',
     },
-
     # ── Clinical: oncology ────────────────────────────────────────────────────
     {
         "category": "classify:clinical-oncology",
@@ -116,7 +112,6 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
         ),
         "output": '{"content_type": "clinical", "domains": ["oncology"], "encounter_purpose": ["follow_up", "medication_review"], "key_clinical_signals": ["breast cancer T2N1M0", "letrozole", "osteopenia", "DEXA scan"], "expected_semantic_tags": ["disorder", "staging scale", "substance", "observable entity", "finding"], "clinical_significance": "high"}',
     },
-
     # ── Clinical: multi-domain ────────────────────────────────────────────────
     {
         "category": "classify:clinical-multi",
@@ -130,7 +125,6 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
         ),
         "output": '{"content_type": "clinical", "domains": ["respiratory", "metabolic", "cardiovascular", "haematology"], "encounter_purpose": ["follow_up", "medication_review", "immunisation"], "key_clinical_signals": ["COPD", "T2DM", "hypertension", "atrial fibrillation", "HbA1c 66 mmol/mol", "BP 148/88", "INR 2.3"], "expected_semantic_tags": ["disorder", "observable entity", "substance", "procedure"], "clinical_significance": "high"}',
     },
-
     # ── Clinical: investigation result ────────────────────────────────────────
     {
         "category": "classify:clinical-chronic",
@@ -145,7 +139,9 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
 ]
 
 
-def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+def _apply_core_by_first_category(
+    examples: list[dict], core_categories: set[str]
+) -> None:
     seen: set[str] = set()
     for example in examples:
         category = str(example.get("category", ""))

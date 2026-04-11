@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 from neo4j import GraphDatabase
@@ -54,7 +55,9 @@ def main():
             else:
                 print("encounter_vector_index: NOT FOUND")
                 print("  Run embedding reindex from visual-report-builder clinical-ai")
-                print("  (POST /embeddings/reindex) to create index and populate embeddings")
+                print(
+                    "  (POST /embeddings/reindex) to create index and populate embeddings"
+                )
 
             # 2. Encounter counts (index uses 'vector', embedding_manager writes 'embedding')
             if args.patient_id:
@@ -80,7 +83,9 @@ def main():
             with_emb = row["with_embedding"] if row else 0
             with_vec = row["with_vector"] if row else 0
 
-            scope = f"patient {args.patient_id}" if args.patient_id else "all encounters"
+            scope = (
+                f"patient {args.patient_id}" if args.patient_id else "all encounters"
+            )
             print(f"\nEncounter counts ({scope}):")
             print(f"  total: {total}")
             print(f"  with embedding (e.embedding): {with_emb}")
@@ -89,9 +94,13 @@ def main():
             print(f"  vector coverage: {pct_vec}%")
 
             if total > 0 and with_vec == 0:
-                print("\n  No vectors found. Index uses e.vector; run embedding reindex.")
+                print(
+                    "\n  No vectors found. Index uses e.vector; run embedding reindex."
+                )
             elif total > 0 and with_vec < total:
-                print(f"\n  {total - with_vec} encounters missing vectors (indexed property).")
+                print(
+                    f"\n  {total - with_vec} encounters missing vectors (indexed property)."
+                )
     finally:
         driver.close()
 

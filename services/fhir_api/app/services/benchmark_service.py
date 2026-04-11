@@ -35,7 +35,11 @@ def create_benchmark_set(data: Dict[str, Any]) -> Dict[str, Any]:
             effective_to=data.get("effective_to"),
             metadata=json.dumps(data.get("metadata") or {}),
         )
-        return get_benchmark_set(set_id) or {"id": set_id, "name": data.get("name"), "source": data.get("source")}
+        return get_benchmark_set(set_id) or {
+            "id": set_id,
+            "name": data.get("name"),
+            "source": data.get("source"),
+        }
     finally:
         client.close()
 
@@ -81,12 +85,15 @@ def list_benchmark_sets(
             rows = client.run(
                 "MATCH (s:BenchmarkSet) WHERE s.source = $source "
                 "RETURN s.id AS id ORDER BY s.name SKIP $offset LIMIT $limit",
-                source=source, offset=offset, limit=limit,
+                source=source,
+                offset=offset,
+                limit=limit,
             )
         else:
             rows = client.run(
                 "MATCH (s:BenchmarkSet) RETURN s.id AS id ORDER BY s.name SKIP $offset LIMIT $limit",
-                offset=offset, limit=limit,
+                offset=offset,
+                limit=limit,
             )
         result = []
         for r in rows:
@@ -204,18 +211,20 @@ def get_benchmark_values(
                     val_json = json.loads(val_json)
                 except json.JSONDecodeError:
                     val_json = None
-            result.append({
-                "id": r.get("id"),
-                "metric_id": r["metric_id"],
-                "scope_type": r["scope_type"],
-                "scope_id": r["scope_id"],
-                "scope_name": r["scope_name"],
-                "value": r["value"],
-                "value_json": val_json,
-                "unit": r["unit"],
-                "label": r["label"],
-                "category": r["category"],
-            })
+            result.append(
+                {
+                    "id": r.get("id"),
+                    "metric_id": r["metric_id"],
+                    "scope_type": r["scope_type"],
+                    "scope_id": r["scope_id"],
+                    "scope_name": r["scope_name"],
+                    "value": r["value"],
+                    "value_json": val_json,
+                    "unit": r["unit"],
+                    "label": r["label"],
+                    "category": r["category"],
+                }
+            )
         return result
     finally:
         client.close()
@@ -246,7 +255,11 @@ def get_benchmark_scopes(audit_id: str) -> List[Dict[str, str]]:
             audit_id=audit_id,
         )
         return [
-            {"scope_id": r["scope_id"], "scope_type": r["scope_type"], "scope_name": r["scope_name"]}
+            {
+                "scope_id": r["scope_id"],
+                "scope_type": r["scope_type"],
+                "scope_name": r["scope_name"],
+            }
             for r in rows
         ]
     finally:
@@ -390,23 +403,36 @@ def list_benchmark_rules(limit: int = 100, offset: int = 0) -> List[Dict[str, An
     try:
         rows = client.run(
             "MATCH (r:BenchmarkRule) RETURN r.id AS id ORDER BY r.name SKIP $offset LIMIT $limit",
-            offset=offset, limit=limit,
+            offset=offset,
+            limit=limit,
         )
         return [r for r in (get_benchmark_rule(row["id"]) for row in rows) if r]
     finally:
         client.close()
 
 
-def update_benchmark_rule(rule_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def update_benchmark_rule(
+    rule_id: str, data: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
     """Update a BenchmarkRule."""
     client = KnowledgeGraphClient()
     try:
         updates = []
         params: Dict[str, Any] = {"id": rule_id}
-        for key in ("name", "query_definition", "scope", "output_metric_id", "benchmark_set_id"):
+        for key in (
+            "name",
+            "query_definition",
+            "scope",
+            "output_metric_id",
+            "benchmark_set_id",
+        ):
             if key in data:
                 if key == "query_definition":
-                    params[key] = json.dumps(data[key]) if isinstance(data[key], dict) else data[key]
+                    params[key] = (
+                        json.dumps(data[key])
+                        if isinstance(data[key], dict)
+                        else data[key]
+                    )
                 else:
                     params[key] = data[key]
                 updates.append(f"r.{key} = ${key}")
@@ -454,6 +480,7 @@ def run_benchmark_rule(
 
     if org_ods_code:
         from services.fhir_api.app.config.scopes import SCOPE_PARAM_MAP
+
         param_name = SCOPE_PARAM_MAP.get(scope_type)
         if param_name:
             cypher_params[param_name] = org_ods_code
@@ -481,29 +508,40 @@ def run_benchmark_rule(
     for row in results:
         name = row.get("name", "Total")
         value = row.get("value", 0)
-        metric_id = f"{output_metric_id}.{name}" if name != "Total" else output_metric_id
-        values.append({
-            "audit_id": benchmark_set_id,
-            "metric_id": metric_id,
-            "scope_id": scope_id,
-            "scope_type": scope_type_actual,
-            "scope_name": scope_name,
-            "value": value,
-            "unit": "count",
-            "label": name,
-            "category": output_metric_id,
-            "source": "computed",
-        })
+        metric_id = (
+            f"{output_metric_id}.{name}" if name != "Total" else output_metric_id
+        )
+        values.append(
+            {
+                "audit_id": benchmark_set_id,
+                "metric_id": metric_id,
+                "scope_id": scope_id,
+                "scope_type": scope_type_actual,
+                "scope_name": scope_name,
+                "value": value,
+                "unit": "count",
+                "label": name,
+                "category": output_metric_id,
+                "source": "computed",
+            }
+        )
 
     if values:
         upsert_benchmark_values(benchmark_set_id, values)
-        create_benchmark_set({"id": benchmark_set_id, "name": rule.get("name", benchmark_set_id), "source": "computed"})
+        create_benchmark_set(
+            {
+                "id": benchmark_set_id,
+                "name": rule.get("name", benchmark_set_id),
+                "source": "computed",
+            }
+        )
 
     client = KnowledgeGraphClient()
     try:
         client.run(
             "MATCH (r:BenchmarkRule {id: $id}) SET r.last_run_at = datetime(), r.last_run_status = $status",
-            id=rule_id, status="completed",
+            id=rule_id,
+            status="completed",
         )
     finally:
         client.close()
@@ -513,7 +551,10 @@ def run_benchmark_rule(
 
 def _slug(name: str) -> str:
     """Convert name to URL-safe slug."""
-    return "".join(c if c.isalnum() or c in "-_" else "_" for c in name.lower()).strip("_") or "benchmark-set"
+    return (
+        "".join(c if c.isalnum() or c in "-_" else "_" for c in name.lower()).strip("_")
+        or "benchmark-set"
+    )
 
 
 def _serialize_datetime(dt: Any) -> Optional[str]:

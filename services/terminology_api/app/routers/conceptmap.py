@@ -35,7 +35,9 @@ def search_conceptmaps(
 def get_conceptmap(conceptmap_id: str):
     cm = conceptmap_service.get_conceptmap(conceptmap_id)
     if not cm:
-        raise HTTPException(status_code=404, detail=f"ConceptMap/{conceptmap_id} not found")
+        raise HTTPException(
+            status_code=404, detail=f"ConceptMap/{conceptmap_id} not found"
+        )
     return cm
 
 
@@ -57,5 +59,7 @@ def translate_concept(
 ):
     result = conceptmap_service.translate_concept(conceptmap_id, code, system)
     if not result:
-        raise HTTPException(status_code=404, detail=f"ConceptMap/{conceptmap_id} not found")
+        raise HTTPException(
+            status_code=404, detail=f"ConceptMap/{conceptmap_id} not found"
+        )
     return result

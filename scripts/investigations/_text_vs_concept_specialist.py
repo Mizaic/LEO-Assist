@@ -3,6 +3,7 @@
 Text search: encounters whose note/text contains 'seen in fast track' (case-insensitive).
 Concept match: patients with any specialist_visit concept from the cancer domain (IS_A expanded).
 """
+
 from __future__ import annotations
 
 import json
@@ -14,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
@@ -111,7 +113,11 @@ def main() -> None:
         # -- Check what properties encounters have --
         props = pg.run(_Q_ENCOUNTER_PROPS)
         enc_props = props[0]["props"] if props else []
-        text_fields = [p for p in enc_props if p in ("text", "note", "description", "title", "content", "narrative")]
+        text_fields = [
+            p
+            for p in enc_props
+            if p in ("text", "note", "description", "title", "content", "narrative")
+        ]
         print(f"Encounter text properties available: {text_fields}\n")
 
         # -- Text search --
@@ -137,16 +143,18 @@ def main() -> None:
                 "WHERE c.conceptId = $cid RETURN count(DISTINCT p) AS n",
                 cid=str(r["cid"]),
             )[0]["n"]
-            print(f"  [{status}] {str(r['cid']):20s}  {pat_count:3d} patients  {r['name']}")
+            print(
+                f"  [{status}] {str(r['cid']):20s}  {pat_count:3d} patients  {r['name']}"
+            )
 
         print()
         print("=" * 70)
         print("COMPARISON: text search vs concept match")
         print("=" * 70)
-        text_set    = set(text_patients.keys())
+        text_set = set(text_patients.keys())
         concept_set = set(concept_patients.keys())
-        both        = text_set & concept_set
-        text_only   = text_set - concept_set
+        both = text_set & concept_set
+        text_only = text_set - concept_set
         concept_only = concept_set - text_set
 
         print(f"  Text 'seen in fast track':   {len(text_set)} patients")

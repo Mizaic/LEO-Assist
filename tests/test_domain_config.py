@@ -13,7 +13,6 @@ from unittest.mock import patch, MagicMock
 import pytest
 from fastapi import HTTPException
 
-
 # ── Domain CRUD ───────────────────────────────────────────────────────────
 
 
@@ -89,29 +88,39 @@ class TestGetDomain:
 
     @patch("services.analytics_api.app.routers.domains._ensure_default_domain")
     @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
-    def test_returns_domain_with_subdomains_from_flat_properties(self, MockKG, mock_ensure):
+    def test_returns_domain_with_subdomains_from_flat_properties(
+        self, MockKG, mock_ensure
+    ):
         from services.analytics_api.app.routers.domains import get_domain
 
-        raw = json.dumps({
-            "compose": {
-                "include": [{
-                    "system": "http://snomed.info/sct",
-                    "concept": [{"code": "254837009", "display": "Breast cancer"}],
-                }]
-            },
-        })
+        raw = json.dumps(
+            {
+                "compose": {
+                    "include": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {"code": "254837009", "display": "Breast cancer"}
+                            ],
+                        }
+                    ]
+                },
+            }
+        )
 
         MockKG.return_value.run.side_effect = [
             [{"id": "cancer_audit", "name": "Cancer Audit", "description": "NCDA"}],
-            [{
-                "vid": "ncda-cancer-types",
-                "name": "cancer_types",
-                "description": "Cancer type diagnosis concepts",
-                "milestoneType": "diagnosis",
-                "timeWindowMonths": None,
-                "semanticTags": ["Disease"],
-                "rawJson": raw,
-            }],
+            [
+                {
+                    "vid": "ncda-cancer-types",
+                    "name": "cancer_types",
+                    "description": "Cancer type diagnosis concepts",
+                    "milestoneType": "diagnosis",
+                    "timeWindowMonths": None,
+                    "semanticTags": ["Disease"],
+                    "rawJson": raw,
+                }
+            ],
         ]
 
         result = get_domain("cancer_audit")
@@ -131,15 +140,17 @@ class TestGetDomain:
 
         MockKG.return_value.run.side_effect = [
             [{"id": "cancer_audit", "name": "Cancer Audit", "description": "NCDA"}],
-            [{
-                "vid": "ncda-symptoms",
-                "name": "symptoms",
-                "description": "Presenting symptoms",
-                "milestoneType": None,
-                "timeWindowMonths": 12,
-                "semanticTags": '["Clinical_finding", "Situation"]',
-                "rawJson": None,
-            }],
+            [
+                {
+                    "vid": "ncda-symptoms",
+                    "name": "symptoms",
+                    "description": "Presenting symptoms",
+                    "milestoneType": None,
+                    "timeWindowMonths": 12,
+                    "semanticTags": '["Clinical_finding", "Situation"]',
+                    "rawJson": None,
+                }
+            ],
         ]
 
         result = get_domain("cancer_audit")
@@ -200,8 +211,8 @@ class TestCreateSubdomain:
 
         MockKG.return_value.run.side_effect = [
             [{"id": "cancer_audit"}],  # domain exists
-            [],                         # no duplicate VS
-            [],                         # MERGE link
+            [],  # no duplicate VS
+            [],  # MERGE link
         ]
 
         body = SubdomainCreateRequest(
@@ -252,14 +263,16 @@ class TestUpdateSubdomain:
 
         MockKG.return_value.run.side_effect = [
             [],  # SET result
-            [{
-                "name": "cancer_types",
-                "description": "Updated desc",
-                "milestoneType": "diagnosis",
-                "timeWindowMonths": None,
-                "semanticTags": ["Disease", "New_tag"],
-                "rawJson": None,
-            }],
+            [
+                {
+                    "name": "cancer_types",
+                    "description": "Updated desc",
+                    "milestoneType": "diagnosis",
+                    "timeWindowMonths": None,
+                    "semanticTags": ["Disease", "New_tag"],
+                    "rawJson": None,
+                }
+            ],
         ]
 
         body = SubdomainUpdateRequest(
@@ -285,43 +298,58 @@ class TestAddConcept:
     @patch("services.analytics_api.app.routers.domains._get_valueset_raw")
     @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
     @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
-    def test_adds_concept(self, MockKG, mock_guard, mock_get_raw, mock_upsert, mock_reg):
+    def test_adds_concept(
+        self, MockKG, mock_guard, mock_get_raw, mock_upsert, mock_reg
+    ):
         from services.analytics_api.app.routers.domains import (
             add_concept,
             AddConceptRequest,
         )
 
-        raw_vs = json.dumps({
-            "resourceType": "ValueSet",
-            "id": "ncda-cancer-types",
-            "compose": {
-                "include": [
-                    {"system": "http://snomed.info/sct", "concept": []}
-                ]
-            },
-        })
+        raw_vs = json.dumps(
+            {
+                "resourceType": "ValueSet",
+                "id": "ncda-cancer-types",
+                "compose": {
+                    "include": [{"system": "http://snomed.info/sct", "concept": []}]
+                },
+            }
+        )
         mock_get_raw.return_value = raw_vs
 
-        updated_raw = json.dumps({
-            "compose": {
-                "include": [{
-                    "system": "http://snomed.info/sct",
-                    "concept": [{
-                        "code": "254837009",
-                        "display": "Breast cancer",
-                        "designation": [{"use": {"code": "synonym"}, "value": "breast carcinoma"}],
-                    }],
-                }]
-            },
-        })
-        MockKG.return_value.run.return_value = [{
-            "name": "cancer_types",
-            "description": "Cancer type diagnosis concepts",
-            "milestoneType": "diagnosis",
-            "timeWindowMonths": None,
-            "semanticTags": ["Disease"],
-            "rawJson": updated_raw,
-        }]
+        updated_raw = json.dumps(
+            {
+                "compose": {
+                    "include": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {
+                                    "code": "254837009",
+                                    "display": "Breast cancer",
+                                    "designation": [
+                                        {
+                                            "use": {"code": "synonym"},
+                                            "value": "breast carcinoma",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ]
+                },
+            }
+        )
+        MockKG.return_value.run.return_value = [
+            {
+                "name": "cancer_types",
+                "description": "Cancer type diagnosis concepts",
+                "milestoneType": "diagnosis",
+                "timeWindowMonths": None,
+                "semanticTags": ["Disease"],
+                "rawJson": updated_raw,
+            }
+        ]
 
         body = AddConceptRequest(
             concept_id=254837009,
@@ -343,16 +371,22 @@ class TestAddConcept:
             AddConceptRequest,
         )
 
-        mock_get_raw.return_value = json.dumps({
-            "resourceType": "ValueSet",
-            "id": "ncda-cancer-types",
-            "compose": {
-                "include": [{
-                    "system": "http://snomed.info/sct",
-                    "concept": [{"code": "254837009", "display": "Breast cancer"}],
-                }]
-            },
-        })
+        mock_get_raw.return_value = json.dumps(
+            {
+                "resourceType": "ValueSet",
+                "id": "ncda-cancer-types",
+                "compose": {
+                    "include": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {"code": "254837009", "display": "Breast cancer"}
+                            ],
+                        }
+                    ]
+                },
+            }
+        )
 
         with pytest.raises(HTTPException) as exc_info:
             add_concept(
@@ -370,39 +404,53 @@ class TestRemoveConcept:
     @patch("services.analytics_api.app.routers.domains._get_valueset_raw")
     @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
     @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
-    def test_removes_concept(self, MockKG, mock_guard, mock_get_raw, mock_upsert, mock_reg):
+    def test_removes_concept(
+        self, MockKG, mock_guard, mock_get_raw, mock_upsert, mock_reg
+    ):
         from services.analytics_api.app.routers.domains import remove_concept
 
-        mock_get_raw.return_value = json.dumps({
-            "resourceType": "ValueSet",
-            "id": "ncda-cancer-types",
-            "compose": {
-                "include": [{
-                    "system": "http://snomed.info/sct",
-                    "concept": [
-                        {"code": "254837009", "display": "Breast cancer"},
-                        {"code": "363358000", "display": "Lung cancer"},
-                    ],
-                }]
-            },
-        })
+        mock_get_raw.return_value = json.dumps(
+            {
+                "resourceType": "ValueSet",
+                "id": "ncda-cancer-types",
+                "compose": {
+                    "include": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {"code": "254837009", "display": "Breast cancer"},
+                                {"code": "363358000", "display": "Lung cancer"},
+                            ],
+                        }
+                    ]
+                },
+            }
+        )
 
-        updated_raw = json.dumps({
-            "compose": {
-                "include": [{
-                    "system": "http://snomed.info/sct",
-                    "concept": [{"code": "363358000", "display": "Lung cancer"}],
-                }]
-            },
-        })
-        MockKG.return_value.run.return_value = [{
-            "name": "cancer_types",
-            "description": "Cancer type diagnosis concepts",
-            "milestoneType": "diagnosis",
-            "timeWindowMonths": None,
-            "semanticTags": ["Disease"],
-            "rawJson": updated_raw,
-        }]
+        updated_raw = json.dumps(
+            {
+                "compose": {
+                    "include": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {"code": "363358000", "display": "Lung cancer"}
+                            ],
+                        }
+                    ]
+                },
+            }
+        )
+        MockKG.return_value.run.return_value = [
+            {
+                "name": "cancer_types",
+                "description": "Cancer type diagnosis concepts",
+                "milestoneType": "diagnosis",
+                "timeWindowMonths": None,
+                "semanticTags": ["Disease"],
+                "rawJson": updated_raw,
+            }
+        ]
 
         result = remove_concept("cancer_audit", "cancer_types", "254837009")
         assert result.concept_count == 1
@@ -454,23 +502,30 @@ class TestParseConceptsFromRaw:
             _count_concepts_from_raw,
         )
 
-        raw = json.dumps({
-            "compose": {
-                "include": [{
-                    "system": "http://snomed.info/sct",
-                    "concept": [
+        raw = json.dumps(
+            {
+                "compose": {
+                    "include": [
                         {
-                            "code": "254837009",
-                            "display": "Breast cancer",
-                            "designation": [
-                                {"use": {"code": "synonym"}, "value": "breast carcinoma"},
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {
+                                    "code": "254837009",
+                                    "display": "Breast cancer",
+                                    "designation": [
+                                        {
+                                            "use": {"code": "synonym"},
+                                            "value": "breast carcinoma",
+                                        },
+                                    ],
+                                },
+                                {"code": "363358000", "display": "Lung cancer"},
                             ],
-                        },
-                        {"code": "363358000", "display": "Lung cancer"},
-                    ],
-                }]
-            },
-        })
+                        }
+                    ]
+                },
+            }
+        )
 
         concepts = _parse_concepts_from_raw(raw)
         assert len(concepts) == 2
@@ -498,23 +553,33 @@ class TestParseConceptsFromRaw:
     def test_extracts_stage_of_diagnosis_concepts(self):
         from services.analytics_api.app.routers.domains import _parse_concepts_from_raw
 
-        raw = json.dumps({
-            "compose": {
-                "include": [{
-                    "system": "http://snomed.info/sct",
-                    "concept": [
+        raw = json.dumps(
+            {
+                "compose": {
+                    "include": [
                         {
-                            "code": "254372002",
-                            "display": "Ann Arbor lymphoma staging system (tumor staging)",
-                            "designation": [
-                                {"use": {"code": "synonym"}, "value": "Ann Arbor stage"},
-                                {"use": {"code": "benchmark_key"}, "value": "ann_arbor_lymphoma_staging_system"},
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {
+                                    "code": "254372002",
+                                    "display": "Ann Arbor lymphoma staging system (tumor staging)",
+                                    "designation": [
+                                        {
+                                            "use": {"code": "synonym"},
+                                            "value": "Ann Arbor stage",
+                                        },
+                                        {
+                                            "use": {"code": "benchmark_key"},
+                                            "value": "ann_arbor_lymphoma_staging_system",
+                                        },
+                                    ],
+                                },
                             ],
-                        },
+                        }
                     ],
-                }],
-            },
-        })
+                },
+            }
+        )
 
         concepts = _parse_concepts_from_raw(raw)
         assert len(concepts) == 1

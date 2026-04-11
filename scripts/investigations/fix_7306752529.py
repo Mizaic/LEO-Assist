@@ -133,11 +133,14 @@ RETURN ep.episode_id AS episode_id
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("--apply", action="store_true",
-                    help="Apply fixes (omit for dry-run)")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawTextHelpFormatter
+    )
+    ap.add_argument(
+        "--apply", action="store_true", help="Apply fixes (omit for dry-run)"
+    )
     args = ap.parse_args()
 
     secrets = _load_secrets()
@@ -200,7 +203,9 @@ def main() -> None:
         if result:
             print(f"  DOCUMENTS relationship created: {result['rel_type']}")
         else:
-            print("  WARNING: DOCUMENTS relationship not created -- check encounter ID.")
+            print(
+                "  WARNING: DOCUMENTS relationship not created -- check encounter ID."
+            )
 
         # 3. Update EpisodeOfCare
         ep_result = session.run(

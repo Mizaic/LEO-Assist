@@ -88,8 +88,12 @@ async def rebuild_patient_episodes(
 
         from libs.domain_config.registry import DomainRegistry
         from libs.pipeline_graph.subgraphs.staging_enrichment import enrich_staging
-        from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
-        from services.analysis_worker.app.analyzers.episode_builder import build_episodes
+        from services.analysis_worker.app.analyzers.anchor_detector import (
+            detect_anchors,
+        )
+        from services.analysis_worker.app.analyzers.episode_builder import (
+            build_episodes,
+        )
 
         registry = DomainRegistry.from_defaults()
         anchors = detect_anchors(
@@ -136,7 +140,9 @@ def close_episode(
     """Close or archive an episode. Sets status, completed_at, completed_by."""
     scope = _coerce_scope(scope)
     if body.status not in ("closed", "completed"):
-        raise HTTPException(status_code=400, detail="status must be 'closed' or 'completed'")
+        raise HTTPException(
+            status_code=400, detail="status must be 'closed' or 'completed'"
+        )
     client = PatientGraphClient()
     try:
         if not scope.is_admin:
@@ -173,7 +179,9 @@ def merge_episodes_endpoint(
     """Manually merge secondary episodes into a primary. Moves IS_PART_OF edges."""
     scope = _coerce_scope(scope)
     if not body.secondary_episode_ids:
-        raise HTTPException(status_code=400, detail="secondary_episode_ids cannot be empty")
+        raise HTTPException(
+            status_code=400, detail="secondary_episode_ids cannot be empty"
+        )
     client = PatientGraphClient()
     try:
         if not scope.is_admin:
@@ -187,7 +195,9 @@ def merge_episodes_endpoint(
             )
             for row in check:
                 if row.get("gp_id") not in scope.org_ids:
-                    raise HTTPException(status_code=403, detail="Not authorized to merge these episodes")
+                    raise HTTPException(
+                        status_code=403, detail="Not authorized to merge these episodes"
+                    )
         client.run(
             "UNWIND $sids AS sec_id "
             "MATCH (enc:Encounter)-[r:IS_PART_OF]->(sec:EpisodeOfCare {episode_id: sec_id}) "
@@ -243,10 +253,21 @@ def edit_milestone(
     """Update the milestone type for an encounter linked to an episode."""
     scope = _coerce_scope(scope)
     valid_types = {
-        "first_presentation", "presentation", "referral", "referral_sent",
-        "specialist_visit", "first_clinic_visit", "clinic_visit", "first_clinic",
-        "investigation", "diagnosis", "diagnosis_confirmed",
-        "treatment_decision", "treatment", "treatment_started", "first_treatment",
+        "first_presentation",
+        "presentation",
+        "referral",
+        "referral_sent",
+        "specialist_visit",
+        "first_clinic_visit",
+        "clinic_visit",
+        "first_clinic",
+        "investigation",
+        "diagnosis",
+        "diagnosis_confirmed",
+        "treatment_decision",
+        "treatment",
+        "treatment_started",
+        "first_treatment",
         "related",
     }
     if body.milestone_type not in valid_types:
@@ -274,13 +295,21 @@ def edit_milestone(
             mt=body.milestone_type,
         )
         if not result:
-            raise HTTPException(status_code=404, detail="Encounter or episode not found")
-        return {"success": True, "encounter_id": encounter_id, "milestone_type": body.milestone_type}
+            raise HTTPException(
+                status_code=404, detail="Encounter or episode not found"
+            )
+        return {
+            "success": True,
+            "encounter_id": encounter_id,
+            "milestone_type": body.milestone_type,
+        }
     finally:
         client.close()
 
 
-def _date_where(date_from: Optional[str], date_to: Optional[str], alias: str = "ep") -> tuple[str, dict]:
+def _date_where(
+    date_from: Optional[str], date_to: Optional[str], alias: str = "ep"
+) -> tuple[str, dict]:
     """Return (extra WHERE fragment, extra params) for referral_date filtering.
 
     referral_date is stored as an ISO string (e.g. "2024-01-06"), so we compare
@@ -322,8 +351,7 @@ def episode_summary(
     scope_frag, scope_params = _scope_filter(scope)
     # Exclude housekeeping statuses that are not real referral pathways.
     exclude_frag = (
-        " AND NOT ep.status IN "
-        "['merged', 'closed_phantom', 'closed_related'] "
+        " AND NOT ep.status IN " "['merged', 'closed_phantom', 'closed_related'] "
     )
     try:
         effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
@@ -343,7 +371,8 @@ def episode_summary(
                 "  } "
                 "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(DISTINCT ep) AS count "
                 "ORDER BY count DESC",
-                org=effective_org, **date_params,
+                org=effective_org,
+                **date_params,
             )
         return client.run(
             "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
@@ -354,7 +383,8 @@ def episode_summary(
             "  } "
             "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(DISTINCT ep) AS count "
             "ORDER BY count DESC",
-            **date_params, **scope_params,
+            **date_params,
+            **scope_params,
         )
     finally:
         client.close()
@@ -395,7 +425,8 @@ def episode_diagnosed(
                 f"{date_frag} "
                 "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS count "
                 "ORDER BY count DESC",
-                org=effective_org, **date_params,
+                org=effective_org,
+                **date_params,
             )
         return client.run(
             "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
@@ -408,7 +439,8 @@ def episode_diagnosed(
             f"{scope_frag}{date_frag} "
             "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS count "
             "ORDER BY count DESC",
-            **date_params, **scope_params,
+            **date_params,
+            **scope_params,
         )
     finally:
         client.close()

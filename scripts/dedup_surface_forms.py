@@ -123,13 +123,15 @@ def _audit(session) -> list[dict]:
     records = list(session.run(AUDIT_SURFACE_FORM_DUPLICATES))
     rows = []
     for r in records:
-        rows.append({
-            "normalized": r["normalized"],
-            "form": r["form"],
-            "concept_count": r["concept_count"],
-            "rel_count": r["rel_count"],
-            "mappings": r["mappings"],
-        })
+        rows.append(
+            {
+                "normalized": r["normalized"],
+                "form": r["form"],
+                "concept_count": r["concept_count"],
+                "rel_count": r["rel_count"],
+                "mappings": r["mappings"],
+            }
+        )
     return rows
 
 
@@ -164,17 +166,25 @@ def _write_csv(rows: list[dict], path: Path) -> None:
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["normalized", "form", "concept_count", "rel_count", "mappings_json"],
+            fieldnames=[
+                "normalized",
+                "form",
+                "concept_count",
+                "rel_count",
+                "mappings_json",
+            ],
         )
         writer.writeheader()
         for row in rows:
-            writer.writerow({
-                "normalized": row["normalized"],
-                "form": row["form"],
-                "concept_count": row["concept_count"],
-                "rel_count": row["rel_count"],
-                "mappings_json": json.dumps(row["mappings"]),
-            })
+            writer.writerow(
+                {
+                    "normalized": row["normalized"],
+                    "form": row["form"],
+                    "concept_count": row["concept_count"],
+                    "rel_count": row["rel_count"],
+                    "mappings_json": json.dumps(row["mappings"]),
+                }
+            )
     log.info("Audit CSV written to %s", path)
 
 
@@ -191,7 +201,8 @@ def main() -> None:
             excess_rels, affected_nodes = _count_excess(session)
             log.info(
                 "Pre-run: %d affected SurfaceForm nodes, %d excess MAPS_TO rels",
-                affected_nodes, excess_rels,
+                affected_nodes,
+                excess_rels,
             )
 
             # ── Step 2: audit ────────────────────────────────────────────────
@@ -202,37 +213,52 @@ def main() -> None:
                 _write_csv(audit_rows, args.report)
 
             if not audit_rows:
-                print(json.dumps({
-                    "status": "clean",
-                    "affected_nodes": 0,
-                    "excess_rels": 0,
-                    "duplicates_removed": 0,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                }, indent=2))
+                print(
+                    json.dumps(
+                        {
+                            "status": "clean",
+                            "affected_nodes": 0,
+                            "excess_rels": 0,
+                            "duplicates_removed": 0,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
+                        indent=2,
+                    )
+                )
                 return
 
             if args.dry_run:
                 log.info("--dry-run: skipping deduplication write.")
-                print(json.dumps({
-                    "status": "dry_run",
-                    "affected_nodes": affected_nodes,
-                    "excess_rels": excess_rels,
-                    "duplicates_removed": 0,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                }, indent=2))
+                print(
+                    json.dumps(
+                        {
+                            "status": "dry_run",
+                            "affected_nodes": affected_nodes,
+                            "excess_rels": excess_rels,
+                            "duplicates_removed": 0,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
+                        indent=2,
+                    )
+                )
                 return
 
             # ── Step 3: deduplicate ──────────────────────────────────────────
-            log.info("Running deduplication (keeping highest-confidence MAPS_TO per SF) …")
+            log.info(
+                "Running deduplication (keeping highest-confidence MAPS_TO per SF) …"
+            )
             result = session.run(DEDUPLICATE_SURFACE_FORM_RELS).single()
             removed = int((result or {}).get("duplicates_removed", 0))
-            log.info("Deduplication complete — %d excess MAPS_TO rels removed.", removed)
+            log.info(
+                "Deduplication complete — %d excess MAPS_TO rels removed.", removed
+            )
 
             # ── Step 4: post-run verification ────────────────────────────────
             excess_after, nodes_after = _count_excess(session)
             log.info(
                 "Post-run: %d affected SurfaceForm nodes, %d excess rels remain",
-                nodes_after, excess_after,
+                nodes_after,
+                excess_after,
             )
             if excess_after > 0:
                 log.warning(
@@ -241,15 +267,20 @@ def main() -> None:
                     excess_after,
                 )
 
-            print(json.dumps({
-                "status": "ok",
-                "affected_nodes_before": affected_nodes,
-                "excess_rels_before": excess_rels,
-                "duplicates_removed": removed,
-                "excess_rels_after": excess_after,
-                "affected_nodes_after": nodes_after,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "status": "ok",
+                        "affected_nodes_before": affected_nodes,
+                        "excess_rels_before": excess_rels,
+                        "duplicates_removed": removed,
+                        "excess_rels_after": excess_after,
+                        "affected_nodes_after": nodes_after,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                    indent=2,
+                )
+            )
 
     finally:
         driver.close()

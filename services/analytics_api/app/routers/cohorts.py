@@ -172,7 +172,11 @@ def list_cohorts(scope: CallerScope = Depends(get_caller_scope)):
         for row in rows:
             filters_raw = row.get("filters", "{}")
             try:
-                filters = json.loads(filters_raw) if isinstance(filters_raw, str) else filters_raw
+                filters = (
+                    json.loads(filters_raw)
+                    if isinstance(filters_raw, str)
+                    else filters_raw
+                )
             except (json.JSONDecodeError, TypeError):
                 filters = {}
             meta_raw = row.get("meta")
@@ -180,16 +184,18 @@ def list_cohorts(scope: CallerScope = Depends(get_caller_scope)):
                 meta = json.loads(meta_raw) if isinstance(meta_raw, str) else meta_raw
             except (json.JSONDecodeError, TypeError):
                 meta = None
-            result.append(CohortResponse(
-                cohort_id=row["cohort_id"],
-                name=row.get("name", ""),
-                description=row.get("description", ""),
-                filters=filters,
-                patient_count=row.get("patient_count", 0),
-                created_at=row.get("created_at"),
-                is_system=(row.get("source") == "nhs_preset"),
-                meta=meta,
-            ))
+            result.append(
+                CohortResponse(
+                    cohort_id=row["cohort_id"],
+                    name=row.get("name", ""),
+                    description=row.get("description", ""),
+                    filters=filters,
+                    patient_count=row.get("patient_count", 0),
+                    created_at=row.get("created_at"),
+                    is_system=(row.get("source") == "nhs_preset"),
+                    meta=meta,
+                )
+            )
         return result
     finally:
         client.close()
@@ -214,12 +220,19 @@ def resolve_cohort(
         row0 = rows[0]
         is_preset = row0.get("source") == "nhs_preset"
         owner_org = row0.get("created_by_org_id")
-        if not scope.is_admin and not is_preset and owner_org and owner_org not in scope.org_ids:
+        if (
+            not scope.is_admin
+            and not is_preset
+            and owner_org
+            and owner_org not in scope.org_ids
+        ):
             raise HTTPException(status_code=404, detail="Cohort not found")
 
         filters_raw = rows[0].get("filters", "{}")
         try:
-            filters_dict = json.loads(filters_raw) if isinstance(filters_raw, str) else filters_raw
+            filters_dict = (
+                json.loads(filters_raw) if isinstance(filters_raw, str) else filters_raw
+            )
         except (json.JSONDecodeError, TypeError):
             filters_dict = {}
 
@@ -264,7 +277,9 @@ def delete_cohort(
             )
         owner_org = rows[0].get("created_by_org_id")
         if not scope.is_admin and owner_org and owner_org not in scope.org_ids:
-            raise HTTPException(status_code=403, detail="Not authorized to delete this cohort")
+            raise HTTPException(
+                status_code=403, detail="Not authorized to delete this cohort"
+            )
         client.run(
             "MATCH (c:Cohort {cohort_id: $cid}) DELETE c",
             cid=cohort_id,
@@ -306,13 +321,17 @@ def seed_nhs_cohorts(client: Optional[PatientGraphClient] = None) -> int:
             try:
                 patient_count = _resolve_patient_count(client, filters)
             except Exception as exc:
-                logger.warning("Could not count patients for %s: %s", preset["name"], exc)
+                logger.warning(
+                    "Could not count patients for %s: %s", preset["name"], exc
+                )
                 patient_count = 0
 
-            meta = json.dumps({
-                "programme": preset.get("programme"),
-                "invite_frequency_years": preset.get("invite_frequency_years"),
-            })
+            meta = json.dumps(
+                {
+                    "programme": preset.get("programme"),
+                    "invite_frequency_years": preset.get("invite_frequency_years"),
+                }
+            )
 
             client.run(
                 "MERGE (c:Cohort {cohort_id: $cid}) "

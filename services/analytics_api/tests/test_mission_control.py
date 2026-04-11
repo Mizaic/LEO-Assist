@@ -326,13 +326,16 @@ def test_review_cypher_does_not_contain_clinical_fields():
     import inspect
 
     source = inspect.getsource(patch_episode_review)
-    for clinical_field in ["cancer_type", "condition_type", "cancer_stage", "referral_date"]:
+    for clinical_field in [
+        "cancer_type",
+        "condition_type",
+        "cancer_stage",
+        "referral_date",
+    ]:
         assert (
             f"ep.{clinical_field}" not in source
             or f"SET ep.{clinical_field}" not in source
-        ), (
-            f"Clinical field '{clinical_field}' may be set in patch_episode_review"
-        )
+        ), f"Clinical field '{clinical_field}' may be set in patch_episode_review"
 
 
 def test_pipeline_events_query_falls_back_when_episode_missing():
@@ -342,7 +345,9 @@ def test_pipeline_events_query_falls_back_when_episode_missing():
     trail endpoint should still show PipelineRun rows for the patient by using
     OPTIONAL MATCH and allowing empty encounter sets.
     """
-    from services.analytics_api.app.routers.mission_control import get_patient_pipeline_events
+    from services.analytics_api.app.routers.mission_control import (
+        get_patient_pipeline_events,
+    )
     import inspect
 
     source = inspect.getsource(get_patient_pipeline_events)

@@ -92,7 +92,9 @@ def analyze_correction(
 
     user_message = "\n".join(user_parts)
 
-    logger.info("Analyzing correction: type=%s correct_value=%s", correction_type, correct_value)
+    logger.info(
+        "Analyzing correction: type=%s correct_value=%s", correction_type, correct_value
+    )
 
     messages = [
         {"role": "system", "content": FIX_ANALYZER_SYSTEM},
@@ -101,7 +103,9 @@ def analyze_correction(
     response = invoke_with_fallback(messages, max_tokens=2048, temperature=0.1)
 
     try:
-        result = json.loads(response.content if hasattr(response, "content") else str(response))
+        result = json.loads(
+            response.content if hasattr(response, "content") else str(response)
+        )
     except (json.JSONDecodeError, AttributeError):
         result = {"fix_type": "no_fix", "reasoning": "Failed to parse LLM response"}
 
@@ -121,6 +125,8 @@ def analyze_correction(
 
     logger.info(
         "Fix analysis complete: fix_type=%s confidence=%d auto_applicable=%s",
-        fix["fix_type"], fix["confidence"], fix["auto_applicable"],
+        fix["fix_type"],
+        fix["confidence"],
+        fix["auto_applicable"],
     )
     return fix

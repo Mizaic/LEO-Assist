@@ -9,6 +9,7 @@ For each normalized surface form:
 
 Dry-run by default. Use --apply to write.
 """
+
 from __future__ import annotations
 
 import sys
@@ -68,23 +69,29 @@ def main() -> None:
                 changed += 1
                 if APPLY:
                     if need_upsert:
-                        out = kg.run(
-                            UPSERT_SURFACE_FORM_MAPPING,
-                            normalized=normalized,
-                            form=raw,
-                            concept_id=concept_id,
-                            confidence=0.99,
-                            source="manual_curation",
-                            provenance="place_lookup_reconcile_2026",
-                        ) or []
+                        out = (
+                            kg.run(
+                                UPSERT_SURFACE_FORM_MAPPING,
+                                normalized=normalized,
+                                form=raw,
+                                concept_id=concept_id,
+                                confidence=0.99,
+                                source="manual_curation",
+                                provenance="place_lookup_reconcile_2026",
+                            )
+                            or []
+                        )
                         if out:
                             upsert_total += 1
                     if need_prune:
-                        rem = kg.run(
-                            KEEP_SURFACE_FORM_MAPPING,
-                            normalized=normalized,
-                            keep_concept_id=concept_id,
-                        ) or []
+                        rem = (
+                            kg.run(
+                                KEEP_SURFACE_FORM_MAPPING,
+                                normalized=normalized,
+                                keep_concept_id=concept_id,
+                            )
+                            or []
+                        )
                         removed_total += int(rem[0].get("removed", 0)) if rem else 0
                 else:
                     action = []
@@ -97,11 +104,14 @@ def main() -> None:
                         f"before={before_ids or 'none'} action={'+'.join(action)}"
                     )
 
-            verify = kg.run(
-                EXACT_SURFACE_FORM_QUERY,
-                normalized=normalized,
-                k=3,
-            ) or []
+            verify = (
+                kg.run(
+                    EXACT_SURFACE_FORM_QUERY,
+                    normalized=normalized,
+                    k=3,
+                )
+                or []
+            )
             if not verify:
                 verify_fail += 1
                 print(f"VERIFY FAIL no result: {normalized!r}")
@@ -126,4 +136,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

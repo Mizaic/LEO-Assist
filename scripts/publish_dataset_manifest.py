@@ -18,6 +18,7 @@ Run after:
     python scripts/qa_all_domains_ner.py
     python scripts/export_training_adapters.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,12 +45,13 @@ ALL_DOMAINS_DIR = ROOT / "exports" / "ner" / "all_domains"
 # Version constants — bump these when schema or de-id rules change
 DATASET_VERSION = "v1.0.0"
 SCHEMA_VERSION = "v1"
-DEID_VERSION = "v1"   # mirrors libs/utils/deidentify.py + deid_validator.py version
+DEID_VERSION = "v1"  # mirrors libs/utils/deidentify.py + deid_validator.py version
 
 
 # ---------------------------------------------------------------------------
 # File hash
 # ---------------------------------------------------------------------------
+
 
 def _sha256_file(path: Path) -> str | None:
     if not path.exists():
@@ -74,6 +76,7 @@ def _line_count(path: Path) -> int:
 # ---------------------------------------------------------------------------
 # Build manifest
 # ---------------------------------------------------------------------------
+
 
 def build_manifest(
     all_domains_dir: Path,
@@ -214,6 +217,7 @@ def build_manifest(
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", default=str(ALL_DOMAINS_DIR))
@@ -231,7 +235,9 @@ def main() -> None:
     )
 
     manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     logger.info("Manifest written: %s", manifest_path)
 
     print(
@@ -241,7 +247,9 @@ def main() -> None:
                 "schema_version": manifest["schema_version"],
                 "deid_version": manifest["deid_version"],
                 "domains": manifest["domain_count"],
-                "final_merged_records": manifest["quality_metrics"]["final_merged_records"],
+                "final_merged_records": manifest["quality_metrics"][
+                    "final_merged_records"
+                ],
                 "seed_merge": manifest["seed_merge"],
                 "manifest": str(manifest_path),
             },

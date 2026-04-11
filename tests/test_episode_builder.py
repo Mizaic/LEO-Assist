@@ -21,7 +21,9 @@ class TestExtractConditionKey:
             == "breast"
         )
         assert _extract_condition_key("suspected lung cancer") == "lung"
-        assert _extract_condition_key("diagnosis of colorectal carcinoma") == "colorectal"
+        assert (
+            _extract_condition_key("diagnosis of colorectal carcinoma") == "colorectal"
+        )
 
     def test_unknown_fallback(self):
         from services.analysis_worker.app.analyzers.episode_builder import (
@@ -144,9 +146,9 @@ class TestExtractConditionKey:
             # Simulate c.name stored as raw numeric string (unresolved)
             anchor = {"concept_id": concept_id, "concept_name": concept_id}
             result = _extract_condition_key_from_anchor(anchor)
-            assert result == expected_key, (
-                f"concept_id={concept_id}: expected '{expected_key}', got '{result}'"
-            )
+            assert (
+                result == expected_key
+            ), f"concept_id={concept_id}: expected '{expected_key}', got '{result}'"
 
     def test_non_site_specific_upgraded_by_specific_diagnosis(self):
         """A generic fast-track (non_site_specific) referral should be upgraded to the
@@ -676,7 +678,9 @@ class TestBuildEpisodes:
         assert fp_ids[0] in {"E_FP1", "E_FP2"}
 
     @pytest.mark.asyncio
-    async def test_treatment_started_links_only_earliest_compatible_after_referral(self):
+    async def test_treatment_started_links_only_earliest_compatible_after_referral(
+        self,
+    ):
         from services.analysis_worker.app.analyzers.episode_builder import (
             build_episodes,
         )

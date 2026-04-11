@@ -8,6 +8,7 @@ Steps:
   2. Create  HAS_GENERAL_PRACTITIONER -> C82070
   3. Verify the fix
 """
+
 from libs.neo4j_client.client import PatientGraphClient
 
 PATIENT_ID = "6012067550"

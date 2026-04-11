@@ -112,7 +112,11 @@ async def test_extract_patient_fans_out_per_encounter(monkeypatch):
     fake_driver = _FakeAsyncDriver()
 
     fake_pg = _FakePatientGraphClient()
-    fake_pg.rows = [{"encounter_id": "e1"}, {"encounter_id": ""}, {"encounter_id": "e2"}]
+    fake_pg.rows = [
+        {"encounter_id": "e1"},
+        {"encounter_id": ""},
+        {"encounter_id": "e2"},
+    ]
 
     monkeypatch.setattr(
         "libs.neo4j_client.client.get_async_driver",

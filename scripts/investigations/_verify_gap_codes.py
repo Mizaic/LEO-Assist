@@ -9,6 +9,7 @@ We verify each against the terminology resolver to see if:
   - The resolver disagrees (code may be wrong)
   - The code is missing from the resolver entirely (no SNOMED node)
 """
+
 import json
 import sys
 from collections import Counter
@@ -54,20 +55,28 @@ wrong_rank_gaps = [g for g in gaps if g.get("gap_type") == "wrong_rank"]
 not_found_gaps = [g for g in gaps if g.get("gap_type") == "not_found"]
 llm_gaps = [g for g in gaps if g.get("gap_type") == "llm_proposed"]
 
-print(f"wrong_rank ({len(wrong_rank_gaps)}): phrase resolves BUT to a different concept at rank 1")
+print(
+    f"wrong_rank ({len(wrong_rank_gaps)}): phrase resolves BUT to a different concept at rank 1"
+)
 print("  The stored code is correct; the surface form just needs pinning so")
 print("  the resolver returns IT first instead of the fuzzy match.")
 print("  Code confidence: HIGH (was already in the graph and passed pipeline QC)")
 print()
-print(f"not_found ({len(not_found_gaps)}): phrase is in Neo4j with a code, resolver finds nothing")
+print(
+    f"not_found ({len(not_found_gaps)}): phrase is in Neo4j with a code, resolver finds nothing"
+)
 print("  The stored code is correct (came from the pipeline); the phrase just")
 print("  isn't in the terminology index at all. Adding it as a surface form")
 print("  will make it discoverable for future encounters.")
 print("  Code confidence: HIGH (same as above)")
 print()
-print(f"llm_proposed ({len(llm_gaps)}): LLM audit said this was missing; concept from search_snomed")
+print(
+    f"llm_proposed ({len(llm_gaps)}): LLM audit said this was missing; concept from search_snomed"
+)
 print("  The code was suggested by the audit LLM, not taken from existing graph data.")
-print("  Code confidence: MEDIUM -- LLM used search_snomed but can hallucinate concept IDs.")
+print(
+    "  Code confidence: MEDIUM -- LLM used search_snomed but can hallucinate concept IDs."
+)
 print()
 
 # -- Sample resolver disagreement for wrong_rank --------------------------

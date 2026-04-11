@@ -3,6 +3,7 @@
 Queries are now defined in libs/cypher/ and re-exported here for backward
 compatibility. New code should import from libs/cypher/ directly.
 """
+
 from __future__ import annotations
 
 # Re-export from central registry
@@ -44,7 +45,6 @@ from libs.cypher.documents_queries import (  # noqa: F401
     LIST_PATIENT_CODING_STATUS,
     GET_PATIENT_CODING_TIMELINE,
 )
-
 
 # ── Patient graph queries ──────────────────────────────────
 

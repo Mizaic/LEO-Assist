@@ -145,7 +145,9 @@ def _extract_concepts(raw: dict[str, Any]) -> list[DomainConcept]:
         except (TypeError, ValueError):
             continue
         preferred = _normalize_surface(
-            payload.get("preferred_term") or payload.get("guideline_name") or str(keyword)
+            payload.get("preferred_term")
+            or payload.get("guideline_name")
+            or str(keyword)
         )
         if not preferred:
             continue
@@ -233,7 +235,9 @@ def load_domain_configs(config_dir: Path) -> dict[str, DomainSearchConfig]:
         cfg = DomainSearchConfig(
             domain_name=domain_name,
             source_file=str(file_path),
-            description=(dcfg.description if dcfg else str(meta.get("description", ""))),
+            description=(
+                dcfg.description if dcfg else str(meta.get("description", ""))
+            ),
             semantic_tags=list(dcfg.semantic_tags if dcfg else []),
             milestone_type=(dcfg.milestone_type if dcfg else None),
             concepts=_extract_concepts(raw),
@@ -280,7 +284,11 @@ def _fetch_concept_forms(
             semantic_tag=None,
             limit=descendant_limit,
         )
-        desc_ids = [int(r.get("snomed_concept_id")) for r in rows_desc if r.get("snomed_concept_id")]
+        desc_ids = [
+            int(r.get("snomed_concept_id"))
+            for r in rows_desc
+            if r.get("snomed_concept_id")
+        ]
         if desc_ids:
             rows_desc_terms = kg_session.run(
                 """
@@ -308,7 +316,11 @@ def expand_domains_with_kg(
     try:
         with kg.session() as s:
             for dname, cfg in domains.items():
-                logger.info("Expanding domain '%s' from KG (%d concepts)", dname, len(cfg.concept_ids))
+                logger.info(
+                    "Expanding domain '%s' from KG (%d concepts)",
+                    dname,
+                    len(cfg.concept_ids),
+                )
                 before = len(cfg.surface_forms)
                 added = 0
                 for cid in cfg.concept_ids:
@@ -324,7 +336,9 @@ def expand_domains_with_kg(
                             continue
                         cfg.concept_map[key] = {
                             "concept_id": str(cid),
-                            "preferred_term": cfg.concept_map.get(key, {}).get("preferred_term", form),
+                            "preferred_term": cfg.concept_map.get(key, {}).get(
+                                "preferred_term", form
+                            ),
                             "semantic_tag": None,
                             "domain": dname,
                             "source": "kg_expansion",
@@ -334,11 +348,17 @@ def expand_domains_with_kg(
                 # Rebuild search views from updated concept_map/surface_forms.
                 # Keep concept objects unchanged; rebuild from surfaces.
                 unique_surfaces = sorted(
-                    { _normalize_surface(s) for s in cfg.surface_forms if _normalize_surface(s) },
+                    {
+                        _normalize_surface(s)
+                        for s in cfg.surface_forms
+                        if _normalize_surface(s)
+                    },
                     key=lambda x: (-len(x), x.lower()),
                 )
                 cfg.surface_forms = unique_surfaces
-                cfg.fulltext_queries = [_mk_lucene_phrase(s) for s in unique_surfaces[:200]]
+                cfg.fulltext_queries = [
+                    _mk_lucene_phrase(s) for s in unique_surfaces[:200]
+                ]
                 cfg.vector_phrases = unique_surfaces[:150]
                 cfg.entity_patterns = [_mk_pattern(s) for s in unique_surfaces]
                 cfg.stats.update(
@@ -361,9 +381,7 @@ def dump_expanded_domains(
     output_path: Path,
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        dname: cfg.to_json_dict()
-        for dname, cfg in domains.items()
-    }
-    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
+    payload = {dname: cfg.to_json_dict() for dname, cfg in domains.items()}
+    output_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )

@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 
 _HEADER_RE = re.compile(
     r"^("
-    r"\d{2}:\d{2}"                              # HH:MM timestamp
-    r"|Entered\s+at\s*:"                        # EMIS entry location
-    r"|Presenting\s+to\s+non[- ]clinical"       # Reception note
+    r"\d{2}:\d{2}"  # HH:MM timestamp
+    r"|Entered\s+at\s*:"  # EMIS entry location
+    r"|Presenting\s+to\s+non[- ]clinical"  # Reception note
     r"|Your\s+appointment\s+has\s+been\s+booked"
     r"|Confirmation\s+of\s+appointment"
-    r"|Sent\s+online\s+by"                      # Online consultation header
-    r"|Phlebotomy\s+Service\s*$"                # Phlebotomy service line
+    r"|Sent\s+online\s+by"  # Online consultation header
+    r"|Phlebotomy\s+Service\s*$"  # Phlebotomy service line
     r"|Seen\s+by\s+practice\s+phlebotomist"
     r")",
     re.IGNORECASE,
@@ -53,8 +53,14 @@ _FAST_TRACK_MILESTONE_RE = re.compile(
 
 _NON_EVIDENCE_PATTERNS = [
     re.compile(r"^[A-Z][A-Za-z0-9\s\-/]{0,40}:\s+[A-Z0-9]{6,}$"),
-    re.compile(r"^\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml)\b.*\b(?:tablet|capsule|inhaler|cream|patch)\b", re.IGNORECASE),
-    re.compile(r"^[A-Z][A-Za-z0-9\s\-/]+\s+\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml)\b.*\b(?:tablet|capsule|inhaler|cream|patch)\b", re.IGNORECASE),
+    re.compile(
+        r"^\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml)\b.*\b(?:tablet|capsule|inhaler|cream|patch)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^[A-Z][A-Za-z0-9\s\-/]+\s+\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml)\b.*\b(?:tablet|capsule|inhaler|cream|patch)\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"^(Discussed|Advised|Counselled)\b", re.IGNORECASE),
     re.compile(r"^(Vision\s+forward|EMIS|QOF)\b", re.IGNORECASE),
 ]
@@ -74,7 +80,8 @@ def filter_header_sentences(chunks: list["SentenceChunk"]) -> list["SentenceChun
     preserved regardless of surrounding header context.
     """
     return [
-        c for c in chunks
+        c
+        for c in chunks
         if not is_header_sentence(c.text) or _FAST_TRACK_MILESTONE_RE.search(c.text)
     ]
 
@@ -134,8 +141,10 @@ class SentenceSplitter:
     def _try_load_pyrush():
         try:
             import spacy
+
             nlp = spacy.blank("en")
             from medspacy.sentence_splitting import PyRuSHSentencizer  # noqa: F401
+
             nlp.add_pipe("medspacy_pyrush")
             return nlp
         except Exception:
@@ -161,12 +170,14 @@ class SentenceSplitter:
         for idx, sent in enumerate(doc.sents):
             t = sent.text.strip()
             if t:
-                chunks.append(SentenceChunk(
-                    sentence_id=f"s{idx}",
-                    text=t,
-                    start=sent.start_char,
-                    end=sent.end_char,
-                ))
+                chunks.append(
+                    SentenceChunk(
+                        sentence_id=f"s{idx}",
+                        text=t,
+                        start=sent.start_char,
+                        end=sent.end_char,
+                    )
+                )
         return chunks
 
     def _split_regex(self, text: str) -> list[SentenceChunk]:
@@ -182,11 +193,13 @@ class SentenceSplitter:
             if start < 0:
                 start = offset
             end = start + len(stripped)
-            chunks.append(SentenceChunk(
-                sentence_id=f"s{idx}",
-                text=stripped,
-                start=start,
-                end=end,
-            ))
+            chunks.append(
+                SentenceChunk(
+                    sentence_id=f"s{idx}",
+                    text=stripped,
+                    start=start,
+                    end=end,
+                )
+            )
             offset = end
         return chunks

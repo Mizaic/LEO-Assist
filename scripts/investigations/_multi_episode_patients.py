@@ -1,4 +1,5 @@
 """Show patients with more than one episode and their status breakdown."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -38,13 +41,13 @@ ORDER BY ep.referral_date
 """
 
 STATUS_SYMBOL = {
-    "completed":              "OK ",
-    "stale_post_specialist":  "SPS",
-    "stale_no_diagnosis":     "SND",
-    "in_progress":            "IP ",
-    "closed_related":         "CR ",
-    "closed_benign":          "CB ",
-    "closed_phantom":         "CPH",
+    "completed": "OK ",
+    "stale_post_specialist": "SPS",
+    "stale_no_diagnosis": "SND",
+    "in_progress": "IP ",
+    "closed_related": "CR ",
+    "closed_benign": "CB ",
+    "closed_phantom": "CPH",
 }
 
 
@@ -66,9 +69,7 @@ def main() -> None:
                 for st in statuses:
                     status_tally[st] = status_tally.get(st, 0) + 1
 
-                sym_line = "  ".join(
-                    STATUS_SYMBOL.get(e["status"], "???") for e in eps
-                )
+                sym_line = "  ".join(STATUS_SYMBOL.get(e["status"], "???") for e in eps)
                 print(f"Patient {pid}  ({ep_count} episodes)  [{sym_line}]")
                 for ep in eps:
                     hitl = " HITL" if ep["hitl"] else ""

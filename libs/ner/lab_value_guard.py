@@ -75,7 +75,9 @@ _DISORDER_TAGS = frozenset({"disorder", "finding"})
 
 def is_lab_result_sentence(sentence_text: str) -> bool:
     """Return True if the sentence is primarily a lab/test result line."""
-    return bool(_LAB_TEST_RE.search(sentence_text) and _MEASUREMENT_RE.search(sentence_text))
+    return bool(
+        _LAB_TEST_RE.search(sentence_text) and _MEASUREMENT_RE.search(sentence_text)
+    )
 
 
 def _has_explicit_diagnosis(sentence_text: str) -> bool:
@@ -113,13 +115,24 @@ def should_suppress_disorder(
     text_lower = (entity_text or "").lower()
 
     if _FORMULA_NAME_RE.search(sentence_text):
-        ckd_terms = ("chronic kidney disease", "ckd", "renal failure", "renal disease",
-                     "kidney disease", "kidney failure", "nephropathy")
-        if any(t in norm_lower for t in ckd_terms) or any(t in text_lower for t in ckd_terms):
+        ckd_terms = (
+            "chronic kidney disease",
+            "ckd",
+            "renal failure",
+            "renal disease",
+            "kidney disease",
+            "kidney failure",
+            "nephropathy",
+        )
+        if any(t in norm_lower for t in ckd_terms) or any(
+            t in text_lower for t in ckd_terms
+        ):
             logger.info(
                 "lab_value_guard: suppressed disorder %r (normalised=%r) "
                 "inferred from CKD-EPI formula in: %r",
-                entity_text, entity_normalized, sentence_text[:120],
+                entity_text,
+                entity_normalized,
+                sentence_text[:120],
             )
             return True
 
@@ -127,7 +140,10 @@ def should_suppress_disorder(
         logger.info(
             "lab_value_guard: suppressed disorder %r with measurement "
             "fields (value=%r unit=%r) from lab sentence: %r",
-            entity_text, entity_numeric_value, entity_unit, sentence_text[:120],
+            entity_text,
+            entity_numeric_value,
+            entity_unit,
+            sentence_text[:120],
         )
         return True
 
@@ -139,7 +155,9 @@ def should_suppress_disorder(
         logger.info(
             "lab_value_guard: suppressed inferred disorder %r (normalised=%r) "
             "from lab result sentence: %r",
-            entity_text, entity_normalized, sentence_text[:120],
+            entity_text,
+            entity_normalized,
+            sentence_text[:120],
         )
         return True
 
@@ -148,48 +166,89 @@ def should_suppress_disorder(
 
 _INFERRED_DISORDER_MAP: dict[str, tuple[str, ...]] = {
     "egfr": (
-        "chronic kidney disease", "ckd", "renal failure", "renal impairment",
-        "renal disease", "kidney disease", "kidney failure", "nephropathy",
+        "chronic kidney disease",
+        "ckd",
+        "renal failure",
+        "renal impairment",
+        "renal disease",
+        "kidney disease",
+        "kidney failure",
+        "nephropathy",
     ),
     "creatinine": (
-        "chronic kidney disease", "ckd", "renal failure", "renal impairment",
-        "renal disease", "kidney disease", "kidney failure", "nephropathy",
+        "chronic kidney disease",
+        "ckd",
+        "renal failure",
+        "renal impairment",
+        "renal disease",
+        "kidney disease",
+        "kidney failure",
+        "nephropathy",
     ),
     "hba1c": (
-        "diabetes", "diabetic", "impaired glucose", "pre-diabetes",
-        "prediabetes", "glucose intolerance",
+        "diabetes",
+        "diabetic",
+        "impaired glucose",
+        "pre-diabetes",
+        "prediabetes",
+        "glucose intolerance",
     ),
     "glucose": (
-        "diabetes", "diabetic", "impaired glucose", "hyperglycaemia",
-        "hypoglycaemia", "pre-diabetes",
+        "diabetes",
+        "diabetic",
+        "impaired glucose",
+        "hyperglycaemia",
+        "hypoglycaemia",
+        "pre-diabetes",
     ),
     "sodium": (
-        "hyponatraemia", "hyponatremia", "hypernatraemia", "hypernatremia",
+        "hyponatraemia",
+        "hyponatremia",
+        "hypernatraemia",
+        "hypernatremia",
     ),
     "potassium": (
-        "hyperkalaemia", "hyperkalemia", "hypokalaemia", "hypokalemia",
+        "hyperkalaemia",
+        "hyperkalemia",
+        "hypokalaemia",
+        "hypokalemia",
     ),
     "haemoglobin": (
-        "anaemia", "anemia", "polycythaemia", "polycythemia",
+        "anaemia",
+        "anemia",
+        "polycythaemia",
+        "polycythemia",
     ),
     "hemoglobin": (
-        "anaemia", "anemia", "polycythaemia", "polycythemia",
+        "anaemia",
+        "anemia",
+        "polycythaemia",
+        "polycythemia",
     ),
     "cholesterol": (
-        "hypercholesterolaemia", "hypercholesterolemia",
-        "hyperlipidaemia", "hyperlipidemia", "dyslipidaemia",
+        "hypercholesterolaemia",
+        "hypercholesterolemia",
+        "hyperlipidaemia",
+        "hyperlipidemia",
+        "dyslipidaemia",
     ),
     "tsh": (
-        "hypothyroidism", "hyperthyroidism", "thyrotoxicosis",
+        "hypothyroidism",
+        "hyperthyroidism",
+        "thyrotoxicosis",
     ),
     "platelet": (
-        "thrombocytopenia", "thrombocytosis",
+        "thrombocytopenia",
+        "thrombocytosis",
     ),
     "troponin": (
-        "myocardial infarction", "acute coronary",
+        "myocardial infarction",
+        "acute coronary",
     ),
     "psa": (
-        "prostate cancer", "prostatic cancer", "prostate neoplasm",
+        "prostate cancer",
+        "prostatic cancer",
+        "prostate neoplasm",
     ),
 }
 
@@ -215,13 +274,16 @@ def filter_inferred_diagnoses(
     Returns the filtered list (entities are removed, not modified).
     """
     return [
-        ent for ent in entities
+        ent
+        for ent in entities
         if not should_suppress_disorder(
             entity_text=str(ent.get("text", "")),
             entity_semantic_tag=str(ent.get("label", ent.get("semantic_tag", ""))),
             entity_normalized=str(ent.get("normalized", ent.get("lookup_term", ""))),
             sentence_text=sentence_text,
-            entity_numeric_value=str(ent.get("numeric_value", ent.get("value", "")) or ""),
+            entity_numeric_value=str(
+                ent.get("numeric_value", ent.get("value", "")) or ""
+            ),
             entity_unit=str(ent.get("unit", "") or ""),
         )
     ]

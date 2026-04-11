@@ -12,26 +12,38 @@ class TestFirst:
 
     def test_empty_list_returns_none(self):
         from services.terminology_api.app.services.conceptmap_service import _first
+
         assert _first([]) is None
 
     def test_parses_rawjson(self):
         from services.terminology_api.app.services.conceptmap_service import _first
+
         result = _first([{"rawJson": '{"id": "cm-1"}'}])
         assert result == {"id": "cm-1"}
 
     def test_missing_rawjson_returns_none(self):
         from services.terminology_api.app.services.conceptmap_service import _first
+
         assert _first([{"rawJson": None}]) is None
         assert _first([{}]) is None
 
 
 class TestUpsertConceptMap:
 
-    @patch("services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient")
+    @patch(
+        "services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient"
+    )
     def test_upsert_returns_resource(self, MockKG):
-        from services.terminology_api.app.services.conceptmap_service import upsert_conceptmap
+        from services.terminology_api.app.services.conceptmap_service import (
+            upsert_conceptmap,
+        )
 
-        resource = {"url": "http://ex.org/cm", "name": "Test", "title": "Test CM", "status": "active"}
+        resource = {
+            "url": "http://ex.org/cm",
+            "name": "Test",
+            "title": "Test CM",
+            "status": "active",
+        }
         MockKG.return_value.run.return_value = [{"rawJson": json.dumps(resource)}]
 
         result = upsert_conceptmap("cm-1", resource)
@@ -42,9 +54,13 @@ class TestUpsertConceptMap:
 
 class TestGetConceptMap:
 
-    @patch("services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient")
+    @patch(
+        "services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient"
+    )
     def test_found(self, MockKG):
-        from services.terminology_api.app.services.conceptmap_service import get_conceptmap
+        from services.terminology_api.app.services.conceptmap_service import (
+            get_conceptmap,
+        )
 
         cm = {"resourceType": "ConceptMap", "id": "cm-1"}
         MockKG.return_value.run.return_value = [{"rawJson": json.dumps(cm)}]
@@ -52,9 +68,13 @@ class TestGetConceptMap:
         result = get_conceptmap("cm-1")
         assert result["id"] == "cm-1"
 
-    @patch("services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient")
+    @patch(
+        "services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient"
+    )
     def test_not_found(self, MockKG):
-        from services.terminology_api.app.services.conceptmap_service import get_conceptmap
+        from services.terminology_api.app.services.conceptmap_service import (
+            get_conceptmap,
+        )
 
         MockKG.return_value.run.return_value = []
         assert get_conceptmap("nonexistent") is None
@@ -62,9 +82,13 @@ class TestGetConceptMap:
 
 class TestDeleteConceptMap:
 
-    @patch("services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient")
+    @patch(
+        "services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient"
+    )
     def test_calls_delete(self, MockKG):
-        from services.terminology_api.app.services.conceptmap_service import delete_conceptmap
+        from services.terminology_api.app.services.conceptmap_service import (
+            delete_conceptmap,
+        )
 
         delete_conceptmap("cm-1")
         MockKG.return_value.run.assert_called_once()
@@ -73,9 +97,13 @@ class TestDeleteConceptMap:
 
 class TestSearchConceptMaps:
 
-    @patch("services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient")
+    @patch(
+        "services.terminology_api.app.services.conceptmap_service.KnowledgeGraphClient"
+    )
     def test_returns_items_and_total(self, MockKG):
-        from services.terminology_api.app.services.conceptmap_service import search_conceptmaps
+        from services.terminology_api.app.services.conceptmap_service import (
+            search_conceptmaps,
+        )
 
         cm = {"id": "cm-1", "name": "Test"}
         MockKG.return_value.run.side_effect = [
@@ -93,17 +121,29 @@ class TestTranslateConcept:
 
     @patch("services.terminology_api.app.services.conceptmap_service.get_conceptmap")
     def test_translate_found(self, mock_get):
-        from services.terminology_api.app.services.conceptmap_service import translate_concept
+        from services.terminology_api.app.services.conceptmap_service import (
+            translate_concept,
+        )
 
         mock_get.return_value = {
-            "group": [{
-                "source": "http://snomed.info/sct",
-                "target": "http://read.info",
-                "element": [{
-                    "code": "12345",
-                    "target": [{"code": "ABC", "display": "Test Code", "equivalence": "equivalent"}],
-                }],
-            }],
+            "group": [
+                {
+                    "source": "http://snomed.info/sct",
+                    "target": "http://read.info",
+                    "element": [
+                        {
+                            "code": "12345",
+                            "target": [
+                                {
+                                    "code": "ABC",
+                                    "display": "Test Code",
+                                    "equivalence": "equivalent",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
 
         result = translate_concept("cm-1", "12345")
@@ -113,7 +153,9 @@ class TestTranslateConcept:
 
     @patch("services.terminology_api.app.services.conceptmap_service.get_conceptmap")
     def test_translate_not_found(self, mock_get):
-        from services.terminology_api.app.services.conceptmap_service import translate_concept
+        from services.terminology_api.app.services.conceptmap_service import (
+            translate_concept,
+        )
 
         mock_get.return_value = None
         result = translate_concept("cm-1", "12345")
@@ -121,14 +163,18 @@ class TestTranslateConcept:
 
     @patch("services.terminology_api.app.services.conceptmap_service.get_conceptmap")
     def test_translate_no_match(self, mock_get):
-        from services.terminology_api.app.services.conceptmap_service import translate_concept
+        from services.terminology_api.app.services.conceptmap_service import (
+            translate_concept,
+        )
 
         mock_get.return_value = {
-            "group": [{
-                "source": "http://snomed.info/sct",
-                "target": "http://read.info",
-                "element": [{"code": "99999", "target": []}],
-            }],
+            "group": [
+                {
+                    "source": "http://snomed.info/sct",
+                    "target": "http://read.info",
+                    "element": [{"code": "99999", "target": []}],
+                }
+            ],
         }
 
         result = translate_concept("cm-1", "12345")
@@ -136,19 +182,25 @@ class TestTranslateConcept:
 
     @patch("services.terminology_api.app.services.conceptmap_service.get_conceptmap")
     def test_translate_filters_by_system(self, mock_get):
-        from services.terminology_api.app.services.conceptmap_service import translate_concept
+        from services.terminology_api.app.services.conceptmap_service import (
+            translate_concept,
+        )
 
         mock_get.return_value = {
             "group": [
                 {
                     "source": "http://read.info",
                     "target": "http://snomed.info/sct",
-                    "element": [{"code": "12345", "target": [{"code": "X", "display": "Wrong"}]}],
+                    "element": [
+                        {"code": "12345", "target": [{"code": "X", "display": "Wrong"}]}
+                    ],
                 },
                 {
                     "source": "http://snomed.info/sct",
                     "target": "http://read.info",
-                    "element": [{"code": "12345", "target": [{"code": "Y", "display": "Right"}]}],
+                    "element": [
+                        {"code": "12345", "target": [{"code": "Y", "display": "Right"}]}
+                    ],
                 },
             ],
         }

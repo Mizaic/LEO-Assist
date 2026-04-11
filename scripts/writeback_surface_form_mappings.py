@@ -15,7 +15,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = (
     ROOT
@@ -75,7 +74,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--approved-by", default="ai.reviewer")
     parser.add_argument("--source", default="surface_forms_training")
     parser.add_argument("--status", default="approved")
-    parser.add_argument("--min-confidence-band", choices=("high", "medium"), default="medium")
+    parser.add_argument(
+        "--min-confidence-band", choices=("high", "medium"), default="medium"
+    )
     return parser.parse_args()
 
 
@@ -85,7 +86,9 @@ def _band_ok(band: str, minimum: str) -> bool:
     return band in {"high", "medium"}
 
 
-def extract_rows(path: Path, minimum_band: str, approved_by: str, source: str, status: str) -> tuple[list[dict], Stats]:
+def extract_rows(
+    path: Path, minimum_band: str, approved_by: str, source: str, status: str
+) -> tuple[list[dict], Stats]:
     stats = Stats()
     out = []
     with path.open("r", encoding="utf-8") as handle:

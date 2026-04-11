@@ -182,14 +182,24 @@ def test_simulate_prompt_dry_run_assembles_prompt(monkeypatch) -> None:
     prompts_router = _load_prompts_router()
 
     core_ex = {
-        "id": "ex-core", "input": "[s0] No fever.", "output": '{"terms":[]}',
-        "deidentified": True, "category": "assertion:absent", "model_scope": "any",
-        "description": "negation", "core": True,
+        "id": "ex-core",
+        "input": "[s0] No fever.",
+        "output": '{"terms":[]}',
+        "deidentified": True,
+        "category": "assertion:absent",
+        "model_scope": "any",
+        "description": "negation",
+        "core": True,
     }
     dyn_ex = {
-        "id": "ex-dyn", "input": "[s0] eGFR 42.", "output": '{"terms":[]}',
-        "deidentified": True, "category": "observable", "model_scope": "any",
-        "description": "lab", "core": False,
+        "id": "ex-dyn",
+        "input": "[s0] eGFR 42.",
+        "output": '{"terms":[]}',
+        "deidentified": True,
+        "category": "observable",
+        "model_scope": "any",
+        "description": "lab",
+        "core": False,
     }
     row = {
         "id": "pid-sim",
@@ -255,7 +265,9 @@ def test_simulate_prompt_returns_model_cost_and_estimate(monkeypatch) -> None:
 
     monkeypatch.setattr(prompts_router, "CodingGraphClient", lambda: _FakeClient(_run))
     monkeypatch.setenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN", "1.00")
-    monkeypatch.setenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", "0.01")
+    monkeypatch.setenv(
+        "AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", "0.01"
+    )
     monkeypatch.setenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", "5.00")
 
     body = prompts_router.SimulateRequest(
@@ -285,7 +297,14 @@ def test_get_model_costs_returns_all_combos(monkeypatch) -> None:
     resp = prompts_router.get_model_costs(scope=None)
 
     keys = {c["key"] for c in resp["modelCosts"]}
-    assert keys == {"aws:small", "aws:big", "aws:max", "azure:small", "azure:big", "azure:max"}
+    assert keys == {
+        "aws:small",
+        "aws:big",
+        "aws:max",
+        "azure:small",
+        "azure:big",
+        "azure:max",
+    }
 
     for entry in resp["modelCosts"]:
         assert "displayName" in entry
@@ -304,6 +323,7 @@ def test_simulate_prompt_404_for_unknown_id(monkeypatch) -> None:
     monkeypatch.setattr(prompts_router, "CodingGraphClient", lambda: _FakeClient(_run))
 
     import pytest
+
     with pytest.raises(Exception):
         prompts_router.simulate_prompt(
             prompt_id="does-not-exist",

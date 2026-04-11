@@ -47,7 +47,10 @@ def _merge_resolution(
             merged[field] = None
         logger.info(
             "Terminology: rejected %r → %r (score %.4f < threshold %.2f)",
-            e.get("text"), best.term, best.score, min_score,
+            e.get("text"),
+            best.term,
+            best.score,
+            min_score,
         )
         return merged
     merged.update(
@@ -77,11 +80,15 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             text = (e.get("text") or "").strip()
             if text:
                 terms.append(text)
-                if text not in tag_map and (label := e.get("semantic_tag") or e.get("label")):
+                if text not in tag_map and (
+                    label := e.get("semantic_tag") or e.get("label")
+                ):
                     tag_map[text] = str(label)
         results = TerminologyClient().resolve(terms, expected_tags=tag_map or None)
         resolved = [
-            _merge_resolution(e, results.get((e.get("text") or "").strip(), []), min_score)
+            _merge_resolution(
+                e, results.get((e.get("text") or "").strip(), []), min_score
+            )
             for e in entities
         ]
         unresolved = [r for r in resolved if r.get("terminology_unresolved")]
@@ -89,7 +96,10 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             errors.append(
                 f"terminology_low_confidence: {len(unresolved)} entity/entities below "
                 f"score threshold {min_score:.2f} — "
-                + ", ".join(f'"{u.get("text")}" (score {u.get("score", 0):.2f})' for u in unresolved)
+                + ", ".join(
+                    f'"{u.get("text")}" (score {u.get("score", 0):.2f})'
+                    for u in unresolved
+                )
             )
         return {"entities": resolved, "resolved_entities": resolved, "errors": errors}
     except Exception as exc:

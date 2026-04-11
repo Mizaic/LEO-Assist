@@ -393,4 +393,3 @@ Return ONLY valid JSON:
   "safety_note": "..."
 }\
 """
-

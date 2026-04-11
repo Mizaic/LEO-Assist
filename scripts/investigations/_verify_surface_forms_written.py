@@ -5,6 +5,7 @@ Paginates correctly (no unsupported limit param).
 Checks for a representative sample of each writeback batch.
 Flags any that are missing.
 """
+
 from __future__ import annotations
 
 import sys
@@ -16,9 +17,11 @@ sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_ROOT / "services" / "api"))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 try:
     from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
     load_keyvault_secrets()
 except Exception as e:
     print(f"KV warn: {e}")
@@ -38,10 +41,16 @@ def fetch_all_surface_forms() -> list[dict]:
 
     while True:
         params = {"skip": skip} if skip > 0 else {}
-        r = requests.get(f"{BASE}/terminology/surface-forms", params=params,
-                         headers=HEADERS, timeout=15)
+        r = requests.get(
+            f"{BASE}/terminology/surface-forms",
+            params=params,
+            headers=HEADERS,
+            timeout=15,
+        )
         if r.status_code != 200:
-            print(f"  [WARN] GET /surface-forms?skip={skip} -> {r.status_code}: {r.text[:200]}")
+            print(
+                f"  [WARN] GET /surface-forms?skip={skip} -> {r.status_code}: {r.text[:200]}"
+            )
             break
         data = r.json()
         # Handle both list response and {"items": [...]} response
@@ -81,34 +90,46 @@ def main() -> None:
     # Check representative samples from each batch
     checks = {
         # -- Previous session abbreviations --
-        "2ww":          ("abbreviation_audit_april_2026", "2WW -> Fast track cancer referral"),
-        "twoc":         ("abbreviation_audit_april_2026", "TWOC -> Trial without catheter"),
-        "ooh":          ("abbreviation_audit_april_2026", "OOH -> Visit out of hours"),
-        "htn":          ("abbreviation_audit_april_2026", "HTN -> Hypertension"),
-        "sll":          ("abbreviation_audit_april_2026", "SLL -> Small lymphocytic lymphoma"),
-        "cll":          ("abbreviation_audit_april_2026", "CLL -> Chronic lymphocytic leukaemia"),
+        "2ww": ("abbreviation_audit_april_2026", "2WW -> Fast track cancer referral"),
+        "twoc": ("abbreviation_audit_april_2026", "TWOC -> Trial without catheter"),
+        "ooh": ("abbreviation_audit_april_2026", "OOH -> Visit out of hours"),
+        "htn": ("abbreviation_audit_april_2026", "HTN -> Hypertension"),
+        "sll": ("abbreviation_audit_april_2026", "SLL -> Small lymphocytic lymphoma"),
+        "cll": (
+            "abbreviation_audit_april_2026",
+            "CLL -> Chronic lymphocytic leukaemia",
+        ),
         # -- NAD must NOT be present --
-        "nad":          (None, "NAD must NOT be coded (always-ignore)"),
+        "nad": (None, "NAD must NOT be coded (always-ignore)"),
         # -- Current session synonyms --
-        "tiredness":    ("synonym_audit_april_2026", "Fatigue synonym"),
-        "tired":        ("synonym_audit_april_2026", "Fatigue synonym"),
-        "low mood":     ("synonym_audit_april_2026", "Mental health -- corrected mapping"),
-        "decreased appetite": ("synonym_audit_april_2026", "Appetite -- corrected from Excessive"),
-        "vomiting":     ("synonym_audit_april_2026", "Nausea -- corrected from Vomiting food"),
-        "rectal bleeding": ("synonym_audit_april_2026", "Bowel -- corrected from Painful"),
-        "bruising":     ("synonym_audit_april_2026", "Systemic -- corrected"),
-        "lump":         ("synonym_audit_april_2026", "Systemic -- corrected from thyroid"),
+        "tiredness": ("synonym_audit_april_2026", "Fatigue synonym"),
+        "tired": ("synonym_audit_april_2026", "Fatigue synonym"),
+        "low mood": ("synonym_audit_april_2026", "Mental health -- corrected mapping"),
+        "decreased appetite": (
+            "synonym_audit_april_2026",
+            "Appetite -- corrected from Excessive",
+        ),
+        "vomiting": (
+            "synonym_audit_april_2026",
+            "Nausea -- corrected from Vomiting food",
+        ),
+        "rectal bleeding": (
+            "synonym_audit_april_2026",
+            "Bowel -- corrected from Painful",
+        ),
+        "bruising": ("synonym_audit_april_2026", "Systemic -- corrected"),
+        "lump": ("synonym_audit_april_2026", "Systemic -- corrected from thyroid"),
         "swollen glands": ("synonym_audit_april_2026", "Lymphadenopathy"),
         "lymph node swelling": ("synonym_audit_april_2026", "Lymphadenopathy"),
-        "reflux":       ("synonym_audit_april_2026", "Acid reflux (finding)"),
-        "confusion":    ("synonym_audit_april_2026", "Mental health -- corrected"),
+        "reflux": ("synonym_audit_april_2026", "Acid reflux (finding)"),
+        "confusion": ("synonym_audit_april_2026", "Mental health -- corrected"),
         # -- Lab result phrases --
-        "glycosuria":   ("synonym_audit_april_2026", "Lab results"),
-        "glucose +":    ("synonym_audit_april_2026", "Lab results dipstick"),
-        "proteinuria":  ("synonym_audit_april_2026", "Lab results"),
-        "protein +":    ("synonym_audit_april_2026", "Lab results dipstick"),
+        "glycosuria": ("synonym_audit_april_2026", "Lab results"),
+        "glucose +": ("synonym_audit_april_2026", "Lab results dipstick"),
+        "proteinuria": ("synonym_audit_april_2026", "Lab results"),
+        "protein +": ("synonym_audit_april_2026", "Lab results dipstick"),
         "psa elevated": ("synonym_audit_april_2026", "Lab results PSA"),
-        "low hb":       ("synonym_audit_april_2026", "Lab results Hb"),
+        "low hb": ("synonym_audit_april_2026", "Lab results Hb"),
         "raised creatinine": ("synonym_audit_april_2026", "Lab results creatinine"),
         "neutrophilia": ("synonym_audit_april_2026", "Lab results"),
         "leucocytes in urine": ("synonym_audit_april_2026", "Lab results dipstick"),

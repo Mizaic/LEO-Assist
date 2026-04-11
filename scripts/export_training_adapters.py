@@ -18,6 +18,7 @@ counts to the source JSONL.
 
 Requires: spacy (pip install spacy)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -38,7 +39,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DEFAULT_INPUT = ROOT / "exports" / "ner" / "all_domains" / "domain_entities_merged.jsonl"
+DEFAULT_INPUT = (
+    ROOT / "exports" / "ner" / "all_domains" / "domain_entities_merged.jsonl"
+)
 DEFAULT_OUT_DIR = ROOT / "exports" / "ner" / "all_domains" / "training_adapters"
 TRAIN_SPLIT = 0.8
 
@@ -86,6 +89,7 @@ def _to_spacy_label(label: str) -> str:
 # spaCy-compatible JSON format (for inspection / non-DocBin consumers)
 # ---------------------------------------------------------------------------
 
+
 def _record_to_spacy_json(record: dict[str, Any]) -> dict[str, Any]:
     """Convert one canonical record to spaCy JSON training format."""
     text = record.get("text") or ""
@@ -128,6 +132,7 @@ def _resolve_overlaps(
 # DocBin writer (requires spaCy)
 # ---------------------------------------------------------------------------
 
+
 def _write_docbin(
     records: list[dict[str, Any]],
     output_path: Path,
@@ -155,7 +160,9 @@ def _write_docbin(
             end_char = ent_info["end"]
             label = ent_info["label"]
             try:
-                span = doc.char_span(start_char, end_char, label=label, alignment_mode="contract")
+                span = doc.char_span(
+                    start_char, end_char, label=label, alignment_mode="contract"
+                )
                 if span is not None:
                     spans.append(span)
             except Exception:
@@ -174,6 +181,7 @@ def _write_docbin(
 # ---------------------------------------------------------------------------
 # Importability validation
 # ---------------------------------------------------------------------------
+
 
 def _validate_docbin(
     docbin_path: Path,
@@ -211,6 +219,7 @@ def _validate_docbin(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", default=str(DEFAULT_INPUT))
@@ -221,7 +230,9 @@ def main() -> None:
         action="store_true",
         help="Only write JSON adapter; skip spaCy DocBin (use if spaCy not installed)",
     )
-    parser.add_argument("--dataset-version", default="v1", help="Version tag for adapter meta")
+    parser.add_argument(
+        "--dataset-version", default="v1", help="Version tag for adapter meta"
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -269,7 +280,9 @@ def main() -> None:
         json_out = spacy_dir / f"{split_name}.jsonl"
         with json_out.open("w", encoding="utf-8") as jf:
             for rec in split_recs:
-                jf.write(json.dumps(_record_to_spacy_json(rec), ensure_ascii=False) + "\n")
+                jf.write(
+                    json.dumps(_record_to_spacy_json(rec), ensure_ascii=False) + "\n"
+                )
         logger.info("Wrote %s: %d records → %s", split_name, len(split_recs), json_out)
 
     # Write DocBin (spaCy binary format)
@@ -279,9 +292,13 @@ def main() -> None:
     if not args.skip_docbin:
         try:
             import spacy  # noqa: F401
+
             nlp = spacy.blank("en")
 
-            for split_name, split_recs in [("train", train_records), ("dev", dev_records)]:
+            for split_name, split_recs in [
+                ("train", train_records),
+                ("dev", dev_records),
+            ]:
                 docbin_out = spacy_dir / f"{split_name}.spacy"
                 written = _write_docbin(split_recs, docbin_out, nlp)
                 logger.info("DocBin %s: %d docs → %s", split_name, written, docbin_out)
@@ -295,9 +312,18 @@ def main() -> None:
                 if validation["errors"]:
                     for err in validation["errors"]:
                         import_check_lines.append(f"  ERROR: {err}")
-                    logger.warning("DocBin validation errors for %s: %s", split_name, validation["errors"])
+                    logger.warning(
+                        "DocBin validation errors for %s: %s",
+                        split_name,
+                        validation["errors"],
+                    )
                 else:
-                    logger.info("DocBin %s validated OK: docs=%d ents=%d", split_name, validation["actual_docs"], validation["entity_count"])
+                    logger.info(
+                        "DocBin %s validated OK: docs=%d ents=%d",
+                        split_name,
+                        validation["actual_docs"],
+                        validation["entity_count"],
+                    )
 
         except ImportError:
             msg = "spaCy not installed — DocBin output skipped. Install with: pip install spacy"
@@ -339,7 +365,9 @@ def main() -> None:
         "outputs": {
             "train_jsonl": str(spacy_dir / "train.jsonl"),
             "dev_jsonl": str(spacy_dir / "dev.jsonl"),
-            "train_spacy": str(spacy_dir / "train.spacy") if not args.skip_docbin else None,
+            "train_spacy": (
+                str(spacy_dir / "train.spacy") if not args.skip_docbin else None
+            ),
             "dev_spacy": str(spacy_dir / "dev.spacy") if not args.skip_docbin else None,
             "import_check": str(validation_dir / "import_check.txt"),
             "label_stats": str(validation_dir / "label_stats.json"),
@@ -349,17 +377,19 @@ def main() -> None:
         json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    print(json.dumps(
-        {
-            "total_records": len(records),
-            "train_records": len(train_records),
-            "dev_records": len(dev_records),
-            "docbin_ok": all(v.get("status") == "pass" for v in validation_results),
-            "label_count": sum(label_counts.values()),
-            "outputs": meta["outputs"],
-        },
-        indent=2,
-    ))
+    print(
+        json.dumps(
+            {
+                "total_records": len(records),
+                "train_records": len(train_records),
+                "dev_records": len(dev_records),
+                "docbin_ok": all(v.get("status") == "pass" for v in validation_results),
+                "label_count": sum(label_counts.values()),
+                "outputs": meta["outputs"],
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

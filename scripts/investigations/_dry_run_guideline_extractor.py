@@ -7,6 +7,7 @@ Usage:
     python scripts/investigations/_dry_run_guideline_extractor.py
     python scripts/investigations/_dry_run_guideline_extractor.py --rec NG12:v1:CH002:SEC000:R001
 """
+
 from __future__ import annotations
 
 import argparse
@@ -68,14 +69,16 @@ def _collect_coded(tree: dict | None, out: list[dict]) -> None:
         return
     if tree.get("kind") == "concept":
         crit = tree.get("criterion") or {}
-        out.append({
-            "term": crit.get("term"),
-            "snomed_concept_id": crit.get("snomed_concept_id"),
-            "preferred_term": crit.get("preferred_term"),
-            "semantic_tag": crit.get("semantic_tag"),
-            "confidence": crit.get("confidence"),
-            "verification_status": crit.get("verification_status"),
-        })
+        out.append(
+            {
+                "term": crit.get("term"),
+                "snomed_concept_id": crit.get("snomed_concept_id"),
+                "preferred_term": crit.get("preferred_term"),
+                "semantic_tag": crit.get("semantic_tag"),
+                "confidence": crit.get("confidence"),
+                "verification_status": crit.get("verification_status"),
+            }
+        )
         return
     for child in tree.get("children") or []:
         _collect_coded(child, out)
@@ -90,10 +93,12 @@ def run(rec: dict) -> None:
     from libs.pipeline_graph.registry import get_registry
 
     subgraph = get_registry().build("guidance_rule_extraction")
-    result = subgraph.invoke({
-        "recommendation": rec,
-        "guideline_id": "NG12",
-    })
+    result = subgraph.invoke(
+        {
+            "recommendation": rec,
+            "guideline_id": "NG12",
+        }
+    )
 
     coded = result.get("coded_criteria")
     errors = result.get("errors") or []

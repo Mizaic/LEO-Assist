@@ -15,6 +15,7 @@ Run:
 
 Add --csv to also write results/cancer_procedures_audit.csv.
 """
+
 from __future__ import annotations
 
 import csv
@@ -225,84 +226,188 @@ ORDER BY encounter_count DESC, cname
 
 _CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "Systemic / Chemotherapy": (
-        "chemotherapy", "cyclophosphamide", "doxorubicin", "epirubicin",
-        "docetaxel", "paclitaxel", "carboplatin", "cisplatin", "oxaliplatin",
-        "capecitabine", "fluorouracil", "gemcitabine", "pemetrexed",
-        "vinorelbine", "etoposide", "methotrexate", "bleomycin",
-        "irinotecan", "topotecan", "vinblastine", "vincristine",
+        "chemotherapy",
+        "cyclophosphamide",
+        "doxorubicin",
+        "epirubicin",
+        "docetaxel",
+        "paclitaxel",
+        "carboplatin",
+        "cisplatin",
+        "oxaliplatin",
+        "capecitabine",
+        "fluorouracil",
+        "gemcitabine",
+        "pemetrexed",
+        "vinorelbine",
+        "etoposide",
+        "methotrexate",
+        "bleomycin",
+        "irinotecan",
+        "topotecan",
+        "vinblastine",
+        "vincristine",
     ),
     "Targeted Therapy": (
-        "imatinib", "erlotinib", "gefitinib", "sunitinib", "sorafenib",
-        "vemurafenib", "dabrafenib", "trametinib", "lapatinib", "palbociclib",
-        "ribociclib", "abemaciclib", "olaparib", "niraparib", "rucaparib",
+        "imatinib",
+        "erlotinib",
+        "gefitinib",
+        "sunitinib",
+        "sorafenib",
+        "vemurafenib",
+        "dabrafenib",
+        "trametinib",
+        "lapatinib",
+        "palbociclib",
+        "ribociclib",
+        "abemaciclib",
+        "olaparib",
+        "niraparib",
+        "rucaparib",
         "targeted therapy",
     ),
     "Immunotherapy": (
-        "immunotherapy", "nivolumab", "pembrolizumab", "atezolizumab",
-        "durvalumab", "ipilimumab", "checkpoint inhibitor", "car-t",
+        "immunotherapy",
+        "nivolumab",
+        "pembrolizumab",
+        "atezolizumab",
+        "durvalumab",
+        "ipilimumab",
+        "checkpoint inhibitor",
+        "car-t",
         "car t cell",
     ),
     "Monoclonal Antibody": (
-        "rituximab", "trastuzumab", "herceptin", "bevacizumab", "cetuximab",
-        "panitumumab", "pertuzumab", "ramucirumab", "necitumumab",
+        "rituximab",
+        "trastuzumab",
+        "herceptin",
+        "bevacizumab",
+        "cetuximab",
+        "panitumumab",
+        "pertuzumab",
+        "ramucirumab",
+        "necitumumab",
         "monoclonal antibody",
     ),
     "Hormone / Endocrine Therapy": (
-        "tamoxifen", "letrozole", "anastrozole", "exemestane", "fulvestrant",
-        "bicalutamide", "enzalutamide", "abiraterone", "degarelix",
-        "goserelin", "leuprorelin", "hormone therapy", "hormonal therapy",
-        "endocrine therapy", "aromatase inhibitor", "anti-androgen",
+        "tamoxifen",
+        "letrozole",
+        "anastrozole",
+        "exemestane",
+        "fulvestrant",
+        "bicalutamide",
+        "enzalutamide",
+        "abiraterone",
+        "degarelix",
+        "goserelin",
+        "leuprorelin",
+        "hormone therapy",
+        "hormonal therapy",
+        "endocrine therapy",
+        "aromatase inhibitor",
+        "anti-androgen",
         "androgen deprivation",
     ),
     "Radiotherapy": (
-        "radiotherapy", "radiation therapy", "stereotactic", "brachytherapy",
-        "cyberknife", "gamma knife", "proton therapy", "linac",
+        "radiotherapy",
+        "radiation therapy",
+        "stereotactic",
+        "brachytherapy",
+        "cyberknife",
+        "gamma knife",
+        "proton therapy",
+        "linac",
         "external beam",
     ),
     "Surgical - Breast": (
-        "mastectomy", "lumpectomy", "wide local excision",
-        "sentinel lymph node", "axillary clearance",
+        "mastectomy",
+        "lumpectomy",
+        "wide local excision",
+        "sentinel lymph node",
+        "axillary clearance",
     ),
     "Surgical - Colorectal": (
-        "colectomy", "hemicolectomy", "anterior resection",
-        "hartmann", "right hemicolectomy", "left hemicolectomy",
-        "sigmoid colectomy", "abdominoperineal",
+        "colectomy",
+        "hemicolectomy",
+        "anterior resection",
+        "hartmann",
+        "right hemicolectomy",
+        "left hemicolectomy",
+        "sigmoid colectomy",
+        "abdominoperineal",
     ),
     "Surgical - Urological": (
-        "prostatectomy", "nephrectomy", "cystectomy", "orchiectomy",
-        "orchidectomy", "radical nephrectomy", "partial nephrectomy",
+        "prostatectomy",
+        "nephrectomy",
+        "cystectomy",
+        "orchiectomy",
+        "orchidectomy",
+        "radical nephrectomy",
+        "partial nephrectomy",
     ),
     "Surgical - Gynaecological": (
-        "hysterectomy", "oophorectomy", "salpingo", "vulvectomy",
+        "hysterectomy",
+        "oophorectomy",
+        "salpingo",
+        "vulvectomy",
         "trachelectomy",
     ),
     "Surgical - Thoracic": (
-        "pneumonectomy", "lobectomy", "wedge resection", "thoracoscopic",
-        "vats", "mediastinoscopy",
+        "pneumonectomy",
+        "lobectomy",
+        "wedge resection",
+        "thoracoscopic",
+        "vats",
+        "mediastinoscopy",
     ),
     "Surgical - Head and Neck": (
-        "thyroidectomy", "laryngectomy", "glossectomy", "parotidectomy",
+        "thyroidectomy",
+        "laryngectomy",
+        "glossectomy",
+        "parotidectomy",
         "neck dissection",
     ),
     "Surgical - Haematological": (
-        "bone marrow transplant", "stem cell transplant",
-        "haematopoietic", "hematopoietic", "allogenic", "autologous",
+        "bone marrow transplant",
+        "stem cell transplant",
+        "haematopoietic",
+        "hematopoietic",
+        "allogenic",
+        "autologous",
     ),
     "Diagnostic Procedure": (
-        "biopsy", "fine needle", "endoscopy", "colonoscopy", "bronchoscopy",
-        "cystoscopy", "laparoscopy", "colposcopy", "sigmoidoscopy",
+        "biopsy",
+        "fine needle",
+        "endoscopy",
+        "colonoscopy",
+        "bronchoscopy",
+        "cystoscopy",
+        "laparoscopy",
+        "colposcopy",
+        "sigmoidoscopy",
     ),
     "Ablative / Interventional": (
-        "ablation", "embolisation", "embolization", "cryotherapy",
-        "photodynamic", "radiofrequency", "microwave ablation",
-        "debulking", "cytoreduction",
+        "ablation",
+        "embolisation",
+        "embolization",
+        "cryotherapy",
+        "photodynamic",
+        "radiofrequency",
+        "microwave ablation",
+        "debulking",
+        "cytoreduction",
     ),
     "Supportive / Palliative": (
-        "palliative", "supportive care", "pain management", "hospice",
+        "palliative",
+        "supportive care",
+        "pain management",
+        "hospice",
         "symptom control",
     ),
     "General Surgical Procedure": (
-        "resection", "excision", "surgical procedure",
+        "resection",
+        "excision",
+        "surgical procedure",
     ),
 }
 
@@ -310,13 +415,16 @@ _CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
 def _classify(name: str) -> list[str]:
     """Return list of matching treatment categories for a procedure name."""
     low = name.lower()
-    cats = [cat for cat, kws in _CATEGORY_KEYWORDS.items() if any(k in low for k in kws)]
+    cats = [
+        cat for cat, kws in _CATEGORY_KEYWORDS.items() if any(k in low for k in kws)
+    ]
     return cats or ["Other / Unclassified"]
 
 
 # ---------------------------------------------------------------------------
 # Print helpers
 # ---------------------------------------------------------------------------
+
 
 def _hr(char: str = "-", width: int = 72) -> None:
     print(char * width)
@@ -332,6 +440,7 @@ def _section(title: str) -> None:
 # ---------------------------------------------------------------------------
 # Sections
 # ---------------------------------------------------------------------------
+
 
 def _section_a(client: PatientGraphClient) -> list[dict]:
     """All distinct :Procedure nodes coded on any encounter."""
@@ -415,8 +524,10 @@ def _section_d(client: PatientGraphClient) -> None:
         return
 
     _hr()
-    print(f"  {'Cancer site':<22}  {'Patients w/ proc':>16}  "
-          f"{'Distinct procs':>14}  {'Proc encounters':>15}")
+    print(
+        f"  {'Cancer site':<22}  {'Patients w/ proc':>16}  "
+        f"{'Distinct procs':>14}  {'Proc encounters':>15}"
+    )
     _hr()
     for r in rows:
         site = (r.get("cancer_site") or "unknown")[:22]
@@ -449,6 +560,7 @@ def _section_e_summary(
 # ---------------------------------------------------------------------------
 # CSV export
 # ---------------------------------------------------------------------------
+
 
 def _write_csv(
     all_procs: list[dict],
@@ -505,8 +617,13 @@ def _write_csv(
                 }
 
     fields = [
-        "cid", "name", "stag", "encounter_count",
-        "source", "cancer_site", "categories",
+        "cid",
+        "name",
+        "stag",
+        "encounter_count",
+        "source",
+        "cancer_site",
+        "categories",
     ]
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
@@ -521,6 +638,7 @@ def _write_csv(
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     write_csv = "--csv" in sys.argv

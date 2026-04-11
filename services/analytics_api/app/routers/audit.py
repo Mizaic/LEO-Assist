@@ -155,9 +155,7 @@ def audit_summary(
                 return None
 
         total = len(rows)
-        active = sum(
-            1 for r in rows if r.get("ep_status") not in _CLOSED
-        )
+        active = sum(1 for r in rows if r.get("ep_status") not in _CLOSED)
         # Keep this aligned with the overview dashboard's "Confirmed Cancers"
         # card so both views show the same headline count for the same filters.
         confirmed = sum(1 for r in rows if r.get("is_confirmed") is True)
@@ -165,14 +163,12 @@ def audit_summary(
         pci_vals = sorted(
             v
             for r in rows
-            if (v := _safe_days(r.get("fp_date"), r.get("ref_date")))
-            is not None
+            if (v := _safe_days(r.get("fp_date"), r.get("ref_date"))) is not None
         )
         di_vals = sorted(
             v
             for r in rows
-            if (v := _safe_days(r.get("fp_date"), r.get("diag_date")))
-            is not None
+            if (v := _safe_days(r.get("fp_date"), r.get("diag_date"))) is not None
         )
         consult_vals = [
             r["consultation_count"]
@@ -186,22 +182,14 @@ def audit_summary(
             if not n:
                 return None
             mid = n // 2
-            return (
-                float(vals[mid])
-                if n % 2
-                else (vals[mid - 1] + vals[mid]) / 2.0
-            )
+            return float(vals[mid]) if n % 2 else (vals[mid - 1] + vals[mid]) / 2.0
 
         return {
             "total_episodes": total,
             "active_episodes": active,
             "confirmed_cancers": confirmed,
-            "median_pci_days": (
-                round(_median(pci_vals), 1) if pci_vals else None
-            ),
-            "median_di_days": (
-                round(_median(di_vals), 1) if di_vals else None
-            ),
+            "median_pci_days": (round(_median(pci_vals), 1) if pci_vals else None),
+            "median_di_days": (round(_median(di_vals), 1) if di_vals else None),
             "avg_consultations": (
                 round(sum(consult_vals) / len(consult_vals), 1)
                 if consult_vals
@@ -422,9 +410,7 @@ def audit_intervals(
             client,
         )
         if benchmark_set_id and result.get("benchmark"):
-            di_bm = _fetch_benchmark_metrics(
-                benchmark_set_id, "diagnostic_interval"
-            )
+            di_bm = _fetch_benchmark_metrics(benchmark_set_id, "diagnostic_interval")
             if di_bm and di_bm.get("metrics"):
                 result["benchmark"]["metrics"].update(di_bm["metrics"])
 

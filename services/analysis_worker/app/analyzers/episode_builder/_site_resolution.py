@@ -153,19 +153,23 @@ _SITE_MAP: list[tuple[str, str]] = [
     ("fast", "non_site_specific"),
 ]
 
-_PATHWAY_GROUP_KEYS: frozenset[str] = frozenset({
-    "gynaecological",
-    "urological",
-    "upper_gi",
-    "head_and_neck",
-    "haematological",
-    "non_site_specific",
-})
+_PATHWAY_GROUP_KEYS: frozenset[str] = frozenset(
+    {
+        "gynaecological",
+        "urological",
+        "upper_gi",
+        "head_and_neck",
+        "haematological",
+        "non_site_specific",
+    }
+)
 
 _PATHWAY_TO_SPECIFIC: dict[str, frozenset[str]] = {
     "gynaecological": frozenset({"cervical", "endometrial", "ovarian", "vulval"}),
     "urological": frozenset({"prostate", "bladder", "renal", "testicular"}),
-    "upper_gi": frozenset({"oesophageal", "stomach", "pancreatic", "liver", "gallbladder"}),
+    "upper_gi": frozenset(
+        {"oesophageal", "stomach", "pancreatic", "liver", "gallbladder"}
+    ),
     "head_and_neck": frozenset({"thyroid", "laryngeal", "oropharyngeal"}),
     "haematological": frozenset({"leukaemia", "lymphoma", "myeloma"}),
     "lower_gi": frozenset({"colorectal", "small_intestine"}),
@@ -267,7 +271,10 @@ _SITE_BY_CONCEPT_ID: dict[str, str] = {
 def _referral_route_from_concept(concept_name: str) -> str:
     """Map a referral concept name to the NCDA referral_route value."""
     name = concept_name.lower()
-    if any(k in name for k in ("fast track", "fast-track", "2ww", "two week", "urgent suspected")):
+    if any(
+        k in name
+        for k in ("fast track", "fast-track", "2ww", "two week", "urgent suspected")
+    ):
         return "two_week_wait"
     if any(k in name for k in ("emergency", "a&e", "accident", "ae ", "a & e")):
         return "emergency"

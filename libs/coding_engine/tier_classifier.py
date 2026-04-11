@@ -14,10 +14,19 @@ from dataclasses import dataclass
 
 _TIER1_SCORE_THRESHOLD = 0.95
 _TIER2_SCORE_THRESHOLD = 0.70
-_AUTO_CODE_BLOCKED = frozenset({
-    "absent", "refuted", "declined", "cancelled", "planned",
-    "hypothetical", "possible", "historical", "family",
-})
+_AUTO_CODE_BLOCKED = frozenset(
+    {
+        "absent",
+        "refuted",
+        "declined",
+        "cancelled",
+        "planned",
+        "hypothetical",
+        "possible",
+        "historical",
+        "family",
+    }
+)
 _QUALIFIER_ASSERTIONS = frozenset({"historical", "family"})
 
 
@@ -74,7 +83,10 @@ def classify_tier(
     # -- Tier 1 gates: high-trust auto-code --
 
     if assertion == "present" and not context_failed:
-        if surface_form_status == "approved" and terminology_score >= _TIER1_SCORE_THRESHOLD:
+        if (
+            surface_form_status == "approved"
+            and terminology_score >= _TIER1_SCORE_THRESHOLD
+        ):
             return TierDecision(
                 tier=1,
                 decision="auto_coded",

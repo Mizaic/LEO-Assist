@@ -1,13 +1,14 @@
 """Pydantic response models shared across API, MCP, and CLI."""
+
 from __future__ import annotations
 
 from typing import Any, Optional
 from pydantic import BaseModel
 
-
 # ---------------------------------------------------------------------------
 # Shared primitives
 # ---------------------------------------------------------------------------
+
 
 class SignalHit(BaseModel):
     date: str
@@ -18,6 +19,7 @@ class SignalHit(BaseModel):
 # ---------------------------------------------------------------------------
 # Patient
 # ---------------------------------------------------------------------------
+
 
 class CodedConcept(BaseModel):
     concept_id: str
@@ -58,6 +60,7 @@ class PatientSummary(BaseModel):
 # ---------------------------------------------------------------------------
 # Episodes
 # ---------------------------------------------------------------------------
+
 
 class EpisodeHealthResult(BaseModel):
     total_count: int
@@ -111,6 +114,7 @@ class OutcomeInferenceResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Terminology
 # ---------------------------------------------------------------------------
+
 
 class MapsToEdge(BaseModel):
     concept_id: str
@@ -166,6 +170,7 @@ class ConceptStatus(BaseModel):
 # Coding quality
 # ---------------------------------------------------------------------------
 
+
 class CodingIssueSummary(BaseModel):
     total_assessed: int
     clean_count: int
@@ -192,6 +197,7 @@ class CodingIssueRow(BaseModel):
 # Domain
 # ---------------------------------------------------------------------------
 
+
 class OrphanConcept(BaseModel):
     concept_id: str
     preferred_term: Optional[str] = None
@@ -204,7 +210,9 @@ class PathwayGap(BaseModel):
     patient_id: str
     episode_id: Optional[str] = None
     site: str
-    gap_type: str  # referral_no_diagnosis | diagnosis_no_referral | treatment_no_episode
+    gap_type: (
+        str  # referral_no_diagnosis | diagnosis_no_referral | treatment_no_episode
+    )
     date: Optional[str] = None
     days_since: Optional[int] = None
 
@@ -221,6 +229,7 @@ class DomainCoverageResult(BaseModel):
 # Remediation
 # ---------------------------------------------------------------------------
 
+
 class RemediationResult(BaseModel):
     operation: str
     dry_run: bool
@@ -232,6 +241,7 @@ class RemediationResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Reports
 # ---------------------------------------------------------------------------
+
 
 class SitrepResult(BaseModel):
     episode_status_counts: dict[str, int]
@@ -253,11 +263,12 @@ class CohortResult(BaseModel):
 # DQ Rules Engine
 # ---------------------------------------------------------------------------
 
+
 class DQCheckResult(BaseModel):
     rule_id: str
     dimension: str
     severity: str  # critical | high | medium | low
-    status: str    # pass | warn | fail
+    status: str  # pass | warn | fail
     violation_count: int
     threshold: int
     sample_violations: list[dict[str, Any]] = []

@@ -52,7 +52,9 @@ def get_agent_extension(agent_type: str, ext_name: str, default: Any = None) -> 
     return agent.extensions.get(ext_name, default)
 
 
-def get_quality_target(target_code: str, field: str = "target", default: Any = None) -> Any:
+def get_quality_target(
+    target_code: str, field: str = "target", default: Any = None
+) -> Any:
     if _config is None:
         return default
     measure = _config.measures.get("nhs-cancer-quality-targets")

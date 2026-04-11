@@ -62,9 +62,7 @@ async def load_extended_map(
     label = f"ExtendedMap({filepath.name})"
     logger.info("%s: starting", label)
     async with driver.session() as session:
-        writer = BatchWriter(
-            session, MERGE_ICD10_MAP, batch_size, label
-        )
+        writer = BatchWriter(session, MERGE_ICD10_MAP, batch_size, label)
         for row in stream_rf2(filepath):
             if row["active"] != "1":
                 continue
@@ -92,9 +90,7 @@ async def load_simple_map(
     label = f"SimpleMap({filepath.name})"
     logger.info("%s: starting", label)
     async with driver.session() as session:
-        writer = BatchWriter(
-            session, MERGE_READ_MAP, batch_size, label
-        )
+        writer = BatchWriter(session, MERGE_READ_MAP, batch_size, label)
         for row in stream_rf2(filepath):
             if row["active"] != "1":
                 continue

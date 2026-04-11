@@ -66,10 +66,10 @@ _LABEL_TO_TYPE: dict[str, str] = {
 # Maps ODS-confirmed type → the Cypher query that applies the correct Neo4j label.
 # Only populated for types where ODS is unambiguously authoritative.
 _RELABEL_QUERY: dict[str, str] = {
-    "gp":       RELABEL_ORG_AS_GP,
-    "icb":      RELABEL_ORG_AS_ICB,
+    "gp": RELABEL_ORG_AS_GP,
+    "icb": RELABEL_ORG_AS_ICB,
     "alliance": RELABEL_ORG_AS_ALLIANCE,
-    "pcn":      RELABEL_ORG_AS_PCN,
+    "pcn": RELABEL_ORG_AS_PCN,
 }
 
 
@@ -157,8 +157,13 @@ class SyncService:
         )
         logger.info(
             "[ODS Sync] Run %s complete: processed=%d relabelled=%d mismatches=%d closures=%d errors=%d aborted=%s",
-            self._run_id, self._processed_count, self._relabel_count,
-            self._mismatch_count, self._closure_count, self._error_count, aborted,
+            self._run_id,
+            self._processed_count,
+            self._relabel_count,
+            self._mismatch_count,
+            self._closure_count,
+            self._error_count,
+            aborted,
         )
 
     def process_org(self, leo_org: dict[str, Any], run_id: str) -> None:
@@ -181,8 +186,14 @@ class SyncService:
             self._cb.record_success()
         except OdsNotFoundError:
             self._cb.record_success()  # 404 is a valid (non-connection) response
-            self._flag_closed(org_id=org_id, org_name=leo_name, ods_code=ods_code, run_id=run_id,
-                              ods_parent_ods_code=None, ods_address=None)
+            self._flag_closed(
+                org_id=org_id,
+                org_name=leo_name,
+                ods_code=ods_code,
+                run_id=run_id,
+                ods_parent_ods_code=None,
+                ods_address=None,
+            )
             self._closure_count += 1
             return
         except OdsAccessError as exc:
@@ -209,7 +220,10 @@ class SyncService:
 
         if ods_org.status == "Inactive":
             self._flag_closed(
-                org_id=org_id, org_name=leo_name, ods_code=ods_code, run_id=run_id,
+                org_id=org_id,
+                org_name=leo_name,
+                ods_code=ods_code,
+                run_id=run_id,
                 ods_parent_ods_code=ods_org.part_of_ods,
                 ods_address=ods_org.address,
             )
@@ -238,20 +252,24 @@ class SyncService:
 
         if discrepancy:
             self._write_mismatch(
-                org_id=org_id, run_id=run_id, discrepancy=discrepancy,
+                org_id=org_id,
+                run_id=run_id,
+                discrepancy=discrepancy,
                 ods_parent_ods_code=ods_org.part_of_ods,
                 ods_address=ods_org.address,
             )
             self._mismatch_count += 1
         else:
             # No change — add to batch for efficient bulk write
-            self._batch_no_change.append({
-                "id": org_id,
-                "checked_at": datetime.now(timezone.utc).isoformat(),
-                "run_id": run_id,
-                "ods_parent_ods_code": ods_org.part_of_ods,
-                "ods_address": _to_json(ods_org.address),
-            })
+            self._batch_no_change.append(
+                {
+                    "id": org_id,
+                    "checked_at": datetime.now(timezone.utc).isoformat(),
+                    "run_id": run_id,
+                    "ods_parent_ods_code": ods_org.part_of_ods,
+                    "ods_address": _to_json(ods_org.address),
+                }
+            )
             if len(self._batch_no_change) >= _BATCH_SIZE:
                 self._flush_batch()
 
@@ -263,10 +281,13 @@ class SyncService:
                 return get_org(ods_code)
             except OdsRateLimitError as exc:
                 last_exc = exc
-                delay_s = (_DELAY_MS / 1000.0) * (2 ** attempt)
+                delay_s = (_DELAY_MS / 1000.0) * (2**attempt)
                 logger.warning(
                     "[ODS Sync] 429 for %s (attempt %d/%d), backoff %.1fs",
-                    ods_code, attempt + 1, _MAX_RETRIES, delay_s,
+                    ods_code,
+                    attempt + 1,
+                    _MAX_RETRIES,
+                    delay_s,
                 )
                 time.sleep(delay_s)
         raise last_exc  # type: ignore[misc]
@@ -301,7 +322,9 @@ class SyncService:
             ods_code=ods_code,
             run_id=run_id,
         )
-        logger.warning("[ODS Sync] Closure flagged: org_id=%s ods_code=%s", org_id, ods_code)
+        logger.warning(
+            "[ODS Sync] Closure flagged: org_id=%s ods_code=%s", org_id, ods_code
+        )
 
     def _write_mismatch(
         self,
@@ -323,7 +346,9 @@ class SyncService:
             ods_parent_ods_code=ods_parent_ods_code,
             ods_address=_to_json(ods_address),
         )
-        logger.info("[ODS Sync] Mismatch: org_id=%s discrepancy=%s", org_id, discrepancy)
+        logger.info(
+            "[ODS Sync] Mismatch: org_id=%s discrepancy=%s", org_id, discrepancy
+        )
 
     def _write_error(self, *, org_id: str, run_id: str, error: str) -> None:
         """Write ods_sync_status='error' for an org that could not be checked."""
@@ -344,7 +369,7 @@ class SyncService:
             return
         # Split into chunks of _BATCH_SIZE to avoid overwhelming Neo4j
         for i in range(0, len(self._batch_no_change), _BATCH_SIZE):
-            chunk = self._batch_no_change[i: i + _BATCH_SIZE]
+            chunk = self._batch_no_change[i : i + _BATCH_SIZE]
             self._neo.run(BATCH_UPDATE_ODS_CHECKED, orgs=chunk)
             logger.debug("[ODS Sync] Flushed %d no-change orgs to Neo4j", len(chunk))
         self._batch_no_change = []

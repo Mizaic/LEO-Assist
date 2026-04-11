@@ -20,6 +20,7 @@ Usage:
     python scripts/_fix_lab_entity_overcapture.py --dry-run   # preview only
     python scripts/_fix_lab_entity_overcapture.py             # write to Neo4j
 """
+
 from __future__ import annotations
 
 import argparse
@@ -32,6 +33,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_REPO_ROOT / "secrets" / ".env", override=False)
 
@@ -39,15 +41,15 @@ from libs.neo4j_client.client import PatientGraphClient
 
 # UK GP Read code: alphanumeric + dots, no hyphens, 3-8 chars, in parens,
 # followed by whitespace and a digit (the result value).
-_READ_CODE_THEN_DIGIT = re.compile(r'\s*\([A-Za-z0-9.]{3,8}\)\s+\d')
+_READ_CODE_THEN_DIGIT = re.compile(r"\s*\([A-Za-z0-9.]{3,8}\)\s+\d")
 
 # Trailing Read code at end of string (no digit follows — already truncated).
-_TRAILING_READ_CODE = re.compile(r'\s*\([A-Za-z0-9.]{3,8}\)\s*$')
+_TRAILING_READ_CODE = re.compile(r"\s*\([A-Za-z0-9.]{3,8}\)\s*$")
 
 # Observation-type trailing suffixes added by GP system exports.
 _OBS_SUFFIX = re.compile(
-    r'\s*-\s*(?:observation|outside reference range|inside reference range|'
-    r'out of range|in range|high|low|normal|abnormal|borderline)[^(\[]*$',
+    r"\s*-\s*(?:observation|outside reference range|inside reference range|"
+    r"out of range|in range|high|low|normal|abnormal|borderline)[^(\[]*$",
     re.IGNORECASE,
 )
 
@@ -78,7 +80,7 @@ def _truncate(text: str, value: str | None, unit: str | None) -> str | None:
     # Rule 2: Read code pattern followed by a digit — truncate before Read code.
     m = _READ_CODE_THEN_DIGIT.search(candidate)
     if m and m.start() > 0:
-        new_text = candidate[:m.start()].strip()
+        new_text = candidate[: m.start()].strip()
         if new_text and new_text != candidate:
             return new_text
 
@@ -87,7 +89,7 @@ def _truncate(text: str, value: str | None, unit: str | None) -> str | None:
     if cleaned != candidate:
         m = _READ_CODE_THEN_DIGIT.search(cleaned)
         if m and m.start() > 0:
-            new_text = cleaned[:m.start()].strip()
+            new_text = cleaned[: m.start()].strip()
             if new_text and new_text != candidate:
                 return new_text
         # Suffix removed but no Read code — return de-suffixed form.
@@ -121,15 +123,13 @@ def main(dry_run: bool) -> None:
     client = PatientGraphClient()
     try:
         print("Fetching anchor_mining TrainingLabel nodes…")
-        rows = client.run(
-            """
+        rows = client.run("""
             MATCH (tl:TrainingLabel)
             WHERE tl.source = 'anchor_mining'
               AND tl.include = true
               AND tl.entities_json IS NOT NULL
             RETURN tl.label_id AS label_id, tl.entities_json AS ej
-            """
-        )
+            """)
         print(f"  Found {len(rows)} records")
 
         updates: list[dict] = []
@@ -149,10 +149,12 @@ def main(dry_run: bool) -> None:
 
             if n_changed:
                 total_changed += n_changed
-                updates.append({
-                    "label_id": label_id,
-                    "entities_json": json.dumps(fixed, default=str),
-                })
+                updates.append(
+                    {
+                        "label_id": label_id,
+                        "entities_json": json.dumps(fixed, default=str),
+                    }
+                )
                 # Collect first few examples for display
                 if len(example_changes) < 20:
                     for orig, upd in zip(entities, fixed):
@@ -181,7 +183,7 @@ def main(dry_run: bool) -> None:
         print(f"\nWriting {len(updates)} records in batches of {BATCH_SIZE}…")
         written = 0
         for i in range(0, len(updates), BATCH_SIZE):
-            batch = updates[i:i + BATCH_SIZE]
+            batch = updates[i : i + BATCH_SIZE]
             client.run(
                 """
                 UNWIND $rows AS r
@@ -194,7 +196,9 @@ def main(dry_run: bool) -> None:
             written += len(batch)
             print(f"  {written}/{len(updates)} written")
 
-        print(f"\nDone. {total_changed} entity spans corrected across {len(updates)} records.")
+        print(
+            f"\nDone. {total_changed} entity spans corrected across {len(updates)} records."
+        )
 
     finally:
         client.close()
@@ -202,7 +206,10 @@ def main(dry_run: bool) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Preview changes without writing to Neo4j")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview changes without writing to Neo4j",
+    )
     args = parser.parse_args()
     main(dry_run=args.dry_run)

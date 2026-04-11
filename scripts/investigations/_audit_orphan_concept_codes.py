@@ -6,6 +6,7 @@ For each suspect code:
   - Find the active SNOMED replacement in the Concept hierarchy
   - Show whether the replacement IS_A descendant of 363346000
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -14,10 +15,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
@@ -83,7 +86,7 @@ def main() -> None:
 
             # 2. Is it in the cancer IS_A hierarchy?
             hier = kg.run(_Q_IS_IN_CANCER_HIERARCHY, cid=cid, root=CANCER_ROOT)
-            in_hier = hier[0]['is_descendant'] if hier else False
+            in_hier = hier[0]["is_descendant"] if hier else False
             print(f"  IS_A descendant of {CANCER_ROOT}: {in_hier}")
 
             # 3. Encounters in patient data
@@ -91,10 +94,14 @@ def main() -> None:
                 enc_rows = s.run(_Q_ENCOUNTERS_WITH_CODE, cid=cid).data()
             print(f"  Patient encounters using this code: {len(enc_rows)}")
             for r in enc_rows:
-                print(f"    patient={r['patient_id']}  enc={r['encounter_id']}  date={r['enc_date']}  labels={r['node_labels']}")
+                print(
+                    f"    patient={r['patient_id']}  enc={r['encounter_id']}  date={r['enc_date']}  labels={r['node_labels']}"
+                )
 
             # 4. Suggest active replacement
-            keyword = label.lower().split("of")[-1].strip().split()[0]  # e.g. 'esophagus', 'stomach'
+            keyword = (
+                label.lower().split("of")[-1].strip().split()[0]
+            )  # e.g. 'esophagus', 'stomach'
             print(f"  Active SNOMED concepts containing '{keyword}':")
             active = kg.run(
                 _Q_ACTIVE_CONCEPTS_WITH_SIMILAR_NAME,
@@ -102,7 +109,7 @@ def main() -> None:
                 root=CANCER_ROOT,
             )
             for a in active or []:
-                flag = " <-- IN CANCER ROOT" if a['in_cancer_root'] else ""
+                flag = " <-- IN CANCER ROOT" if a["in_cancer_root"] else ""
                 print(f"    {a['id']}  {a['tag']:<15} {a['fsn']}{flag}")
 
             print()

@@ -5,6 +5,7 @@ Read-only endpoints use GET; mutation endpoints use POST with dry_run=True defau
 
 DI-LEO-AI-089 / DO-LEO-AI-087 / VT-LEO-AI-089
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/admin/dq", tags=["data-quality"])
 # ---------------------------------------------------------------------------
 # Request bodies for mutation endpoints
 # ---------------------------------------------------------------------------
+
 
 class DeletePatientBody(BaseModel):
     patient_id: str
@@ -56,18 +58,22 @@ class PinVerifyBody(BaseModel):
 # Client helpers (lazy, per-request)
 # ---------------------------------------------------------------------------
 
+
 def _patient_client() -> Any:
     from libs.dq._clients import get_patient_client
+
     return get_patient_client()
 
 
 def _kg_client() -> Any:
     from libs.dq._clients import get_kg_client
+
     return get_kg_client()
 
 
 def _term_client() -> Any:
     from libs.dq._clients import get_term_client
+
     return get_term_client()
 
 
@@ -81,6 +87,7 @@ def _audit_db_path() -> str:
 # ---------------------------------------------------------------------------
 # Patient endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/patient/{patient_id}")
 def get_patient(
@@ -116,8 +123,12 @@ def get_patient_encounters(
     client = _patient_client()
     try:
         result = get_patient_summary(
-            patient_id, client, since=since, until=until,
-            with_text=with_text, limit=limit,
+            patient_id,
+            client,
+            since=since,
+            until=until,
+            with_text=with_text,
+            limit=limit,
         )
         return {"encounters": [e.model_dump() for e in result.encounters]}
     finally:
@@ -141,6 +152,7 @@ def get_schema_audit(
 # ---------------------------------------------------------------------------
 # Episode endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/episodes/health")
 def get_episode_health(
@@ -248,6 +260,7 @@ def get_episode_audit(
 # Terminology endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("/terminology/sf/audit")
 def get_sf_audit(
     limit: int = Query(5000),
@@ -343,6 +356,7 @@ def get_concept(
 # Coding quality endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("/coding/summary")
 def get_coding_summary(
     db_path: Optional[str] = Query(None),
@@ -390,6 +404,7 @@ def get_coding_progress(
 # ---------------------------------------------------------------------------
 # Domain coverage endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/domain/coverage")
 def get_domain_coverage(
@@ -444,6 +459,7 @@ def get_domain_gaps(
 # Reports
 # ---------------------------------------------------------------------------
 
+
 @router.get("/sitrep")
 def get_sitrep(_: CallerScope = Depends(require_admin)) -> dict:
     from libs.dq.reports import get_sitrep
@@ -496,6 +512,7 @@ def run_dq_rules(_: CallerScope = Depends(require_admin)) -> dict:
 # ---------------------------------------------------------------------------
 # Remediation endpoints (mutations -- dry_run=True default)
 # ---------------------------------------------------------------------------
+
 
 @router.post("/remediation/delete-patient")
 def remediation_delete_patient(

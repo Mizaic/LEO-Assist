@@ -20,5 +20,8 @@ def __getattr__(name: str):
     if name in {"TenantContext", "get_tenant_context"}:
         from libs.auth.tenant_context import TenantContext, get_tenant_context
 
-        return {"TenantContext": TenantContext, "get_tenant_context": get_tenant_context}[name]
+        return {
+            "TenantContext": TenantContext,
+            "get_tenant_context": get_tenant_context,
+        }[name]
     raise AttributeError(name)

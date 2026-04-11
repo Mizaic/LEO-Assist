@@ -20,10 +20,10 @@ from services.coding_worker.app.pipeline.extractor_contract import (
     CONTRACT_VERSION,
 )
 
-
 # ---------------------------------------------------------------------------
 # Stub providers
 # ---------------------------------------------------------------------------
+
 
 def _make_stub(source="stub", available=True, raises=None):
     provider = MagicMock()
@@ -36,10 +36,18 @@ def _make_stub(source="stub", available=True, raises=None):
     else:
         provider.extract_batch.return_value = [
             ExtractionItem(
-                sentence_id="s1", text="cancer", span_start=0, span_end=6,
-                semantic_tag="disease", assertion="present", confidence=0.9,
-                normalized="cancer", source=source, model_name=f"{source}-model",
-                model_version="1.0", contract_version=CONTRACT_VERSION,
+                sentence_id="s1",
+                text="cancer",
+                span_start=0,
+                span_end=6,
+                semantic_tag="disease",
+                assertion="present",
+                confidence=0.9,
+                normalized="cancer",
+                source=source,
+                model_name=f"{source}-model",
+                model_version="1.0",
+                contract_version=CONTRACT_VERSION,
             )
         ]
     return provider
@@ -49,11 +57,13 @@ def _make_stub(source="stub", available=True, raises=None):
 # Backend env selection
 # ---------------------------------------------------------------------------
 
+
 def test_build_extractor_llm_backend(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_BACKEND", "llm")
     monkeypatch.setenv("CODING_EXTRACTOR_STRICT", "false")
 
     from services.coding_worker.app.pipeline import extractor_registry as reg
+
     llm_stub = _make_stub("llm")
 
     with patch.object(reg, "_make_llm_provider", return_value=llm_stub):
@@ -67,6 +77,7 @@ def test_build_extractor_model_backend_available(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_STRICT", "false")
 
     from services.coding_worker.app.pipeline import extractor_registry as reg
+
     model_stub = _make_stub("model", available=True)
     llm_stub = _make_stub("llm")
 
@@ -85,6 +96,7 @@ def test_build_extractor_model_backend_unavailable_non_strict(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_STRICT", "false")
 
     from services.coding_worker.app.pipeline import extractor_registry as reg
+
     model_stub = _make_stub("model", available=False)
     llm_stub = _make_stub("llm")
 
@@ -103,6 +115,7 @@ def test_build_extractor_model_backend_unavailable_strict(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_STRICT", "true")
 
     from services.coding_worker.app.pipeline import extractor_registry as reg
+
     model_stub = _make_stub("model", available=False)
 
     with patch.object(reg, "_make_model_provider", return_value=model_stub):
@@ -115,6 +128,7 @@ def test_build_extractor_auto_prefers_model(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_STRICT", "false")
 
     from services.coding_worker.app.pipeline import extractor_registry as reg
+
     model_stub = _make_stub("model", available=True)
     llm_stub = _make_stub("llm")
 
@@ -132,6 +146,7 @@ def test_build_extractor_auto_falls_back_to_llm(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_STRICT", "false")
 
     from services.coding_worker.app.pipeline import extractor_registry as reg
+
     model_stub = _make_stub("model", available=False)
     llm_stub = _make_stub("llm")
 
@@ -147,6 +162,7 @@ def test_build_extractor_auto_falls_back_to_llm(monkeypatch):
 # ---------------------------------------------------------------------------
 # FallbackExtractor runtime fallback
 # ---------------------------------------------------------------------------
+
 
 def test_fallback_extractor_emits_progress_event(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_BACKEND", "model")
@@ -184,6 +200,7 @@ def test_fallback_extractor_strict_raises(monkeypatch):
     monkeypatch.setenv("CODING_EXTRACTOR_STRICT", "true")
 
     from services.coding_worker.app.pipeline import extractor_registry as reg
+
     model_stub = _make_stub("model", available=True, raises=RuntimeError("down"))
     llm_stub = _make_stub("llm")
 

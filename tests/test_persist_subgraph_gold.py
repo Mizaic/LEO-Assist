@@ -65,8 +65,18 @@ def test_write_gold_training_writes_sentence_level_candidates() -> None:
             {
                 "encounter_text": "First sentence. Second sentence.",
                 "sentences": [
-                    {"sentence_id": "s0", "text": "First sentence.", "start": 0, "end": 15},
-                    {"sentence_id": "s1", "text": "Second sentence.", "start": 16, "end": 32},
+                    {
+                        "sentence_id": "s0",
+                        "text": "First sentence.",
+                        "start": 0,
+                        "end": 15,
+                    },
+                    {
+                        "sentence_id": "s1",
+                        "text": "Second sentence.",
+                        "start": 16,
+                        "end": 32,
+                    },
                 ],
                 "entities": [
                     {
@@ -104,7 +114,9 @@ def test_write_gold_training_writes_sentence_level_candidates() -> None:
     assert "First sentence. Second sentence." not in candidate_texts
 
 
-def test_write_gold_training_splits_multiline_lab_sentence_into_line_candidates() -> None:
+def test_write_gold_training_splits_multiline_lab_sentence_into_line_candidates() -> (
+    None
+):
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = False
@@ -168,11 +180,9 @@ def test_write_gold_training_splits_multiline_lab_sentence_into_line_candidates(
 
     assert any("Neutrophil count (42J..) 5.14 10^9/L" in t for t in candidate_texts)
     assert any(
-        "Monocyte count - observation (42N..) 0.71 10^9/L" in t
-        for t in candidate_texts
+        "Monocyte count - observation (42N..) 0.71 10^9/L" in t for t in candidate_texts
     )
     assert not any(
-        "Neutrophil count (42J..) 5.14 10^9/L\nMonocyte count - observation"
-        in t
+        "Neutrophil count (42J..) 5.14 10^9/L\nMonocyte count - observation" in t
         for t in candidate_texts
     )

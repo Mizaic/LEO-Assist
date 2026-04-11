@@ -1,11 +1,10 @@
 """Print detailed breakdown of has_issues encounters from v3 audit."""
+
 from __future__ import annotations
 import json
 import pathlib
 
-results_dir = pathlib.Path(
-    "scripts/investigations/encounter_audit_v3/results"
-)
+results_dir = pathlib.Path("scripts/investigations/encounter_audit_v3/results")
 
 has_issues = []
 for f in sorted(results_dir.glob("*.json")):
@@ -48,7 +47,7 @@ for enc in has_issues:
             reason = g.get("reason", "")
             print(f"    [{sev}] {sn} ({sid})  assertion={assertion}")
             if sentence:
-                print(f"           evidence: \"{sentence[:100]}\"")
+                print(f'           evidence: "{sentence[:100]}"')
             if reason:
                 print(f"           reason:   {reason[:120]}")
 

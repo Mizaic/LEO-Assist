@@ -32,6 +32,7 @@ Usage
     python scripts/feed_audit_gaps_to_surface_forms.py --threshold 0.80
     python scripts/feed_audit_gaps_to_surface_forms.py --track A
 """
+
 from __future__ import annotations
 
 import argparse
@@ -97,49 +98,116 @@ _RESIDUAL_DIGIT_RE = re.compile(r"\b\d+\b")
 
 # Verbs and behavioural words that indicate narrative/activity descriptions,
 # not lab test names. Used to block Track A behavioural phrases.
-_BEHAVIOUR_VERBS = frozenset({
-    "goes", "going", "go", "attends", "attending", "attend",
-    "walks", "walking", "walk", "exercises", "exercising", "exercise",
-    "engages", "engaging", "participates", "participating",
-    "reports", "experiencing", "experienced", "diagnosed",
-    "seen", "seeing", "said", "told", "noted", "documented",
-})
+_BEHAVIOUR_VERBS = frozenset(
+    {
+        "goes",
+        "going",
+        "go",
+        "attends",
+        "attending",
+        "attend",
+        "walks",
+        "walking",
+        "walk",
+        "exercises",
+        "exercising",
+        "exercise",
+        "engages",
+        "engaging",
+        "participates",
+        "participating",
+        "reports",
+        "experiencing",
+        "experienced",
+        "diagnosed",
+        "seen",
+        "seeing",
+        "said",
+        "told",
+        "noted",
+        "documented",
+    }
+)
 
 # Sentence-starter patterns that identify narrative text, not surface forms.
 _SENTENCE_STARTERS = (
-    "patient ", "patients ", "reports ", "reporting ",
-    "experiencing ", "experienced ", "diagnosed ",
-    "has been ", "have been ", "i am ", "i have ",
-    "an urgent ", "a ct ", "a mri ", "an mri ",
-    "an ultrasound ", "a ultrasound ",
-    "daytime ", "active symptom ",
-    "seen at ", "following your ", "will need ",
-    "was diagnosed ", "telephone call ", "e-mail ", "email ",
-    "some weight", "had outpatient", "recent cxr reported",
+    "patient ",
+    "patients ",
+    "reports ",
+    "reporting ",
+    "experiencing ",
+    "experienced ",
+    "diagnosed ",
+    "has been ",
+    "have been ",
+    "i am ",
+    "i have ",
+    "an urgent ",
+    "a ct ",
+    "a mri ",
+    "an mri ",
+    "an ultrasound ",
+    "a ultrasound ",
+    "daytime ",
+    "active symptom ",
+    "seen at ",
+    "following your ",
+    "will need ",
+    "was diagnosed ",
+    "telephone call ",
+    "e-mail ",
+    "email ",
+    "some weight",
+    "had outpatient",
+    "recent cxr reported",
     "queried about",
 )
 
 _ADMIN_PATTERNS = (
-    "entered at:", "care started", "care ended", "llr spa", "lll spa",
-    "woodbrook medical centre", "university hospitals of leicester",
-    "admission to", "ambulance service",
-    "receptionist access role", "surgery: ",
+    "entered at:",
+    "care started",
+    "care ended",
+    "llr spa",
+    "lll spa",
+    "woodbrook medical centre",
+    "university hospitals of leicester",
+    "admission to",
+    "ambulance service",
+    "receptionist access role",
+    "surgery: ",
     "it will take place by phone",
     "video or in person as agreed",
-    "arrived at property", "greeted by",
-    "son ", "daughter ", "husband ", "wife ", "kevin", "rtf:",
+    "arrived at property",
+    "greeted by",
+    "son ",
+    "daughter ",
+    "husband ",
+    "wife ",
+    "kevin",
+    "rtf:",
     # Admin/system-generated phrases
-    "request (", "pathology request", "requested)",
+    "request (",
+    "pathology request",
+    "requested)",
     # Planned / future-action phrases -- not clinical findings
-    "to be completed", "to be done", "awaiting results",
-    "including fit", "await further",
+    "to be completed",
+    "to be done",
+    "awaiting results",
+    "including fit",
+    "await further",
     # Generic / non-specific phrases that leaked through LLM audit
     "improvement to",
 )
 
 _OBSERVABLE_TAG = "Observable_entity"
-_CLINICAL_TAGS = {"Clinical_finding", "Procedure", "Situation", "Disorder",
-                  "Body_structure", "Pharmaceutical___biologic_product"}
+_CLINICAL_TAGS = {
+    "Clinical_finding",
+    "Procedure",
+    "Situation",
+    "Disorder",
+    "Body_structure",
+    "Pharmaceutical___biologic_product",
+}
 
 # -- Cypher duplicate check --------------------------------------------------
 
@@ -153,6 +221,7 @@ RETURN count(t) AS n
 
 
 # -- Classification helpers --------------------------------------------------
+
 
 def _is_sentence(text: str) -> bool:
     """Return True if the text looks like narrative prose, not a surface form."""
@@ -255,6 +324,7 @@ def _pending_count(session) -> int:
 
 # -- Core feed logic ---------------------------------------------------------
 
+
 def feed_gaps(
     gaps: list[dict[str, Any]],
     threshold: float,
@@ -262,8 +332,10 @@ def feed_gaps(
     tracks: set[str],
 ) -> dict[str, int]:
     counts: dict[str, int] = {
-        "created_A": 0, "created_B": 0,
-        "skipped_exists": 0, "rejected": 0,
+        "created_A": 0,
+        "created_B": 0,
+        "skipped_exists": 0,
+        "rejected": 0,
     }
 
     client = KnowledgeGraphClient()
@@ -288,7 +360,11 @@ def feed_gaps(
                 if dry_run:
                     logger.info(
                         "[DRY RUN] Track %s | %r -> %s (%s) score=%.2f",
-                        track, evidence, expected_snomed, expected_name[:50], score,
+                        track,
+                        evidence,
+                        expected_snomed,
+                        expected_name[:50],
+                        score,
                     )
                     counts[f"created_{track}"] += 1
                     continue
@@ -319,7 +395,10 @@ def feed_gaps(
                 )
                 logger.info(
                     "Created Task (track=%s): %r -> %s score=%.2f",
-                    track, evidence, expected_snomed, score,
+                    track,
+                    evidence,
+                    expected_snomed,
+                    score,
                 )
                 counts[f"created_{track}"] += 1
     finally:
@@ -328,6 +407,7 @@ def feed_gaps(
 
 
 # -- Entry point -------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -376,14 +456,20 @@ def main() -> None:
 
     gaps = json.loads(gaps_file.read_text(encoding="utf-8"))
     logger.info("Loaded %d surface-form gaps from %s", len(gaps), gaps_file)
-    logger.info("Tracks: %s  Threshold: %.2f  Dry-run: %s", tracks, args.threshold, args.dry_run)
+    logger.info(
+        "Tracks: %s  Threshold: %.2f  Dry-run: %s", tracks, args.threshold, args.dry_run
+    )
 
-    counts = feed_gaps(gaps, threshold=args.threshold, dry_run=args.dry_run, tracks=tracks)
+    counts = feed_gaps(
+        gaps, threshold=args.threshold, dry_run=args.dry_run, tracks=tracks
+    )
     total_created = counts["created_A"] + counts["created_B"]
     logger.info(
         "Complete. Track-A=%d  Track-B=%d  skipped(exists)=%d  rejected=%d  TOTAL_CREATED=%d",
-        counts["created_A"], counts["created_B"],
-        counts["skipped_exists"], counts["rejected"],
+        counts["created_A"],
+        counts["created_B"],
+        counts["skipped_exists"],
+        counts["rejected"],
         total_created,
     )
 

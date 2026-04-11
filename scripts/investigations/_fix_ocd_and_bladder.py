@@ -10,19 +10,22 @@
 3. Other abbreviation fixes: BPAD -> bipolar, EUPD -> BPD, CMHT -> community MH team,
    SMI -> severe mental illness.
 """
+
 import os, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
@@ -54,6 +57,7 @@ ORDER BY m.confidence DESC
 
 def _norm(text: str) -> str:
     import re
+
     return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
 
 
@@ -80,66 +84,69 @@ FIXES = [
     # -- OCD abbreviation --
     # Term node "OCD" maps to Osteochondritis dissecans (82562007) in SNOMED.
     # A surface form with conf=1.0 beats Term nodes (1.2x boost).
-    ("OCD",   "191736004", None),   # Obsessive-compulsive disorder
-    ("ocd",   "191736004", None),
-
+    ("OCD", "191736004", None),  # Obsessive-compulsive disorder
+    ("ocd", "191736004", None),
     # -- Other MH abbreviations that were KEPT (not in GCL, no surface form) --
-    ("BPAD",  "13746004",  None),   # Bipolar disorder
-    ("EUPD",  "20010003",  None),   # Emotionally unstable PD = BPD
-    ("CMHT",  "304561000000109", None),  # Community mental health team care
-    ("CRHTT", "304561000000109", None),  # Crisis resolution home treatment -> community MH
-    ("SMI",   "75478009",  None),   # Severe mental illness
-    ("NAD",   "17621005",  None),   # Normal (finding) -- frequently charted abbreviation
-
+    ("BPAD", "13746004", None),  # Bipolar disorder
+    ("EUPD", "20010003", None),  # Emotionally unstable PD = BPD
+    ("CMHT", "304561000000109", None),  # Community mental health team care
+    (
+        "CRHTT",
+        "304561000000109",
+        None,
+    ),  # Crisis resolution home treatment -> community MH
+    ("SMI", "75478009", None),  # Severe mental illness
+    ("NAD", "17621005", None),  # Normal (finding) -- frequently charted abbreviation
     # -- Eating disorder abbreviations --
-    ("ARFID", "700213005", None),   # Avoidant restrictive food intake disorder
-    ("ARBD",  "281004",    None),   # Alcohol-related dementia
-
+    ("ARFID", "700213005", None),  # Avoidant restrictive food intake disorder
+    ("ARBD", "281004", None),  # Alcohol-related dementia
     # -- Urology fast-track corrections --
     # "bladder cancer" fast-track was wrongly linked to gynaecological cancer;
     # delete that wrong edge and upsert the urological cancer fast-track.
-    ("fast track referral for suspected bladder cancer",
+    (
+        "fast track referral for suspected bladder cancer",
         "276431000000102",  # Fast track referral for suspected urological cancer
-        "276311000000101"),  # Wrong: gynaecological cancer -- delete this edge
-
+        "276311000000101",
+    ),  # Wrong: gynaecological cancer -- delete this edge
     # Prostate fast-track: was linked to gynaecological, should be urological
-    ("fast track referral for suspected prostate cancer",
+    (
+        "fast track referral for suspected prostate cancer",
         "276431000000102",  # Urological
-        "276311000000101"),  # Wrong: gynaecological -- delete
-
+        "276311000000101",
+    ),  # Wrong: gynaecological -- delete
     # Renal / kidney cancer -> urological
-    ("fast track referral for suspected kidney cancer",  "276431000000102", None),
-    ("fast track referral for suspected renal cancer",   "276431000000102", None),
+    ("fast track referral for suspected kidney cancer", "276431000000102", None),
+    ("fast track referral for suspected renal cancer", "276431000000102", None),
     ("fast track referral for suspected testicular cancer", "276431000000102", None),
-    ("fast track referral for suspected penile cancer",  "276431000000102", None),
-
+    ("fast track referral for suspected penile cancer", "276431000000102", None),
     # Gynaecological -- correct aliases
-    ("fast track referral for suspected ovarian cancer",   "276311000000101", None),
-    ("fast track referral for suspected uterine cancer",   "276311000000101", None),
-    ("fast track referral for suspected endometrial cancer","276311000000101", None),
-    ("fast track referral for suspected vulval cancer",    "276311000000101", None),
-
+    ("fast track referral for suspected ovarian cancer", "276311000000101", None),
+    ("fast track referral for suspected uterine cancer", "276311000000101", None),
+    ("fast track referral for suspected endometrial cancer", "276311000000101", None),
+    ("fast track referral for suspected vulval cancer", "276311000000101", None),
     # -- Cervical cancer is gynaecological, not prostate --
-    ("fast track referral for suspected cervical cancer",  "276311000000101", "276358001"),
-
+    (
+        "fast track referral for suspected cervical cancer",
+        "276311000000101",
+        "276358001",
+    ),
     # -- Urgent/2WW referral for cancer (generic) --
-    ("urgent referral for suspected cancer",   "306206005", None),  # Urgent referral
-    ("2WW referral",                           "306206005", None),
-    ("two week wait referral",                 "306206005", None),
-    ("2 week wait referral",                   "306206005", None),
-    ("two week wait",                          "306206005", None),
-
+    ("urgent referral for suspected cancer", "306206005", None),  # Urgent referral
+    ("2WW referral", "306206005", None),
+    ("two week wait referral", "306206005", None),
+    ("2 week wait referral", "306206005", None),
+    ("two week wait", "306206005", None),
     # -- Common terms that need exact surface forms to beat noise --
-    ("haemoptysis",          "66857006",  None),   # Hemoptysis (finding)
-    ("hemoptysis",           "66857006",  None),
-    ("rectal bleeding",      "405729008", None),   # Haematochezia
-    ("PR bleeding",          "405729008", None),
-    ("thrombocytosis",       "396333002", None),   # Thrombocytosis
-    ("weight loss",          "89362005",  None),   # Weight loss finding
+    ("haemoptysis", "66857006", None),  # Hemoptysis (finding)
+    ("hemoptysis", "66857006", None),
+    ("rectal bleeding", "405729008", None),  # Haematochezia
+    ("PR bleeding", "405729008", None),
+    ("thrombocytosis", "396333002", None),  # Thrombocytosis
+    ("weight loss", "89362005", None),  # Weight loss finding
     ("unexplained weight loss", "89362005", None),
-    ("PSA raised",           "396152005", None),   # PSA above reference range
-    ("elevated PSA",         "396152005", None),
-    ("raised PSA",           "396152005", None),
+    ("PSA raised", "396152005", None),  # PSA above reference range
+    ("elevated PSA", "396152005", None),
+    ("raised PSA", "396152005", None),
 ]
 
 

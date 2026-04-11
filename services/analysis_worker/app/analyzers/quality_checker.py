@@ -76,12 +76,19 @@ def run_quality_checks() -> QualityReport:
                         episode_id=str(row.get("episode_id") or "unknown"),
                         issue_type=str(row.get("issue_type") or "quality_issue"),
                         severity=str(row.get("severity") or "medium"),
-                        description=str(row.get("description") or "Quality check flagged a review item"),
-                        suggested_action=str(row.get("suggested_action") or "Review episode"),
+                        description=str(
+                            row.get("description")
+                            or "Quality check flagged a review item"
+                        ),
+                        suggested_action=str(
+                            row.get("suggested_action") or "Review episode"
+                        ),
                         patient_id=row.get("patient_id"),
                     )
                 )
         compliant_count = max(total - len(issues), 0)
-        return QualityReport(total_checked=total, compliant_count=compliant_count, issues=issues)
+        return QualityReport(
+            total_checked=total, compliant_count=compliant_count, issues=issues
+        )
     finally:
         client.close()

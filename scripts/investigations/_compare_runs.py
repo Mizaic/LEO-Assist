@@ -1,4 +1,5 @@
 """Compare v1 dry-run vs v2 re-audit results side by side."""
+
 from __future__ import annotations
 
 import collections
@@ -51,13 +52,15 @@ def summarise(db_path: Path, label: str) -> list[dict]:
         if pv:
             prompt_versions.add(pv)
         if ea == "has_issues":
-            has_issues.append({
-                "enc": r["encounter_id"][:8],
-                "missing": m,
-                "overcoded": o,
-                "wrong": w,
-                "notes": (d.get("notes") or "")[:80],
-            })
+            has_issues.append(
+                {
+                    "enc": r["encounter_id"][:8],
+                    "missing": m,
+                    "overcoded": o,
+                    "wrong": w,
+                    "notes": (d.get("notes") or "")[:80],
+                }
+            )
         total_cost += r["cost_usd"] or 0.0
         total_in += r["input_tokens"] or 0
         total_out += r["output_tokens"] or 0
@@ -67,8 +70,10 @@ def summarise(db_path: Path, label: str) -> list[dict]:
     print(f"=== {label} ===")
     print(f"  encounters   : {n}")
     print(f"  prompt ver   : {prompt_versions or '(not stored)'}")
-    print(f"  cost         : ${total_cost:.4f}  "
-          f"({total_in:,} in / {total_out:,} out tokens)")
+    print(
+        f"  cost         : ${total_cost:.4f}  "
+        f"({total_in:,} in / {total_out:,} out tokens)"
+    )
     print()
     for k, v in sorted(verdicts.items(), key=lambda x: -x[1]):
         bar = "#" * (v * 30 // n) if n else ""

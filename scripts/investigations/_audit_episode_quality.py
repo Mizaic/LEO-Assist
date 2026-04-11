@@ -1,8 +1,9 @@
 """Audit EpisodeOfCare node quality:
-  - Patients with multiple episodes (check distinctness)
-  - Episodes with no end_date
-  - Episodes that are still 'in_progress' with referral_date > 1 year ago (stale)
+- Patients with multiple episodes (check distinctness)
+- Episodes with no end_date
+- Episodes that are still 'in_progress' with referral_date > 1 year ago (stale)
 """
+
 from __future__ import annotations
 import sys
 from datetime import date, datetime
@@ -11,9 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient

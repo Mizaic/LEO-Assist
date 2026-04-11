@@ -52,7 +52,9 @@ def test_is_retryable_non_retryable() -> None:
 
 def test_converse_with_retry_success_first_try() -> None:
     client = MagicMock()
-    client.converse.return_value = {"output": {"message": {"content": [{"text": "ok"}]}}}
+    client.converse.return_value = {
+        "output": {"message": {"content": [{"text": "ok"}]}}
+    }
     result = converse_with_retry(
         client,
         model_id="test-model",

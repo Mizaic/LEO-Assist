@@ -9,7 +9,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
-from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient, run_with_retry
+from libs.neo4j_client.client import (
+    KnowledgeGraphClient,
+    PatientGraphClient,
+    run_with_retry,
+)
 
 router = APIRouter()
 
@@ -25,18 +29,37 @@ AGGREGATION_TARGETS = [
 # place_of_presentation, referral_route, safety_netting_recorded: pipeline extraction in progress
 FILTERS = {
     "EpisodeOfCare": [
-        {"property": "condition_type", "type": "string", "fhirType": "code", "exampleValues": ["Lung", "Breast"]},
-        {"property": "status", "type": "string", "fhirType": "code", "distinctFromNeo4j": True},
+        {
+            "property": "condition_type",
+            "type": "string",
+            "fhirType": "code",
+            "exampleValues": ["Lung", "Breast"],
+        },
+        {
+            "property": "status",
+            "type": "string",
+            "fhirType": "code",
+            "distinctFromNeo4j": True,
+        },
         {"property": "referral_date", "type": "string", "fhirType": "date"},
         {"property": "referral_route", "type": "string", "fhirType": "code"},
         {"property": "place_of_presentation", "type": "string", "fhirType": "code"},
         {"property": "diagnosis_date", "type": "string", "fhirType": "date"},
         {"property": "first_presentation_date", "type": "string", "fhirType": "date"},
         {"property": "cancer_stage", "type": "string", "fhirType": "code"},
-        {"property": "safety_netting_recorded", "type": "boolean", "fhirType": "boolean"},
+        {
+            "property": "safety_netting_recorded",
+            "type": "boolean",
+            "fhirType": "boolean",
+        },
     ],
     "Patient": [
-        {"property": "gender", "type": "string", "fhirType": "code", "exampleValues": ["male", "female", "other"]},
+        {
+            "property": "gender",
+            "type": "string",
+            "fhirType": "code",
+            "exampleValues": ["male", "female", "other"],
+        },
         {"property": "birthDate", "type": "string", "fhirType": "date"},
         {"property": "ethnicity", "type": "string", "fhirType": "code"},
     ],
@@ -56,9 +79,15 @@ FILTERS = {
 # valueProperties: numeric fields for median/percentile aggregation (Phase 2)
 GROUP_BY = {
     "EpisodeOfCare": [
-        "condition_type", "status", "referral_route", "place_of_presentation",
-        "Patient.gender", "Patient.age_band_at_diagnosis", "cancer_stage",
-        "primary_care_interval_band", "diagnostic_interval_band",
+        "condition_type",
+        "status",
+        "referral_route",
+        "place_of_presentation",
+        "Patient.gender",
+        "Patient.age_band_at_diagnosis",
+        "cancer_stage",
+        "primary_care_interval_band",
+        "diagnostic_interval_band",
     ],
     "Patient": ["gender", "ethnicity"],
     "Encounter": ["encounter_type", "date", "count_per_patient_band"],
@@ -66,7 +95,11 @@ GROUP_BY = {
 }
 
 VALUE_PROPERTIES = {
-    "EpisodeOfCare": ["primary_care_interval_days", "diagnostic_interval_days", "age_at_diagnosis"],
+    "EpisodeOfCare": [
+        "primary_care_interval_days",
+        "diagnostic_interval_days",
+        "age_at_diagnosis",
+    ],
     "Encounter": ["count_per_patient"],
 }
 
@@ -74,7 +107,11 @@ VALUE_PROPERTIES = {
 SCOPE_TYPES = [
     {"scopeType": "gp", "paramName": "practiceOdsCode", "label": "GP Practice"},
     {"scopeType": "icb", "paramName": "icbOdsCode", "label": "ICB"},
-    {"scopeType": "alliance", "paramName": "allianceOdsCode", "label": "Cancer Alliance"},
+    {
+        "scopeType": "alliance",
+        "paramName": "allianceOdsCode",
+        "label": "Cancer Alliance",
+    },
 ]
 
 
@@ -146,9 +183,16 @@ def get_distinct_filter_values(
 
 @router.get("/schema/sample-node")
 def get_sample_node(
-    node_label: str = Query(..., description="Node label to sample (e.g. EncounterCandidate)"),
-    graph: str = Query("patient", description="Which graph to query: 'patient' or 'knowledge'"),
-    text_property: str = Query("text", description="Property that holds the main text — highlighted in the preview"),
+    node_label: str = Query(
+        ..., description="Node label to sample (e.g. EncounterCandidate)"
+    ),
+    graph: str = Query(
+        "patient", description="Which graph to query: 'patient' or 'knowledge'"
+    ),
+    text_property: str = Query(
+        "text",
+        description="Property that holds the main text — highlighted in the preview",
+    ),
 ):
     """Return one sample node of the given label so users can verify field names.
 
@@ -156,7 +200,14 @@ def get_sample_node(
     fields are truncated to 300 characters so the preview stays readable.
     Sensitive fields (e.g. NHS number, DOB) are redacted.
     """
-    _REDACT = {"nhs_number", "date_of_birth", "dob", "birthdate", "birthDate", "postcode"}
+    _REDACT = {
+        "nhs_number",
+        "date_of_birth",
+        "dob",
+        "birthdate",
+        "birthDate",
+        "postcode",
+    }
     _MAX_TEXT = 300
 
     try:
@@ -168,7 +219,12 @@ def get_sample_node(
         cypher = f"MATCH (n:{node_label}) RETURN properties(n) AS props LIMIT 1"
         rows = run_with_retry(client, cypher)
         if not rows:
-            return JSONResponse(status_code=404, content={"detail": f"No {node_label} nodes found in the {graph} graph."})
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "detail": f"No {node_label} nodes found in the {graph} graph."
+                },
+            )
 
         raw: dict = dict(rows[0]["props"])
 
@@ -189,7 +245,12 @@ def get_sample_node(
             ordered[text_property] = preview.pop(text_property)
         ordered.update(preview)
 
-        return {"nodeLabel": node_label, "graph": graph, "textProperty": text_property, "properties": ordered}
+        return {
+            "nodeLabel": node_label,
+            "graph": graph,
+            "textProperty": text_property,
+            "properties": ordered,
+        }
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})

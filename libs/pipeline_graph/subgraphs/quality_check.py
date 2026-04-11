@@ -8,7 +8,9 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from services.analysis_worker.app.analyzers.quality_checker import run_quality_checks as run_global_quality_checks
+from services.analysis_worker.app.analyzers.quality_checker import (
+    run_quality_checks as run_global_quality_checks,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,9 @@ def run_quality_checks(state: QualityCheckState) -> dict[str, Any]:
     issues: list[dict[str, Any]] = []
     seen_texts: set[str] = set()
     for entity in state.get("entities") or []:
-        text = str(entity.get("text") or entity.get("surface_form") or "").strip().lower()
+        text = (
+            str(entity.get("text") or entity.get("surface_form") or "").strip().lower()
+        )
         if text and text in seen_texts:
             issues.append(
                 {
@@ -63,8 +67,12 @@ def run_quality_checks(state: QualityCheckState) -> dict[str, Any]:
     return {
         "quality_issues": combined_issues,
         "quality_report": {
-            "total_checked": max(len(state.get("episodes") or []), global_report.get("total_checked", 0)),
-            "compliant_count": max(max(len(state.get("episodes") or []), 0) - len(issues), 0),
+            "total_checked": max(
+                len(state.get("episodes") or []), global_report.get("total_checked", 0)
+            ),
+            "compliant_count": max(
+                max(len(state.get("episodes") or []), 0) - len(issues), 0
+            ),
             "issues": combined_issues,
         },
         "errors": errors,

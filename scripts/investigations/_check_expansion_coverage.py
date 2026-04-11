@@ -1,4 +1,5 @@
 """End-to-end check: IS_A expansion per subdomain vs what encounters actually contain."""
+
 from __future__ import annotations
 import json
 import sys
@@ -8,10 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
@@ -75,7 +78,12 @@ def main() -> None:
 
         for vs_id, vs in valuesets.items():
             mt = vs.get("_milestone_type", "")
-            if mt not in ("diagnosis", "referral", "specialist_visit", "benign_closure"):
+            if mt not in (
+                "diagnosis",
+                "referral",
+                "specialist_visit",
+                "benign_closure",
+            ):
                 continue
 
             parent_ids = [
@@ -109,7 +117,7 @@ def main() -> None:
 
             # Show specific descendants for small domains
             if len(desc_ids) <= 20:
-                for r in (desc_rows or []):
+                for r in desc_rows or []:
                     print(f"      -> {r['child_id']}  {r.get('display','')[:70]}")
             print()
 
@@ -117,7 +125,9 @@ def main() -> None:
         print(f"All expanded IDs across milestone domains: {len(all_expanded_ids)}")
 
         print()
-        print("=== Cancer/referral/clinic concepts in patient encounters NOT covered ===")
+        print(
+            "=== Cancer/referral/clinic concepts in patient encounters NOT covered ==="
+        )
         with pg.session() as s:
             uncovered = s.run(_Q_UNCOVERED, covered_ids=list(all_expanded_ids)).data()
             if not uncovered:
@@ -126,7 +136,9 @@ def main() -> None:
                 print(f"  {'conceptId':<20} {'enc_count':>5}  name")
                 print("  " + "-" * 90)
                 for r in uncovered:
-                    print(f"  {str(r['conceptId']):<20} {r['enc_count']:>5}  {str(r['name'])[:70]}")
+                    print(
+                        f"  {str(r['conceptId']):<20} {r['enc_count']:>5}  {str(r['name'])[:70]}"
+                    )
 
     finally:
         kg.close()

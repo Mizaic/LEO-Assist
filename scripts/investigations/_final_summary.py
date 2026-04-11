@@ -1,4 +1,5 @@
 """Full post-remediation summary: what was applied, top concepts, disputes."""
+
 import sqlite3
 from pathlib import Path
 from collections import defaultdict

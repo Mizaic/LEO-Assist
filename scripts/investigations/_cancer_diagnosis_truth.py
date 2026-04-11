@@ -10,6 +10,7 @@ For each patient:
 
 Cross-referenced against episode status.
 """
+
 import re
 import sys
 from pathlib import Path
@@ -18,9 +19,11 @@ from collections import defaultdict
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -74,12 +77,12 @@ LIMIT 3
 _RE_CONFIRMED = re.compile(
     r"\b(?:confirmed|diagnosed|diagnosis of|biopsy (?:showed|confirmed|proven)|"
     r"histolog|proven|cancer confirmed|positive for malignancy|malignancy confirmed)\b",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 _RE_CANCER_TERM = re.compile(
     r"\b(?:cancer|carcinoma|malignant|malignancy|melanoma|lymphoma|leukaemia|"
     r"leukemia|myeloma|sarcoma|adenocarcinoma|neoplasm)\b",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 _Q_TEXT_CANCER = """
@@ -106,12 +109,8 @@ def classify_patient(pid: str, pg) -> dict:
     # Coded cancer
     with pg.session() as s:
         cancer_rows = s.run(_Q_CANCER_CODED, pid=pid).data()
-    confirmed_coded = [
-        r for r in cancer_rows if r["assertion"] in ASSERTION_CONFIRMED
-    ]
-    suspected_coded = [
-        r for r in cancer_rows if r["assertion"] in ASSERTION_SUSPECTED
-    ]
+    confirmed_coded = [r for r in cancer_rows if r["assertion"] in ASSERTION_CONFIRMED]
+    suspected_coded = [r for r in cancer_rows if r["assertion"] in ASSERTION_SUSPECTED]
 
     # Coded benign
     with pg.session() as s:
@@ -188,12 +187,12 @@ def main():
             "UNKNOWN",
         ]
         labels = {
-            "CONFIRMED_CODED":      "Confirmed cancer -- coded SNOMED (present/historical)",
-            "CONFIRMED_TEXT_ONLY":  "Confirmed cancer -- encounter text only (uncoded)",
-            "SUSPECTED_CODED":      "Suspected only   -- coded as possible/hypothetical",
-            "SUSPECTED_TEXT_ONLY":  "Suspected only   -- mentioned in text, not confirmed",
-            "BENIGN_DISCHARGE":     "Benign discharge -- no cancer found (coded)",
-            "UNKNOWN":              "Unknown          -- no cancer evidence either way",
+            "CONFIRMED_CODED": "Confirmed cancer -- coded SNOMED (present/historical)",
+            "CONFIRMED_TEXT_ONLY": "Confirmed cancer -- encounter text only (uncoded)",
+            "SUSPECTED_CODED": "Suspected only   -- coded as possible/hypothetical",
+            "SUSPECTED_TEXT_ONLY": "Suspected only   -- mentioned in text, not confirmed",
+            "BENIGN_DISCHARGE": "Benign discharge -- no cancer found (coded)",
+            "UNKNOWN": "Unknown          -- no cancer evidence either way",
         }
         for grp in order:
             patients = status_groups.get(grp, [])
@@ -203,8 +202,7 @@ def main():
                 pid = r["pid"]
                 eps = ep_by_pid.get(pid, [])
                 ep_summary = ", ".join(
-                    f"{ep['status']}({ep['site'] or '?'})"
-                    for ep in eps[:4]
+                    f"{ep['status']}({ep['site'] or '?'})" for ep in eps[:4]
                 )
                 if len(eps) > 4:
                     ep_summary += f" +{len(eps)-4} more"
@@ -249,11 +247,12 @@ def main():
             for r in status_groups.get(grp, [])
         }
         hitl_for_confirmed = [
-            ep for ep in ep_rows
-            if str(ep["pid"]) in confirmed_pids and ep.get("hitl")
+            ep for ep in ep_rows if str(ep["pid"]) in confirmed_pids and ep.get("hitl")
         ]
         for ep in hitl_for_confirmed:
-            print(f"  {ep['pid']}  {ep['status']:25s}  {ep['site']}  ref={ep['ref_date']}")
+            print(
+                f"  {ep['pid']}  {ep['status']:25s}  {ep['site']}  ref={ep['ref_date']}"
+            )
 
     finally:
         pg.close()

@@ -7,6 +7,7 @@ Run:
     python scripts/investigations/_investigate_referral_only_episodes.py --out referral_only_review.txt
     python scripts/investigations/_investigate_referral_only_episodes.py --pid 4185994966
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,9 +24,11 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 # Look from referral date through end of 2025 (no artificial 1-year cap)
@@ -34,18 +37,119 @@ WINDOW_END = "2025-12-31"
 
 # Keywords per canonical site used to highlight relevant sentences
 _SITE_HIGHLIGHTS: dict[str, list[str]] = {
-    "breast":            ["breast", "mammogram", "mammo", "lump", "biopsy", "benign", "fibroadenoma", "dcis", "malignant", "cancer", "clinic"],
-    "non_site_specific": ["2ww", "fast track", "cancer", "malignant", "benign", "clinic", "referral", "result", "biopsy"],
-    "lower_gi":          ["bowel", "colonoscopy", "colorectal", "lower gi", "rectal", "colon", "polyp", "biopsy", "cancer", "fit", "ct"],
-    "skin":              ["skin", "melanoma", "lesion", "excision", "biopsy", "dermatology", "mole", "cancer"],
-    "urological":        ["urology", "prostate", "bladder", "renal", "psa", "kidney", "biopsy", "cancer", "mri"],
-    "head_and_neck":     ["ent", "head", "neck", "throat", "larynx", "nasendoscopy", "voice", "cancer", "biopsy"],
-    "upper_gi":          ["ogd", "gastroscopy", "endoscopy", "oesophag", "stomach", "upper gi", "biopsy", "cancer"],
-    "gynaecological":    ["gynae", "cervix", "uterus", "endometrium", "ovarian", "hysteroscopy", "biopsy", "cancer", "smear"],
-    "lung":              ["lung", "cxr", "chest", "nodule", "ct", "biopsy", "cancer", "pulmonary", "pleural"],
-    "haematological":    ["haematology", "lymphoma", "lymph", "blood", "ct", "biopsy", "cancer", "leukaemia"],
-    "brain":             ["brain", "neuro", "mri", "tumour", "headache", "seizure", "cancer"],
-    "childrens_tumour":  ["tumour", "paediatric", "mri", "cancer", "biopsy"],
+    "breast": [
+        "breast",
+        "mammogram",
+        "mammo",
+        "lump",
+        "biopsy",
+        "benign",
+        "fibroadenoma",
+        "dcis",
+        "malignant",
+        "cancer",
+        "clinic",
+    ],
+    "non_site_specific": [
+        "2ww",
+        "fast track",
+        "cancer",
+        "malignant",
+        "benign",
+        "clinic",
+        "referral",
+        "result",
+        "biopsy",
+    ],
+    "lower_gi": [
+        "bowel",
+        "colonoscopy",
+        "colorectal",
+        "lower gi",
+        "rectal",
+        "colon",
+        "polyp",
+        "biopsy",
+        "cancer",
+        "fit",
+        "ct",
+    ],
+    "skin": [
+        "skin",
+        "melanoma",
+        "lesion",
+        "excision",
+        "biopsy",
+        "dermatology",
+        "mole",
+        "cancer",
+    ],
+    "urological": [
+        "urology",
+        "prostate",
+        "bladder",
+        "renal",
+        "psa",
+        "kidney",
+        "biopsy",
+        "cancer",
+        "mri",
+    ],
+    "head_and_neck": [
+        "ent",
+        "head",
+        "neck",
+        "throat",
+        "larynx",
+        "nasendoscopy",
+        "voice",
+        "cancer",
+        "biopsy",
+    ],
+    "upper_gi": [
+        "ogd",
+        "gastroscopy",
+        "endoscopy",
+        "oesophag",
+        "stomach",
+        "upper gi",
+        "biopsy",
+        "cancer",
+    ],
+    "gynaecological": [
+        "gynae",
+        "cervix",
+        "uterus",
+        "endometrium",
+        "ovarian",
+        "hysteroscopy",
+        "biopsy",
+        "cancer",
+        "smear",
+    ],
+    "lung": [
+        "lung",
+        "cxr",
+        "chest",
+        "nodule",
+        "ct",
+        "biopsy",
+        "cancer",
+        "pulmonary",
+        "pleural",
+    ],
+    "haematological": [
+        "haematology",
+        "lymphoma",
+        "lymph",
+        "blood",
+        "ct",
+        "biopsy",
+        "cancer",
+        "leukaemia",
+    ],
+    "brain": ["brain", "neuro", "mri", "tumour", "headache", "seizure", "cancer"],
+    "childrens_tumour": ["tumour", "paediatric", "mri", "cancer", "biopsy"],
 }
 
 _Q_EPISODES = """
@@ -118,9 +222,9 @@ def run(episodes: list[dict], out_path: Path | None) -> None:
     total = len(episodes)
 
     for idx, ep in enumerate(episodes, 1):
-        pid   = str(ep["pid"])
-        cond  = str(ep["cond"] or "unknown")
-        rd    = _parse_date(ep["rd"])
+        pid = str(ep["pid"])
+        cond = str(ep["cond"] or "unknown")
+        rd = _parse_date(ep["rd"])
         keywords = _SITE_HIGHLIGHTS.get(cond, ["cancer", "biopsy", "result", "clinic"])
 
         emit()
@@ -137,12 +241,14 @@ def run(episodes: list[dict], out_path: Path | None) -> None:
 
         try:
             with client.session() as s:
-                encounters = list(s.run(
-                    _Q_ENCOUNTERS,
-                    pid=pid,
-                    start_date=rd.strftime("%Y-%m-%d"),
-                    end_date=WINDOW_END,
-                ))
+                encounters = list(
+                    s.run(
+                        _Q_ENCOUNTERS,
+                        pid=pid,
+                        start_date=rd.strftime("%Y-%m-%d"),
+                        end_date=WINDOW_END,
+                    )
+                )
         except Exception as exc:
             emit(f"  [ERROR: {exc}]")
             continue
@@ -151,14 +257,16 @@ def run(episodes: list[dict], out_path: Path | None) -> None:
             emit("  [No encounters in window]")
             continue
 
-        emit(f"  {len(encounters)} encounter(s) in window"
-             f"  (>> = relevant to {cond}):")
+        emit(
+            f"  {len(encounters)} encounter(s) in window"
+            f"  (>> = relevant to {cond}):"
+        )
         emit()
 
         for enc in encounters:
-            eid     = str(enc["eid"] or "")[:8]
-            date    = str(enc["date"] or "")
-            text    = str(enc["enc_text"] or "")
+            eid = str(enc["eid"] or "")[:8]
+            date = str(enc["date"] or "")
+            text = str(enc["enc_text"] or "")
             codings = [c for c in (enc["codings"] or []) if c.strip()]
 
             emit(f"  -- {date}  enc={eid} --")
@@ -183,11 +291,12 @@ def main() -> None:
     args = parser.parse_args()
 
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
     with client.session() as s:
-        episodes = [dict(r) for r in s.run(
-            _Q_EPISODES, audit_start=f"{AUDIT_START_YEAR}-01-01"
-        )]
+        episodes = [
+            dict(r) for r in s.run(_Q_EPISODES, audit_start=f"{AUDIT_START_YEAR}-01-01")
+        ]
     client.close()
 
     if args.pid:

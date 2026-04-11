@@ -34,9 +34,9 @@ class FewShotExample(BaseModel):
     input: str
     output: str
     deidentified: bool = False
-    category: str = ""          # e.g. "assertion:absent", "observable", "staging"
-    model_scope: str = "any"    # "any" | "extraction" | "extraction:llm" | "verification"
-    description: str = ""       # short human label shown in the example library
+    category: str = ""  # e.g. "assertion:absent", "observable", "staging"
+    model_scope: str = "any"  # "any" | "extraction" | "extraction:llm" | "verification"
+    description: str = ""  # short human label shown in the example library
     core: bool = False
 
 
@@ -68,9 +68,9 @@ class ImproveRequest(BaseModel):
 class SimulateRequest(BaseModel):
     encounterText: str
     presetId: str | None = None  # preferred — derives provider/tier from preset
-    provider: str = "aws"        # fallback if no presetId
-    tier: str = "small"          # fallback if no presetId
-    dryRun: bool = True          # False = actually call the LLM
+    provider: str = "aws"  # fallback if no presetId
+    tier: str = "small"  # fallback if no presetId
+    dryRun: bool = True  # False = actually call the LLM
 
 
 # ── Cost table helpers ────────────────────────────────────────────────────────
@@ -78,81 +78,90 @@ class SimulateRequest(BaseModel):
 _COST_ENV_PREFIXES: dict[str, dict[str, str]] = {
     "aws": {
         "small": "AWS_BEDROCK_MODEL_SMALL_MODEL",
-        "big":   "AWS_BEDROCK_MODEL_BIG_MODEL",
-        "max":   "AWS_BEDROCK_MODEL_MAX_MODEL",
+        "big": "AWS_BEDROCK_MODEL_BIG_MODEL",
+        "max": "AWS_BEDROCK_MODEL_MAX_MODEL",
     },
     "azure": {
         "small": "AZURE_OPENAI_SMALL_MODEL",
-        "big":   "AZURE_OPENAI_BIG_MODEL",
-        "max":   "AZURE_OPENAI_BIG_MODEL",   # max == big for Azure
+        "big": "AZURE_OPENAI_BIG_MODEL",
+        "max": "AZURE_OPENAI_BIG_MODEL",  # max == big for Azure
     },
 }
 
 _MODEL_ID_ENVS: dict[str, dict[str, str]] = {
     "aws": {
         "small": "AWS_SMALL_MODEL",
-        "big":   "AWS_BIG_MODEL",
-        "max":   "AWS_MAX_MODEL",
+        "big": "AWS_BIG_MODEL",
+        "max": "AWS_MAX_MODEL",
     },
     "azure": {
         "small": "AZURE_OPENAI_SMALL_MODEL",
-        "big":   "AZURE_OPENAI_BIG_MODEL",
-        "max":   "AZURE_OPENAI_BIG_MODEL",
+        "big": "AZURE_OPENAI_BIG_MODEL",
+        "max": "AZURE_OPENAI_BIG_MODEL",
     },
 }
 
 _MODEL_ID_DEFAULTS: dict[str, dict[str, str]] = {
     "aws": {
         "small": "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-        "big":   "eu.anthropic.claude-sonnet-4-6",
-        "max":   "eu.anthropic.claude-opus-4-6-v1",
+        "big": "eu.anthropic.claude-sonnet-4-6",
+        "max": "eu.anthropic.claude-opus-4-6-v1",
     },
     "azure": {
         "small": "gpt-5-mini",
-        "big":   "gpt-5",
-        "max":   "gpt-5",
+        "big": "gpt-5",
+        "max": "gpt-5",
     },
 }
 
 _DISPLAY_NAMES: dict[str, dict[str, str]] = {
     "aws": {
         "small": "Claude Haiku (AWS Bedrock)",
-        "big":   "Claude Sonnet (AWS Bedrock)",
-        "max":   "Claude Opus (AWS Bedrock)",
+        "big": "Claude Sonnet (AWS Bedrock)",
+        "max": "Claude Opus (AWS Bedrock)",
     },
     "azure": {
         "small": "GPT-5 mini (Azure OpenAI)",
-        "big":   "GPT-5 (Azure OpenAI)",
-        "max":   "GPT-5 (Azure OpenAI)",
+        "big": "GPT-5 (Azure OpenAI)",
+        "max": "GPT-5 (Azure OpenAI)",
     },
 }
 
 
 import os as _os
 
+
 def _model_cost_entry(provider: str, tier: str) -> dict[str, Any]:
     prefix = _COST_ENV_PREFIXES.get(provider, {}).get(tier, "")
     model_id_env = _MODEL_ID_ENVS.get(provider, {}).get(tier, "")
-    model_id = _os.getenv(model_id_env, _MODEL_ID_DEFAULTS.get(provider, {}).get(tier, ""))
+    model_id = _os.getenv(
+        model_id_env, _MODEL_ID_DEFAULTS.get(provider, {}).get(tier, "")
+    )
     return {
-        "provider":                 provider,
-        "tier":                     tier,
-        "key":                      f"{provider}:{tier}",
-        "modelId":                  model_id,
-        "displayName":              _DISPLAY_NAMES.get(provider, {}).get(tier, f"{provider}:{tier}"),
-        "costPer1mInput":           float(_os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", "0")),
-        "costPer1mCachedInput":     float(_os.getenv(f"{prefix}_COST_PER_1M_CACHED_INPUT_TOKEN", "0")),
-        "costPer1mOutput":          float(_os.getenv(f"{prefix}_COST_PER_1M_OUTPUT_TOKEN", "0")),
+        "provider": provider,
+        "tier": tier,
+        "key": f"{provider}:{tier}",
+        "modelId": model_id,
+        "displayName": _DISPLAY_NAMES.get(provider, {}).get(tier, f"{provider}:{tier}"),
+        "costPer1mInput": float(_os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", "0")),
+        "costPer1mCachedInput": float(
+            _os.getenv(f"{prefix}_COST_PER_1M_CACHED_INPUT_TOKEN", "0")
+        ),
+        "costPer1mOutput": float(_os.getenv(f"{prefix}_COST_PER_1M_OUTPUT_TOKEN", "0")),
     }
 
 
-def _estimate_cost(cost_entry: dict[str, Any], input_tokens: int, output_tokens: int,
-                   cached_tokens: int = 0) -> float:
+def _estimate_cost(
+    cost_entry: dict[str, Any],
+    input_tokens: int,
+    output_tokens: int,
+    cached_tokens: int = 0,
+) -> float:
     billable_input = max(0, input_tokens - cached_tokens)
     return round(
         billable_input * cost_entry["costPer1mInput"] / 1_000_000
-        + cached_tokens  * cost_entry["costPer1mCachedInput"] / 1_000_000
-        + output_tokens  * cost_entry["costPer1mOutput"] / 1_000_000,
+        + cached_tokens * cost_entry["costPer1mCachedInput"] / 1_000_000
+        + output_tokens * cost_entry["costPer1mOutput"] / 1_000_000,
         6,
     )
 
@@ -171,6 +180,7 @@ def get_model_costs(scope: CallerScope = Depends(get_caller_scope)):
     """Return cost rates — Neo4j first, env-var fallback per model."""
     try:
         from libs.cypher.model_config_queries import LIST_MODEL_CONFIGS
+
         client = CodingGraphClient()
         try:
             with client.session() as session:
@@ -181,14 +191,16 @@ def get_model_costs(scope: CallerScope = Depends(get_caller_scope)):
             return {
                 "modelCosts": [
                     {
-                        "key":                r.get("key"),
-                        "provider":           r.get("provider"),
-                        "tier":               r.get("tier"),
-                        "modelId":            r.get("modelId"),
-                        "displayName":        r.get("displayName"),
-                        "costPer1mInput":     float(r.get("costPer1mInput") or 0),
-                        "costPer1mCachedInput": float(r.get("costPer1mCachedInput") or 0),
-                        "costPer1mOutput":    float(r.get("costPer1mOutput") or 0),
+                        "key": r.get("key"),
+                        "provider": r.get("provider"),
+                        "tier": r.get("tier"),
+                        "modelId": r.get("modelId"),
+                        "displayName": r.get("displayName"),
+                        "costPer1mInput": float(r.get("costPer1mInput") or 0),
+                        "costPer1mCachedInput": float(
+                            r.get("costPer1mCachedInput") or 0
+                        ),
+                        "costPer1mOutput": float(r.get("costPer1mOutput") or 0),
                     }
                     for r in rows
                 ]
@@ -211,15 +223,19 @@ def list_prompts(scope: CallerScope = Depends(get_caller_scope)):
             rows = [dict(r) for r in session.run(LIST_PROMPTS)]
         prompts = []
         for row in rows:
-            prompts.append({
-                "id": row["id"],
-                "name": row["name"],
-                "description": row.get("description") or "",
-                "version": row.get("version", 1),
-                "verification": bool(row.get("verification")),
-                "fewShotCount": 1 if row.get("hasFewShot") else 0,
-                "updatedAt": str(row.get("updatedAt") or row.get("createdAt") or ""),
-            })
+            prompts.append(
+                {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "description": row.get("description") or "",
+                    "version": row.get("version", 1),
+                    "verification": bool(row.get("verification")),
+                    "fewShotCount": 1 if row.get("hasFewShot") else 0,
+                    "updatedAt": str(
+                        row.get("updatedAt") or row.get("createdAt") or ""
+                    ),
+                }
+            )
         return {"prompts": prompts}
     finally:
         client.close()
@@ -235,7 +251,11 @@ def get_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
             raise HTTPException(404, f"PromptConfig {prompt_id} not found")
         few_shot_raw = row.get("fewShotExamples") or "[]"
         try:
-            few_shot = json.loads(few_shot_raw) if isinstance(few_shot_raw, str) else few_shot_raw
+            few_shot = (
+                json.loads(few_shot_raw)
+                if isinstance(few_shot_raw, str)
+                else few_shot_raw
+            )
         except (json.JSONDecodeError, TypeError):
             few_shot = []
         return {
@@ -254,7 +274,9 @@ def get_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
 
 
 @router.post("")
-def create_prompt(body: PromptCreateRequest, scope: CallerScope = Depends(get_caller_scope)):
+def create_prompt(
+    body: PromptCreateRequest, scope: CallerScope = Depends(get_caller_scope)
+):
     prompt_id = str(uuid.uuid4())
     few_shot_json = json.dumps([e.model_dump() for e in body.fewShotExamples])
     client = CodingGraphClient()
@@ -326,8 +348,12 @@ def _parse_model_key(model_key: str) -> tuple[str, str]:
     return (parts[0].lower(), parts[1].lower()) if len(parts) == 2 else ("aws", "small")
 
 
-def _build_cost_estimate(cost_entry: dict[str, Any], system_tokens: int, user_tokens: int,
-                         est_output_tokens: int = 200) -> dict[str, Any]:
+def _build_cost_estimate(
+    cost_entry: dict[str, Any],
+    system_tokens: int,
+    user_tokens: int,
+    est_output_tokens: int = 200,
+) -> dict[str, Any]:
     """Return withoutCache + withCache cost breakdowns for a single model."""
     # Without cache: first call — full input rate on all tokens
     no_cache_total = round(
@@ -342,21 +368,38 @@ def _build_cost_estimate(cost_entry: dict[str, Any], system_tokens: int, user_to
         + est_output_tokens * cost_entry["costPer1mOutput"] / 1_000_000,
         6,
     )
-    saving_pct = round((1 - with_cache_total / no_cache_total) * 100, 1) if no_cache_total > 0 else 0.0
+    saving_pct = (
+        round((1 - with_cache_total / no_cache_total) * 100, 1)
+        if no_cache_total > 0
+        else 0.0
+    )
     return {
         "model": cost_entry,
         "systemTokens": system_tokens,
         "userTokens": user_tokens,
         "estOutputTokens": est_output_tokens,
         "withoutCache": {
-            "inputCost": round((system_tokens + user_tokens) * cost_entry["costPer1mInput"] / 1_000_000, 6),
-            "outputCost": round(est_output_tokens * cost_entry["costPer1mOutput"] / 1_000_000, 6),
+            "inputCost": round(
+                (system_tokens + user_tokens)
+                * cost_entry["costPer1mInput"]
+                / 1_000_000,
+                6,
+            ),
+            "outputCost": round(
+                est_output_tokens * cost_entry["costPer1mOutput"] / 1_000_000, 6
+            ),
             "totalCost": no_cache_total,
         },
         "withCache": {
-            "cachedInputCost": round(system_tokens * cost_entry["costPer1mCachedInput"] / 1_000_000, 6),
-            "uncachedInputCost": round(user_tokens * cost_entry["costPer1mInput"] / 1_000_000, 6),
-            "outputCost": round(est_output_tokens * cost_entry["costPer1mOutput"] / 1_000_000, 6),
+            "cachedInputCost": round(
+                system_tokens * cost_entry["costPer1mCachedInput"] / 1_000_000, 6
+            ),
+            "uncachedInputCost": round(
+                user_tokens * cost_entry["costPer1mInput"] / 1_000_000, 6
+            ),
+            "outputCost": round(
+                est_output_tokens * cost_entry["costPer1mOutput"] / 1_000_000, 6
+            ),
             "totalCost": with_cache_total,
         },
         "cacheSavingPct": saving_pct,
@@ -392,7 +435,9 @@ def simulate_prompt(
     few_shot_raw = row.get("fewShotExamples") or "[]"
     try:
         few_shot_examples: list[dict] = (
-            json.loads(few_shot_raw) if isinstance(few_shot_raw, str) else list(few_shot_raw)
+            json.loads(few_shot_raw)
+            if isinstance(few_shot_raw, str)
+            else list(few_shot_raw)
         )
     except (json.JSONDecodeError, TypeError):
         few_shot_examples = []
@@ -414,6 +459,7 @@ def simulate_prompt(
     if body.presetId:
         try:
             from libs.cypher.preset_queries import GET_PRESET
+
             preset_client = CodingGraphClient()
             try:
                 with preset_client.session() as ps:
@@ -454,11 +500,14 @@ def simulate_prompt(
         if budget > 0 and enc:
             try:
                 import numpy as np
+
                 if selector._pool_embeddings is not None:
                     qv = selector._embedder.encode([enc])
                     if qv is not None:
                         scores_arr = selector._pool_embeddings @ qv[0]
-                        top_idx = np.argsort(-scores_arr)[: min(budget, len(dynamic_pool))]
+                        top_idx = np.argsort(-scores_arr)[
+                            : min(budget, len(dynamic_pool))
+                        ]
                         selected_dyn = [dynamic_pool[int(i)] for i in top_idx]
                         selected_scores = [float(scores_arr[int(i)]) for i in top_idx]
                     else:
@@ -488,7 +537,9 @@ def simulate_prompt(
             out_dyn.append(entry)
         return sys_prompt, user_msg, core_set, out_dyn
 
-    assembled_system, user_message, core_set, selected_dynamic = _assemble(primary_provider)
+    assembled_system, user_message, core_set, selected_dynamic = _assemble(
+        primary_provider
+    )
 
     # ── Per-model cost estimates (with & without cache) ───────────────────
     sys_tokens = len(assembled_system) // 4
@@ -497,7 +548,10 @@ def simulate_prompt(
 
     primary_cost = _model_cost_entry(primary_provider, primary_tier)
     cost_estimates: list[dict[str, Any]] = [
-        {"role": "primary", **_build_cost_estimate(primary_cost, sys_tokens, user_tokens, est_output)}
+        {
+            "role": "primary",
+            **_build_cost_estimate(primary_cost, sys_tokens, user_tokens, est_output),
+        }
     ]
 
     if secondary_key:
@@ -507,7 +561,10 @@ def simulate_prompt(
         sec_user_tok = len(sec_user) // 4
         sec_cost = _model_cost_entry(sec_provider, sec_tier)
         cost_estimates.append(
-            {"role": "secondary", **_build_cost_estimate(sec_cost, sec_sys_tok, sec_user_tok, est_output)}
+            {
+                "role": "secondary",
+                **_build_cost_estimate(sec_cost, sec_sys_tok, sec_user_tok, est_output),
+            }
         )
 
     result: dict[str, Any] = {
@@ -531,6 +588,7 @@ def simulate_prompt(
     if not body.dryRun and body.encounterText.strip():
         try:
             from libs.llm_client.factory import create_llm
+
             llm = create_llm(provider=primary_provider, tier=primary_tier)
             resp = llm.converse(
                 system=assembled_system,

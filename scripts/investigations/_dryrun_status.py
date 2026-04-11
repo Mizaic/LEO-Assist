@@ -1,4 +1,5 @@
 """Quick status check for the dry-run audit DB."""
+
 import sqlite3, json
 from pathlib import Path
 

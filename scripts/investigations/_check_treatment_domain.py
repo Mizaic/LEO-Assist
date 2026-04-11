@@ -1,4 +1,5 @@
 """Check current state of ncda-treatment ValueSet and analytics API port."""
+
 from __future__ import annotations
 import json
 import sys
@@ -8,9 +9,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -48,11 +51,12 @@ try:
         did="cancer_audit",
     )
     print(f"\nSubdomains under cancer_audit ({len(rows2 or [])} total):")
-    for r in (rows2 or []):
+    for r in rows2 or []:
         print(f"  {r['vid']}")
 
     # Check analytics API port from env
     import os
+
     analytics_url = os.environ.get("ANALYTICS_API_URL", "http://localhost:8003")
     terminology_url = os.environ.get("TERMINOLOGY_API_URL", "http://localhost:8001")
     print(f"\nAnalytics API URL : {analytics_url}")

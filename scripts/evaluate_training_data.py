@@ -69,6 +69,7 @@ logging.basicConfig(
 logging.getLogger("PyRuSH").setLevel(logging.WARNING)  # standard logging guard
 try:
     from loguru import logger as _loguru  # PyRuSH uses loguru, not stdlib logging
+
     _loguru.disable("PyRuSH")
 except ImportError:
     pass
@@ -88,6 +89,7 @@ def _patch_context_if_needed() -> bool:
     """
     try:
         from PyRuSH import PyRuSHSentencizer  # noqa: F401
+
         return False  # available — no patch needed
     except ModuleNotFoundError:
         pass
@@ -97,6 +99,7 @@ def _patch_context_if_needed() -> bool:
             ent["context_detection_failed"] = True
 
     import libs.pipeline.post_processing as _pp_mod
+
     _pp_mod.apply_context_detection_to_dicts = _context_noop  # type: ignore[attr-defined]
     logger.warning(
         "PyRuSH / medspacy ConText not installed — assertion detection disabled. "
@@ -104,6 +107,7 @@ def _patch_context_if_needed() -> bool:
         "Install PyRuSH to enable full ConText assertion detection."
     )
     return True
+
 
 # ── config ────────────────────────────────────────────────────────────────────
 TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001")
@@ -132,20 +136,35 @@ def _get_term_semaphore() -> asyncio.Semaphore:
         _term_semaphore = asyncio.Semaphore(_TERM_CONCURRENCY)
     return _term_semaphore
 
+
 OUTPUT_PATH = Path(__file__).parent / "training_evaluation_report.md"
-MIN_SCORE_CODED = 0.50          # below this = surface form gap
+MIN_SCORE_CODED = 0.50  # below this = surface form gap
 CONFIDENCE_FLAG_THRESHOLD = 0.60
-BATCH_SIZE = 5                  # matches pipeline _BATCH_SIZE
-MAX_DETAIL_RECORDS = 30         # records shown in per-record section
+BATCH_SIZE = 5  # matches pipeline _BATCH_SIZE
+MAX_DETAIL_RECORDS = 30  # records shown in per-record section
 EVAL_LIMIT = int(os.getenv("EVAL_LIMIT", "0")) or None  # 0 = no limit
 CONCURRENCY = int(os.getenv("EVAL_CONCURRENCY", "8"))  # parallel records
 
-_CODEABLE_LABELS = frozenset({
-    "disorder", "finding", "procedure", "observable_entity", "substance",
-    "medicinal_product", "clinical_drug", "situation", "body_structure",
-    "morphologic_abnormality", "regime_therapy", "assessment_scale",
-    "tumor_staging", "organism", "occupation", "physical_object",
-})
+_CODEABLE_LABELS = frozenset(
+    {
+        "disorder",
+        "finding",
+        "procedure",
+        "observable_entity",
+        "substance",
+        "medicinal_product",
+        "clinical_drug",
+        "situation",
+        "body_structure",
+        "morphologic_abnormality",
+        "regime_therapy",
+        "assessment_scale",
+        "tumor_staging",
+        "organism",
+        "occupation",
+        "physical_object",
+    }
+)
 
 # ── Cypher ────────────────────────────────────────────────────────────────────
 FETCH_LABELS_QUERY = """
@@ -176,12 +195,12 @@ class RecordResult:
     source: str
     quality_score: float
     entity_count: int
-    coded_count: int          # entities with score >= MIN_SCORE_CODED
+    coded_count: int  # entities with score >= MIN_SCORE_CODED
     tier1_count: int
     tier2_count: int
     tier3_count: int
     surface_gaps: list[dict]  # entities that failed to code
-    low_conf: list[dict]      # entities below confidence threshold
+    low_conf: list[dict]  # entities below confidence threshold
     assertion_counts: dict[str, int]
     written: bool = False
     error: str = ""
@@ -291,19 +310,26 @@ async def resolve_via_api(
             last_exc = exc
             if attempt < retries:
                 import random
-                delay = (2 ** attempt) + random.uniform(0, 1)
+
+                delay = (2**attempt) + random.uniform(0, 1)
                 # Log type+repr — str(exc) is often empty for connection errors
                 err_detail = f"{type(exc).__name__}: {exc!r}" if exc else "unknown"
                 logger.warning(
                     "Terminology API attempt %d/%d failed (%s): %s — retrying in %.1fs…",
-                    attempt, retries, base_url, err_detail, delay,
+                    attempt,
+                    retries,
+                    base_url,
+                    err_detail,
+                    delay,
                 )
                 await asyncio.sleep(delay)
 
     err_detail = f"{type(last_exc).__name__}: {last_exc!r}" if last_exc else "unknown"
     logger.warning(
         "Terminology API failed after %d attempts (%s): %s",
-        retries, base_url, err_detail,
+        retries,
+        base_url,
+        err_detail,
     )
     return {}
 
@@ -334,7 +360,9 @@ async def warmup_terminology_api() -> bool:
         except Exception as exc:
             logger.error("  %s — warm-up FAILED: %s", url, exc)
     if healthy == 0:
-        logger.error("No Terminology API instances responded — resolve calls will return empty results.")
+        logger.error(
+            "No Terminology API instances responded — resolve calls will return empty results."
+        )
         return False
     if healthy < len(_API_URLS):
         logger.warning("%d/%d instances healthy.", healthy, len(_API_URLS))
@@ -433,9 +461,9 @@ async def process_record(
     processed_items = [_dict_to_item(e) for e in processed_dicts]
 
     # Stage 4: Terminology resolution
-    terms = list(dict.fromkeys(
-        item.normalized for item in processed_items if item.normalized
-    ))
+    terms = list(
+        dict.fromkeys(item.normalized for item in processed_items if item.normalized)
+    )
     expected_tags = _build_expected_tags(processed_items)
     resolved = await resolve_via_api(terms, expected_tags)
 
@@ -473,9 +501,7 @@ async def process_record(
             "end": item.span_end,
             "assertion": item.assertion or "present",
             "confidence": item.confidence,
-            "normalized": (
-                item.normalized if item.normalized != item.text else None
-            ),
+            "normalized": (item.normalized if item.normalized != item.text else None),
             "value": item.numeric_value or None,
             "unit": item.unit or None,
             "reference_range": item.reference_range or None,
@@ -513,22 +539,26 @@ async def process_record(
         )
 
         if score < MIN_SCORE_CODED and item.semantic_tag in _CODEABLE_LABELS:
-            surface_gaps.append({
-                "text": item.text,
-                "label": item.semantic_tag,
-                "assertion": item.assertion or "present",
-                "confidence": item.confidence,
-                "top_score": round(score, 4),
-                "top_candidate": best.get("snomed_term") or "",
-                "top_candidate_id": best.get("snomed_concept_id") or "",
-            })
+            surface_gaps.append(
+                {
+                    "text": item.text,
+                    "label": item.semantic_tag,
+                    "assertion": item.assertion or "present",
+                    "confidence": item.confidence,
+                    "top_score": round(score, 4),
+                    "top_candidate": best.get("snomed_term") or "",
+                    "top_candidate_id": best.get("snomed_concept_id") or "",
+                }
+            )
 
         if item.confidence < CONFIDENCE_FLAG_THRESHOLD:
-            low_conf.append({
-                "text": item.text,
-                "label": item.semantic_tag,
-                "confidence": item.confidence,
-            })
+            low_conf.append(
+                {
+                    "text": item.text,
+                    "label": item.semantic_tag,
+                    "confidence": item.confidence,
+                }
+            )
 
     # Write back to Neo4j
     written = False
@@ -635,7 +665,9 @@ def generate_report(
     lines.append(f"| Min score threshold | {MIN_SCORE_CODED} |")
     lines.append(f"| Confidence flag threshold | {CONFIDENCE_FLAG_THRESHOLD} |")
     lines.append(f"| Eval limit | {EVAL_LIMIT or 'none (all records)'} |")
-    lines.append(f"| Terminology API instance(s) | {' · '.join(f'`{u}`' for u in _API_URLS)} |")
+    lines.append(
+        f"| Terminology API instance(s) | {' · '.join(f'`{u}`' for u in _API_URLS)} |"
+    )
     lines.append(
         f"| ConText assertion detection | "
         f"{'**DISABLED** (PyRuSH not installed — all entities context_detection_failed=True)' if context_patched else 'enabled'} |"
@@ -650,7 +682,9 @@ def generate_report(
     lines.append(f"| Records written back | {len(written_ok)} |")
     lines.append(f"| Records errored | {len(errored)} |")
     lines.append(f"| Total entities extracted | {total_entities} |")
-    lines.append(f"| Entities coded (score >= {MIN_SCORE_CODED}) | {total_coded} ({coding_pct:.1f}%) |")
+    lines.append(
+        f"| Entities coded (score >= {MIN_SCORE_CODED}) | {total_coded} ({coding_pct:.1f}%) |"
+    )
     lines.append(f"| Tier 1 — auto_coded | {total_tier1} |")
     lines.append(f"| Tier 2 — coded_with_flag / route_to_review | {total_tier2} |")
     lines.append(f"| Tier 3 — route_to_review / not_coded | {total_tier3} |")
@@ -685,7 +719,9 @@ def generate_report(
                 f"| {count} | `{g['text']}` | `{g['label']}` | {candidate} | {g['top_score']} |"
             )
     else:
-        lines.append("*No surface form gaps detected — all codeable entities resolved successfully.*\n")
+        lines.append(
+            "*No surface form gaps detected — all codeable entities resolved successfully.*\n"
+        )
     lines.append("")
 
     # ── Low-Confidence Extractions ───────────────────────────────────────────
@@ -780,7 +816,9 @@ async def main() -> None:
         rules = parse_rules(rule_rows)
         logger.info("Loaded %d active post-processor rules", len(rules))
     except Exception as exc:
-        logger.warning("Could not load post-processor rules (%s) — continuing without them", exc)
+        logger.warning(
+            "Could not load post-processor rules (%s) — continuing without them", exc
+        )
         rules = []
 
     # Build extractor (once — may be slow for model backend)
@@ -800,7 +838,9 @@ async def main() -> None:
     # Warm up terminology API (loads embedding model on first call)
     api_healthy = await warmup_terminology_api()
     if not api_healthy:
-        logger.warning("Proceeding without terminology resolution — entities will have no SNOMED codes.")
+        logger.warning(
+            "Proceeding without terminology resolution — entities will have no SNOMED codes."
+        )
 
     # Fetch training records
     logger.info("Fetching TrainingLabel records…")
@@ -808,7 +848,9 @@ async def main() -> None:
     records = [dict(row) for row in rows]
     if EVAL_LIMIT:
         records = records[:EVAL_LIMIT]
-        logger.info("EVAL_LIMIT=%d applied — processing %d records", EVAL_LIMIT, len(records))
+        logger.info(
+            "EVAL_LIMIT=%d applied — processing %d records", EVAL_LIMIT, len(records)
+        )
     else:
         logger.info("Fetched %d records", len(records))
 
@@ -828,9 +870,13 @@ async def main() -> None:
         short_id = rec.get("label_id", "?")[:20]
         async with semaphore:
             try:
-                result = await process_record(rec, extractor, splitter, rules, neo4j_client)
+                result = await process_record(
+                    rec, extractor, splitter, rules, neo4j_client
+                )
             except Exception as exc:
-                logger.error("Unhandled error on record %s: %s", short_id, exc, exc_info=True)
+                logger.error(
+                    "Unhandled error on record %s: %s", short_id, exc, exc_info=True
+                )
                 result = RecordResult(
                     label_id=rec.get("label_id", "unknown"),
                     encounter_id=rec.get("encounter_id", ""),
@@ -851,9 +897,14 @@ async def main() -> None:
             status = "OK" if result.written else f"ERR:{result.error[:30]}"
             logger.info(
                 "[%d/%d] %s  ent=%d  coded=%d  T1=%d T2=%d T3=%d  gaps=%d  %s",
-                completed, total, short_id,
-                result.entity_count, result.coded_count,
-                result.tier1_count, result.tier2_count, result.tier3_count,
+                completed,
+                total,
+                short_id,
+                result.entity_count,
+                result.coded_count,
+                result.tier1_count,
+                result.tier2_count,
+                result.tier3_count,
                 len(result.surface_gaps),
                 status,
             )

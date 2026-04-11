@@ -161,12 +161,10 @@ def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict
         "rows": by_stage,
         "by_stage_group": by_stage,
         "by_system": [
-            {"staging_system": r["staging_system"], "n": r["n"]}
-            for r in by_system_rows
+            {"staging_system": r["staging_system"], "n": r["n"]} for r in by_system_rows
         ],
         "by_source": [
-            {"staging_source": r["staging_source"], "n": r["n"]}
-            for r in by_source_rows
+            {"staging_source": r["staging_source"], "n": r["n"]} for r in by_source_rows
         ],
         "by_stage_group_detail": [
             {"cancer_stage_group": r["cancer_stage_group"], "n": r["n"]}
@@ -238,9 +236,7 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
     ts = sum(r["n"] for r in sex_rows) or 1
     ta = sum(r["n"] for r in age_rows) or 1
     te = sum(r["n"] for r in eth_rows) or 1
-    age_vals = sorted(
-        [r["age"] for r in age_vals_rows if r.get("age") is not None]
-    )
+    age_vals = sorted([r["age"] for r in age_vals_rows if r.get("age") is not None])
     n_age = len(age_vals)
     median_age = (
         round(
@@ -355,9 +351,7 @@ def _q_consultations(base: str, params: dict, client: PatientGraphClient) -> dic
     median_val = (
         counts[n // 2]
         if n % 2
-        else ((counts[n // 2 - 1] + counts[n // 2]) / 2)
-        if n
-        else None
+        else ((counts[n // 2 - 1] + counts[n // 2]) / 2) if n else None
     )
     iqr_low = counts[n // 4] if n else None
     iqr_high = counts[3 * n // 4] if n else None
@@ -461,9 +455,7 @@ def _q_referrals(base: str, params: dict, client: PatientGraphClient) -> list:
 # ---------------------------------------------------------------------------
 
 
-def _q_safety_netting(
-    base: str, params: dict, client: PatientGraphClient
-) -> dict:
+def _q_safety_netting(base: str, params: dict, client: PatientGraphClient) -> dict:
     rows = client.run(
         f"{base}"
         "RETURN "
@@ -488,9 +480,7 @@ def _q_safety_netting(
 # ---------------------------------------------------------------------------
 
 
-def _q_avoidable_delays(
-    base: str, params: dict, client: PatientGraphClient
-) -> dict:
+def _q_avoidable_delays(base: str, params: dict, client: PatientGraphClient) -> dict:
     rows = client.run(
         f"{base}"
         "RETURN "

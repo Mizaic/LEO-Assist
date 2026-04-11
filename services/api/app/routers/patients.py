@@ -30,9 +30,10 @@ from app.services.inference_service import infer_encounter
 from app.services.reset_review_queue_service import reset_review_queue
 from app.services.reset_service import reset_encounter, reset_patient
 from app.services.sync_service import sync_gold_to_patient
-from services.terminology_api.app.services.writeback_service import writeback_approved_terms
+from services.terminology_api.app.services.writeback_service import (
+    writeback_approved_terms,
+)
 from app.services.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
-
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
@@ -163,7 +164,10 @@ def sync_gold_to_patient_graph(
                 status_code=400,
                 detail="No approved gold for this patient. Complete review and approve first.",
             )
-        with patient_client.session() as patient_session, coding_client.session() as coding_session:
+        with (
+            patient_client.session() as patient_session,
+            coding_client.session() as coding_session,
+        ):
             wb = writeback_approved_terms(
                 patient_session=patient_session,
                 knowledge_session=coding_session,
@@ -301,9 +305,11 @@ def get_patient_coding_summary(
                 "document_transfer": int(row.get("document_transfer_count") or 0),
                 "coded": coded_count,
                 "uncoded": int(row.get("uncoded_count") or 0),
-                "progress_pct": round((coded_count / total_encounters) * 100, 1)
-                if total_encounters > 0
-                else 0.0,
+                "progress_pct": (
+                    round((coded_count / total_encounters) * 100, 1)
+                    if total_encounters > 0
+                    else 0.0
+                ),
                 "date_from": row.get("date_from"),
                 "date_to": row.get("date_to"),
             },
@@ -401,7 +407,11 @@ def search_encounters(
     ordered = sorted(
         results.values(),
         key=lambda r: (
-            0 if r["match_type"] == "both" else 1 if r["match_type"] == "keyword" else 2,
+            (
+                0
+                if r["match_type"] == "both"
+                else 1 if r["match_type"] == "keyword" else 2
+            ),
             -(r.get("similarity") or 0),
         ),
     )
@@ -417,7 +427,9 @@ def get_encounter(
     client = PatientGraphClient()
     try:
         require_patient_in_scope(client, scope, patient_id)
-        rows = client.run(GET_ENCOUNTER, patient_id=patient_id, encounter_id=encounter_id)
+        rows = client.run(
+            GET_ENCOUNTER, patient_id=patient_id, encounter_id=encounter_id
+        )
         if not rows:
             raise HTTPException(status_code=404, detail="Encounter not found")
         return rows[0]
@@ -436,7 +448,9 @@ def infer_encounter_coding(
     client = PatientGraphClient()
     try:
         require_patient_in_scope(client, scope, patient_id)
-        rows = client.run(GET_ENCOUNTER, patient_id=patient_id, encounter_id=encounter_id)
+        rows = client.run(
+            GET_ENCOUNTER, patient_id=patient_id, encounter_id=encounter_id
+        )
         if not rows:
             raise HTTPException(status_code=404, detail="Encounter not found")
         encounter = rows[0]
@@ -460,11 +474,14 @@ async def reset_and_recode_encounter(
     try:
         require_patient_in_scope(client, scope, patient_id)
         with client.session() as session:
-            encounter_rows = [dict(r) for r in session.run(
-                GET_ENCOUNTER,
-                patient_id=patient_id,
-                encounter_id=encounter_id,
-            )]
+            encounter_rows = [
+                dict(r)
+                for r in session.run(
+                    GET_ENCOUNTER,
+                    patient_id=patient_id,
+                    encounter_id=encounter_id,
+                )
+            ]
             if not encounter_rows:
                 raise HTTPException(status_code=404, detail="Encounter not found")
             reset_result = reset_encounter(patient_id, encounter_id, session)
@@ -572,9 +589,12 @@ def add_coded_link(
                 )
             except Exception:
                 import logging as _logging
+
                 _logging.getLogger(__name__).warning(
                     "Training label write failed for coded-link %s/%s — non-fatal",
-                    encounter_id, body.concept_id, exc_info=True,
+                    encounter_id,
+                    body.concept_id,
+                    exc_info=True,
                 )
 
         return {"added": True, "concept_id": body.concept_id}
@@ -684,14 +704,18 @@ def recode_coded_link(
                 )
         except ValueError as exc:
             if str(exc) == "coded_link_not_found":
-                raise HTTPException(status_code=404, detail="Coded link not found") from exc
+                raise HTTPException(
+                    status_code=404, detail="Coded link not found"
+                ) from exc
             raise
         return {"recode": True, "new_concept_id": body.new_concept_id}
     finally:
         client.close()
 
 
-@router.put("/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}/modifiers")
+@router.put(
+    "/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}/modifiers"
+)
 def update_coded_link_modifiers(
     patient_id: str,
     encounter_id: str,
@@ -700,9 +724,7 @@ def update_coded_link_modifiers(
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Update value/unit/reference_range/interpretation on an existing coded link."""
-    modifiers = {
-        k: v for k, v in body.model_dump().items() if v is not None
-    }
+    modifiers = {k: v for k, v in body.model_dump().items() if v is not None}
     client = PatientGraphClient()
     try:
         require_patient_in_scope(client, scope, patient_id)
@@ -759,18 +781,28 @@ def get_patient_coding_timeline(
             concept_id = row.get("concept_id")
             if not concept_id:
                 continue
-            events.append(TimelineEvent(
-                encounter_date=str(row.get("encounter_date") or ""),
-                encounter_id=str(row.get("encounter_id") or ""),
-                concept_id=str(concept_id),
-                term=str(row.get("term") or concept_id),
-                semantic_tag=str(row.get("semantic_tag") or "other"),
-                read_code=row.get("read_code"),
-                assertion=_parse_assertion_from_context(row.get("context_json")),
-                confidence=float(row["confidence"]) if row.get("confidence") is not None else None,
-                domain=row.get("domain"),
-                decision_tier=int(row["decision_tier"]) if row.get("decision_tier") is not None else None,
-            ))
+            events.append(
+                TimelineEvent(
+                    encounter_date=str(row.get("encounter_date") or ""),
+                    encounter_id=str(row.get("encounter_id") or ""),
+                    concept_id=str(concept_id),
+                    term=str(row.get("term") or concept_id),
+                    semantic_tag=str(row.get("semantic_tag") or "other"),
+                    read_code=row.get("read_code"),
+                    assertion=_parse_assertion_from_context(row.get("context_json")),
+                    confidence=(
+                        float(row["confidence"])
+                        if row.get("confidence") is not None
+                        else None
+                    ),
+                    domain=row.get("domain"),
+                    decision_tier=(
+                        int(row["decision_tier"])
+                        if row.get("decision_tier") is not None
+                        else None
+                    ),
+                )
+            )
         return events
     finally:
         client.close()

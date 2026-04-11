@@ -1,4 +1,5 @@
 """Show full episode status, auto-close, and HITL breakdown."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -6,14 +7,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     print("=== Episode status breakdown ===")
@@ -55,7 +59,9 @@ def main() -> None:
         ORDER BY ep.patient_id
     """) or []
     for r in rows3:
-        print(f"  pid={r['pid']}  site={r['site']}  ref={r['ref_date']}  spec={r.get('spec_seen')}")
+        print(
+            f"  pid={r['pid']}  site={r['site']}  ref={r['ref_date']}  spec={r.get('spec_seen')}"
+        )
 
     client.close()
 

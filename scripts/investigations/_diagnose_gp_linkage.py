@@ -3,6 +3,7 @@
 Run with:
     python scripts/investigations/_diagnose_gp_linkage.py
 """
+
 from libs.neo4j_client.client import PatientGraphClient
 
 client = PatientGraphClient()

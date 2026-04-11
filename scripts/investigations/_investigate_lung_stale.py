@@ -2,6 +2,7 @@
 Investigation: Why are all 3 lung cancer pathway episodes stale?
 2 stale_post_specialist, 1 stale_no_diagnosis, 0 completed.
 """
+
 import sys
 from pathlib import Path
 from datetime import datetime, date
@@ -9,21 +10,54 @@ from datetime import datetime, date
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
 KEYWORDS = [
-    "lung", "pulmonary", "bronch", "pleural", "pneumon",
-    "ct scan", "ct chest", "ct thorax", "pet scan", "biopsy",
-    "nodule", "copd", "fibrosis", "effusion", "cancer",
-    "carcinoma", "adenocarcinoma", "squamous", "small cell",
-    "mesothelioma", "malignant", "malignancy", "tumour", "tumor",
-    "spirometry", "oncol", "respir", "specialist", "referral",
-    "discharge", "benign", "negative", "no evidence", "normal",
-    "clear", "reassured", "sputum", "haemoptysis", "hemoptysis",
+    "lung",
+    "pulmonary",
+    "bronch",
+    "pleural",
+    "pneumon",
+    "ct scan",
+    "ct chest",
+    "ct thorax",
+    "pet scan",
+    "biopsy",
+    "nodule",
+    "copd",
+    "fibrosis",
+    "effusion",
+    "cancer",
+    "carcinoma",
+    "adenocarcinoma",
+    "squamous",
+    "small cell",
+    "mesothelioma",
+    "malignant",
+    "malignancy",
+    "tumour",
+    "tumor",
+    "spirometry",
+    "oncol",
+    "respir",
+    "specialist",
+    "referral",
+    "discharge",
+    "benign",
+    "negative",
+    "no evidence",
+    "normal",
+    "clear",
+    "reassured",
+    "sputum",
+    "haemoptysis",
+    "hemoptysis",
 ]
 
 
@@ -70,14 +104,19 @@ def get_lung_episodes(client: PatientGraphClient) -> list:
 def get_all_cancer_types(client: PatientGraphClient) -> list:
     """Sanity-check: show every distinct cancer_type value in the graph."""
     with client.session() as s:
-        return [dict(r) for r in s.run(
-            "MATCH (ep:EpisodeOfCare) "
-            "RETURN DISTINCT ep.cancer_type AS ct, count(*) AS n "
-            "ORDER BY n DESC"
-        )]
+        return [
+            dict(r)
+            for r in s.run(
+                "MATCH (ep:EpisodeOfCare) "
+                "RETURN DISTINCT ep.cancer_type AS ct, count(*) AS n "
+                "ORDER BY n DESC"
+            )
+        ]
 
 
-def get_encounters(client: PatientGraphClient, pid: str, since: str = "2020-01-01") -> list:
+def get_encounters(
+    client: PatientGraphClient, pid: str, since: str = "2020-01-01"
+) -> list:
     query = """
     MATCH (p:Patient {id: $pid})-[:HAS_ENCOUNTER]->(enc:Encounter)
     WHERE enc.date >= $since
@@ -204,7 +243,11 @@ def main() -> None:
         print(f"Status    : {status}")
         print(f"Cancer    : {ep['cancer_type']}")
         print(f"Referral  : {ref_date}  ({days_ref} days ago)")
-        print(f"Specialist: {spec_date}  ({days_spec} days ago)" if spec_date else "Specialist: None")
+        print(
+            f"Specialist: {spec_date}  ({days_spec} days ago)"
+            if spec_date
+            else "Specialist: None"
+        )
         print(f"Inferred  : {inferred}  (confidence={confidence})")
         print(f"Signals   : {signals}")
         print(f"HITL      : flag={hitl}  reason={hitl_reason}")
@@ -212,12 +255,18 @@ def main() -> None:
         if status == "stale_no_diagnosis":
             print(f"\n  >>> stale_no_diagnosis: {days_ref} days since referral")
             if days_ref and days_ref < 365:
-                print("  >>> WARNING: <12 months - may be incorrectly classified as stale")
+                print(
+                    "  >>> WARNING: <12 months - may be incorrectly classified as stale"
+                )
             else:
-                print("  >>> Genuinely >=12 months since referral - classification looks correct")
+                print(
+                    "  >>> Genuinely >=12 months since referral - classification looks correct"
+                )
 
         elif status == "stale_post_specialist":
-            print(f"\n  >>> stale_post_specialist: specialist seen {days_spec} days ago")
+            print(
+                f"\n  >>> stale_post_specialist: specialist seen {days_spec} days ago"
+            )
             print(f"  >>> inferred_outcome = {inferred!r}")
         print()
 
@@ -256,8 +305,10 @@ def main() -> None:
         if others:
             print("\n  Other episodes for same patient:")
             for oe in others:
-                print(f"    {oe['episode_id']} | {oe['cancer_type']} | {oe['status']} | "
-                      f"ref={oe['referral_date']} | inferred={oe['inferred_outcome']}")
+                print(
+                    f"    {oe['episode_id']} | {oe['cancer_type']} | {oe['status']} | "
+                    f"ref={oe['referral_date']} | inferred={oe['inferred_outcome']}"
+                )
         else:
             print("\n  No other episodes for this patient.")
 
@@ -281,8 +332,14 @@ def main() -> None:
             ref_date = ep["referral_date"]
             days_ref = days_since(ref_date)
             print(f"\n  Patient : {pid}")
-            print(f"  Referral: {ref_date}  ({days_ref} days = approx {(days_ref or 0)//365} yr(s))")
-            verdict = "YES - genuinely stale" if (days_ref or 0) >= 365 else "NO - < 12 months, possible misclassification"
+            print(
+                f"  Referral: {ref_date}  ({days_ref} days = approx {(days_ref or 0)//365} yr(s))"
+            )
+            verdict = (
+                "YES - genuinely stale"
+                if (days_ref or 0) >= 365
+                else "NO - < 12 months, possible misclassification"
+            )
             print(f"  Genuinely >12 months: {verdict}")
 
             since = (ref_date or "2020-01-01")[:10]

@@ -54,7 +54,11 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
     """Full training pipeline — runs in a background thread."""
     acquired = _semaphore.acquire(blocking=False)
     if not acquired:
-        store.update(job, status="failed", error="Another training job is already running. Try again later.")
+        store.update(
+            job,
+            status="failed",
+            error="Another training job is already running. Try again later.",
+        )
         return
 
     job_started_at = time.time()
@@ -67,16 +71,22 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             store.append_log(job, "Phase 0/5 — Preparing training pipeline…")
             _phase_export(job, store, work_dir)
             export_meta = job.metrics.get("export", {})
-            store.append_log(job, f"Phase export complete in {time.perf_counter() - started_t:.1f}s")
+            store.append_log(
+                job, f"Phase export complete in {time.perf_counter() - started_t:.1f}s"
+            )
             train_path = work_dir / "train.spacy"
             dev_path = work_dir / "dev.spacy"
 
             train_t = time.perf_counter()
             model_dir = _phase_train(job, store, work_dir, train_path, dev_path)
-            store.append_log(job, f"Phase train complete in {time.perf_counter() - train_t:.1f}s")
+            store.append_log(
+                job, f"Phase train complete in {time.perf_counter() - train_t:.1f}s"
+            )
             eval_t = time.perf_counter()
             metrics = _phase_evaluate(job, store, model_dir, dev_path)
-            store.append_log(job, f"Phase evaluate complete in {time.perf_counter() - eval_t:.1f}s")
+            store.append_log(
+                job, f"Phase evaluate complete in {time.perf_counter() - eval_t:.1f}s"
+            )
 
             if not metrics["passed_gates"]:
                 store.update(
@@ -94,10 +104,17 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
 
             upload_t = time.perf_counter()
             artifact_uri, version = _phase_upload(job, store, model_dir, export_meta)
-            store.append_log(job, f"Phase upload complete in {time.perf_counter() - upload_t:.1f}s")
+            store.append_log(
+                job, f"Phase upload complete in {time.perf_counter() - upload_t:.1f}s"
+            )
             register_t = time.perf_counter()
-            _phase_register(job, store, version, artifact_uri, metrics, export_meta, job_started_at)
-            store.append_log(job, f"Phase register complete in {time.perf_counter() - register_t:.1f}s")
+            _phase_register(
+                job, store, version, artifact_uri, metrics, export_meta, job_started_at
+            )
+            store.append_log(
+                job,
+                f"Phase register complete in {time.perf_counter() - register_t:.1f}s",
+            )
 
             store.update(
                 job,
@@ -111,7 +128,7 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             store.append_log(
                 job,
                 f"Training complete — version {version} registered and ready for promotion. "
-                f"Total elapsed {time.perf_counter() - started_t:.1f}s."
+                f"Total elapsed {time.perf_counter() - started_t:.1f}s.",
             )
 
         except Exception as exc:
@@ -130,12 +147,15 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
 # Phase implementations
 # ------------------------------------------------------------------
 
+
 def _phase_export(job: TrainingJob, store: TrainingJobStore, work_dir: Path) -> None:
     store.update(job, phase="export")
     store.append_log(job, "Phase 1/5 — Preparing exporter…")
     load_t = time.perf_counter()
     export_labels = _get_export_labels()
-    store.append_log(job, f"Phase 1/5 — Exporter ready in {time.perf_counter() - load_t:.2f}s")
+    store.append_log(
+        job, f"Phase 1/5 — Exporter ready in {time.perf_counter() - load_t:.2f}s"
+    )
     store.append_log(job, "Phase 1/5 — Exporting training labels from Neo4j…")
 
     result = export_labels(
@@ -143,14 +163,17 @@ def _phase_export(job: TrainingJob, store: TrainingJobStore, work_dir: Path) -> 
         log_fn=lambda line: store.append_log(job, line),
     )
 
-    store.update(job, metrics={
-        **job.metrics,
-        "export": result,
-    })
+    store.update(
+        job,
+        metrics={
+            **job.metrics,
+            "export": result,
+        },
+    )
     store.append_log(
         job,
         f"Exported {result['total']} labels → "
-        f"{result['train_count']} train / {result['dev_count']} dev"
+        f"{result['train_count']} train / {result['dev_count']} dev",
     )
 
 
@@ -165,8 +188,12 @@ def _phase_train(
     store.append_log(job, "Phase 2/5 — Preparing trainer…")
     load_t = time.perf_counter()
     run_training = _get_run_training()
-    store.append_log(job, f"Phase 2/5 — Trainer ready in {time.perf_counter() - load_t:.2f}s")
-    store.append_log(job, "Phase 2/5 — Running spaCy training (Bio_ClinicalBERT backbone)…")
+    store.append_log(
+        job, f"Phase 2/5 — Trainer ready in {time.perf_counter() - load_t:.2f}s"
+    )
+    store.append_log(
+        job, "Phase 2/5 — Running spaCy training (Bio_ClinicalBERT backbone)…"
+    )
 
     model_dir, accel_meta = run_training(
         work_dir,
@@ -202,7 +229,9 @@ def _phase_evaluate(
     store.append_log(job, "Phase 3/5 — Preparing evaluator…")
     load_t = time.perf_counter()
     evaluate_model = _get_evaluate_model()
-    store.append_log(job, f"Phase 3/5 — Evaluator ready in {time.perf_counter() - load_t:.2f}s")
+    store.append_log(
+        job, f"Phase 3/5 — Evaluator ready in {time.perf_counter() - load_t:.2f}s"
+    )
     store.append_log(job, "Phase 3/5 — Evaluating precision/recall on dev set…")
 
     metrics = evaluate_model(
@@ -224,6 +253,7 @@ def _phase_upload(
     store.append_log(job, "Phase 4/5 — Uploading NER head artifact to Azure Blob…")
 
     import datetime
+
     version = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S")
 
     try:
@@ -272,35 +302,47 @@ def _phase_register(
         schema_version=os.getenv("MODEL_REQUIRED_SCHEMA_VERSION", "1.0"),
         deid_version=os.getenv("MODEL_REQUIRED_DEID_VERSION", "1.0"),
         artifact_uri=artifact_uri,
-        notes=json.dumps({
-            # Training provenance
-            "triggered_by": job.triggered_by,
-            "base_model": os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"),
-            "frozen_components": os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer"),
-            "training_duration_s": training_duration_s,
-            "requested_accelerator": accelerator_meta.get("requested_accelerator", "auto"),
-            "resolved_accelerator": accelerator_meta.get("resolved_accelerator", "cpu"),
-            "fallback_applied": bool(accelerator_meta.get("fallback_applied", False)),
-            "fallback_reason": accelerator_meta.get("fallback_reason", ""),
-            # Dataset statistics
-            "train_count": export_meta.get("train_count", 0),
-            "dev_count": export_meta.get("dev_count", 0),
-            "total_labels": export_meta.get("total_records", 0),
-            "label_set": export_meta.get("label_set", []),
-            "exported_at": export_meta.get("exported_at", ""),
-            # Evaluation results (full detail for V&V report)
-            "offline_f1": metrics.get("f1"),
-            "offline_precision": metrics.get("precision"),
-            "offline_recall": metrics.get("recall"),
-            "per_label_metrics": metrics.get("per_label", {}),
-            "dev_doc_count": metrics.get("dev_doc_count", 0),
-            # Gate thresholds recorded at time of validation
-            "gate_min_precision": metrics.get("min_precision"),
-            "gate_min_recall": metrics.get("min_recall"),
-            "gate_passed": metrics.get("passed_gates"),
-            # User notes
-            "user_notes": job.notes,
-        }),
+        notes=json.dumps(
+            {
+                # Training provenance
+                "triggered_by": job.triggered_by,
+                "base_model": os.getenv(
+                    "TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"
+                ),
+                "frozen_components": os.getenv(
+                    "TRAINING_FROZEN_COMPONENTS", "transformer"
+                ),
+                "training_duration_s": training_duration_s,
+                "requested_accelerator": accelerator_meta.get(
+                    "requested_accelerator", "auto"
+                ),
+                "resolved_accelerator": accelerator_meta.get(
+                    "resolved_accelerator", "cpu"
+                ),
+                "fallback_applied": bool(
+                    accelerator_meta.get("fallback_applied", False)
+                ),
+                "fallback_reason": accelerator_meta.get("fallback_reason", ""),
+                # Dataset statistics
+                "train_count": export_meta.get("train_count", 0),
+                "dev_count": export_meta.get("dev_count", 0),
+                "total_labels": export_meta.get("total_records", 0),
+                "label_set": export_meta.get("label_set", []),
+                "exported_at": export_meta.get("exported_at", ""),
+                # Evaluation results (full detail for V&V report)
+                "offline_f1": metrics.get("f1"),
+                "offline_precision": metrics.get("precision"),
+                "offline_recall": metrics.get("recall"),
+                "per_label_metrics": metrics.get("per_label", {}),
+                "dev_doc_count": metrics.get("dev_doc_count", 0),
+                # Gate thresholds recorded at time of validation
+                "gate_min_precision": metrics.get("min_precision"),
+                "gate_min_recall": metrics.get("min_recall"),
+                "gate_passed": metrics.get("passed_gates"),
+                # User notes
+                "user_notes": job.notes,
+            }
+        ),
     )
 
     try:
@@ -319,7 +361,7 @@ def _phase_register(
         job,
         f"Version {version} registered — "
         f"P={metrics['precision']:.3f} R={metrics['recall']:.3f} F1={metrics['f1']:.3f} "
-        f"— status: offline_validated"
+        f"— status: offline_validated",
     )
 
 
@@ -341,6 +383,7 @@ def _get_export_labels():
     global _export_labels_fn
     if _export_labels_fn is None:
         from app.label_exporter import export_labels
+
         _export_labels_fn = export_labels
     return _export_labels_fn
 
@@ -349,6 +392,7 @@ def _get_run_training():
     global _run_training_fn
     if _run_training_fn is None:
         from app.trainer import run_training
+
         _run_training_fn = run_training
     return _run_training_fn
 
@@ -357,6 +401,7 @@ def _get_evaluate_model():
     global _evaluate_model_fn
     if _evaluate_model_fn is None:
         from app.evaluator import evaluate_model
+
         _evaluate_model_fn = evaluate_model
     return _evaluate_model_fn
 
@@ -365,6 +410,7 @@ def _get_model_store_cls():
     global _model_store_cls
     if _model_store_cls is None:
         from libs.model_store import ModelStore
+
         _model_store_cls = ModelStore
     return _model_store_cls
 
@@ -374,8 +420,10 @@ def _get_model_registry_cls():
     if _model_registry_cls is None:
         if os.getenv("MODEL_REGISTRY_STORE", "").strip().lower() == "neo4j":
             from libs.model_registry.neo4j_registry import Neo4jModelRegistry
+
             _model_registry_cls = Neo4jModelRegistry
         else:
             from libs.model_registry import ModelRegistry
+
             _model_registry_cls = ModelRegistry
     return _model_registry_cls

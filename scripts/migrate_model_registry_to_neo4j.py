@@ -73,7 +73,9 @@ def main() -> int:
         version_to_activate = active_version
         if not version_to_activate:
             version_to_activate = list(records.keys())[0]
-            print(f"  active_version was null; using first record: {version_to_activate}")
+            print(
+                f"  active_version was null; using first record: {version_to_activate}"
+            )
         existing = registry.get(version_to_activate)
         if existing:
             registry._set_active_version(version_to_activate)

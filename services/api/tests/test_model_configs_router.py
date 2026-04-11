@@ -3,6 +3,7 @@
 VT-LEO-AI-069 — ModelConfig Create and Delete Router Verification
 DI-LEO-AI-069 — ModelConfig Create and Delete via Admin API
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -46,6 +47,7 @@ def client():
 # VT-069-001: POST /model-configs — creates and returns 201
 # ---------------------------------------------------------------------------
 
+
 def test_post_model_config_creates_and_returns_201(client):
     with (
         admin_scope_override(),
@@ -58,17 +60,20 @@ def test_post_model_config_creates_and_returns_201(client):
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
-        r = client.post("/model-configs", json={
-            "key": "aws:small",
-            "provider": "aws",
-            "tier": "small",
-            "displayName": "Claude Haiku (AWS)",
-            "modelId": "eu.anthropic.claude-haiku-4-5",
-            "costPer1mInput": 1.1,
-            "costPer1mCachedInput": 0.11,
-            "costPer1mOutput": 5.5,
-            "isActive": True,
-        })
+        r = client.post(
+            "/model-configs",
+            json={
+                "key": "aws:small",
+                "provider": "aws",
+                "tier": "small",
+                "displayName": "Claude Haiku (AWS)",
+                "modelId": "eu.anthropic.claude-haiku-4-5",
+                "costPer1mInput": 1.1,
+                "costPer1mCachedInput": 0.11,
+                "costPer1mOutput": 5.5,
+                "isActive": True,
+            },
+        )
 
     assert r.status_code == 201
     data = r.json()
@@ -80,6 +85,7 @@ def test_post_model_config_creates_and_returns_201(client):
 # VT-069-002: POST /model-configs — duplicate key returns 409
 # ---------------------------------------------------------------------------
 
+
 def test_post_model_config_duplicate_key_returns_409(client):
     with (
         admin_scope_override(),
@@ -88,17 +94,22 @@ def test_post_model_config_duplicate_key_returns_409(client):
         kg = MockKG.return_value
         inner = MagicMock()
         # GET_MODEL_CONFIG returns an existing row
-        inner.run.return_value = MagicMock(single=MagicMock(return_value={"key": "aws:small"}))
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"key": "aws:small"})
+        )
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
-        r = client.post("/model-configs", json={
-            "key": "aws:small",
-            "provider": "aws",
-            "tier": "small",
-            "displayName": "Claude Haiku",
-            "modelId": "test",
-        })
+        r = client.post(
+            "/model-configs",
+            json={
+                "key": "aws:small",
+                "provider": "aws",
+                "tier": "small",
+                "displayName": "Claude Haiku",
+                "modelId": "test",
+            },
+        )
 
     assert r.status_code == 409
 
@@ -107,19 +118,24 @@ def test_post_model_config_duplicate_key_returns_409(client):
 # VT-069-003: POST /model-configs — missing required field returns 422
 # ---------------------------------------------------------------------------
 
+
 def test_post_model_config_missing_key_returns_422(client):
     with admin_scope_override():
-        r = client.post("/model-configs", json={
-            "provider": "aws",
-            "tier": "small",
-            "displayName": "Missing key field",
-        })
+        r = client.post(
+            "/model-configs",
+            json={
+                "provider": "aws",
+                "tier": "small",
+                "displayName": "Missing key field",
+            },
+        )
     assert r.status_code == 422
 
 
 # ---------------------------------------------------------------------------
 # VT-069-004: DELETE /model-configs/{key} — removes existing node and returns 200
 # ---------------------------------------------------------------------------
+
 
 def test_delete_model_config_returns_200(client):
     with (
@@ -128,7 +144,9 @@ def test_delete_model_config_returns_200(client):
     ):
         kg = MockKG.return_value
         inner = MagicMock()
-        inner.run.return_value = MagicMock(single=MagicMock(return_value={"deleted": 1}))
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"deleted": 1})
+        )
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -142,6 +160,7 @@ def test_delete_model_config_returns_200(client):
 # VT-069-005: DELETE /model-configs/{key} — 404 for non-existent key
 # ---------------------------------------------------------------------------
 
+
 def test_delete_model_config_not_found_returns_404(client):
     with (
         admin_scope_override(),
@@ -149,7 +168,9 @@ def test_delete_model_config_not_found_returns_404(client):
     ):
         kg = MockKG.return_value
         inner = MagicMock()
-        inner.run.return_value = MagicMock(single=MagicMock(return_value={"deleted": 0}))
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"deleted": 0})
+        )
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -162,14 +183,35 @@ def test_delete_model_config_not_found_returns_404(client):
 # VT-069-006: GET /model-configs — list returns correctly
 # ---------------------------------------------------------------------------
 
+
 def test_get_model_configs_returns_list(client):
     rows = [
-        {"key": "aws:small", "provider": "aws", "tier": "small", "displayName": "Haiku",
-         "modelId": "haiku-id", "costPer1mInput": 1.1, "costPer1mCachedInput": 0.11,
-         "costPer1mOutput": 5.5, "isActive": True, "source": "seed", "updatedAt": ""},
-        {"key": "azure:big", "provider": "azure", "tier": "big", "displayName": "GPT-5",
-         "modelId": "gpt-5", "costPer1mInput": 1.375, "costPer1mCachedInput": 0.138,
-         "costPer1mOutput": 11.0, "isActive": True, "source": "user", "updatedAt": ""},
+        {
+            "key": "aws:small",
+            "provider": "aws",
+            "tier": "small",
+            "displayName": "Haiku",
+            "modelId": "haiku-id",
+            "costPer1mInput": 1.1,
+            "costPer1mCachedInput": 0.11,
+            "costPer1mOutput": 5.5,
+            "isActive": True,
+            "source": "seed",
+            "updatedAt": "",
+        },
+        {
+            "key": "azure:big",
+            "provider": "azure",
+            "tier": "big",
+            "displayName": "GPT-5",
+            "modelId": "gpt-5",
+            "costPer1mInput": 1.375,
+            "costPer1mCachedInput": 0.138,
+            "costPer1mOutput": 11.0,
+            "isActive": True,
+            "source": "user",
+            "updatedAt": "",
+        },
     ]
     with (
         admin_scope_override(),
@@ -222,23 +264,28 @@ def test_put_service_config_upserts(client):
     ):
         kg = MockKG.return_value
         inner = MagicMock()
-        inner.run.return_value = MagicMock(single=MagicMock(return_value={"key": "terminology:resolve_runtime"}))
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"key": "terminology:resolve_runtime"})
+        )
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
-        r = client.put("/service-configs/terminology:resolve_runtime", json={
-            "category": "terminology",
-            "displayName": "Terminology resolve runtime",
-            "description": "Runtime controls",
-            "config": {
-                "timeout_seconds": 45,
-                "max_retries": 3,
-                "cooldown_seconds": 60,
-                "final_attempts": 1,
-                "max_concurrent_requests": 2,
-                "max_terms_per_request": 8,
+        r = client.put(
+            "/service-configs/terminology:resolve_runtime",
+            json={
+                "category": "terminology",
+                "displayName": "Terminology resolve runtime",
+                "description": "Runtime controls",
+                "config": {
+                    "timeout_seconds": 45,
+                    "max_retries": 3,
+                    "cooldown_seconds": 60,
+                    "final_attempts": 1,
+                    "max_concurrent_requests": 2,
+                    "max_terms_per_request": 8,
+                },
             },
-        })
+        )
 
     assert r.status_code == 200
     assert r.json()["status"] == "updated"
@@ -251,19 +298,29 @@ def test_run_llm_spend_applies_selected_org_filter_for_admin(client):
     ):
         pg = MockPG.return_value
         inner = MagicMock()
-        rows = [{
-            "runId": "run-1",
-            "patientId": "p-1",
-            "encounterId": "e-1",
-            "status": "completed",
-            "durationMs": 10,
-            "inputTokens": 100,
-            "outputTokens": 50,
-            "cachedTokens": 20,
-            "costUsd": 0.0123,
-            "createdAt": "2026-04-11T00:00:00Z",
-        }]
-        totals = [{"runCount": 1, "inputTokens": 100, "outputTokens": 50, "cachedTokens": 20, "costUsd": 0.0123}]
+        rows = [
+            {
+                "runId": "run-1",
+                "patientId": "p-1",
+                "encounterId": "e-1",
+                "status": "completed",
+                "durationMs": 10,
+                "inputTokens": 100,
+                "outputTokens": 50,
+                "cachedTokens": 20,
+                "costUsd": 0.0123,
+                "createdAt": "2026-04-11T00:00:00Z",
+            }
+        ]
+        totals = [
+            {
+                "runCount": 1,
+                "inputTokens": 100,
+                "outputTokens": 50,
+                "cachedTokens": 20,
+                "costUsd": 0.0123,
+            }
+        ]
         inner.run.side_effect = [
             MagicMock(data=MagicMock(return_value=rows)),
             MagicMock(data=MagicMock(return_value=totals)),
@@ -271,7 +328,9 @@ def test_run_llm_spend_applies_selected_org_filter_for_admin(client):
         pg.session.return_value.__enter__ = lambda s: inner
         pg.session.return_value.__exit__ = MagicMock(return_value=False)
 
-        r = client.get("/analytics/llm-spend/runs?org_id=org-123&from=2026-04-01T00:00:00Z&to=2026-04-11T23:59:59Z")
+        r = client.get(
+            "/analytics/llm-spend/runs?org_id=org-123&from=2026-04-01T00:00:00Z&to=2026-04-11T23:59:59Z"
+        )
 
     assert r.status_code == 200
     assert r.json()["totals"]["runCount"] == 1

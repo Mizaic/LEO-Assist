@@ -22,7 +22,13 @@ load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
 
-OUT = ROOT / "scripts" / "investigations" / "output" / "missing_first_presentation_investigation.json"
+OUT = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "output"
+    / "missing_first_presentation_investigation.json"
+)
 
 Q_EXCLUDED = """
 MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare)
@@ -155,9 +161,13 @@ def main() -> None:
                         str(a.get("concept_name") or "") for a in complaints
                     )
                     rec["earliest_complaint_date"] = min(complaint_days).isoformat()
-                    rec["days_to_referral_from_earliest"] = (ref_day - min(complaint_days)).days
+                    rec["days_to_referral_from_earliest"] = (
+                        ref_day - min(complaint_days)
+                    ).days
                     rec["sample_complaints"] = list(
-                        dict.fromkeys(str(a.get("concept_name") or "") for a in complaints)
+                        dict.fromkeys(
+                            str(a.get("concept_name") or "") for a in complaints
+                        )
                     )[:5]
 
             bucket[k] += 1
@@ -174,7 +184,12 @@ def main() -> None:
             "top_far_complaints": far_terms.most_common(25),
         }
         OUT.write_text(json.dumps(out, indent=2), encoding="utf-8")
-        print(json.dumps({"excluded_total": len(excluded), "bucket_counts": dict(bucket)}, indent=2))
+        print(
+            json.dumps(
+                {"excluded_total": len(excluded), "bucket_counts": dict(bucket)},
+                indent=2,
+            )
+        )
         print(f"wrote: {OUT}")
     finally:
         pc.close()
@@ -182,4 +197,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

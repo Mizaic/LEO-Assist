@@ -1,4 +1,5 @@
 """Tests for deidentify_with_span() in libs/utils/deidentify.py."""
+
 from __future__ import annotations
 
 import pytest

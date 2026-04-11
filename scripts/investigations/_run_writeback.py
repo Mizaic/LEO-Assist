@@ -9,6 +9,7 @@ until clinical sign-off.
 Run:  python scripts/investigations/_run_writeback.py
       python scripts/investigations/_run_writeback.py --dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,6 +32,7 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 try:
     from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
     load_keyvault_secrets()
 except Exception as _kv_exc:
     print(f"[WARN] Key Vault load failed ({_kv_exc}); proceeding with env only")
@@ -67,8 +69,11 @@ def upsert(form: str, concept_id: str, dry_run: bool) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dry-run", action="store_true",
-                    help="Print what would be sent without submitting")
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be sent without submitting",
+    )
     args = ap.parse_args()
 
     approved_path = Path("scripts/investigations/abbreviation_writeback_approved.json")
@@ -99,33 +104,39 @@ def main() -> None:
             status = "OK" if not args.dry_run else "DRY"
             ok += 1
             print(f"  {status}  {abbrev:<8} -> [{concept_id}] {term[:55]}  {corrected}")
-            results.append({
-                "abbreviation": abbrev,
-                "concept_id": concept_id,
-                "term": term,
-                "status": status,
-                "response": resp,
-            })
+            results.append(
+                {
+                    "abbreviation": abbrev,
+                    "concept_id": concept_id,
+                    "term": term,
+                    "status": status,
+                    "response": resp,
+                }
+            )
         except requests.HTTPError as exc:
             fail += 1
             status = f"HTTP {exc.response.status_code}"
             body = exc.response.text[:200]
             print(f"  FAIL {abbrev:<8} -> {status}: {body}")
-            results.append({
-                "abbreviation": abbrev,
-                "concept_id": concept_id,
-                "status": "FAIL",
-                "error": str(exc),
-            })
+            results.append(
+                {
+                    "abbreviation": abbrev,
+                    "concept_id": concept_id,
+                    "status": "FAIL",
+                    "error": str(exc),
+                }
+            )
         except Exception as exc:
             fail += 1
             print(f"  ERR  {abbrev:<8} -> {exc}")
-            results.append({
-                "abbreviation": abbrev,
-                "concept_id": concept_id,
-                "status": "ERROR",
-                "error": str(exc),
-            })
+            results.append(
+                {
+                    "abbreviation": abbrev,
+                    "concept_id": concept_id,
+                    "status": "ERROR",
+                    "error": str(exc),
+                }
+            )
 
         time.sleep(0.05)
 
@@ -138,8 +149,10 @@ def main() -> None:
     print("Skipped (needs clinical review):")
     review_path = Path("scripts/investigations/abbreviation_writeback_review.json")
     for rev in json.loads(review_path.read_text(encoding="utf-8")):
-        print(f"  {rev['abbreviation']:<8} [{rev['recommended_concept_id']}] "
-              f"{rev['recommended_term']}")
+        print(
+            f"  {rev['abbreviation']:<8} [{rev['recommended_concept_id']}] "
+            f"{rev['recommended_term']}"
+        )
 
     out = Path("scripts/investigations/writeback_results.json")
     out.write_text(json.dumps(results, indent=2), encoding="utf-8")

@@ -1,4 +1,5 @@
 import sqlite3
+
 db = sqlite3.connect("scripts/investigations/encounter_audit/remediation.db")
 cur = db.cursor()
 

@@ -37,6 +37,7 @@ Usage
     python scripts/analyse_referral_episodes.py --output referral_episodes.csv
     python scripts/analyse_referral_episodes.py --cluster-days 90 --new-episode-days 365
 """
+
 from __future__ import annotations
 
 import argparse
@@ -69,9 +70,9 @@ logger = logging.getLogger("referral_episodes")
 # ------------------------------------------------------------------
 # Constants
 # ------------------------------------------------------------------
-CLUSTER_GAP_DAYS = 90       # referrals <= this apart = same episode
+CLUSTER_GAP_DAYS = 90  # referrals <= this apart = same episode
 NEW_EPISODE_GAP_DAYS = 365  # gap >= this = definitely a new episode
-LOOK_AHEAD_DAYS = 180       # scan this far after last referral if no next
+LOOK_AHEAD_DAYS = 180  # scan this far after last referral if no next
 
 # ------------------------------------------------------------------
 # Site-specific referral concept IDs (from fast_track_referrals JSON)
@@ -111,20 +112,22 @@ SPECIALIST_SITE: dict[str, str] = {
 
 # Outcome concepts that mean cancer was EXCLUDED
 # (from referral_outcomes_mapping.json + ncda_concept_sets.py)
-EXCLUSION_CONCEPT_IDS: frozenset[str] = frozenset([
-    "395100000",         # No evidence of cancer found (situation)
-    "414861001",         # No evidence of recurrence of cancer
-    # 415068001 REMOVED: this is "Exposure to ultraviolet radiation (event)" in SNOMED,
-    #   not a cancer exclusion concept. Confirmed via patient graph 2026-04-06.
-    "1090791000000103",  # No evidence of malignancy (UK extension)
-    "281900007",         # No abnormality detected (NAD)
-    "165324008",         # Biopsy result normal
-    "171175005",         # Breast neoplasm screening normal
-    "168749009",         # Mammography normal
-    "169064005",         # Computed tomography normal
-    "923501000000103",   # Referral cancelled by patient
-    "20376005",          # Benign neoplastic disease
-])
+EXCLUSION_CONCEPT_IDS: frozenset[str] = frozenset(
+    [
+        "395100000",  # No evidence of cancer found (situation)
+        "414861001",  # No evidence of recurrence of cancer
+        # 415068001 REMOVED: this is "Exposure to ultraviolet radiation (event)" in SNOMED,
+        #   not a cancer exclusion concept. Confirmed via patient graph 2026-04-06.
+        "1090791000000103",  # No evidence of malignancy (UK extension)
+        "281900007",  # No abnormality detected (NAD)
+        "165324008",  # Biopsy result normal
+        "171175005",  # Breast neoplasm screening normal
+        "168749009",  # Mammography normal
+        "169064005",  # Computed tomography normal
+        "923501000000103",  # Referral cancelled by patient
+        "20376005",  # Benign neoplastic disease
+    ]
+)
 
 # Cancer diagnosis concept IDs (from ncda_concept_sets.py CANCER_TYPE_IDS)
 # Loaded dynamically below to stay in sync
@@ -132,6 +135,7 @@ from libs.domains.ncda_concept_sets import (  # noqa: E402
     CANCER_TYPE_IDS,
     CANCER_HISTORY_IDS,
 )
+
 DIAGNOSIS_IDS: frozenset[str] = frozenset(
     str(c) for c in CANCER_TYPE_IDS | CANCER_HISTORY_IDS
 )
@@ -174,6 +178,7 @@ ORDER BY patient_id, encounter_date
 # ------------------------------------------------------------------
 # Data helpers
 # ------------------------------------------------------------------
+
 
 def _parse_assertion(context_json: str | None) -> str:
     try:
@@ -231,22 +236,25 @@ def _load_milestones(session, patient_ids: list[str]) -> dict[str, list[dict]]:
             event_type = "exclusion"
             site = "unknown"
 
-        result[row["patient_id"]].append({
-            "patient_id": row["patient_id"],
-            "encounter_id": row["encounter_id"],
-            "encounter_date": row["encounter_date"],
-            "dt": _safe_date(row["encounter_date"]),
-            "concept_id": cid,
-            "concept_name": row["concept_name"],
-            "event_type": event_type,
-            "site": site,
-        })
+        result[row["patient_id"]].append(
+            {
+                "patient_id": row["patient_id"],
+                "encounter_id": row["encounter_id"],
+                "encounter_date": row["encounter_date"],
+                "dt": _safe_date(row["encounter_date"]),
+                "concept_id": cid,
+                "concept_name": row["concept_name"],
+                "event_type": event_type,
+                "site": site,
+            }
+        )
     return result
 
 
 # ------------------------------------------------------------------
 # Episode clustering
 # ------------------------------------------------------------------
+
 
 def _cluster_referrals(
     referrals: list[dict],
@@ -273,6 +281,7 @@ def _cluster_referrals(
 # ------------------------------------------------------------------
 # Per-episode analysis
 # ------------------------------------------------------------------
+
 
 def _analyse_episode(
     patient_id: str,
@@ -416,6 +425,7 @@ def _analyse_patient(
 # Reporting
 # ------------------------------------------------------------------
 
+
 def _print_report(rows: list[dict]) -> None:
     by_outcome: dict[str, int] = defaultdict(int)
     by_flag: dict[str, int] = defaultdict(int)
@@ -431,7 +441,8 @@ def _print_report(rows: list[dict]) -> None:
     logger.info("=" * 68)
     logger.info(
         "REFERRAL EPISODE ANALYSIS -- %d episodes across %d patients",
-        len(rows), len(patients),
+        len(rows),
+        len(patients),
     )
     logger.info("=" * 68)
     logger.info("Episode outcomes:")
@@ -444,22 +455,26 @@ def _print_report(rows: list[dict]) -> None:
     logger.info("")
     logger.info("Episodes needing attention (pending or needs_review):")
     needs_attention = [
-        r for r in rows
+        r
+        for r in rows
         if r["outcome"] in ("pending", "needs_review")
         or "NO_OUTCOME_CODED" in r["flags"]
     ]
     for r in sorted(needs_attention, key=lambda x: x["first_referral_date"]):
         logger.info(
             "  [%s] ep%d  site=%-20s  outcome=%-20s  flags=%s",
-            r["patient_id"], r["episode"],
+            r["patient_id"],
+            r["episode"],
             r["referral_site"][:20],
             r["outcome"],
             r["flags"],
         )
         logger.info(
             "    referral: %s -> %s  window: %s -> %s",
-            r["first_referral_date"], r["last_referral_date"],
-            r["look_window_start"], r["look_window_end"],
+            r["first_referral_date"],
+            r["last_referral_date"],
+            r["look_window_start"],
+            r["look_window_end"],
         )
         if r["referral_encounter_ids"]:
             logger.info(
@@ -485,24 +500,33 @@ def _write_csv(rows: list[dict], path: str) -> None:
 # Main
 # ------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Analyse 2WW referral episode timelines"
     )
     parser.add_argument(
-        "--output", metavar="PATH", default="",
+        "--output",
+        metavar="PATH",
+        default="",
         help="Write episode table to CSV",
     )
     parser.add_argument(
-        "--cluster-days", type=int, default=CLUSTER_GAP_DAYS,
+        "--cluster-days",
+        type=int,
+        default=CLUSTER_GAP_DAYS,
         help="Referrals <= this many days apart = same episode (default 90)",
     )
     parser.add_argument(
-        "--new-episode-days", type=int, default=NEW_EPISODE_GAP_DAYS,
+        "--new-episode-days",
+        type=int,
+        default=NEW_EPISODE_GAP_DAYS,
         help="Gap >= this days always starts a new episode (default 365)",
     )
     parser.add_argument(
-        "--look-ahead", type=int, default=LOOK_AHEAD_DAYS,
+        "--look-ahead",
+        type=int,
+        default=LOOK_AHEAD_DAYS,
         help="Days after last referral to look for outcome (default 180)",
     )
     args = parser.parse_args()
@@ -516,9 +540,8 @@ def main() -> None:
         sys.exit(1)
 
     from neo4j import GraphDatabase
-    driver = GraphDatabase.driver(
-        neo4j_uri, auth=(neo4j_user, neo4j_password)
-    )
+
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
     with driver.session() as session:
         logger.info("Finding patients with fast-track referrals...")
@@ -551,9 +574,7 @@ def main() -> None:
     if args.output:
         _write_csv(all_episodes, args.output)
     elif all_episodes:
-        logger.info(
-            "Run with --output referral_episodes.csv for the full table."
-        )
+        logger.info("Run with --output referral_episodes.csv for the full table.")
 
 
 if __name__ == "__main__":

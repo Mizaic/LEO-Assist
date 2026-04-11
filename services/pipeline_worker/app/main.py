@@ -13,6 +13,8 @@ Why dual-mode instead of running batch on the Core API?
   The pipeline worker is the right place for heavy pipeline execution.
 """
 
+# aca-image: pipeline-worker build/deploy verification (no runtime effect).
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -81,7 +83,8 @@ _BATCH_TRACE_PASS_SAMPLE_RATE = float(os.getenv("BATCH_TRACE_PASS_SAMPLE_RATE", 
 def _cleanup_batch_traces(now: float | None = None) -> None:
     ts = now or time.time()
     expired = [
-        run_id for run_id, run in _batch_trace_runs.items()
+        run_id
+        for run_id, run in _batch_trace_runs.items()
         if float(run.get("expires_at", 0)) <= ts
     ]
     for run_id in expired:
@@ -99,7 +102,9 @@ def _cleanup_batch_traces(now: float | None = None) -> None:
         _batch_trace_runs.pop(run_id, None)
 
 
-def _store_batch_candidate_trace(batch_run_id: str, candidate_id: str, payload: dict[str, Any]) -> None:
+def _store_batch_candidate_trace(
+    batch_run_id: str, candidate_id: str, payload: dict[str, Any]
+) -> None:
     now = time.time()
     with _batch_trace_lock:
         _cleanup_batch_traces(now)
@@ -111,12 +116,16 @@ def _store_batch_candidate_trace(batch_run_id: str, candidate_id: str, payload: 
                 "candidates": {},
             },
         )
-        run["expires_at"] = max(float(run.get("expires_at", 0)), now + _BATCH_TRACE_TTL_SECONDS)
+        run["expires_at"] = max(
+            float(run.get("expires_at", 0)), now + _BATCH_TRACE_TTL_SECONDS
+        )
         candidates = run.setdefault("candidates", {})
         candidates[candidate_id] = payload
 
 
-def _get_batch_candidate_trace(batch_run_id: str, candidate_id: str) -> dict[str, Any] | None:
+def _get_batch_candidate_trace(
+    batch_run_id: str, candidate_id: str
+) -> dict[str, Any] | None:
     now = time.time()
     with _batch_trace_lock:
         _cleanup_batch_traces(now)
@@ -130,6 +139,7 @@ def _get_batch_candidate_trace(batch_run_id: str, candidate_id: str) -> dict[str
 
 
 # ── Lifespan: start/stop message bus consumer in background ──────────────────
+
 
 def _warm_up() -> None:
     """Pre-load all models and singletons used by the pipeline.
@@ -146,6 +156,7 @@ def _warm_up() -> None:
     def _warm_embedder() -> None:
         try:
             from libs.prompts.few_shot_selector import warm_shared_embedder
+
             warm_shared_embedder()
         except Exception:
             logger.warning("Embedder warm-up failed (non-fatal)", exc_info=True)
@@ -155,6 +166,7 @@ def _warm_up() -> None:
             # Importing triggers module-level spaCy/medspacy setup; calling
             # _get_nlp() builds the ConText pipeline and caches it globally.
             from libs.ner.context_engine import _get_nlp
+
             _get_nlp()
             logger.info("Pipeline Worker: ConText NLP pipeline ready")
         except Exception:
@@ -165,15 +177,18 @@ def _warm_up() -> None:
             # Touch the subgraph registry so all subgraphs are imported and any
             # module-level globals (model configs, rule sets) are initialised.
             from libs.pipeline_graph.registry import get_registry
+
             reg = get_registry()
             count = len(reg.list_subgraphs())
-            logger.info("Pipeline Worker: subgraph registry ready (%d subgraphs)", count)
+            logger.info(
+                "Pipeline Worker: subgraph registry ready (%d subgraphs)", count
+            )
         except Exception:
             logger.warning("Registry warm-up failed (non-fatal)", exc_info=True)
 
     threads = [
         threading.Thread(target=_warm_embedder, daemon=True, name="warm-embedder"),
-        threading.Thread(target=_warm_nlp,      daemon=True, name="warm-nlp"),
+        threading.Thread(target=_warm_nlp, daemon=True, name="warm-nlp"),
         threading.Thread(target=_warm_registry, daemon=True, name="warm-registry"),
     ]
     for t in threads:
@@ -193,14 +208,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     patient_audit_driver = None
     try:
         from libs.neo4j_client.client import get_async_driver
+
         neo4j_driver = get_async_driver()
     except Exception:
-        logger.warning("Knowledge Graph driver not available — running without graph storage")
+        logger.warning(
+            "Knowledge Graph driver not available — running without graph storage"
+        )
     try:
         from libs.neo4j_client.client import get_async_patient_driver
+
         patient_audit_driver = get_async_patient_driver()
     except Exception:
-        logger.warning("Patient Graph driver not available — pipeline spend audit writes disabled")
+        logger.warning(
+            "Patient Graph driver not available — pipeline spend audit writes disabled"
+        )
 
     engine = WorkflowEngine(
         neo4j_driver=neo4j_driver,
@@ -216,7 +237,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             # Emit a progress error event so UI subscribers do not appear idle
             # when a run fails before first workflow step.
             try:
-                from services.coding_worker.app.services.progress_publisher import publish_progress
+                from services.coding_worker.app.services.progress_publisher import (
+                    publish_progress,
+                )
 
                 run_id = str(msg.correlation_id or msg.message_id or "")
                 if run_id:
@@ -267,6 +290,7 @@ app = FastAPI(title="Pipeline Worker", lifespan=lifespan)
 # Mirrors the models previously on the Core API — kept in one place now that all
 # interactive pipeline execution lives here.
 
+
 class TestRunAction(BaseModel):
     id: str
     subgraph_id: str
@@ -298,7 +322,7 @@ class TestRunRequest(BaseModel):
     plan_id: str | None = None
     actions: list[TestRunAction]
     edges: list[TestRunEdge]
-    input: dict   # {encounter_text?, patient_id?, encounter_id?}
+    input: dict  # {encounter_text?, patient_id?, encounter_id?}
 
 
 class TestRunResponse(BaseModel):
@@ -310,9 +334,9 @@ class TestRunResponse(BaseModel):
 class BatchTestRequest(BaseModel):
     actions: list[TestRunAction]
     edges: list[TestRunEdge]
-    limit: int = 20           # max candidates to process (capped at 100)
+    limit: int = 20  # max candidates to process (capped at 100)
     status_filter: str | None = "pending"
-    concurrency: int = 3      # parallel candidates (1–10)
+    concurrency: int = 3  # parallel candidates (1–10)
 
 
 class LabelVerifyStartRequest(BaseModel):
@@ -326,15 +350,20 @@ class GuidanceGenerateRequest(BaseModel):
 
 # ── Single-record dry-run helpers ────────────────────────────────────────────
 
-def _build_actions(body_actions: list[TestRunAction], body_edges: list[TestRunEdge]) -> tuple[list[ActionDefinition], dict]:
+
+def _build_actions(
+    body_actions: list[TestRunAction], body_edges: list[TestRunEdge]
+) -> tuple[list[ActionDefinition], dict]:
     """Shared edge/action builder used by all three dry-run endpoints."""
     edges_by_target: dict[str, list[dict]] = {}
     for e in body_edges:
-        edges_by_target.setdefault(e.target, []).append({
-            "actionId": e.source,
-            "sourceHandle": e.source_handle,
-            "targetHandle": e.target_handle,
-        })
+        edges_by_target.setdefault(e.target, []).append(
+            {
+                "actionId": e.source,
+                "sourceHandle": e.source_handle,
+                "targetHandle": e.target_handle,
+            }
+        )
     actions = [
         ActionDefinition(
             action_id=a.id,
@@ -418,6 +447,7 @@ async def test_run_pipeline_stream(body: TestRunRequest) -> StreamingResponse:
 
 # ── Batch dry-run endpoint ────────────────────────────────────────────────────
 
+
 @app.post("/test-run/batch")
 async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
     """Batch dry-run of the draft pathway against real TrainingCandidates.
@@ -482,16 +512,21 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
             async with sem:
                 candidate_id = cand.get("candidate_id", f"cand-{idx}")
                 text = cand.get("text") or ""
-                text_preview = text[:120].replace("\n", " ") + ("…" if len(text) > 120 else "")
+                text_preview = text[:120].replace("\n", " ") + (
+                    "…" if len(text) > 120 else ""
+                )
 
-                put("candidate_start", {
-                    "type": "candidate_start",
-                    "batch_run_id": batch_run_id,
-                    "candidate_id": candidate_id,
-                    "text_preview": text_preview,
-                    "index": idx + 1,
-                    "total": total,
-                })
+                put(
+                    "candidate_start",
+                    {
+                        "type": "candidate_start",
+                        "batch_run_id": batch_run_id,
+                        "candidate_id": candidate_id,
+                        "text_preview": text_preview,
+                        "index": idx + 1,
+                        "total": total,
+                    },
+                )
 
                 initial: dict = {
                     "encounter_text": text,
@@ -525,7 +560,9 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                             lbl = trace.get("label") or sg
                             st = trace.get("status")
 
-                            entry = by_step_stats.setdefault(sg, {"label": lbl, "ran": 0, "halted": 0})
+                            entry = by_step_stats.setdefault(
+                                sg, {"label": lbl, "ran": 0, "halted": 0}
+                            )
                             entry["ran"] += 1
 
                             if st == "halted":
@@ -536,24 +573,36 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                                 if sg == "verification":
                                     out_state = trace.get("output_state") or {}
                                     if isinstance(out_state, dict):
-                                        verification_threshold_raw = out_state.get("confidence_threshold")
+                                        verification_threshold_raw = out_state.get(
+                                            "confidence_threshold"
+                                        )
                                         try:
-                                            verification_threshold = float(verification_threshold_raw)
+                                            verification_threshold = float(
+                                                verification_threshold_raw
+                                            )
                                         except Exception:
                                             verification_threshold = None
-                                        verification = out_state.get("verification_result") or {}
+                                        verification = (
+                                            out_state.get("verification_result") or {}
+                                        )
                                         if isinstance(verification, dict):
                                             verification_is_accurate = bool(
                                                 verification.get("is_accurate", False)
                                             )
                                             conf_raw = verification.get("confidence")
                                             try:
-                                                verification_confidence = float(conf_raw)
+                                                verification_confidence = float(
+                                                    conf_raw
+                                                )
                                             except Exception:
                                                 verification_confidence = None
                                             issues_raw = verification.get("issues")
                                             if isinstance(issues_raw, list):
-                                                verification_issues = [str(i) for i in issues_raw if str(i).strip()]
+                                                verification_issues = [
+                                                    str(i)
+                                                    for i in issues_raw
+                                                    if str(i).strip()
+                                                ]
                                             elif issues_raw is None:
                                                 verification_issues = []
                                             else:
@@ -563,15 +612,18 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                                 final_status = "error"
                                 error_msg = trace.get("error") or "Unknown error"
 
-                            put("step_progress", {
-                                "type": "step_progress",
-                                "candidate_id": candidate_id,
-                                "subgraph_id": sg,
-                                "label": lbl,
-                                "status": st,
-                                "ran": entry["ran"],
-                                "halted": entry["halted"],
-                            })
+                            put(
+                                "step_progress",
+                                {
+                                    "type": "step_progress",
+                                    "candidate_id": candidate_id,
+                                    "subgraph_id": sg,
+                                    "label": lbl,
+                                    "status": st,
+                                    "ran": entry["ran"],
+                                    "halted": entry["halted"],
+                                },
+                            )
 
                         elif ev["type"] == "pipeline_done":
                             ps = ev.get("status", "completed")
@@ -605,7 +657,9 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                     and final_status == "completed"
                     and _BATCH_TRACE_PASS_SAMPLE_RATE > 0
                 ):
-                    should_save_trace = ((idx + 1) % max(1, int(1 / _BATCH_TRACE_PASS_SAMPLE_RATE))) == 0
+                    should_save_trace = (
+                        (idx + 1) % max(1, int(1 / _BATCH_TRACE_PASS_SAMPLE_RATE))
+                    ) == 0
 
                 if should_save_trace and step_traces:
                     _store_batch_candidate_trace(
@@ -631,26 +685,29 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                         },
                     )
 
-                put("candidate_done", {
-                    "type": "candidate_done",
-                    "batch_run_id": batch_run_id,
-                    "candidate_id": candidate_id,
-                    "text_preview": text_preview,
-                    "encounter_text": text[:8000],
-                    "status": final_status,
-                    "halted_at": halted_at,
-                    "halted_at_subgraph": halted_at_subgraph,
-                    "halt_reason": halt_reason,
-                    "verification_is_accurate": verification_is_accurate,
-                    "verification_confidence": verification_confidence,
-                    "verification_threshold": verification_threshold,
-                    "verification_issues": verification_issues,
-                    "error": error_msg,
-                    "duration_ms": duration_ms,
-                    "index": idx + 1,
-                    "total": total,
-                    "trace_saved": should_save_trace and bool(step_traces),
-                })
+                put(
+                    "candidate_done",
+                    {
+                        "type": "candidate_done",
+                        "batch_run_id": batch_run_id,
+                        "candidate_id": candidate_id,
+                        "text_preview": text_preview,
+                        "encounter_text": text[:8000],
+                        "status": final_status,
+                        "halted_at": halted_at,
+                        "halted_at_subgraph": halted_at_subgraph,
+                        "halt_reason": halt_reason,
+                        "verification_is_accurate": verification_is_accurate,
+                        "verification_confidence": verification_confidence,
+                        "verification_threshold": verification_threshold,
+                        "verification_issues": verification_issues,
+                        "error": error_msg,
+                        "duration_ms": duration_ms,
+                        "index": idx + 1,
+                        "total": total,
+                        "trace_saved": should_save_trace and bool(step_traces),
+                    },
+                )
 
         sem = asyncio.Semaphore(concurrency)
         tasks = [
@@ -672,15 +729,17 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
 
         yield (
             f"event: batch_done\ndata: "
-            + json.dumps({
-                "type": "batch_done",
-                "batch_run_id": batch_run_id,
-                "total": total,
-                "passed": passed,
-                "halted": halted,
-                "errored": errored,
-                "by_step_stats": by_step_stats,
-            })
+            + json.dumps(
+                {
+                    "type": "batch_done",
+                    "batch_run_id": batch_run_id,
+                    "total": total,
+                    "passed": passed,
+                    "halted": halted,
+                    "errored": errored,
+                    "by_step_stats": by_step_stats,
+                }
+            )
             + "\n\n"
         )
 
@@ -696,8 +755,12 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
 
 
 @app.get("/test-run/batch/trace")
-async def get_batch_candidate_trace(batch_run_id: str, candidate_id: str) -> dict[str, Any]:
-    payload = _get_batch_candidate_trace(batch_run_id=batch_run_id, candidate_id=candidate_id)
+async def get_batch_candidate_trace(
+    batch_run_id: str, candidate_id: str
+) -> dict[str, Any]:
+    payload = _get_batch_candidate_trace(
+        batch_run_id=batch_run_id, candidate_id=candidate_id
+    )
     if not payload:
         raise HTTPException(
             status_code=404,
@@ -707,7 +770,9 @@ async def get_batch_candidate_trace(batch_run_id: str, candidate_id: str) -> dic
 
 
 @app.post("/label-verify/start")
-async def label_verify_start(body: LabelVerifyStartRequest | None = None) -> dict[str, Any]:
+async def label_verify_start(
+    body: LabelVerifyStartRequest | None = None,
+) -> dict[str, Any]:
     from libs.cypher.label_verification_queries import (
         DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED,
         RESET_TRAINING_LABEL_VERIFICATION_FIELDS,
@@ -724,12 +789,18 @@ async def label_verify_start(body: LabelVerifyStartRequest | None = None) -> dic
         mode = "all"
         reset_pending = False
     else:
-        mode = body.mode if body.mode in {"all", "hitl_only", "resume", "re_extract"} else "all"
+        mode = (
+            body.mode
+            if body.mode in {"all", "hitl_only", "resume", "re_extract"}
+            else "all"
+        )
         reset_pending = bool(body.reset_pending)
         started = begin_job_with_mode(run_mode=mode, reset_pending=reset_pending)
 
     if not started:
-        raise HTTPException(status_code=409, detail="A label verification job is already running")
+        raise HTTPException(
+            status_code=409, detail="A label verification job is already running"
+        )
 
     if reset_pending:
         client = PatientGraphClient()
@@ -755,7 +826,9 @@ async def label_verify_stop() -> dict[str, Any]:
     from services.pipeline_worker.app.services.label_verifier import request_stop_job
 
     if not request_stop_job():
-        raise HTTPException(status_code=409, detail="No running label verification job to cancel")
+        raise HTTPException(
+            status_code=409, detail="No running label verification job to cancel"
+        )
     return {"status": "stopping", "message": "Cancellation requested"}
 
 
@@ -777,13 +850,17 @@ async def label_verify_status() -> dict[str, Any]:
         return {
             **state,
             "auto_resolved": int(state.get("auto_resolved", 0) or 0),
-            "stats": dict(stats_row) if stats_row else {
-                "total_labels": 0,
-                "verified_labels": 0,
-                "agreements": 0,
-                "disagreements": 0,
-                "pending": 0,
-            },
+            "stats": (
+                dict(stats_row)
+                if stats_row
+                else {
+                    "total_labels": 0,
+                    "verified_labels": 0,
+                    "agreements": 0,
+                    "disagreements": 0,
+                    "pending": 0,
+                }
+            ),
             "pending_review": pending_row["pending"] if pending_row else 0,
         }
     finally:
@@ -792,7 +869,9 @@ async def label_verify_status() -> dict[str, Any]:
 
 def _run_guidance_generation(job_id: str, guideline_id: str) -> None:
     from libs.neo4j_client.client import KnowledgeGraphClient
-    from services.pipeline_worker.app.services.guidance_rule_generator import GuidanceRuleGenerator
+    from services.pipeline_worker.app.services.guidance_rule_generator import (
+        GuidanceRuleGenerator,
+    )
 
     try:
         client = KnowledgeGraphClient()

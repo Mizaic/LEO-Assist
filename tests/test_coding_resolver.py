@@ -10,13 +10,18 @@ import pytest
 class TestNormalizeSurface:
 
     def test_basic_normalization(self):
-        from services.terminology_api.app.services.coding_resolver import normalize_surface
+        from services.terminology_api.app.services.coding_resolver import (
+            normalize_surface,
+        )
 
         assert normalize_surface("Chest Pain") == "chest pain"
         assert normalize_surface("  Type-2 diabetes!!  ") == "type 2 diabetes"
 
     def test_empty_string(self):
-        from services.terminology_api.app.services.coding_resolver import normalize_surface
+        from services.terminology_api.app.services.coding_resolver import (
+            normalize_surface,
+        )
+
         assert normalize_surface("") == ""
 
 
@@ -32,16 +37,25 @@ class TestEscapeLucene:
 class TestBuildFulltextQueries:
 
     def test_empty_input(self):
-        from services.terminology_api.app.services.coding_resolver import _build_fulltext_queries
+        from services.terminology_api.app.services.coding_resolver import (
+            _build_fulltext_queries,
+        )
+
         assert _build_fulltext_queries("") == []
 
     def test_single_word(self):
-        from services.terminology_api.app.services.coding_resolver import _build_fulltext_queries
+        from services.terminology_api.app.services.coding_resolver import (
+            _build_fulltext_queries,
+        )
+
         result = _build_fulltext_queries("cough")
         assert len(result) >= 1
 
     def test_multi_word_includes_phrase(self):
-        from services.terminology_api.app.services.coding_resolver import _build_fulltext_queries
+        from services.terminology_api.app.services.coding_resolver import (
+            _build_fulltext_queries,
+        )
+
         result = _build_fulltext_queries("chest pain")
         assert any('"' in q for q in result)
 
@@ -49,7 +63,9 @@ class TestBuildFulltextQueries:
 class TestCodingCandidate:
 
     def test_frozen_dataclass(self):
-        from services.terminology_api.app.services.coding_resolver import CodingCandidate
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingCandidate,
+        )
 
         c = CodingCandidate(
             snomed_concept_id="12345",
@@ -68,6 +84,7 @@ class TestCodingResolver:
 
     def _make_resolver(self):
         from services.terminology_api.app.services.coding_resolver import CodingResolver
+
         return CodingResolver()
 
     def test_empty_input(self):
@@ -97,7 +114,13 @@ class TestCodingResolver:
         resolver = self._make_resolver()
         session = MagicMock()
         session.run.return_value = [
-            {"concept_id": "12345", "fsn": "Test", "semantic_tag": "finding", "read_codes": [], "score": 1.0},
+            {
+                "concept_id": "12345",
+                "fsn": "Test",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "score": 1.0,
+            },
         ]
 
         result = resolver.resolve_candidates(["cough", "cough"], neo4j_session=session)
@@ -133,8 +156,13 @@ class TestCodingResolver:
         for surface_form, expected_concept_id in gold_dataset:
             session = MagicMock()
             session.run.return_value = [
-                {"concept_id": expected_concept_id, "fsn": surface_form,
-                 "semantic_tag": "finding", "read_codes": [], "score": 1.0},
+                {
+                    "concept_id": expected_concept_id,
+                    "fsn": surface_form,
+                    "semantic_tag": "finding",
+                    "read_codes": [],
+                    "score": 1.0,
+                },
             ]
             result = resolver.resolve_candidates([surface_form], neo4j_session=session)
             if surface_form in result and result[surface_form]:
@@ -150,8 +178,20 @@ class TestCodingResolver:
         resolver = CodingResolver()
         session = MagicMock()
         session.run.return_value = [
-            {"concept_id": "111", "fsn": "Finding A", "semantic_tag": "finding", "read_codes": [], "score": 0.8},
-            {"concept_id": "222", "fsn": "Procedure B", "semantic_tag": "procedure", "read_codes": [], "score": 0.85},
+            {
+                "concept_id": "111",
+                "fsn": "Finding A",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "score": 0.8,
+            },
+            {
+                "concept_id": "222",
+                "fsn": "Procedure B",
+                "semantic_tag": "procedure",
+                "read_codes": [],
+                "score": 0.85,
+            },
         ]
 
         result = resolver.resolve_candidates(
@@ -161,8 +201,12 @@ class TestCodingResolver:
         )
         candidates = result["something"]
         if len(candidates) >= 2:
-            finding_candidate = next(c for c in candidates if c.snomed_concept_id == "111")
-            procedure_candidate = next(c for c in candidates if c.snomed_concept_id == "222")
+            finding_candidate = next(
+                c for c in candidates if c.snomed_concept_id == "111"
+            )
+            procedure_candidate = next(
+                c for c in candidates if c.snomed_concept_id == "222"
+            )
             assert finding_candidate.score >= procedure_candidate.score
 
     def test_expected_tag_underscore_not_penalized(self):
@@ -250,7 +294,10 @@ class TestBatchExact:
         }
 
         def _run(query, **kwargs):
-            from services.terminology_api.app.queries.terminology import BATCH_EXACT_QUERY
+            from services.terminology_api.app.queries.terminology import (
+                BATCH_EXACT_QUERY,
+            )
+
             if "normalized_terms" in kwargs:
                 return [{"input_term": "cough", "hits": [exact_hit]}]
             return []
@@ -276,8 +323,13 @@ class TestBatchExact:
                 raise RuntimeError("simulated batch failure")
             if "normalized" in kwargs:
                 return [
-                    {"concept_id": "49727002", "fsn": "Cough", "semantic_tag": "finding",
-                     "read_codes": [], "score": 1.0}
+                    {
+                        "concept_id": "49727002",
+                        "fsn": "Cough",
+                        "semantic_tag": "finding",
+                        "read_codes": [],
+                        "score": 1.0,
+                    }
                 ]
             return []
 
@@ -301,8 +353,14 @@ class TestBatchFulltext:
 
         session = MagicMock()
         session.run.return_value = [
-            {"concept_id": "49727002", "fsn": "Cough", "semantic_tag": "finding",
-             "read_codes": [], "score": 0.9, "surface_form_status": ""},
+            {
+                "concept_id": "49727002",
+                "fsn": "Cough",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "score": 0.9,
+                "surface_form_status": "",
+            },
         ]
 
         merged_all: dict = {"cough": {}}
@@ -322,10 +380,21 @@ class TestBatchFulltext:
 
         def _run(query, **kwargs):
             if "normalized_terms" in kwargs:
-                return [{"input_term": "cough", "hits": [
-                    {"concept_id": "49727002", "fsn": "Cough", "semantic_tag": "finding",
-                     "read_codes": [], "score": 1.0, "surface_form_status": ""}
-                ]}]
+                return [
+                    {
+                        "input_term": "cough",
+                        "hits": [
+                            {
+                                "concept_id": "49727002",
+                                "fsn": "Cough",
+                                "semantic_tag": "finding",
+                                "read_codes": [],
+                                "score": 1.0,
+                                "surface_form_status": "",
+                            }
+                        ],
+                    }
+                ]
             if "ft_query" in kwargs:
                 fulltext_called_for.append(kwargs.get("ft_query", ""))
             return []
@@ -347,7 +416,14 @@ class TestBatchRelatedConcepts:
         session.run.return_value = [
             {
                 "concept_id": "12345",
-                "interpreted_by_findings": [{"id": "99999", "fsn": "Some finding", "semantic_tag": "finding", "rel": "INTERPRETED_BY"}],
+                "interpreted_by_findings": [
+                    {
+                        "id": "99999",
+                        "fsn": "Some finding",
+                        "semantic_tag": "finding",
+                        "rel": "INTERPRETED_BY",
+                    }
+                ],
                 "component_of_procedures": [],
                 "interprets_observables": [],
                 "has_components": [],

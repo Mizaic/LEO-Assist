@@ -174,7 +174,7 @@ def _expand_pcn_scope(client: PatientGraphClient, pcn_id: str) -> list[str]:
     )
     ids = {pcn_id}
     if rows:
-        for gid in (rows[0].get("gp_ids") or []):
+        for gid in rows[0].get("gp_ids") or []:
             if gid:
                 ids.add(gid)
         if rows[0].get("icb_id"):
@@ -200,13 +200,13 @@ def _expand_icb_scope(client: PatientGraphClient, icb_id: str) -> list[str]:
     )
     ids = {icb_id}
     if rows:
-        for pid in (rows[0].get("pcn_ids") or []):
+        for pid in rows[0].get("pcn_ids") or []:
             if pid:
                 ids.add(pid)
-        for gid in (rows[0].get("gp_direct_ids") or []):
+        for gid in rows[0].get("gp_direct_ids") or []:
             if gid:
                 ids.add(gid)
-        for gid in (rows[0].get("gp_pcn_ids") or []):
+        for gid in rows[0].get("gp_pcn_ids") or []:
             if gid:
                 ids.add(gid)
         if rows[0].get("ca_id"):
@@ -230,16 +230,16 @@ def _expand_alliance_scope(client: PatientGraphClient, ca_id: str) -> list[str]:
     )
     ids = {ca_id}
     if rows:
-        for iid in (rows[0].get("icb_ids") or []):
+        for iid in rows[0].get("icb_ids") or []:
             if iid:
                 ids.add(iid)
-        for pid in (rows[0].get("pcn_ids") or []):
+        for pid in rows[0].get("pcn_ids") or []:
             if pid:
                 ids.add(pid)
-        for gid in (rows[0].get("gp_direct_ids") or []):
+        for gid in rows[0].get("gp_direct_ids") or []:
             if gid:
                 ids.add(gid)
-        for gid in (rows[0].get("gp_pcn_ids") or []):
+        for gid in rows[0].get("gp_pcn_ids") or []:
             if gid:
                 ids.add(gid)
     return list(ids)
@@ -258,6 +258,7 @@ def get_caller_scope(
     if not leo_session:
         raise HTTPException(status_code=401, detail="Not authenticated")
     from libs.redis_client.session import load_session
+
     data = load_session(leo_session) or {}
     caller_email = (data.get("email") or "").strip().lower()
     if not caller_email:

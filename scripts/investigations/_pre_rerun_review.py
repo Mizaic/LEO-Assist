@@ -1,4 +1,5 @@
 """Analyse current audit report to identify improvements before re-run."""
+
 import csv
 import json
 import pathlib

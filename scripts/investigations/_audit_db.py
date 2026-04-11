@@ -3,6 +3,7 @@
 Provides crash-safe, per-encounter progress tracking using WAL mode.
 All writes are individual commits so a crash loses at most one result.
 """
+
 from __future__ import annotations
 
 import json
@@ -90,9 +91,7 @@ class CheckpointDB:
         ]
         for col, col_type in new_cols:
             try:
-                self._con.execute(
-                    f"ALTER TABLE encounters ADD COLUMN {col} {col_type}"
-                )
+                self._con.execute(f"ALTER TABLE encounters ADD COLUMN {col} {col_type}")
             except Exception:
                 pass  # column already exists
 
@@ -108,8 +107,13 @@ class CheckpointDB:
                 "INSERT OR IGNORE INTO encounters"
                 " (encounter_id, patient_id, date, text_len, status)"
                 " VALUES (?, ?, ?, ?, ?)",
-                (row["encounter_id"], row["patient_id"],
-                 row.get("date"), row.get("text_len"), STATUS_PENDING),
+                (
+                    row["encounter_id"],
+                    row["patient_id"],
+                    row.get("date"),
+                    row.get("text_len"),
+                    STATUS_PENDING,
+                ),
             )
             inserted += self._con.execute("SELECT changes()").fetchone()[0]
         self._con.commit()
@@ -138,8 +142,15 @@ class CheckpointDB:
             " SET status=?, result_json=?, processed_at=?,"
             "     input_tokens=?, output_tokens=?, cost_usd=?"
             " WHERE encounter_id=?",
-            (STATUS_DONE, json.dumps(result), _now(),
-             input_tok, output_tok, cost, encounter_id),
+            (
+                STATUS_DONE,
+                json.dumps(result),
+                _now(),
+                input_tok,
+                output_tok,
+                cost,
+                encounter_id,
+            ),
         )
         self._con.commit()
 
@@ -158,9 +169,13 @@ class CheckpointDB:
             "  semantic_tag, resolver_top_result, resolver_top_score, gap_type)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                gap["encounter_id"], gap["evidence"], gap["expected_concept_id"],
-                gap.get("expected_name"), gap.get("semantic_tag"),
-                gap.get("resolver_top_result"), gap.get("resolver_top_score"),
+                gap["encounter_id"],
+                gap["evidence"],
+                gap["expected_concept_id"],
+                gap.get("expected_name"),
+                gap.get("semantic_tag"),
+                gap.get("resolver_top_result"),
+                gap.get("resolver_top_score"),
                 gap["gap_type"],
             ),
         )
@@ -174,10 +189,14 @@ class CheckpointDB:
             "  resolved_concept_id, resolved_name, resolver_score, semantic_tag)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                row["encounter_id"], row["evidence"],
-                row["stored_concept_id"], row.get("stored_name"),
-                row["resolved_concept_id"], row.get("resolved_name"),
-                row.get("resolver_score"), row.get("semantic_tag"),
+                row["encounter_id"],
+                row["evidence"],
+                row["stored_concept_id"],
+                row.get("stored_name"),
+                row["resolved_concept_id"],
+                row.get("resolved_name"),
+                row.get("resolver_score"),
+                row.get("semantic_tag"),
             ),
         )
         self._con.commit()
@@ -190,9 +209,15 @@ class CheckpointDB:
             "  concept_id, term, semantic_tag, assertion)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                row["encounter_id"], row["sentence"], row["entity"],
-                row["start_char"], row["end_char"], row["concept_id"],
-                row.get("term"), row.get("semantic_tag"), row.get("assertion"),
+                row["encounter_id"],
+                row["sentence"],
+                row["entity"],
+                row["start_char"],
+                row["end_char"],
+                row["concept_id"],
+                row.get("term"),
+                row.get("semantic_tag"),
+                row.get("assertion"),
             ),
         )
         self._con.commit()
@@ -226,9 +251,9 @@ class CheckpointDB:
             "wrong_concepts": c.execute(
                 "SELECT count(*) FROM wrong_concepts"
             ).fetchone()[0],
-            "ner_examples": c.execute(
-                "SELECT count(*) FROM ner_examples"
-            ).fetchone()[0],
+            "ner_examples": c.execute("SELECT count(*) FROM ner_examples").fetchone()[
+                0
+            ],
             "input_tokens": int(tok[0]),
             "output_tokens": int(tok[1]),
             "cost_usd": round(float(tok[2]), 4),
@@ -322,7 +347,7 @@ def _now() -> str:
 # Haiku 3.5      = $0.80 input / $4 output.
 _PRICING: dict[str, tuple[float, float]] = {
     "sonnet": (3.0, 15.0),
-    "haiku":  (0.80, 4.0),
+    "haiku": (0.80, 4.0),
 }
 _DEFAULT_PRICING = (3.0, 15.0)
 
@@ -340,7 +365,6 @@ def _compute_cost_usd(
         price_in, price_out = _PRICING["haiku"]
     else:
         price_in, price_out = _PRICING["sonnet"]
-    return (
-        (input_tokens or 0) * price_in / 1_000_000
-        + (output_tokens or 0) * price_out / 1_000_000
-    )
+    return (input_tokens or 0) * price_in / 1_000_000 + (
+        output_tokens or 0
+    ) * price_out / 1_000_000

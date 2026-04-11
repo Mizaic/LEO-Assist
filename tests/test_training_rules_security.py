@@ -23,10 +23,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-
 # ---------------------------------------------------------------------------
 # Import _validate_regex with all heavy deps mocked out
 # ---------------------------------------------------------------------------
+
 
 def _import_validate_regex():
     """Return the _validate_regex function from the training router.
@@ -64,6 +64,7 @@ def _import_validate_regex():
     )
 
     from app.routers.training import _validate_regex
+
     return _validate_regex
 
 
@@ -180,10 +181,13 @@ class TestRouteAdminDependencies:
         sys.modules.pop("app.routers.training", None)
         sys.path.insert(
             0,
-            str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"),
+            str(
+                __import__("pathlib").Path(__file__).parent.parent / "services" / "api"
+            ),
         )
 
         from app.routers.training import router as training_router
+
         self._router = training_router
         self._require_admin = real_require_admin
 
@@ -217,24 +221,24 @@ class TestRouteAdminDependencies:
         return False
 
     def test_post_processor_rules_post_requires_admin(self):
-        assert self._has_admin("/training/post-processor-rules", "POST"), (
-            "POST /training/post-processor-rules must require admin (GAP-015)"
-        )
+        assert self._has_admin(
+            "/training/post-processor-rules", "POST"
+        ), "POST /training/post-processor-rules must require admin (GAP-015)"
 
     def test_post_processor_rules_patch_requires_admin(self):
-        assert self._has_admin("/training/post-processor-rules/{rule_id}", "PATCH"), (
-            "PATCH /training/post-processor-rules/{rule_id} must require admin (GAP-015)"
-        )
+        assert self._has_admin(
+            "/training/post-processor-rules/{rule_id}", "PATCH"
+        ), "PATCH /training/post-processor-rules/{rule_id} must require admin (GAP-015)"
 
     def test_context_rules_post_requires_admin(self):
-        assert self._has_admin("/training/context-rules", "POST"), (
-            "POST /training/context-rules must require admin (GAP-015)"
-        )
+        assert self._has_admin(
+            "/training/context-rules", "POST"
+        ), "POST /training/context-rules must require admin (GAP-015)"
 
     def test_context_rules_deactivate_patch_requires_admin(self):
-        assert self._has_admin("/training/context-rules/{rule_id}/deactivate", "PATCH"), (
-            "PATCH /training/context-rules/{rule_id}/deactivate must require admin (GAP-015)"
-        )
+        assert self._has_admin(
+            "/training/context-rules/{rule_id}/deactivate", "PATCH"
+        ), "PATCH /training/context-rules/{rule_id}/deactivate must require admin (GAP-015)"
 
     def test_context_rules_get_does_not_require_admin(self):
         """GET is read-only; admin guard is not required."""
@@ -256,11 +260,14 @@ class TestContextRuleSecurityChecks:
         """Import create_context_rule with all heavy deps mocked."""
         _import_validate_regex()  # ensures sys.path and mocks are set up
         from app.routers.training import create_context_rule
+
         return create_context_rule
 
     def test_empty_literal_raises_422(self):
         fn = self._get_create_fn()
-        body = MagicMock(literal="   ", category="NEGATED_EXISTENCE", direction="FORWARD")
+        body = MagicMock(
+            literal="   ", category="NEGATED_EXISTENCE", direction="FORWARD"
+        )
         scope = MagicMock(is_admin=True, email="admin@example.com")
         with pytest.raises(HTTPException) as exc_info:
             fn(body=body, scope=scope)
@@ -268,7 +275,9 @@ class TestContextRuleSecurityChecks:
 
     def test_literal_over_200_chars_raises_422(self):
         fn = self._get_create_fn()
-        body = MagicMock(literal="a" * 201, category="NEGATED_EXISTENCE", direction="FORWARD")
+        body = MagicMock(
+            literal="a" * 201, category="NEGATED_EXISTENCE", direction="FORWARD"
+        )
         scope = MagicMock(is_admin=True, email="admin@example.com")
         with pytest.raises(HTTPException) as exc_info:
             fn(body=body, scope=scope)
@@ -285,7 +294,9 @@ class TestContextRuleSecurityChecks:
 
     def test_invalid_direction_raises_422(self):
         fn = self._get_create_fn()
-        body = MagicMock(literal="no evidence", category="NEGATED_EXISTENCE", direction="SIDEWAYS")
+        body = MagicMock(
+            literal="no evidence", category="NEGATED_EXISTENCE", direction="SIDEWAYS"
+        )
         scope = MagicMock(is_admin=True, email="admin@example.com")
         with pytest.raises(HTTPException) as exc_info:
             fn(body=body, scope=scope)
@@ -319,7 +330,7 @@ class TestContextRuleSecurityChecks:
             scope = MagicMock(is_admin=True, email="real-admin@nhs.uk")
             fn(body=body, scope=scope)
 
-        assert captured_kwargs.get("created_by") == "real-admin@nhs.uk", (
-            "created_by must use scope.email, not body.created_by (audit trail)"
-        )
+        assert (
+            captured_kwargs.get("created_by") == "real-admin@nhs.uk"
+        ), "created_by must use scope.email, not body.created_by (audit trail)"
         assert captured_kwargs.get("created_by") != "attacker@evil.com"

@@ -63,7 +63,9 @@ def execute_rest_connector(state: RestConnectorState) -> dict[str, Any]:
             payload_bytes = json.dumps(body_template).encode("utf-8")
         headers.setdefault("Content-Type", "application/json")
 
-    req = url_request.Request(url=url, data=payload_bytes, method=method, headers=headers)
+    req = url_request.Request(
+        url=url, data=payload_bytes, method=method, headers=headers
+    )
     response_json: dict[str, Any] = {}
     try:
         with url_request.urlopen(req, timeout=20) as response:
@@ -74,7 +76,12 @@ def execute_rest_connector(state: RestConnectorState) -> dict[str, Any]:
                     response_json = parsed
                 else:
                     response_json = {"data": parsed}
-    except (url_error.HTTPError, url_error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+    except (
+        url_error.HTTPError,
+        url_error.URLError,
+        TimeoutError,
+        json.JSONDecodeError,
+    ) as exc:
         logger.warning("REST connector request failed: %s", exc)
         errors.append(f"rest_connector: {exc}")
         return {"connector_response": {}, "errors": errors}
@@ -96,4 +103,3 @@ def build_rest_connector_subgraph() -> CompiledStateGraph:
     g.add_edge(START, "execute_rest_connector")
     g.add_edge("execute_rest_connector", END)
     return g.compile()
-

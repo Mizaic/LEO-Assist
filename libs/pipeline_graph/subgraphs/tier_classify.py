@@ -37,12 +37,14 @@ def _classify_tiers(state: TierClassifyState) -> dict[str, Any]:
             coding_mode=coding_mode,
             disorder_verdict=disorder_verdict,
         )
-        decisions.append({
-            "entity_index": i,
-            "tier": td.tier,
-            "decision": td.decision,
-            "reason": td.reason,
-        })
+        decisions.append(
+            {
+                "entity_index": i,
+                "tier": td.tier,
+                "decision": td.decision,
+                "reason": td.reason,
+            }
+        )
     return {"tier_decisions": decisions}
 
 

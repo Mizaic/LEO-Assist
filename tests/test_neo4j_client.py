@@ -18,17 +18,20 @@ class TestBaseClient:
         monkeypatch.setenv("NEO4J_PASSWORD", "pass")
 
         from libs.neo4j_client.client import _BaseClient
+
         client = _BaseClient("bolt://localhost:7687", "neo4j", "pass")
         MockGD.driver.assert_called()
         client.close()
 
     def test_init_raises_on_empty_credentials(self):
         from libs.neo4j_client.client import _BaseClient
+
         with pytest.raises(RuntimeError, match="credentials missing"):
             _BaseClient("", "", "")
 
     def test_init_raises_on_partial_credentials(self):
         from libs.neo4j_client.client import _BaseClient
+
         with pytest.raises(RuntimeError, match="credentials missing"):
             _BaseClient("bolt://localhost:7687", "neo4j", "")
 
@@ -63,19 +66,30 @@ class TestRunWithRetry:
 
         mock_result = [{"n": 1}]
         mock_session = MagicMock()
-        mock_session.run.return_value = [MagicMock(**{"__iter__": lambda s: iter(mock_result), "keys": lambda s: ["n"]})]
+        mock_session.run.return_value = [
+            MagicMock(
+                **{"__iter__": lambda s: iter(mock_result), "keys": lambda s: ["n"]}
+            )
+        ]
         MockGD.driver.return_value.session.return_value = mock_session
-        MockGD.driver.return_value.session.return_value.__enter__ = MagicMock(return_value=mock_session)
-        MockGD.driver.return_value.session.return_value.__exit__ = MagicMock(return_value=False)
+        MockGD.driver.return_value.session.return_value.__enter__ = MagicMock(
+            return_value=mock_session
+        )
+        MockGD.driver.return_value.session.return_value.__exit__ = MagicMock(
+            return_value=False
+        )
 
         client = _BaseClient("bolt://localhost:7687", "neo4j", "pass")
         # run() delegates to run_with_retry - just verify no exception
         mock_session.run.return_value = iter([{"n": 1}])
         # Use the low-level function directly
         from libs.neo4j_client.client import run_with_retry
+
         mock_session2 = MagicMock()
         mock_session2.run.return_value = [{"n": 1}]
-        client._driver.session.return_value.__enter__ = MagicMock(return_value=mock_session2)
+        client._driver.session.return_value.__enter__ = MagicMock(
+            return_value=mock_session2
+        )
         client._driver.session.return_value.__exit__ = MagicMock(return_value=False)
         # Won't actually work due to context manager complexity; test at higher level
         mock_sleep.assert_not_called()
@@ -88,7 +102,9 @@ class TestRunWithRetry:
         mock_client = MagicMock()
         mock_session = MagicMock()
         mock_session.run.side_effect = [ServiceUnavailable("down"), [{"x": 1}]]
-        mock_client.session.return_value.__enter__ = MagicMock(return_value=mock_session)
+        mock_client.session.return_value.__enter__ = MagicMock(
+            return_value=mock_session
+        )
         mock_client.session.return_value.__exit__ = MagicMock(return_value=False)
 
         result = run_with_retry(mock_client, "RETURN 1")
@@ -103,7 +119,9 @@ class TestRunWithRetry:
         mock_client = MagicMock()
         mock_session = MagicMock()
         mock_session.run.side_effect = ServiceUnavailable("persistent failure")
-        mock_client.session.return_value.__enter__ = MagicMock(return_value=mock_session)
+        mock_client.session.return_value.__enter__ = MagicMock(
+            return_value=mock_session
+        )
         mock_client.session.return_value.__exit__ = MagicMock(return_value=False)
 
         with pytest.raises(ServiceUnavailable):
@@ -120,6 +138,7 @@ class TestPatientGraphClient:
         monkeypatch.setenv("NEO4J_PASSWORD", "secret")
 
         from libs.neo4j_client.client import PatientGraphClient
+
         client = PatientGraphClient()
         MockGD.driver.assert_called()
         client.close()
@@ -134,6 +153,7 @@ class TestKnowledgeGraphClient:
         monkeypatch.setenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "kgpass")
 
         from libs.neo4j_client.client import KnowledgeGraphClient
+
         client = KnowledgeGraphClient()
         MockGD.driver.assert_called()
         client.close()

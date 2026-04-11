@@ -6,6 +6,7 @@ Usage:
     python scripts/investigations/_pull_missing_patient_encounters.py
     python scripts/investigations/_pull_missing_patient_encounters.py --out missing_patients_review.txt
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,9 +21,11 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 _PATIENT_IDS = [
@@ -87,13 +90,16 @@ def main() -> None:
             out_fh.write(line + "\n")
 
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     for idx, pid in enumerate(_PATIENT_IDS, 1):
         sep = "=" * 80
         emit()
         emit(sep)
-        emit(f"PATIENT {idx}/{len(_PATIENT_IDS)}  id={pid}  (no referral_date - full history)")
+        emit(
+            f"PATIENT {idx}/{len(_PATIENT_IDS)}  id={pid}  (no referral_date - full history)"
+        )
         emit(sep)
 
         episodes = client.run(_Q_EPISODES, pid=pid) or []
@@ -128,7 +134,9 @@ def main() -> None:
                 for ln in lines:
                     emit(ln)
                 if len(_wrap(text)) > _MAX_LINES_PER_ENC:
-                    emit(f"    ... [{len(_wrap(text)) - _MAX_LINES_PER_ENC} more lines truncated]")
+                    emit(
+                        f"    ... [{len(_wrap(text)) - _MAX_LINES_PER_ENC} more lines truncated]"
+                    )
             else:
                 emit("    (no text)")
             emit()

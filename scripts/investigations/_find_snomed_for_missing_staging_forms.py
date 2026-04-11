@@ -76,7 +76,10 @@ def _score_candidate(
         score += 3.0
     if "tumor-node-metastasis" in term or "tnm" in term:
         score += 3.5
-    if "american joint committee on cancer" in term or "union for international cancer control" in term:
+    if (
+        "american joint committee on cancer" in term
+        or "union for international cancer control" in term
+    ):
         score += 2.0
     if sf in term:
         score += 1.0
@@ -103,7 +106,12 @@ def _is_relevant(row: dict[str, Any], surface_form: str, labels: list[str]) -> b
     term = str(row.get("term") or "").lower()
     sf = surface_form.lower().strip()
     if any(lbl.startswith("tnm_") for lbl in labels):
-        if "category" in term and ("tnm" in term or " t category" in term or " n category" in term or " m category" in term):
+        if "category" in term and (
+            "tnm" in term
+            or " t category" in term
+            or " n category" in term
+            or " m category" in term
+        ):
             return True
         if re.fullmatch(r"p?t[0-4][a-c]?", sf):
             token = sf.replace("pt", "t")
@@ -171,7 +179,9 @@ def _seed_queries(surface_form: str, labels: list[str]) -> list[str]:
     return deduped
 
 
-def _to_result_row(miss: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any]:
+def _to_result_row(
+    miss: dict[str, Any], candidates: list[dict[str, Any]]
+) -> dict[str, Any]:
     best = candidates[0] if candidates else {}
     return {
         "surface_form": miss.get("surface_form"),
@@ -220,7 +230,9 @@ def main() -> None:
     finally:
         kg.close()
 
-    OUTPUT_FILE.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    OUTPUT_FILE.write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(f"Wrote {OUTPUT_FILE} ({len(out)} forms)")
 
 

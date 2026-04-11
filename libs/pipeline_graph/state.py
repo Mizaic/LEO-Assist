@@ -11,6 +11,7 @@ from typing import Any, Literal, TypedDict
 
 class EncounterContext(TypedDict, total=False):
     """Core patient/encounter context that flows through the pipeline."""
+
     patient_id: str
     encounter_id: str
     encounter_text: str
@@ -21,6 +22,7 @@ class EncounterContext(TypedDict, total=False):
 
 class PipelineConfig(TypedDict, total=False):
     """Configuration for a pipeline run, derived from ActivityDefinition."""
+
     extraction_method: Literal["llm", "ner", "auto"]
     output_target: Literal["patient_graph", "gold_training", "both"]
     verify: bool
@@ -32,6 +34,7 @@ class PipelineConfig(TypedDict, total=False):
 
 class ExtractionState(TypedDict, total=False):
     """State for extraction subgraphs."""
+
     encounter_text: str
     extraction_method: str
     prompt_config: dict[str, Any]
@@ -42,6 +45,7 @@ class ExtractionState(TypedDict, total=False):
 
 class PostProcessingState(TypedDict, total=False):
     """State for post-processing subgraph."""
+
     encounter_text: str
     entities: list[dict[str, Any]]
     rules: list[dict[str, Any]]
@@ -53,6 +57,7 @@ class PostProcessingState(TypedDict, total=False):
 
 class TerminologyState(TypedDict, total=False):
     """State for terminology resolution subgraph."""
+
     entities: list[dict[str, Any]]
     expected_tags: dict[str, str]
     resolved_entities: list[dict[str, Any]]
@@ -60,6 +65,7 @@ class TerminologyState(TypedDict, total=False):
 
 class TierClassifyState(TypedDict, total=False):
     """State for tier classification subgraph."""
+
     entities: list[dict[str, Any]]
     coding_mode: str
     tier_decisions: list[dict[str, Any]]
@@ -67,6 +73,7 @@ class TierClassifyState(TypedDict, total=False):
 
 class VerificationState(TypedDict, total=False):
     """State for the verification subgraph (extract-verify-retry loop)."""
+
     encounter_text: str
     entities: list[dict[str, Any]]
     prompt_config: dict[str, Any]
@@ -80,6 +87,7 @@ class VerificationState(TypedDict, total=False):
 
 class PersistState(TypedDict, total=False):
     """State for persistence subgraph."""
+
     patient_id: str
     encounter_id: str
     entities: list[dict[str, Any]]
@@ -91,6 +99,7 @@ class PersistState(TypedDict, total=False):
 
 class AnalyticsState(TypedDict, total=False):
     """State for analytics subgraphs (episode, safety net, quality, etc.)."""
+
     patient_id: str
     org_id: str
     analytics_config: list[str]
@@ -103,6 +112,7 @@ class AnalyticsState(TypedDict, total=False):
 
 class SBARState(TypedDict, total=False):
     """State for SBAR generation subgraph."""
+
     patient_id: str
     referral_id: str
     patient_context: list[dict[str, Any]]
@@ -113,6 +123,7 @@ class SBARState(TypedDict, total=False):
 
 class ComplianceState(TypedDict, total=False):
     """State for compliance evaluation subgraph."""
+
     patient_id: str
     checklist: dict[str, Any]
     compliance_report: dict[str, Any]
@@ -121,6 +132,7 @@ class ComplianceState(TypedDict, total=False):
 
 class PipelineState(TypedDict, total=False):
     """Top-level orchestration state for the pipeline worker."""
+
     # Input
     patient_id: str
     encounter_id: str | None

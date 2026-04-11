@@ -1,4 +1,5 @@
 import json, sqlite3
+
 DB = r"scripts\investigations\encounter_audit\encounter_audit.db"
 db = sqlite3.connect(DB)
 rows = db.execute(

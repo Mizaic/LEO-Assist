@@ -30,7 +30,11 @@ def _upsert_report(report_id: str, resource: Dict[str, Any]) -> Dict[str, Any]:
             type=resource.get("type"),
             periodStart=period.get("start"),
             periodEnd=period.get("end"),
-            tenantId=resource.get("meta", {}).get("tag", [{}])[0].get("code") if resource.get("meta", {}).get("tag") else None,
+            tenantId=(
+                resource.get("meta", {}).get("tag", [{}])[0].get("code")
+                if resource.get("meta", {}).get("tag")
+                else None
+            ),
         )
         return resource
     finally:
@@ -61,10 +65,18 @@ def search_reports(
             "AND ($status IS NULL OR r.status = $status) "
             "RETURN r.rawJson AS rawJson "
             "ORDER BY r.periodEnd DESC SKIP $offset LIMIT $limit",
-            measure=measure, status=status, offset=_offset, limit=_count,
+            measure=measure,
+            status=status,
+            offset=_offset,
+            limit=_count,
         )
         items = [json.loads(r["rawJson"]) for r in rows if r.get("rawJson")]
-        return {"resourceType": "Bundle", "type": "searchset", "total": len(items), "entry": [{"resource": i} for i in items]}
+        return {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": len(items),
+            "entry": [{"resource": i} for i in items],
+        }
     finally:
         client.close()
 
@@ -73,7 +85,10 @@ def search_reports(
 def get_report(report_id: str):
     client = KnowledgeGraphClient()
     try:
-        rows = client.run("MATCH (r:MeasureReport {id: $rid}) RETURN r.rawJson AS rawJson LIMIT 1", rid=report_id)
+        rows = client.run(
+            "MATCH (r:MeasureReport {id: $rid}) RETURN r.rawJson AS rawJson LIMIT 1",
+            rid=report_id,
+        )
         if not rows or not rows[0].get("rawJson"):
             raise HTTPException(404, f"MeasureReport/{report_id} not found")
         return json.loads(rows[0]["rawJson"])

@@ -6,7 +6,11 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from services.terminology_api.app.services.guideline_compiler import CompilePolicy, CompileScope, GuidelineCompiler
+from services.terminology_api.app.services.guideline_compiler import (
+    CompilePolicy,
+    CompileScope,
+    GuidelineCompiler,
+)
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 
 
@@ -82,38 +86,53 @@ def mock_session():
 
 # ── Cypher contract ──────────────────────────────────────────────────────────
 
+
 def test_compiler_only_queries_active_rules(compiler):
     """Cypher must filter on status: active to exclude pending_review rules."""
-    from services.terminology_api.app.services.guideline_compiler import _FETCH_ACTIVE_RULES
+    from services.terminology_api.app.services.guideline_compiler import (
+        _FETCH_ACTIVE_RULES,
+    )
+
     assert "status: 'active'" in _FETCH_ACTIVE_RULES
 
 
 def test_cypher_returns_distance_fields(compiler):
     """Cypher query must return distanceChild and distanceParent from HAS_CRITERIA edge."""
-    from services.terminology_api.app.services.guideline_compiler import _FETCH_ACTIVE_RULES
+    from services.terminology_api.app.services.guideline_compiler import (
+        _FETCH_ACTIVE_RULES,
+    )
+
     assert "distance_child" in _FETCH_ACTIVE_RULES
     assert "distance_parent" in _FETCH_ACTIVE_RULES
 
 
 def test_cypher_returns_action_fields(compiler):
     """Cypher query must return action priority and due_days from HAS_ACTION edge."""
-    from services.terminology_api.app.services.guideline_compiler import _FETCH_ACTIVE_RULES
+    from services.terminology_api.app.services.guideline_compiler import (
+        _FETCH_ACTIVE_RULES,
+    )
+
     assert "action_priority" in _FETCH_ACTIVE_RULES
     assert "action_due_days" in _FETCH_ACTIVE_RULES
     assert "action_concept_id" in _FETCH_ACTIVE_RULES
 
 
 def test_scope_query_includes_guideline_filter(compiler):
-    query = compiler._build_fetch_active_rules_query(CompileScope(scope_type="guideline", scope_id="NG12"))
+    query = compiler._build_fetch_active_rules_query(
+        CompileScope(scope_type="guideline", scope_id="NG12")
+    )
     assert "g.id = $scope_id" in query
 
 
 def test_scope_query_includes_domain_filter_for_subdomain_scope(compiler):
-    query = compiler._build_fetch_active_rules_query(CompileScope(scope_type="subdomain", scope_id="cancer_audit:symptoms"))
+    query = compiler._build_fetch_active_rules_query(
+        CompileScope(scope_type="subdomain", scope_id="cancer_audit:symptoms")
+    )
     assert "dom.id = $scope_domain_id" in query
 
 
 # ── Core compilation ─────────────────────────────────────────────────────────
+
 
 def test_build_ruleset_groups_present_into_all_group(compiler, store, mock_session):
     """PRESENT criteria compile into a criteria_groups entry with mode=ALL."""
@@ -129,12 +148,14 @@ def test_build_ruleset_groups_present_into_all_group(compiler, store, mock_sessi
 
 def test_build_ruleset_groups_absent_into_not_group(compiler, store, mock_session):
     """ABSENT criteria (old predicate=ABSENT) compile into mode=NOT group."""
-    rows = [_make_row(
-        predicate="ABSENT",
-        group_mode="ANY",  # old data: type=ANY + predicate=ABSENT → NOT
-        group_id="r1:ABSENT",
-        concept_id="222",
-    )]
+    rows = [
+        _make_row(
+            predicate="ABSENT",
+            group_mode="ANY",  # old data: type=ANY + predicate=ABSENT → NOT
+            group_id="r1:ABSENT",
+            concept_id="222",
+        )
+    ]
     ruleset = compiler._build_ruleset(rows, mock_session)
 
     rule = ruleset["rules"][0]
@@ -142,7 +163,9 @@ def test_build_ruleset_groups_absent_into_not_group(compiler, store, mock_sessio
     assert "NOT" in modes
 
 
-def test_build_ruleset_handles_multiple_concepts_per_group(compiler, store, mock_session):
+def test_build_ruleset_handles_multiple_concepts_per_group(
+    compiler, store, mock_session
+):
     """Multiple concepts in the same group produce one bitmap with all IDs."""
     rows = [
         _make_row(predicate="PRESENT", group_mode="ALL", concept_id="111"),
@@ -164,7 +187,9 @@ def test_build_ruleset_skips_rows_with_no_concept(compiler, store, mock_session)
     assert len(ruleset["rules"]) == 0
 
 
-def test_build_ruleset_strict_policy_excludes_out_of_scope_concepts(compiler, store, mock_session):
+def test_build_ruleset_strict_policy_excludes_out_of_scope_concepts(
+    compiler, store, mock_session
+):
     rows = [_make_row(predicate="PRESENT", group_mode="ALL", concept_id="111")]
     ruleset = compiler._build_ruleset(
         rows,
@@ -187,8 +212,10 @@ def test_build_ruleset_advisory_policy_keeps_rule(compiler, store, mock_session)
 def test_build_ruleset_handles_mixed_groups(compiler, store, mock_session):
     """One rule can have both ALL and NOT groups."""
     rows = [
-        _make_row(predicate="PRESENT", group_mode="ALL",  concept_id="111"),
-        _make_row(predicate="ABSENT",  group_mode="ANY",  group_id="r1:ABSENT", concept_id="333"),
+        _make_row(predicate="PRESENT", group_mode="ALL", concept_id="111"),
+        _make_row(
+            predicate="ABSENT", group_mode="ANY", group_id="r1:ABSENT", concept_id="333"
+        ),
     ]
     ruleset = compiler._build_ruleset(rows, mock_session)
 
@@ -200,12 +227,14 @@ def test_build_ruleset_handles_mixed_groups(compiler, store, mock_session):
 
 def test_build_ruleset_supports_native_any_mode(compiler, store, mock_session):
     """New-style mode=ANY group (from updated generator) compiles correctly."""
-    rows = [_make_row(
-        predicate="PRESENT",
-        group_mode="ANY",
-        group_id="r1:PRESENT:0",
-        concept_id="444",
-    )]
+    rows = [
+        _make_row(
+            predicate="PRESENT",
+            group_mode="ANY",
+            group_id="r1:PRESENT:0",
+            concept_id="444",
+        )
+    ]
     ruleset = compiler._build_ruleset(rows, mock_session)
 
     rule = ruleset["rules"][0]
@@ -214,12 +243,14 @@ def test_build_ruleset_supports_native_any_mode(compiler, store, mock_session):
 
 
 def test_build_ruleset_compiles_schema_v2_logic_tree(compiler, store, mock_session):
-    rows = [_make_row(
-        group_id=None,
-        concept_id=None,
-        schema_version=2,
-        logic_json='{"kind":"AND","children":[{"kind":"concept","criterion":{"node_id":"n1","term":"rectal bleeding","snomed_concept_id":"443416000","preferred_term":"Rectal bleeding","semantic_tag":"finding"}}]}',
-    )]
+    rows = [
+        _make_row(
+            group_id=None,
+            concept_id=None,
+            schema_version=2,
+            logic_json='{"kind":"AND","children":[{"kind":"concept","criterion":{"node_id":"n1","term":"rectal bleeding","snomed_concept_id":"443416000","preferred_term":"Rectal bleeding","semantic_tag":"finding"}}]}',
+        )
+    ]
     ruleset = compiler._build_ruleset(rows, mock_session)
     assert len(ruleset["rules"]) == 1
     rule = ruleset["rules"][0]
@@ -229,6 +260,7 @@ def test_build_ruleset_compiles_schema_v2_logic_tree(compiler, store, mock_sessi
 
 
 # ── SNOMED closure expansion ─────────────────────────────────────────────────
+
 
 def test_closure_ids_returns_target_when_distances_zero(compiler, mock_session):
     """When distanceChild=0 and distanceParent=0, no IS_A query is made."""
@@ -283,15 +315,18 @@ def test_build_ruleset_expands_concept_via_closure(compiler, store, mock_session
 
 # ── Action metadata ──────────────────────────────────────────────────────────
 
+
 def test_compiled_rule_includes_action_when_present(compiler, store, mock_session):
     """Compiled rule output contains action dict when HAS_ACTION edge has data."""
-    rows = [_make_row(
-        concept_id="443416000",
-        action_concept_id="306206005",
-        action_name="Suspected cancer pathway referral",
-        action_priority="2ww",
-        action_due_days=14,
-    )]
+    rows = [
+        _make_row(
+            concept_id="443416000",
+            action_concept_id="306206005",
+            action_name="Suspected cancer pathway referral",
+            action_priority="2ww",
+            action_due_days=14,
+        )
+    ]
     ruleset = compiler._build_ruleset(rows, mock_session)
 
     rule = ruleset["rules"][0]
@@ -332,6 +367,7 @@ def test_action_backfilled_from_later_rows(compiler, store, mock_session):
 
 
 # ── Async compilation ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_compile_and_store_writes_version_and_sets_current(compiler, store):

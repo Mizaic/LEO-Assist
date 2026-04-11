@@ -12,6 +12,7 @@ Output:
 Usage:
     python scripts/investigations/_check_surface_forms_exist.py
 """
+
 from __future__ import annotations
 
 import json
@@ -22,9 +23,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import KnowledgeGraphClient
 
@@ -131,7 +134,9 @@ def main() -> None:
         "exists_as_snomed_term": exists_as_term,
         "missing": missing,
     }
-    OUTPUT_FILE.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
+    OUTPUT_FILE.write_text(
+        json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(f"Saved -> {OUTPUT_FILE}\n")
 
     # --- Print summary ---
@@ -145,17 +150,25 @@ def main() -> None:
     if exists_as_surface_form:
         print(f"\n-- Already have as SurfaceForm ({len(exists_as_surface_form)}) --")
         for e in exists_as_surface_form:
-            print(f"  [{e['count']:4d}]  {e['normalised']!r:35s} -> {e['sf_concept_id']} {e['sf_concept_term']}")
+            print(
+                f"  [{e['count']:4d}]  {e['normalised']!r:35s} -> {e['sf_concept_id']} {e['sf_concept_term']}"
+            )
 
     if exists_as_term:
         print(f"\n-- Already a SNOMED Term ({len(exists_as_term)}) --")
         for e in exists_as_term:
-            print(f"  [{e['count']:4d}]  {e['normalised']!r:35s} -> {e['term_concept_id']} {e['term_concept_term']}")
+            print(
+                f"  [{e['count']:4d}]  {e['normalised']!r:35s} -> {e['term_concept_id']} {e['term_concept_term']}"
+            )
 
     if missing:
-        print(f"\n-- Missing entirely ({len(missing)}) -- need adding to terminology server --")
+        print(
+            f"\n-- Missing entirely ({len(missing)}) -- need adding to terminology server --"
+        )
         for e in missing:
-            print(f"  [{e['count']:4d}]  {e['category']:<25s}  {e['label']:<35s}  {e['normalised']!r}")
+            print(
+                f"  [{e['count']:4d}]  {e['category']:<25s}  {e['label']:<35s}  {e['normalised']!r}"
+            )
 
 
 if __name__ == "__main__":

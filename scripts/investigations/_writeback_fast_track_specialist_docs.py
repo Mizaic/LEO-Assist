@@ -15,6 +15,7 @@ Run (dry-run first):
 Then live:
     python scripts/investigations/_writeback_fast_track_specialist_docs.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,7 +43,10 @@ import requests
 
 BASE = "http://localhost:8001"
 INVENTORY = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "fast_track_specialist_encounters.jsonl"
 )
 
@@ -157,18 +161,20 @@ def _make_params(
         "evidence": evidence,
         "confidence": 1.0,
         "domain": "cancer",
-        "context": json.dumps({
-            "assertion": "present",
-            "negated": False,
-            "refuted": False,
-            "uncertain": False,
-            "historical": False,
-            "planned": False,
-            "hypothetical": False,
-            "family": False,
-            "declined": False,
-            "cancelled": False,
-        }),
+        "context": json.dumps(
+            {
+                "assertion": "present",
+                "negated": False,
+                "refuted": False,
+                "uncertain": False,
+                "historical": False,
+                "planned": False,
+                "hypothetical": False,
+                "family": False,
+                "declined": False,
+                "cancelled": False,
+            }
+        ),
         "modifiers": json.dumps({}),
         "numeric_value": None,
         "unit": None,
@@ -269,11 +275,15 @@ def main(dry_run: bool = False) -> None:
     print()
     print("=" * 70)
     if dry_run:
-        print(f"DRY RUN complete. Would write: {written}  Skip: {skipped}"
-              f"  No concept: {no_concept}")
+        print(
+            f"DRY RUN complete. Would write: {written}  Skip: {skipped}"
+            f"  No concept: {no_concept}"
+        )
     else:
-        print(f"Done. Written: {written}  Skipped: {skipped}"
-              f"  No concept: {no_concept}  Errors: {failed}")
+        print(
+            f"Done. Written: {written}  Skipped: {skipped}"
+            f"  No concept: {no_concept}  Errors: {failed}"
+        )
     if failed:
         sys.exit(1)
 

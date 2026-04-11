@@ -14,6 +14,7 @@ Run:
     python scripts/investigations/_delete_screening_false_positives.py --dry-run
     python scripts/investigations/_delete_screening_false_positives.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,9 +25,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 CONCEPT_ID = 395100000
@@ -85,6 +88,7 @@ def is_screening_evidence(evidence: str) -> bool:
 
 def main(dry_run: bool) -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     to_delete: list[dict] = []
@@ -96,11 +100,13 @@ def main(dry_run: bool) -> None:
     for r in rows:
         evidence = (r["evs"] or r["ev"] or "").strip()
         if is_screening_evidence(evidence):
-            to_delete.append({
-                "patient_id": r["patient_id"],
-                "encounter_id": r["encounter_id"],
-                "evidence": evidence[:100],
-            })
+            to_delete.append(
+                {
+                    "patient_id": r["patient_id"],
+                    "encounter_id": r["encounter_id"],
+                    "evidence": evidence[:100],
+                }
+            )
 
     print(f"Total codings found       : {len(rows)}")
     print(f"Identified for deletion   : {len(to_delete)}")
@@ -115,13 +121,13 @@ def main(dry_run: bool) -> None:
     print()
 
     deleted_docs = 0
-    deleted_has  = 0
+    deleted_has = 0
 
     with client.session() as session:
         for item in to_delete:
             eid = item["encounter_id"]
             pid = item["patient_id"]
-            ev  = item["evidence"]
+            ev = item["evidence"]
             tag = "[DRY]" if dry_run else "[DEL]"
             print(f"  {tag} enc={eid[:8]}...  ev={ev[:70]!r}")
 
@@ -140,7 +146,9 @@ def main(dry_run: bool) -> None:
 
     print()
     if dry_run:
-        print(f"DRY RUN complete. Would delete {len(to_delete)} DOCUMENTS relationships.")
+        print(
+            f"DRY RUN complete. Would delete {len(to_delete)} DOCUMENTS relationships."
+        )
         print("Re-run without --dry-run to apply.")
     else:
         print(f"Deleted {deleted_docs} DOCUMENTS relationships.")
@@ -154,8 +162,9 @@ if __name__ == "__main__":
         description="Delete screening false-positive 395100000 codings"
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Show what would be deleted without making changes"
+        "--dry-run",
+        action="store_true",
+        help="Show what would be deleted without making changes",
     )
     args = parser.parse_args()
     main(dry_run=args.dry_run)

@@ -1,4 +1,5 @@
 """Check if old evidence in Neo4j has embedded numeric values that should have been stripped."""
+
 import re
 import sqlite3
 from pathlib import Path
@@ -12,7 +13,9 @@ _VALUE_UNIT = re.compile(
     re.IGNORECASE,
 )
 
-db = sqlite3.connect(str(ROOT / "scripts" / "investigations" / "encounter_audit" / "encounter_audit.db"))
+db = sqlite3.connect(
+    str(ROOT / "scripts" / "investigations" / "encounter_audit" / "encounter_audit.db")
+)
 rows = db.execute(
     "SELECT evidence, expected_name, COUNT(*) n FROM surface_form_gaps"
     " WHERE length(evidence) < 100"
@@ -21,7 +24,7 @@ rows = db.execute(
 db.close()
 
 has_value = [(ev, name, n) for ev, name, n in rows if _VALUE_UNIT.search(ev or "")]
-no_value  = [(ev, name, n) for ev, name, n in rows if not _VALUE_UNIT.search(ev or "")]
+no_value = [(ev, name, n) for ev, name, n in rows if not _VALUE_UNIT.search(ev or "")]
 
 print(f"Total unique gap phrases: {len(rows)}")
 print(f"  With embedded lab values (old data, not stripped): {len(has_value)}")

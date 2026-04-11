@@ -20,4 +20,3 @@ def test_surface_form_queries_do_not_store_user_identifiers() -> None:
 def test_surface_form_queries_keep_provenance() -> None:
     assert "provenance" in tq.UPSERT_SURFACE_FORMS
     assert "provenance" in tq.UPSERT_SURFACE_FORM_MAPPING
-

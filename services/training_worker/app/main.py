@@ -13,6 +13,8 @@ GET  /train/progress/{job_id}      — SSE relay from Redis pub/sub
 GET  /health                       — service health
 """
 
+# aca-image: training-worker build/deploy verification (no runtime effect).
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -50,13 +52,19 @@ _IDLE_TIMEOUT_S = 300
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     """Warm heavy imports on startup so the first job has no cold-start."""
-    if os.getenv("TRAINING_PRELOAD_IMPORTS", "true").lower() not in {"0", "false", "no"}:
+    if os.getenv("TRAINING_PRELOAD_IMPORTS", "true").lower() not in {
+        "0",
+        "false",
+        "no",
+    }:
         t0 = time.perf_counter()
         try:
             preload_training_modules()
             logger.info("Startup warmup finished in %.2fs", time.perf_counter() - t0)
         except Exception as exc:
-            logger.warning("Startup warmup failed after %.2fs: %s", time.perf_counter() - t0, exc)
+            logger.warning(
+                "Startup warmup failed after %.2fs: %s", time.perf_counter() - t0, exc
+            )
     yield
 
 
@@ -106,12 +114,16 @@ def start_training_job(body: StartJobRequest) -> dict[str, Any]:
     store = get_store()
     job = store.create(
         base_model_version=body.base_model_version,
-        hf_model_name=os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"),
+        hf_model_name=os.getenv(
+            "TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"
+        ),
         notes=body.notes,
         triggered_by=body.triggered_by,
     )
     submit_job(job, store)
-    logger.info("Training job created: %s triggered_by=%s", job.job_id, body.triggered_by)
+    logger.info(
+        "Training job created: %s triggered_by=%s", job.job_id, body.triggered_by
+    )
     return {
         "job_id": job.job_id,
         "status": job.status,
@@ -189,6 +201,7 @@ def stream_training_progress(job_id: str):
     def _redis_listener() -> None:
         try:
             import redis as _redis
+
             r = _redis.from_url(REDIS_URL)
             ps = r.pubsub(ignore_subscribe_messages=True)
             ps.subscribe(f"training:{job_id}")
@@ -209,7 +222,9 @@ def stream_training_progress(job_id: str):
                 if data.get("status") in {"done", "failed", "cancelled"}:
                     break
         except Exception as exc:
-            events.put({"type": "training_error", "message": str(exc), "job_id": job_id})
+            events.put(
+                {"type": "training_error", "message": str(exc), "job_id": job_id}
+            )
         finally:
             events.put(None)
 
@@ -222,7 +237,10 @@ def stream_training_progress(job_id: str):
             try:
                 event = events.get(timeout=2.0)
             except queue.Empty:
-                yield _fmt_sse("heartbeat", {"type": "heartbeat", "ts": time.time(), "job_id": job_id})
+                yield _fmt_sse(
+                    "heartbeat",
+                    {"type": "heartbeat", "ts": time.time(), "job_id": job_id},
+                )
                 continue
             if event is None:
                 break
@@ -231,7 +249,11 @@ def stream_training_progress(job_id: str):
     return StreamingResponse(
         _event_generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
@@ -246,8 +268,12 @@ def health() -> dict[str, Any]:
     jobs = store.list_all(log_tail=0)
     running = sum(1 for j in jobs if j["status"] == "running")
     accel_rows = [((j.get("metrics") or {}).get("accelerator") or {}) for j in jobs]
-    mps_resolved = sum(1 for row in accel_rows if row.get("resolved_accelerator") == "mps")
-    startup_fallbacks = sum(1 for row in accel_rows if bool(row.get("fallback_applied")))
+    mps_resolved = sum(
+        1 for row in accel_rows if row.get("resolved_accelerator") == "mps"
+    )
+    startup_fallbacks = sum(
+        1 for row in accel_rows if bool(row.get("fallback_applied"))
+    )
     fail_fast_errors = sum(
         1
         for j in jobs
@@ -257,7 +283,9 @@ def health() -> dict[str, Any]:
     )
     return {
         "status": "ok",
-        "hf_base_model": os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"),
+        "hf_base_model": os.getenv(
+            "TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"
+        ),
         "running_jobs": running,
         "total_jobs": len(jobs),
         "mps_resolved_jobs": mps_resolved,

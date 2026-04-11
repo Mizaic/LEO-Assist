@@ -16,6 +16,7 @@ Fixes two problems:
      gynaecological 5.0%: endometrial 2.1%, ovarian 1.6%, cervical 0.9%, vulval 0.4%
      head_and_neck  3.6%: oropharyngeal 1.5%, laryngeal 0.7%, other h&n 1.4%
 """
+
 import sys
 from pathlib import Path
 
@@ -23,9 +24,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -38,47 +41,137 @@ CATEGORY = "condition_type"
 # a note property so the UI can display them differently.
 NEW_METRICS: list[dict] = [
     # -- 1:1 renames --
-    {"metric_id": "condition_type.melanoma",   "source": "rename_skin",
-     "national": 5.6, "cancer_alliance": 4.9, "gp_practice": 3.9},
-    {"metric_id": "condition_type.brain",      "source": "rename_cns",
-     "national": 1.9, "cancer_alliance": 1.6, "gp_practice": 0.0},
+    {
+        "metric_id": "condition_type.melanoma",
+        "source": "rename_skin",
+        "national": 5.6,
+        "cancer_alliance": 4.9,
+        "gp_practice": 3.9,
+    },
+    {
+        "metric_id": "condition_type.brain",
+        "source": "rename_cns",
+        "national": 1.9,
+        "cancer_alliance": 1.6,
+        "gp_practice": 0.0,
+    },
     # -- Haematological subtypes (national estimates from NCDA 2018) --
-    {"metric_id": "condition_type.leukaemia",  "source": "ncda_2018_subtype",
-     "national": 3.4, "cancer_alliance": 3.2, "gp_practice": 7.8},
-    {"metric_id": "condition_type.lymphoma",   "source": "ncda_2018_subtype",
-     "national": 2.9, "cancer_alliance": 2.8, "gp_practice": 0.0},
-    {"metric_id": "condition_type.myeloma",    "source": "ncda_2018_subtype",
-     "national": 1.8, "cancer_alliance": 1.8, "gp_practice": 0.0},
+    {
+        "metric_id": "condition_type.leukaemia",
+        "source": "ncda_2018_subtype",
+        "national": 3.4,
+        "cancer_alliance": 3.2,
+        "gp_practice": 7.8,
+    },
+    {
+        "metric_id": "condition_type.lymphoma",
+        "source": "ncda_2018_subtype",
+        "national": 2.9,
+        "cancer_alliance": 2.8,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.myeloma",
+        "source": "ncda_2018_subtype",
+        "national": 1.8,
+        "cancer_alliance": 1.8,
+        "gp_practice": 0.0,
+    },
     # -- Urological subtypes --
-    {"metric_id": "condition_type.bladder",    "source": "ncda_2018_subtype",
-     "national": 3.5, "cancer_alliance": 3.3, "gp_practice": 0.0},
-    {"metric_id": "condition_type.renal",      "source": "ncda_2018_subtype",
-     "national": 2.4, "cancer_alliance": 2.2, "gp_practice": 0.0},
-    {"metric_id": "condition_type.testicular", "source": "ncda_2018_subtype",
-     "national": 0.7, "cancer_alliance": 0.6, "gp_practice": 0.0},
+    {
+        "metric_id": "condition_type.bladder",
+        "source": "ncda_2018_subtype",
+        "national": 3.5,
+        "cancer_alliance": 3.3,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.renal",
+        "source": "ncda_2018_subtype",
+        "national": 2.4,
+        "cancer_alliance": 2.2,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.testicular",
+        "source": "ncda_2018_subtype",
+        "national": 0.7,
+        "cancer_alliance": 0.6,
+        "gp_practice": 0.0,
+    },
     # -- Upper GI subtypes --
-    {"metric_id": "condition_type.oesophageal","source": "ncda_2018_subtype",
-     "national": 2.1, "cancer_alliance": 2.0, "gp_practice": 9.8},
-    {"metric_id": "condition_type.stomach",    "source": "ncda_2018_subtype",
-     "national": 1.4, "cancer_alliance": 1.3, "gp_practice": 0.0},
-    {"metric_id": "condition_type.liver",      "source": "ncda_2018_subtype",
-     "national": 1.4, "cancer_alliance": 1.4, "gp_practice": 0.0},
-    {"metric_id": "condition_type.pancreatic", "source": "ncda_2018_subtype",
-     "national": 1.4, "cancer_alliance": 1.3, "gp_practice": 0.0},
+    {
+        "metric_id": "condition_type.oesophageal",
+        "source": "ncda_2018_subtype",
+        "national": 2.1,
+        "cancer_alliance": 2.0,
+        "gp_practice": 9.8,
+    },
+    {
+        "metric_id": "condition_type.stomach",
+        "source": "ncda_2018_subtype",
+        "national": 1.4,
+        "cancer_alliance": 1.3,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.liver",
+        "source": "ncda_2018_subtype",
+        "national": 1.4,
+        "cancer_alliance": 1.4,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.pancreatic",
+        "source": "ncda_2018_subtype",
+        "national": 1.4,
+        "cancer_alliance": 1.3,
+        "gp_practice": 0.0,
+    },
     # -- Gynaecological subtypes --
-    {"metric_id": "condition_type.endometrial","source": "ncda_2018_subtype",
-     "national": 2.1, "cancer_alliance": 2.0, "gp_practice": 0.0},
-    {"metric_id": "condition_type.ovarian",    "source": "ncda_2018_subtype",
-     "national": 1.6, "cancer_alliance": 1.6, "gp_practice": 0.0},
-    {"metric_id": "condition_type.cervical",   "source": "ncda_2018_subtype",
-     "national": 0.9, "cancer_alliance": 0.8, "gp_practice": 0.0},
-    {"metric_id": "condition_type.vulval",     "source": "ncda_2018_subtype",
-     "national": 0.4, "cancer_alliance": 0.4, "gp_practice": 0.0},
+    {
+        "metric_id": "condition_type.endometrial",
+        "source": "ncda_2018_subtype",
+        "national": 2.1,
+        "cancer_alliance": 2.0,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.ovarian",
+        "source": "ncda_2018_subtype",
+        "national": 1.6,
+        "cancer_alliance": 1.6,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.cervical",
+        "source": "ncda_2018_subtype",
+        "national": 0.9,
+        "cancer_alliance": 0.8,
+        "gp_practice": 0.0,
+    },
+    {
+        "metric_id": "condition_type.vulval",
+        "source": "ncda_2018_subtype",
+        "national": 0.4,
+        "cancer_alliance": 0.4,
+        "gp_practice": 0.0,
+    },
     # -- Head and neck subtypes --
-    {"metric_id": "condition_type.oropharyngeal", "source": "ncda_2018_subtype",
-     "national": 1.5, "cancer_alliance": 1.4, "gp_practice": 3.9},
-    {"metric_id": "condition_type.laryngeal",  "source": "ncda_2018_subtype",
-     "national": 0.7, "cancer_alliance": 0.6, "gp_practice": 0.0},
+    {
+        "metric_id": "condition_type.oropharyngeal",
+        "source": "ncda_2018_subtype",
+        "national": 1.5,
+        "cancer_alliance": 1.4,
+        "gp_practice": 3.9,
+    },
+    {
+        "metric_id": "condition_type.laryngeal",
+        "source": "ncda_2018_subtype",
+        "national": 0.7,
+        "cancer_alliance": 0.6,
+        "gp_practice": 0.0,
+    },
     # -- Other official NCDA types without 2018 benchmark data --
     # gallbladder, mesothelioma, small_intestine, sarcoma, thyroid are omitted
     # from 2018 benchmarks as they were not separately reported.

@@ -41,7 +41,9 @@ class ModelExtractorProvider:
         except Exception:
             return False
 
-    def _to_item(self, raw: dict, sentence_index: dict[str, str]) -> ExtractionItem | None:
+    def _to_item(
+        self, raw: dict, sentence_index: dict[str, str]
+    ) -> ExtractionItem | None:
         sentence_id = str(raw.get("sentence_id") or "").strip()
         if not sentence_id:
             return None
@@ -80,7 +82,9 @@ class ModelExtractorProvider:
             model_version=self.model_version,
         )
 
-    def extract_batch(self, encounter_text: str, sentences: list) -> list[ExtractionItem]:
+    def extract_batch(
+        self, encounter_text: str, sentences: list
+    ) -> list[ExtractionItem]:
         if not self._enabled:
             raise RuntimeError(
                 "model extractor backend is deprecated by default; "

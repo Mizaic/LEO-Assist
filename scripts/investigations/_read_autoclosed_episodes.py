@@ -6,6 +6,7 @@ after the referral date so we can verify the auto-close was correct.
 Run:
     python scripts/investigations/_read_autoclosed_episodes.py
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -13,24 +14,54 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 _CANCER_KW = (
-    "malign", "carcinoma", "cancer", "sarcoma", "lymphoma",
-    "melanoma", "neoplasm", "leukaemia", "leukemia", "myeloma",
-    "adenocarcinoma", "metastati", "dcis", "in situ",
+    "malign",
+    "carcinoma",
+    "cancer",
+    "sarcoma",
+    "lymphoma",
+    "melanoma",
+    "neoplasm",
+    "leukaemia",
+    "leukemia",
+    "myeloma",
+    "adenocarcinoma",
+    "metastati",
+    "dcis",
+    "in situ",
 )
 _TREATMENT_KW = (
-    "mastectomy", "chemotherapy", "radiotherapy", "excision", "resection",
-    "biopsy", "colectomy", "cystectomy", "orchiectomy", "nephrectomy",
-    "letrozole", "tamoxifen", "docetaxel", "capecitabine", "rituximab",
+    "mastectomy",
+    "chemotherapy",
+    "radiotherapy",
+    "excision",
+    "resection",
+    "biopsy",
+    "colectomy",
+    "cystectomy",
+    "orchiectomy",
+    "nephrectomy",
+    "letrozole",
+    "tamoxifen",
+    "docetaxel",
+    "capecitabine",
+    "rituximab",
 )
 _BENIGN_KW = (
-    "no evidence of cancer", "no evidence of malignancy", "benign",
-    "fibroadenoma", "haemorrhoid", "diverticular", "irritable bowel",
+    "no evidence of cancer",
+    "no evidence of malignancy",
+    "benign",
+    "fibroadenoma",
+    "haemorrhoid",
+    "diverticular",
+    "irritable bowel",
     "395100000",
 )
 
@@ -80,6 +111,7 @@ def _flag(codings: list[dict], txt: str) -> str:
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     episodes = client.run(_Q_AUTO) or []
@@ -103,14 +135,23 @@ def main() -> None:
         else:
             for enc in encs:
                 coded = [
-                    c["name"] for c in enc["codings"]
+                    c["name"]
+                    for c in enc["codings"]
                     if c.get("name") and len(c["name"]) > 5
                 ]
                 flag = _flag(enc["codings"], enc["txt"] or "")
                 if flag or coded:
                     assertion_coded = [
-                        (c["name"] + (" [" + c["assertion"] + "]" if c.get("assertion") else ""))
-                        for c in enc["codings"] if c.get("name") and len(c["name"]) > 5
+                        (
+                            c["name"]
+                            + (
+                                " [" + c["assertion"] + "]"
+                                if c.get("assertion")
+                                else ""
+                            )
+                        )
+                        for c in enc["codings"]
+                        if c.get("name") and len(c["name"]) > 5
                     ]
                     print(f"  [{enc['edate']}] {flag or '---'}")
                     if assertion_coded:

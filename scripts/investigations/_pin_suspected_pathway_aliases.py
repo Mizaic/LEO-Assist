@@ -3,6 +3,7 @@ Pin 'suspected cancer pathway referral' and '2WW referral' alias surface forms
 so the resolver finds the right FTR concept when LLMs use NHS pathway language
 instead of the canonical 'fast track referral for suspected X' phrasing.
 """
+
 import os
 import re
 import sys
@@ -12,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase  # noqa: E402
 
@@ -36,7 +39,10 @@ FORMS = [
     ("suspected cancer pathway referral pancreatic cancer", "276551000000108"),
     ("suspected cancer pathway referral for pancreatic cancer", "276551000000108"),
     ("suspected pancreatic cancer pathway referral", "276551000000108"),
-    ("suspected cancer pathway referral upper gastrointestinal cancer", "276551000000108"),
+    (
+        "suspected cancer pathway referral upper gastrointestinal cancer",
+        "276551000000108",
+    ),
     ("suspected cancer pathway referral upper gastrointestinal", "276551000000108"),
     ("suspected upper gastrointestinal cancer pathway referral", "276551000000108"),
     ("suspected upper gastrointestinal cancer referral", "276551000000108"),
@@ -45,8 +51,14 @@ FORMS = [
     ("suspected pancreatic cancer referral", "276551000000108"),
     ("two week wait referral pancreatic cancer", "276551000000108"),
     ("two week wait referral for suspected pancreatic cancer", "276551000000108"),
-    ("two week wait referral for suspected upper gastrointestinal cancer", "276551000000108"),
-    ("2 week wait referral for suspected upper gastrointestinal cancer", "276551000000108"),
+    (
+        "two week wait referral for suspected upper gastrointestinal cancer",
+        "276551000000108",
+    ),
+    (
+        "2 week wait referral for suspected upper gastrointestinal cancer",
+        "276551000000108",
+    ),
     ("2ww upper gastrointestinal cancer", "276551000000108"),
     ("non urgent referral suspected pancreatic cancer", "276551000000108"),
     ("routine referral suspected pancreatic cancer", "276551000000108"),

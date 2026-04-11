@@ -13,7 +13,9 @@ from pydantic import BaseModel
 
 from libs.auth.service_auth import verify_service_token
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
-from services.terminology_api.app.services.writeback_service import writeback_approved_terms
+from services.terminology_api.app.services.writeback_service import (
+    writeback_approved_terms,
+)
 
 router = APIRouter()
 
@@ -30,12 +32,17 @@ class WritebackResponse(BaseModel):
 
 
 @router.post("/writeback", response_model=WritebackResponse)
-def trigger_writeback(body: WritebackRequest | None = None, _: None = Depends(verify_service_token)):
+def trigger_writeback(
+    body: WritebackRequest | None = None, _: None = Depends(verify_service_token)
+):
     """Write approved surface-form -> SNOMED mappings from Patient Graph into Knowledge Graph."""
     patient_client = PatientGraphClient()
     knowledge_client = KnowledgeGraphClient()
     try:
-        with patient_client.session() as patient_session, knowledge_client.session() as knowledge_session:
+        with (
+            patient_client.session() as patient_session,
+            knowledge_client.session() as knowledge_session,
+        ):
             result = writeback_approved_terms(
                 patient_session=patient_session,
                 knowledge_session=knowledge_session,

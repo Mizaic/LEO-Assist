@@ -112,30 +112,157 @@ class NCDADomain:
 # ── Predefined domain configs (fallback) ─────────────────────────────────
 
 NCDA_DOMAIN_CONFIGS: Dict[str, NCDADomain] = {
-    "cancer_types": NCDADomain(name="cancer_types", file="snomed_ncda_cancer_types_mapping.json", description="Cancer type diagnosis concepts", semantic_tags=["Disease"], milestone_type="diagnosis"),
-    "fast_track_referrals": NCDADomain(name="fast_track_referrals", file="snomed_ncda_fast_track_referrals_mapping.json", description="Fast-track (2WW) referral procedures", semantic_tags=["Procedure"], milestone_type="referral"),
-    "treatment": NCDADomain(name="treatment", file="snomed_ncda_treatment_mapping.json", description="Cancer treatment procedures", semantic_tags=["Procedure"], milestone_type="treatment"),
-    "symptoms": NCDADomain(name="symptoms", file="snomed_ncda_symptom_mappings.json", description="Presenting symptoms", time_window_months=12, semantic_tags=["Clinical_finding", "Situation"]),
-    "comorbidities": NCDADomain(name="comorbidities", file="snomed_ncda_comorbidities_mappings.json", description="Comorbid conditions", semantic_tags=["Clinical_finding", "Disease"]),
-    "physical_signs": NCDADomain(name="physical_signs", file="snomed_ncda_physical_signs_mappings.json", description="Physical examination findings", semantic_tags=["Clinical_finding"]),
-    "investigations": NCDADomain(name="investigations", file="snomed_ncda_primary_care_investigations_mappings.json", description="Primary care investigations", semantic_tags=["Procedure"]),
-    "lifestyle_factors": NCDADomain(name="lifestyle_factors", file="snomed_ncda_lifestyle_factors_mapping.json", description="Lifestyle and risk factors", semantic_tags=["Clinical_finding", "Situation"]),
-    "family_history": NCDADomain(name="family_history", file="snomed_ncda_family_history_mapping.json", description="Family history of cancer", semantic_tags=["Situation"]),
-    "cancer_risk_factors": NCDADomain(name="cancer_risk_factors", file="snomed_ncda_cancer_risk_factors_mapping.json", description="Cancer risk factors", semantic_tags=["Clinical_finding"]),
-    "place_of_presentation": NCDADomain(name="place_of_presentation", file="snomed_ncda_place_of_first_presentation_mapping.json", description="Place of first presentation", semantic_tags=["Environment"]),
-    "seen_by_specialist": NCDADomain(name="seen_by_specialist", file="snomed_ncda_seen_by_specialist_mapping.json", description="Seen by specialist encounters", semantic_tags=["Procedure"], milestone_type="specialist_visit"),
-    "referral_outcomes": NCDADomain(name="referral_outcomes", file="snomed_ncda_referral_outcomes_mapping.json", description="Referral outcome codes", semantic_tags=["Situation"]),
-    "no_cancer_discharge": NCDADomain(name="no_cancer_discharge", file="snomed_ncda_no_cancer_discharge_mapping.json", description="No evidence of cancer found -- explicit pathway-level discharge (benign biopsy, histopathology, clinic discharge letter). Closes an episode as benign without a cancer diagnosis.", semantic_tags=["Clinical_finding", "Situation"], milestone_type="benign_closure"),
-    "stage_of_diagnosis": NCDADomain(name="stage_of_diagnosis", file="snomed_ncda_stage_of_diagnosis_mapping.json", description="Cancer stage at diagnosis including staging systems and stage findings used in cancer audit reporting.", semantic_tags=["Clinical_finding", "Tumor_staging"], milestone_type="diagnosis"),
-    "screening": NCDADomain(name="screening", file="snomed_ncda_screening_mapping.json", description="NHS cancer screening programmes — offered/declined/completed situations, FIT/FOB/sigmoidoscopy results, lung/bowel/breast/cervical programme findings, DNA events, eligibility", semantic_tags=["Procedure", "Situation", "Clinical_finding"]),
-    "observable_entities": NCDADomain(name="observable_entities", file="snomed_ncda_observable_entities_mapping.json", description="Observable entity measurements", semantic_tags=["Observable_entity"]),
-    "ethnicity": NCDADomain(name="ethnicity", file="snomed_ncda_ethnicity_mapping.json", description="Ethnicity codes", semantic_tags=["Ethnic_group"]),
-    "housebound_status": NCDADomain(name="housebound_status", file="snomed_ncda_housebound_status_mapping.json", description="Housebound status", semantic_tags=["Situation"]),
-    "living_arrangement": NCDADomain(name="living_arrangement", file="snomed_ncda_living_arrangement_mapping.json", description="Living arrangement", semantic_tags=["Situation"]),
-    "communication_difficulty": NCDADomain(name="communication_difficulty", file="snomed_ncda_communication_difficulty_mapping.json", description="Communication difficulties", semantic_tags=["Clinical_finding"]),
-    "english_language_competency": NCDADomain(name="english_language_competency", file="snomed_ncda_english_language_competency_mapping.json", description="English language competency", semantic_tags=["Clinical_finding"]),
-    "performance_status": NCDADomain(name="performance_status", file="snomed_ncda_who_performance_status_mapping.json", description="WHO performance status", semantic_tags=["Clinical_finding"]),
-    "temporal_analysis": NCDADomain(name="temporal_analysis", file="snomed_ncda_temporal_analysis_mapping.json", description="Temporal analysis concepts", semantic_tags=["Situation"]),
+    "cancer_types": NCDADomain(
+        name="cancer_types",
+        file="snomed_ncda_cancer_types_mapping.json",
+        description="Cancer type diagnosis concepts",
+        semantic_tags=["Disease"],
+        milestone_type="diagnosis",
+    ),
+    "fast_track_referrals": NCDADomain(
+        name="fast_track_referrals",
+        file="snomed_ncda_fast_track_referrals_mapping.json",
+        description="Fast-track (2WW) referral procedures",
+        semantic_tags=["Procedure"],
+        milestone_type="referral",
+    ),
+    "treatment": NCDADomain(
+        name="treatment",
+        file="snomed_ncda_treatment_mapping.json",
+        description="Cancer treatment procedures",
+        semantic_tags=["Procedure"],
+        milestone_type="treatment",
+    ),
+    "symptoms": NCDADomain(
+        name="symptoms",
+        file="snomed_ncda_symptom_mappings.json",
+        description="Presenting symptoms",
+        time_window_months=12,
+        semantic_tags=["Clinical_finding", "Situation"],
+    ),
+    "comorbidities": NCDADomain(
+        name="comorbidities",
+        file="snomed_ncda_comorbidities_mappings.json",
+        description="Comorbid conditions",
+        semantic_tags=["Clinical_finding", "Disease"],
+    ),
+    "physical_signs": NCDADomain(
+        name="physical_signs",
+        file="snomed_ncda_physical_signs_mappings.json",
+        description="Physical examination findings",
+        semantic_tags=["Clinical_finding"],
+    ),
+    "investigations": NCDADomain(
+        name="investigations",
+        file="snomed_ncda_primary_care_investigations_mappings.json",
+        description="Primary care investigations",
+        semantic_tags=["Procedure"],
+    ),
+    "lifestyle_factors": NCDADomain(
+        name="lifestyle_factors",
+        file="snomed_ncda_lifestyle_factors_mapping.json",
+        description="Lifestyle and risk factors",
+        semantic_tags=["Clinical_finding", "Situation"],
+    ),
+    "family_history": NCDADomain(
+        name="family_history",
+        file="snomed_ncda_family_history_mapping.json",
+        description="Family history of cancer",
+        semantic_tags=["Situation"],
+    ),
+    "cancer_risk_factors": NCDADomain(
+        name="cancer_risk_factors",
+        file="snomed_ncda_cancer_risk_factors_mapping.json",
+        description="Cancer risk factors",
+        semantic_tags=["Clinical_finding"],
+    ),
+    "place_of_presentation": NCDADomain(
+        name="place_of_presentation",
+        file="snomed_ncda_place_of_first_presentation_mapping.json",
+        description="Place of first presentation",
+        semantic_tags=["Environment"],
+    ),
+    "seen_by_specialist": NCDADomain(
+        name="seen_by_specialist",
+        file="snomed_ncda_seen_by_specialist_mapping.json",
+        description="Seen by specialist encounters",
+        semantic_tags=["Procedure"],
+        milestone_type="specialist_visit",
+    ),
+    "referral_outcomes": NCDADomain(
+        name="referral_outcomes",
+        file="snomed_ncda_referral_outcomes_mapping.json",
+        description="Referral outcome codes",
+        semantic_tags=["Situation"],
+    ),
+    "no_cancer_discharge": NCDADomain(
+        name="no_cancer_discharge",
+        file="snomed_ncda_no_cancer_discharge_mapping.json",
+        description="No evidence of cancer found -- explicit pathway-level discharge (benign biopsy, histopathology, clinic discharge letter). Closes an episode as benign without a cancer diagnosis.",
+        semantic_tags=["Clinical_finding", "Situation"],
+        milestone_type="benign_closure",
+    ),
+    "stage_of_diagnosis": NCDADomain(
+        name="stage_of_diagnosis",
+        file="snomed_ncda_stage_of_diagnosis_mapping.json",
+        description="Cancer stage at diagnosis including staging systems and stage findings used in cancer audit reporting.",
+        semantic_tags=["Clinical_finding", "Tumor_staging"],
+        milestone_type="diagnosis",
+    ),
+    "screening": NCDADomain(
+        name="screening",
+        file="snomed_ncda_screening_mapping.json",
+        description="NHS cancer screening programmes — offered/declined/completed situations, FIT/FOB/sigmoidoscopy results, lung/bowel/breast/cervical programme findings, DNA events, eligibility",
+        semantic_tags=["Procedure", "Situation", "Clinical_finding"],
+    ),
+    "observable_entities": NCDADomain(
+        name="observable_entities",
+        file="snomed_ncda_observable_entities_mapping.json",
+        description="Observable entity measurements",
+        semantic_tags=["Observable_entity"],
+    ),
+    "ethnicity": NCDADomain(
+        name="ethnicity",
+        file="snomed_ncda_ethnicity_mapping.json",
+        description="Ethnicity codes",
+        semantic_tags=["Ethnic_group"],
+    ),
+    "housebound_status": NCDADomain(
+        name="housebound_status",
+        file="snomed_ncda_housebound_status_mapping.json",
+        description="Housebound status",
+        semantic_tags=["Situation"],
+    ),
+    "living_arrangement": NCDADomain(
+        name="living_arrangement",
+        file="snomed_ncda_living_arrangement_mapping.json",
+        description="Living arrangement",
+        semantic_tags=["Situation"],
+    ),
+    "communication_difficulty": NCDADomain(
+        name="communication_difficulty",
+        file="snomed_ncda_communication_difficulty_mapping.json",
+        description="Communication difficulties",
+        semantic_tags=["Clinical_finding"],
+    ),
+    "english_language_competency": NCDADomain(
+        name="english_language_competency",
+        file="snomed_ncda_english_language_competency_mapping.json",
+        description="English language competency",
+        semantic_tags=["Clinical_finding"],
+    ),
+    "performance_status": NCDADomain(
+        name="performance_status",
+        file="snomed_ncda_who_performance_status_mapping.json",
+        description="WHO performance status",
+        semantic_tags=["Clinical_finding"],
+    ),
+    "temporal_analysis": NCDADomain(
+        name="temporal_analysis",
+        file="snomed_ncda_temporal_analysis_mapping.json",
+        description="Temporal analysis concepts",
+        semantic_tags=["Situation"],
+    ),
 }
 
 
@@ -359,7 +486,9 @@ class DomainRegistry:
             Mapping of {group_key: [list of concept IDs including top + all descendants]}.
             If the domain is not loaded or has no concepts, returns an empty dict.
         """
-        from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE  # avoid circular at top
+        from libs.cypher.terminology_queries import (
+            DESCENDANTS_TEMPLATE,
+        )  # avoid circular at top
 
         groups: Dict[str, List[int]] = {}
         for concept in self.get_domain_concepts(domain):
@@ -374,7 +503,7 @@ class DomainRegistry:
                     semantic_tag=None,
                     limit=500,
                 )
-                for r in (rows or []):
+                for r in rows or []:
                     try:
                         ids.append(int(r["snomed_concept_id"]))
                     except (ValueError, TypeError, KeyError):

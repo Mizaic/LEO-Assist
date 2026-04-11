@@ -11,6 +11,7 @@ This script:
 3. Checks if a cystoscopy SNOMED code is already on the patient record.
 4. Reports what action (if any) is needed.
 """
+
 from __future__ import annotations
 
 import json
@@ -124,9 +125,7 @@ def main() -> None:
         print("The cystoscopy should be coded on the POST-procedure encounter,")
         print("not on the planning encounter (18666e26).")
     else:
-        print(
-            "No post-procedure encounter found in imported data."
-        )
+        print("No post-procedure encounter found in imported data.")
         print()
         print("RECOMMENDATION: No action on 18666e26 (planning-only encounter).")
         print("Code the cystoscopy on the post-procedure encounter when imported.")
@@ -140,8 +139,7 @@ def main() -> None:
         "historical_cystoscopy_codes": len(historical_codes),
         "post_procedure_coded": bool(post_codes),
         "later_encounters_with_cystoscopy": [
-            {"encounter_id": r["encounter_id"], "date": str(r["date"])}
-            for r in matches
+            {"encounter_id": r["encounter_id"], "date": str(r["date"])} for r in matches
         ],
     }
     print()

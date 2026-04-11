@@ -11,6 +11,7 @@ episode_builder fix.
 Usage:
     python scripts/investigations/_backfill_is_part_of.py [--dry-run] [--patient-id PID]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -40,8 +41,12 @@ logger = logging.getLogger(__name__)
 
 def _run_for_patient(patient_id: str, dry_run: bool, registry) -> dict:
     from libs.neo4j_client.client import PatientGraphClient  # noqa: PLC0415
-    from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors  # noqa: PLC0415
-    from services.analysis_worker.app.analyzers.episode_builder import build_episodes  # noqa: PLC0415
+    from services.analysis_worker.app.analyzers.anchor_detector import (
+        detect_anchors,
+    )  # noqa: PLC0415
+    from services.analysis_worker.app.analyzers.episode_builder import (
+        build_episodes,
+    )  # noqa: PLC0415
 
     client = PatientGraphClient()
     try:
@@ -102,7 +107,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Backfill IS_PART_OF edges")
     parser.add_argument("--dry-run", action="store_true", help="Do not write to Neo4j")
     parser.add_argument("--patient-id", help="Run for one patient only")
-    parser.add_argument("--domain-id", default="", help="Domain ID to scope the registry (default: all episode-detector domains)")
+    parser.add_argument(
+        "--domain-id",
+        default="",
+        help="Domain ID to scope the registry (default: all episode-detector domains)",
+    )
     args = parser.parse_args()
 
     from libs.neo4j_client.client import PatientGraphClient  # noqa: PLC0415
@@ -117,12 +126,18 @@ def main() -> None:
         if args.patient_id:
             patient_ids = [args.patient_id]
         else:
-            rows = client.run("MATCH (p:Patient) RETURN toString(p.id) AS pid ORDER BY pid")
+            rows = client.run(
+                "MATCH (p:Patient) RETURN toString(p.id) AS pid ORDER BY pid"
+            )
             patient_ids = [r["pid"] for r in rows if r.get("pid")]
     finally:
         client.close()
 
-    logger.info("Backfilling IS_PART_OF for %d patients (dry_run=%s)", len(patient_ids), args.dry_run)
+    logger.info(
+        "Backfilling IS_PART_OF for %d patients (dry_run=%s)",
+        len(patient_ids),
+        args.dry_run,
+    )
 
     ok = err = 0
     for pid in patient_ids:

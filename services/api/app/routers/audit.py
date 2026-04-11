@@ -9,7 +9,6 @@ from app.models.contracts import AuditTimelineResponse
 from app.services.review_service import ReviewService
 from libs.auth.org_scope import CallerScope, get_caller_scope
 
-
 router = APIRouter(prefix="/audit", tags=["audit"])
 
 

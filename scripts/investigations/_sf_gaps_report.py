@@ -1,6 +1,7 @@
 """
 Analyse surface_form_gaps.json -- group, sort, and report on resolver gaps.
 """
+
 import json
 from collections import defaultdict
 from pathlib import Path
@@ -23,8 +24,15 @@ for t, n in sorted(by_type.items(), key=lambda x: -x[1]):
 print()
 
 # ---- 2. By target concept (what we are TRYING to resolve to) ---------------
-by_concept = defaultdict(lambda: {"not_found": 0, "wrong_rank": 0, "total": 0,
-                                   "concept_id": "", "semantic_tag": ""})
+by_concept = defaultdict(
+    lambda: {
+        "not_found": 0,
+        "wrong_rank": 0,
+        "total": 0,
+        "concept_id": "",
+        "semantic_tag": "",
+    }
+)
 for g in gaps:
     name = g.get("expected_name") or "Unknown"
     gt = g.get("gap_type", "unknown")
@@ -99,11 +107,13 @@ print()
 
 # ---- 6. Actionable surface forms: not_found, not a header/timestamp line ---
 import re
+
 HEADER_PAT = re.compile(
     r"(\d{2}:\d{2}|Surgery:|Entered at:|Added in bulk|^[A-Z]{2,}\s*-)", re.I
 )
 actionable = [
-    g for g in nf_gaps
+    g
+    for g in nf_gaps
     if g.get("evidence")
     and not HEADER_PAT.search(g.get("evidence", ""))
     and len(g.get("evidence", "")) < 120
@@ -114,7 +124,9 @@ for g in actionable:
     actionable_ev[ev]["count"] += 1
     actionable_ev[ev]["targets"].add(g.get("expected_name") or "")
 
-print(f"=== ACTIONABLE not_found phrases (excl. headers/timestamps): {len(actionable_ev):,} unique ===")
+print(
+    f"=== ACTIONABLE not_found phrases (excl. headers/timestamps): {len(actionable_ev):,} unique ==="
+)
 print("  Top 50 to add as surface forms:")
 for ev, d in sorted(actionable_ev.items(), key=lambda x: -x[1]["count"])[:50]:
     targets = " | ".join(sorted(d["targets"]))

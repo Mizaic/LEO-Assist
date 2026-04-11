@@ -66,7 +66,11 @@ async def _proxy_request(
     try:
         body = await request.body() if method in ("POST", "PUT", "PATCH") else None
     except ClientDisconnect:
-        logger.info("Client disconnected before request body was fully received: %s %s", method, url)
+        logger.info(
+            "Client disconnected before request body was fully received: %s %s",
+            method,
+            url,
+        )
         raise
     async with httpx.AsyncClient(timeout=60) as client:
         return await client.request(method, url, headers=headers, content=body)
@@ -81,7 +85,9 @@ def _client_disconnect_response() -> Response:
     return Response(content=b"", status_code=499)
 
 
-@router.api_route("/benchmarks/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+@router.api_route(
+    "/benchmarks/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
 async def proxy_benchmarks(
     path: str,
     request: Request,
@@ -92,7 +98,9 @@ async def proxy_benchmarks(
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
     try:
-        resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
+        resp = await _proxy_request(
+            request.method, full_path, FHIR_BASE, token, request
+        )
     except ClientDisconnect:
         return _client_disconnect_response()
     return Response(
@@ -103,7 +111,9 @@ async def proxy_benchmarks(
     )
 
 
-@router.api_route("/fhir/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+@router.api_route(
+    "/fhir/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
 async def proxy_fhir(
     path: str,
     request: Request,
@@ -114,7 +124,9 @@ async def proxy_fhir(
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
     try:
-        resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
+        resp = await _proxy_request(
+            request.method, full_path, FHIR_BASE, token, request
+        )
     except ClientDisconnect:
         return _client_disconnect_response()
     return Response(
@@ -125,7 +137,9 @@ async def proxy_fhir(
     )
 
 
-@router.api_route("/analytics/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+@router.api_route(
+    "/analytics/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
 async def proxy_analytics(
     path: str,
     request: Request,
@@ -136,7 +150,9 @@ async def proxy_analytics(
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
     try:
-        resp = await _proxy_request(request.method, full_path, ANALYTICS_BASE, token, request)
+        resp = await _proxy_request(
+            request.method, full_path, ANALYTICS_BASE, token, request
+        )
     except ClientDisconnect:
         return _client_disconnect_response()
     return Response(
@@ -147,7 +163,9 @@ async def proxy_analytics(
     )
 
 
-@router.api_route("/pipeline/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+@router.api_route(
+    "/pipeline/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
 async def proxy_pipeline(
     path: str,
     request: Request,
@@ -158,7 +176,9 @@ async def proxy_pipeline(
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
     try:
-        resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
+        resp = await _proxy_request(
+            request.method, full_path, CORE_API_BASE, token, request
+        )
     except ClientDisconnect:
         return _client_disconnect_response()
     return Response(
@@ -169,7 +189,9 @@ async def proxy_pipeline(
     )
 
 
-@router.api_route("/anchor-review/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+@router.api_route(
+    "/anchor-review/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
 async def proxy_anchor_review(
     path: str,
     request: Request,
@@ -180,7 +202,9 @@ async def proxy_anchor_review(
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
     try:
-        resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
+        resp = await _proxy_request(
+            request.method, full_path, CORE_API_BASE, token, request
+        )
     except ClientDisconnect:
         return _client_disconnect_response()
     return Response(

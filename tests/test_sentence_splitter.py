@@ -23,6 +23,7 @@ class TestDeduplicate:
 
     def test_empty_text(self):
         from libs.nlp.sentence_splitter import deduplicate_lines
+
         assert deduplicate_lines("") == ""
 
 
@@ -80,8 +81,8 @@ class TestSentenceSplitter:
         text = "Abc. Def."
         result = splitter.split(text)
         assert len(result) == 2
-        assert text[result[0].start:result[0].end] == result[0].text
-        assert text[result[1].start:result[1].end] == result[1].text
+        assert text[result[0].start : result[0].end] == result[0].text
+        assert text[result[1].start : result[1].end] == result[1].text
 
     def test_regex_mode_by_default(self):
         from libs.nlp.sentence_splitter import SentenceSplitter
@@ -89,28 +90,34 @@ class TestSentenceSplitter:
         splitter = SentenceSplitter()
         assert splitter.mode in ("regex", "pyrush")
 
+
 class TestAssertionInference:
 
     def test_negated(self):
         from libs.nlp.assertion_inference import infer_assertion
+
         assert infer_assertion("no evidence of cancer") == "absent"
         assert infer_assertion("ruled out malignancy") == "absent"
 
     def test_family(self):
         from libs.nlp.assertion_inference import infer_assertion
+
         assert infer_assertion("family history of breast cancer") == "family"
 
     def test_historical(self):
         from libs.nlp.assertion_inference import infer_assertion
+
         assert infer_assertion("history of diabetes") == "historical"
         assert infer_assertion("Previous MI in 2019") == "historical"
 
     def test_present(self):
         from libs.nlp.assertion_inference import infer_assertion
+
         assert infer_assertion("Patient presents with chest pain") == "present"
 
     def test_record_disambiguation(self):
         from libs.nlp.assertion_inference import infer_assertion
+
         record = {"disambiguation": "historical"}
         assert infer_assertion("active disease", record=record) == "historical"
 

@@ -4,6 +4,7 @@ The system prompt is written to work well with Claude Sonnet 4.6 via Bedrock.
 Bedrock prompt caching (cachePoint) amortises the system prompt cost across
 the full audit run -- each encounter only pays for its own user-turn tokens.
 """
+
 from __future__ import annotations
 
 import json
@@ -270,7 +271,10 @@ def call_llm_with_retry(
             delay = min(32, 2 ** (attempt + 1))
             logger.warning(
                 "LLM error (attempt %d/%d): %s -- retrying in %ds",
-                attempt + 1, max_attempts, exc, delay,
+                attempt + 1,
+                max_attempts,
+                exc,
+                delay,
             )
             time.sleep(delay)
 

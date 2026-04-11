@@ -37,8 +37,7 @@ class FHIRConfigLoader:
 
     def _load_devices(self) -> Dict[str, AgentConfig]:
         rows = self._client.run(
-            "MATCH (d:Device) WHERE d.status = 'active' "
-            "RETURN d {.*} AS resource"
+            "MATCH (d:Device) WHERE d.status = 'active' " "RETURN d {.*} AS resource"
         )
         agents: Dict[str, AgentConfig] = {}
         for row in rows:
@@ -49,9 +48,7 @@ class FHIRConfigLoader:
         return agents
 
     def _load_resources(self, label: str) -> Dict[str, Dict[str, Any]]:
-        rows = self._client.run(
-            f"MATCH (r:{label}) RETURN r {{.*}} AS resource"
-        )
+        rows = self._client.run(f"MATCH (r:{label}) RETURN r {{.*}} AS resource")
         result: Dict[str, Dict[str, Any]] = {}
         for row in rows:
             resource = row.get("resource", {})

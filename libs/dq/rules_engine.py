@@ -1,4 +1,5 @@
 """DQ Rules Engine -- loads rules.yaml and evaluates each rule against Neo4j."""
+
 from __future__ import annotations
 
 import logging
@@ -99,7 +100,7 @@ def scorecard_summary(results: list[DQCheckResult]) -> dict:
         "total": len(results),
         **counts,
         "critical_failures": critical_fails,
-        "overall": "fail" if counts["fail"] > 0 else (
-            "warn" if counts["warn"] > 0 else "pass"
+        "overall": (
+            "fail" if counts["fail"] > 0 else ("warn" if counts["warn"] > 0 else "pass")
         ),
     }

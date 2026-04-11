@@ -60,9 +60,10 @@ _MANIFEST_NAME = "manifest.json"
 @dataclass
 class ModelArtifact:
     """Metadata sidecar stored alongside each model version in blob."""
+
     model_name: str
     version: str
-    blob_path: str          # e.g. "medspacy_clinical_ner/1.2/model.tar.gz"
+    blob_path: str  # e.g. "medspacy_clinical_ner/1.2/model.tar.gz"
     schema_version: str = ""
     deid_version: str = ""
     label_mapping_version: str = ""
@@ -106,6 +107,7 @@ class ModelStore:
                 )
             elif _ACCOUNT_URL:
                 from libs.azure.credentials import get_credential
+
                 client = BlobServiceClient(
                     account_url=_ACCOUNT_URL, credential=get_credential()
                 )
@@ -159,7 +161,9 @@ class ModelStore:
         """
         model_dir = Path(model_dir)
         if not model_dir.exists():
-            raise FileNotFoundError(f"ModelStore.upload: model_dir not found: {model_dir}")
+            raise FileNotFoundError(
+                f"ModelStore.upload: model_dir not found: {model_dir}"
+            )
 
         blob_prefix = f"{self._model_name}/{version}"
         archive_blob = f"{blob_prefix}/{_ARCHIVE_NAME}"
@@ -175,7 +179,9 @@ class ModelStore:
             size_bytes = tmp_path.stat().st_size
             logger.info(
                 "ModelStore.upload: model=%s v%s size=%.1fMB",
-                self._model_name, version, size_bytes / 1_048_576,
+                self._model_name,
+                version,
+                size_bytes / 1_048_576,
             )
 
             # Build metadata
@@ -246,11 +252,15 @@ class ModelStore:
         Returns:
             Path to the local unpacked model directory.
         """
-        local_model_dir = self._cache_dir / self._model_name / version / self._model_name
+        local_model_dir = (
+            self._cache_dir / self._model_name / version / self._model_name
+        )
 
         if local_model_dir.exists() and not force:
             logger.info(
-                "ModelStore.download: v%s already cached at %s", version, local_model_dir
+                "ModelStore.download: v%s already cached at %s",
+                version,
+                local_model_dir,
             )
             return local_model_dir
 
@@ -267,7 +277,9 @@ class ModelStore:
 
         logger.info(
             "ModelStore.download: unpacking v%s (%.1fMB) to %s",
-            version, len(archive_bytes) / 1_048_576, unpack_dir,
+            version,
+            len(archive_bytes) / 1_048_576,
+            unpack_dir,
         )
         with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tar:
             tar.extractall(unpack_dir)
@@ -289,9 +301,7 @@ class ModelStore:
     def _download_local(self, blob_name: str) -> bytes:
         src = self._local_path(blob_name)
         if not src.exists():
-            raise FileNotFoundError(
-                f"ModelStore: local artifact not found: {src}"
-            )
+            raise FileNotFoundError(f"ModelStore: local artifact not found: {src}")
         return src.read_bytes()
 
     # ------------------------------------------------------------------
@@ -347,7 +357,9 @@ class ModelStore:
             if m.exists():
                 try:
                     manifests.append(
-                        ModelArtifact.from_dict(json.loads(m.read_text(encoding="utf-8")))
+                        ModelArtifact.from_dict(
+                            json.loads(m.read_text(encoding="utf-8"))
+                        )
                     )
                 except Exception:
                     pass

@@ -6,6 +6,7 @@ Outputs:
   abbreviation_writeback_approved.json  - safe to submit to terminology writeback
   abbreviation_writeback_review.json    - need clinical sign-off before writing
 """
+
 from __future__ import annotations
 
 import json
@@ -119,11 +120,13 @@ for entry in raw:
 
     if abbrev in CORRECTIONS:
         cid, term, reason = CORRECTIONS[abbrev]
-        entry = {**entry,
-                 "recommended_concept_id": cid,
-                 "recommended_term": term,
-                 "correction_applied": reason,
-                 "source": "manual_correction"}
+        entry = {
+            **entry,
+            "recommended_concept_id": cid,
+            "recommended_term": term,
+            "correction_applied": reason,
+            "source": "manual_correction",
+        }
     else:
         entry = {**entry, "source": "auto_verified"}
 
@@ -155,7 +158,9 @@ print("=" * 100)
 print("NEEDS CLINICAL REVIEW BEFORE WRITEBACK")
 print("=" * 100)
 for e in review:
-    print(f"  {e['abbreviation']:<8} [{e['recommended_concept_id']}] {e['recommended_term']}")
+    print(
+        f"  {e['abbreviation']:<8} [{e['recommended_concept_id']}] {e['recommended_term']}"
+    )
     print(f"           {e.get('review_note','')}")
     print()
 

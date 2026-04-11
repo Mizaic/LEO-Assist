@@ -8,6 +8,7 @@ GET  /devices/{device_id}         Single device detail
 PATCH /devices/{device_id}/status Enable or disable a device
 PUT  /devices/pipeline-config     Update active provider / tier / backend
 """
+
 from __future__ import annotations
 
 import logging
@@ -40,6 +41,7 @@ _VALID_BACKENDS = {"llm", "model", "auto"}
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _resolve_model_id(env_var: str | None, default_model_id: str) -> str:
     """Return the actual model ID from env var, with default fallback.
     Secrets stay in Key Vault — we only show whether they are configured."""
@@ -67,6 +69,7 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
 # GET /devices
 # ---------------------------------------------------------------------------
 
+
 @router.get("")
 def list_devices() -> dict[str, Any]:
     client = CodingGraphClient()
@@ -82,6 +85,7 @@ def list_devices() -> dict[str, Any]:
 # GET /devices/pipeline-config
 # ---------------------------------------------------------------------------
 
+
 @router.get("/pipeline-config")
 def get_pipeline_config() -> dict[str, Any]:
     client = CodingGraphClient()
@@ -94,8 +98,10 @@ def get_pipeline_config() -> dict[str, Any]:
                 "provider": os.getenv("PIPELINE_MODEL_PROVIDER", "aws"),
                 "tier": os.getenv("PIPELINE_MODEL_TIER", "small"),
                 "extractor_backend": os.getenv("CODING_EXTRACTOR_BACKEND", "llm"),
-                "strict": os.getenv("CODING_EXTRACTOR_STRICT", "false").lower() == "true",
-                "consensus_mode": os.getenv("PIPELINE_CONSENSUS_MODE", "true").lower() == "true",
+                "strict": os.getenv("CODING_EXTRACTOR_STRICT", "false").lower()
+                == "true",
+                "consensus_mode": os.getenv("PIPELINE_CONSENSUS_MODE", "true").lower()
+                == "true",
                 "source": "env",
             }
         return {**dict(row), "source": "neo4j"}
@@ -107,6 +113,7 @@ def get_pipeline_config() -> dict[str, Any]:
 # GET /devices/{device_id}
 # ---------------------------------------------------------------------------
 
+
 @router.get("/{device_id}")
 def get_device(device_id: str) -> dict[str, Any]:
     client = CodingGraphClient()
@@ -114,7 +121,9 @@ def get_device(device_id: str) -> dict[str, Any]:
         with client.session() as session:
             row = session.run(GET_DEVICE, device_id=device_id).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"Device {device_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Device {device_id!r} not found"
+            )
         return _enrich(dict(row))
     finally:
         client.close()
@@ -124,6 +133,7 @@ def get_device(device_id: str) -> dict[str, Any]:
 # PATCH /devices/{device_id}/status
 # ---------------------------------------------------------------------------
 
+
 class StatusRequest(BaseModel):
     status: str  # "active" | "inactive"
 
@@ -131,13 +141,19 @@ class StatusRequest(BaseModel):
 @router.patch("/{device_id}/status")
 def set_device_status(device_id: str, body: StatusRequest) -> dict[str, Any]:
     if body.status not in _VALID_STATUSES:
-        raise HTTPException(status_code=400, detail=f"status must be one of {_VALID_STATUSES}")
+        raise HTTPException(
+            status_code=400, detail=f"status must be one of {_VALID_STATUSES}"
+        )
     client = CodingGraphClient()
     try:
         with client.session() as session:
-            row = session.run(SET_DEVICE_STATUS, device_id=device_id, status=body.status).single()
+            row = session.run(
+                SET_DEVICE_STATUS, device_id=device_id, status=body.status
+            ).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"Device {device_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Device {device_id!r} not found"
+            )
         return {"device_id": row["device_id"], "status": row["status"]}
     finally:
         client.close()
@@ -147,22 +163,32 @@ def set_device_status(device_id: str, body: StatusRequest) -> dict[str, Any]:
 # PUT /devices/pipeline-config
 # ---------------------------------------------------------------------------
 
+
 class PipelineConfigRequest(BaseModel):
-    provider: str          # "aws" | "azure"
-    tier: str              # "small" | "big" | "max"
-    extractor_backend: str # "llm" | "model" | "auto"
+    provider: str  # "aws" | "azure"
+    tier: str  # "small" | "big" | "max"
+    extractor_backend: str  # "llm" | "model" | "auto"
     strict: bool = False
-    consensus_mode: bool = True  # dual-model parallel consensus with big-model arbitration
+    consensus_mode: bool = (
+        True  # dual-model parallel consensus with big-model arbitration
+    )
 
 
 @router.put("/pipeline-config")
 def update_pipeline_config(body: PipelineConfigRequest) -> dict[str, Any]:
     if body.provider not in _VALID_PROVIDERS:
-        raise HTTPException(status_code=400, detail=f"provider must be one of {_VALID_PROVIDERS}")
+        raise HTTPException(
+            status_code=400, detail=f"provider must be one of {_VALID_PROVIDERS}"
+        )
     if body.tier not in _VALID_TIERS:
-        raise HTTPException(status_code=400, detail=f"tier must be one of {_VALID_TIERS}")
+        raise HTTPException(
+            status_code=400, detail=f"tier must be one of {_VALID_TIERS}"
+        )
     if body.extractor_backend not in _VALID_BACKENDS:
-        raise HTTPException(status_code=400, detail=f"extractor_backend must be one of {_VALID_BACKENDS}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"extractor_backend must be one of {_VALID_BACKENDS}",
+        )
 
     client = CodingGraphClient()
     try:
@@ -177,7 +203,11 @@ def update_pipeline_config(body: PipelineConfigRequest) -> dict[str, Any]:
             )
         logger.info(
             "PipelineConfig updated: provider=%s tier=%s backend=%s strict=%s consensus=%s",
-            body.provider, body.tier, body.extractor_backend, body.strict, body.consensus_mode,
+            body.provider,
+            body.tier,
+            body.extractor_backend,
+            body.strict,
+            body.consensus_mode,
         )
         return {
             "updated": True,

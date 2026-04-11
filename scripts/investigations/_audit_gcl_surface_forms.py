@@ -12,6 +12,7 @@ Connects directly to the knowledge-graph Neo4j instance and:
 
 Usage: python scripts/investigations/_audit_gcl_surface_forms.py
 """
+
 from __future__ import annotations
 
 import json
@@ -23,17 +24,19 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from neo4j import GraphDatabase
 
 OUTPUT = ROOT / "scripts" / "investigations" / "surface_form_gcl_audit.json"
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI",      "bolt://localhost:7688")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "bolt://localhost:7688")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
@@ -67,7 +70,7 @@ ORDER BY m.confidence DESC
 
 # Known over-broad catch-all concept IDs
 _BROAD_IDS = {
-    "74732009",   # Mental disorder (disorder)
+    "74732009",  # Mental disorder (disorder)
     "128462008",  # Metastatic malignant neoplasm (disorder)
     "372130007",  # Malignant neoplasm of skin (disorder)
     "267004000",  # History of musculoskeletal disease (situation)

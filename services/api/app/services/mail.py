@@ -59,7 +59,10 @@ def _get_graph_token() -> str:
 
 
 def _headers() -> dict[str, str]:
-    return {"Authorization": f"Bearer {_get_graph_token()}", "Content-Type": "application/json"}
+    return {
+        "Authorization": f"Bearer {_get_graph_token()}",
+        "Content-Type": "application/json",
+    }
 
 
 # -- Send --------------------------------------------------------------------
@@ -120,7 +123,9 @@ def send_onboarding_invite_email(
         "message": {
             "subject": subject,
             "body": {"contentType": "HTML", "content": body_html},
-            "toRecipients": [{"emailAddress": {"address": to_email, "name": to_name or to_email}}],
+            "toRecipients": [
+                {"emailAddress": {"address": to_email, "name": to_name or to_email}}
+            ],
         },
         "saveToSentItems": True,
     }
@@ -167,7 +172,9 @@ def send_invite_email(to_email: str, to_name: str, invited_by: str) -> None:
         "message": {
             "subject": subject,
             "body": {"contentType": "HTML", "content": body_html},
-            "toRecipients": [{"emailAddress": {"address": to_email, "name": to_name or to_email}}],
+            "toRecipients": [
+                {"emailAddress": {"address": to_email, "name": to_name or to_email}}
+            ],
         },
         "saveToSentItems": True,
     }

@@ -82,8 +82,6 @@ def parse_extraction_terms_response(raw: str) -> tuple[dict[str, Any], ParseSour
             data["terms"] = []
         return data, "json_ok"
     if _looks_like_no_entities_prose(original):
-        logger.info(
-            "LLM returned prose instead of JSON; treating as empty extraction"
-        )
+        logger.info("LLM returned prose instead of JSON; treating as empty extraction")
         return {"terms": []}, "prose_empty"
     return {}, "failed"

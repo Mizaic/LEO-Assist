@@ -44,6 +44,7 @@ def _resolve_sbar_prompts(state: SBARState) -> dict[str, str]:
     if not result:
         try:
             from libs.prompts.registry import get_prompt
+
             result["episode_builder_system"] = get_prompt("episode_builder_system", 1)
         except (KeyError, ImportError, RuntimeError):
             logger.warning("Falling back to default SBAR prompts: registry unavailable")
@@ -62,17 +63,18 @@ def generate_sbar(state: SBARState) -> dict[str, Any]:
     recommendations = list(state.get("recommendations") or [])
     alerts = list(state.get("safety_net_alerts") or [])
 
-    situation = ", ".join(
-        str(entity.get("text") or entity.get("concept_name") or "").strip()
-        for entity in entities[:3]
-        if str(entity.get("text") or entity.get("concept_name") or "").strip()
-    ) or "No key findings supplied."
+    situation = (
+        ", ".join(
+            str(entity.get("text") or entity.get("concept_name") or "").strip()
+            for entity in entities[:3]
+            if str(entity.get("text") or entity.get("concept_name") or "").strip()
+        )
+        or "No key findings supplied."
+    )
     background = (
         f"Patient {patient_id} with {len(entities)} extracted clinical finding(s)."
     )
-    assessment = (
-        f"{len(alerts)} safety-net alert(s); {len(recommendations)} recommendation(s) generated."
-    )
+    assessment = f"{len(alerts)} safety-net alert(s); {len(recommendations)} recommendation(s) generated."
     recommendation = (
         str(recommendations[0].get("action"))
         if recommendations

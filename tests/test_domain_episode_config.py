@@ -27,7 +27,9 @@ class TestDomainRegistryFailFast:
         mock_kg = MagicMock()
         mock_kg.run.return_value = []  # empty for all queries
 
-        with patch("libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg):
+        with patch(
+            "libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg
+        ):
             with pytest.raises(RuntimeError, match="no ValueSet nodes found"):
                 _load_registry()
 
@@ -42,8 +44,12 @@ class TestDomainRegistryFailFast:
         mock_kg = MagicMock()
         mock_kg.run.return_value = []
 
-        with patch("libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg):
-            with pytest.raises(RuntimeError, match="no ValueSet nodes found.*cancer_audit"):
+        with patch(
+            "libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg
+        ):
+            with pytest.raises(
+                RuntimeError, match="no ValueSet nodes found.*cancer_audit"
+            ):
                 _load_registry(domain_id="cancer_audit")
 
     def test_registry_succeeds_when_valuesets_present(self):
@@ -60,14 +66,18 @@ class TestDomainRegistryFailFast:
             "id": "ncda-cancer-types",
             "name": "cancer_types",
             "description": "Cancer type concepts",
-            "compose": {"include": [{"system": "http://snomed.info/sct", "concept": []}]},
+            "compose": {
+                "include": [{"system": "http://snomed.info/sct", "concept": []}]
+            },
         }
         mock_kg = MagicMock()
         mock_kg.run.return_value = [
             {"id": "ncda-cancer-types", "raw_json": json.dumps(fake_vs)}
         ]
 
-        with patch("libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg):
+        with patch(
+            "libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg
+        ):
             registry = _load_registry(domain_id="cancer_audit")
         assert registry is not None
 
@@ -92,10 +102,16 @@ class TestDomainRegistryFailFast:
         mock_kg = MagicMock()
         # First call (episode-detector domains query) returns results
         mock_kg.run.return_value = [
-            {"id": "ncda-cancer-types", "raw_json": json.dumps(fake_vs), "domain_id": "cancer_audit"}
+            {
+                "id": "ncda-cancer-types",
+                "raw_json": json.dumps(fake_vs),
+                "domain_id": "cancer_audit",
+            }
         ]
 
-        with patch("libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg):
+        with patch(
+            "libs.neo4j_client.client.KnowledgeGraphClient", return_value=mock_kg
+        ):
             registry = _load_registry()
         assert registry is not None
 

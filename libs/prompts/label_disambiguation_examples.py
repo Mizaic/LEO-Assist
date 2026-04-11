@@ -47,7 +47,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "disorder", "confidence": 0.97, "reason": "Biopsy confirmed malignant melanoma is a definitive diagnosis statement; disorder is correct per the finding-vs-disorder boundary."}',
     },
-
     # ── Observable entity vs qualifier value ─────────────────────────────────
     {
         "category": "label-disambig:obs-qual",
@@ -73,7 +72,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "qualifier_value", "confidence": 0.97, "reason": "142 mmol/L is the value+unit component of a lab result; the test name Serum sodium level is the observable_entity. qualifier_value is correct."}',
     },
-
     # ── X_DOSAGE vs qualifier_value ──────────────────────────────────────────
     {
         "category": "label-disambig:dosage-qual",
@@ -111,7 +109,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "qualifier_value", "confidence": 0.93, "reason": "Smoking consumption is a qualifying amount for a lifestyle factor, not a medication dose; qualifier_value is correct."}',
     },
-
     # ── Substance vs procedure ────────────────────────────────────────────────
     {
         "category": "label-disambig:sub-proc",
@@ -137,7 +134,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "procedure", "confidence": 0.95, "reason": "The full phrase including administered today is a treatment action performed on the patient; procedure is correct. Drug name alone would be substance."}',
     },
-
     # ── Situation vs Disorder ─────────────────────────────────────────────────
     {
         "category": "label-disambig:sit-dis",
@@ -163,7 +159,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "situation", "confidence": 0.94, "reason": "Cancer ruled out is a clinical status statement (diagnostic conclusion); situation is correct per boundary rules."}',
     },
-
     # ── Regime therapy vs Substance ───────────────────────────────────────────
     {
         "category": "label-disambig:regime-sub",
@@ -189,7 +184,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "regime_therapy", "confidence": 0.89, "reason": "HRT in treatment context is a treatment regimen shorthand; regime_therapy is correct per boundary rules."}',
     },
-
     # ── Record artifact vs Procedure ─────────────────────────────────────────
     {
         "category": "label-disambig:artifact-proc",
@@ -203,7 +197,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "record_artifact", "confidence": 0.90, "reason": "MDT Meet Outcome in this form is a document/correspondence heading (record_artifact). MDT as a standalone action is procedure; the outcome heading is record_artifact."}',
     },
-
     # ── Temporal vs qualifier value ───────────────────────────────────────────
     {
         "category": "label-disambig:temporal-qual",
@@ -217,7 +210,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "qualifier_value", "confidence": 0.93, "reason": "New Episode is an episode context marker qualifying the clinical entry, not a temporal expression; qualifier_value is correct."}',
     },
-
     # ── Negation: base type preserved ─────────────────────────────────────────
     {
         "category": "label-disambig:negation",
@@ -243,7 +235,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "disorder", "confidence": 0.92, "reason": "Infection as a negated concept retains its base type (disorder); X_NEGATION_CUE is not a valid label. assertion=absent is set by post-processing."}',
     },
-
     # ── Planned procedure - situation ─────────────────────────────────────────
     {
         "category": "label-disambig:sit-dis",
@@ -257,7 +248,6 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"resolved_label": "situation", "confidence": 0.94, "reason": "Planned/booked procedures not yet performed are situation (SNOMED 405613005 Planned procedure); procedure = performed. situation is correct."}',
     },
-
     # ── Formal staging ────────────────────────────────────────────────────────
     {
         "category": "label-disambig:obs-qual",
@@ -274,7 +264,9 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
 ]
 
 
-def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+def _apply_core_by_first_category(
+    examples: list[dict], core_categories: set[str]
+) -> None:
     seen: set[str] = set()
     for example in examples:
         category = str(example.get("category", ""))

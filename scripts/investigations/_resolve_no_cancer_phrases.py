@@ -7,6 +7,7 @@ reports whether it maps to 395100000, something else, or nothing.
 Run:
     python scripts/investigations/_resolve_no_cancer_phrases.py
 """
+
 from __future__ import annotations
 
 import json
@@ -18,9 +19,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.auth.service_auth import get_service_auth_header
 import requests
@@ -30,7 +33,10 @@ SESSION.headers.update(get_service_auth_header())
 BASE = "http://localhost:8001"
 
 INVENTORY = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "no_cancer_phrase_inventory.jsonl"
 )
 TARGET_CONCEPT = "395100000"
@@ -53,11 +59,27 @@ def resolve_phrase(phrase: str) -> dict:
                 "resolved_concept_id": str(top.get("snomed_concept_id", "")),
                 "resolved_name": top.get("snomed_term", ""),
                 "score": top.get("score", 0),
-                "status": "correct" if str(top.get("snomed_concept_id", "")) == TARGET_CONCEPT else "wrong_concept",
+                "status": (
+                    "correct"
+                    if str(top.get("snomed_concept_id", "")) == TARGET_CONCEPT
+                    else "wrong_concept"
+                ),
             }
-        return {"phrase": phrase, "resolved_concept_id": "", "resolved_name": "", "score": 0, "status": "no_match"}
+        return {
+            "phrase": phrase,
+            "resolved_concept_id": "",
+            "resolved_name": "",
+            "score": 0,
+            "status": "no_match",
+        }
     except Exception as exc:
-        return {"phrase": phrase, "resolved_concept_id": "", "resolved_name": "", "score": 0, "status": f"error:{exc}"}
+        return {
+            "phrase": phrase,
+            "resolved_concept_id": "",
+            "resolved_name": "",
+            "score": 0,
+            "status": f"error:{exc}",
+        }
 
 
 def main() -> None:
@@ -77,10 +99,10 @@ def main() -> None:
     print(f"Unique uncoded phrases to resolve: {len(uncoded_phrases)}")
     print()
 
-    correct   = []
-    wrong     = []
-    no_match  = []
-    errors    = []
+    correct = []
+    wrong = []
+    no_match = []
+    errors = []
 
     for phrase in sorted(uncoded_phrases):
         result = resolve_phrase(phrase)
@@ -105,7 +127,9 @@ def main() -> None:
     print(f"Resolves to WRONG concept ({len(wrong)}):")
     for phrase, result, n in wrong:
         print(f"  [{n} enc] {phrase!r}")
-        print(f"    -> {result['resolved_concept_id']} | {result['resolved_name']} | score={result['score']:.2f}")
+        print(
+            f"    -> {result['resolved_concept_id']} | {result['resolved_name']} | score={result['score']:.2f}"
+        )
 
     print()
     print(f"No match found ({len(no_match)}):")

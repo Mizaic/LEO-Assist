@@ -30,16 +30,21 @@ def get_tracer():
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
         from opentelemetry.sdk.resources import Resource
 
-        resource = Resource.create({
-            "service.name": os.getenv("OTEL_SERVICE_NAME", "leo-pipeline"),
-            "service.version": os.getenv("SERVICE_VERSION", "0.1.0"),
-        })
+        resource = Resource.create(
+            {
+                "service.name": os.getenv("OTEL_SERVICE_NAME", "leo-pipeline"),
+                "service.version": os.getenv("SERVICE_VERSION", "0.1.0"),
+            }
+        )
 
         provider = TracerProvider(resource=resource)
 
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         if otlp_endpoint:
-            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+                OTLPSpanExporter,
+            )
+
             exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
             provider.add_span_processor(BatchSpanProcessor(exporter))
 
@@ -54,15 +59,26 @@ def get_tracer():
 
 class _NoopSpan:
     """Fallback span when OTEL is not available."""
-    def __enter__(self): return self
-    def __exit__(self, *args): pass
-    def set_attribute(self, key: str, value: Any) -> None: pass
-    def set_status(self, *args: Any) -> None: pass
-    def add_event(self, name: str, attributes: dict | None = None) -> None: pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def set_attribute(self, key: str, value: Any) -> None:
+        pass
+
+    def set_status(self, *args: Any) -> None:
+        pass
+
+    def add_event(self, name: str, attributes: dict | None = None) -> None:
+        pass
 
 
 class _NoopTracer:
     """Fallback tracer when OTEL is not available."""
+
     def start_as_current_span(self, name: str, **kwargs):
         return _NoopSpan()
 

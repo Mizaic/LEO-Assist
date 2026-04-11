@@ -65,8 +65,12 @@ class TestCodingPipelineResolve:
 
         mock_pc = MagicMock()
         mock_kc = MagicMock()
-        with patch("services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"), \
-             patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"):
+        with (
+            patch(
+                "services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"
+            ),
+            patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"),
+        ):
             pipeline = CodingPipeline(mock_pc, mock_kc)
 
         result = await pipeline._resolve_via_api([])
@@ -78,12 +82,18 @@ class TestCodingPipelineResolve:
 
         mock_pc = MagicMock()
         mock_kc = MagicMock()
-        with patch("services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"), \
-             patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"):
+        with (
+            patch(
+                "services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"
+            ),
+            patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"),
+        ):
             pipeline = CodingPipeline(mock_pc, mock_kc)
 
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {"results": {"cough": [{"snomed_concept_id": "123"}]}}
+        mock_resp.json.return_value = {
+            "results": {"cough": [{"snomed_concept_id": "123"}]}
+        }
         mock_resp.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as MockClient:
@@ -104,19 +114,35 @@ class TestBuildSentencesPayload:
 
         mock_pc = MagicMock()
         mock_kc = MagicMock()
-        with patch("services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"), \
-             patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"):
+        with (
+            patch(
+                "services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"
+            ),
+            patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"),
+        ):
             pipeline = CodingPipeline(mock_pc, mock_kc)
 
-        sentences = [SentenceChunk(sentence_id="s0", text="Has cough.", start=0, end=10)]
-        extracted = {"s0": [
-            ExtractedTerm(
-                sentence_id="s0", text="cough", lookup_term="cough",
-                semantic_tag="finding", assertion="present",
-                context={"negated": False}, modifiers={},
-            ),
-        ]}
-        resolved = {"cough": [{"snomed_concept_id": "49727002", "snomed_term": "Cough", "score": 0.95}]}
+        sentences = [
+            SentenceChunk(sentence_id="s0", text="Has cough.", start=0, end=10)
+        ]
+        extracted = {
+            "s0": [
+                ExtractedTerm(
+                    sentence_id="s0",
+                    text="cough",
+                    lookup_term="cough",
+                    semantic_tag="finding",
+                    assertion="present",
+                    context={"negated": False},
+                    modifiers={},
+                ),
+            ]
+        }
+        resolved = {
+            "cough": [
+                {"snomed_concept_id": "49727002", "snomed_term": "Cough", "score": 0.95}
+            ]
+        }
 
         payload = pipeline._build_sentences_payload(sentences, extracted, resolved)
         assert len(payload) == 1
@@ -132,18 +158,28 @@ class TestBuildSentencesPayload:
 
         mock_pc = MagicMock()
         mock_kc = MagicMock()
-        with patch("services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"), \
-             patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"):
+        with (
+            patch(
+                "services.coding_worker.app.pipeline.pipeline_service.SentenceSplitter"
+            ),
+            patch("services.coding_worker.app.pipeline.pipeline_service.LLMExtractor"),
+        ):
             pipeline = CodingPipeline(mock_pc, mock_kc)
 
         sentences = [SentenceChunk(sentence_id="s0", text="Unknown.", start=0, end=8)]
-        extracted = {"s0": [
-            ExtractedTerm(
-                sentence_id="s0", text="rare_thing", lookup_term="rare_thing",
-                semantic_tag="finding", assertion="present",
-                context={}, modifiers={},
-            ),
-        ]}
+        extracted = {
+            "s0": [
+                ExtractedTerm(
+                    sentence_id="s0",
+                    text="rare_thing",
+                    lookup_term="rare_thing",
+                    semantic_tag="finding",
+                    assertion="present",
+                    context={},
+                    modifiers={},
+                ),
+            ]
+        }
 
         payload = pipeline._build_sentences_payload(sentences, extracted, {})
         term = payload[0]["terms"][0]
@@ -162,6 +198,7 @@ class TestCodingPipelineEmit:
 
     def test_emit_none_hook(self):
         from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
+
         CodingPipeline._emit(None, {"type": "test"})
 
 
@@ -169,7 +206,9 @@ class TestProgressPublisher:
 
     @patch("services.coding_worker.app.services.progress_publisher._get_redis")
     def test_publish_progress(self, mock_get_redis):
-        from services.coding_worker.app.services.progress_publisher import publish_progress
+        from services.coding_worker.app.services.progress_publisher import (
+            publish_progress,
+        )
 
         mock_redis = MagicMock()
         mock_get_redis.return_value = mock_redis
@@ -181,7 +220,9 @@ class TestProgressPublisher:
 
     @patch("services.coding_worker.app.services.progress_publisher._get_redis")
     def test_publish_swallows_exceptions(self, mock_get_redis):
-        from services.coding_worker.app.services.progress_publisher import publish_progress
+        from services.coding_worker.app.services.progress_publisher import (
+            publish_progress,
+        )
 
         mock_get_redis.side_effect = Exception("redis down")
         publish_progress("run-123", {"type": "test_event"})

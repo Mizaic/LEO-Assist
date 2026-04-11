@@ -35,6 +35,7 @@ Usage
     python scripts/remediate_episodes.py --apply      # write to Neo4j
     python scripts/remediate_episodes.py --apply --patient 4802241127
 """
+
 from __future__ import annotations
 
 import argparse
@@ -72,55 +73,118 @@ LOOK_AHEAD_DAYS = 180
 
 # "Normal appearance" and other generic finding codes - cannot alone
 # close an episode that has a confirmed active cancer diagnosis.
-WEAK_EXCLUSION_IDS: frozenset[str] = frozenset([
-    "281900007",         # No abnormality detected / Normal appearance
-    "169064005",         # CT normal
-    "168749009",         # Mammography normal
-    "165324008",         # Biopsy result normal
-    "171175005",         # Breast neoplasm screening normal
-])
+WEAK_EXCLUSION_IDS: frozenset[str] = frozenset(
+    [
+        "281900007",  # No abnormality detected / Normal appearance
+        "169064005",  # CT normal
+        "168749009",  # Mammography normal
+        "165324008",  # Biopsy result normal
+        "171175005",  # Breast neoplasm screening normal
+    ]
+)
 
 # Pathway-specific closure codes that reliably indicate "no cancer found".
-STRONG_EXCLUSION_IDS: frozenset[str] = frozenset([
-    "395100000",         # No evidence of cancer found (situation)
-    "414861001",         # No evidence of recurrence of cancer
-    # 415068001 REMOVED: this is "Exposure to ultraviolet radiation (event)" in SNOMED,
-    #   not a cancer exclusion concept. Confirmed via patient graph 2026-04-06.
-    "1090791000000103",  # No evidence of malignancy (UK extension)
-    "923501000000103",   # Referral cancelled by patient
-    "20376005",          # Benign neoplastic disease
-])
+STRONG_EXCLUSION_IDS: frozenset[str] = frozenset(
+    [
+        "395100000",  # No evidence of cancer found (situation)
+        "414861001",  # No evidence of recurrence of cancer
+        # 415068001 REMOVED: this is "Exposure to ultraviolet radiation (event)" in SNOMED,
+        #   not a cancer exclusion concept. Confirmed via patient graph 2026-04-06.
+        "1090791000000103",  # No evidence of malignancy (UK extension)
+        "923501000000103",  # Referral cancelled by patient
+        "20376005",  # Benign neoplastic disease
+    ]
+)
 
 ALL_EXCLUSION_IDS = WEAK_EXCLUSION_IDS | STRONG_EXCLUSION_IDS
 
 # History-of codes: annotate only, never trigger confirmed_cancer.
-HISTORY_CONCEPT_IDS: frozenset[str] = frozenset([
-    "266987004",         # History of malignant neoplasm
-    "395672005",         # Cancer diagnosis discussed
-])
+HISTORY_CONCEPT_IDS: frozenset[str] = frozenset(
+    [
+        "266987004",  # History of malignant neoplasm
+        "395672005",  # Cancer diagnosis discussed
+    ]
+)
 HISTORY_TERMS = ("history of", "historical")
 
 # Site label -> keywords appearing in diagnosis concept names.
 DIAG_SITE_KEYWORDS: dict[str, list[str]] = {
     "brain": ["brain", "cerebral", "intracranial", "gliom", "meningeal"],
     "breast": ["breast", "mammary"],
-    "colorectal": ["colon", "rectal", "colorectal", "intestine", "bowel",
-                   "sigmoid", "transverse", "caecum", "cecum"],
-    "lower_gi": ["colon", "rectal", "colorectal", "intestine", "bowel",
-                 "sigmoid", "transverse", "caecum", "cecum"],
-    "upper_gi": ["esophag", "oesophag", "stomach", "gastric", "upper gi",
-                 "oesophageal", "esophageal"],
+    "colorectal": [
+        "colon",
+        "rectal",
+        "colorectal",
+        "intestine",
+        "bowel",
+        "sigmoid",
+        "transverse",
+        "caecum",
+        "cecum",
+    ],
+    "lower_gi": [
+        "colon",
+        "rectal",
+        "colorectal",
+        "intestine",
+        "bowel",
+        "sigmoid",
+        "transverse",
+        "caecum",
+        "cecum",
+    ],
+    "upper_gi": [
+        "esophag",
+        "oesophag",
+        "stomach",
+        "gastric",
+        "upper gi",
+        "oesophageal",
+        "esophageal",
+    ],
     "lung": ["lung", "bronch", "pulmonary", "pleural"],
-    "skin": ["skin", "melanom", "basal cell", "squamous", "lentigo",
-             "merkel"],
-    "gynaecological": ["cervix", "uterus", "uterine", "ovarian", "ovary",
-                       "endometri", "vulva", "vagina", "fallopian"],
-    "urological": ["bladder", "prostate", "renal", "kidney", "urological",
-                   "urinary", "urothelial"],
-    "haematology": ["lymph", "leukaem", "leukemi", "myelom", "haematol",
-                    "lymphoma", "leukaemia"],
-    "head_and_neck": ["head", "neck", "oral", "pharynx", "larynx",
-                      "thyroid", "salivary", "buccal", "tongue", "lip"],
+    "skin": ["skin", "melanom", "basal cell", "squamous", "lentigo", "merkel"],
+    "gynaecological": [
+        "cervix",
+        "uterus",
+        "uterine",
+        "ovarian",
+        "ovary",
+        "endometri",
+        "vulva",
+        "vagina",
+        "fallopian",
+    ],
+    "urological": [
+        "bladder",
+        "prostate",
+        "renal",
+        "kidney",
+        "urological",
+        "urinary",
+        "urothelial",
+    ],
+    "haematology": [
+        "lymph",
+        "leukaem",
+        "leukemi",
+        "myelom",
+        "haematol",
+        "lymphoma",
+        "leukaemia",
+    ],
+    "head_and_neck": [
+        "head",
+        "neck",
+        "oral",
+        "pharynx",
+        "larynx",
+        "thyroid",
+        "salivary",
+        "buccal",
+        "tongue",
+        "lip",
+    ],
     "sarcoma": ["sarcoma"],
     "childrens_tumour": ["paediatric", "wilms", "neuroblast", "medulloblast"],
     "non_site_specific": [],
@@ -136,36 +200,36 @@ STATUS_NEEDS_REVIEW = "needs_review"
 # Verified against terminology server 2026-04-03. Concept FSNs confirmed.
 # Note: the IDs are NOT in alphabetical site order -- do not re-sort.
 REFERRAL_SITE: dict[str, str] = {
-    "276581000000102": "brain",          # Fast track referral for suspected brain tumour
-    "276341000000100": "breast",         # Fast track referral for suspected breast cancer
+    "276581000000102": "brain",  # Fast track referral for suspected brain tumour
+    "276341000000100": "breast",  # Fast track referral for suspected breast cancer
     "1556551000000104": "non_site_specific",  # Fast track referral: suspected cancer, non-site-specific symptoms
-    "276371000000106": "childrens_tumour",    # Fast track referral for suspected children's tumour
-    "276401000000108": "colorectal",          # Fast track referral for suspected colorectal cancer
-    "892201000000106": "lower_gi",            # Fast track referral for suspected lower GI cancer
-    "276311000000101": "gynaecological",      # Fast track referral for suspected gynaecological cancer
-    "276461000000107": "haematology",         # Fast track referral for suspected haematology malignancy
-    "280521000000108": "head_and_neck",       # Fast track referral for suspected head and neck cancer
-    "276491000000101": "lung",               # Fast track referral for suspected lung cancer
-    "276521000000103": "sarcoma",            # Fast track referral for suspected sarcoma
-    "276281000000104": "skin",              # Fast track referral for suspected skin cancer
-    "276551000000108": "upper_gi",          # Fast track referral for suspected upper GI cancer
-    "276431000000102": "urological",        # Fast track referral for suspected urological cancer
+    "276371000000106": "childrens_tumour",  # Fast track referral for suspected children's tumour
+    "276401000000108": "colorectal",  # Fast track referral for suspected colorectal cancer
+    "892201000000106": "lower_gi",  # Fast track referral for suspected lower GI cancer
+    "276311000000101": "gynaecological",  # Fast track referral for suspected gynaecological cancer
+    "276461000000107": "haematology",  # Fast track referral for suspected haematology malignancy
+    "280521000000108": "head_and_neck",  # Fast track referral for suspected head and neck cancer
+    "276491000000101": "lung",  # Fast track referral for suspected lung cancer
+    "276521000000103": "sarcoma",  # Fast track referral for suspected sarcoma
+    "276281000000104": "skin",  # Fast track referral for suspected skin cancer
+    "276551000000108": "upper_gi",  # Fast track referral for suspected upper GI cancer
+    "276431000000102": "urological",  # Fast track referral for suspected urological cancer
 }
 
 # Verified against terminology server 2026-04-03.
 SPECIALIST_SITE: dict[str, str] = {
-    "382361000000100": "sarcoma",        # Seen in fast track suspected sarcoma clinic
-    "382711000000103": "skin",           # Seen in fast track suspected skin cancer clinic
-    "382681000000102": "lung",           # Seen in fast track suspected lung cancer clinic
-    "382401000000109": "brain",          # Seen in fast track suspected brain tumour clinic
-    "382431000000103": "breast",         # Seen in fast track suspected breast cancer clinic
-    "383201000000101": "childrens_tumour", # Seen in fast track suspected children's tumour clinic
-    "382651000000108": "colorectal",     # Seen in fast track suspected colorectal cancer clinic
-    "382841000000109": "urological",     # Seen in fast track suspected urological cancer clinic
+    "382361000000100": "sarcoma",  # Seen in fast track suspected sarcoma clinic
+    "382711000000103": "skin",  # Seen in fast track suspected skin cancer clinic
+    "382681000000102": "lung",  # Seen in fast track suspected lung cancer clinic
+    "382401000000109": "brain",  # Seen in fast track suspected brain tumour clinic
+    "382431000000103": "breast",  # Seen in fast track suspected breast cancer clinic
+    "383201000000101": "childrens_tumour",  # Seen in fast track suspected children's tumour clinic
+    "382651000000108": "colorectal",  # Seen in fast track suspected colorectal cancer clinic
+    "382841000000109": "urological",  # Seen in fast track suspected urological cancer clinic
     "382621000000103": "head_and_neck",  # Seen in fast track suspected head and neck cancer clinic
-    "382511000000105": "gynaecological", # Seen in fast track suspected gynaecological cancer clinic
-    "382581000000103": "haematology",    # Seen in fast track suspected haematological malignancy clinic
-    "382811000000108": "upper_gi",       # Seen in fast track suspected upper GI cancer clinic
+    "382511000000105": "gynaecological",  # Seen in fast track suspected gynaecological cancer clinic
+    "382581000000103": "haematology",  # Seen in fast track suspected haematological malignancy clinic
+    "382811000000108": "upper_gi",  # Seen in fast track suspected upper GI cancer clinic
 }
 
 REFERRAL_IDS = frozenset(REFERRAL_SITE.keys())
@@ -176,14 +240,12 @@ from libs.domains.ncda_concept_sets import (  # noqa: E402
     CANCER_HISTORY_IDS,
     CANCER_EXCLUSION_IDS,
 )
+
 # Active cancer: confirmed disease only -- NOT history tags.
-ACTIVE_DIAGNOSIS_IDS: frozenset[str] = frozenset(
-    str(c) for c in CANCER_TYPE_IDS
-)
+ACTIVE_DIAGNOSIS_IDS: frozenset[str] = frozenset(str(c) for c in CANCER_TYPE_IDS)
 HISTORY_DIAGNOSIS_IDS: frozenset[str] = (
     frozenset(str(c) for c in CANCER_HISTORY_IDS)
-    | frozenset(str(c) for c in CANCER_EXCLUSION_IDS
-                if c in {266987004, 395672005})
+    | frozenset(str(c) for c in CANCER_EXCLUSION_IDS if c in {266987004, 395672005})
     | HISTORY_CONCEPT_IDS
 )
 ALL_DIAGNOSIS_IDS = ACTIVE_DIAGNOSIS_IDS | HISTORY_DIAGNOSIS_IDS
@@ -259,6 +321,7 @@ DETACH DELETE ep
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _safe_date(s: str | None) -> date | None:
     if not s:
         return None
@@ -276,9 +339,8 @@ def _is_history(concept_id: str, concept_name: str) -> bool:
 
 
 def _is_active_diagnosis(concept_id: str, concept_name: str) -> bool:
-    return (
-        concept_id in ACTIVE_DIAGNOSIS_IDS
-        and not _is_history(concept_id, concept_name)
+    return concept_id in ACTIVE_DIAGNOSIS_IDS and not _is_history(
+        concept_id, concept_name
     )
 
 
@@ -302,9 +364,10 @@ def _episode_id(patient_id: str, episode_num: int) -> str:
 # Milestone loading
 # ------------------------------------------------------------------
 
+
 def _batch(lst: list, size: int):
     for i in range(0, len(lst), size):
-        yield lst[i:i + size]
+        yield lst[i : i + size]
 
 
 def _load_milestones(session, patient_ids: list[str]) -> dict[str, list[dict]]:
@@ -342,22 +405,25 @@ def _load_milestones(session, patient_ids: list[str]) -> dict[str, list[dict]]:
                     event_type = "diagnosis"
                 site = "any"
 
-            result[row["patient_id"]].append({
-                "patient_id": row["patient_id"],
-                "encounter_id": row["encounter_id"],
-                "encounter_date": row["encounter_date"],
-                "dt": _safe_date(row["encounter_date"]),
-                "concept_id": cid,
-                "concept_name": row["concept_name"] or "",
-                "event_type": event_type,
-                "site": site,
-            })
+            result[row["patient_id"]].append(
+                {
+                    "patient_id": row["patient_id"],
+                    "encounter_id": row["encounter_id"],
+                    "encounter_date": row["encounter_date"],
+                    "dt": _safe_date(row["encounter_date"]),
+                    "concept_id": cid,
+                    "concept_name": row["concept_name"] or "",
+                    "event_type": event_type,
+                    "site": site,
+                }
+            )
     return result
 
 
 # ------------------------------------------------------------------
 # Clustering
 # ------------------------------------------------------------------
+
 
 def _cluster_referrals(referrals: list[dict]) -> list[list[dict]]:
     if not referrals:
@@ -383,6 +449,7 @@ def _cluster_referrals(referrals: list[dict]) -> list[list[dict]]:
 # Corrected episode classification
 # ------------------------------------------------------------------
 
+
 def _classify_episode(
     cluster: list[dict],
     all_events: list[dict],
@@ -394,9 +461,7 @@ def _classify_episode(
     window_end = (
         next_cluster_start - timedelta(days=1)
         if next_cluster_start
-        else last_ref + timedelta(days=LOOK_AHEAD_DAYS)
-        if last_ref
-        else None
+        else last_ref + timedelta(days=LOOK_AHEAD_DAYS) if last_ref else None
     )
 
     active_diags: list[dict] = []
@@ -443,15 +508,15 @@ def _classify_episode(
             flags.append("SITE_MISMATCH")
         # Rule 3: weak exclusions never override confirmed cancer
         # Rule 4: if exclusion precedes diagnosis -> still confirmed cancer
-        all_excls = sorted(strong_excls + weak_excls,
-                           key=lambda e: e["dt"] or date.min)
+        all_excls = sorted(strong_excls + weak_excls, key=lambda e: e["dt"] or date.min)
         status = STATUS_CONFIRMED
         diagnosis_enc = diag["encounter_id"]
         diagnosis_date = diag["encounter_date"]
         if all_excls:
             excl = all_excls[0]
-            days_apart = abs((diag["dt"] - excl["dt"]).days) \
-                if diag["dt"] and excl["dt"] else 0
+            days_apart = (
+                abs((diag["dt"] - excl["dt"]).days) if diag["dt"] and excl["dt"] else 0
+            )
             if days_apart < 30 and excl["concept_id"] not in WEAK_EXCLUSION_IDS:
                 flags.append("CONFLICTING_CLOSE_DATES")
                 flags.append("NEEDS_CLINICAL_REVIEW")
@@ -487,9 +552,7 @@ def _classify_episode(
         flags.append("MULTI_SITE")
 
     # Dominant site: prefer non-generic
-    primary_site = next(
-        (s for s in sites if s != "non_site_specific"), sites[0]
-    )
+    primary_site = next((s for s in sites if s != "non_site_specific"), sites[0])
 
     return {
         "status": status,
@@ -506,9 +569,7 @@ def _classify_episode(
         "has_history": has_history,
         "needs_review": status == STATUS_NEEDS_REVIEW,
         "flags": "|".join(flags) if flags else "",
-        "referral_encounter_ids": "|".join(
-            r["encounter_id"] for r in cluster
-        ),
+        "referral_encounter_ids": "|".join(r["encounter_id"] for r in cluster),
     }
 
 
@@ -516,9 +577,8 @@ def _classify_episode(
 # Per-patient episode plan
 # ------------------------------------------------------------------
 
-def _plan_patient(
-    patient_id: str, events: list[dict]
-) -> list[dict]:
+
+def _plan_patient(patient_id: str, events: list[dict]) -> list[dict]:
     """Return list of episode dicts (not yet written) for this patient."""
     referrals = [e for e in events if e["event_type"] == "referral"]
     active_diags = [e for e in events if e["event_type"] == "diagnosis"]
@@ -527,8 +587,7 @@ def _plan_patient(
     if referrals:
         clusters = _cluster_referrals(referrals)
         for i, cluster in enumerate(clusters):
-            next_start = clusters[i + 1][0]["dt"] if i + 1 < len(clusters) \
-                else None
+            next_start = clusters[i + 1][0]["dt"] if i + 1 < len(clusters) else None
             ep = _classify_episode(cluster, events, next_start)
             ep["patient_id"] = patient_id
             ep["episode_number"] = i + 1
@@ -539,28 +598,28 @@ def _plan_patient(
     elif active_diags:
         # Cancer coded but no referral (e.g. letter from secondary care)
         diag = sorted(active_diags, key=lambda e: e["dt"] or date.min)[0]
-        episodes.append({
-            "patient_id": patient_id,
-            "episode_id": _episode_id(patient_id, 1),
-            "episode_number": 1,
-            "status": STATUS_CONFIRMED,
-            "condition_type": "unknown",
-            "referral_date": "",
-            "last_referral_date": "",
-            "first_presentation_date": diag["encounter_date"],
-            "diagnosis_date": diag["encounter_date"],
-            "diagnosis_encounter_id": diag["encounter_id"],
-            "exclusion_encounter_id": "",
-            "exclusion_outcome": "",
-            "referral_site": "no_referral",
-            "specialist_seen": False,
-            "has_history": any(
-                e["event_type"] == "history" for e in events
-            ),
-            "needs_review": False,
-            "flags": "NO_REFERRAL",
-            "referral_encounter_ids": "",
-        })
+        episodes.append(
+            {
+                "patient_id": patient_id,
+                "episode_id": _episode_id(patient_id, 1),
+                "episode_number": 1,
+                "status": STATUS_CONFIRMED,
+                "condition_type": "unknown",
+                "referral_date": "",
+                "last_referral_date": "",
+                "first_presentation_date": diag["encounter_date"],
+                "diagnosis_date": diag["encounter_date"],
+                "diagnosis_encounter_id": diag["encounter_id"],
+                "exclusion_encounter_id": "",
+                "exclusion_outcome": "",
+                "referral_site": "no_referral",
+                "specialist_seen": False,
+                "has_history": any(e["event_type"] == "history" for e in events),
+                "needs_review": False,
+                "flags": "NO_REFERRAL",
+                "referral_encounter_ids": "",
+            }
+        )
 
     return episodes
 
@@ -568,6 +627,7 @@ def _plan_patient(
 # ------------------------------------------------------------------
 # Reporting
 # ------------------------------------------------------------------
+
 
 def _print_plan(all_episodes: list[dict]) -> None:
     by_status: dict[str, int] = defaultdict(int)
@@ -580,8 +640,10 @@ def _print_plan(all_episodes: list[dict]) -> None:
 
     sep = "=" * 70
     print(sep)
-    print(f"EPISODE REMEDIATION PLAN -- {len(all_episodes)} episodes"
-          f" across {len({e['patient_id'] for e in all_episodes})} patients")
+    print(
+        f"EPISODE REMEDIATION PLAN -- {len(all_episodes)} episodes"
+        f" across {len({e['patient_id'] for e in all_episodes})} patients"
+    )
     print(sep)
     print("Proposed episode status breakdown:")
     for st, cnt in sorted(by_status.items(), key=lambda x: -x[1]):
@@ -618,6 +680,7 @@ def _print_plan(all_episodes: list[dict]) -> None:
 # ------------------------------------------------------------------
 # Write
 # ------------------------------------------------------------------
+
 
 def _apply(session, episodes: list[dict], dry_run: bool) -> dict:
     counts: dict[str, int] = defaultdict(int)
@@ -657,16 +720,19 @@ def _apply(session, episodes: list[dict], dry_run: bool) -> dict:
 # Main
 # ------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Remediate EpisodeOfCare nodes for all cancer patients"
     )
     parser.add_argument(
-        "--apply", action="store_true",
+        "--apply",
+        action="store_true",
         help="Write to Neo4j (default is dry-run)",
     )
     parser.add_argument(
-        "--patient", metavar="ID",
+        "--patient",
+        metavar="ID",
         help="Process only one patient ID",
     )
     args = parser.parse_args()
@@ -681,9 +747,8 @@ def main() -> None:
         sys.exit(1)
 
     from neo4j import GraphDatabase
-    driver = GraphDatabase.driver(
-        neo4j_uri, auth=(neo4j_user, neo4j_password)
-    )
+
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
     with driver.session() as session:
         if args.patient:
@@ -698,20 +763,13 @@ def main() -> None:
         milestones = _load_milestones(session, patient_ids)
 
         # Only process patients who have at least one relevant event
-        active_pids = [
-            pid for pid in patient_ids
-            if milestones.get(pid)
-        ]
-        log.info(
-            "%d patients have cancer-pathway events", len(active_pids)
-        )
+        active_pids = [pid for pid in patient_ids if milestones.get(pid)]
+        log.info("%d patients have cancer-pathway events", len(active_pids))
 
         log.info("Building episode plans...")
         all_episodes: list[dict] = []
         for pid in active_pids:
-            events = sorted(
-                milestones[pid], key=lambda e: e["dt"] or date.min
-            )
+            events = sorted(milestones[pid], key=lambda e: e["dt"] or date.min)
             eps = _plan_patient(pid, events)
             all_episodes.extend(eps)
 

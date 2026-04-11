@@ -10,15 +10,22 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.coding_worker.app.pipeline.extractor_contract import ExtractionItem, CONTRACT_VERSION
-
+from services.coding_worker.app.pipeline.extractor_contract import (
+    ExtractionItem,
+    CONTRACT_VERSION,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _item(text: str, assertion: str = "present", context: str = "current",
-          confidence: float = 0.9) -> ExtractionItem:
+
+def _item(
+    text: str,
+    assertion: str = "present",
+    context: str = "current",
+    confidence: float = 0.9,
+) -> ExtractionItem:
     return ExtractionItem(
         sentence_id="s001",
         text=text,
@@ -39,6 +46,7 @@ def _item(text: str, assertion: str = "present", context: str = "current",
 # VT-002-TC-001: Entities extracted from free text
 # ---------------------------------------------------------------------------
 
+
 class TestEntityExtraction:
 
     def test_extracted_item_has_required_fields(self):
@@ -53,9 +61,17 @@ class TestEntityExtraction:
         """Entity semantic tags are preserved exactly as set."""
         for tag in ("disease", "medication", "procedure"):
             item = ExtractionItem(
-                sentence_id="s1", text="item", span_start=0, span_end=4,
-                semantic_tag=tag, assertion="present", confidence=0.8,
-                normalized="item", source="llm", model_name="m", model_version="1",
+                sentence_id="s1",
+                text="item",
+                span_start=0,
+                span_end=4,
+                semantic_tag=tag,
+                assertion="present",
+                confidence=0.8,
+                normalized="item",
+                source="llm",
+                model_name="m",
+                model_version="1",
                 contract_version=CONTRACT_VERSION,
             )
             assert item.semantic_tag == tag
@@ -74,6 +90,7 @@ class TestEntityExtraction:
 # ---------------------------------------------------------------------------
 # VT-002-TC-002: Negation detected correctly
 # ---------------------------------------------------------------------------
+
 
 class TestNegationDetection:
 
@@ -95,10 +112,17 @@ class TestNegationDetection:
             ext = LLMExtractor(model_id="m")
 
         sentences = [MagicMock(sentence_id="s0")]
-        payload = {"terms": [
-            {"sentence_id": "s0", "text": "no chest pain", "lookup_term": "chest pain",
-             "semantic_tag": "disease", "assertion": "absent"},
-        ]}
+        payload = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "no chest pain",
+                    "lookup_term": "chest pain",
+                    "semantic_tag": "disease",
+                    "assertion": "absent",
+                },
+            ]
+        }
         terms = ext._parse_terms(payload, sentences)
         assert len(terms) == 1
         assert terms[0].context["negated"] is True
@@ -111,12 +135,24 @@ class TestNegationDetection:
             ext = LLMExtractor(model_id="m")
 
         sentences = [MagicMock(sentence_id="s0"), MagicMock(sentence_id="s1")]
-        payload = {"terms": [
-            {"sentence_id": "s0", "text": "hypertension", "lookup_term": "hypertension",
-             "semantic_tag": "disease", "assertion": "present"},
-            {"sentence_id": "s1", "text": "no diabetes", "lookup_term": "diabetes",
-             "semantic_tag": "disease", "assertion": "absent"},
-        ]}
+        payload = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "hypertension",
+                    "lookup_term": "hypertension",
+                    "semantic_tag": "disease",
+                    "assertion": "present",
+                },
+                {
+                    "sentence_id": "s1",
+                    "text": "no diabetes",
+                    "lookup_term": "diabetes",
+                    "semantic_tag": "disease",
+                    "assertion": "absent",
+                },
+            ]
+        }
         terms = ext._parse_terms(payload, sentences)
         assert terms[0].context["negated"] is False
         assert terms[1].context["negated"] is True
@@ -125,6 +161,7 @@ class TestNegationDetection:
 # ---------------------------------------------------------------------------
 # VT-002-TC-003: Context classification
 # ---------------------------------------------------------------------------
+
 
 class TestContextClassification:
 
@@ -141,10 +178,17 @@ class TestContextClassification:
             ext = LLMExtractor(model_id="m")
 
         sentences = [MagicMock(sentence_id="s0")]
-        payload = {"terms": [
-            {"sentence_id": "s0", "text": "cough", "lookup_term": "cough",
-             "semantic_tag": "disease", "assertion": "INVALID_CONTEXT"},
-        ]}
+        payload = {
+            "terms": [
+                {
+                    "sentence_id": "s0",
+                    "text": "cough",
+                    "lookup_term": "cough",
+                    "semantic_tag": "disease",
+                    "assertion": "INVALID_CONTEXT",
+                },
+            ]
+        }
         terms = ext._parse_terms(payload, sentences)
         assert terms[0].assertion == "present"
 
@@ -153,22 +197,31 @@ class TestContextClassification:
 # VT-002-TC-004: F1 >= 0.85 (mocked gold-standard batch)
 # ---------------------------------------------------------------------------
 
+
 class TestF1Threshold:
 
     def test_f1_calculation_on_mock_corpus(self):
         """With perfect mock predictions, F1 == 1.0 which satisfies >= 0.85."""
-        gold = [{"text": "diabetes", "tag": "disease"},
-                {"text": "metformin", "tag": "medication"},
-                {"text": "biopsy", "tag": "procedure"}]
+        gold = [
+            {"text": "diabetes", "tag": "disease"},
+            {"text": "metformin", "tag": "medication"},
+            {"text": "biopsy", "tag": "procedure"},
+        ]
 
-        predicted = [{"text": "diabetes", "tag": "disease"},
-                     {"text": "metformin", "tag": "medication"},
-                     {"text": "biopsy", "tag": "procedure"}]
+        predicted = [
+            {"text": "diabetes", "tag": "disease"},
+            {"text": "metformin", "tag": "medication"},
+            {"text": "biopsy", "tag": "procedure"},
+        ]
 
         tp = sum(1 for g in gold if g in predicted)
         precision = tp / len(predicted) if predicted else 0
         recall = tp / len(gold) if gold else 0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall) > 0
+            else 0
+        )
 
         assert f1 >= 0.85
 

@@ -3,6 +3,7 @@ Pin surface forms for chest X-ray / imaging findings suggestive of cancer.
 
 These are FINDING concepts (not procedures) visible on an imaging report.
 """
+
 import os
 import re
 import sys
@@ -126,8 +127,7 @@ def main() -> None:
             if result:
                 row = result[0]
                 print(
-                    f"  [ADD ] {norm!r:55s} -> {row['cid']:15s}"
-                    f" {row['fsn'][:45]}"
+                    f"  [ADD ] {norm!r:55s} -> {row['cid']:15s}" f" {row['fsn'][:45]}"
                 )
                 added += 1
             else:

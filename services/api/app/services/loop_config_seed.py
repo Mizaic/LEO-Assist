@@ -8,6 +8,7 @@ Loop IDs (canonical):
   loop2_surface_form  -- surface form vocabulary growth
   loop3_evidence      -- NER training evidence collection
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,7 +51,5 @@ def seed_loop_configs(client) -> None:
             client.run(_UPSERT_LOOP_CONFIG, **cfg)
             logger.debug("LoopConfig seeded: %s", cfg["loop_id"])
         except Exception as exc:
-            logger.warning(
-                "LoopConfig seed failed for %s: %s", cfg["loop_id"], exc
-            )
+            logger.warning("LoopConfig seed failed for %s: %s", cfg["loop_id"], exc)
     logger.info("LoopConfig seed complete (%d loops).", len(_LOOP_DEFAULTS))

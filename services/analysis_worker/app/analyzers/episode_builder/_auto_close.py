@@ -24,9 +24,7 @@ def _merge_same_site_duplicates(patient_id: str, patient_client: Any) -> None:
             cypher.FETCH_EPISODES_FOR_MERGE_Q, patient_id=patient_id
         )
     except Exception:  # noqa: BLE001
-        logger.error(
-            "Failed to fetch episodes for merge dedup, patient %s", patient_id
-        )
+        logger.error("Failed to fetch episodes for merge dedup, patient %s", patient_id)
         return
 
     by_site: dict[str, list[dict]] = {}
@@ -125,9 +123,7 @@ def _apply_outcome_inference(
             episode_ids=episode_ids,
         )
     except Exception:  # noqa: BLE001
-        logger.error(
-            "Inference fetch failed for patient %s", patient_id
-        )
+        logger.error("Inference fetch failed for patient %s", patient_id)
         return
 
     for ep in stale_eps:
@@ -147,9 +143,7 @@ def _apply_outcome_inference(
                 to_date=to_date,
             )
         except Exception:  # noqa: BLE001
-            logger.warning(
-                "Inference encounter fetch failed for episode %s", ep_id
-            )
+            logger.warning("Inference encounter fetch failed for episode %s", ep_id)
             continue
 
         result = score_post_specialist_encounters(enc_rows)

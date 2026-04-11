@@ -1,11 +1,14 @@
 """Find the most common unresolved SNOMED concept IDs in completed episodes."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
@@ -30,7 +33,9 @@ try:
         LIMIT 30
     """)
     for r in rows:
-        print(f"  {r['concept_id']}  raw_name={r['raw_name']}  episodes={r['episode_count']}")
+        print(
+            f"  {r['concept_id']}  raw_name={r['raw_name']}  episodes={r['episode_count']}"
+        )
 
     # Also show resolved concept names for completed 'unknown' episodes
     print("\n=== Resolved names in 'unknown' completed episodes ===")
@@ -48,6 +53,8 @@ try:
         LIMIT 30
     """)
     for r in rows2:
-        print(f"  {r['concept_id']}  {r['concept_name']}  episodes={r['episode_count']}")
+        print(
+            f"  {r['concept_id']}  {r['concept_name']}  episodes={r['episode_count']}"
+        )
 finally:
     client.close()

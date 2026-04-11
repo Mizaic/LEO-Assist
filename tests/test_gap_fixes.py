@@ -11,6 +11,7 @@ Covers:
   - CSP-T-001: Security response headers
   - TODO:VERIFY patient_id_hash — raw ID no longer stored (SHA-256 used)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -24,10 +25,10 @@ import unittest
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-
 # ---------------------------------------------------------------------------
 # GAP-008 / GAP-014 — deidentify module tests
 # ---------------------------------------------------------------------------
+
 
 class TestDeidentifyLocalOrgsFromEnv(unittest.TestCase):
     """GAP-014: _LOCAL_ORGS is read from DEIDENTIFY_LOCAL_ORGS env var."""
@@ -37,20 +38,29 @@ class TestDeidentifyLocalOrgsFromEnv(unittest.TestCase):
             os.environ.pop("DEIDENTIFY_LOCAL_ORGS", None)
             import importlib
             import libs.utils.deidentify as m
+
             importlib.reload(m)
             self.assertIn("LGH", m._LOCAL_ORGS)
 
     def test_env_var_overrides_builtin_list(self):
-        with patch.dict(os.environ, {"DEIDENTIFY_LOCAL_ORGS": "Acme Clinic|Beta Trust"}, clear=False):
+        with patch.dict(
+            os.environ, {"DEIDENTIFY_LOCAL_ORGS": "Acme Clinic|Beta Trust"}, clear=False
+        ):
             import libs.utils.deidentify as m
+
             importlib.reload(m)
             self.assertIn("Acme Clinic", m._LOCAL_ORGS)
             self.assertIn("Beta Trust", m._LOCAL_ORGS)
             self.assertNotIn("LGH", m._LOCAL_ORGS)
 
     def test_env_var_org_redacted_in_text(self):
-        with patch.dict(os.environ, {"DEIDENTIFY_LOCAL_ORGS": "Riverside Health Centre"}, clear=False):
+        with patch.dict(
+            os.environ,
+            {"DEIDENTIFY_LOCAL_ORGS": "Riverside Health Centre"},
+            clear=False,
+        ):
             import libs.utils.deidentify as m
+
             importlib.reload(m)
             result = m.deidentify_text("Referred to Riverside Health Centre today.")
             self.assertIn("[ORGANISATION]", result)
@@ -60,6 +70,7 @@ class TestDeidentifyLocalOrgsFromEnv(unittest.TestCase):
         # Reload with clean env so other tests are unaffected
         os.environ.pop("DEIDENTIFY_LOCAL_ORGS", None)
         import libs.utils.deidentify as m
+
         importlib.reload(m)
 
 
@@ -71,6 +82,7 @@ class TestNerSecondPass(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("DEIDENTIFY_NER_MODEL", None)
             import libs.utils.deidentify as m
+
             importlib.reload(m)
             with patch.object(m, "_get_ner_nlp", return_value=None) as mock_ner:
                 result = m.deidentify_text("Patient spoke with Christopher yesterday.")
@@ -78,8 +90,11 @@ class TestNerSecondPass(unittest.TestCase):
 
     def test_ner_called_when_env_set(self):
         """When DEIDENTIFY_NER_MODEL is set and ner=True, _get_ner_nlp is called."""
-        with patch.dict(os.environ, {"DEIDENTIFY_NER_MODEL": "en_core_web_sm"}, clear=False):
+        with patch.dict(
+            os.environ, {"DEIDENTIFY_NER_MODEL": "en_core_web_sm"}, clear=False
+        ):
             import libs.utils.deidentify as m
+
             importlib.reload(m)
             mock_nlp = MagicMock()
             mock_doc = MagicMock()
@@ -116,12 +131,14 @@ class TestNerSecondPass(unittest.TestCase):
     def tearDown(self):
         os.environ.pop("DEIDENTIFY_NER_MODEL", None)
         import libs.utils.deidentify as m
+
         importlib.reload(m)
 
 
 # ---------------------------------------------------------------------------
 # COD-T-001 / COD-T-002 — Service Bus message schema validation
 # ---------------------------------------------------------------------------
+
 
 class TestCodingJobMessageSchema(unittest.TestCase):
     """COD-T-001/002: CodingJobMessage Pydantic validation."""
@@ -130,53 +147,70 @@ class TestCodingJobMessageSchema(unittest.TestCase):
     def setUpClass(cls):
         # Import the model from job_handler
         import services.coding_worker.app.services.job_handler as jh
+
         cls.CodingJobMessage = jh.CodingJobMessage
 
     def test_valid_all_mode(self):
-        msg = self.CodingJobMessage.model_validate({"patient_id": "P001", "mode": "all"})
+        msg = self.CodingJobMessage.model_validate(
+            {"patient_id": "P001", "mode": "all"}
+        )
         self.assertEqual(msg.patient_id, "P001")
         self.assertEqual(msg.mode, "all")
         self.assertFalse(msg.dry_run)
 
     def test_valid_with_encounter(self):
-        msg = self.CodingJobMessage.model_validate({
-            "patient_id": "P-001",
-            "encounter_id": "E-999",
-            "mode": "extract_encounter",
-        })
+        msg = self.CodingJobMessage.model_validate(
+            {
+                "patient_id": "P-001",
+                "encounter_id": "E-999",
+                "mode": "extract_encounter",
+            }
+        )
         self.assertEqual(msg.encounter_id, "E-999")
 
     def test_missing_patient_id_raises(self):
         from pydantic import ValidationError
+
         with self.assertRaises(ValidationError):
             self.CodingJobMessage.model_validate({"mode": "all"})
 
     def test_empty_patient_id_raises(self):
         from pydantic import ValidationError
+
         with self.assertRaises(ValidationError):
             self.CodingJobMessage.model_validate({"patient_id": ""})
 
     def test_invalid_mode_raises(self):
         from pydantic import ValidationError
+
         with self.assertRaises(ValidationError):
-            self.CodingJobMessage.model_validate({"patient_id": "P1", "mode": "consensus_fanout"})
+            self.CodingJobMessage.model_validate(
+                {"patient_id": "P1", "mode": "consensus_fanout"}
+            )
 
     def test_patient_id_injection_chars_raises(self):
         """COD-T-002: Illegal characters in patient_id are rejected."""
         from pydantic import ValidationError
+
         with self.assertRaises(ValidationError):
-            self.CodingJobMessage.model_validate({"patient_id": "P001; DROP TABLE patients; --"})
+            self.CodingJobMessage.model_validate(
+                {"patient_id": "P001; DROP TABLE patients; --"}
+            )
 
     def test_encounter_id_injection_chars_raises(self):
         from pydantic import ValidationError
+
         with self.assertRaises(ValidationError):
-            self.CodingJobMessage.model_validate({
-                "patient_id": "P001",
-                "encounter_id": "<script>alert(1)</script>",
-            })
+            self.CodingJobMessage.model_validate(
+                {
+                    "patient_id": "P001",
+                    "encounter_id": "<script>alert(1)</script>",
+                }
+            )
 
     def test_patient_id_too_long_raises(self):
         from pydantic import ValidationError
+
         with self.assertRaises(ValidationError):
             self.CodingJobMessage.model_validate({"patient_id": "a" * 129})
 
@@ -191,7 +225,9 @@ class TestCodingJobMessageSchema(unittest.TestCase):
         from libs.message_bus.base import Message
 
         bad_msg = Message(body={"mode": "all"})  # missing patient_id
-        with self.assertLogs("services.coding_worker.app.services.job_handler", level="ERROR") as cm:
+        with self.assertLogs(
+            "services.coding_worker.app.services.job_handler", level="ERROR"
+        ) as cm:
             asyncio.get_event_loop().run_until_complete(jh.handle_coding_job(bad_msg))
         self.assertTrue(any("malformed" in line.lower() for line in cm.output))
 
@@ -199,6 +235,7 @@ class TestCodingJobMessageSchema(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # GAP-012 — Security audit log
 # ---------------------------------------------------------------------------
+
 
 class TestSecurityAuditLog(unittest.TestCase):
     """GAP-012: Security audit log emits structured JSON records."""
@@ -223,6 +260,7 @@ class TestSecurityAuditLog(unittest.TestCase):
 
     def test_emit_login_success_structure(self):
         from libs.audit.security_log import emit_login_success
+
         records = self._capture_audit(
             emit_login_success,
             email="alice@example.com",
@@ -238,6 +276,7 @@ class TestSecurityAuditLog(unittest.TestCase):
 
     def test_emit_login_failure_structure(self):
         from libs.audit.security_log import emit_login_failure
+
         records = self._capture_audit(
             emit_login_failure,
             reason="token_verification_failed",
@@ -250,6 +289,7 @@ class TestSecurityAuditLog(unittest.TestCase):
 
     def test_emit_token_rejected_structure(self):
         from libs.audit.security_log import emit_token_rejected
+
         records = self._capture_audit(
             emit_token_rejected,
             reason="v1_issuer",
@@ -260,6 +300,7 @@ class TestSecurityAuditLog(unittest.TestCase):
 
     def test_emit_authz_denied_structure(self):
         from libs.audit.security_log import emit_authz_denied
+
         records = self._capture_audit(
             emit_authz_denied,
             email="bob@example.com",
@@ -273,6 +314,7 @@ class TestSecurityAuditLog(unittest.TestCase):
 
     def test_emit_admin_action_structure(self):
         from libs.audit.security_log import emit_admin_action
+
         records = self._capture_audit(
             emit_admin_action,
             email="admin@example.com",
@@ -287,6 +329,7 @@ class TestSecurityAuditLog(unittest.TestCase):
 
     def test_emit_mfa_blocked_structure(self):
         from libs.audit.security_log import emit_login_mfa_blocked
+
         records = self._capture_audit(
             emit_login_mfa_blocked,
             email="carol@example.com",
@@ -300,6 +343,7 @@ class TestSecurityAuditLog(unittest.TestCase):
     def test_audit_events_at_warning_level(self):
         """All audit events are emitted at WARNING level so they always appear in logs."""
         from libs.audit.security_log import emit_login_success
+
         records = self._capture_audit(
             emit_login_success,
             email="dave@example.com",
@@ -315,9 +359,7 @@ class TestSecurityAuditLog(unittest.TestCase):
 
 # The auth module lives under services/api/ and uses "app.*" internal imports.
 # We add that directory to sys.path for this test class only.
-_API_SERVICE_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "services", "api"
-)
+_API_SERVICE_DIR = os.path.join(os.path.dirname(__file__), "..", "services", "api")
 
 
 class TestJwtVerification(unittest.TestCase):
@@ -356,6 +398,7 @@ class TestJwtVerification(unittest.TestCase):
             if key == "app.routers.auth":
                 del sys.modules[key]
         import importlib
+
         return importlib.import_module("app.routers.auth")
 
     def test_verify_id_token_calls_jwt_decode(self):
@@ -370,7 +413,9 @@ class TestJwtVerification(unittest.TestCase):
         fake_jwks = {"keys": []}
 
         with patch.object(auth_mod, "_get_jwks", return_value=fake_jwks):
-            with patch.object(auth_mod.jwt, "decode", return_value=fake_claims) as mock_decode:
+            with patch.object(
+                auth_mod.jwt, "decode", return_value=fake_claims
+            ) as mock_decode:
                 claims = auth_mod._verify_id_token("fake.token.here")
 
         mock_decode.assert_called_once()
@@ -383,6 +428,7 @@ class TestJwtVerification(unittest.TestCase):
         """JWTError during verification raises HTTPException(401)."""
         from fastapi import HTTPException
         from jose import JWTError
+
         auth_mod = self._load_auth_mod()
 
         with patch.object(auth_mod, "_get_jwks", return_value={"keys": []}):
@@ -432,6 +478,7 @@ class TestJwtVerification(unittest.TestCase):
 # GAP-004 — Terminology surface form mutations require service token
 # ---------------------------------------------------------------------------
 
+
 class TestTerminologySurfaceFormAuth(unittest.TestCase):
     """GAP-004: POST/DELETE surface form endpoints enforce verify_service_token."""
 
@@ -440,11 +487,14 @@ class TestTerminologySurfaceFormAuth(unittest.TestCase):
         import inspect
         from fastapi import Depends
         from services.terminology_api.app.routers.surface_forms import router
+
         protected = []
         for route in router.routes:
             # Check route-level dependencies
             for dep in getattr(route, "dependencies", []):
-                if hasattr(dep, "dependency") and "verify_service_token" in str(dep.dependency):
+                if hasattr(dep, "dependency") and "verify_service_token" in str(
+                    dep.dependency
+                ):
                     protected.append(route.path)
                     break
             # Also check endpoint signature for Depends
@@ -462,7 +512,9 @@ class TestTerminologySurfaceFormAuth(unittest.TestCase):
         from fastapi import Depends
         import inspect
         from libs.auth.service_auth import verify_service_token
-        from services.terminology_api.app.routers.surface_forms import upsert_surface_form_mapping
+        from services.terminology_api.app.routers.surface_forms import (
+            upsert_surface_form_mapping,
+        )
 
         sig = inspect.signature(upsert_surface_form_mapping)
         deps = [
@@ -476,7 +528,9 @@ class TestTerminologySurfaceFormAuth(unittest.TestCase):
         from fastapi import Depends
         import inspect
         from libs.auth.service_auth import verify_service_token
-        from services.terminology_api.app.routers.surface_forms import delete_surface_form
+        from services.terminology_api.app.routers.surface_forms import (
+            delete_surface_form,
+        )
 
         sig = inspect.signature(delete_surface_form)
         deps = [
@@ -490,7 +544,9 @@ class TestTerminologySurfaceFormAuth(unittest.TestCase):
         from fastapi import Depends
         import inspect
         from libs.auth.service_auth import verify_service_token
-        from services.terminology_api.app.routers.surface_forms import deduplicate_surface_forms
+        from services.terminology_api.app.routers.surface_forms import (
+            deduplicate_surface_forms,
+        )
 
         sig = inspect.signature(deduplicate_surface_forms)
         deps = [
@@ -510,19 +566,29 @@ class TestTerminologySurfaceFormAuth(unittest.TestCase):
             list_grouped_surface_forms,
             audit_surface_form_duplicates,
         )
-        for fn in (list_surface_forms, list_grouped_surface_forms, audit_surface_form_duplicates):
+
+        for fn in (
+            list_surface_forms,
+            list_grouped_surface_forms,
+            audit_surface_form_duplicates,
+        ):
             sig = inspect.signature(fn)
             deps = [
                 p.default.dependency
                 for p in sig.parameters.values()
                 if isinstance(p.default, type(Depends(lambda: None)))
             ]
-            self.assertNotIn(verify_service_token, deps, f"{fn.__name__} should not require service token")
+            self.assertNotIn(
+                verify_service_token,
+                deps,
+                f"{fn.__name__} should not require service token",
+            )
 
 
 # ---------------------------------------------------------------------------
 # TODO:VERIFY — patient_id_hash is actually hashed (SHA-256)
 # ---------------------------------------------------------------------------
+
 
 class TestPatientIdHashIsHashed(unittest.TestCase):
     """Verify pipeline_service stores SHA-256 hash, not the raw patient_id."""
@@ -532,15 +598,20 @@ class TestPatientIdHashIsHashed(unittest.TestCase):
         try:
             import services.coding_worker.app.pipeline.pipeline_service as ps
         except Exception:
-            self.skipTest("Legacy CodingPipeline module removed after WorkflowEngine cutover")
+            self.skipTest(
+                "Legacy CodingPipeline module removed after WorkflowEngine cutover"
+            )
             return
 
         # Inspect the source to ensure hashlib.sha256 is used
         import inspect
+
         try:
             source = inspect.getsource(ps.CodingPipeline._write_coding_decisions)
         except OSError:
-            self.skipTest("Legacy CodingPipeline source unavailable after WorkflowEngine cutover")
+            self.skipTest(
+                "Legacy CodingPipeline source unavailable after WorkflowEngine cutover"
+            )
             return
         self.assertIn("sha256", source)
         self.assertIn("pid_hash", source)
@@ -560,13 +631,18 @@ class TestPatientIdHashIsHashed(unittest.TestCase):
         try:
             import services.coding_worker.app.pipeline.pipeline_service as ps
         except Exception:
-            self.skipTest("Legacy CodingPipeline module removed after WorkflowEngine cutover")
+            self.skipTest(
+                "Legacy CodingPipeline module removed after WorkflowEngine cutover"
+            )
             return
         import inspect
+
         try:
             source = inspect.getsource(ps.CodingPipeline._write_coding_decisions)
         except OSError:
-            self.skipTest("Legacy CodingPipeline source unavailable after WorkflowEngine cutover")
+            self.skipTest(
+                "Legacy CodingPipeline source unavailable after WorkflowEngine cutover"
+            )
             return
         self.assertNotIn("patient_id_hash=patient_id", source)
 
@@ -574,6 +650,7 @@ class TestPatientIdHashIsHashed(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # CSP-T-001 — Security headers middleware
 # ---------------------------------------------------------------------------
+
 
 class TestSecurityHeaders(unittest.IsolatedAsyncioTestCase):
     """CSP-T-001: Security headers are present on API responses."""
@@ -583,11 +660,14 @@ class TestSecurityHeaders(unittest.IsolatedAsyncioTestCase):
         from httpx import AsyncClient, ASGITransport
 
         # Import the app — mock all heavy dependencies
-        with patch.dict(os.environ, {
-            "AZURE_AD_TENANT_ID": "t",
-            "AZURE_AD_CLIENT_ID": "c",
-            "AZURE_AD_CLIENT_SECRET": "s",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "AZURE_AD_TENANT_ID": "t",
+                "AZURE_AD_CLIENT_ID": "c",
+                "AZURE_AD_CLIENT_SECRET": "s",
+            },
+        ):
             try:
                 import app.main as main_mod
                 from app.main import app as fastapi_app

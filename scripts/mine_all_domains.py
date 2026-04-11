@@ -68,6 +68,7 @@ _deid_validator = DeIdValidator()
 # Sentence splitter
 # ---------------------------------------------------------------------------
 
+
 def _split_sentences(text: str) -> list[tuple[int, int, str]]:
     parts = _SENTENCE_SEP.split(text)
     out: list[tuple[int, int, str]] = []
@@ -90,6 +91,7 @@ def _split_sentences(text: str) -> list[tuple[int, int, str]]:
 # Assertion inference from sentence context
 # ---------------------------------------------------------------------------
 
+
 def _infer_assertion(text: str) -> str:
     t = text.lower()
     if re.search(
@@ -107,6 +109,7 @@ def _infer_assertion(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Domain cache
 # ---------------------------------------------------------------------------
+
 
 def _load_or_build_domain_cache(
     expanded_cache_path: Path,
@@ -152,6 +155,7 @@ def _load_or_build_domain_cache(
 # ---------------------------------------------------------------------------
 # Neo4j search helpers — raw Encounter.text only, no coded graph links
 # ---------------------------------------------------------------------------
+
 
 def _search_fulltext_for_domain(
     driver,
@@ -272,16 +276,22 @@ def _merge_hits(
 # Pattern compilation
 # ---------------------------------------------------------------------------
 
-def _compile_patterns(domains: dict[str, DomainSearchConfig]) -> dict[str, list[re.Pattern[str]]]:
+
+def _compile_patterns(
+    domains: dict[str, DomainSearchConfig],
+) -> dict[str, list[re.Pattern[str]]]:
     compiled: dict[str, list[re.Pattern[str]]] = {}
     for dname, cfg in domains.items():
-        compiled[dname] = [re.compile(pat, re.IGNORECASE) for pat in cfg.entity_patterns]
+        compiled[dname] = [
+            re.compile(pat, re.IGNORECASE) for pat in cfg.entity_patterns
+        ]
     return compiled
 
 
 # ---------------------------------------------------------------------------
 # Terminology resolution
 # ---------------------------------------------------------------------------
+
 
 def _resolve_unknown_terms(
     client: httpx.Client,
@@ -346,10 +356,14 @@ def _search_single_domain(
 # Main extraction loop
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config-dir", default=str(default_config_dir(ROOT)))
-    parser.add_argument("--expanded-cache", default=str(ROOT / "exports" / "ner" / "expanded_domains.json"))
+    parser.add_argument(
+        "--expanded-cache",
+        default=str(ROOT / "exports" / "ner" / "expanded_domains.json"),
+    )
     parser.add_argument("--rebuild-cache", action="store_true")
     parser.add_argument(
         "--run-dir",
@@ -360,15 +374,33 @@ def main() -> None:
             "resume a specific run (checkpoint within the folder is used automatically)."
         ),
     )
-    parser.add_argument("--run-id", default="", help="Explicit run ID label (used in folder name).")
+    parser.add_argument(
+        "--run-id", default="", help="Explicit run ID label (used in folder name)."
+    )
     parser.add_argument("--vector-k", type=int, default=250)
     parser.add_argument("--ft-limit", type=int, default=600)
     parser.add_argument("--max-fulltext-per-domain", type=int, default=200)
     parser.add_argument("--max-vector-per-domain", type=int, default=150)
-    parser.add_argument("--search-workers", type=int, default=1, help="Parallel domain search workers.")
-    parser.add_argument("--search-auto-ramp", action="store_true", help="Auto ramp domain-search workers up/down.")
-    parser.add_argument("--search-min-workers", type=int, default=2, help="Min workers when auto-ramp enabled.")
-    parser.add_argument("--search-max-workers", type=int, default=10, help="Max workers when auto-ramp enabled.")
+    parser.add_argument(
+        "--search-workers", type=int, default=1, help="Parallel domain search workers."
+    )
+    parser.add_argument(
+        "--search-auto-ramp",
+        action="store_true",
+        help="Auto ramp domain-search workers up/down.",
+    )
+    parser.add_argument(
+        "--search-min-workers",
+        type=int,
+        default=2,
+        help="Min workers when auto-ramp enabled.",
+    )
+    parser.add_argument(
+        "--search-max-workers",
+        type=int,
+        default=10,
+        help="Max workers when auto-ramp enabled.",
+    )
     parser.add_argument(
         "--search-ramp-up-below-sec",
         type=float,
@@ -381,13 +413,21 @@ def main() -> None:
         default=25.0,
         help="Ramp down workers when wave avg latency is above this threshold.",
     )
-    parser.add_argument("--search-max-retries", type=int, default=1, help="Retry count for failed domain searches.")
+    parser.add_argument(
+        "--search-max-retries",
+        type=int,
+        default=1,
+        help="Retry count for failed domain searches.",
+    )
     parser.add_argument("--desc-depth", type=int, default=2)
     parser.add_argument("--desc-limit", type=int, default=200)
     parser.add_argument("--skip-resolve", action="store_true")
     parser.add_argument("--resolve-batch", type=int, default=50)
     parser.add_argument("--max-encounters", type=int, default=0, help="0 = process all")
-    parser.add_argument("--terminology-url", default=os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001"))
+    parser.add_argument(
+        "--terminology-url",
+        default=os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001"),
+    )
     args = parser.parse_args()
 
     # Resolve run directory — each run gets its own folder so outputs are never mixed.
@@ -395,6 +435,7 @@ def main() -> None:
         out_dir = Path(args.run_dir)
     else:
         import datetime
+
         run_id = args.run_id or datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         out_dir = ROOT / "exports" / "ner" / "runs" / run_id
 
@@ -428,7 +469,11 @@ def main() -> None:
     vector_settings = load_vector_settings()
     embedder = TextEmbedder(vector_settings)
     embedder.encode(["warm-up"])
-    logger.info("Vector embedder ready: %s (%s)", vector_settings.model_name, vector_settings.device)
+    logger.info(
+        "Vector embedder ready: %s (%s)",
+        vector_settings.model_name,
+        vector_settings.device,
+    )
 
     all_hits: dict[str, dict[str, Any]] = {}
     domain_stats: dict[str, dict[str, Any]] = {}
@@ -439,8 +484,13 @@ def main() -> None:
     retry_counts: dict[str, int] = defaultdict(int)
     pending: list[tuple[str, DomainSearchConfig]] = list(ordered_domains)
     completed = 0
-    min_workers = max(1, args.search_min_workers if args.search_auto_ramp else args.search_workers)
-    max_workers = max(min_workers, args.search_max_workers if args.search_auto_ramp else args.search_workers)
+    min_workers = max(
+        1, args.search_min_workers if args.search_auto_ramp else args.search_workers
+    )
+    max_workers = max(
+        min_workers,
+        args.search_max_workers if args.search_auto_ramp else args.search_workers,
+    )
     workers = max(min_workers, min(max_workers, args.search_workers))
     embed_lock = threading.Lock()
 
@@ -455,10 +505,17 @@ def main() -> None:
             len(pending),
         )
 
-        wave_results: list[tuple[str, dict[str, dict[str, Any]], dict[str, Any], float, str | None]] = []
+        wave_results: list[
+            tuple[str, dict[str, dict[str, Any]], dict[str, Any], float, str | None]
+        ] = []
         if workers == 1:
             for dname, cfg in wave:
-                logger.info("[%d/%d] searching domain: %s", completed + 1, len(ordered_domains), dname)
+                logger.info(
+                    "[%d/%d] searching domain: %s",
+                    completed + 1,
+                    len(ordered_domains),
+                    dname,
+                )
                 wave_results.append(
                     _search_single_domain(
                         dname=dname,
@@ -488,7 +545,9 @@ def main() -> None:
 
         failures = 0
         latencies: list[float] = []
-        for dname, merged_domain_hits, stats, elapsed, err in sorted(wave_results, key=lambda x: x[0]):
+        for dname, merged_domain_hits, stats, elapsed, err in sorted(
+            wave_results, key=lambda x: x[0]
+        ):
             latencies.append(elapsed)
             if err:
                 failures += 1
@@ -503,7 +562,9 @@ def main() -> None:
                     )
                     pending.append((dname, domains[dname]))
                 else:
-                    logger.error("domain search failed permanently (%s): %s", dname, err)
+                    logger.error(
+                        "domain search failed permanently (%s): %s", dname, err
+                    )
                 continue
 
             _merge_hits(all_hits, merged_domain_hits)
@@ -549,12 +610,18 @@ def main() -> None:
             failures,
         )
 
-    logger.info("Search complete in %.1fs; unique encounters=%d", time.time() - search_start, len(all_hits))
+    logger.info(
+        "Search complete in %.1fs; unique encounters=%d",
+        time.time() - search_start,
+        len(all_hits),
+    )
 
     # ---- Extraction phase ----
     pattern_map = _compile_patterns(domains)
 
-    encounters = sorted(all_hits.values(), key=lambda x: (x["encounter_date"], x["encounter_id"]))
+    encounters = sorted(
+        all_hits.values(), key=lambda x: (x["encounter_date"], x["encounter_id"])
+    )
     if args.max_encounters > 0:
         encounters = encounters[: args.max_encounters]
 
@@ -583,18 +650,23 @@ def main() -> None:
         if start_idx >= len(encounters):
             logger.info(
                 "Run already complete (checkpoint=%d >= encounters=%d). Nothing to do.",
-                start_idx, len(encounters),
+                start_idx,
+                len(encounters),
             )
             driver.close()
             return
-        logger.info("Resuming run from index=%d / %d encounters", start_idx, len(encounters))
+        logger.info(
+            "Resuming run from index=%d / %d encounters", start_idx, len(encounters)
+        )
 
     # Each run always writes its own isolated files.
     # Fresh start → "w"; resuming within same run dir → "a" (append to existing partial output).
     file_mode = "a" if resuming else "w"
     per_domain_handles: dict[str, Any] = {}
     for dname in domains:
-        per_domain_handles[dname] = open(out_dir / f"domain_{dname}.jsonl", file_mode, encoding="utf-8")
+        per_domain_handles[dname] = open(
+            out_dir / f"domain_{dname}.jsonl", file_mode, encoding="utf-8"
+        )
     merged_path = out_dir / "domain_entities_merged.jsonl"
     rejected_path = out_dir / "domain_entities_rejected.jsonl"
     merged_fh = open(merged_path, file_mode, encoding="utf-8")
@@ -634,7 +706,8 @@ def main() -> None:
                                 "start": span[0],
                                 "end": span[1],
                                 "lookup_term": key,
-                                "label": (mapped or {}).get("semantic_tag") or "finding",
+                                "label": (mapped or {}).get("semantic_tag")
+                                or "finding",
                                 "assertion": _infer_assertion(sent_text),
                                 "domain": dname,
                                 "snomed_id": (mapped or {}).get("concept_id"),
@@ -679,9 +752,7 @@ def main() -> None:
                     continue
 
                 all_entities_raw: list[dict[str, Any]] = [
-                    ent
-                    for ents in by_domain_entities.values()
-                    for ent in ents
+                    ent for ents in by_domain_entities.values() for ent in ents
                 ]
 
                 raw_record = {
@@ -698,11 +769,17 @@ def main() -> None:
                 }
 
                 # ---- Schema mapping ----
-                canonical, reject_reasons = map_raw_record(raw_record, source_origin="mined_raw")
+                canonical, reject_reasons = map_raw_record(
+                    raw_record, source_origin="mined_raw"
+                )
                 if not canonical:
                     rejected_records += 1
                     rejected_fh.write(
-                        json.dumps({"raw": raw_record, "reasons": reject_reasons}, ensure_ascii=False) + "\n"
+                        json.dumps(
+                            {"raw": raw_record, "reasons": reject_reasons},
+                            ensure_ascii=False,
+                        )
+                        + "\n"
                     )
                     continue
 
@@ -714,9 +791,15 @@ def main() -> None:
                 if precision_reasons:
                     rejected_records += 1
                     for r in precision_reasons:
-                        precision_reject_counts[r] = precision_reject_counts.get(r, 0) + 1
+                        precision_reject_counts[r] = (
+                            precision_reject_counts.get(r, 0) + 1
+                        )
                     rejected_fh.write(
-                        json.dumps({"raw": raw_record, "reasons": precision_reasons}, ensure_ascii=False) + "\n"
+                        json.dumps(
+                            {"raw": raw_record, "reasons": precision_reasons},
+                            ensure_ascii=False,
+                        )
+                        + "\n"
                     )
                     continue
 
@@ -726,12 +809,18 @@ def main() -> None:
                 if deid_issues:
                     rejected_records += 1
                     for issue in deid_issues:
-                        deid_leak_counts[issue.issue_type] = deid_leak_counts.get(issue.issue_type, 0) + 1
+                        deid_leak_counts[issue.issue_type] = (
+                            deid_leak_counts.get(issue.issue_type, 0) + 1
+                        )
                     rejected_fh.write(
                         json.dumps(
-                            {"raw": raw_record, "reasons": [i.issue_type for i in deid_issues]},
+                            {
+                                "raw": raw_record,
+                                "reasons": [i.issue_type for i in deid_issues],
+                            },
                             ensure_ascii=False,
-                        ) + "\n"
+                        )
+                        + "\n"
                     )
                     continue
 
@@ -740,10 +829,14 @@ def main() -> None:
                 extracted_entities += len(canonical["entities"])
 
                 # Per-domain files
-                domains_in_record = {e.get("domain") for e in canonical["entities"] if e.get("domain")}
+                domains_in_record = {
+                    e.get("domain") for e in canonical["entities"] if e.get("domain")
+                }
                 for dname in domains_in_record:
                     if dname in per_domain_handles:
-                        per_domain_handles[dname].write(json.dumps(canonical, ensure_ascii=False) + "\n")
+                        per_domain_handles[dname].write(
+                            json.dumps(canonical, ensure_ascii=False) + "\n"
+                        )
                         domain_record_counts[dname] += 1
                     for ent in canonical["entities"]:
                         if ent.get("domain") == dname:
@@ -806,7 +899,9 @@ def main() -> None:
             },
         }
         summary_path = out_dir / "summary.json"
-        summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        summary_path.write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         logger.info(
             "Mining complete: records=%d entities=%d rejected=%d",
             extracted_records,

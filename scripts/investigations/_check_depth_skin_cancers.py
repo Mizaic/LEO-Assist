@@ -2,15 +2,18 @@
 Check IS_A depth for specific skin cancer concepts that are appearing as STALE-NODIAG.
 Also check what assertion/source these encounters have.
 """
+
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient, KnowledgeGraphClient
@@ -62,9 +65,8 @@ WHERE d.active = true
 RETURN d.id AS cid, d.fsn AS fsn
 """
 
-_STALE_NODIAG_SKIN_PIDS = [
-    "4203796334", "4921442355", "4940120139", "6261656266"
-]
+_STALE_NODIAG_SKIN_PIDS = ["4203796334", "4921442355", "4940120139", "6261656266"]
+
 
 def main():
     kg = KnowledgeGraphClient()
@@ -77,7 +79,9 @@ def main():
                 rows = s.run(_Q_DEPTH, keyword=keyword).data()
             if rows:
                 for r in rows[:3]:
-                    print(f"  '{label}' -> depth={r['depth']}  id={r['cid']}  {r['fsn']}")
+                    print(
+                        f"  '{label}' -> depth={r['depth']}  id={r['cid']}  {r['fsn']}"
+                    )
             else:
                 print(f"  '{label}' -> NOT FOUND at any depth from 363346000")
 
@@ -89,7 +93,9 @@ def main():
             for r in rows:
                 print(f"  FOUND at depth<=5: {r['cid']}  {r['fsn']}")
         else:
-            print("  NONE of these concepts are within depth 5 of 363346000 -- BUG CONFIRMED")
+            print(
+                "  NONE of these concepts are within depth 5 of 363346000 -- BUG CONFIRMED"
+            )
 
         print()
         print("=== Encounter detail for STALE-NODIAG skin patients ===")

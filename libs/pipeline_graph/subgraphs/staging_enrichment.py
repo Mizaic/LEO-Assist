@@ -85,7 +85,9 @@ def _extract_evidence(rows: list[dict[str, Any]]) -> tuple[str | None, str | Non
         concept_name = str(row.get("concept_name") or "")
         text = str(row.get("encounter_text") or "")
         if explicit_stage is None:
-            stage_match = _EXPLICIT_STAGE_RE.search(concept_name) or _EXPLICIT_STAGE_RE.search(text)
+            stage_match = _EXPLICIT_STAGE_RE.search(
+                concept_name
+            ) or _EXPLICIT_STAGE_RE.search(text)
             if stage_match:
                 explicit_stage = stage_match.group(0)
         if tnm_triplet is None:
@@ -121,12 +123,15 @@ def enrich_staging(state: StagingState) -> dict[str, Any]:
                 window_start, window_end = _choose_window(meta)
                 if not window_start or not window_end:
                     continue
-                evidence_rows = client.run(
-                    _Q_STAGING_EVIDENCE,
-                    episode_id=episode_id,
-                    window_start=window_start,
-                    window_end=window_end,
-                ) or []
+                evidence_rows = (
+                    client.run(
+                        _Q_STAGING_EVIDENCE,
+                        episode_id=episode_id,
+                        window_start=window_start,
+                        window_end=window_end,
+                    )
+                    or []
+                )
                 explicit_stage, tnm_triplet = _extract_evidence(evidence_rows)
                 source = "coded"
                 if not explicit_stage and not tnm_triplet:

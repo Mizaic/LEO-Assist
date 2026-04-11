@@ -221,11 +221,13 @@ def _download_file(url: str, dest: Path, emit: Emitter) -> None:
                 if total:
                     pct = int(downloaded * 100 / total)
                     if pct >= last_pct + 5:
-                        emit({
-                            "type": "download_progress",
-                            "pct": pct,
-                            "mb": round(downloaded / 1024 / 1024),
-                        })
+                        emit(
+                            {
+                                "type": "download_progress",
+                                "pct": pct,
+                                "mb": round(downloaded / 1024 / 1024),
+                            }
+                        )
                         last_pct = pct
 
 
@@ -249,7 +251,7 @@ def _extract_dmd(zip_path: Path, dest_dir: Path, emit: Emitter) -> None:
         for member in zf.infolist():
             target = member.filename
             if strip and target.startswith(strip + "/"):
-                target = target[len(strip) + 1:]
+                target = target[len(strip) + 1 :]
             if not target:
                 continue
             out = dest_dir / target
@@ -276,11 +278,13 @@ class _LogCapture(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            self._emit({
-                "type": "log",
-                "msg": self.format(record),
-                "level": record.levelname.lower(),
-            })
+            self._emit(
+                {
+                    "type": "log",
+                    "msg": self.format(record),
+                    "level": record.levelname.lower(),
+                }
+            )
         except Exception:
             pass
 
@@ -309,18 +313,25 @@ def _sync_one_package(key: str, external: Path, emit: Emitter) -> bool:
     meta = PACKAGES[key]
     release = get_trud_release(meta["item_id"])
     if not release:
-        emit({"type": "sync_error", "msg": f"Could not reach TRUD API for {meta['label']}."})
+        emit(
+            {
+                "type": "sync_error",
+                "msg": f"Could not reach TRUD API for {meta['label']}.",
+            }
+        )
         return False
 
     url = release.get("archiveFileUrl", "")
     size_mb = round(release.get("archiveFileSizeBytes", 0) / 1024 / 1024)
-    emit({
-        "type": "download_start",
-        "package": key,
-        "label": meta["label"],
-        "version": release.get("name", ""),
-        "size_mb": size_mb,
-    })
+    emit(
+        {
+            "type": "download_start",
+            "package": key,
+            "label": meta["label"],
+            "version": release.get("name", ""),
+            "size_mb": size_mb,
+        }
+    )
 
     dest_dir = external / meta["dest"]
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
@@ -351,7 +362,13 @@ def full_sync(
 
     for key in packages:
         if key not in PACKAGES:
-            emit({"type": "log", "msg": f"Unknown package '{key}' - skipped.", "level": "warning"})
+            emit(
+                {
+                    "type": "log",
+                    "msg": f"Unknown package '{key}' - skipped.",
+                    "level": "warning",
+                }
+            )
             continue
         ok = _sync_one_package(key, external, emit)
         if not ok:

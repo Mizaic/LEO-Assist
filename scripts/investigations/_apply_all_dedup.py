@@ -1,4 +1,5 @@
 """Apply all duplicate removals: auto-generated list + manual extras."""
+
 from __future__ import annotations
 import json
 import sys
@@ -9,9 +10,11 @@ _ROOT = _P(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_ROOT / "services" / "api"))
 from dotenv import load_dotenv
+
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception as e:
     print(f"KV: {e}")
@@ -22,7 +25,9 @@ BASE = "http://localhost:8001"
 h = get_service_auth_header()
 
 # Auto-generated from duplicate_audit.json
-auto_list = json.loads(_P("scripts/investigations/duplicates_to_remove.json").read_text(encoding="utf-8"))
+auto_list = json.loads(
+    _P("scripts/investigations/duplicates_to_remove.json").read_text(encoding="utf-8")
+)
 
 # Manual extras: biopsy and neutrophil count remaining duplicates
 manual_extras = [
@@ -35,7 +40,7 @@ manual_extras = [
         "normalized": "neutrophil count",
         "concept_id": "165519006",
         "reason": "Result interpretation (outside reference range), not the measurement; "
-                  "keep 1022551000000104 Neutrophil count (observable entity)",
+        "keep 1022551000000104 Neutrophil count (observable entity)",
     },
 ]
 

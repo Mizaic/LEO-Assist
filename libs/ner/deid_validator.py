@@ -16,6 +16,7 @@ Usage
         # record has PHI leaks
         ...
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -28,7 +29,9 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 _NHS_RE = re.compile(r"\b\d{3}\s?\d{3}\s?\d{4}\b")
-_POSTCODE_RE = re.compile(r"\b(?:GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b", re.IGNORECASE)
+_POSTCODE_RE = re.compile(
+    r"\b(?:GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b", re.IGNORECASE
+)
 _PHONE_RE = re.compile(r"\b(?:\+44|0)\d[\d\s\-]{8,}\d\b")
 _EMAIL_RE = re.compile(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b", re.IGNORECASE)
 _ADDRESS_RE = re.compile(
@@ -72,19 +75,25 @@ def _strip_placeholders(text: str) -> str:
 # Issue dataclass
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DeIdIssue:
-    field: str           # which field triggered the issue
-    issue_type: str      # e.g. "raw_patient_id", "residual_postcode"
-    detail: str = ""     # matched snippet or explanation
+    field: str  # which field triggered the issue
+    issue_type: str  # e.g. "raw_patient_id", "residual_postcode"
+    detail: str = ""  # matched snippet or explanation
 
     def to_dict(self) -> dict[str, str]:
-        return {"field": self.field, "issue_type": self.issue_type, "detail": self.detail}
+        return {
+            "field": self.field,
+            "issue_type": self.issue_type,
+            "detail": self.detail,
+        }
 
 
 # ---------------------------------------------------------------------------
 # Hashing helpers (used when sanitising metadata)
 # ---------------------------------------------------------------------------
+
 
 def _hash_id(value: str, prefix: str) -> str:
     digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:12]
@@ -94,6 +103,7 @@ def _hash_id(value: str, prefix: str) -> str:
 # ---------------------------------------------------------------------------
 # Validator
 # ---------------------------------------------------------------------------
+
 
 class DeIdValidator:
     """Checks a canonical NER record for PHI leaks."""
@@ -105,7 +115,11 @@ class DeIdValidator:
         issues.extend(self._check_text(text, field="text"))
         for ent in record.get("entities", []):
             ent_text = str(ent.get("text") or "")
-            issues.extend(self._check_text(ent_text, field=f"entity.{ent.get('entity_id','?')}.text"))
+            issues.extend(
+                self._check_text(
+                    ent_text, field=f"entity.{ent.get('entity_id','?')}.text"
+                )
+            )
         return issues
 
     # ------------------------------------------------------------------
@@ -122,12 +136,16 @@ class DeIdValidator:
         if eid and not eid.startswith(("enc_", "doc_", "e_")):
             issues.append(DeIdIssue("encounter_id", "raw_encounter_id", eid[:30]))
 
-        encounter_date = str(meta.get("encounter_date") or record.get("encounter_date") or "")
+        encounter_date = str(
+            meta.get("encounter_date") or record.get("encounter_date") or ""
+        )
         if encounter_date and len(encounter_date) > 4 and "-" in encounter_date:
             # Tolerate YYYY-01-01 (year-rounded) but not YYYY-MM-DD exact dates
             parts = encounter_date.split("-")
             if len(parts) == 3 and (parts[1] != "01" or parts[2] != "01"):
-                issues.append(DeIdIssue("encounter_date", "exact_encounter_date", encounter_date))
+                issues.append(
+                    DeIdIssue("encounter_date", "exact_encounter_date", encounter_date)
+                )
 
         # Check for leaked UUIDs or long numeric IDs in metadata values
         for k, v in meta.items():
@@ -137,7 +155,8 @@ class DeIdValidator:
             if _UUID_RE.search(v_str):
                 issues.append(DeIdIssue(f"metadata.{k}", "uuid_leak", v_str[:40]))
             if _RAW_NUMERIC_ID_RE.search(v_str) and k not in (
-                "encounter_year", "annotation_date"
+                "encounter_year",
+                "annotation_date",
             ):
                 issues.append(DeIdIssue(f"metadata.{k}", "numeric_id_leak", v_str[:40]))
 
@@ -179,6 +198,7 @@ class DeIdValidator:
 # Record sanitiser (upgrades metadata to training-safe form)
 # ---------------------------------------------------------------------------
 
+
 def sanitise_record_metadata(record: dict[str, Any]) -> dict[str, Any]:
     """Return a copy of record with identifying metadata fields hashed/rounded.
 
@@ -196,7 +216,9 @@ def sanitise_record_metadata(record: dict[str, Any]) -> dict[str, Any]:
         meta["_hashed_encounter_id"] = _hash_id(eid, "enc")
 
     # Round encounter date to year only
-    encounter_date = str(out.pop("encounter_date", "") or meta.pop("encounter_date", "") or "")
+    encounter_date = str(
+        out.pop("encounter_date", "") or meta.pop("encounter_date", "") or ""
+    )
     if encounter_date:
         meta["encounter_year"] = encounter_date[:4]
 

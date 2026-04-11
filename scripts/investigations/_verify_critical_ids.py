@@ -1,4 +1,5 @@
 """Look up SNOMED IDs for batch-3 surface forms (breast, rectal bleeding, wound, other)."""
+
 import sys, requests
 from pathlib import Path
 
@@ -6,9 +7,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "services" / "api"))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception as e:
     print(f"[WARN] KV: {e}")
@@ -18,54 +21,54 @@ HEADERS = get_service_auth_header()
 
 QUERIES = [
     # Breast cancer pathway
-    ("skin tethering breast",           "finding"),
-    ("referral to breast clinic",       "procedure"),
+    ("skin tethering breast", "finding"),
+    ("referral to breast clinic", "procedure"),
     ("fast track referral suspected breast cancer", "procedure"),
-    ("lump in breast",                  "finding"),
-    ("breast lump",                     "finding"),
-    ("invasive ductal carcinoma breast","disorder"),
-    ("oestrogen receptor positive",     "finding"),
-    ("radiotherapy",                    "procedure"),
-    ("radiotherapy breast",             "procedure"),
-    ("tamoxifen therapy",               "procedure"),
-    ("vaginal atrophy",                 "disorder"),
-    ("nipple discharge",                "finding"),
-    ("breast pain",                     "finding"),
-    ("mammogram",                       "procedure"),
-    ("mammography",                     "procedure"),
+    ("lump in breast", "finding"),
+    ("breast lump", "finding"),
+    ("invasive ductal carcinoma breast", "disorder"),
+    ("oestrogen receptor positive", "finding"),
+    ("radiotherapy", "procedure"),
+    ("radiotherapy breast", "procedure"),
+    ("tamoxifen therapy", "procedure"),
+    ("vaginal atrophy", "disorder"),
+    ("nipple discharge", "finding"),
+    ("breast pain", "finding"),
+    ("mammogram", "procedure"),
+    ("mammography", "procedure"),
     # Rectal / GI bleeding
-    ("rectal bleeding",                 "finding"),
-    ("bright red rectal bleeding",      "finding"),
-    ("haematochezia",                   "finding"),
-    ("melaena",                         "finding"),
+    ("rectal bleeding", "finding"),
+    ("bright red rectal bleeding", "finding"),
+    ("haematochezia", "finding"),
+    ("melaena", "finding"),
     # Wound care
-    ("exposed tendon",                  "disorder"),
-    ("wound dehiscence",                "disorder"),
-    ("skin graft",                      "procedure"),
-    ("wound infection",                 "disorder"),
+    ("exposed tendon", "disorder"),
+    ("wound dehiscence", "disorder"),
+    ("skin graft", "procedure"),
+    ("wound infection", "disorder"),
     # Other gaps
-    ("vaginal dryness",                 "finding"),
+    ("vaginal dryness", "finding"),
     ("genitourinary syndrome of menopause", "disorder"),
-    ("urinary frequency",               "finding"),
-    ("nocturia",                        "finding"),
-    ("urinary urgency",                 "finding"),
-    ("haematuria",                      "finding"),
-    ("frank haematuria",                "finding"),
-    ("microscopic haematuria",          "finding"),
-    ("dysphagia",                       "finding"),
-    ("difficulty swallowing",           "finding"),
-    ("fatigue cancer related",          "finding"),
-    ("peripheral neuropathy",           "disorder"),
+    ("urinary frequency", "finding"),
+    ("nocturia", "finding"),
+    ("urinary urgency", "finding"),
+    ("haematuria", "finding"),
+    ("frank haematuria", "finding"),
+    ("microscopic haematuria", "finding"),
+    ("dysphagia", "finding"),
+    ("difficulty swallowing", "finding"),
+    ("fatigue cancer related", "finding"),
+    ("peripheral neuropathy", "disorder"),
     ("chemotherapy induced neuropathy", "disorder"),
-    ("lymph node biopsy",               "procedure"),
-    ("CT scan chest abdomen pelvis",    "procedure"),
-    ("staging CT scan",                 "procedure"),
-    ("PET scan",                        "procedure"),
-    ("DEXA scan",                       "procedure"),
-    ("bone density scan",               "procedure"),
-    ("colonoscopy",                     "procedure"),
-    ("flexible sigmoidoscopy",          "procedure"),
-    ("cystoscopy",                      "procedure"),
+    ("lymph node biopsy", "procedure"),
+    ("CT scan chest abdomen pelvis", "procedure"),
+    ("staging CT scan", "procedure"),
+    ("PET scan", "procedure"),
+    ("DEXA scan", "procedure"),
+    ("bone density scan", "procedure"),
+    ("colonoscopy", "procedure"),
+    ("flexible sigmoidoscopy", "procedure"),
+    ("cystoscopy", "procedure"),
 ]
 
 for q, tag in QUERIES:

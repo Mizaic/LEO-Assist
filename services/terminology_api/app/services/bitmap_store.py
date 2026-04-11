@@ -51,7 +51,9 @@ def _ruleset_key(version: str) -> str:
     return f"{_RULESET_PREFIX}{version}"
 
 
-def _normalise_scope(scope_type: str | None = None, scope_id: str | None = None) -> tuple[str, str]:
+def _normalise_scope(
+    scope_type: str | None = None, scope_id: str | None = None
+) -> tuple[str, str]:
     st = str(scope_type or _DEFAULT_SCOPE_TYPE).strip().lower() or _DEFAULT_SCOPE_TYPE
     sid = str(scope_id or _DEFAULT_SCOPE_ID).strip() or _DEFAULT_SCOPE_ID
     return st, sid
@@ -62,11 +64,15 @@ def _scope_token(scope_type: str | None = None, scope_id: str | None = None) -> 
     return f"{st}:{sid}"
 
 
-def _scoped_ruleset_key(version: str, scope_type: str | None = None, scope_id: str | None = None) -> str:
+def _scoped_ruleset_key(
+    version: str, scope_type: str | None = None, scope_id: str | None = None
+) -> str:
     return f"{_RULESET_PREFIX}{_scope_token(scope_type, scope_id)}:{version}"
 
 
-def _scoped_current_key(scope_type: str | None = None, scope_id: str | None = None) -> str:
+def _scoped_current_key(
+    scope_type: str | None = None, scope_id: str | None = None
+) -> str:
     return f"{_CURRENT_KEY}:{_scope_token(scope_type, scope_id)}"
 
 
@@ -258,7 +264,8 @@ class BitmapStore:
                 (k.decode() if isinstance(k, bytes) else k)[old_prefix_len:]
                 for k in old_keys
                 if (k.decode() if isinstance(k, bytes) else k) != _CURRENT_KEY
-                and ":" not in (k.decode() if isinstance(k, bytes) else k)[old_prefix_len:]
+                and ":"
+                not in (k.decode() if isinstance(k, bytes) else k)[old_prefix_len:]
             ]
         return sorted(versions)
 

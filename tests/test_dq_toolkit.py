@@ -9,6 +9,7 @@ Tests cover:
   TC-006: Surface form audit returns health metrics
   TC-007: Patient inspect returns encounter and episode summary
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -88,8 +89,18 @@ def test_infer_outcome_cancer_only():
     from libs.dq.episodes import infer_outcome
 
     enc_rows = [
-        {"enc_id": "e1", "date": "2024-02-01", "flags": "", "text": "excision booked for SCC"},
-        {"enc_id": "e2", "date": "2024-02-15", "flags": "", "text": "oncology referral arranged"},
+        {
+            "enc_id": "e1",
+            "date": "2024-02-01",
+            "flags": "",
+            "text": "excision booked for SCC",
+        },
+        {
+            "enc_id": "e2",
+            "date": "2024-02-15",
+            "flags": "",
+            "text": "oncology referral arranged",
+        },
     ]
 
     with _patch_run("libs.dq.episodes.run_with_retry", [enc_rows]):
@@ -114,8 +125,18 @@ def test_infer_outcome_benign_only():
     from libs.dq.episodes import infer_outcome
 
     enc_rows = [
-        {"enc_id": "e1", "date": "2024-02-01", "flags": "", "text": "discharged no further follow-up"},
-        {"enc_id": "e2", "date": "2024-02-10", "flags": "", "text": "actinic keratosis treated with cryotherapy"},
+        {
+            "enc_id": "e1",
+            "date": "2024-02-01",
+            "flags": "",
+            "text": "discharged no further follow-up",
+        },
+        {
+            "enc_id": "e2",
+            "date": "2024-02-10",
+            "flags": "",
+            "text": "actinic keratosis treated with cryotherapy",
+        },
     ]
 
     with _patch_run("libs.dq.episodes.run_with_retry", [enc_rows]):
@@ -138,7 +159,7 @@ def test_infer_outcome_no_phase2_encounters():
     """VT-089-TC-002c: no Phase 2 encounters -> UNRESOLVABLE."""
     from libs.dq.episodes import infer_outcome
 
-    with _patch_run("libs.dq.episodes.run_with_retry", [[]]): 
+    with _patch_run("libs.dq.episodes.run_with_retry", [[]]):
         result = infer_outcome(
             patient_id="p1",
             episode_id="ep1",
@@ -269,7 +290,9 @@ def test_remediation_apply_calls_write():
         result = delete_patient("p1", MagicMock(), dry_run=False)
 
     assert result.dry_run is False
-    assert any("DETACH DELETE" in c for c in calls), "dry_run=False must run delete query"
+    assert any(
+        "DETACH DELETE" in c for c in calls
+    ), "dry_run=False must run delete query"
 
 
 # ---------------------------------------------------------------------------
@@ -300,7 +323,9 @@ def test_match_signals_cancer_text():
     """VT-089-TC-005b: match_signals finds cancer signal in known text."""
     from libs.dq.signal_patterns import POST_CANCER, match_signals
 
-    hits = match_signals("excision booked for confirmed SCC", POST_CANCER, date="2024-01-01")
+    hits = match_signals(
+        "excision booked for confirmed SCC", POST_CANCER, date="2024-01-01"
+    )
     assert len(hits) >= 1
     labels = [h.label for h in hits]
     assert any("excision" in l for l in labels)
@@ -310,7 +335,9 @@ def test_match_signals_benign_text():
     """match_signals finds benign signal in known text."""
     from libs.dq.signal_patterns import POST_BENIGN, match_signals
 
-    hits = match_signals("actinic keratosis, cryotherapy applied", POST_BENIGN, date="2024-01-01")
+    hits = match_signals(
+        "actinic keratosis, cryotherapy applied", POST_BENIGN, date="2024-01-01"
+    )
     assert len(hits) >= 1
 
 
@@ -332,14 +359,47 @@ def test_surface_form_audit_returns_metrics():
     from libs.dq.terminology import get_surface_form_audit
 
     mock_sf_rows = [
-        {"normalized_term": "hypertension", "raw_form": "HTN", "edges": [
-            {"concept_id": "38341003", "score": 0.95, "active": True, "source": "pinned", "preferred_term": "Hypertension"}
-        ], "edge_count": 1},
-        {"normalized_term": "orphan-term", "raw_form": "orphan", "edges": [], "edge_count": 0},
-        {"normalized_term": "dup-term", "raw_form": "dup", "edges": [
-            {"concept_id": "1001", "score": 0.8, "active": True, "source": "ml", "preferred_term": "A"},
-            {"concept_id": "1002", "score": 0.7, "active": False, "source": "ml", "preferred_term": "B"},
-        ], "edge_count": 2},
+        {
+            "normalized_term": "hypertension",
+            "raw_form": "HTN",
+            "edges": [
+                {
+                    "concept_id": "38341003",
+                    "score": 0.95,
+                    "active": True,
+                    "source": "pinned",
+                    "preferred_term": "Hypertension",
+                }
+            ],
+            "edge_count": 1,
+        },
+        {
+            "normalized_term": "orphan-term",
+            "raw_form": "orphan",
+            "edges": [],
+            "edge_count": 0,
+        },
+        {
+            "normalized_term": "dup-term",
+            "raw_form": "dup",
+            "edges": [
+                {
+                    "concept_id": "1001",
+                    "score": 0.8,
+                    "active": True,
+                    "source": "ml",
+                    "preferred_term": "A",
+                },
+                {
+                    "concept_id": "1002",
+                    "score": 0.7,
+                    "active": False,
+                    "source": "ml",
+                    "preferred_term": "B",
+                },
+            ],
+            "edge_count": 2,
+        },
     ]
 
     with _patch_run("libs.dq.terminology.run_with_retry", [mock_sf_rows]):
@@ -362,25 +422,44 @@ def test_patient_summary_returns_encounter_and_episode_counts():
 
     mock_episodes = [
         {
-            "episode_id": "ep1", "site": "skin", "status": "in_progress",
-            "referral_date": "2024-01-01", "specialist_date": None,
-            "auto_closed": False, "hitl_flag": False, "hitl_reason": None,
+            "episode_id": "ep1",
+            "site": "skin",
+            "status": "in_progress",
+            "referral_date": "2024-01-01",
+            "specialist_date": None,
+            "auto_closed": False,
+            "hitl_flag": False,
+            "hitl_reason": None,
         }
     ]
     mock_encounters = [
         {
-            "encounter_id": "e1", "date": "2024-01-05", "classification": "consultation",
-            "concepts": [{"concept_id": "38341003", "name": "HTN", "assertion": "present",
-                          "source": "ml", "confidence": 0.9, "semantic_tag": "disorder"}],
+            "encounter_id": "e1",
+            "date": "2024-01-05",
+            "classification": "consultation",
+            "concepts": [
+                {
+                    "concept_id": "38341003",
+                    "name": "HTN",
+                    "assertion": "present",
+                    "source": "ml",
+                    "confidence": 0.9,
+                    "semantic_tag": "disorder",
+                }
+            ],
             "text": "blood pressure raised",
         },
         {
-            "encounter_id": "e2", "date": "2024-01-12", "classification": "document_transfer",
+            "encounter_id": "e2",
+            "date": "2024-01-12",
+            "classification": "document_transfer",
             "concepts": [],
             "text": None,
         },
         {
-            "encounter_id": "e3", "date": "2024-01-20", "classification": "consultation",
+            "encounter_id": "e3",
+            "date": "2024-01-20",
+            "classification": "consultation",
             "concepts": [],
             "text": "skin lesion reviewed",
         },

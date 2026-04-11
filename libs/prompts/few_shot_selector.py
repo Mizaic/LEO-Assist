@@ -87,7 +87,9 @@ class _LazySentenceEmbedder:
                 )
                 return True
             except Exception:
-                logger.warning("Failed to load few-shot selector embedder", exc_info=True)
+                logger.warning(
+                    "Failed to load few-shot selector embedder", exc_info=True
+                )
                 self._load_failed = True
                 return False
 
@@ -147,14 +149,18 @@ def warm_shared_embedder() -> None:
         logger.info(
             "Pre-warming few-shot embedder in background: model=%s", embedder.model_name
         )
-        t = threading.Thread(target=embedder._ensure_model, daemon=True, name="embedder-warmup")
+        t = threading.Thread(
+            target=embedder._ensure_model, daemon=True, name="embedder-warmup"
+        )
         t.start()
 
 
 class FewShotSelector:
     """Select top-k dynamic examples using cosine similarity."""
 
-    def __init__(self, dynamic_pool: list[dict], embedder: _LazySentenceEmbedder | None = None):
+    def __init__(
+        self, dynamic_pool: list[dict], embedder: _LazySentenceEmbedder | None = None
+    ):
         self._pool = list(dynamic_pool or [])
         # Always use the shared singleton unless a custom embedder is explicitly provided.
         self._embedder = embedder if embedder is not None else _get_shared_embedder()
@@ -186,12 +192,13 @@ class FewShotSelector:
             self.warm()
             pool_embeddings = self._pool_embeddings
 
-        if (
-            pool_embeddings is not None
-            and len(routed_pool) == len(self._pool)
-        ):
+        if pool_embeddings is not None and len(routed_pool) == len(self._pool):
             qv = self._embedder.encode([query])
-            if qv is not None and qv.shape[0] == 1 and qv.shape[1] == pool_embeddings.shape[1]:
+            if (
+                qv is not None
+                and qv.shape[0] == 1
+                and qv.shape[1] == pool_embeddings.shape[1]
+            ):
                 scores = pool_embeddings @ qv[0]
                 top_idx = np.argsort(-scores)[: min(k, len(self._pool))]
                 return [self._pool[int(i)] for i in top_idx]
@@ -201,14 +208,21 @@ class FewShotSelector:
         routed_vectors = self._embedder.encode(routed_texts)
         if routed_vectors is not None:
             qv = self._embedder.encode([query])
-            if qv is not None and qv.shape[0] == 1 and qv.shape[1] == routed_vectors.shape[1]:
+            if (
+                qv is not None
+                and qv.shape[0] == 1
+                and qv.shape[1] == routed_vectors.shape[1]
+            ):
                 scores = routed_vectors @ qv[0]
                 top_idx = np.argsort(-scores)[: min(k, len(routed_pool))]
                 return [routed_pool[int(i)] for i in top_idx]
 
         ordered = sorted(
             routed_pool,
-            key=lambda ex: (self._fallback_priority(str(ex.get("category", ""))), str(ex.get("description", ""))),
+            key=lambda ex: (
+                self._fallback_priority(str(ex.get("category", ""))),
+                str(ex.get("description", "")),
+            ),
         )
         return ordered[: min(k, len(ordered))]
 
@@ -226,11 +240,20 @@ class FewShotSelector:
     @staticmethod
     def _query_bucket(query_text: str) -> str:
         text = (query_text or "").lower()
-        if re.search(r"\b(hba1c|egfr|creatinine|haemoglobin|hemoglobin|platelet|lymphocyte|neutrophil|monocyte|eosinophil|basophil|mmol\/l|10\^9\/l|g\/l|fbc|full blood count)\b", text):
+        if re.search(
+            r"\b(hba1c|egfr|creatinine|haemoglobin|hemoglobin|platelet|lymphocyte|neutrophil|monocyte|eosinophil|basophil|mmol\/l|10\^9\/l|g\/l|fbc|full blood count)\b",
+            text,
+        ):
             return "labs"
-        if re.search(r"\b(stage|staging|tnm|metastatic|oncology|carcinoma|tumour|tumor|cancer)\b", text):
+        if re.search(
+            r"\b(stage|staging|tnm|metastatic|oncology|carcinoma|tumour|tumor|cancer)\b",
+            text,
+        ):
             return "oncology"
-        if re.search(r"\b(referral|urgent|two week wait|2ww|booked|appointment|admin|letter)\b", text):
+        if re.search(
+            r"\b(referral|urgent|two week wait|2ww|booked|appointment|admin|letter)\b",
+            text,
+        ):
             return "referral_admin"
         if re.search(r"\b(medication|dose|tablet|capsule|mg|drug|prescribed)\b", text):
             return "medication"
@@ -239,7 +262,9 @@ class FewShotSelector:
     @staticmethod
     def _example_bucket(example: dict) -> str:
         category = str(example.get("category", "")).lower()
-        if any(t in category for t in ("lab", "observable", "value-unit", "haematology")):
+        if any(
+            t in category for t in ("lab", "observable", "value-unit", "haematology")
+        ):
             return "labs"
         if any(t in category for t in ("oncology", "staging", "cancer")):
             return "oncology"

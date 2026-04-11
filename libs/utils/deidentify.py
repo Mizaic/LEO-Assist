@@ -26,6 +26,7 @@ NOTE — first names in free-text narrative (e.g. "discussed with Christopher")
 are not catchable by regex alone.  Run a spaCy PERSON NER pass over the text
 before calling deidentify_text() if that coverage is required.
 """
+
 from __future__ import annotations
 
 import os
@@ -92,9 +93,7 @@ NAME_STYLE_RE = re.compile(
 )
 
 # Title Surname — e.g. Dr Smith, Mrs Jones
-HONORIFIC_NAME_RE = re.compile(
-    r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+[A-Z][a-zA-Z\-']+\b"
-)
+HONORIFIC_NAME_RE = re.compile(r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+[A-Z][a-zA-Z\-']+\b")
 
 # ALL-CAPS surname followed by comma and first name — catches:
 #   HEUNIS, JAN          (all-caps firstname)
@@ -102,9 +101,7 @@ HONORIFIC_NAME_RE = re.compile(
 #   MACLEOD-BROWN, Alice (hyphenated surname)
 #   O'NEILL, Siobhan     (apostrophe surname — [A-Z'][A-Z'\\-]{2,} covers this)
 # Requires 3+ chars (including apostrophe/hyphen) in surname to reduce false positives.
-CAPS_NAME_RE = re.compile(
-    r"\b[A-Z][A-Z'\-]{2,},\s+[A-Z][a-zA-Z]{2,}\b"
-)
+CAPS_NAME_RE = re.compile(r"\b[A-Z][A-Z'\-]{2,},\s+[A-Z][a-zA-Z]{2,}\b")
 
 # Stray CAPS token (2–5 chars) left immediately before [PERSON] — arises when a
 # multi-word CAPS name (e.g. "KOK LEE, Ming") was only partially matched and the
@@ -195,13 +192,16 @@ def _get_ner_nlp():
         return _NER_NLP
     try:
         import spacy
+
         _NER_NLP = spacy.load(model, disable=["tagger", "parser", "lemmatizer"])
         _NER_MODEL = model
     except Exception as exc:
         import logging as _logging
+
         _logging.getLogger(__name__).warning(
             "DEIDENTIFY_NER_MODEL=%r could not be loaded — NER pass disabled: %s",
-            model, exc,
+            model,
+            exc,
         )
         return None
     return _NER_NLP
@@ -224,6 +224,7 @@ def _ner_redact(text: str, nlp) -> str:
 # Public functions
 # ---------------------------------------------------------------------------
 
+
 def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     """Return ``text`` with PII patterns replaced by safe placeholder tokens.
 
@@ -238,13 +239,15 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     """
     out = text
     # Order matters: most-specific patterns first
-    out = LOCAL_ORG_RE.sub("[ORGANISATION]", out) # deployment-specific orgs first
-    out = FACILITY_NAME_RE.sub(r"[LOCATION] \g<ftype>", out)  # City Hospital → [LOCATION] Hospital
-    out = NAME_ROLE_RE.sub("[PERSON]", out)       # SURNAME, Firstname (SystmOne Role)
-    out = NAME_STYLE_RE.sub("[PERSON]", out)      # SURNAME, Firstname (Mr/Mrs/Dr)
+    out = LOCAL_ORG_RE.sub("[ORGANISATION]", out)  # deployment-specific orgs first
+    out = FACILITY_NAME_RE.sub(
+        r"[LOCATION] \g<ftype>", out
+    )  # City Hospital → [LOCATION] Hospital
+    out = NAME_ROLE_RE.sub("[PERSON]", out)  # SURNAME, Firstname (SystmOne Role)
+    out = NAME_STYLE_RE.sub("[PERSON]", out)  # SURNAME, Firstname (Mr/Mrs/Dr)
     out = HONORIFIC_NAME_RE.sub("[PERSON]", out)  # Dr/Mr Surname
-    out = CAPS_NAME_RE.sub("[PERSON]", out)       # SURNAME, Firstname (bare)
-    out = STRAY_CAPS_PREFIX_RE.sub("", out)       # KOK [PERSON] → [PERSON]
+    out = CAPS_NAME_RE.sub("[PERSON]", out)  # SURNAME, Firstname (bare)
+    out = STRAY_CAPS_PREFIX_RE.sub("", out)  # KOK [PERSON] → [PERSON]
     out = ADDRESS_RE.sub("[ADDRESS]", out)
     out = EMAIL_RE.sub("[EMAIL]", out)
     out = PHONE_RE.sub("[PHONE]", out)
@@ -256,7 +259,11 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     out = DATE_NATURAL_RE.sub("[DATE]", out)
 
     # Optional NER second pass — catches residual first names in free narrative
-    run_ner = ner if ner is not None else bool(os.environ.get("DEIDENTIFY_NER_MODEL", "").strip())
+    run_ner = (
+        ner
+        if ner is not None
+        else bool(os.environ.get("DEIDENTIFY_NER_MODEL", "").strip())
+    )
     if run_ner:
         nlp = _get_ner_nlp()
         if nlp is not None:

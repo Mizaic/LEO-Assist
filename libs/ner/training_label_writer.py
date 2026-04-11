@@ -108,7 +108,10 @@ def upsert_training_label(
             )
         logger.debug(
             "upsert_training_label: %s source=%s ref=%s entities=%d",
-            label_id[:8], source, source_ref, len(entities),
+            label_id[:8],
+            source,
+            source_ref,
+            len(entities),
         )
     finally:
         if owned_client:
@@ -161,6 +164,8 @@ def bulk_upsert_training_labels(
 
     logger.info(
         "bulk_upsert_training_labels: %d records source=%s ref=%s",
-        len(label_ids), source, source_ref,
+        len(label_ids),
+        source,
+        source_ref,
     )
     return label_ids

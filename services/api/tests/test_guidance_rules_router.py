@@ -61,7 +61,9 @@ class TestPromoteToDomain:
             "guideline_id": "NG151",
             "domain_id": "nice:conditions-and-diseases:cancer",
             "domain_name": "Cancer",
-            "concepts": [{"concept_id": "363346000", "term": "Malignant neoplastic disease"}],
+            "concepts": [
+                {"concept_id": "363346000", "term": "Malignant neoplastic disease"}
+            ],
         }
 
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
@@ -109,15 +111,19 @@ class TestPromoteToDomain:
             "guideline_id": "NG151",
             "domain_id": "nice:conditions-and-diseases:cancer",
             "domain_name": "Cancer",
-            "concepts": [{"concept_id": "363346000", "term": "Malignant neoplastic disease"}],
+            "concepts": [
+                {"concept_id": "363346000", "term": "Malignant neoplastic disease"}
+            ],
         }
 
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
-            mock_client = _mock_kg_client([
-                [active_row],   # _FETCH_RULE_FOR_PROMOTION
-                [{"added": 1}],  # _PROMOTE_CONCEPT_TO_DOMAIN
-                [{}],            # _WRITE_PROMOTION_AUDIT
-            ])
+            mock_client = _mock_kg_client(
+                [
+                    [active_row],  # _FETCH_RULE_FOR_PROMOTION
+                    [{"added": 1}],  # _PROMOTE_CONCEPT_TO_DOMAIN
+                    [{}],  # _WRITE_PROMOTION_AUDIT
+                ]
+            )
             mock_cls.return_value = mock_client
             resp = test_client.post(
                 "/guidance/rules/review/rule-abc/promote-to-domain?reviewer=admin@test.com"
@@ -171,7 +177,11 @@ class TestListPendingRules:
             "guideline_title": "Bowel cancer",
             "recommendation_text": "Refer all patients with rectal bleeding.",
             "criteria": [
-                {"predicate": "PRESENT", "concept_id": "267051000", "preferred_term": "Rectal bleeding"}
+                {
+                    "predicate": "PRESENT",
+                    "concept_id": "267051000",
+                    "preferred_term": "Rectal bleeding",
+                }
             ],
         }
 
@@ -207,7 +217,11 @@ class TestListPendingRules:
             "chapter_title": "Referral for suspected cancer",
             "recommendation_text": "Refer immediately for suspected colorectal cancer.",
             "criteria": [
-                {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+                {
+                    "predicate": "PRESENT",
+                    "concept_id": "363346000",
+                    "preferred_term": "Cancer",
+                },
             ],
             "has_predecessor": True,
             "predecessor_id": "rule:NG12:v1:CH000:R000:abc",
@@ -233,11 +247,23 @@ class TestComputeDiff:
     def test_added_criteria_detected(self):
         """Criteria in new rule but not predecessor are classified as added."""
         new_c = [
-            {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
-            {"predicate": "PRESENT", "concept_id": "267051000", "preferred_term": "Rectal bleeding"},
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
+            {
+                "predicate": "PRESENT",
+                "concept_id": "267051000",
+                "preferred_term": "Rectal bleeding",
+            },
         ]
         pred_c = [
-            {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
         ]
         diff = _compute_diff(new_c, pred_c)
         assert len(diff["added"]) == 1
@@ -248,11 +274,23 @@ class TestComputeDiff:
     def test_removed_criteria_detected(self):
         """Criteria in predecessor but not new rule are classified as removed."""
         new_c = [
-            {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
         ]
         pred_c = [
-            {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
-            {"predicate": "ABSENT", "concept_id": "394828003", "preferred_term": "No weight loss"},
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
+            {
+                "predicate": "ABSENT",
+                "concept_id": "394828003",
+                "preferred_term": "No weight loss",
+            },
         ]
         diff = _compute_diff(new_c, pred_c)
         assert len(diff["removed"]) == 1
@@ -261,7 +299,13 @@ class TestComputeDiff:
 
     def test_no_changes_all_unchanged(self):
         """Identical criteria return empty added/removed lists."""
-        criteria = [{"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"}]
+        criteria = [
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            }
+        ]
         diff = _compute_diff(criteria, criteria)
         assert diff["added"] == []
         assert diff["removed"] == []
@@ -271,10 +315,18 @@ class TestComputeDiff:
         """Rows with concept_id=None (from OPTIONAL MATCH) are filtered out."""
         new_c = [
             {"predicate": "PRESENT", "concept_id": None, "preferred_term": None},
-            {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
         ]
         pred_c = [
-            {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
         ]
         diff = _compute_diff(new_c, pred_c)
         assert diff["added"] == []
@@ -284,10 +336,18 @@ class TestComputeDiff:
     def test_predicate_considered_in_key(self):
         """Same concept under different predicates are treated as distinct."""
         new_c = [
-            {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+            {
+                "predicate": "PRESENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
         ]
         pred_c = [
-            {"predicate": "ABSENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+            {
+                "predicate": "ABSENT",
+                "concept_id": "363346000",
+                "preferred_term": "Cancer",
+            },
         ]
         diff = _compute_diff(new_c, pred_c)
         # PRESENT version is new, ABSENT version was removed
@@ -312,10 +372,16 @@ class TestRuleDiffEndpoint:
             "chapter_title": "Referral for suspected cancer",
             "recommendation_text": "Refer immediately.",
             "criteria": [
-                {"predicate": "PRESENT", "concept_id": "363346000", "preferred_term": "Cancer"},
+                {
+                    "predicate": "PRESENT",
+                    "concept_id": "363346000",
+                    "preferred_term": "Cancer",
+                },
             ],
             "has_predecessor": has_predecessor,
-            "predecessor_id": "rule:NG12:v1:CH000:R000:abc" if has_predecessor else None,
+            "predecessor_id": (
+                "rule:NG12:v1:CH000:R000:abc" if has_predecessor else None
+            ),
         }
 
     def _diff_row(self):
@@ -327,21 +393,34 @@ class TestRuleDiffEndpoint:
             "predecessor_recommendation_number": "1.1.1",
             "superseded_at": "2026-01-15T12:00:00",
             "predecessor_criteria": [
-                {"predicate": "PRESENT", "concept_id": "267051000", "preferred_term": "Rectal bleeding"},
+                {
+                    "predicate": "PRESENT",
+                    "concept_id": "267051000",
+                    "preferred_term": "Rectal bleeding",
+                },
             ],
             "predecessor_decisions": [
-                {"action": "approve", "reviewer": "dr.jones", "timestamp": "2025-12-01T10:00:00", "reason": "Clinically correct"},
+                {
+                    "action": "approve",
+                    "reviewer": "dr.jones",
+                    "timestamp": "2025-12-01T10:00:00",
+                    "reason": "Clinically correct",
+                },
             ],
         }
 
     def test_returns_diff_with_predecessor(self, test_client):
         """Diff endpoint returns has_predecessor=True with full diff data."""
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
-            mock_cls.return_value = _mock_kg_client([
-                [self._rule_row(has_predecessor=True)],  # _FETCH_RULE_BY_ID
-                [self._diff_row()],                       # _FETCH_RULE_DIFF
-            ])
-            resp = test_client.get("/guidance/rules/review/rule:NG12:v2:CH000:R000:xyz/diff")
+            mock_cls.return_value = _mock_kg_client(
+                [
+                    [self._rule_row(has_predecessor=True)],  # _FETCH_RULE_BY_ID
+                    [self._diff_row()],  # _FETCH_RULE_DIFF
+                ]
+            )
+            resp = test_client.get(
+                "/guidance/rules/review/rule:NG12:v2:CH000:R000:xyz/diff"
+            )
 
         assert resp.status_code == 200
         body = resp.json()
@@ -350,16 +429,20 @@ class TestRuleDiffEndpoint:
         assert len(body["predecessor"]["decisions"]) == 1
         assert body["predecessor"]["decisions"][0]["action"] == "approve"
         # New rule has Cancer, predecessor has Rectal bleeding → both added/removed
-        assert body["diff_summary"]["added_count"] == 1   # Cancer is new
+        assert body["diff_summary"]["added_count"] == 1  # Cancer is new
         assert body["diff_summary"]["removed_count"] == 1  # Rectal bleeding removed
 
     def test_returns_has_predecessor_false_when_no_predecessor(self, test_client):
         """Diff endpoint returns has_predecessor=False for first-version rules."""
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
-            mock_cls.return_value = _mock_kg_client([
-                [self._rule_row(has_predecessor=False)],
-            ])
-            resp = test_client.get("/guidance/rules/review/rule:NG12:v1:CH000:R000:xyz/diff")
+            mock_cls.return_value = _mock_kg_client(
+                [
+                    [self._rule_row(has_predecessor=False)],
+                ]
+            )
+            resp = test_client.get(
+                "/guidance/rules/review/rule:NG12:v1:CH000:R000:xyz/diff"
+            )
 
         assert resp.status_code == 200
         assert resp.json()["has_predecessor"] is False
@@ -395,11 +478,27 @@ class TestRuleExtractionTest:
     def test_returns_200_with_extraction_result(self, test_client):
         """Happy path: normative recommendation with verbatim → extraction runs."""
         coded = {
-            "present": [{"term": "rectal bleeding", "snomed_concept_id": "12345", "preferred_term": "Rectal bleeding", "semantic_tag": "finding"}],
+            "present": [
+                {
+                    "term": "rectal bleeding",
+                    "snomed_concept_id": "12345",
+                    "preferred_term": "Rectal bleeding",
+                    "semantic_tag": "finding",
+                }
+            ],
             "absent": [],
-            "action": {"term": "suspected cancer pathway referral", "snomed_concept_id": "306206005", "preferred_term": "Referral to service", "semantic_tag": "procedure"},
+            "action": {
+                "term": "suspected cancer pathway referral",
+                "snomed_concept_id": "306206005",
+                "preferred_term": "Referral to service",
+                "semantic_tag": "procedure",
+            },
         }
-        raw = {"present": ["rectal bleeding"], "absent": [], "action": "suspected cancer pathway referral"}
+        raw = {
+            "present": ["rectal bleeding"],
+            "absent": [],
+            "action": "suspected cancer pathway referral",
+        }
 
         with (
             patch("app.routers.guidance_rules._kg_client") as mock_cls,
@@ -414,7 +513,9 @@ class TestRuleExtractionTest:
             }
             mock_reg.return_value.build.return_value = mock_subgraph
 
-            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+            resp = test_client.post(
+                "/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000"
+            )
 
         assert resp.status_code == 200
         body = resp.json()
@@ -436,7 +537,9 @@ class TestRuleExtractionTest:
         cross_ref_row = {**self._REC_ROW, "is_normative": False}
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[cross_ref_row]])
-            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+            resp = test_client.post(
+                "/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000"
+            )
 
         assert resp.status_code == 422
         assert "cross-reference" in resp.json()["detail"]
@@ -446,7 +549,9 @@ class TestRuleExtractionTest:
         no_text_row = {**self._REC_ROW, "verbatim": None}
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[no_text_row]])
-            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+            resp = test_client.post(
+                "/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000"
+            )
 
         assert resp.status_code == 422
         assert "no verbatim text" in resp.json()["detail"]
@@ -466,7 +571,9 @@ class TestRuleExtractionTest:
             }
             mock_reg.return_value.build.return_value = mock_subgraph
 
-            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+            resp = test_client.post(
+                "/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000"
+            )
 
         assert resp.status_code == 200
         body = resp.json()

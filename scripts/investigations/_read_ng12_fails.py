@@ -1,4 +1,5 @@
 """Read NG12 dry run failures for analysis."""
+
 import json
 from pathlib import Path
 

@@ -3,6 +3,7 @@
 VT-LEO-AI-096 - TrainingCandidate cascade delete in Knowledge Graph.
 DI-LEO-AI-055 - GDPR-Isolated Learning Loop and Operations UX.
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -150,20 +151,28 @@ def test_ensure_gold_label_by_candidate_returns_existing_label(client):
         kg = MockKG.return_value
         inner = MagicMock()
         inner.run.side_effect = [
-            MagicMock(single=MagicMock(return_value={"candidate_id": "cand-123", "text": "example"})),
-            MagicMock(single=MagicMock(return_value={
-                "label_id": "label-existing",
-                "text": "example",
-                "entities_json": "[]",
-                "quality_score": 1.0,
-                "source": "pipeline_gold",
-                "verified_by": "pipeline",
-                "verified_at": None,
-                "candidate_id": "cand-123",
-                "schema_version": "v4",
-                "created_at": None,
-                "updated_at": None,
-            })),
+            MagicMock(
+                single=MagicMock(
+                    return_value={"candidate_id": "cand-123", "text": "example"}
+                )
+            ),
+            MagicMock(
+                single=MagicMock(
+                    return_value={
+                        "label_id": "label-existing",
+                        "text": "example",
+                        "entities_json": "[]",
+                        "quality_score": 1.0,
+                        "source": "pipeline_gold",
+                        "verified_by": "pipeline",
+                        "verified_at": None,
+                        "candidate_id": "cand-123",
+                        "schema_version": "v4",
+                        "created_at": None,
+                        "updated_at": None,
+                    }
+                )
+            ),
         ]
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
@@ -184,26 +193,34 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
         kg = MockKG.return_value
         inner = MagicMock()
         inner.run.side_effect = [
-            MagicMock(single=MagicMock(return_value={
-                "candidate_id": "cand-123",
-                "text": "example encounter text",
-                "schema_version": "v4",
-            })),
+            MagicMock(
+                single=MagicMock(
+                    return_value={
+                        "candidate_id": "cand-123",
+                        "text": "example encounter text",
+                        "schema_version": "v4",
+                    }
+                )
+            ),
             MagicMock(single=MagicMock(return_value=None)),
             MagicMock(),  # UPSERT_GOLD_LABEL
-            MagicMock(single=MagicMock(return_value={
-                "label_id": "label-created",
-                "text": "example encounter text",
-                "entities_json": "[]",
-                "quality_score": None,
-                "source": "manual_gold_editor",
-                "verified_by": "admin@example.com",
-                "verified_at": None,
-                "candidate_id": "cand-123",
-                "schema_version": "v4",
-                "created_at": None,
-                "updated_at": None,
-            })),
+            MagicMock(
+                single=MagicMock(
+                    return_value={
+                        "label_id": "label-created",
+                        "text": "example encounter text",
+                        "entities_json": "[]",
+                        "quality_score": None,
+                        "source": "manual_gold_editor",
+                        "verified_by": "admin@example.com",
+                        "verified_at": None,
+                        "candidate_id": "cand-123",
+                        "schema_version": "v4",
+                        "created_at": None,
+                        "updated_at": None,
+                    }
+                )
+            ),
         ]
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
@@ -223,13 +240,20 @@ def test_mark_candidate_completed_returns_200_when_gold_exists(client):
     ):
         kg = MockKG.return_value
         inner = MagicMock()
+
         def run_side_effect(query, **kwargs):
             if query == GET_TRAINING_CANDIDATE_BY_ID:
-                return MagicMock(single=MagicMock(return_value={"candidate_id": "cand-123"}))
+                return MagicMock(
+                    single=MagicMock(return_value={"candidate_id": "cand-123"})
+                )
             if query == GET_GOLD_LABEL_BY_CANDIDATE_ID:
                 return MagicMock(single=MagicMock(return_value={"label_id": "label-1"}))
             if query == UPDATE_TRAINING_CANDIDATE_STATUS:
-                return MagicMock(single=MagicMock(return_value={"candidate_id": "cand-123", "status": "completed"}))
+                return MagicMock(
+                    single=MagicMock(
+                        return_value={"candidate_id": "cand-123", "status": "completed"}
+                    )
+                )
             return MagicMock(single=MagicMock(return_value=None))
 
         inner.run.side_effect = run_side_effect

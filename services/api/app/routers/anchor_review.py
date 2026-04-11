@@ -11,6 +11,7 @@ GET  /anchor-review/scorecard       — Aggregate accuracy stats for both models
 GET  /anchor-review/distribution    — Domain distribution across all reviewed records
 GET  /anchor-review/target-rules    — Deduplicated TargetRules grouped by domain
 """
+
 from __future__ import annotations
 
 import logging
@@ -31,6 +32,7 @@ router = APIRouter(prefix="/anchor-review", tags=["anchor-review"])
 # Request / response models
 # ---------------------------------------------------------------------------
 
+
 class AnchorVoteRequest(BaseModel):
     encounter_id: str
     milestone_type: str
@@ -44,6 +46,7 @@ class AnchorVoteRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # GET /anchor-review/disagreements
 # ---------------------------------------------------------------------------
+
 
 @router.get("/disagreements")
 async def get_anchor_disagreements(
@@ -86,6 +89,7 @@ async def get_anchor_disagreements(
 # GET /anchor-review/non-cancer
 # ---------------------------------------------------------------------------
 
+
 @router.get("/non-cancer")
 async def get_non_cancer_flags(
     scope: CallerScope = Depends(get_caller_scope),
@@ -125,6 +129,7 @@ async def get_non_cancer_flags(
 # ---------------------------------------------------------------------------
 # POST /anchor-review/vote
 # ---------------------------------------------------------------------------
+
 
 @router.post("/vote")
 async def submit_anchor_vote(
@@ -172,6 +177,7 @@ async def submit_anchor_vote(
 # GET /anchor-review/scorecard
 # ---------------------------------------------------------------------------
 
+
 @router.get("/scorecard")
 async def get_anchor_scorecard(
     scope: CallerScope = Depends(get_caller_scope),
@@ -214,6 +220,7 @@ async def get_anchor_scorecard(
 # GET /anchor-review/distribution
 # ---------------------------------------------------------------------------
 
+
 @router.get("/distribution")
 async def get_domain_distribution(
     scope: CallerScope = Depends(get_caller_scope),
@@ -234,6 +241,7 @@ async def get_domain_distribution(
 # ---------------------------------------------------------------------------
 # GET /anchor-review/target-rules
 # ---------------------------------------------------------------------------
+
 
 @router.get("/target-rules")
 async def get_target_rules(

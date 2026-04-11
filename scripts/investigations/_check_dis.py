@@ -1,11 +1,18 @@
 """Check which DIs cover terminology/resolver/NER pipeline."""
+
 import re
 from pathlib import Path
 
 DIS = [
-    "DI-LEO-AI-004.yaml", "DI-LEO-AI-033.yaml", "DI-LEO-AI-034.yaml",
-    "DI-LEO-AI-038.yaml", "DI-LEO-AI-039.yaml", "DI-LEO-AI-040.yaml",
-    "DI-LEO-AI-041.yaml", "DI-LEO-AI-044.yaml", "DI-LEO-AI-048.yaml",
+    "DI-LEO-AI-004.yaml",
+    "DI-LEO-AI-033.yaml",
+    "DI-LEO-AI-034.yaml",
+    "DI-LEO-AI-038.yaml",
+    "DI-LEO-AI-039.yaml",
+    "DI-LEO-AI-040.yaml",
+    "DI-LEO-AI-041.yaml",
+    "DI-LEO-AI-044.yaml",
+    "DI-LEO-AI-048.yaml",
 ]
 base = Path("design-controls/design-inputs")
 for fname in DIS:

@@ -19,6 +19,7 @@ Usage
     python scripts/backfill_evidence_sentences.py --dry-run
     python scripts/backfill_evidence_sentences.py --batch-size 200
 """
+
 from __future__ import annotations
 
 import argparse
@@ -118,6 +119,7 @@ SET
 # Sentence finder
 # ---------------------------------------------------------------------------
 
+
 def _find_sentence(text: str, span_text: str, sentence_index: int | None) -> str:
     """Return the sentence most likely containing span_text.
 
@@ -163,7 +165,8 @@ def _narrow_to_smallest_match(text: str, span_text: str) -> str:
         return min(line_hits, key=len)
 
     sentence_hits = [
-        s for s in re.split(r"(?<=[.!?])\s+", source)
+        s
+        for s in re.split(r"(?<=[.!?])\s+", source)
         if s.strip() and span_lower in s.lower()
     ]
     if sentence_hits:
@@ -175,6 +178,7 @@ def _narrow_to_smallest_match(text: str, span_text: str) -> str:
 # ---------------------------------------------------------------------------
 # Backfill logic
 # ---------------------------------------------------------------------------
+
 
 def _process_row(row: dict[str, Any]) -> dict[str, Any] | None:
     """Return update dict or None if span cannot be located."""
@@ -188,7 +192,8 @@ def _process_row(row: dict[str, Any]) -> dict[str, Any] | None:
     if ev_start == -1:
         logger.debug(
             "Span %r not found after de-ident for rel_id=%s -- skip",
-            span_text, row.get("rel_id"),
+            span_text,
+            row.get("rel_id"),
         )
         return None
     return {
@@ -224,7 +229,9 @@ def backfill(
         logger.info(
             "Backfill needed: %d relationships. "
             "Estimated duration: ~%d minute(s) at %d records/min.",
-            total, est_minutes, _RECORDS_PER_MINUTE_ESTIMATE,
+            total,
+            est_minutes,
+            _RECORDS_PER_MINUTE_ESTIMATE,
         )
 
         if dry_run:
@@ -238,13 +245,16 @@ def backfill(
 
         while True:
             with client.session() as session:
-                rows = [dict(r) for r in session.run(
-                    _Q_FETCH_BATCH,
-                    skip=skip_offset,
-                    limit=batch_size,
-                    patient_id=patient_id,
-                    repair_oversized=repair_oversized,
-                )]
+                rows = [
+                    dict(r)
+                    for r in session.run(
+                        _Q_FETCH_BATCH,
+                        skip=skip_offset,
+                        limit=batch_size,
+                        patient_id=patient_id,
+                        repair_oversized=repair_oversized,
+                    )
+                ]
 
             if not rows:
                 break
@@ -258,7 +268,7 @@ def backfill(
                     skipped += 1
 
             if dry_run:
-                for upd in updates[:max(0, 10 - preview_shown)]:
+                for upd in updates[: max(0, 10 - preview_shown)]:
                     logger.info(
                         "[DRY RUN] rel_id=%s sentence=%r start=%d end=%d",
                         upd["rel_id"],
@@ -291,7 +301,10 @@ def backfill(
             if processed % _LOG_EVERY < batch_size:
                 logger.info(
                     "Progress: %d/%d processed  written=%d  skipped=%d",
-                    processed, total, written, skipped,
+                    processed,
+                    total,
+                    written,
+                    skipped,
                 )
 
             if len(rows) < batch_size:
@@ -304,14 +317,18 @@ def backfill(
 
         logger.info(
             "Backfill complete. Total processed=%d  written=%d  skipped=%d",
-            processed, written, skipped,
+            processed,
+            written,
+            skipped,
         )
     finally:
         client.close()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Backfill evidence_sentence on DOCUMENTS")
+    parser = argparse.ArgumentParser(
+        description="Backfill evidence_sentence on DOCUMENTS"
+    )
     parser.add_argument(
         "--batch-size",
         type=int,

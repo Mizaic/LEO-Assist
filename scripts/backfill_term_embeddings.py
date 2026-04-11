@@ -72,12 +72,21 @@ def load_neo4j_config() -> tuple[str, str, str]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--limit", type=int, default=0,
-                        help="Max total terms to embed (0 = no limit)")
-    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH,
-                        help="Embedding batch size (vectors per GPU/CPU call)")
-    parser.add_argument("--page-size", type=int, default=10_000,
-                        help="Terms fetched from Neo4j per round-trip")
+    parser.add_argument(
+        "--limit", type=int, default=0, help="Max total terms to embed (0 = no limit)"
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=DEFAULT_BATCH,
+        help="Embedding batch size (vectors per GPU/CPU call)",
+    )
+    parser.add_argument(
+        "--page-size",
+        type=int,
+        default=10_000,
+        help="Terms fetched from Neo4j per round-trip",
+    )
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -116,10 +125,14 @@ def _ensure_vector_index(uri: str, user: str, password: str, dimension: int) -> 
             if idx:
                 log.info(
                     "Vector index '%s' is %s (type=%s)",
-                    index_name, idx.get("state", "?"), idx.get("type", "?"),
+                    index_name,
+                    idx.get("state", "?"),
+                    idx.get("type", "?"),
                 )
             else:
-                log.warning("Vector index '%s' was not found after creation", index_name)
+                log.warning(
+                    "Vector index '%s' was not found after creation", index_name
+                )
     finally:
         driver.close()
 
@@ -174,11 +187,17 @@ def main() -> None:
                 return
 
             while True:
-                remaining_budget = (args.limit - total) if args.limit else args.page_size
+                remaining_budget = (
+                    (args.limit - total) if args.limit else args.page_size
+                )
                 if args.limit and remaining_budget <= 0:
                     break
 
-                page_size = min(args.page_size, remaining_budget) if args.limit else args.page_size
+                page_size = (
+                    min(args.page_size, remaining_budget)
+                    if args.limit
+                    else args.page_size
+                )
 
                 fetch_start = time.time()
                 records = list(
@@ -196,7 +215,9 @@ def main() -> None:
 
                 log.info(
                     "Page %d: fetched %d terms in %.1fs",
-                    pages, len(records), fetch_elapsed,
+                    pages,
+                    len(records),
+                    fetch_elapsed,
                 )
 
                 for i in range(0, len(records), args.batch_size):
@@ -236,8 +257,12 @@ def main() -> None:
                     log.info(
                         "Batch %d  |  %d/%d terms  |  "
                         "embed %.1fs  write %.1fs  |  %.0f terms/s  |  ETA %s",
-                        batches, total, grand_total,
-                        embed_elapsed, write_elapsed, rate,
+                        batches,
+                        total,
+                        grand_total,
+                        embed_elapsed,
+                        write_elapsed,
+                        rate,
                         _fmt_duration(eta_secs),
                     )
     finally:
@@ -249,7 +274,10 @@ def main() -> None:
         log.info("  Terms embedded: %d", total)
         log.info("  Pages fetched:  %d", pages)
         log.info("  Total time:     %s", _fmt_duration(total_elapsed))
-        log.info("  Avg rate:       %.0f terms/s", total / total_elapsed if total_elapsed > 0 else 0)
+        log.info(
+            "  Avg rate:       %.0f terms/s",
+            total / total_elapsed if total_elapsed > 0 else 0,
+        )
         log.info("  Model:          %s", vector.model_name)
         log.info("  Device:         %s", vector.device)
 

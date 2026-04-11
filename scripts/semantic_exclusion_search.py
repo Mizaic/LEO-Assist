@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 from neo4j import GraphDatabase
@@ -190,9 +191,7 @@ _HISTORICAL_RE = re.compile(
     re.IGNORECASE,
 )
 
-_SENTENCE_SEP = re.compile(
-    r"(?<=[.!?])\s+(?=[A-Z0-9])|[\r\n]+|\s*;\s*"
-)
+_SENTENCE_SEP = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9])|[\r\n]+|\s*;\s*")
 
 
 def _infer_assertion(text: str) -> str:
@@ -226,7 +225,11 @@ def _split_sentences(text: str) -> list[tuple[int, int, str]]:
 
 # ─── Sub-phrase patterns for entity extraction ───────────────────────────────
 _ENTITY_PATTERNS: list[tuple[re.Pattern, str, str]] = [
-    (re.compile(r"\b(no evidence of \w[\w\s]{0,30})", re.I), "finding", "oncology_exclusion"),
+    (
+        re.compile(r"\b(no evidence of \w[\w\s]{0,30})", re.I),
+        "finding",
+        "oncology_exclusion",
+    ),
     (re.compile(r"\b(all clear)\b", re.I), "finding", "oncology_exclusion"),
     (re.compile(r"\b(cancer excluded)\b", re.I), "finding", "oncology_exclusion"),
     (re.compile(r"\b(malignancy excluded)\b", re.I), "finding", "oncology_exclusion"),
@@ -247,33 +250,93 @@ _ENTITY_PATTERNS: list[tuple[re.Pattern, str, str]] = [
     (re.compile(r"\b(no sinister features)\b", re.I), "finding", "oncology_exclusion"),
     (re.compile(r"\b(unlikely malignancy)\b", re.I), "finding", "oncology_exclusion"),
     (re.compile(r"\b(no red flags?)\b", re.I), "finding", "oncology_exclusion"),
-    (re.compile(r"\b(no concerning features)\b", re.I), "finding", "oncology_exclusion"),
-    (re.compile(r"\b(normal colonoscopy)\b", re.I), "procedure", "investigation_negative"),
-    (re.compile(r"\b(colonoscopy normal)\b", re.I), "procedure", "investigation_negative"),
-    (re.compile(r"\b(mammogram normal)\b", re.I), "procedure", "investigation_negative"),
-    (re.compile(r"\b(normal mammogram)\b", re.I), "procedure", "investigation_negative"),
-    (re.compile(r"\b(CT (?:scan )?normal)\b", re.I), "procedure", "investigation_negative"),
+    (
+        re.compile(r"\b(no concerning features)\b", re.I),
+        "finding",
+        "oncology_exclusion",
+    ),
+    (
+        re.compile(r"\b(normal colonoscopy)\b", re.I),
+        "procedure",
+        "investigation_negative",
+    ),
+    (
+        re.compile(r"\b(colonoscopy normal)\b", re.I),
+        "procedure",
+        "investigation_negative",
+    ),
+    (
+        re.compile(r"\b(mammogram normal)\b", re.I),
+        "procedure",
+        "investigation_negative",
+    ),
+    (
+        re.compile(r"\b(normal mammogram)\b", re.I),
+        "procedure",
+        "investigation_negative",
+    ),
+    (
+        re.compile(r"\b(CT (?:scan )?normal)\b", re.I),
+        "procedure",
+        "investigation_negative",
+    ),
     (re.compile(r"\b(MRI normal)\b", re.I), "procedure", "investigation_negative"),
-    (re.compile(r"\b(chest [xX]-?ray (?:clear|normal))\b", re.I), "procedure", "investigation_negative"),
-    (re.compile(r"\b(PSA normal)\b", re.I), "observable entity", "investigation_negative"),
-    (re.compile(r"\b(FIT (?:negative|normal))\b", re.I), "procedure", "screening_negative"),
+    (
+        re.compile(r"\b(chest [xX]-?ray (?:clear|normal))\b", re.I),
+        "procedure",
+        "investigation_negative",
+    ),
+    (
+        re.compile(r"\b(PSA normal)\b", re.I),
+        "observable entity",
+        "investigation_negative",
+    ),
+    (
+        re.compile(r"\b(FIT (?:negative|normal))\b", re.I),
+        "procedure",
+        "screening_negative",
+    ),
     (re.compile(r"\b(HPV negative)\b", re.I), "procedure", "screening_negative"),
-    (re.compile(r"\b(discharged from (?:oncology|2WW|cancer)[\w\s]{0,20})", re.I), "situation", "pathway_discharge"),
-    (re.compile(r"\b(removed from cancer register)\b", re.I), "situation", "pathway_discharge"),
-    (re.compile(r"\b(no further follow.up[\w\s]{0,20})", re.I), "situation", "pathway_discharge"),
+    (
+        re.compile(r"\b(discharged from (?:oncology|2WW|cancer)[\w\s]{0,20})", re.I),
+        "situation",
+        "pathway_discharge",
+    ),
+    (
+        re.compile(r"\b(removed from cancer register)\b", re.I),
+        "situation",
+        "pathway_discharge",
+    ),
+    (
+        re.compile(r"\b(no further follow.up[\w\s]{0,20})", re.I),
+        "situation",
+        "pathway_discharge",
+    ),
     (re.compile(r"\b(2[wW]{2} \w[\w\s]{0,20})", re.I), "procedure", "referral"),
     (re.compile(r"\b(fast track \w[\w\s]{0,20})", re.I), "procedure", "referral"),
     (re.compile(r"\b(breast ca(?:ncer)?)\b", re.I), "disorder", "oncology_diagnosis"),
     (re.compile(r"\b(lung ca(?:ncer)?)\b", re.I), "disorder", "oncology_diagnosis"),
     (re.compile(r"\b(bowel ca(?:ncer)?)\b", re.I), "disorder", "oncology_diagnosis"),
-    (re.compile(r"\b(colorectal ca(?:ncer)?)\b", re.I), "disorder", "oncology_diagnosis"),
+    (
+        re.compile(r"\b(colorectal ca(?:ncer)?)\b", re.I),
+        "disorder",
+        "oncology_diagnosis",
+    ),
     (re.compile(r"\b(prostate ca(?:ncer)?)\b", re.I), "disorder", "oncology_diagnosis"),
     (re.compile(r"\b(skin ca(?:ncer)?)\b", re.I), "disorder", "oncology_diagnosis"),
     (re.compile(r"\b(melanoma)\b", re.I), "disorder", "oncology_diagnosis"),
     (re.compile(r"\b(lymphoma)\b", re.I), "disorder", "oncology_diagnosis"),
     (re.compile(r"\b(leukaemia|leukemia)\b", re.I), "disorder", "oncology_diagnosis"),
-    (re.compile(r"\b(malignant? neoplasm[\w\s]{0,20})", re.I), "disorder", "oncology_diagnosis"),
-    (re.compile(r"\b(fam(?:ily)? h(?:istory|x)[\w\s]{0,20})", re.I), "situation", "family_history"),
+    (
+        re.compile(r"\b(malignant? neoplasm[\w\s]{0,20})", re.I),
+        "disorder",
+        "oncology_diagnosis",
+    ),
+    (
+        re.compile(r"\b(fam(?:ily)? h(?:istory|x)[\w\s]{0,20})", re.I),
+        "situation",
+        "family_history",
+    ),
     (re.compile(r"\b(lump \w[\w\s]{0,15})", re.I), "finding", "clinical_observations"),
     (re.compile(r"\b(skin changes?)\b", re.I), "finding", "clinical_observations"),
 ]
@@ -288,24 +351,24 @@ def _extract_entities(sentence_text: str) -> list[dict]:
             span = (m.start(1), m.end(1))
             if span in seen_spans:
                 continue
-            overlap = any(
-                s[0] < span[1] and span[0] < s[1] for s in seen_spans
-            )
+            overlap = any(s[0] < span[1] and span[0] < s[1] for s in seen_spans)
             if overlap:
                 continue
             seen_spans.add(span)
-            entities.append({
-                "text": m.group(1).strip(),
-                "start": span[0],
-                "end": span[1],
-                "lookup_term": m.group(1).strip().lower(),
-                "semantic_tag": sem_tag,
-                "assertion": _infer_assertion(sentence_text),
-                "domain": domain,
-                "snomed_id": None,
-                "snomed_term": None,
-                "resolver_score": None,
-            })
+            entities.append(
+                {
+                    "text": m.group(1).strip(),
+                    "start": span[0],
+                    "end": span[1],
+                    "lookup_term": m.group(1).strip().lower(),
+                    "semantic_tag": sem_tag,
+                    "assertion": _infer_assertion(sentence_text),
+                    "domain": domain,
+                    "snomed_id": None,
+                    "snomed_term": None,
+                    "resolver_score": None,
+                }
+            )
     entities.sort(key=lambda e: e["start"])
     return entities
 
@@ -313,6 +376,7 @@ def _extract_entities(sentence_text: str) -> list[dict]:
 def _resolve_batch(terms: list[str], api_url: str) -> dict[str, list[dict]]:
     """Resolve a batch of terms via the terminology API."""
     import httpx
+
     if not terms:
         return {}
     unique = list(dict.fromkeys(terms))
@@ -331,7 +395,10 @@ def _resolve_batch(terms: list[str], api_url: str) -> dict[str, list[dict]]:
 
 # ─── Neo4j search tiers ─────────────────────────────────────────────────────
 
-def _fulltext_search(driver, queries: list[str], limit_per_query: int) -> dict[str, dict]:
+
+def _fulltext_search(
+    driver, queries: list[str], limit_per_query: int
+) -> dict[str, dict]:
     """Run Lucene fulltext queries, return dict keyed by encounter_id."""
     results: dict[str, dict] = {}
     for query in queries:
@@ -343,11 +410,14 @@ def _fulltext_search(driver, queries: list[str], limit_per_query: int) -> dict[s
                     "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e) WHERE e = node "
                     "RETURN toString(e.id) AS encounter_id, toString(p.id) AS patient_id, "
                     "e.text AS text, toString(e.date) AS encounter_date, score, 'fulltext' AS source",
-                    q=query, lim=limit_per_query,
+                    q=query,
+                    lim=limit_per_query,
                 ).data()
             for r in rows:
                 eid = r.get("encounter_id") or ""
-                if eid not in results or r.get("score", 0) > results[eid].get("ft_score", 0):
+                if eid not in results or r.get("score", 0) > results[eid].get(
+                    "ft_score", 0
+                ):
                     results[eid] = {
                         "encounter_id": eid,
                         "patient_id": r.get("patient_id", ""),
@@ -375,7 +445,8 @@ def _vector_search(driver, phrases: list[str], embedder, top_k: int) -> dict[str
                     "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e) WHERE e = node "
                     "RETURN toString(e.id) AS encounter_id, toString(p.id) AS patient_id, "
                     "e.text AS text, toString(e.date) AS encounter_date, score, 'vector' AS source",
-                    emb=emb, k=top_k,
+                    emb=emb,
+                    k=top_k,
                 ).data()
             for r in rows:
                 eid = r.get("encounter_id") or ""
@@ -401,15 +472,35 @@ def _vector_search(driver, phrases: list[str], embedder, top_k: int) -> dict[str
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--vector-k", type=int, default=200, help="Top-k per vector phrase (default 200)")
-    parser.add_argument("--ft-limit", type=int, default=500, help="Limit per fulltext query (default 500)")
-    parser.add_argument("--output", type=str, default="exports/exclusion_entities.jsonl")
-    parser.add_argument("--skip-resolve", action="store_true", help="Skip terminology API resolution")
-    parser.add_argument("--terminology-url", type=str,
-                        default=os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001"))
-    parser.add_argument("--resolve-batch", type=int, default=50, help="Terms per resolve API call")
+    parser.add_argument(
+        "--vector-k",
+        type=int,
+        default=200,
+        help="Top-k per vector phrase (default 200)",
+    )
+    parser.add_argument(
+        "--ft-limit",
+        type=int,
+        default=500,
+        help="Limit per fulltext query (default 500)",
+    )
+    parser.add_argument(
+        "--output", type=str, default="exports/exclusion_entities.jsonl"
+    )
+    parser.add_argument(
+        "--skip-resolve", action="store_true", help="Skip terminology API resolution"
+    )
+    parser.add_argument(
+        "--terminology-url",
+        type=str,
+        default=os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001"),
+    )
+    parser.add_argument(
+        "--resolve-batch", type=int, default=50, help="Terms per resolve API call"
+    )
     args = parser.parse_args()
 
     uri = os.environ.get("NEO4J_URI")
@@ -419,23 +510,42 @@ def main():
         log.error("Set NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD in secrets/.env")
         sys.exit(1)
 
-    driver = GraphDatabase.driver(uri, auth=(user, password), max_connection_lifetime=300)
+    driver = GraphDatabase.driver(
+        uri, auth=(user, password), max_connection_lifetime=300
+    )
 
     # ── Tier 1: Fulltext search ──────────────────────────────────────────────
-    log.info("Tier 1 — fulltext search (%d queries, limit %d each)", len(FULLTEXT_QUERIES), args.ft_limit)
+    log.info(
+        "Tier 1 — fulltext search (%d queries, limit %d each)",
+        len(FULLTEXT_QUERIES),
+        args.ft_limit,
+    )
     t0 = time.time()
     ft_results = _fulltext_search(driver, FULLTEXT_QUERIES, args.ft_limit)
-    log.info("  Fulltext found %d unique encounters in %.1fs", len(ft_results), time.time() - t0)
+    log.info(
+        "  Fulltext found %d unique encounters in %.1fs",
+        len(ft_results),
+        time.time() - t0,
+    )
 
     # ── Tier 2: Vector search ────────────────────────────────────────────────
-    log.info("Tier 2 — vector search (%d phrases, top-k %d each)", len(VECTOR_PHRASES), args.vector_k)
+    log.info(
+        "Tier 2 — vector search (%d phrases, top-k %d each)",
+        len(VECTOR_PHRASES),
+        args.vector_k,
+    )
     from scripts.embedding_utils import load_vector_settings, TextEmbedder
+
     settings = load_vector_settings()
     embedder = TextEmbedder(settings)
 
     t1 = time.time()
     vec_results = _vector_search(driver, VECTOR_PHRASES, embedder, args.vector_k)
-    log.info("  Vector found %d unique encounters in %.1fs", len(vec_results), time.time() - t1)
+    log.info(
+        "  Vector found %d unique encounters in %.1fs",
+        len(vec_results),
+        time.time() - t1,
+    )
 
     # ── Merge ────────────────────────────────────────────────────────────────
     merged: dict[str, dict] = {}
@@ -443,7 +553,9 @@ def main():
         merged[eid] = rec
     for eid, rec in vec_results.items():
         if eid in merged:
-            merged[eid]["vec_score"] = max(merged[eid].get("vec_score", 0), rec["vec_score"])
+            merged[eid]["vec_score"] = max(
+                merged[eid].get("vec_score", 0), rec["vec_score"]
+            )
             merged[eid]["source"] = "both"
         else:
             merged[eid] = rec
@@ -451,8 +563,13 @@ def main():
     ft_only = sum(1 for r in merged.values() if r["source"] == "fulltext")
     vec_only = sum(1 for r in merged.values() if r["source"] == "vector")
     both = sum(1 for r in merged.values() if r["source"] == "both")
-    log.info("Merged: %d unique encounters (fulltext-only=%d, vector-only=%d, both=%d)",
-             len(merged), ft_only, vec_only, both)
+    log.info(
+        "Merged: %d unique encounters (fulltext-only=%d, vector-only=%d, both=%d)",
+        len(merged),
+        ft_only,
+        vec_only,
+        both,
+    )
 
     # ── Process encounters ───────────────────────────────────────────────────
     from libs.utils.deidentify import deidentify_text
@@ -480,12 +597,17 @@ def main():
                 # Terminology resolution
                 if not args.skip_resolve and entities:
                     terms_to_resolve = [
-                        e["lookup_term"] for e in entities
+                        e["lookup_term"]
+                        for e in entities
                         if e["lookup_term"] not in resolve_cache
                     ]
                     if terms_to_resolve:
-                        for batch_start in range(0, len(terms_to_resolve), args.resolve_batch):
-                            batch = terms_to_resolve[batch_start:batch_start + args.resolve_batch]
+                        for batch_start in range(
+                            0, len(terms_to_resolve), args.resolve_batch
+                        ):
+                            batch = terms_to_resolve[
+                                batch_start : batch_start + args.resolve_batch
+                            ]
                             resolved = _resolve_batch(batch, args.terminology_url)
                             resolve_cache.update(resolved)
 
@@ -514,12 +636,23 @@ def main():
 
             if i % 500 == 0:
                 elapsed = time.time() - t2
-                log.info("  Processed %d / %d encounters  (%d records, %d entities, %.0f enc/s)",
-                         i, len(all_encounters), written, entity_count, i / elapsed)
+                log.info(
+                    "  Processed %d / %d encounters  (%d records, %d entities, %.0f enc/s)",
+                    i,
+                    len(all_encounters),
+                    written,
+                    entity_count,
+                    i / elapsed,
+                )
 
     elapsed = time.time() - t2
-    log.info("Done — %d records, %d entities from %d encounters in %.1fs",
-             written, entity_count, len(all_encounters), elapsed)
+    log.info(
+        "Done — %d records, %d entities from %d encounters in %.1fs",
+        written,
+        entity_count,
+        len(all_encounters),
+        elapsed,
+    )
     log.info("Output: %s", out_path)
 
     # Summary stats
@@ -533,7 +666,9 @@ def main():
     log.info("  Total entities         : %d", entity_count)
     if not args.skip_resolve:
         resolved_count = sum(1 for v in resolve_cache.values() if v)
-        log.info("  Terms resolved (SNOMED): %d / %d", resolved_count, len(resolve_cache))
+        log.info(
+            "  Terms resolved (SNOMED): %d / %d", resolved_count, len(resolve_cache)
+        )
 
     driver.close()
 

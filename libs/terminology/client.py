@@ -28,9 +28,7 @@ logger = logging.getLogger(__name__)
 
 # Matches: " 1.05 mmol/L", " 160 g/L", " 1.3 mIU/L", " 10^9/L" etc.
 _LAB_VALUE_RE = re.compile(
-    r"\s+\d[\d.,]*\s*"
-    r"(?:10\^[0-9]+/[a-zA-Z]+|[a-zA-Z/%][a-zA-Z0-9/^.]*)"
-    r"\s*$",
+    r"\s+\d[\d.,]*\s*" r"(?:10\^[0-9]+/[a-zA-Z]+|[a-zA-Z/%][a-zA-Z0-9/^.]*)" r"\s*$",
     re.IGNORECASE,
 )
 
@@ -115,9 +113,12 @@ def _filter_abbrev_noise(
         )
     return filtered
 
+
 TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001")
 _SERVICE_CONFIG_KEY = "terminology:resolve_runtime"
-_SERVICE_CONFIG_CACHE_TTL_SECONDS = float(os.getenv("SERVICE_CONFIG_CACHE_TTL_SECONDS", "15"))
+_SERVICE_CONFIG_CACHE_TTL_SECONDS = float(
+    os.getenv("SERVICE_CONFIG_CACHE_TTL_SECONDS", "15")
+)
 
 
 def _env_float(name: str, default: float) -> float:
@@ -150,6 +151,7 @@ _runtime_cache_value = dict(_DEFAULT_RUNTIME_CONFIG)
 @dataclass(frozen=True)
 class ResolvedTerm:
     """A single terminology resolution result."""
+
     text: str
     concept_id: str | None = None
     term: str | None = None
@@ -173,11 +175,7 @@ def _parse_results(
                     or c.get("concept_id")
                     or c.get("snomed_concept_id")
                 ),
-                term=(
-                    c.get("term")
-                    or c.get("preferredTerm")
-                    or c.get("snomed_term")
-                ),
+                term=(c.get("term") or c.get("preferredTerm") or c.get("snomed_term")),
                 semantic_tag=c.get("semanticTag") or c.get("semantic_tag"),
                 score=float(c.get("score", 0.0)),
                 read_code=c.get("readCode") or c.get("read_code"),
@@ -303,9 +301,7 @@ class TerminologyClient:
         body: dict[str, Any] = {"terms": terms}
         if expected_tags:
             body["expected_tags"] = {
-                term: tag
-                for term, tag in expected_tags.items()
-                if term in terms
+                term: tag for term, tag in expected_tags.items() if term in terms
             }
 
         total_initial_attempts = 1 + max_retries
@@ -398,13 +394,15 @@ class TerminologyClient:
         # Rebuild expected_tags with normalised keys.
         norm_tags: dict[str, str] | None = None
         if expected_tags:
-            norm_tags = {
-                _normalise_for_resolve(k): v for k, v in expected_tags.items()
-            }
+            norm_tags = {_normalise_for_resolve(k): v for k, v in expected_tags.items()}
 
         runtime = _load_runtime_config()
-        runtime["timeout_seconds"] = float(max(self._timeout, float(runtime["timeout_seconds"])))
-        runtime["max_retries"] = int(max(self._max_retries, int(runtime["max_retries"])))
+        runtime["timeout_seconds"] = float(
+            max(self._timeout, float(runtime["timeout_seconds"]))
+        )
+        runtime["max_retries"] = int(
+            max(self._max_retries, int(runtime["max_retries"]))
+        )
         chunk_size = int(runtime["max_terms_per_request"])
 
         aggregated: dict[str, list[ResolvedTerm]] = {}
@@ -487,9 +485,7 @@ class TerminologyClient:
                 resp.raise_for_status()
                 return resp.json()
         except Exception:
-            logger.warning(
-                "get_descendants(%s) failed", concept_id, exc_info=True
-            )
+            logger.warning("get_descendants(%s) failed", concept_id, exc_info=True)
             return []
 
 
@@ -520,9 +516,7 @@ class AsyncTerminologyClient:
         body: dict[str, Any] = {"terms": terms}
         if expected_tags:
             body["expected_tags"] = {
-                term: tag
-                for term, tag in expected_tags.items()
-                if term in terms
+                term: tag for term, tag in expected_tags.items() if term in terms
             }
 
         total_initial_attempts = 1 + max_retries
@@ -631,12 +625,12 @@ class AsyncTerminologyClient:
 
         norm_tags: dict[str, str] | None = None
         if expected_tags:
-            norm_tags = {
-                _normalise_for_resolve(k): v for k, v in expected_tags.items()
-            }
+            norm_tags = {_normalise_for_resolve(k): v for k, v in expected_tags.items()}
 
         runtime = _load_runtime_config()
-        runtime["timeout_seconds"] = float(max(self._timeout, float(runtime["timeout_seconds"])))
+        runtime["timeout_seconds"] = float(
+            max(self._timeout, float(runtime["timeout_seconds"]))
+        )
         chunk_size = int(runtime["max_terms_per_request"])
 
         aggregated: dict[str, list[dict[str, Any]]] = {}

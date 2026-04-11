@@ -46,12 +46,8 @@ async def load_relationships(
     label = f"Relationship({filepath.name})"
     logger.info("%s: starting", label)
     async with driver.session() as session:
-        isa_writer = BatchWriter(
-            session, MERGE_IS_A, batch_size, f"{label}/IS_A"
-        )
-        attr_writer = BatchWriter(
-            session, MERGE_ATTRIBUTE, batch_size, f"{label}/ATTR"
-        )
+        isa_writer = BatchWriter(session, MERGE_IS_A, batch_size, f"{label}/IS_A")
+        attr_writer = BatchWriter(session, MERGE_ATTRIBUTE, batch_size, f"{label}/ATTR")
         for row in stream_rf2(filepath):
             if row["active"] != "1":
                 continue

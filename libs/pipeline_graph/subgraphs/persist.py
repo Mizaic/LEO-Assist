@@ -321,7 +321,9 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
             )
             group["entities"].append(
                 {
-                    "text": deidentify_text(str(entity.get("text", "") or ""), ner=True),
+                    "text": deidentify_text(
+                        str(entity.get("text", "") or ""), ner=True
+                    ),
                     "label": entity.get("label") or entity.get("semantic_tag", ""),
                     "start": entity.get("start", 0),
                     "end": entity.get("end", 0),
@@ -363,10 +365,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
             issue_summary = "; ".join(
                 f"{sid}: {issue_types}" for sid, issue_types in validation_failures
             )
-            errors.append(
-                "deid_failed: residual_phi_detected "
-                + issue_summary
-            )
+            errors.append("deid_failed: residual_phi_detected " + issue_summary)
             try:
                 client = _get_knowledge_graph_client()
                 try:

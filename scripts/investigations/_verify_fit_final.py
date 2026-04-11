@@ -1,13 +1,16 @@
 """Verify final FIT surface form mappings in the knowledge graph."""
+
 import sys, os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from neo4j import GraphDatabase
@@ -21,26 +24,36 @@ driver = GraphDatabase.driver(
 )
 
 CHECK_FORMS = [
-    "FIT Neg", "FIT neg", "FIT negative",
-    "FIT pos", "FIT positive", "POSITIVE FIT", "FIT posotive",
+    "FIT Neg",
+    "FIT neg",
+    "FIT negative",
+    "FIT pos",
+    "FIT positive",
+    "POSITIVE FIT",
+    "FIT posotive",
     "negative FIT test",
-    "FIT -", "FIT +", "FIT >10", "FIT>10", "FIT <10", "FIT<10",
+    "FIT -",
+    "FIT +",
+    "FIT >10",
+    "FIT>10",
+    "FIT <10",
+    "FIT<10",
 ]
 
 EXPECTED = {
-    "fit neg":          "167667006",
-    "fit negative":     "167667006",
-    "fit -":            "167667006",
-    "fit <10":          "167667006",
-    "fit<10":           "167667006",
+    "fit neg": "167667006",
+    "fit negative": "167667006",
+    "fit -": "167667006",
+    "fit <10": "167667006",
+    "fit<10": "167667006",
     "negative fit test": "167667006",
-    "fit pos":          "71711000112103",
-    "fit positive":     "71711000112103",  # has 2 mappings; highest conf wins
-    "positive fit":     "71711000112103",
-    "fit posotive":     "71711000112103",
-    "fit +":            "71711000112103",
-    "fit >10":          "71711000112103",
-    "fit>10":           "71711000112103",
+    "fit pos": "71711000112103",
+    "fit positive": "71711000112103",  # has 2 mappings; highest conf wins
+    "positive fit": "71711000112103",
+    "fit posotive": "71711000112103",
+    "fit +": "71711000112103",
+    "fit >10": "71711000112103",
+    "fit>10": "71711000112103",
 }
 
 with driver.session() as s:
@@ -60,7 +73,7 @@ print("-" * 75)
 seen: set[str] = set()
 for r in rows:
     form = r["form"]
-    cid  = r["cid"]
+    cid = r["cid"]
     conf = r["conf"]
     norm = form.lower().strip()
 

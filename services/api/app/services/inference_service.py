@@ -44,14 +44,18 @@ def _load_model():
 
     try:
         import spacy
+
         _nlp_cache = spacy.load(str(_MODEL_DIR))
         logger.info(
             "Loaded MedSpaCy model from %s (pipes: %s)",
-            _MODEL_DIR, ", ".join(_nlp_cache.pipe_names),
+            _MODEL_DIR,
+            ", ".join(_nlp_cache.pipe_names),
         )
         return _nlp_cache
     except Exception:
-        logger.warning("Failed to load MedSpaCy model from %s", _MODEL_DIR, exc_info=True)
+        logger.warning(
+            "Failed to load MedSpaCy model from %s", _MODEL_DIR, exc_info=True
+        )
         return None
 
 
@@ -62,6 +66,7 @@ def _load_kb() -> dict[str, str] | None:
         return None
     try:
         import json
+
         meta_path = _MODEL_DIR / "training_metrics.json"
         if meta_path.exists():
             return {}
@@ -103,14 +108,19 @@ def infer_encounter(
             span_end=ent.end_char,
             concept_id=None,
             term=None,
-            confidence=round(getattr(ent, "kb_id_", 0.0) or 0.0, 4) if hasattr(ent, "kb_id_") else 0.0,
+            confidence=(
+                round(getattr(ent, "kb_id_", 0.0) or 0.0, 4)
+                if hasattr(ent, "kb_id_")
+                else 0.0
+            ),
             semantic_tag=ent.label_,
         )
         entities.append(asdict(entity))
 
     logger.info(
         "Inference on encounter %s: %d entities detected",
-        encounter_id, len(entities),
+        encounter_id,
+        len(entities),
     )
 
     return {

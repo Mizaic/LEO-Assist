@@ -4,6 +4,7 @@ Pin surface forms for NG12 'new-onset diabetes' (1.2.5) so resolver returns
 
 Sonnet rejected generic diabetes mellitus when 405749004 was missing from candidates.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -12,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from libs.terminology.surface_normalize import normalize_surface  # noqa: E402
 from neo4j import GraphDatabase  # noqa: E402

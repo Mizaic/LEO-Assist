@@ -8,6 +8,7 @@ still_investigating / pending_letter / not_relevant.
 Follows the encounter_classifier pattern: AWS small + Azure small for
 consensus, structured JSON output, deidentified text.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,13 +26,15 @@ logger = logging.getLogger(__name__)
 
 _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
-VALID_OUTCOMES = frozenset({
-    "cancer_excluded",
-    "cancer_confirmed",
-    "still_investigating",
-    "pending_letter",
-    "not_relevant",
-})
+VALID_OUTCOMES = frozenset(
+    {
+        "cancer_excluded",
+        "cancer_confirmed",
+        "still_investigating",
+        "pending_letter",
+        "not_relevant",
+    }
+)
 
 DEFAULT_WINDOW_DAYS = 100
 
@@ -39,6 +42,7 @@ DEFAULT_WINDOW_DAYS = 100
 # ---------------------------------------------------------------------------
 # Data model
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class EncounterOutcome:
@@ -81,45 +85,87 @@ class ExclusionResult:
 # ---------------------------------------------------------------------------
 
 EXCLUSION_KEYWORDS = [
-    "cancer excluded", "no cancer", "no evidence of cancer",
-    "no evidence of malignancy", "no malignancy",
-    "cancer ruled out", "non-malignant", "no neoplasm",
-    "cancer not found", "discharged from cancer",
-    "discharged from 2ww", "discharged from fast track",
-    "no evidence of tumour", "no evidence of tumor",
+    "cancer excluded",
+    "no cancer",
+    "no evidence of cancer",
+    "no evidence of malignancy",
+    "no malignancy",
+    "cancer ruled out",
+    "non-malignant",
+    "no neoplasm",
+    "cancer not found",
+    "discharged from cancer",
+    "discharged from 2ww",
+    "discharged from fast track",
+    "no evidence of tumour",
+    "no evidence of tumor",
 ]
 
 SOFT_EXCLUSION_KEYWORDS = [
-    "benign", "all clear", "reassured", "no further action",
-    "discharged", "excluded",
+    "benign",
+    "all clear",
+    "reassured",
+    "no further action",
+    "discharged",
+    "excluded",
 ]
 
 DIAGNOSIS_KEYWORDS = [
-    "carcinoma", "adenocarcinoma", "melanoma", "lymphoma",
-    "sarcoma", "myeloma", "leukaemia", "leukemia",
-    "malignant tumour", "malignant tumor", "malignant neoplasm",
-    "biopsy confirmed", "histology confirmed", "mdt confirmed",
-    "diagnosed with cancer", "cancer diagnosis",
+    "carcinoma",
+    "adenocarcinoma",
+    "melanoma",
+    "lymphoma",
+    "sarcoma",
+    "myeloma",
+    "leukaemia",
+    "leukemia",
+    "malignant tumour",
+    "malignant tumor",
+    "malignant neoplasm",
+    "biopsy confirmed",
+    "histology confirmed",
+    "mdt confirmed",
+    "diagnosed with cancer",
+    "cancer diagnosis",
 ]
 
 INVESTIGATION_KEYWORDS = [
-    "awaiting biopsy", "awaiting histology", "pending biopsy",
-    "pending histology", "under investigation",
-    "referred for ct", "referred for mri", "referred for scan",
-    "colonoscopy", "endoscopy", "gastroscopy", "cystoscopy",
-    "mammogram", "ultrasound scan",
-    "core needle biopsy", "stereotactically guided",
-    "2ww", "fast track referral", "seen in fast track",
+    "awaiting biopsy",
+    "awaiting histology",
+    "pending biopsy",
+    "pending histology",
+    "under investigation",
+    "referred for ct",
+    "referred for mri",
+    "referred for scan",
+    "colonoscopy",
+    "endoscopy",
+    "gastroscopy",
+    "cystoscopy",
+    "mammogram",
+    "ultrasound scan",
+    "core needle biopsy",
+    "stereotactically guided",
+    "2ww",
+    "fast track referral",
+    "seen in fast track",
 ]
 
 LETTER_KEYWORDS = [
-    "clinic letter from", "letter from oncology",
-    "letter from haematology", "letter from urology",
-    "letter from dermatology", "letter from breast",
-    "letter from colorectal", "letter from gastroenterology",
-    "letter from gynaecology", "letter from respiratory",
-    "discharge letter from", "outpatient letter",
-    "see hospital letter", "as per letter",
+    "clinic letter from",
+    "letter from oncology",
+    "letter from haematology",
+    "letter from urology",
+    "letter from dermatology",
+    "letter from breast",
+    "letter from colorectal",
+    "letter from gastroenterology",
+    "letter from gynaecology",
+    "letter from respiratory",
+    "discharge letter from",
+    "outpatient letter",
+    "see hospital letter",
+    "as per letter",
     "results letter from",
 ]
 
@@ -268,6 +314,7 @@ def fetch_referrals(
 # LLM classification
 # ---------------------------------------------------------------------------
 
+
 def _parse_llm_response(text: str) -> dict[str, Any]:
     text = text.strip()
     try:
@@ -362,8 +409,11 @@ def _consensus_outcome(
     else:
         # Disagreement: pick the more clinically significant one
         priority = [
-            "cancer_excluded", "cancer_confirmed",
-            "pending_letter", "still_investigating", "not_relevant",
+            "cancer_excluded",
+            "cancer_confirmed",
+            "pending_letter",
+            "still_investigating",
+            "not_relevant",
         ]
         rank_a = priority.index(outcome_a) if outcome_a in priority else 99
         rank_b = priority.index(outcome_b) if outcome_b in priority else 99
@@ -393,6 +443,7 @@ def _consensus_outcome(
 # Main entry point
 # ---------------------------------------------------------------------------
 
+
 def detect_exclusion(
     patient_id: str,
     referral_date: str,
@@ -407,7 +458,10 @@ def detect_exclusion(
     on clinically relevant encounters.
     """
     encounters, window_end = _fetch_post_referral_encounters(
-        patient_client, patient_id, referral_date, window_days,
+        patient_client,
+        patient_id,
+        referral_date,
+        window_days,
     )
 
     result = ExclusionResult(
@@ -420,7 +474,9 @@ def detect_exclusion(
     )
 
     if not encounters:
-        logger.info("detect_exclusion: patient=%s — no encounters in window", patient_id)
+        logger.info(
+            "detect_exclusion: patient=%s — no encounters in window", patient_id
+        )
         return result
 
     for enc in encounters:
@@ -434,28 +490,29 @@ def detect_exclusion(
             continue
 
         # Rule-based: detect letters from cancer-relevant specialties
-        is_letter = (
-            content_type == "document_transfer"
-            or _is_cancer_letter(text)
-        )
+        is_letter = content_type == "document_transfer" or _is_cancer_letter(text)
         has_cancer_keywords = _is_cancer_relevant(text)
 
         if is_letter and not has_cancer_keywords:
-            result.pending_letters.append(PendingLetter(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                text_excerpt=text[:200],
-                detection_method="rule",
-            ))
-            result.encounter_outcomes.append(EncounterOutcome(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                outcome="pending_letter",
-                confidence=0.8,
-                evidence_text=text[:100],
-                reasoning="Letter from cancer-relevant specialty detected by rule",
-                detection_method="rule",
-            ))
+            result.pending_letters.append(
+                PendingLetter(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    text_excerpt=text[:200],
+                    detection_method="rule",
+                )
+            )
+            result.encounter_outcomes.append(
+                EncounterOutcome(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    outcome="pending_letter",
+                    confidence=0.8,
+                    evidence_text=text[:100],
+                    reasoning="Letter from cancer-relevant specialty detected by rule",
+                    detection_method="rule",
+                )
+            )
             continue
 
         # Skip encounters with no cancer-pathway keywords
@@ -466,10 +523,15 @@ def detect_exclusion(
         # LLM classification
         logger.info(
             "detect_exclusion: patient=%s enc=%s date=%s — sending to LLM",
-            patient_id, enc_id[:8], enc_date,
+            patient_id,
+            enc_id[:8],
+            enc_date,
         )
         result_a, result_b = _classify_encounter_llm(
-            text, referral_date, referral_cancer_type, enc_date,
+            text,
+            referral_date,
+            referral_cancer_type,
+            enc_date,
         )
         enc_outcome = _consensus_outcome(result_a, result_b)
         enc_outcome.encounter_id = enc_id
@@ -478,12 +540,14 @@ def detect_exclusion(
         result.encounter_outcomes.append(enc_outcome)
 
         if enc_outcome.outcome == "pending_letter":
-            result.pending_letters.append(PendingLetter(
-                encounter_id=enc_id,
-                encounter_date=enc_date,
-                text_excerpt=text[:200],
-                detection_method="llm",
-            ))
+            result.pending_letters.append(
+                PendingLetter(
+                    encounter_id=enc_id,
+                    encounter_date=enc_date,
+                    text_excerpt=text[:200],
+                    detection_method="llm",
+                )
+            )
 
     # Aggregate patient-level outcome
     result.outcome = _aggregate_outcome(result)

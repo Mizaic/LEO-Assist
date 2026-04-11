@@ -76,7 +76,9 @@ class TestDateFilter:
         from services.analytics_api.app.routers.dashboards import _date_where
 
         frag, params = _date_where("2024-01-06", None)
-        assert "date(" not in frag, "must NOT use date() cast -- referral_date is a string"
+        assert (
+            "date(" not in frag
+        ), "must NOT use date() cast -- referral_date is a string"
         assert "$date_from" in frag
         assert ">=" in frag
         assert params["date_from"] == "2024-01-06"
@@ -85,7 +87,9 @@ class TestDateFilter:
         from services.analytics_api.app.routers.dashboards import _date_where
 
         frag, params = _date_where(None, "2025-12-31")
-        assert "date(" not in frag, "must NOT use date() cast -- referral_date is a string"
+        assert (
+            "date(" not in frag
+        ), "must NOT use date() cast -- referral_date is a string"
         assert "$date_to" in frag
         assert "<=" in frag
         assert params["date_to"] == "2025-12-31"
@@ -138,7 +142,11 @@ class TestEpisodeTimeline:
                 "condition_type": "breast",
                 "status": "confirmed",
                 "milestones": [
-                    {"encounter_id": "e1", "date": "2024-01-15", "milestone": "referral"},
+                    {
+                        "encounter_id": "e1",
+                        "date": "2024-01-15",
+                        "milestone": "referral",
+                    },
                 ],
             },
         ]
@@ -155,7 +163,13 @@ class TestEpisodeTimeline:
         from services.analytics_api.app.routers.dashboards import episode_timeline
 
         MockPG.return_value.run.return_value = [
-            {"episode_id": "ep-1", "patient_id": "P1", "condition_type": "lung", "status": "pending", "referral_date": "2024-03-01"},
+            {
+                "episode_id": "ep-1",
+                "patient_id": "P1",
+                "condition_type": "lung",
+                "status": "pending",
+                "referral_date": "2024-03-01",
+            },
         ]
 
         result = episode_timeline(patient_id=None, org_id="org-1")
@@ -185,7 +199,12 @@ class TestSafetyNetAlerts:
         from services.analytics_api.app.routers.dashboards import safety_net_alerts
 
         MockPG.return_value.run.return_value = [
-            {"episode_id": "ep-1", "type": "missing_safety_netting", "severity": "warning", "description": "No safety-netting found"},
+            {
+                "episode_id": "ep-1",
+                "type": "missing_safety_netting",
+                "severity": "warning",
+                "description": "No safety-netting found",
+            },
         ]
 
         result = safety_net_alerts(org_id=None)

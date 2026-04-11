@@ -22,6 +22,7 @@ all encounters.
 Safety: on any spaCy exception the pipeline raises immediately so that
 callers never silently persist incorrect assertion values.
 """
+
 from __future__ import annotations
 
 import json
@@ -37,20 +38,22 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_UK_RULES_PATH = Path(__file__).parent / "resources" / "uk_primary_care_context_rules.json"
+_UK_RULES_PATH = (
+    Path(__file__).parent / "resources" / "uk_primary_care_context_rules.json"
+)
 
 # Span attribute mapping -- includes the custom DECLINED category.
 # Span.set_extension("is_declined") must be called before ConText is added.
 _SPAN_ATTRS: dict = {
     "NEGATED_EXISTENCE": {"is_negated": True},
     "POSSIBLE_EXISTENCE": {"is_uncertain": True},
-    "HISTORICAL":         {"is_historical": True},
-    "HYPOTHETICAL":       {"is_hypothetical": True},
-    "FAMILY":             {"is_family": True},
-    "DECLINED":           {"is_declined": True},
-    "CANCELLED":          {"is_cancelled": True},
-    "REFUTED":            {"is_refuted": True},
-    "PLANNED":            {"is_planned": True},
+    "HISTORICAL": {"is_historical": True},
+    "HYPOTHETICAL": {"is_hypothetical": True},
+    "FAMILY": {"is_family": True},
+    "DECLINED": {"is_declined": True},
+    "CANCELLED": {"is_cancelled": True},
+    "REFUTED": {"is_refuted": True},
+    "PLANNED": {"is_planned": True},
 }
 
 # Module-level singleton -- lazy-initialised on first call.
@@ -73,8 +76,17 @@ def _register_extensions() -> None:
 from spacy.symbols import ORTH
 
 _CONTEXT_RULE_KEYS = frozenset(
-    {"pattern", "category", "max_scope", "metadata", "max_targets",
-     "literal", "excluded_types", "allowed_types", "direction"}
+    {
+        "pattern",
+        "category",
+        "max_scope",
+        "metadata",
+        "max_targets",
+        "literal",
+        "excluded_types",
+        "allowed_types",
+        "direction",
+    }
 )
 
 
@@ -110,18 +122,24 @@ def _build_nlp(extra_rules: list[dict] | None = None) -> spacy.language.Language
         for entry in raw.get("context_rules", []):
             clean = {k: v for k, v in entry.items() if k in _CONTEXT_RULE_KEYS}
             builtin_rules.append(ConTextRule(**clean))
-        logger.info("Loaded %d built-in UK ConText rules from %s", len(builtin_rules), _UK_RULES_PATH)
+        logger.info(
+            "Loaded %d built-in UK ConText rules from %s",
+            len(builtin_rules),
+            _UK_RULES_PATH,
+        )
     else:
         logger.warning("Built-in UK ConText rules not found at %s", _UK_RULES_PATH)
 
     # ── Custom rules injected by the caller (e.g. from Neo4j) ───────────────
     custom_rules: list[ConTextRule] = []
-    for entry in (extra_rules or []):
+    for entry in extra_rules or []:
         try:
             clean = {k: v for k, v in entry.items() if k in _CONTEXT_RULE_KEYS}
             custom_rules.append(ConTextRule(**clean))
         except Exception:
-            logger.warning("Skipping malformed custom ConText rule: %s", entry, exc_info=True)
+            logger.warning(
+                "Skipping malformed custom ConText rule: %s", entry, exc_info=True
+            )
     if custom_rules:
         logger.info("Loaded %d custom ConText rules from Neo4j", len(custom_rules))
 
@@ -179,7 +197,9 @@ def _fetch_neo4j_rules() -> list[dict]:
         client = PatientGraphClient()
         try:
             with client.session() as session:
-                rows = list(session.run(GET_CONTEXT_RULES, active_only=True, org_id=None))
+                rows = list(
+                    session.run(GET_CONTEXT_RULES, active_only=True, org_id=None)
+                )
             return [dict(r) for r in rows]
         finally:
             client.close()
@@ -311,7 +331,11 @@ def apply_context_detection_to_dicts(
     """
     if not entities:
         return
-    needs = [i for i, e in enumerate(entities) if (e.get("assertion") or "present") == "present"]
+    needs = [
+        i
+        for i, e in enumerate(entities)
+        if (e.get("assertion") or "present") == "present"
+    ]
     if not needs:
         return
     try:
@@ -371,7 +395,9 @@ def detect_assertions_for_encounter(
     if not items:
         return [], False
 
-    needs = [i for i, it in enumerate(items) if (it.assertion or "present") == "present"]
+    needs = [
+        i for i, it in enumerate(items) if (it.assertion or "present") == "present"
+    ]
     defaults = [it.assertion or "present" for it in items]
     if not needs:
         return defaults, False

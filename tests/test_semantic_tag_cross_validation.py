@@ -11,20 +11,22 @@ Covers:
 - _build_review_item passes through suggested_label and tag_mismatch_delta
 - Cypher queries include suggested_label and tag_mismatch_delta params
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # _cross_check_semantic_tag
 # ---------------------------------------------------------------------------
 
+
 class TestCrossCheckSemanticTag:
     def _import(self):
         from services.api.app.services.label_verifier import _cross_check_semantic_tag
+
         return _cross_check_semantic_tag
 
     def test_agreement_returns_none(self):
@@ -114,44 +116,84 @@ class TestCrossCheckSemanticTag:
 # _check_terminology_coding — unbiased resolve + cross-validation
 # ---------------------------------------------------------------------------
 
+
 class TestCheckTerminologyCodingCrossValidation:
-    def _run(self, entities, candidates_map, *, auto_reclassify_score=0.90, same_tag_ceiling=0.50):
+    def _run(
+        self,
+        entities,
+        candidates_map,
+        *,
+        auto_reclassify_score=0.90,
+        same_tag_ceiling=0.50,
+    ):
         env_patches = {
             "TAG_XVAL_AUTO_RECLASSIFY_SCORE": str(auto_reclassify_score),
             "TAG_XVAL_SAME_TAG_CEILING": str(same_tag_ceiling),
         }
         with (
-            patch("services.api.app.services.label_verifier._resolve_terms_via_api", return_value=candidates_map) as mock_resolve,
-            patch("services.api.app.services.label_verifier.classify_tier") as mock_tier,
+            patch(
+                "services.api.app.services.label_verifier._resolve_terms_via_api",
+                return_value=candidates_map,
+            ) as mock_resolve,
+            patch(
+                "services.api.app.services.label_verifier.classify_tier"
+            ) as mock_tier,
             patch.dict("os.environ", env_patches),
         ):
             from libs.coding_engine.tier_classifier import TierDecision
-            mock_tier.return_value = TierDecision(tier=2, decision="code_with_flag", reason="medium_confidence")
 
-            from services.api.app.services.label_verifier import _check_terminology_coding
+            mock_tier.return_value = TierDecision(
+                tier=2, decision="code_with_flag", reason="medium_confidence"
+            )
+
+            from services.api.app.services.label_verifier import (
+                _check_terminology_coding,
+            )
+
             items = _check_terminology_coding("lbl1", entities, frozenset())
 
         return items, mock_resolve, mock_tier
 
     def test_unbiased_resolve_no_expected_tags(self):
         """The resolve call should NOT pass expected_tags."""
-        entities = [{"text": "neutrophil count", "label": "finding", "assertion": "present"}]
+        entities = [
+            {"text": "neutrophil count", "label": "finding", "assertion": "present"}
+        ]
         candidates_map = {
             "neutrophil count": [
-                {"snomed_concept_id": "1000", "snomed_term": "Neutrophil count", "score": 0.95, "semantic_tag": "observable entity"},
+                {
+                    "snomed_concept_id": "1000",
+                    "snomed_term": "Neutrophil count",
+                    "score": 0.95,
+                    "semantic_tag": "observable entity",
+                },
             ]
         }
         _, mock_resolve, _ = self._run(entities, candidates_map)
         mock_resolve.assert_called_once()
         call_kwargs = mock_resolve.call_args
-        assert "expected_tags" not in (call_kwargs.kwargs or {}), "expected_tags should not be passed"
+        assert "expected_tags" not in (
+            call_kwargs.kwargs or {}
+        ), "expected_tags should not be passed"
 
     def test_tag_mismatch_queued_for_review(self):
-        entities = [{"text": "neutrophil count", "label": "finding", "assertion": "present"}]
+        entities = [
+            {"text": "neutrophil count", "label": "finding", "assertion": "present"}
+        ]
         candidates_map = {
             "neutrophil count": [
-                {"snomed_concept_id": "1000", "snomed_term": "Neutrophil count", "score": 0.75, "semantic_tag": "observable entity"},
-                {"snomed_concept_id": "1001", "snomed_term": "Something", "score": 0.40, "semantic_tag": "finding"},
+                {
+                    "snomed_concept_id": "1000",
+                    "snomed_term": "Neutrophil count",
+                    "score": 0.75,
+                    "semantic_tag": "observable entity",
+                },
+                {
+                    "snomed_concept_id": "1001",
+                    "snomed_term": "Something",
+                    "score": 0.40,
+                    "semantic_tag": "finding",
+                },
             ]
         }
         items, _, _ = self._run(entities, candidates_map)
@@ -163,11 +205,23 @@ class TestCheckTerminologyCodingCrossValidation:
 
     def test_auto_reclassification_high_confidence(self):
         """When top score >= 0.90 and delta >= threshold, entity label is auto-corrected."""
-        entities = [{"text": "neutrophil count", "label": "finding", "assertion": "present"}]
+        entities = [
+            {"text": "neutrophil count", "label": "finding", "assertion": "present"}
+        ]
         candidates_map = {
             "neutrophil count": [
-                {"snomed_concept_id": "1000", "snomed_term": "Neutrophil count", "score": 0.95, "semantic_tag": "observable entity"},
-                {"snomed_concept_id": "1001", "snomed_term": "Something", "score": 0.30, "semantic_tag": "finding"},
+                {
+                    "snomed_concept_id": "1000",
+                    "snomed_term": "Neutrophil count",
+                    "score": 0.95,
+                    "semantic_tag": "observable entity",
+                },
+                {
+                    "snomed_concept_id": "1001",
+                    "snomed_term": "Something",
+                    "score": 0.30,
+                    "semantic_tag": "finding",
+                },
             ]
         }
         items, _, _ = self._run(entities, candidates_map)
@@ -180,7 +234,12 @@ class TestCheckTerminologyCodingCrossValidation:
         entities = [{"text": "asthma", "label": "disorder", "assertion": "present"}]
         candidates_map = {
             "asthma": [
-                {"snomed_concept_id": "195967001", "snomed_term": "Asthma", "score": 0.95, "semantic_tag": "disorder"},
+                {
+                    "snomed_concept_id": "195967001",
+                    "snomed_term": "Asthma",
+                    "score": 0.95,
+                    "semantic_tag": "disorder",
+                },
             ]
         }
         items, _, _ = self._run(entities, candidates_map)
@@ -191,19 +250,32 @@ class TestCheckTerminologyCodingCrossValidation:
 # _build_review_item — suggested_label and tag_mismatch_delta fields
 # ---------------------------------------------------------------------------
 
+
 class TestBuildReviewItemTagMismatch:
     def _import(self):
         from services.api.app.services.label_verifier import _build_review_item
+
         return _build_review_item
 
     def test_includes_suggested_label_when_provided(self):
         fn = self._import()
         item = fn(
-            "lbl1", 0, "neutrophil count", "finding", True,
-            {"snomed_concept_id": "1000", "snomed_term": "Neutrophil count", "semantic_tag": "observable entity"},
-            0.75, "present",
-            decision_tier=2, tier_reason="semantic_tag_mismatch",
-            suggested_label="observable_entity", tag_mismatch_delta=0.35,
+            "lbl1",
+            0,
+            "neutrophil count",
+            "finding",
+            True,
+            {
+                "snomed_concept_id": "1000",
+                "snomed_term": "Neutrophil count",
+                "semantic_tag": "observable entity",
+            },
+            0.75,
+            "present",
+            decision_tier=2,
+            tier_reason="semantic_tag_mismatch",
+            suggested_label="observable_entity",
+            tag_mismatch_delta=0.35,
         )
         assert item["suggested_label"] == "observable_entity"
         assert item["tag_mismatch_delta"] == pytest.approx(0.35)
@@ -219,35 +291,44 @@ class TestBuildReviewItemTagMismatch:
 # Cypher query structural checks
 # ---------------------------------------------------------------------------
 
+
 class TestCypherQueriesTagMismatchFields:
     def test_upsert_includes_suggested_label(self):
         from libs.cypher.coding_review_queries import UPSERT_CODING_REVIEW
+
         assert "$suggested_label" in UPSERT_CODING_REVIEW
 
     def test_upsert_includes_tag_mismatch_delta(self):
         from libs.cypher.coding_review_queries import UPSERT_CODING_REVIEW
+
         assert "$tag_mismatch_delta" in UPSERT_CODING_REVIEW
 
     def test_group_query_returns_suggested_label(self):
         from libs.cypher.coding_review_queries import GROUP_CODING_REVIEWS_BY_ENTITY
+
         assert "suggested_label" in GROUP_CODING_REVIEWS_BY_ENTITY
 
     def test_group_query_returns_tag_mismatch_delta(self):
         from libs.cypher.coding_review_queries import GROUP_CODING_REVIEWS_BY_ENTITY
+
         assert "tag_mismatch_delta" in GROUP_CODING_REVIEWS_BY_ENTITY
 
     def test_queue_query_returns_suggested_label(self):
         from libs.cypher.coding_review_queries import GET_CODING_REVIEW_QUEUE
+
         assert "suggested_label" in GET_CODING_REVIEW_QUEUE
 
     def test_queue_query_returns_tag_mismatch_delta(self):
         from libs.cypher.coding_review_queries import GET_CODING_REVIEW_QUEUE
+
         assert "tag_mismatch_delta" in GET_CODING_REVIEW_QUEUE
 
     def test_entity_query_returns_suggested_label(self):
         from libs.cypher.coding_review_queries import GET_CODING_REVIEW_FOR_ENTITY
+
         assert "suggested_label" in GET_CODING_REVIEW_FOR_ENTITY
 
     def test_entity_query_returns_tag_mismatch_delta(self):
         from libs.cypher.coding_review_queries import GET_CODING_REVIEW_FOR_ENTITY
+
         assert "tag_mismatch_delta" in GET_CODING_REVIEW_FOR_ENTITY

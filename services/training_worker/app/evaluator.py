@@ -88,7 +88,9 @@ def evaluate_model(
     passed = ents_p >= _MIN_PRECISION and ents_r >= _MIN_RECALL
 
     _log(f"Results: P={ents_p:.3f}  R={ents_r:.3f}  F1={ents_f:.3f}")
-    _log(f"Gates: min_precision={_MIN_PRECISION}  min_recall={_MIN_RECALL}  passed={passed}")
+    _log(
+        f"Gates: min_precision={_MIN_PRECISION}  min_recall={_MIN_RECALL}  passed={passed}"
+    )
     if not passed:
         _log(
             f"GATE FAILED — P={ents_p:.3f} (need {_MIN_PRECISION}) "

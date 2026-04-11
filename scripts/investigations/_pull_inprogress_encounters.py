@@ -4,6 +4,7 @@ EpisodeOfCare, and write them to a flat text file for manual review.
 Run:
     python scripts/investigations/_pull_inprogress_encounters.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -13,12 +14,16 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
-OUT = ROOT / "scripts" / "investigations" / "encounter_audit" / "inprogress_83_review.txt"
+OUT = (
+    ROOT / "scripts" / "investigations" / "encounter_audit" / "inprogress_83_review.txt"
+)
 
 _Q_OPEN = """
 MATCH (ep:EpisodeOfCare)
@@ -65,6 +70,7 @@ def _fmt_encounter(eid: str, edate: str, enc_text: str, codings: list[str]) -> s
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     open_rows = client.run(_Q_OPEN) or []
@@ -72,14 +78,17 @@ def main() -> None:
 
     # Group by patient -> list of episodes (site, ref_date)
     from collections import defaultdict
+
     eps_by_pid: dict[str, list[dict]] = defaultdict(list)
     for row in open_rows:
-        eps_by_pid[row["pid"]].append({
-            "site": row["site"],
-            "ref_date": str(row["ref_date"] or ""),
-            "ep_id": row["ep_id"],
-            "spec_seen": row["spec_seen"],
-        })
+        eps_by_pid[row["pid"]].append(
+            {
+                "site": row["site"],
+                "ref_date": str(row["ref_date"] or ""),
+                "ep_id": row["ep_id"],
+                "spec_seen": row["spec_seen"],
+            }
+        )
 
     with OUT.open("w", encoding="utf-8") as fh:
         for pid in sorted(eps_by_pid.keys()):
@@ -100,6 +109,7 @@ def main() -> None:
                 else:
                     # Two weeks before referral to catch the referral encounter itself
                     from datetime import date, timedelta
+
                     ref_dt = date.fromisoformat(ref)
                     from_date = (ref_dt - timedelta(days=14)).isoformat()
 

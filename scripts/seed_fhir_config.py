@@ -75,6 +75,7 @@ DEVICE_RESOURCES = [
 
 # ── ValueSet resources (domain definitions) ──────────────────────────────
 
+
 def _make_valueset(
     domain_name: str,
     description: str,
@@ -96,28 +97,93 @@ def _make_valueset(
 
 
 VALUESET_RESOURCES = [
-    _make_valueset("cancer_types", "Cancer type diagnosis concepts", milestone_type="diagnosis", semantic_tags=["disorder"]),
-    _make_valueset("fast_track_referrals", "Fast-track (2WW) referral procedures", milestone_type="referral", semantic_tags=["procedure"]),
-    _make_valueset("treatment", "Cancer treatment procedures", milestone_type="treatment", semantic_tags=["procedure"]),
-    _make_valueset("symptoms", "Presenting symptoms", time_window_months=12, semantic_tags=["finding", "situation"]),
-    _make_valueset("comorbidities", "Comorbid conditions", semantic_tags=["finding", "disorder"]),
-    _make_valueset("physical_signs", "Physical examination findings", semantic_tags=["finding"]),
-    _make_valueset("investigations", "Primary care investigations", semantic_tags=["procedure"]),
-    _make_valueset("lifestyle_factors", "Lifestyle and risk factors", semantic_tags=["finding", "situation"]),
-    _make_valueset("family_history", "Family history of cancer", semantic_tags=["situation"]),
-    _make_valueset("cancer_risk_factors", "Cancer risk factors", semantic_tags=["finding"]),
-    _make_valueset("place_of_presentation", "Place of first presentation", semantic_tags=["environment"]),
-    _make_valueset("seen_by_specialist", "Seen by specialist encounters", milestone_type="specialist_visit", semantic_tags=["procedure"]),
-    _make_valueset("referral_outcomes", "Referral outcome codes", semantic_tags=["situation"]),
+    _make_valueset(
+        "cancer_types",
+        "Cancer type diagnosis concepts",
+        milestone_type="diagnosis",
+        semantic_tags=["disorder"],
+    ),
+    _make_valueset(
+        "fast_track_referrals",
+        "Fast-track (2WW) referral procedures",
+        milestone_type="referral",
+        semantic_tags=["procedure"],
+    ),
+    _make_valueset(
+        "treatment",
+        "Cancer treatment procedures",
+        milestone_type="treatment",
+        semantic_tags=["procedure"],
+    ),
+    _make_valueset(
+        "symptoms",
+        "Presenting symptoms",
+        time_window_months=12,
+        semantic_tags=["finding", "situation"],
+    ),
+    _make_valueset(
+        "comorbidities", "Comorbid conditions", semantic_tags=["finding", "disorder"]
+    ),
+    _make_valueset(
+        "physical_signs", "Physical examination findings", semantic_tags=["finding"]
+    ),
+    _make_valueset(
+        "investigations", "Primary care investigations", semantic_tags=["procedure"]
+    ),
+    _make_valueset(
+        "lifestyle_factors",
+        "Lifestyle and risk factors",
+        semantic_tags=["finding", "situation"],
+    ),
+    _make_valueset(
+        "family_history", "Family history of cancer", semantic_tags=["situation"]
+    ),
+    _make_valueset(
+        "cancer_risk_factors", "Cancer risk factors", semantic_tags=["finding"]
+    ),
+    _make_valueset(
+        "place_of_presentation",
+        "Place of first presentation",
+        semantic_tags=["environment"],
+    ),
+    _make_valueset(
+        "seen_by_specialist",
+        "Seen by specialist encounters",
+        milestone_type="specialist_visit",
+        semantic_tags=["procedure"],
+    ),
+    _make_valueset(
+        "referral_outcomes", "Referral outcome codes", semantic_tags=["situation"]
+    ),
     _make_valueset("screening", "Cancer screening", semantic_tags=["procedure"]),
-    _make_valueset("observable_entities", "Observable entity measurements", semantic_tags=["observable entity"]),
+    _make_valueset(
+        "observable_entities",
+        "Observable entity measurements",
+        semantic_tags=["observable entity"],
+    ),
     _make_valueset("ethnicity", "Ethnicity codes", semantic_tags=["ethnic group"]),
-    _make_valueset("housebound_status", "Housebound status", semantic_tags=["situation"]),
-    _make_valueset("living_arrangement", "Living arrangement", semantic_tags=["situation"]),
-    _make_valueset("communication_difficulty", "Communication difficulties", semantic_tags=["finding"]),
-    _make_valueset("english_language_competency", "English language competency", semantic_tags=["finding"]),
-    _make_valueset("performance_status", "WHO performance status", semantic_tags=["finding"]),
-    _make_valueset("temporal_analysis", "Temporal analysis concepts", semantic_tags=["situation"]),
+    _make_valueset(
+        "housebound_status", "Housebound status", semantic_tags=["situation"]
+    ),
+    _make_valueset(
+        "living_arrangement", "Living arrangement", semantic_tags=["situation"]
+    ),
+    _make_valueset(
+        "communication_difficulty",
+        "Communication difficulties",
+        semantic_tags=["finding"],
+    ),
+    _make_valueset(
+        "english_language_competency",
+        "English language competency",
+        semantic_tags=["finding"],
+    ),
+    _make_valueset(
+        "performance_status", "WHO performance status", semantic_tags=["finding"]
+    ),
+    _make_valueset(
+        "temporal_analysis", "Temporal analysis concepts", semantic_tags=["situation"]
+    ),
 ]
 
 
@@ -186,8 +252,10 @@ def main() -> None:
         _seed_node(client, vs)
         logger.info("  Seeded ValueSet: %s", vs["id"])
 
-    logger.info("Done. Seeded %d resources total.",
-                len(DEVICE_RESOURCES) + len(VALUESET_RESOURCES))
+    logger.info(
+        "Done. Seeded %d resources total.",
+        len(DEVICE_RESOURCES) + len(VALUESET_RESOURCES),
+    )
     client.close()
 
 

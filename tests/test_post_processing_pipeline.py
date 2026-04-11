@@ -3,6 +3,7 @@
 Verifies layer ordering, input/output contracts, and the
 ``enable_disorder_gate`` toggle for ``run_post_processing()``.
 """
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -14,8 +15,8 @@ from libs.pipeline.post_processing import (
 )
 from libs.ner.post_processor_rules import PostProcessorRule
 
-
 # ── Layer ordering ──
+
 
 def test_layers_run_in_canonical_order() -> None:
     """Lab-value guard (L2) runs before scope guard (L3) and ConText (L7)."""
@@ -30,10 +31,14 @@ def test_layers_run_in_canonical_order() -> None:
     ]
     encounter = "eGFR 45 mL/min CKD stage 3"
 
-    with patch("libs.pipeline.post_processing.should_suppress_disorder", return_value=True):
+    with patch(
+        "libs.pipeline.post_processing.should_suppress_disorder", return_value=True
+    ):
         result = run_post_processing(encounter, entities)
 
-    assert len(result) == 0, "Lab-value guard should suppress disorder before further layers"
+    assert (
+        len(result) == 0
+    ), "Lab-value guard should suppress disorder before further layers"
 
 
 def test_context_detection_runs_after_normalisation() -> None:
@@ -52,7 +57,9 @@ def test_context_detection_runs_after_normalisation() -> None:
     with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
         result = run_post_processing(encounter, entities)
 
-    assert result[0]["label"] == "finding", "Entity-type normalisation (L5) should run before L7"
+    assert (
+        result[0]["label"] == "finding"
+    ), "Entity-type normalisation (L5) should run before L7"
 
 
 def test_referral_procedure_possible_is_forced_to_present() -> None:
@@ -76,9 +83,16 @@ def test_referral_procedure_possible_is_forced_to_present() -> None:
 
 # ── Input/output contracts ──
 
+
 def test_run_post_processing_returns_list_of_dicts() -> None:
     entities = [
-        {"text": "headache", "label": "finding", "start": 0, "end": 8, "assertion": "present"},
+        {
+            "text": "headache",
+            "label": "finding",
+            "start": 0,
+            "end": 8,
+            "assertion": "present",
+        },
     ]
     with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
         result = run_post_processing("headache noted", entities)
@@ -88,7 +102,13 @@ def test_run_post_processing_returns_list_of_dicts() -> None:
 
 def test_run_post_processing_does_not_mutate_original() -> None:
     original = [
-        {"text": "headache", "label": "finding", "start": 0, "end": 8, "assertion": "present"},
+        {
+            "text": "headache",
+            "label": "finding",
+            "start": 0,
+            "end": 8,
+            "assertion": "present",
+        },
     ]
     original_copy = [dict(e) for e in original]
     with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
@@ -103,16 +123,28 @@ def test_empty_entities_returns_empty() -> None:
 
 # ── Post-Processor Rules (Layer 1) ──
 
+
 def test_post_processor_rules_suppress_matching_entity() -> None:
     entities = [
-        {"text": "DNA", "label": "finding", "start": 0, "end": 3, "assertion": "present"},
+        {
+            "text": "DNA",
+            "label": "finding",
+            "start": 0,
+            "end": 3,
+            "assertion": "present",
+        },
     ]
     rules = [
         PostProcessorRule(
-            rule_id="r1", priority=1, action="suppress",
-            match_text="DNA", match_label="finding",
-            context_regex=None, window_chars=40,
-            rewrite_text=None, rewrite_label=None,
+            rule_id="r1",
+            priority=1,
+            action="suppress",
+            match_text="DNA",
+            match_label="finding",
+            context_regex=None,
+            window_chars=40,
+            rewrite_text=None,
+            rewrite_label=None,
         ),
     ]
     with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
@@ -122,7 +154,13 @@ def test_post_processor_rules_suppress_matching_entity() -> None:
 
 def test_post_processor_rules_not_applied_when_none() -> None:
     entities = [
-        {"text": "DNA", "label": "finding", "start": 0, "end": 3, "assertion": "present"},
+        {
+            "text": "DNA",
+            "label": "finding",
+            "start": 0,
+            "end": 3,
+            "assertion": "present",
+        },
     ]
     with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
         result = run_post_processing("DNA received", entities, rules=None)
@@ -131,12 +169,21 @@ def test_post_processor_rules_not_applied_when_none() -> None:
 
 # ── Disorder gate toggle ──
 
+
 def test_disorder_gate_disabled_by_default() -> None:
     entities = [
-        {"text": "asthma", "label": "disorder", "start": 0, "end": 6, "assertion": "present"},
+        {
+            "text": "asthma",
+            "label": "disorder",
+            "start": 0,
+            "end": 6,
+            "assertion": "present",
+        },
     ]
-    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"), \
-         patch("libs.pipeline.post_processing.verify_disorder") as mock_verify:
+    with (
+        patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"),
+        patch("libs.pipeline.post_processing.verify_disorder") as mock_verify,
+    ):
         result = run_post_processing("asthma diagnosed", entities)
 
     mock_verify.assert_not_called()
@@ -145,14 +192,25 @@ def test_disorder_gate_disabled_by_default() -> None:
 
 def test_disorder_gate_enabled_calls_verify() -> None:
     entities = [
-        {"text": "asthma", "label": "disorder", "start": 0, "end": 6, "assertion": "present"},
+        {
+            "text": "asthma",
+            "label": "disorder",
+            "start": 0,
+            "end": 6,
+            "assertion": "present",
+        },
     ]
-    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"), \
-         patch("libs.pipeline.post_processing.verify_disorder") as mock_verify:
+    with (
+        patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"),
+        patch("libs.pipeline.post_processing.verify_disorder") as mock_verify,
+    ):
         from libs.llm_client.disorder_verifier import DisorderVerdict
+
         mock_verify.return_value = DisorderVerdict.ACTIVE_DIAGNOSIS
         result = run_post_processing(
-            "asthma diagnosed", entities, enable_disorder_gate=True,
+            "asthma diagnosed",
+            entities,
+            enable_disorder_gate=True,
         )
 
     mock_verify.assert_called_once()
@@ -161,20 +219,32 @@ def test_disorder_gate_enabled_calls_verify() -> None:
 
 def test_disorder_gate_suppresses_informational() -> None:
     entities = [
-        {"text": "asthma", "label": "disorder", "start": 0, "end": 6, "assertion": "present"},
+        {
+            "text": "asthma",
+            "label": "disorder",
+            "start": 0,
+            "end": 6,
+            "assertion": "present",
+        },
     ]
-    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"), \
-         patch("libs.pipeline.post_processing.verify_disorder") as mock_verify:
+    with (
+        patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"),
+        patch("libs.pipeline.post_processing.verify_disorder") as mock_verify,
+    ):
         from libs.llm_client.disorder_verifier import DisorderVerdict
+
         mock_verify.return_value = DisorderVerdict.INFORMATIONAL
         result = run_post_processing(
-            "asthma discussed", entities, enable_disorder_gate=True,
+            "asthma discussed",
+            entities,
+            enable_disorder_gate=True,
         )
 
     assert len(result) == 0, "Informational disorders should be suppressed"
 
 
 # ── Scope Guard (Layer 3) ──
+
 
 def test_scope_guard_suppresses_safety_netting() -> None:
     """Safety-netting entities are REMOVED, not reclassified to hypothetical."""
@@ -241,7 +311,32 @@ def test_scope_guard_suppresses_instruction_indication_finding() -> None:
     assert all(e["text"] != "low mood" for e in result)
 
 
+def test_scope_guard_suppresses_side_effect_counselling_findings() -> None:
+    encounter = (
+        "pregabalin 200mg BD for radiculopathy - advised at increased risk of s/e such as "
+        "dizziness, drowsiness, breathing changes, constipation, blurred vision - advised "
+        "to look out for these and report back to surgery"
+    )
+    entities = [
+        {"text": "dizziness", "label": "finding", "start": 83, "end": 92, "assertion": "present"},
+        {"text": "drowsiness", "label": "finding", "start": 94, "end": 104, "assertion": "present"},
+        {"text": "constipation", "label": "finding", "start": 124, "end": 136, "assertion": "present"},
+        {"text": "blurred vision", "label": "finding", "start": 138, "end": 152, "assertion": "present"},
+        {"text": "radiculopathy", "label": "disorder", "start": 32, "end": 44, "assertion": "present"},
+    ]
+
+    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
+        result = run_post_processing(encounter, entities)
+
+    assert any(e["text"] == "radiculopathy" for e in result)
+    assert all(e["text"] != "dizziness" for e in result)
+    assert all(e["text"] != "drowsiness" for e in result)
+    assert all(e["text"] != "constipation" for e in result)
+    assert all(e["text"] != "blurred vision" for e in result)
+
+
 # ── Situation Lookup (Layer 8) ──
+
 
 def test_situation_lookup_adds_normalized_key() -> None:
     entities = [
@@ -261,6 +356,7 @@ def test_situation_lookup_adds_normalized_key() -> None:
 
 # ── Observable Normalisation (Layer 4) ──
 
+
 def test_observable_span_cleaned_and_value_attached() -> None:
     entities = [
         {
@@ -276,4 +372,6 @@ def test_observable_span_cleaned_and_value_attached() -> None:
 
     obs = [e for e in result if e["label"] == "observable_entity"]
     assert len(obs) >= 1
-    assert obs[0].get("value") or obs[0].get("unit"), "Observable should have value/unit attached"
+    assert obs[0].get("value") or obs[0].get(
+        "unit"
+    ), "Observable should have value/unit attached"

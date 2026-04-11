@@ -4,6 +4,7 @@ Backfill HAS_EPISODE_OF_CARE relationships for all existing EpisodeOfCare nodes.
 The episode_builder now creates this relationship automatically, but existing
 episodes built before this fix are missing it. Run once after the fix.
 """
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -12,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 

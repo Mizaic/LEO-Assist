@@ -10,7 +10,6 @@ import sys
 import time
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 LOGGER = logging.getLogger("evaluate_clinical_coder")
 DEFAULT_INPUT = (

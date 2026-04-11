@@ -1,4 +1,5 @@
 """Print has_issues breakdown from v4 audit results."""
+
 from __future__ import annotations
 import json
 import pathlib
@@ -37,7 +38,7 @@ for enc in has_issues:
             sentence = g.get("sentence", "")[:90]
             print(f"    [{sev}] {sn} ({sid})  assertion={assertion}")
             if sentence:
-                print(f"           \"{sentence}\"")
+                print(f'           "{sentence}"')
     if wrong:
         print("  WRONG ASSERTION:")
         for w in wrong:

@@ -1,4 +1,5 @@
 """Quick surface form persistence check -- no KV, no auth (GET is public)."""
+
 import requests, sys, time
 
 BASE = "http://localhost:8001"
@@ -39,30 +40,30 @@ for p, c in sorted(by_prov.items()):
 
 checks = [
     # Previous batch
-    ("2ww",              True,  "previous abbreviation batch"),
-    ("twoc",             True,  "previous abbreviation batch"),
-    ("ooh",              True,  "previous abbreviation batch"),
-    ("nad",              False, "NAD must NOT be present"),
+    ("2ww", True, "previous abbreviation batch"),
+    ("twoc", True, "previous abbreviation batch"),
+    ("ooh", True, "previous abbreviation batch"),
+    ("nad", False, "NAD must NOT be present"),
     # Current batch synonyms
-    ("tiredness",        True,  "fatigue synonym"),
-    ("tired",            True,  "fatigue synonym"),
-    ("low mood",         True,  "corrected mental health"),
+    ("tiredness", True, "fatigue synonym"),
+    ("tired", True, "fatigue synonym"),
+    ("low mood", True, "corrected mental health"),
     ("decreased appetite", True, "corrected appetite"),
-    ("vomiting",         True,  "corrected vomiting"),
-    ("rectal bleeding",  True,  "corrected rectal"),
-    ("bruising",         True,  "corrected bruising"),
-    ("lump",             True,  "corrected lump"),
-    ("swollen glands",   True,  "lymphadenopathy"),
-    ("reflux",           True,  "acid reflux"),
-    ("confusion",        True,  "corrected confusion"),
+    ("vomiting", True, "corrected vomiting"),
+    ("rectal bleeding", True, "corrected rectal"),
+    ("bruising", True, "corrected bruising"),
+    ("lump", True, "corrected lump"),
+    ("swollen glands", True, "lymphadenopathy"),
+    ("reflux", True, "acid reflux"),
+    ("confusion", True, "corrected confusion"),
     # Lab phrases
-    ("glycosuria",       True,  "lab phrase"),
-    ("glucose +",        True,  "dipstick phrase"),
-    ("proteinuria",      True,  "lab phrase"),
-    ("psa elevated",     True,  "lab phrase"),
-    ("low hb",           True,  "lab phrase"),
-    ("raised creatinine",True,  "lab phrase"),
-    ("neutrophilia",     True,  "lab phrase"),
+    ("glycosuria", True, "lab phrase"),
+    ("glucose +", True, "dipstick phrase"),
+    ("proteinuria", True, "lab phrase"),
+    ("psa elevated", True, "lab phrase"),
+    ("low hb", True, "lab phrase"),
+    ("raised creatinine", True, "lab phrase"),
+    ("neutrophilia", True, "lab phrase"),
     ("leucocytes in urine", True, "dipstick phrase"),
 ]
 

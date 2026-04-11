@@ -9,6 +9,7 @@ Usage:
     python scripts/investigations/_requeue_skips.py --dry-run
     python scripts/investigations/_requeue_skips.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,9 +27,7 @@ def main() -> None:
     db = sqlite3.connect(DB)
     cur = db.cursor()
 
-    total_processed = cur.execute(
-        "SELECT COUNT(*) FROM enc_processed"
-    ).fetchone()[0]
+    total_processed = cur.execute("SELECT COUNT(*) FROM enc_processed").fetchone()[0]
     print(f"enc_processed total           : {total_processed}")
 
     skip_total = cur.execute(
@@ -78,7 +77,9 @@ def main() -> None:
     db.commit()
     db.close()
     print(f"\nDeleted {deleted} rows from enc_processed.")
-    print("Re-run the remediation script with --resume to catch all previously-skipped encounters.")
+    print(
+        "Re-run the remediation script with --resume to catch all previously-skipped encounters."
+    )
 
 
 if __name__ == "__main__":

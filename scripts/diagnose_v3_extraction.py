@@ -36,6 +36,7 @@ logging.getLogger("transformers").setLevel(logging.WARNING)
 # PyRuSH uses loguru, not stdlib logging - suppress its DEBUG spam
 try:
     from loguru import logger as _loguru_logger
+
     _loguru_logger.disable("PyRuSH")
 except ImportError:
     pass
@@ -46,8 +47,14 @@ os.environ.setdefault("TRANSFORMERS_VERBOSITY", "warning")
 
 from app.db.neo4j_client import PatientGraphClient
 from app.services.llm_usage import LLMCostConfig, LLMUsage
-from services.coding_worker.app.pipeline.llm_extractor import ExtractionError, LLMExtractor
-from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter, deduplicate_lines
+from services.coding_worker.app.pipeline.llm_extractor import (
+    ExtractionError,
+    LLMExtractor,
+)
+from services.coding_worker.app.pipeline.sentence_splitter import (
+    SentenceSplitter,
+    deduplicate_lines,
+)
 
 log = logging.getLogger("diagnose_v3")
 
@@ -58,25 +65,31 @@ def _load_deidentify():
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
     from scripts.training_v2_utils import deidentify_text
+
     return deidentify_text
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--patient-id", default="9990000001",
+        "--patient-id",
+        default="9990000001",
         help="Patient ID to diagnose. Use synthetic test IDs (999-prefix) in examples.",
     )
     parser.add_argument(
-        "--max-encounters", type=int, default=15,
+        "--max-encounters",
+        type=int,
+        default=15,
         help="Max encounters to process (default: 15).",
     )
     parser.add_argument(
-        "--no-resolve", action="store_true",
+        "--no-resolve",
+        action="store_true",
         help="Skip SNOMED resolution (faster, extraction only).",
     )
     parser.add_argument(
-        "--raw-json", action="store_true",
+        "--raw-json",
+        action="store_true",
         help="Also print the raw JSON from each LLM call.",
     )
     return parser.parse_args()
@@ -146,7 +159,11 @@ def main() -> int:
 
         log.info(
             "Processing encounter %d/%d  [%s]  date=%s  (%d chars)",
-            enc_idx + 1, len(encounters), encounter_id, date, len(encounter_text),
+            enc_idx + 1,
+            len(encounters),
+            encounter_id,
+            date,
+            len(encounter_text),
         )
 
         log.info("De-identifying text...")
@@ -157,7 +174,9 @@ def main() -> int:
         log.info("Got %d sentences", len(sentences))
 
         print("-" * 80)
-        print(f"ENCOUNTER {enc_idx + 1}/{len(encounters)}  |  ID: {encounter_id}  |  Date: {date}")
+        print(
+            f"ENCOUNTER {enc_idx + 1}/{len(encounters)}  |  ID: {encounter_id}  |  Date: {date}"
+        )
         print(f"  Sentences: {len(sentences)}  |  Chars: {len(deidentified)}")
         print("-" * 80)
         print()
@@ -176,7 +195,11 @@ def main() -> int:
             try:
                 extracted, batch_usage = extractor.extract_batch(deidentified, batch)
                 encounter_usage += batch_usage
-                log.info("LLM returned %d terms (%d tokens)", len(extracted), batch_usage.total_tokens)
+                log.info(
+                    "LLM returned %d terms (%d tokens)",
+                    len(extracted),
+                    batch_usage.total_tokens,
+                )
                 all_terms.extend(extracted)
             except ExtractionError as exc:
                 log.error("Extraction failed for batch %s: %s", batch_ids, exc)
@@ -192,8 +215,10 @@ def main() -> int:
         candidates_map = {}
 
         for sentence in sentences:
-            sentence_terms = [t for t in all_terms if t.sentence_id == sentence.sentence_id]
-            print(f"  [{sentence.sentence_id}] \"{sentence.text}\"")
+            sentence_terms = [
+                t for t in all_terms if t.sentence_id == sentence.sentence_id
+            ]
+            print(f'  [{sentence.sentence_id}] "{sentence.text}"')
 
             if not sentence_terms:
                 print("    (no terms extracted)")
@@ -216,7 +241,9 @@ def main() -> int:
                     if resolved:
                         total_resolved += 1
                         best = candidates[0]
-                        snomed_info = f"-> {best.snomed_concept_id} ({best.snomed_term})"
+                        snomed_info = (
+                            f"-> {best.snomed_concept_id} ({best.snomed_term})"
+                        )
                     else:
                         snomed_info = "-> [NO MATCH]"
 
@@ -250,9 +277,13 @@ def main() -> int:
     print(f"  Total terms extracted:   {total_terms}")
     if resolver:
         rate = (total_resolved / total_terms * 100) if total_terms else 0
-        print(f"  SNOMED resolved:         {total_resolved}/{total_terms} ({rate:.0f}%)")
+        print(
+            f"  SNOMED resolved:         {total_resolved}/{total_terms} ({rate:.0f}%)"
+        )
     span_rate = (total_span_aligned / total_terms * 100) if total_terms else 0
-    print(f"  Span-aligned:            {total_span_aligned}/{total_terms} ({span_rate:.0f}%)")
+    print(
+        f"  Span-aligned:            {total_span_aligned}/{total_terms} ({span_rate:.0f}%)"
+    )
     print(f"  Abbreviation expansions: {total_abbreviation_expanded}")
     print()
     print("  LLM Usage:")

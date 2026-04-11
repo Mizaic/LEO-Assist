@@ -46,12 +46,24 @@ def test_anchor_episode_and_safety_net_subgraphs_produce_structured_outputs():
     assert safety_result["safety_net_alerts"]
 
 
-def test_quality_compliance_nba_and_sbar_subgraphs_produce_stateful_outputs(monkeypatch):
+def test_quality_compliance_nba_and_sbar_subgraphs_produce_stateful_outputs(
+    monkeypatch,
+):
     registry = get_registry()
 
     monkeypatch.setattr(
         "libs.pipeline_graph.subgraphs.quality_check.run_global_quality_checks",
-        lambda: type("Report", (), {"to_dict": lambda self: {"total_checked": 0, "compliant_count": 0, "issues": []}})(),
+        lambda: type(
+            "Report",
+            (),
+            {
+                "to_dict": lambda self: {
+                    "total_checked": 0,
+                    "compliant_count": 0,
+                    "issues": [],
+                }
+            },
+        )(),
     )
 
     quality_graph = registry.build("quality_check")

@@ -68,7 +68,10 @@ async def invoke_llm_json(
 
     model = await get_bedrock_model()
 
-    messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_message)]
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_message),
+    ]
     if prefill_hint:
         messages.append(AIMessage(content=prefill_hint))
 
@@ -78,24 +81,38 @@ async def invoke_llm_json(
             response = await invoke_with_retry(
                 model, messages, {"max_tokens": max_tokens, "temperature": temperature}
             )
-            raw_text = response.content if hasattr(response, "content") else str(response)
+            raw_text = (
+                response.content if hasattr(response, "content") else str(response)
+            )
             if prefill_hint:
                 raw_text = prefill_hint + raw_text
 
             result = _extract_json(raw_text)
             import asyncio
-            asyncio.ensure_future(track_llm_usage(agent_task=agent_task, patient_id=patient_id, model="bedrock"))
+
+            asyncio.ensure_future(
+                track_llm_usage(
+                    agent_task=agent_task, patient_id=patient_id, model="bedrock"
+                )
+            )
             return result
         except json.JSONDecodeError as exc:
             last_error = str(exc)
             logger.warning(
                 "JSON parse failed (attempt %d/%d) for %s: %s",
-                attempt + 1, max_retries, agent_task, last_error,
+                attempt + 1,
+                max_retries,
+                agent_task,
+                last_error,
             )
             if attempt < max_retries - 1:
                 messages_retry = [
-                    SystemMessage(content=f"{system_prompt}\n\nReturn ONLY valid JSON. No prose, no markdown."),
-                    HumanMessage(content=f"{user_message}\n\nReturn a single JSON object only."),
+                    SystemMessage(
+                        content=f"{system_prompt}\n\nReturn ONLY valid JSON. No prose, no markdown."
+                    ),
+                    HumanMessage(
+                        content=f"{user_message}\n\nReturn a single JSON object only."
+                    ),
                 ]
                 if prefill_hint:
                     messages_retry.append(AIMessage(content=prefill_hint))

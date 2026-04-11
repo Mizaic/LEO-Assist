@@ -12,10 +12,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # VT-019-TC-001: TLS version configuration
 # ---------------------------------------------------------------------------
+
 
 class TestTlsConfiguration:
 
@@ -41,18 +41,22 @@ class TestTlsConfiguration:
         weak = {"RC4", "DES", "NULL", "EXPORT"}
         for cipher in approved:
             for w in weak:
-                assert w not in cipher, f"Weak cipher component '{w}' found in '{cipher}'"
+                assert (
+                    w not in cipher
+                ), f"Weak cipher component '{w}' found in '{cipher}'"
 
 
 # ---------------------------------------------------------------------------
 # VT-019-TC-002: Encryption at rest settings
 # ---------------------------------------------------------------------------
 
+
 class TestEncryptionAtRest:
 
     def test_aes_256_key_length(self):
         """AES-256 requires a 256-bit (32-byte) key."""
         import os
+
         key_bytes = os.urandom(32)
         assert len(key_bytes) == 32
 
@@ -71,6 +75,7 @@ class TestEncryptionAtRest:
 # ---------------------------------------------------------------------------
 # VT-019-TC-003: Key Vault integration
 # ---------------------------------------------------------------------------
+
 
 class TestKeyVaultIntegration:
 

@@ -10,17 +10,39 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = ROOT / "exports" / "ner" / "llm_surface_form_expand_report.json"
 DEFAULT_OUTPUT = ROOT / "exports" / "ner" / "llm_surface_form_risky_review.json"
 
 AMBIGUOUS_TOKENS = {
-    "ca", "nss", "fta", "2ww", "gi", "lgi", "ugi", "cns", "ent", "opd", "cae",
+    "ca",
+    "nss",
+    "fta",
+    "2ww",
+    "gi",
+    "lgi",
+    "ugi",
+    "cns",
+    "ent",
+    "opd",
+    "cae",
 }
 CLINICAL_CONTEXT_TOKENS = {
-    "cancer", "skin", "breast", "lung", "bowel", "cervical", "gynae", "urology",
-    "haematology", "head", "neck", "brain", "colorectal", "referral", "screening",
+    "cancer",
+    "skin",
+    "breast",
+    "lung",
+    "bowel",
+    "cervical",
+    "gynae",
+    "urology",
+    "haematology",
+    "head",
+    "neck",
+    "brain",
+    "colorectal",
+    "referral",
+    "screening",
 }
 
 
@@ -58,7 +80,9 @@ def _risk_signals(term: str, decision: dict[str, Any]) -> list[str]:
         reasons.append("contains_ambiguous_token")
 
     # 4) Generic referral phrasing without strong site/context anchor.
-    if ("referral" in tokens or "urgent" in tokens) and not any(t in CLINICAL_CONTEXT_TOKENS for t in tokens):
+    if ("referral" in tokens or "urgent" in tokens) and not any(
+        t in CLINICAL_CONTEXT_TOKENS for t in tokens
+    ):
         reasons.append("generic_referral_phrase")
 
     # 5) Weak support in report metadata.
@@ -123,7 +147,9 @@ def main() -> None:
         "items": top,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    args.output.write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(
         json.dumps(
             {

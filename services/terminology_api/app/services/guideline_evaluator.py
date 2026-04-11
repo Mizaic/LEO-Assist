@@ -164,7 +164,9 @@ class GuidelineEvaluator:
             logic_tree = rule.get("logic_tree")
             if not logic_tree:
                 return False
-            return self._logic_tree_matches(logic_tree, patient_bm, patient_age, patient_sex)
+            return self._logic_tree_matches(
+                logic_tree, patient_bm, patient_age, patient_sex
+            )
 
         applies_to = rule.get("applies_to") or []
         if applies_to and not _check_applies_to(applies_to, patient_age):
@@ -194,7 +196,9 @@ class GuidelineEvaluator:
                     "Bitmap %r for mode=%s group of rule %r is MISSING from Redis — "
                     "failing CLOSED: rule will NOT fire for this patient. "
                     "Redis data may be corrupt or evicted. Run POST /compile to rebuild.",
-                    bitmap_id, mode, rule.get("rule_id"),
+                    bitmap_id,
+                    mode,
+                    rule.get("rule_id"),
                 )
                 return False
             any_group_evaluated = True
@@ -236,18 +240,30 @@ class GuidelineEvaluator:
             return _check_demographic_node(node, patient_age, patient_sex)
         children = list(node.get("children") or [])
         if kind == "AND":
-            return all(self._logic_tree_matches(child, patient_bm, patient_age, patient_sex) for child in children)
+            return all(
+                self._logic_tree_matches(child, patient_bm, patient_age, patient_sex)
+                for child in children
+            )
         if kind == "OR":
-            return any(self._logic_tree_matches(child, patient_bm, patient_age, patient_sex) for child in children)
+            return any(
+                self._logic_tree_matches(child, patient_bm, patient_age, patient_sex)
+                for child in children
+            )
         if kind == "NOT":
             if len(children) != 1:
-                logger.error("Schema v2 NOT node %r must contain exactly one child.", node.get("node_id"))
+                logger.error(
+                    "Schema v2 NOT node %r must contain exactly one child.",
+                    node.get("node_id"),
+                )
                 return False
-            return not self._logic_tree_matches(children[0], patient_bm, patient_age, patient_sex)
+            return not self._logic_tree_matches(
+                children[0], patient_bm, patient_age, patient_sex
+            )
         if kind == "AT_LEAST":
             threshold = int(node.get("min") or 1)
             count = sum(
-                1 for child in children
+                1
+                for child in children
                 if self._logic_tree_matches(child, patient_bm, patient_age, patient_sex)
             )
             return count >= threshold
@@ -259,9 +275,9 @@ class GuidelineEvaluator:
 # the patient bitmap so sex-based HAS_CRITERIA rules fire automatically.
 _SEX_CODE: dict[str, str] = {
     "female": "248152002",
-    "f":      "248152002",
-    "male":   "248153007",
-    "m":      "248153007",
+    "f": "248152002",
+    "male": "248153007",
+    "m": "248153007",
 }
 
 # SNOMED age observable concept — used to identify age constraints in applies_to
@@ -269,10 +285,10 @@ _AGE_CONCEPT_ID = "424144002"
 
 _OPERATORS: dict[str, Callable[[float, float], bool]] = {
     ">=": lambda a, v: a >= v,
-    ">":  lambda a, v: a > v,
+    ">": lambda a, v: a > v,
     "<=": lambda a, v: a <= v,
-    "<":  lambda a, v: a < v,
-    "=":  lambda a, v: a == v,
+    "<": lambda a, v: a < v,
+    "=": lambda a, v: a == v,
 }
 
 
@@ -307,7 +323,8 @@ def _check_applies_to(
                 logger.warning(
                     "Age constraint (%s %s years) cannot be evaluated — "
                     "patient_age not supplied; failing CLOSED (rule will not fire).",
-                    operator, value,
+                    operator,
+                    value,
                 )
                 return False
             op_fn = _OPERATORS.get(operator or ">=")
@@ -315,7 +332,8 @@ def _check_applies_to(
                 logger.error(
                     "Unrecognised age constraint operator %r (value=%r) — "
                     "failing CLOSED: rule will not fire.",
-                    operator, value,
+                    operator,
+                    value,
                 )
                 return False
             if not op_fn(patient_age, value):
@@ -328,7 +346,10 @@ def _check_applies_to(
                 "(operator=%r, value=%r) — failing CLOSED: rule will NOT fire "
                 "for any patient until this constraint type is implemented. "
                 "Add handling for concept %r in _check_applies_to.",
-                concept_id, operator, value, concept_id,
+                concept_id,
+                operator,
+                value,
+                concept_id,
             )
             return False
 
@@ -354,15 +375,23 @@ def _check_demographic_node(
             return False
         op_fn = _OPERATORS.get(operator)
         if op_fn is None or value is None:
-            logger.error("Invalid age logic node operator/value (%r, %r) — failing CLOSED.", operator, value)
+            logger.error(
+                "Invalid age logic node operator/value (%r, %r) — failing CLOSED.",
+                operator,
+                value,
+            )
             return False
         return op_fn(patient_age, float(value))
     if field == "sex":
         if not patient_sex:
-            logger.warning("Sex logic node cannot be evaluated — patient_sex not supplied; failing CLOSED.")
+            logger.warning(
+                "Sex logic node cannot be evaluated — patient_sex not supplied; failing CLOSED."
+            )
             return False
         if operator != "=":
-            logger.error("Unsupported sex logic node operator %r — failing CLOSED.", operator)
+            logger.error(
+                "Unsupported sex logic node operator %r — failing CLOSED.", operator
+            )
             return False
         return patient_sex.lower().strip() == str(value or "").lower().strip()
     logger.error("Unknown demographic field %r — failing CLOSED.", field)
@@ -383,13 +412,13 @@ def _format_match(rule: dict) -> dict:
         or ``null`` for routine actions.
     """
     return {
-        "rule_id":                 rule["rule_id"],
-        "name":                    rule.get("name"),
-        "strength":                rule.get("strength"),
-        "guideline_id":            rule.get("guideline_id"),
-        "guideline_title":         rule.get("guideline_title"),
-        "chapter_title":           rule.get("chapter_title"),
+        "rule_id": rule["rule_id"],
+        "name": rule.get("name"),
+        "strength": rule.get("strength"),
+        "guideline_id": rule.get("guideline_id"),
+        "guideline_title": rule.get("guideline_title"),
+        "chapter_title": rule.get("chapter_title"),
         "recommendation_verbatim": rule.get("recommendation_verbatim"),
-        "action":                  rule.get("action"),
-        "confidence":              1.0,
+        "action": rule.get("action"),
+        "confidence": 1.0,
     }

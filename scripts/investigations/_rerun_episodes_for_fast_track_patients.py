@@ -14,6 +14,7 @@ Run:
     # Different domain:
     python scripts/investigations/_rerun_episodes_for_fast_track_patients.py --domain-id my_domain
 """
+
 from __future__ import annotations
 
 import argparse
@@ -38,13 +39,16 @@ load_keyvault_secrets()
 logging.basicConfig(level=logging.WARNING)
 
 INVENTORY = (
-    ROOT / "scripts" / "investigations" / "encounter_audit"
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
     / "fast_track_specialist_encounters.jsonl"
 )
 
 # Wide date window to capture all historical encounters
 _START_DATE = "2010-01-01"
-_END_DATE   = "2030-12-31"
+_END_DATE = "2030-12-31"
 
 
 def _load_patient_ids() -> list[str]:
@@ -108,7 +112,9 @@ async def main(domain_id: str) -> None:
 
     print("Loading domain registry ...")
     registry = _load_registry(domain_id)
-    print(f"Registry loaded. Milestone types: {list(registry.get_milestone_domains().keys())}")
+    print(
+        f"Registry loaded. Milestone types: {list(registry.get_milestone_domains().keys())}"
+    )
     print()
 
     patient_client = PatientGraphClient()
@@ -118,7 +124,9 @@ async def main(domain_id: str) -> None:
         for i, patient_id in enumerate(patient_ids, 1):
             print(f"[{i}/{len(patient_ids)}] Patient {patient_id} ...")
             try:
-                result = await _run_patient(patient_id, registry, patient_client, domain_id)
+                result = await _run_patient(
+                    patient_id, registry, patient_client, domain_id
+                )
                 summary.append(result)
                 print(
                     f"  Referrals={result['referral_anchors']}  "

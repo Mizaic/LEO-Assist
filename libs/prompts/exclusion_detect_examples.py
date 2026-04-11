@@ -53,7 +53,6 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "cancer_excluded", "confidence": 0.96, "evidence_text": "TRUS biopsy: all cores benign. No malignancy.", "reasoning": "TRUS biopsy confirmed all cores benign with explicit no malignancy; prostate cancer excluded."}',
     },
-
     # ── Cancer confirmed ──────────────────────────────────────────────────────
     {
         "category": "exclusion:cancer-confirmed",
@@ -77,7 +76,6 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "cancer_confirmed", "confidence": 0.97, "evidence_text": "NSCLC right upper lobe, T3 N2 M0. Referred for radical radiotherapy.", "reasoning": "MDT confirms non-small cell lung cancer with staging; referral for radical radiotherapy confirms active cancer management."}',
     },
-
     # ── Still investigating ───────────────────────────────────────────────────
     {
         "category": "exclusion:still-investigating",
@@ -101,7 +99,6 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "still_investigating", "confidence": 0.82, "evidence_text": "Seen in fast track clinic. CT colonoscopy performed today. Results to follow.", "reasoning": "Clinic attendance documented and investigation performed but no result yet; still awaiting outcome."}',
     },
-
     # ── Pending letter ────────────────────────────────────────────────────────
     {
         "category": "exclusion:pending-letter",
@@ -123,7 +120,6 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "pending_letter", "confidence": 0.80, "evidence_text": "Discharge summary received from City Hospital haematology. Filed to record.", "reasoning": "Haematology discharge summary filed without quoted content; outcome determination requires reading the document."}',
     },
-
     # ── Not relevant ──────────────────────────────────────────────────────────
     {
         "category": "exclusion:not-relevant",
@@ -155,7 +151,6 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "not_relevant", "confidence": 0.88, "evidence_text": "Bowel cancer screening programme - invitation sent. No response recorded.", "reasoning": "Screening invitation without results does not represent a post-referral pathway outcome."}',
     },
-
     # ── Conservative: borderline ──────────────────────────────────────────────
     {
         "category": "exclusion:conservative",
@@ -171,7 +166,9 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
 ]
 
 
-def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+def _apply_core_by_first_category(
+    examples: list[dict], core_categories: set[str]
+) -> None:
     seen: set[str] = set()
     for example in examples:
         category = str(example.get("category", ""))

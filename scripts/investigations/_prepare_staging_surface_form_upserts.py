@@ -12,8 +12,12 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-MISSED_FILE = ROOT / "scripts" / "investigations" / "output" / "staging_surface_form_scan.json"
-DESC_FILE = ROOT / "scripts" / "investigations" / "output" / "descendants_399566009.json"
+MISSED_FILE = (
+    ROOT / "scripts" / "investigations" / "output" / "staging_surface_form_scan.json"
+)
+DESC_FILE = (
+    ROOT / "scripts" / "investigations" / "output" / "descendants_399566009.json"
+)
 OUT_FILE = (
     ROOT
     / "scripts"
@@ -34,7 +38,9 @@ _M_RE = re.compile(r"^[cpyr]?m[0-1](?:[a-c])?$", re.IGNORECASE)
 def _desc_map() -> dict[str, str]:
     rows = json.loads(DESC_FILE.read_text(encoding="utf-8"))
     out = {str(r["concept_id"]): str(r["preferred_term"]) for r in rows}
-    out.setdefault("399566009", "Tumor-node-metastasis (TNM) category (observable entity)")
+    out.setdefault(
+        "399566009", "Tumor-node-metastasis (TNM) category (observable entity)"
+    )
     return out
 
 
@@ -121,7 +127,11 @@ def main() -> None:
     OUT_FILE.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     compiled_out = OUT_FILE.with_name("staging_surface_form_upserts_compiled.json")
     compiled_out.write_text(
-        json.dumps(sorted(compiled.values(), key=lambda r: r["surface_form"].lower()), indent=2, ensure_ascii=False),
+        json.dumps(
+            sorted(compiled.values(), key=lambda r: r["surface_form"].lower()),
+            indent=2,
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
     print(f"Wrote {OUT_FILE} ({len(out)} rows)")

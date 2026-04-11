@@ -3,6 +3,7 @@
 Equivalent to POST /training/labels/verify-all with mode=all, reset_pending=true
 but invoked directly without needing the API server running.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 # Ensure TERMINOLOGY_API_URL is set (the verifier needs the terminology service)
@@ -18,6 +20,7 @@ term_url = os.getenv("TERMINOLOGY_API_URL", "")
 if not term_url:
     print("WARNING: TERMINOLOGY_API_URL not set. Checking common ports...")
     import socket
+
     for port in [8001, 8002]:
         try:
             s = socket.create_connection(("localhost", port), timeout=2)
@@ -38,8 +41,11 @@ from services.api.app.services.label_verifier import (
 )
 
 import argparse
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--mode", default="resume", choices=["all", "resume", "hitl_only", "re_extract"])
+parser.add_argument(
+    "--mode", default="resume", choices=["all", "resume", "hitl_only", "re_extract"]
+)
 args = parser.parse_args()
 
 print(f"Starting label verification (mode={args.mode}, reset_pending=false)...")
@@ -55,6 +61,7 @@ print("Verification running in foreground. This will take 30-60 minutes...")
 print("Progress will be logged below.\n")
 
 import logging
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",

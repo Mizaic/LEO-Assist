@@ -6,6 +6,7 @@ remission in this cohort, not cancer remission.
 Run:
     python scripts/investigations/_pin_no_cancer_surface_forms.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -15,9 +16,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from libs.auth.service_auth import get_service_auth_header
 import requests
@@ -27,7 +30,7 @@ SESSION.headers.update(get_service_auth_header())
 BASE = "http://localhost:8001"
 
 TARGET_CONCEPT = "395100000"
-TARGET_NAME    = "No evidence of cancer found (situation)"
+TARGET_NAME = "No evidence of cancer found (situation)"
 
 # Phrases that need surface form pins to 395100000 (No evidence of cancer found).
 # These are all EXCLUSION phrases -- cancer was investigated and NOT found.
@@ -103,14 +106,15 @@ PINS = [
 
 def _upsert(form: str) -> tuple[bool, int]:
     from libs.terminology.surface_normalize import normalize_surface
+
     norm = normalize_surface(form)
     payload = {
-        "form":        form,
-        "normalized":  norm,
-        "concept_id":  TARGET_CONCEPT,
-        "confidence":  1.0,
-        "source":      "manual",
-        "provenance":  "no-cancer-phrase-audit-2026-04-06",
+        "form": form,
+        "normalized": norm,
+        "concept_id": TARGET_CONCEPT,
+        "confidence": 1.0,
+        "source": "manual",
+        "provenance": "no-cancer-phrase-audit-2026-04-06",
     }
     r = SESSION.post(
         f"{BASE}/terminology/surface-forms/upsert-mapping",
@@ -123,7 +127,7 @@ def _upsert(form: str) -> tuple[bool, int]:
 def main() -> None:
     print(f"Pinning {len(PINS)} surface forms -> {TARGET_CONCEPT} ({TARGET_NAME})")
     print()
-    ok_count   = 0
+    ok_count = 0
     fail_count = 0
     for form in PINS:
         ok, code = _upsert(form)

@@ -48,8 +48,9 @@ except Exception:  # pragma: no cover - compatibility for tests/import-only call
     DEDUPLICATE_SURFACE_FORM_RELS = ""
     AUDIT_SURFACE_FORM_DUPLICATES = ""
 from libs.cypher.terminology_queries import SEMANTIC_TAGS_QUERY
-from services.terminology_api.app.services.writeback_service import writeback_approved_terms
-
+from services.terminology_api.app.services.writeback_service import (
+    writeback_approved_terms,
+)
 
 router = APIRouter(prefix="/terminology", tags=["terminology"])
 
@@ -100,7 +101,10 @@ def trigger_writeback(body: WritebackRequest | None = None):
     patient_client = PatientGraphClient()
     coding_client = CodingGraphClient()
     try:
-        with patient_client.session() as patient_session, coding_client.session() as coding_session:
+        with (
+            patient_client.session() as patient_session,
+            coding_client.session() as coding_session,
+        ):
             result = writeback_approved_terms(
                 patient_session=patient_session,
                 knowledge_session=coding_session,
@@ -115,7 +119,9 @@ def trigger_writeback(body: WritebackRequest | None = None):
 @router.get("/surface-forms")
 def list_surface_forms(
     q: Optional[str] = Query(default=None, description="Filter by form text"),
-    concept_id: Optional[str] = Query(default=None, description="Filter by SNOMED concept ID"),
+    concept_id: Optional[str] = Query(
+        default=None, description="Filter by SNOMED concept ID"
+    ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
@@ -170,6 +176,7 @@ def upsert_surface_form_mapping(
         )
         if not rows:
             from fastapi import HTTPException
+
             raise HTTPException(404, f"Concept {body.concept_id} not found")
         return rows[0]
     finally:
@@ -178,7 +185,9 @@ def upsert_surface_form_mapping(
 
 @router.get("/surface-forms/grouped")
 def list_grouped_surface_forms(
-    q: Optional[str] = Query(default=None, description="Filter by surface form text or concept name"),
+    q: Optional[str] = Query(
+        default=None, description="Filter by surface form text or concept name"
+    ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
@@ -209,13 +218,29 @@ def delete_surface_form(
     client = CodingGraphClient()
     try:
         if concept_id:
-            rows = client.run(DELETE_SURFACE_FORM_MAPPING, normalized=normalized, concept_id=concept_id)
+            rows = client.run(
+                DELETE_SURFACE_FORM_MAPPING,
+                normalized=normalized,
+                concept_id=concept_id,
+            )
             removed = rows[0]["removed"] if rows else 0
-            return {"normalized": normalized, "concept_id": concept_id, "removed": removed}
+            return {
+                "normalized": normalized,
+                "concept_id": concept_id,
+                "removed": removed,
+            }
         if keep_concept_id:
-            rows = client.run(KEEP_SURFACE_FORM_MAPPING, normalized=normalized, keep_concept_id=keep_concept_id)
+            rows = client.run(
+                KEEP_SURFACE_FORM_MAPPING,
+                normalized=normalized,
+                keep_concept_id=keep_concept_id,
+            )
             removed = rows[0]["removed"] if rows else 0
-            return {"normalized": normalized, "kept_concept_id": keep_concept_id, "removed": removed}
+            return {
+                "normalized": normalized,
+                "kept_concept_id": keep_concept_id,
+                "removed": removed,
+            }
         client.run(DELETE_SURFACE_FORM, normalized=normalized)
         return {"deleted": normalized}
     finally:
@@ -257,7 +282,9 @@ def get_descendants(
     query = DESCENDANTS_TEMPLATE.format(depth=int(depth))
     client = CodingGraphClient()
     try:
-        return client.run(query, concept_id=concept_id, semantic_tag=semantic_tag, limit=limit)
+        return client.run(
+            query, concept_id=concept_id, semantic_tag=semantic_tag, limit=limit
+        )
     finally:
         client.close()
 
@@ -281,6 +308,7 @@ def suggest_aliases_for_concept(
 
     if not rows:
         from fastapi import HTTPException
+
         raise HTTPException(404, f"Concept {concept_id} not found or inactive")
 
     row = rows[0]
@@ -289,9 +317,7 @@ def suggest_aliases_for_concept(
     existing: list[str] = row.get("existing_aliases") or []
     existing_lower = {e.lower() for e in existing}
 
-    existing_list = (
-        ", ".join(f'"{e}"' for e in existing) if existing else "none yet"
-    )
+    existing_list = ", ".join(f'"{e}"' for e in existing) if existing else "none yet"
 
     system_prompt = (
         "You are a UK primary care clinical terminology assistant. "
@@ -325,10 +351,13 @@ def suggest_aliases_for_concept(
         suggestions = [
             s.strip()
             for s in raw
-            if isinstance(s, str) and s.strip() and s.strip().lower() not in existing_lower
+            if isinstance(s, str)
+            and s.strip()
+            and s.strip().lower() not in existing_lower
         ]
         return {"suggestions": suggestions[:10], "concept_id": concept_id}
     except Exception as exc:  # noqa: BLE001
         import logging
+
         logging.getLogger(__name__).warning("suggest-aliases LLM error: %s", exc)
         return {"suggestions": [], "concept_id": concept_id}

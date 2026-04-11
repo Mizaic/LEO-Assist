@@ -71,19 +71,22 @@ def calculate_cci(
             name = (row.get("concept_name") or "").lower()
             for condition, weight in CCI_WEIGHTS.items():
                 if condition in name:
-                    matched.append({
-                        "condition": condition,
-                        "weight": weight,
-                        "concept_name": row.get("concept_name"),
-                        "concept_id": row.get("concept_id"),
-                    })
+                    matched.append(
+                        {
+                            "condition": condition,
+                            "weight": weight,
+                            "concept_name": row.get("concept_name"),
+                            "concept_id": row.get("concept_id"),
+                        }
+                    )
                     score += weight
                     break
 
         # Persist to patient node
         client.run(
             "MATCH (p:Patient) WHERE toString(p.id) = $pid SET p.cci_score = $score",
-            pid=patient_id, score=score,
+            pid=patient_id,
+            score=score,
         )
 
         return {

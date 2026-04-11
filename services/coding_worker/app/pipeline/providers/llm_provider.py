@@ -15,5 +15,7 @@ class LLMExtractorProvider:
     def is_available(self) -> bool:
         return bool(self._extractor.is_available())
 
-    def extract_batch(self, encounter_text: str, sentences: list) -> list[ExtractionItem]:
+    def extract_batch(
+        self, encounter_text: str, sentences: list
+    ) -> list[ExtractionItem]:
         return self._extractor.extract_batch(encounter_text, sentences)

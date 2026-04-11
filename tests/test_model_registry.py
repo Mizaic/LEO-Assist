@@ -19,10 +19,10 @@ import pytest
 
 from libs.model_registry.registry import ModelRecord, ModelRegistry, ModelStatus
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_record(**kwargs) -> ModelRecord:
     defaults = dict(
@@ -40,6 +40,7 @@ def _make_record(**kwargs) -> ModelRecord:
 # ---------------------------------------------------------------------------
 # Registry lifecycle
 # ---------------------------------------------------------------------------
+
 
 def test_register_and_get():
     reg = ModelRegistry()
@@ -147,6 +148,7 @@ def test_rollback():
 # CompatibilityGate
 # ---------------------------------------------------------------------------
 
+
 def _write_manifest(path: Path, **overrides) -> None:
     manifest = {
         "schema_version": "1.0",
@@ -194,7 +196,7 @@ def test_compatibility_gate_fails_schema_mismatch():
         gate = CompatibilityGate()
         result = gate.check(
             manifest_path=manifest_path,
-            model_schema_version="2.0",   # mismatch
+            model_schema_version="2.0",  # mismatch
             model_deid_version="1.0",
             model_label_mapping_version="1.0",
             model_dataset_version="20260101",
@@ -241,6 +243,7 @@ def test_compatibility_gate_missing_manifest():
 # TrainingAdapter
 # ---------------------------------------------------------------------------
 
+
 def test_training_adapter_converts_record():
     from libs.model_registry.training_adapter import TrainingAdapter, TrainingRecord
 
@@ -248,7 +251,8 @@ def test_training_adapter_converts_record():
         text="Referred for suspected colorectal cancer",
         entities=[
             {
-                "start": 12, "end": 40,
+                "start": 12,
+                "end": 40,
                 "label": "FAST_TRACK_REFERRAL",
                 "text": "suspected colorectal cancer",
                 "assertion": "present",

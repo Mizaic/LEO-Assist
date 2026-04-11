@@ -10,7 +10,10 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from services.fhir_api.app.services import benchmark_service
-from services.fhir_api.app.services.benchmark_loader import flatten_benchmarks, infer_structure
+from services.fhir_api.app.services.benchmark_loader import (
+    flatten_benchmarks,
+    infer_structure,
+)
 
 router = APIRouter()
 
@@ -22,7 +25,9 @@ def list_benchmark_sets(
     _offset: int = Query(default=0, alias="_offset"),
 ):
     """List benchmark sets."""
-    return benchmark_service.list_benchmark_sets(source=source, limit=_count, offset=_offset)
+    return benchmark_service.list_benchmark_sets(
+        source=source, limit=_count, offset=_offset
+    )
 
 
 @router.post("/sets")
@@ -129,7 +134,9 @@ def upload_benchmarks(body: Dict[str, Any]):
         audit_id=audit_id,
     )
     if not values:
-        raise HTTPException(400, "No benchmark values extracted. Check template or mapping.")
+        raise HTTPException(
+            400, "No benchmark values extracted. Check template or mapping."
+        )
 
     audit_id = audit_id or values[0].get("audit_id", "uploaded")
     if not benchmark_service.get_benchmark_set(audit_id):

@@ -15,6 +15,7 @@ GET    /operations/quality/config             -- LoopConfig nodes
 PATCH  /operations/quality/config/{loop_id}  -- toggle loop on/off
 POST   /operations/quality/runs/escalation-check -- run escalation logic
 """
+
 from __future__ import annotations
 
 import logging
@@ -243,7 +244,9 @@ def trigger_audit_run(
     run_id = f"audit-manual-{uuid.uuid4().hex[:8]}"
     logger.info(
         "Audit run triggered by %s: run_id=%s since_days=%d",
-        scope.email, run_id, body.since_days,
+        scope.email,
+        run_id,
+        body.since_days,
     )
     return {
         "run_id": run_id,
@@ -272,9 +275,17 @@ def get_latest_audit_run(
             return {"run": None, "drift_metric": None}
         data = _row_to_dict(row)
         run_keys = {
-            "run_id", "status", "since_date", "until_date",
-            "encounter_count", "pct_clean", "critical_count",
-            "triggered_by", "started_at", "completed_at", "cost_usd",
+            "run_id",
+            "status",
+            "since_date",
+            "until_date",
+            "encounter_count",
+            "pct_clean",
+            "critical_count",
+            "triggered_by",
+            "started_at",
+            "completed_at",
+            "cost_usd",
         }
         run = {k: data[k] for k in run_keys if k in data}
         drift = {k: data[k] for k in data if k not in run_keys}
@@ -309,6 +320,7 @@ def trigger_escalation_check(
 ) -> dict[str, Any]:
     """Run escalation check against all unacknowledged alerts."""
     from libs.audit.escalation import run_escalation_check
+
     client = _neo_client()
     try:
         result = run_escalation_check(client)
@@ -328,7 +340,9 @@ def get_audit_run(
         with client.session() as session:
             row = session.run(_Q_GET_RUN, run_id=run_id).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"AuditRun {run_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"AuditRun {run_id!r} not found"
+            )
         return _row_to_dict(row)
     finally:
         client.close()
@@ -347,6 +361,7 @@ def get_drift_metrics(
 ) -> dict[str, Any]:
     """Return last N weeks of DriftMetric nodes filtered by metric_type."""
     from datetime import date, timedelta
+
     since_week = (date.today() - timedelta(weeks=weeks)).isoformat()
     client = _neo_client()
     try:
@@ -423,7 +438,9 @@ def acknowledge_alert(
             )
         logger.info(
             "Alert %s acknowledged by %s (via %s)",
-            alert_id, row["acknowledged_by"], scope.email,
+            alert_id,
+            row["acknowledged_by"],
+            scope.email,
         )
         return {
             "alert_id": row["alert_id"],
@@ -493,7 +510,9 @@ def update_loop_config(
             )
         logger.info(
             "LoopConfig %s.enabled set to %s by %s",
-            loop_id, body.enabled, scope.email,
+            loop_id,
+            body.enabled,
+            scope.email,
         )
         return {
             "loop_id": row["loop_id"],

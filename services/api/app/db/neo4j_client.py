@@ -17,7 +17,10 @@ from neo4j.exceptions import (
 )
 
 from app.config import get_settings
-from app.models.neo4j_schema import CODING_SCHEMA_CONSTRAINTS, PATIENT_SCHEMA_CONSTRAINTS
+from app.models.neo4j_schema import (
+    CODING_SCHEMA_CONSTRAINTS,
+    PATIENT_SCHEMA_CONSTRAINTS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +48,13 @@ def run_with_retry(
             last_exc = exc
             if attempt == _MAX_RETRIES - 1:
                 raise
-            delay = min(_MAX_DELAY, _BASE_DELAY * (2 ** attempt)) + random.uniform(0, 0.5)
+            delay = min(_MAX_DELAY, _BASE_DELAY * (2**attempt)) + random.uniform(0, 0.5)
             logger.warning(
                 "Neo4j transient error (attempt %d/%d): %s — retrying in %.1fs",
-                attempt + 1, _MAX_RETRIES, exc, delay,
+                attempt + 1,
+                _MAX_RETRIES,
+                exc,
+                delay,
             )
             time.sleep(delay)
     if last_exc is not None:

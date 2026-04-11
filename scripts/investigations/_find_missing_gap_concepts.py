@@ -1,4 +1,5 @@
 """Find correct concept IDs for CA125, gallbladder, and soft tissue lump."""
+
 import os
 import sys
 from pathlib import Path
@@ -7,9 +8,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase  # noqa: E402
 
@@ -32,8 +35,9 @@ SEARCHES = [
 driver = GraphDatabase.driver(uri, auth=(user, pwd))
 with driver.session() as s:
     for label, kw in SEARCHES:
-        rows = list(s.run(
-            """
+        rows = list(
+            s.run(
+                """
             MATCH (c:Concept)
             WHERE toLower(c.fsn) CONTAINS toLower($kw)
             AND c.semantic_tag IN ['finding','disorder','observable entity']
@@ -41,8 +45,9 @@ with driver.session() as s:
             ORDER BY c.fsn
             LIMIT 6
             """,
-            kw=kw,
-        ))
+                kw=kw,
+            )
+        )
         if rows:
             print(f"\n  [{label}] keyword={kw!r}")
             for r in rows:

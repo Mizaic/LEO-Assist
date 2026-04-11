@@ -28,10 +28,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _ROOT = Path(__file__).resolve().parent.parent
 from dotenv import load_dotenv
+
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_ROOT / "secrets" / ".env", override=False)
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception:
     pass
@@ -121,7 +123,10 @@ ACTIVITY_DEFINITIONS = [
         "dynamicValue": [
             {"path": "model_tier", "expression": {"expression": "small"}},
             {"path": "prompt_config_id", "expression": {"expression": ""}},
-            {"path": "prompt_config_name", "expression": {"expression": "extraction_check"}},
+            {
+                "path": "prompt_config_name",
+                "expression": {"expression": "extraction_check"},
+            },
             {"path": "prompt_config_version", "expression": {"expression": "1"}},
         ],
     },
@@ -135,7 +140,10 @@ ACTIVITY_DEFINITIONS = [
         "dynamicValue": [
             {"path": "model_tier", "expression": {"expression": "small"}},
             {"path": "prompt_config_id", "expression": {"expression": ""}},
-            {"path": "prompt_config_name", "expression": {"expression": "coding_check"}},
+            {
+                "path": "prompt_config_name",
+                "expression": {"expression": "coding_check"},
+            },
             {"path": "prompt_config_version", "expression": {"expression": "1"}},
         ],
     },
@@ -180,7 +188,10 @@ ACTIVITY_DEFINITIONS = [
         "description": "Validate SNOMED mapping against extracted surface forms and create review tasks for low-confidence mismatches",
         "_subgraphId": "surface_form_validation",
         "dynamicValue": [
-            {"path": "surface_form_validation_threshold", "expression": {"expression": "0.9"}},
+            {
+                "path": "surface_form_validation_threshold",
+                "expression": {"expression": "0.9"},
+            },
         ],
     },
     {
@@ -264,7 +275,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 1,
                 "_subgraphId": "extraction",
                 "definitionCanonical": "ActivityDefinition/ad-extraction-ner",
-                "relatedAction": [{"actionId": "act-load-encounter", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-load-encounter", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-post-process",
@@ -272,7 +285,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 2,
                 "_subgraphId": "post_processing",
                 "definitionCanonical": "ActivityDefinition/ad-post-processing",
-                "relatedAction": [{"actionId": "act-extract", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-extract", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-extraction-check",
@@ -280,7 +295,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 3,
                 "_subgraphId": "extraction_check",
                 "definitionCanonical": "ActivityDefinition/ad-extraction-check",
-                "relatedAction": [{"actionId": "act-post-process", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-post-process", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-terminology",
@@ -288,7 +305,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 4,
                 "_subgraphId": "terminology",
                 "definitionCanonical": "ActivityDefinition/ad-terminology",
-                "relatedAction": [{"actionId": "act-extraction-check", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-extraction-check", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-coding-check",
@@ -296,7 +315,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 5,
                 "_subgraphId": "coding_check",
                 "definitionCanonical": "ActivityDefinition/ad-coding-check",
-                "relatedAction": [{"actionId": "act-terminology", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-terminology", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-tier-classify",
@@ -304,7 +325,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 6,
                 "_subgraphId": "tier_classify",
                 "definitionCanonical": "ActivityDefinition/ad-tier-classify",
-                "relatedAction": [{"actionId": "act-coding-check", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-coding-check", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-persist",
@@ -312,7 +335,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 7,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-both",
-                "relatedAction": [{"actionId": "act-tier-classify", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-tier-classify", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-anchor",
@@ -320,7 +345,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 8,
                 "_subgraphId": "anchor_detect",
                 "definitionCanonical": "ActivityDefinition/ad-anchor-detect",
-                "relatedAction": [{"actionId": "act-persist", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-persist", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-episode",
@@ -328,7 +355,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 9,
                 "_subgraphId": "episode_build",
                 "definitionCanonical": "ActivityDefinition/ad-episode-build",
-                "relatedAction": [{"actionId": "act-anchor", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-anchor", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-safety-net",
@@ -336,7 +365,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 10,
                 "_subgraphId": "safety_net",
                 "definitionCanonical": "ActivityDefinition/ad-safety-net",
-                "relatedAction": [{"actionId": "act-episode", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-episode", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-quality",
@@ -344,7 +375,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 11,
                 "_subgraphId": "quality_check",
                 "definitionCanonical": "ActivityDefinition/ad-quality-check",
-                "relatedAction": [{"actionId": "act-safety-net", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-safety-net", "relationship": "after-end"}
+                ],
             },
         ],
     },
@@ -369,7 +402,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 1,
                 "_subgraphId": "post_processing",
                 "definitionCanonical": "ActivityDefinition/ad-post-processing",
-                "relatedAction": [{"actionId": "act-ref-extract", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-ref-extract", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-ref-terminology",
@@ -377,7 +412,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 2,
                 "_subgraphId": "terminology",
                 "definitionCanonical": "ActivityDefinition/ad-terminology",
-                "relatedAction": [{"actionId": "act-ref-post-process", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-ref-post-process", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-ref-compliance",
@@ -385,7 +422,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 3,
                 "_subgraphId": "compliance",
                 "definitionCanonical": "ActivityDefinition/ad-compliance",
-                "relatedAction": [{"actionId": "act-ref-terminology", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-ref-terminology", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-ref-sbar",
@@ -393,7 +432,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 4,
                 "_subgraphId": "sbar",
                 "definitionCanonical": "ActivityDefinition/ad-sbar",
-                "relatedAction": [{"actionId": "act-ref-compliance", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-ref-compliance", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-ref-nba",
@@ -401,7 +442,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 5,
                 "_subgraphId": "next_best_action",
                 "definitionCanonical": "ActivityDefinition/ad-next-best-action",
-                "relatedAction": [{"actionId": "act-ref-sbar", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-ref-sbar", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-ref-persist",
@@ -409,7 +452,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 6,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-patient",
-                "relatedAction": [{"actionId": "act-ref-nba", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-ref-nba", "relationship": "after-end"}
+                ],
             },
         ],
     },
@@ -434,7 +479,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 1,
                 "_subgraphId": "post_processing",
                 "definitionCanonical": "ActivityDefinition/ad-post-processing",
-                "relatedAction": [{"actionId": "act-gold-extract", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-gold-extract", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-gold-verify",
@@ -442,7 +489,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 2,
                 "_subgraphId": "verification",
                 "definitionCanonical": "ActivityDefinition/ad-verification",
-                "relatedAction": [{"actionId": "act-gold-post-process", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-gold-post-process", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-gold-terminology",
@@ -450,7 +499,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 3,
                 "_subgraphId": "terminology",
                 "definitionCanonical": "ActivityDefinition/ad-terminology",
-                "relatedAction": [{"actionId": "act-gold-verify", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-gold-verify", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-gold-persist",
@@ -458,7 +509,12 @@ PLAN_DEFINITIONS = [
                 "_sequence": 5,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-training",
-                "relatedAction": [{"actionId": "act-gold-surface-form-validation", "relationship": "after-end"}],
+                "relatedAction": [
+                    {
+                        "actionId": "act-gold-surface-form-validation",
+                        "relationship": "after-end",
+                    }
+                ],
             },
             {
                 "id": "act-gold-surface-form-validation",
@@ -466,7 +522,9 @@ PLAN_DEFINITIONS = [
                 "_sequence": 4,
                 "_subgraphId": "surface_form_validation",
                 "definitionCanonical": "ActivityDefinition/ad-surface-form-validation",
-                "relatedAction": [{"actionId": "act-gold-terminology", "relationship": "after-end"}],
+                "relatedAction": [
+                    {"actionId": "act-gold-terminology", "relationship": "after-end"}
+                ],
             },
         ],
     },
@@ -524,13 +582,15 @@ def _to_ui_format(pd_def: dict) -> dict:
                 except ValueError:
                     pass
 
-        ui_actions.append({
-            "id": act["id"],
-            "subgraphId": act.get("_subgraphId", ""),
-            "label": act.get("title", act.get("_subgraphId", "")),
-            "position": {"x": 250, "y": 80 + i * 160},
-            "config": config,
-        })
+        ui_actions.append(
+            {
+                "id": act["id"],
+                "subgraphId": act.get("_subgraphId", ""),
+                "label": act.get("title", act.get("_subgraphId", "")),
+                "position": {"x": 250, "y": 80 + i * 160},
+                "config": config,
+            }
+        )
 
         for rel in act.get("relatedAction", []):
             source_id = rel.get("actionId", "")
@@ -629,7 +689,9 @@ LIMIT 1
 def _wire_extraction_prompt_config(client) -> None:
     rows = client.run(GET_PROMPT_CONFIG_EXTRACTION)
     if not rows:
-        logger.info("[Seed] PromptConfig extraction v1 not found; keeping prompt_config_id empty.")
+        logger.info(
+            "[Seed] PromptConfig extraction v1 not found; keeping prompt_config_id empty."
+        )
         return
     prompt_config_id = str(rows[0].get("id") or "").strip()
     if not prompt_config_id:
@@ -661,19 +723,34 @@ def seed_with_client(client, *, force: bool = False) -> None:
     overwriting user-modified pipelines.
     """
     try:
-        client.run("CREATE CONSTRAINT plan_def_id IF NOT EXISTS FOR (pd:PlanDefinition) REQUIRE pd.id IS UNIQUE")
-        client.run("CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE")
-        client.run("CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE")
+        client.run(
+            "CREATE CONSTRAINT plan_def_id IF NOT EXISTS FOR (pd:PlanDefinition) REQUIRE pd.id IS UNIQUE"
+        )
+        client.run(
+            "CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE"
+        )
+        client.run(
+            "CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE"
+        )
 
         _wire_extraction_prompt_config(client)
 
         for ad in ACTIVITY_DEFINITIONS:
             dv = ad.get("dynamicValue", [])
-            dv_json = json.dumps({v["path"]: v.get("expression", {}).get("expression") for v in dv}) if dv else None
+            dv_json = (
+                json.dumps(
+                    {v["path"]: v.get("expression", {}).get("expression") for v in dv}
+                )
+                if dv
+                else None
+            )
             client.run(
                 UPSERT_ACTIVITY,
-                id=ad["id"], raw=json.dumps(ad), name=ad["name"],
-                status=ad["status"], subgraph_id=ad.get("_subgraphId", ""),
+                id=ad["id"],
+                raw=json.dumps(ad),
+                name=ad["name"],
+                status=ad["status"],
+                subgraph_id=ad.get("_subgraphId", ""),
                 dynamic_values=dv_json,
             )
 
@@ -688,23 +765,36 @@ def seed_with_client(client, *, force: bool = False) -> None:
                 "seeded": True,
                 "seededBy": "scripts/seed_plan_definitions.py",
             }
-            client.run(UPSERT_PLAN, id=pd["id"], raw=json.dumps(ui_pd), name=pd["name"], status=pd["status"])
+            client.run(
+                UPSERT_PLAN,
+                id=pd["id"],
+                raw=json.dumps(ui_pd),
+                name=pd["name"],
+                status=pd["status"],
+            )
             client.run(CLEAR_ACTIONS, id=pd["id"])
             for action in pd.get("action", []):
                 trigger = (action.get("trigger") or [{}])[0]
                 definition_ref = action.get("definitionCanonical", "")
-                related_ids = [r.get("actionId", "") for r in (action.get("relatedAction") or [])]
+                related_ids = [
+                    r.get("actionId", "") for r in (action.get("relatedAction") or [])
+                ]
                 client.run(
                     CREATE_ACTION,
-                    plan_id=pd["id"], action_id=action["id"],
-                    trigger_type=trigger.get("type", ""), trigger_name=trigger.get("name", ""),
-                    condition=None, sequence=action.get("_sequence", 0),
+                    plan_id=pd["id"],
+                    action_id=action["id"],
+                    trigger_type=trigger.get("type", ""),
+                    trigger_name=trigger.get("name", ""),
+                    condition=None,
+                    sequence=action.get("_sequence", 0),
                     subgraph_id=action.get("_subgraphId", ""),
                     related_actions=related_ids,
                 )
                 if definition_ref:
                     activity_id = definition_ref.split("/")[-1]
-                    client.run(LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id)
+                    client.run(
+                        LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id
+                    )
 
         logger.info(
             "[Seed] %d ActivityDefinitions processed, %d PlanDefinitions processed (force=%s).",
@@ -719,7 +809,9 @@ def seed_with_client(client, *, force: bool = False) -> None:
 def main() -> None:
     from neo4j import GraphDatabase
 
-    parser = argparse.ArgumentParser(description="Seed PlanDefinitions and ActivityDefinitions")
+    parser = argparse.ArgumentParser(
+        description="Seed PlanDefinitions and ActivityDefinitions"
+    )
     parser.add_argument(
         "--force",
         action="store_true",
@@ -727,21 +819,33 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687"))
+    uri = os.getenv(
+        "KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    )
     user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j"))
-    password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password"))
+    password = os.getenv(
+        "KNOWLEDGE_GRAPH_NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password")
+    )
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
 
     with driver.session() as session:
-        session.run("CREATE CONSTRAINT plan_def_id IF NOT EXISTS FOR (pd:PlanDefinition) REQUIRE pd.id IS UNIQUE")
-        session.run("CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE")
-        session.run("CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE")
+        session.run(
+            "CREATE CONSTRAINT plan_def_id IF NOT EXISTS FOR (pd:PlanDefinition) REQUIRE pd.id IS UNIQUE"
+        )
+        session.run(
+            "CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE"
+        )
+        session.run(
+            "CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE"
+        )
     logger.info("Constraints ensured.")
 
     with driver.session() as session:
         prompt_row = session.run(GET_PROMPT_CONFIG_EXTRACTION).single()
-    prompt_config_id = str(prompt_row["id"]) if prompt_row and prompt_row.get("id") else ""
+    prompt_config_id = (
+        str(prompt_row["id"]) if prompt_row and prompt_row.get("id") else ""
+    )
     if prompt_config_id:
         for ad in ACTIVITY_DEFINITIONS:
             if ad.get("id") != "ad-extraction-llm":
@@ -754,7 +858,13 @@ def main() -> None:
 
     for ad in ACTIVITY_DEFINITIONS:
         dv = ad.get("dynamicValue", [])
-        dv_json = json.dumps({v["path"]: v.get("expression", {}).get("expression") for v in dv}) if dv else None
+        dv_json = (
+            json.dumps(
+                {v["path"]: v.get("expression", {}).get("expression") for v in dv}
+            )
+            if dv
+            else None
+        )
         with driver.session() as session:
             session.run(
                 UPSERT_ACTIVITY,
@@ -777,7 +887,13 @@ def main() -> None:
 
         ui_pd = _to_ui_format(pd)
         with driver.session() as session:
-            session.run(UPSERT_PLAN, id=pd["id"], raw=json.dumps(ui_pd), name=pd["name"], status=pd["status"])
+            session.run(
+                UPSERT_PLAN,
+                id=pd["id"],
+                raw=json.dumps(ui_pd),
+                name=pd["name"],
+                status=pd["status"],
+            )
             session.run(CLEAR_ACTIONS, id=pd["id"])
 
         for action in pd.get("action", []):
@@ -785,7 +901,9 @@ def main() -> None:
             trigger_type = trigger.get("type", "")
             trigger_name = trigger.get("name", "")
             definition_ref = action.get("definitionCanonical", "")
-            related_ids = [r.get("actionId", "") for r in (action.get("relatedAction") or [])]
+            related_ids = [
+                r.get("actionId", "") for r in (action.get("relatedAction") or [])
+            ]
 
             with driver.session() as session:
                 session.run(
@@ -801,9 +919,13 @@ def main() -> None:
                 )
                 if definition_ref:
                     activity_id = definition_ref.split("/")[-1]
-                    session.run(LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id)
+                    session.run(
+                        LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id
+                    )
 
-        logger.info("  PlanDefinition: %s (%d actions)", pd["name"], len(pd.get("action", [])))
+        logger.info(
+            "  PlanDefinition: %s (%d actions)", pd["name"], len(pd.get("action", []))
+        )
 
     driver.close()
     logger.info(

@@ -39,14 +39,24 @@ DEFAULT_MODEL_DIR = ROOT / "models" / "medspacy_clinical_ner"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--entities", type=Path, required=True, help="Path to entities.jsonl")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--entities", type=Path, required=True, help="Path to entities.jsonl"
+    )
     parser.add_argument("--kb", type=Path, required=True, help="Path to kb.jsonl")
-    parser.add_argument("--output", type=Path, default=DEFAULT_MODEL_DIR, help="Model output directory")
-    parser.add_argument("--base-model", default="en_core_web_sm", help="Base spaCy model to build on")
+    parser.add_argument(
+        "--output", type=Path, default=DEFAULT_MODEL_DIR, help="Model output directory"
+    )
+    parser.add_argument(
+        "--base-model", default="en_core_web_sm", help="Base spaCy model to build on"
+    )
     parser.add_argument("--epochs", type=int, default=30, help="Training epochs")
     parser.add_argument("--batch-size", type=int, default=8, help="Training batch size")
-    parser.add_argument("--eval-split", type=float, default=0.2, help="Fraction held out for eval")
+    parser.add_argument(
+        "--eval-split", type=float, default=0.2, help="Fraction held out for eval"
+    )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--dropout", type=float, default=0.35, help="Dropout rate")
     return parser.parse_args()
@@ -100,7 +110,9 @@ def build_knowledge_base(
     kb_entries: list[dict[str, str]],
 ) -> InMemoryLookupKB:
     """Build a spaCy InMemoryLookupKB from kb.jsonl entries."""
-    kb = InMemoryLookupKB(vocab=nlp.vocab, entity_vector_length=nlp.vocab.vectors_length or 64)
+    kb = InMemoryLookupKB(
+        vocab=nlp.vocab, entity_vector_length=nlp.vocab.vectors_length or 64
+    )
 
     concept_map: dict[str, list[str]] = {}
     for entry in kb_entries:
@@ -110,7 +122,11 @@ def build_knowledge_base(
             concept_map.setdefault(cid, []).append(mention)
 
     for cid in concept_map:
-        kb.add_entity(entity=cid, freq=len(concept_map[cid]), entity_vector=[0.0] * (nlp.vocab.vectors_length or 64))
+        kb.add_entity(
+            entity=cid,
+            freq=len(concept_map[cid]),
+            entity_vector=[0.0] * (nlp.vocab.vectors_length or 64),
+        )
 
     for cid, mentions in concept_map.items():
         for mention in mentions:
@@ -196,7 +212,12 @@ def train_ner(
             if epoch % 5 == 0 or epoch == 1 or epoch == epochs:
                 logger.info(
                     "Epoch %d/%d - loss=%.4f, P=%.2f%%, R=%.2f%%, F1=%.2f%%",
-                    epoch, epochs, ner_loss, precision * 100, recall * 100, f1 * 100,
+                    epoch,
+                    epochs,
+                    ner_loss,
+                    precision * 100,
+                    recall * 100,
+                    f1 * 100,
                 )
 
     final_scores = nlp.evaluate(eval_examples)
@@ -226,7 +247,8 @@ def main() -> int:
     except OSError:
         logger.error(
             "Base model '%s' not found. Install with: python -m spacy download %s",
-            args.base_model, args.base_model,
+            args.base_model,
+            args.base_model,
         )
         return 1
 
@@ -246,14 +268,23 @@ def main() -> int:
     split_idx = max(1, int(len(all_examples) * (1 - args.eval_split)))
     train_examples = all_examples[:split_idx]
     eval_examples = all_examples[split_idx:]
-    logger.info("Train: %d examples, Eval: %d examples", len(train_examples), len(eval_examples))
+    logger.info(
+        "Train: %d examples, Eval: %d examples", len(train_examples), len(eval_examples)
+    )
 
     labels = collect_labels(data)
     logger.info("NER labels: %s", sorted(labels))
 
-    logger.info("Training NER for %d epochs (batch=%d, dropout=%.2f)", args.epochs, args.batch_size, args.dropout)
+    logger.info(
+        "Training NER for %d epochs (batch=%d, dropout=%.2f)",
+        args.epochs,
+        args.batch_size,
+        args.dropout,
+    )
     metrics = train_ner(
-        nlp, train_examples, eval_examples,
+        nlp,
+        train_examples,
+        eval_examples,
         epochs=args.epochs,
         batch_size=args.batch_size,
         dropout=args.dropout,
@@ -282,18 +313,22 @@ def main() -> int:
 
     metrics_path = args.output / "training_metrics.json"
     with metrics_path.open("w", encoding="utf-8") as f:
-        json.dump({
-            "precision": metrics["precision"],
-            "recall": metrics["recall"],
-            "f1": metrics["f1"],
-            "best_f1": metrics["best_f1"],
-            "best_epoch": metrics["best_epoch"],
-            "epochs": args.epochs,
-            "train_examples": len(train_examples),
-            "eval_examples": len(eval_examples),
-            "labels": sorted(labels),
-            "kb_entities": len(kb_entries) if kb_entries else 0,
-        }, f, indent=2)
+        json.dump(
+            {
+                "precision": metrics["precision"],
+                "recall": metrics["recall"],
+                "f1": metrics["f1"],
+                "best_f1": metrics["best_f1"],
+                "best_epoch": metrics["best_epoch"],
+                "epochs": args.epochs,
+                "train_examples": len(train_examples),
+                "eval_examples": len(eval_examples),
+                "labels": sorted(labels),
+                "kb_entities": len(kb_entries) if kb_entries else 0,
+            },
+            f,
+            indent=2,
+        )
     logger.info("Training metrics saved to %s", metrics_path)
 
     return 0

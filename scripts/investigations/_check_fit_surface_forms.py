@@ -1,4 +1,5 @@
 """Audit all FIT-related surface forms and flag gaps."""
+
 import os
 import sys
 from pathlib import Path
@@ -89,8 +90,7 @@ def main() -> None:
     existing_norms = set()
     for row in rows:
         print(
-            f"  norm={row['norm']!r:45s}"
-            f" cid={row['cid']:25s} fsn={row['fsn'][:60]}"
+            f"  norm={row['norm']!r:45s}" f" cid={row['cid']:25s} fsn={row['fsn'][:60]}"
         )
         existing_norms.add(row["norm"])
 

@@ -19,6 +19,7 @@ Layer order
 8. Situation Lookup Norm. -- normalise situation text for terminology
 9. Disorder Gate          -- LLM dual-model disorder classification (optional)
 """
+
 from __future__ import annotations
 
 import logging
@@ -44,8 +45,11 @@ except Exception:
         exc_info=True,
     )
 
-    def apply_context_detection_to_dicts(_encounter_text: str, _entities: list[dict[str, Any]]) -> None:
+    def apply_context_detection_to_dicts(
+        _encounter_text: str, _entities: list[dict[str, Any]]
+    ) -> None:
         return
+
 
 _SENTENCE_BOUNDARY_RE = re.compile(r"(?:\.(?:\s|$)|\n)")
 
@@ -79,7 +83,9 @@ _SCREENING_NEGATIVE_PATTERNS: list[re.Pattern] = [
 ]
 
 
-def _suppress_screening_false_positives(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _suppress_screening_false_positives(
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Remove any entity whose snomed_code is 395100000 but whose evidence
     text matches a routine screening negative pattern.
 
@@ -93,20 +99,19 @@ def _suppress_screening_false_positives(entities: list[dict[str, Any]]) -> list[
         if code != _NO_CANCER_EVIDENCE_CONCEPT:
             kept.append(ent)
             continue
-        evidence = (
-            ent.get("text") or ent.get("entity_text") or ent.get("evidence", "")
-        )
+        evidence = ent.get("text") or ent.get("entity_text") or ent.get("evidence", "")
         if any(p.search(str(evidence)) for p in _SCREENING_NEGATIVE_PATTERNS):
-            logger.debug(
-                "Suppressed 395100000 screening false positive: %r", evidence
-            )
+            logger.debug("Suppressed 395100000 screening false positive: %r", evidence)
         else:
             kept.append(ent)
     return kept
 
 
 def _extract_sentence_window(
-    encounter_text: str, start: int, end: int, margin: int = 300,
+    encounter_text: str,
+    start: int,
+    end: int,
+    margin: int = 300,
 ) -> str:
     """Return the sentence-level window around an entity span.
 
@@ -142,34 +147,81 @@ _LAB_UNIT_INDICATORS = re.compile(
     re.IGNORECASE,
 )
 
-_RESULT_DESCRIPTOR_TEXTS = frozenset({
-    "abnormal", "abnormal but expected", "normal", "satisfactory",
-    "outside reference range", "within normal limits", "within reference range",
-    "normal - no action", "borderline", "high", "low", "raised", "elevated",
-    "nad", "no abnormality detected", "fobt non-response", "non-response",
-    "no problems or concerns", "no problemds or concerns",
-    "negative", "positive", "reactive", "non-reactive",
-    "but expected", "weight stable",
-})
+_RESULT_DESCRIPTOR_TEXTS = frozenset(
+    {
+        "abnormal",
+        "abnormal but expected",
+        "normal",
+        "satisfactory",
+        "outside reference range",
+        "within normal limits",
+        "within reference range",
+        "normal - no action",
+        "borderline",
+        "high",
+        "low",
+        "raised",
+        "elevated",
+        "nad",
+        "no abnormality detected",
+        "fobt non-response",
+        "non-response",
+        "no problems or concerns",
+        "no problemds or concerns",
+        "negative",
+        "positive",
+        "reactive",
+        "non-reactive",
+        "but expected",
+        "weight stable",
+    }
+)
 
-_EPISODE_MARKER_TEXTS = frozenset({
-    "new episode", "ongoing episode", "first episode",
-})
+_EPISODE_MARKER_TEXTS = frozenset(
+    {
+        "new episode",
+        "ongoing episode",
+        "first episode",
+    }
+)
 
-_LIFESTYLE_FACTOR_TEXTS = frozenset({
-    "diet", "alcohol", "exercise", "weight", "bmi", "smoking", "drives",
-    "sleep", "caffeine",
-})
+_LIFESTYLE_FACTOR_TEXTS = frozenset(
+    {
+        "diet",
+        "alcohol",
+        "exercise",
+        "weight",
+        "bmi",
+        "smoking",
+        "drives",
+        "sleep",
+        "caffeine",
+    }
+)
 
 _LIFESTYLE_SEP_RE = re.compile(r"[\s/&,]+")
 
 _UNCERTAINTY_MARKER_RE = re.compile(r"^\?{1,4}$")
 
-_SEVERITY_MODIFIER_TEXTS = frozenset({
-    "severe", "mild", "moderate", "minor", "major", "urgent",
-    "worsened", "worsening", "improving", "stable", "unchanged",
-    "pale", "slight", "significant", "marked",
-})
+_SEVERITY_MODIFIER_TEXTS = frozenset(
+    {
+        "severe",
+        "mild",
+        "moderate",
+        "minor",
+        "major",
+        "urgent",
+        "worsened",
+        "worsening",
+        "improving",
+        "stable",
+        "unchanged",
+        "pale",
+        "slight",
+        "significant",
+        "marked",
+    }
+)
 
 _MDT_OUTCOME_RE = re.compile(
     r"(?:mdt|multidisciplinary)\s+(?:meet(?:ing)?|discussion|team)?\s*(?:outcome|result|decision)",
@@ -185,14 +237,40 @@ _REF_RANGE_ONLY_RE = re.compile(
     r"^\s*\[?\s*\d+(?:\.\d+)?\s*-\s*\d+(?:\.\d+)?\s*\]?\s*$",
 )
 
-_ANALYTE_NAMES = frozenset({
-    "creatinine", "albumin", "phosphate", "inorganic phosphate", "sodium",
-    "potassium", "calcium", "bilirubin", "cholesterol", "glucose", "urea",
-    "ferritin", "haemoglobin", "globulin", "triglyceride", "triglycerides",
-    "folate", "iron", "zinc", "magnesium", "copper", "lithium",
-    "testosterone", "oestradiol", "cortisol", "thyroxine",
-    "chloride", "bicarbonate", "protein", "alkaline phosphatase",
-})
+_ANALYTE_NAMES = frozenset(
+    {
+        "creatinine",
+        "albumin",
+        "phosphate",
+        "inorganic phosphate",
+        "sodium",
+        "potassium",
+        "calcium",
+        "bilirubin",
+        "cholesterol",
+        "glucose",
+        "urea",
+        "ferritin",
+        "haemoglobin",
+        "globulin",
+        "triglyceride",
+        "triglycerides",
+        "folate",
+        "iron",
+        "zinc",
+        "magnesium",
+        "copper",
+        "lithium",
+        "testosterone",
+        "oestradiol",
+        "cortisol",
+        "thyroxine",
+        "chloride",
+        "bicarbonate",
+        "protein",
+        "alkaline phosphatase",
+    }
+)
 
 _BARE_NUMERIC_RE = re.compile(r"^[<>]?\s*\d+(?:\.\d+)?\s*$")
 
@@ -207,8 +285,13 @@ def _is_lifestyle_topic_list(text: str) -> bool:
 def _is_smoking_status_text(text: str) -> bool:
     lowered = text.strip().lower()
     return "smoking status" in lowered or lowered in {
-        "smoker", "non-smoker", "ex-smoker", "never smoker",
-        "current smoker", "ex smoker", "non smoker",
+        "smoker",
+        "non-smoker",
+        "ex-smoker",
+        "never smoker",
+        "current smoker",
+        "ex smoker",
+        "non smoker",
     }
 
 
@@ -249,7 +332,9 @@ def _extract_value_unit(text: str) -> tuple[str, str] | None:
     return value, unit
 
 
-def _has_nearby_observable(entities: list[dict[str, Any]], target_idx: int, max_dist: int = 80) -> bool:
+def _has_nearby_observable(
+    entities: list[dict[str, Any]], target_idx: int, max_dist: int = 80
+) -> bool:
     target = entities[target_idx]
     t_start = int(target.get("start", 0) or 0)
     t_end = int(target.get("end", 0) or 0)
@@ -289,13 +374,18 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
         if label in {"finding", "situation"} and _is_result_descriptor(text):
             ent["label"] = "qualifier_value"
 
-        if label in {"X_TEMPORAL", "X_PATHWAY_MILESTONE"} and lowered in _EPISODE_MARKER_TEXTS:
+        if (
+            label in {"X_TEMPORAL", "X_PATHWAY_MILESTONE"}
+            and lowered in _EPISODE_MARKER_TEXTS
+        ):
             ent["label"] = "qualifier_value"
 
         if label == "X_PATHWAY_MILESTONE" and ent.get("label") == "X_PATHWAY_MILESTONE":
             ent["label"] = "procedure"
 
-        if label in {"attribute", "observable_entity"} and _is_lifestyle_topic_list(text):
+        if label in {"attribute", "observable_entity"} and _is_lifestyle_topic_list(
+            text
+        ):
             ent["label"] = "finding"
 
         if label == "X_DOSAGE" and _SMOKING_CONSUMPTION_RE.search(text):
@@ -319,7 +409,11 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
         label = str(ent.get("label", ""))
         text = str(ent.get("text", ""))
 
-        if label == "substance" and _is_bare_analyte(text) and _has_nearby_observable(entities, i):
+        if (
+            label == "substance"
+            and _is_bare_analyte(text)
+            and _has_nearby_observable(entities, i)
+        ):
             suppress_indices.add(i)
 
         if label == "X_NEGATION_CUE":
@@ -366,14 +460,16 @@ def link_observable_value_units(entities: list[dict[str, Any]]) -> None:
     Mutates *entities* in place.
     """
     observable_indices = [
-        i for i, e in enumerate(entities)
+        i
+        for i, e in enumerate(entities)
         if str(e.get("label", "")) == "observable_entity"
     ]
     if not observable_indices:
         return
 
     measurement_indices = [
-        i for i, e in enumerate(entities)
+        i
+        for i, e in enumerate(entities)
         if _is_numeric_measurement_text(str(e.get("text", "")))
     ]
     if not measurement_indices:
@@ -423,7 +519,9 @@ def _apply_disorder_gate(
         if assertion != "present":
             continue
         verdict = verify_disorder(
-            str(ent.get("text", "")), encounter_text, coding_mode=coding_mode,
+            str(ent.get("text", "")),
+            encounter_text,
+            coding_mode=coding_mode,
         )
         if verdict == DisorderVerdict.INFORMATIONAL:
             ent["__suppress__"] = True
@@ -654,7 +752,11 @@ def run_post_processing_with_trace(
     _run_layer(
         "layer_1",
         "Post-Processor Rules",
-        lambda current: apply_rules_to_entities(encounter_text, current, rules) if rules else current,
+        lambda current: (
+            apply_rules_to_entities(encounter_text, current, rules)
+            if rules
+            else current
+        ),
         skip_when=rules is None,
         skip_reason="no rules configured",
     )
@@ -664,7 +766,9 @@ def run_post_processing_with_trace(
         for ent in current:
             ent_start = int(ent.get("start", 0) or 0)
             ent_end = int(ent.get("end", 0) or 0)
-            sentence_window = _extract_sentence_window(encounter_text, ent_start, ent_end)
+            sentence_window = _extract_sentence_window(
+                encounter_text, ent_start, ent_end
+            )
             normalized = str(
                 ent.get("normalized")
                 or ent.get("normalized_lookup")
@@ -688,7 +792,9 @@ def run_post_processing_with_trace(
     _run_layer(
         "layer_3",
         "Scope Guard",
-        lambda current: (_apply_scope_guard_to_dicts(encounter_text, current), current)[1],
+        lambda current: (_apply_scope_guard_to_dicts(encounter_text, current), current)[
+            1
+        ],
     )
 
     # Layer 4: Observable Normalisation
@@ -720,14 +826,19 @@ def run_post_processing_with_trace(
     _run_layer(
         "layer_7",
         "ConText Assertion Detection",
-        lambda current: (apply_context_detection_to_dicts(encounter_text, current), current)[1],
+        lambda current: (
+            apply_context_detection_to_dicts(encounter_text, current),
+            current,
+        )[1],
     )
 
     # Layer 7b: Referral Procedure Assertion Guard
     _run_layer(
         "layer_7b",
         "Referral Procedure Assertion Guard",
-        lambda current: (_apply_referral_procedure_assertion_guard(current), current)[1],
+        lambda current: (_apply_referral_procedure_assertion_guard(current), current)[
+            1
+        ],
     )
 
     # Layer 8: Situation Lookup Normalisation

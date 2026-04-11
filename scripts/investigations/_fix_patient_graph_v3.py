@@ -23,6 +23,7 @@ Run:
     python scripts/investigations/_fix_patient_graph_v3.py --dry-run
     python scripts/investigations/_fix_patient_graph_v3.py
 """
+
 from __future__ import annotations
 
 import argparse

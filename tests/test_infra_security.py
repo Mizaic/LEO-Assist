@@ -7,6 +7,7 @@ Threat coverage (DC-TM-SEC-002):
   TODO:VERIFY  SERVICE_AUTH_SECRET set in all deployed environments
   GAP-007      Inter-service auth silently disabled if secret missing
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,19 +26,19 @@ class TestServiceAuthSecretDeployment:
     def test_container_apps_declares_service_auth_secret_env_var(self):
         """container-apps.bicep must map SERVICE_AUTH_SECRET from a Key Vault secret ref."""
         source = CONTAINER_APPS.read_text()
-        assert "SERVICE_AUTH_SECRET" in source, (
-            "SERVICE_AUTH_SECRET env var not found in container-apps.bicep"
-        )
-        assert "service-auth-secret" in source, (
-            "service-auth-secret Key Vault secret ref not found in container-apps.bicep"
-        )
+        assert (
+            "SERVICE_AUTH_SECRET" in source
+        ), "SERVICE_AUTH_SECRET env var not found in container-apps.bicep"
+        assert (
+            "service-auth-secret" in source
+        ), "service-auth-secret Key Vault secret ref not found in container-apps.bicep"
 
     def test_container_apps_keyvault_secret_reference(self):
         """The Key Vault URL for service-auth-secret must be declared in the secrets array."""
         source = CONTAINER_APPS.read_text()
-        assert "keyVaultUrl" in source and "service-auth-secret" in source, (
-            "service-auth-secret Key Vault URL mapping missing from container-apps.bicep"
-        )
+        assert (
+            "keyVaultUrl" in source and "service-auth-secret" in source
+        ), "service-auth-secret Key Vault URL mapping missing from container-apps.bicep"
 
     def test_migrate_secrets_generates_if_missing(self):
         """migrate-secrets.ps1 must auto-generate SERVICE_AUTH_SECRET when absent."""
@@ -45,9 +46,9 @@ class TestServiceAuthSecretDeployment:
         if not script.exists():
             pytest.skip("migrate-secrets.ps1 not found")
         source = script.read_text()
-        assert "SERVICE_AUTH_SECRET" in source, (
-            "migrate-secrets.ps1 does not reference SERVICE_AUTH_SECRET"
-        )
+        assert (
+            "SERVICE_AUTH_SECRET" in source
+        ), "migrate-secrets.ps1 does not reference SERVICE_AUTH_SECRET"
 
 
 class TestCookieSecureAllEnvironments:
@@ -59,10 +60,12 @@ class TestCookieSecureAllEnvironments:
         if not param_file.exists():
             pytest.skip(f"{param_file.name} not found")
         source = param_file.read_text()
-        assert "cookieSecure" in source, f"cookieSecure param missing from {env}.bicepparam"
-        assert "true" in source.split("cookieSecure")[1][:30], (
-            f"cookieSecure not set to 'true' in {env}.bicepparam"
-        )
+        assert (
+            "cookieSecure" in source
+        ), f"cookieSecure param missing from {env}.bicepparam"
+        assert (
+            "true" in source.split("cookieSecure")[1][:30]
+        ), f"cookieSecure not set to 'true' in {env}.bicepparam"
 
 
 class TestAllowedOriginsPerEnvironment:
@@ -76,9 +79,9 @@ class TestAllowedOriginsPerEnvironment:
         source = param_file.read_text()
         origins_line = [l for l in source.splitlines() if "allowedOrigins" in l]
         assert origins_line, f"allowedOrigins missing from {env}.bicepparam"
-        assert "localhost" not in origins_line[0], (
-            f"localhost must not be in allowedOrigins for {env}"
-        )
+        assert (
+            "localhost" not in origins_line[0]
+        ), f"localhost must not be in allowedOrigins for {env}"
 
     @pytest.mark.parametrize("env", ["val", "prod"])
     def test_no_wildcard_origin(self, env):
@@ -88,9 +91,9 @@ class TestAllowedOriginsPerEnvironment:
         source = param_file.read_text()
         origins_line = [l for l in source.splitlines() if "allowedOrigins" in l]
         assert origins_line, f"allowedOrigins missing from {env}.bicepparam"
-        assert "'*'" not in origins_line[0], (
-            f"Wildcard origin must not be in allowedOrigins for {env}"
-        )
+        assert (
+            "'*'" not in origins_line[0]
+        ), f"Wildcard origin must not be in allowedOrigins for {env}"
 
 
 class TestSessionTtlPerEnvironment:
@@ -102,7 +105,9 @@ class TestSessionTtlPerEnvironment:
         if not param_file.exists():
             pytest.skip(f"{param_file.name} not found")
         source = param_file.read_text()
-        assert "sessionTtlHours" in source, f"sessionTtlHours missing from {env}.bicepparam"
+        assert (
+            "sessionTtlHours" in source
+        ), f"sessionTtlHours missing from {env}.bicepparam"
 
     @pytest.mark.parametrize("env,max_hours", [("dev", 24), ("val", 24), ("prod", 48)])
     def test_session_ttl_within_bounds(self, env, max_hours):
@@ -114,7 +119,7 @@ class TestSessionTtlPerEnvironment:
             if "sessionTtlHours" in line:
                 value = "".join(c for c in line.split("=")[1].strip() if c.isdigit())
                 if value:
-                    assert int(value) <= max_hours, (
-                        f"sessionTtlHours={value} exceeds {max_hours}h limit for {env}"
-                    )
+                    assert (
+                        int(value) <= max_hours
+                    ), f"sessionTtlHours={value} exceeds {max_hours}h limit for {env}"
                 break

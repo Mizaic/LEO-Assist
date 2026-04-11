@@ -1,5 +1,7 @@
 """One-off: add surface form gaps identified in training evaluation report 2026-03-05."""
+
 from dotenv import load_dotenv
+
 load_dotenv("secrets/.env")
 
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -67,6 +69,8 @@ try:
             r = rows[0]
             print(f"OK   {r['normalized']!r:45s}  =>  {r['concept_fsn']}")
         else:
-            print(f"MISS {sf['normalized']!r:45s}  — concept {sf['concept_id']} not found in graph")
+            print(
+                f"MISS {sf['normalized']!r:45s}  — concept {sf['concept_id']} not found in graph"
+            )
 finally:
     client.close()

@@ -3,6 +3,7 @@
 After each model independently extracts entities and resolves them to SNOMED,
 this module aligns entities across models and computes composite confidence.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AlignedEntity:
     """A single entity with consensus scores from multiple models."""
+
     sentence_id: str
     snomed_concept_id: str | None
     snomed_term: str | None
@@ -40,6 +42,7 @@ class AlignedEntity:
 @dataclass
 class ConsensusResult:
     """Result of multi-model consensus for an encounter."""
+
     encounter_id: str
     aligned_entities: list[AlignedEntity] = field(default_factory=list)
     encounter_confidence: float = 0.0
@@ -156,7 +159,9 @@ def align_extractions(
         if assertions:
             most_common = max(set(assertions), key=assertions.count)
             entity.assertion = most_common
-            entity.disambiguation_agreement = assertions.count(most_common) / len(assertions)
+            entity.disambiguation_agreement = assertions.count(most_common) / len(
+                assertions
+            )
 
         has_read_code = bool(entity.read_code)
         entity.consensus_confidence = _compute_entity_confidence(entity, has_read_code)
@@ -165,7 +170,9 @@ def align_extractions(
 
     logger.info(
         "Consensus for %s: %d entities, encounter_confidence=%.2f",
-        encounter_id, len(entities), encounter_confidence,
+        encounter_id,
+        len(entities),
+        encounter_confidence,
     )
 
     return ConsensusResult(

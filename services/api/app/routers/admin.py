@@ -140,18 +140,20 @@ async def get_org_graph(
                 continue  # restrict to caller's subtree
 
             org_type = _label_to_type(labels)
-            nodes.append({
-                "id": org_id,
-                "name": r.get("name"),
-                "short_name": r.get("short_name"),
-                "odsCode": r.get("odsCode"),
-                "type": org_type,
-                "ods_sync_status": r.get("ods_sync_status"),
-                "ods_parent_ods_code": r.get("ods_parent_ods_code"),
-                "ods_address": _parse_json_prop(r.get("ods_address")) or {},
-                "onboarding_status": r.get("onboarding_status"),
-                "patient_count": r.get("patient_count", 0),
-            })
+            nodes.append(
+                {
+                    "id": org_id,
+                    "name": r.get("name"),
+                    "short_name": r.get("short_name"),
+                    "odsCode": r.get("odsCode"),
+                    "type": org_type,
+                    "ods_sync_status": r.get("ods_sync_status"),
+                    "ods_parent_ods_code": r.get("ods_parent_ods_code"),
+                    "ods_address": _parse_json_prop(r.get("ods_address")) or {},
+                    "onboarding_status": r.get("onboarding_status"),
+                    "patient_count": r.get("patient_count", 0),
+                }
+            )
 
             for parent_field in ("parent_icb_id", "parent_ca_id", "parent_pcn_id"):
                 parent_id = r.get(parent_field)
@@ -231,13 +233,17 @@ def _row_to_org(r: dict) -> dict:
         "alliance_name": r.get("alliance_name"),
         "pcn_id": r.get("pcn_id"),
         "pcn_name": r.get("pcn_name"),
-        "subscription": {
-            "id": r.get("subscription_id"),
-            "tier": r.get("subscription_tier"),
-            "credits_purchased": r.get("credits_purchased"),
-            "credits_consumed": r.get("credits_consumed"),
-            "expires_at": r.get("subscription_expires_at"),
-        } if r.get("subscription_id") else None,
+        "subscription": (
+            {
+                "id": r.get("subscription_id"),
+                "tier": r.get("subscription_tier"),
+                "credits_purchased": r.get("credits_purchased"),
+                "credits_consumed": r.get("credits_consumed"),
+                "expires_at": r.get("subscription_expires_at"),
+            }
+            if r.get("subscription_id")
+            else None
+        ),
     }
 
 
@@ -282,11 +288,18 @@ async def create_org(
             raise HTTPException(400, f"Unknown org type: {body.type}")
 
         if body.parent_id and body.type in ("gp", "pcn"):
-            client.run(aq.LINK_ORG_COMMISSIONED_BY, child_id=org_id, parent_id=body.parent_id)
+            client.run(
+                aq.LINK_ORG_COMMISSIONED_BY, child_id=org_id, parent_id=body.parent_id
+            )
         if body.alliance_id and body.type == "icb":
-            client.run(aq.LINK_ORG_PART_OF_ALLIANCE, icb_id=org_id, alliance_id=body.alliance_id)
+            client.run(
+                aq.LINK_ORG_PART_OF_ALLIANCE,
+                icb_id=org_id,
+                alliance_id=body.alliance_id,
+            )
         if body.pcn_id and body.type == "gp":
             from datetime import datetime, timezone
+
             client.run(
                 aq.LINK_GP_TO_PCN,
                 gp_id=org_id,
@@ -345,6 +358,7 @@ async def acquire_gp_to_pcn(
 ) -> dict[str, Any]:
     """Add a GP practice to a PCN (sets PART_OF_PCN with effective_from = now)."""
     from datetime import datetime, timezone
+
     client = _client()
     try:
         rows = client.run(
@@ -368,6 +382,7 @@ async def release_gp_from_pcn(
 ) -> dict[str, Any]:
     """Release a GP practice from a PCN (sets effective_to = now on active relationship)."""
     from datetime import datetime, timezone
+
     client = _client()
     try:
         rows = client.run(
@@ -545,7 +560,9 @@ async def create_user(
     if not scope.is_admin and body.org_ids:
         disallowed = [oid for oid in body.org_ids if oid not in scope.org_ids]
         if disallowed:
-            raise HTTPException(403, f"Cannot assign users to orgs outside your scope: {disallowed}")
+            raise HTTPException(
+                403, f"Cannot assign users to orgs outside your scope: {disallowed}"
+            )
 
     client = _client()
     try:

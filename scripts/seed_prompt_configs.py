@@ -26,10 +26,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _ROOT = Path(__file__).resolve().parent.parent
 from dotenv import load_dotenv
+
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_ROOT / "secrets" / ".env", override=False)
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception:
     pass
@@ -60,16 +62,18 @@ def _add(
     parts = variable_path.rsplit(".", 1)
     mod = __import__(parts[0], fromlist=[parts[1]])
     text = getattr(mod, parts[1])
-    SEED_PROMPTS.append({
-        "name": name,
-        "version": version,
-        "description": description,
-        "system_prompt": text,
-        "output_schema": output_schema,
-        "verification": False,
-        "few_shot_examples": few_shot_examples or [],
-        "max_few_shot": max_few_shot,
-    })
+    SEED_PROMPTS.append(
+        {
+            "name": name,
+            "version": version,
+            "description": description,
+            "system_prompt": text,
+            "output_schema": output_schema,
+            "verification": False,
+            "few_shot_examples": few_shot_examples or [],
+            "max_few_shot": max_few_shot,
+        }
+    )
 
 
 # ── Extraction — structured output schema + example library ─────────────────
@@ -79,7 +83,8 @@ from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_EXAMPLES_V1
 from libs.prompts.coding_check_v1 import CODING_CHECK_EXAMPLES_V1
 
 _add(
-    "extraction", 1,
+    "extraction",
+    1,
     "libs.prompts.extraction_v1.EXTRACTION_SYSTEM_V1",
     output_schema=json.dumps(EXTRACTION_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -147,7 +152,8 @@ _EXTRACTION_CHECK_OUTPUT_SCHEMA = {
 }
 
 _add(
-    "extraction_check", 1,
+    "extraction_check",
+    1,
     "libs.prompts.extraction_check_v1.EXTRACTION_CHECK_SYSTEM_V1",
     output_schema=json.dumps(_EXTRACTION_CHECK_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -177,7 +183,8 @@ _CODING_CHECK_OUTPUT_SCHEMA = {
 }
 
 _add(
-    "coding_check", 1,
+    "coding_check",
+    1,
     "libs.prompts.coding_check_v1.CODING_CHECK_SYSTEM_V1",
     output_schema=json.dumps(_CODING_CHECK_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -202,7 +209,8 @@ from libs.prompts.disambiguation_output_schema import DISAMBIGUATION_OUTPUT_SCHE
 from libs.prompts.disambiguation_examples import DISAMBIGUATION_EXAMPLES
 
 _add(
-    "disambiguation", 1,
+    "disambiguation",
+    1,
     "libs.prompts.disambiguation_v1.DISAMBIGUATION_SYSTEM_V1",
     output_schema=json.dumps(DISAMBIGUATION_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -259,7 +267,8 @@ _consolidation_examples = [
 ]
 
 _add(
-    "episode_builder_system", 1,
+    "episode_builder_system",
+    1,
     "libs.prompts.episode_builder_v1.EPISODE_BUILDER_SYSTEM_V1",
     output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
     few_shot_examples=_builder_examples,
@@ -267,7 +276,8 @@ _add(
     description="System role for the episode builder — groups coded entities into clinical episodes.",
 )
 _add(
-    "episode_builder_task", 1,
+    "episode_builder_task",
+    1,
     "libs.prompts.episode_builder_v1.EPISODE_BUILDER_TASK_V1",
     output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
     few_shot_examples=_builder_examples,
@@ -275,7 +285,8 @@ _add(
     description="Task instructions for the episode builder — structures entities per clinical encounter.",
 )
 _add(
-    "episode_consolidation_system", 1,
+    "episode_consolidation_system",
+    1,
     "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_SYSTEM_V1",
     output_schema=json.dumps(EPISODE_CONSOLIDATION_OUTPUT_SCHEMA),
     few_shot_examples=_consolidation_examples,
@@ -283,7 +294,8 @@ _add(
     description="System role for cross-encounter episode consolidation.",
 )
 _add(
-    "episode_consolidation_task", 1,
+    "episode_consolidation_task",
+    1,
     "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_TASK_V1",
     output_schema=json.dumps(EPISODE_CONSOLIDATION_OUTPUT_SCHEMA),
     few_shot_examples=_consolidation_examples,
@@ -292,11 +304,14 @@ _add(
 )
 
 # ── Encounter classify ─────────────────────────────────────────────────────────
-from libs.prompts.encounter_classify_output_schema import ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA
+from libs.prompts.encounter_classify_output_schema import (
+    ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA,
+)
 from libs.prompts.encounter_classify_examples import ENCOUNTER_CLASSIFY_EXAMPLES
 
 _add(
-    "encounter_classify", 1,
+    "encounter_classify",
+    1,
     "libs.prompts.encounter_classify_v1.ENCOUNTER_CLASSIFY_SYSTEM_V1",
     output_schema=json.dumps(ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -317,11 +332,14 @@ _add(
 )
 
 # ── Anchor domain review ───────────────────────────────────────────────────────
-from libs.prompts.anchor_domain_review_output_schema import ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA
+from libs.prompts.anchor_domain_review_output_schema import (
+    ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA,
+)
 from libs.prompts.anchor_domain_review_examples import ANCHOR_DOMAIN_REVIEW_EXAMPLES
 
 _add(
-    "anchor_domain_review", 1,
+    "anchor_domain_review",
+    1,
     "libs.prompts.anchor_domain_review_v1.ANCHOR_DOMAIN_REVIEW_V1",
     output_schema=json.dumps(ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -346,7 +364,8 @@ from libs.prompts.exclusion_detect_output_schema import EXCLUSION_DETECT_OUTPUT_
 from libs.prompts.exclusion_detect_examples import EXCLUSION_DETECT_EXAMPLES
 
 _add(
-    "exclusion_detect", 1,
+    "exclusion_detect",
+    1,
     "libs.prompts.exclusion_detect_v1.EXCLUSION_DETECT_SYSTEM_V1",
     output_schema=json.dumps(EXCLUSION_DETECT_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -367,11 +386,14 @@ _add(
 )
 
 # ── Label verification ─────────────────────────────────────────────────────────
-from libs.prompts.label_verification_output_schema import LABEL_VERIFICATION_OUTPUT_SCHEMA
+from libs.prompts.label_verification_output_schema import (
+    LABEL_VERIFICATION_OUTPUT_SCHEMA,
+)
 from libs.prompts.label_verification_examples import LABEL_VERIFICATION_EXAMPLES
 
 _add(
-    "label_verification", 2,
+    "label_verification",
+    2,
     "libs.prompts.label_verification_v2.LABEL_VERIFICATION_V2",
     output_schema=json.dumps(LABEL_VERIFICATION_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -396,7 +418,8 @@ from libs.prompts.verification_output_schema import VERIFICATION_OUTPUT_SCHEMA
 from libs.prompts.verification_examples import VERIFICATION_EXAMPLES
 
 _add(
-    "verification", 1,
+    "verification",
+    1,
     "libs.prompts.verification_v1.VERIFICATION_V1",
     output_schema=json.dumps(VERIFICATION_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -417,11 +440,14 @@ _add(
 )
 
 # ── Label disambiguation ───────────────────────────────────────────────────────
-from libs.prompts.label_disambiguation_output_schema import LABEL_DISAMBIGUATION_OUTPUT_SCHEMA
+from libs.prompts.label_disambiguation_output_schema import (
+    LABEL_DISAMBIGUATION_OUTPUT_SCHEMA,
+)
 from libs.prompts.label_disambiguation_examples import LABEL_DISAMBIGUATION_EXAMPLES
 
 _add(
-    "label_disambiguation", 1,
+    "label_disambiguation",
+    1,
     "libs.prompts.label_disambiguation_v1.LABEL_DISAMBIGUATION_V1",
     output_schema=json.dumps(LABEL_DISAMBIGUATION_OUTPUT_SCHEMA),
     few_shot_examples=[
@@ -471,7 +497,8 @@ _GRE_FEW_SHOT = [
 ]
 
 _add(
-    "guidance_rule_extraction", 1,
+    "guidance_rule_extraction",
+    1,
     "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V1",
     output_schema=json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
     few_shot_examples=_GRE_FEW_SHOT,
@@ -479,7 +506,8 @@ _add(
     description=_GRE_DESCRIPTION,
 )
 _add(
-    "guidance_rule_extraction_default", 1,
+    "guidance_rule_extraction_default",
+    1,
     "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V1",
     output_schema=json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
     few_shot_examples=_GRE_FEW_SHOT,
@@ -487,7 +515,8 @@ _add(
     description=_GRE_DESCRIPTION,
 )
 _add(
-    "guidance_rule_extraction", 2,
+    "guidance_rule_extraction",
+    2,
     "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V2",
     output_schema=json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
     few_shot_examples=_GRE_FEW_SHOT,
@@ -495,7 +524,8 @@ _add(
     description=_GRE_DESCRIPTION,
 )
 _add(
-    "guidance_rule_extraction_default", 2,
+    "guidance_rule_extraction_default",
+    2,
     "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V2",
     output_schema=json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
     few_shot_examples=_GRE_FEW_SHOT,
@@ -503,18 +533,21 @@ _add(
     description=_GRE_DESCRIPTION,
 )
 _add(
-    "guidance_rule_leaf_expansion", 1,
+    "guidance_rule_leaf_expansion",
+    1,
     "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_LEAF_EXPANSION_SYSTEM_V1",
-    output_schema=json.dumps({
-        "type": "object",
-        "properties": {
-            "category": {"type": "string"},
-            "concrete_terms": {"type": "array", "items": {"type": "string"}},
-            "search_terms": {"type": "array", "items": {"type": "string"}},
-            "safety_note": {"type": "string"},
-        },
-        "required": ["category", "concrete_terms", "search_terms"],
-    }),
+    output_schema=json.dumps(
+        {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string"},
+                "concrete_terms": {"type": "array", "items": {"type": "string"}},
+                "search_terms": {"type": "array", "items": {"type": "string"}},
+                "safety_note": {"type": "string"},
+            },
+            "required": ["category", "concrete_terms", "search_terms"],
+        }
+    ),
     few_shot_examples=[],
     max_few_shot=0,
     description="Expands abstract NICE criterion phrases into concrete codable findings/search terms.",
@@ -602,32 +635,36 @@ _NG12_FEW_SHOT = [
     for ex in GUIDANCE_RULE_EXTRACTION_EXAMPLES
 ]
 
-SEED_PROMPTS.append({
-    "name": "guidance_rule_extraction_NG12",
-    "version": 1,
-    "description": (
-        "NG12-specific exact rule extraction prompt. Produces schema_version=2 "
-        "logic trees with site-specific fast-track referral or investigation actions."
-    ),
-    "system_prompt": _GUIDANCE_RULE_EXTRACTION_NG12_V1,
-    "output_schema": json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
-    "verification": False,
-    "few_shot_examples": _NG12_FEW_SHOT,
-    "max_few_shot": 4,
-})
-SEED_PROMPTS.append({
-    "name": "guidance_rule_extraction_NG12",
-    "version": 2,
-    "description": (
-        "NG12-specific exact rule extraction prompt. Produces schema_version=2 "
-        "logic trees with site-specific fast-track referral or investigation actions."
-    ),
-    "system_prompt": _GUIDANCE_RULE_EXTRACTION_NG12_V1,
-    "output_schema": json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
-    "verification": False,
-    "few_shot_examples": _NG12_FEW_SHOT,
-    "max_few_shot": 4,
-})
+SEED_PROMPTS.append(
+    {
+        "name": "guidance_rule_extraction_NG12",
+        "version": 1,
+        "description": (
+            "NG12-specific exact rule extraction prompt. Produces schema_version=2 "
+            "logic trees with site-specific fast-track referral or investigation actions."
+        ),
+        "system_prompt": _GUIDANCE_RULE_EXTRACTION_NG12_V1,
+        "output_schema": json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
+        "verification": False,
+        "few_shot_examples": _NG12_FEW_SHOT,
+        "max_few_shot": 4,
+    }
+)
+SEED_PROMPTS.append(
+    {
+        "name": "guidance_rule_extraction_NG12",
+        "version": 2,
+        "description": (
+            "NG12-specific exact rule extraction prompt. Produces schema_version=2 "
+            "logic trees with site-specific fast-track referral or investigation actions."
+        ),
+        "system_prompt": _GUIDANCE_RULE_EXTRACTION_NG12_V1,
+        "output_schema": json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
+        "verification": False,
+        "few_shot_examples": _NG12_FEW_SHOT,
+        "max_few_shot": 4,
+    }
+)
 
 _GRCV_DESCRIPTION = (
     "Verifies terminology candidates for guidance-rule leaves/actions and either "
@@ -648,7 +685,8 @@ _GRCV_FEW_SHOT = [
 ]
 
 _add(
-    "guidance_rule_code_verifier", 1,
+    "guidance_rule_code_verifier",
+    1,
     "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V1",
     output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
     few_shot_examples=_GRCV_FEW_SHOT,
@@ -656,7 +694,8 @@ _add(
     description=_GRCV_DESCRIPTION,
 )
 _add(
-    "guidance_rule_code_verifier_default", 1,
+    "guidance_rule_code_verifier_default",
+    1,
     "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V1",
     output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
     few_shot_examples=_GRCV_FEW_SHOT,
@@ -664,7 +703,8 @@ _add(
     description=_GRCV_DESCRIPTION,
 )
 _add(
-    "guidance_rule_code_verifier", 2,
+    "guidance_rule_code_verifier",
+    2,
     "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V2",
     output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
     few_shot_examples=_GRCV_FEW_SHOT,
@@ -672,7 +712,8 @@ _add(
     description=_GRCV_DESCRIPTION,
 )
 _add(
-    "guidance_rule_code_verifier_default", 2,
+    "guidance_rule_code_verifier_default",
+    2,
     "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V2",
     output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
     few_shot_examples=_GRCV_FEW_SHOT,
@@ -685,15 +726,23 @@ def _get_driver():
     """Return a Neo4j driver for the Knowledge Graph."""
     from neo4j import GraphDatabase
 
-    uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687"))
-    user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", os.getenv("NEO4J_USER", os.getenv("NEO4J_USERNAME", "neo4j")))
-    password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password"))
+    uri = os.getenv(
+        "KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    )
+    user = os.getenv(
+        "KNOWLEDGE_GRAPH_NEO4J_USERNAME",
+        os.getenv("NEO4J_USER", os.getenv("NEO4J_USERNAME", "neo4j")),
+    )
+    password = os.getenv(
+        "KNOWLEDGE_GRAPH_NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password")
+    )
     return GraphDatabase.driver(uri, auth=(user, password))
 
 
 def _prompt_exists(session, name: str, version: int) -> bool:
     """Return True if a PromptConfig with (name, version) is already in Neo4j."""
     from libs.cypher.prompt_config_queries import GET_PROMPT_BY_NAME
+
     row = session.run(GET_PROMPT_BY_NAME, name=name, version=version).single()
     return row is not None
 
@@ -733,12 +782,19 @@ def seed_if_missing() -> None:
                     max_few_shot=int(prompt.get("max_few_shot", 20)),
                 )
                 seeded += 1
-                logger.info("[PromptSeed] Seeded %s v%d", prompt["name"], prompt["version"])
+                logger.info(
+                    "[PromptSeed] Seeded %s v%d", prompt["name"], prompt["version"]
+                )
 
         if seeded:
-            logger.info("[PromptSeed] Done — %d seeded, %d already present.", seeded, skipped)
+            logger.info(
+                "[PromptSeed] Done — %d seeded, %d already present.", seeded, skipped
+            )
         else:
-            logger.debug("[PromptSeed] All %d prompts already present — nothing to seed.", skipped)
+            logger.debug(
+                "[PromptSeed] All %d prompts already present — nothing to seed.",
+                skipped,
+            )
     finally:
         driver.close()
 
@@ -754,8 +810,14 @@ def main(missing_only: bool = False) -> None:
     seeded = 0
     for prompt in SEED_PROMPTS:
         with driver.session() as session:
-            if missing_only and _prompt_exists(session, prompt["name"], prompt["version"]):
-                logger.info("  %s v%d — already present, skipped", prompt["name"], prompt["version"])
+            if missing_only and _prompt_exists(
+                session, prompt["name"], prompt["version"]
+            ):
+                logger.info(
+                    "  %s v%d — already present, skipped",
+                    prompt["name"],
+                    prompt["version"],
+                )
                 continue
             result = session.run(
                 UPSERT_SEED_PROMPT,
@@ -774,7 +836,10 @@ def main(missing_only: bool = False) -> None:
             n_examples = len(prompt.get("few_shot_examples", []))
             logger.info(
                 "  %s v%d — %s (%d examples)",
-                prompt["name"], prompt["version"], action, n_examples,
+                prompt["name"],
+                prompt["version"],
+                action,
+                n_examples,
             )
             seeded += 1
 
@@ -784,7 +849,10 @@ def main(missing_only: bool = False) -> None:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Seed PromptConfig nodes into Neo4j")
-    parser.add_argument("--missing", action="store_true", help="Only seed prompts not yet in Neo4j")
+    parser.add_argument(
+        "--missing", action="store_true", help="Only seed prompts not yet in Neo4j"
+    )
     args = parser.parse_args()
     main(missing_only=args.missing)

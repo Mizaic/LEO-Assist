@@ -12,6 +12,7 @@ Checks three hypotheses:
 Run:
     python scripts/investigations/_debug_stale_episodes.py
 """
+
 from __future__ import annotations
 
 import json
@@ -22,9 +23,11 @@ from collections import defaultdict
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 # ---------------------------------------------------------------------------
@@ -187,18 +190,43 @@ LIMIT 5
 # ---------------------------------------------------------------------------
 
 _CANCER_KW = (
-    "malign", "carcinoma", "cancer", "adenocarcinoma", "sarcoma",
-    "lymphoma", "melanoma", "neoplasm", "leukaemia", "leukemia",
-    "myeloma", "metastati", "in situ",
+    "malign",
+    "carcinoma",
+    "cancer",
+    "adenocarcinoma",
+    "sarcoma",
+    "lymphoma",
+    "melanoma",
+    "neoplasm",
+    "leukaemia",
+    "leukemia",
+    "myeloma",
+    "metastati",
+    "in situ",
 )
 _BENIGN_KW = (
-    "no evidence of cancer", "no evidence of malignancy", "benign",
-    "fibroadenoma", "polyp", "adenoma", "diverticular",
-    "irritable bowel", "haemorrhoid", "cyst", "discharge",
+    "no evidence of cancer",
+    "no evidence of malignancy",
+    "benign",
+    "fibroadenoma",
+    "polyp",
+    "adenoma",
+    "diverticular",
+    "irritable bowel",
+    "haemorrhoid",
+    "cyst",
+    "discharge",
 )
 _TREATMENT_KW = (
-    "mastectomy", "chemotherapy", "radiotherapy", "excision",
-    "resection", "biopsy", "letrozole", "tamoxifen", "rituximab",
+    "mastectomy",
+    "chemotherapy",
+    "radiotherapy",
+    "excision",
+    "resection",
+    "biopsy",
+    "letrozole",
+    "tamoxifen",
+    "rituximab",
 )
 
 
@@ -232,6 +260,7 @@ def _parse_milestone_type(raw_json: str | None) -> str:
 # Sections
 # ---------------------------------------------------------------------------
 
+
 def _section_valueset_health(client) -> None:
     print("=" * 70)
     print("SECTION A: ValueSet health check - milestone types in Neo4j")
@@ -256,7 +285,12 @@ def _section_valueset_health(client) -> None:
                 )
             except Exception:
                 pass
-        status = "OK" if milestone not in ("(not configured)", "(no rawJson)", "(json parse error)") else "PROBLEM"
+        status = (
+            "OK"
+            if milestone
+            not in ("(not configured)", "(no rawJson)", "(json parse error)")
+            else "PROBLEM"
+        )
         print(f"  [{status}] {vs_id}")
         print(f"         milestone_type : {milestone}")
         print(f"         concept count  : {concept_count}")
@@ -268,7 +302,9 @@ def _section_valueset_health(client) -> None:
         for r in benign_rows[:8]:
             print(f"    {r['cid']}  {r['cname']}")
     else:
-        print("  WARNING: no HAS_MEMBER concepts found - benign closure anchor bucket is empty")
+        print(
+            "  WARNING: no HAS_MEMBER concepts found - benign closure anchor bucket is empty"
+        )
     print()
 
 
@@ -291,9 +327,13 @@ def _section_date_math_bug(stale_eps: list[dict], client) -> None:
         print(f"\n  stale_post_specialist days_since_REFERRAL distribution:")
         print(f"    <= 90 days  (would NOT be stale if using ref_date): {within_90}")
         print(f"    <= 180 days                                        : {within_180}")
-        print(f"    > 180 days (likely genuinely old referrals)        : {len(post_spec) - within_180}")
+        print(
+            f"    > 180 days (likely genuinely old referrals)        : {len(post_spec) - within_180}"
+        )
         print()
-        print("  To measure real staleness we need to find the ACTUAL specialist-visit date.")
+        print(
+            "  To measure real staleness we need to find the ACTUAL specialist-visit date."
+        )
         print("  Querying post-referral specialist-domain concepts for each episode...")
         print()
 
@@ -309,17 +349,21 @@ def _section_date_math_bug(stale_eps: list[dict], client) -> None:
                 spec_date = rows[0]["edate"]
                 try:
                     from datetime import date as dt_date
+
                     spec_d = dt_date.fromisoformat(spec_date)
                     ref_d = dt_date.fromisoformat(ref_date)
                     from datetime import date
+
                     today = date.today()
                     days_since_spec = (today - spec_d).days
                     spec_date_deltas.append(days_since_spec)
                     if days_since_spec <= 90:
                         late_spec_count += 1
-                        print(f"  FALSE POSITIVE: PID={pid} site={ep['site']} "
-                              f"ref={ref_date} spec_visit={spec_date} "
-                              f"days_since_spec={days_since_spec} (<= 90d)")
+                        print(
+                            f"  FALSE POSITIVE: PID={pid} site={ep['site']} "
+                            f"ref={ref_date} spec_visit={spec_date} "
+                            f"days_since_spec={days_since_spec} (<= 90d)"
+                        )
                 except Exception:
                     pass
             else:
@@ -327,10 +371,14 @@ def _section_date_math_bug(stale_eps: list[dict], client) -> None:
 
         if spec_date_deltas:
             avg = sum(spec_date_deltas) / len(spec_date_deltas)
-            print(f"\n  Of first {min(30, len(post_spec))} stale_post_specialist episodes:")
+            print(
+                f"\n  Of first {min(30, len(post_spec))} stale_post_specialist episodes:"
+            )
             print(f"    Specialist visit found in domain : {len(spec_date_deltas)}")
             print(f"    No specialist visit found in domain : {no_spec_found_count}")
-            print(f"    Would NOT be stale if threshold from spec-visit date : {late_spec_count}")
+            print(
+                f"    Would NOT be stale if threshold from spec-visit date : {late_spec_count}"
+            )
             print(f"    Average days since specialist visit : {avg:.0f}")
         print()
 
@@ -350,26 +398,36 @@ def _section_specialist_concept_gaps(stale_eps: list[dict], client) -> None:
         ref_date = str(ep["ref_date"])
 
         # First confirm no domain specialist concept found
-        in_domain = client.run(_Q_SPECIALIST_IN_DOMAIN, pid=pid, ref_date=ref_date) or []
+        in_domain = (
+            client.run(_Q_SPECIALIST_IN_DOMAIN, pid=pid, ref_date=ref_date) or []
+        )
         domain_found = bool(in_domain)
 
         # Look for specialist-sounding concepts outside the domain
-        outside = client.run(_Q_ACTUAL_SPECIALIST_CONCEPTS, pid=pid, ref_date=ref_date) or []
+        outside = (
+            client.run(_Q_ACTUAL_SPECIALIST_CONCEPTS, pid=pid, ref_date=ref_date) or []
+        )
 
         if outside and not domain_found:
-            print(f"  PID={pid}  site={ep['site']}  ref={ref_date}  "
-                  f"days_since_ref={ep['days_since_ref']}")
+            print(
+                f"  PID={pid}  site={ep['site']}  ref={ref_date}  "
+                f"days_since_ref={ep['days_since_ref']}"
+            )
             print(f"    [No in-domain specialist concept found]")
             for r in outside[:5]:
                 cid = r.get("cid") or 0
                 print(f"    {r['edate']}  CID={cid}  {r['cname'][:70]}")
                 if cid:
                     gap_concepts[int(cid)] = {
-                        "name": r["cname"], "dates": gap_concepts.get(int(cid), {}).get("dates", []) + [r["edate"]]
+                        "name": r["cname"],
+                        "dates": gap_concepts.get(int(cid), {}).get("dates", [])
+                        + [r["edate"]],
                     }
             print()
 
-    print(f"\n  Candidate specialist concepts NOT in domain ({len(gap_concepts)} unique):")
+    print(
+        f"\n  Candidate specialist concepts NOT in domain ({len(gap_concepts)} unique):"
+    )
     for cid, info in sorted(gap_concepts.items(), key=lambda x: -len(x[1]["dates"])):
         print(f"    CID={cid}  ({len(info['dates'])}x)  {info['name'][:65]}")
     print()
@@ -395,20 +453,26 @@ def _section_benign_closure_gaps(stale_eps: list[dict], client) -> None:
 
         if all_benign:
             missed_benign.append(ep)
-            print(f"  PID={pid}  site={ep['site']}  ref={ref_date}  status={ep['status']}")
+            print(
+                f"  PID={pid}  site={ep['site']}  ref={ref_date}  status={ep['status']}"
+            )
             for r in all_benign[:4]:
                 cid = r.get("cid") or 0
                 print(f"    [{r['edate']}] CID={cid}  {r.get('cname','')[:65]}")
                 if cid:
-                    missed_benign_concepts[int(cid)] = missed_benign_concepts.get(int(cid), {
-                        "name": r.get("cname", ""), "count": 0
-                    })
+                    missed_benign_concepts[int(cid)] = missed_benign_concepts.get(
+                        int(cid), {"name": r.get("cname", ""), "count": 0}
+                    )
                     missed_benign_concepts[int(cid)]["count"] += 1
             print()
 
-    print(f"\n  Episodes with benign concept post-referral (missed closure) : {len(missed_benign)}")
+    print(
+        f"\n  Episodes with benign concept post-referral (missed closure) : {len(missed_benign)}"
+    )
     print(f"  Benign concept IDs found ({len(missed_benign_concepts)} unique):")
-    for cid, info in sorted(missed_benign_concepts.items(), key=lambda x: -x[1]["count"]):
+    for cid, info in sorted(
+        missed_benign_concepts.items(), key=lambda x: -x[1]["count"]
+    ):
         print(f"    CID={cid}  ({info['count']}x)  {info['name'][:65]}")
     print()
 
@@ -429,16 +493,23 @@ def _section_late_cancer(stale_eps: list[dict], client) -> None:
             first = rows[0]
             try:
                 from datetime import date
+
                 ref_d = date.fromisoformat(ref_date)
                 dx_d = date.fromisoformat(first["edate"])
                 gap = (dx_d - ref_d).days
             except Exception:
                 gap = -1
-            late_dx.append({
-                "pid": pid, "site": ep["site"], "ref_date": ref_date,
-                "status": ep["status"], "dx_date": first["edate"],
-                "dx_name": first["cname"], "gap_days": gap,
-            })
+            late_dx.append(
+                {
+                    "pid": pid,
+                    "site": ep["site"],
+                    "ref_date": ref_date,
+                    "status": ep["status"],
+                    "dx_date": first["edate"],
+                    "dx_name": first["cname"],
+                    "gap_days": gap,
+                }
+            )
             flag = "WITHIN 180d" if 0 <= gap <= 180 else f"LATE ({gap}d after ref)"
             print(f"  [{flag}] PID={pid}  site={ep['site']}  ref={ref_date}")
             print(f"    Dx: [{first['edate']}]  {first['cname'][:65]}")
@@ -471,8 +542,10 @@ def _section_post_ref_signal(stale_eps: list[dict], client) -> None:
                 )
 
         if any(signals.values()):
-            print(f"  PID={pid}  site={ep['site']}  ref={ref_date}  "
-                  f"status={ep['status']}  days_ref={ep['days_since_ref']}")
+            print(
+                f"  PID={pid}  site={ep['site']}  ref={ref_date}  "
+                f"status={ep['status']}  days_ref={ep['days_since_ref']}"
+            )
             for cls in ("CANCER", "TREATMENT", "BENIGN"):
                 for line in signals[cls][:3]:
                     print(f"    {cls}: {line}")
@@ -483,8 +556,10 @@ def _section_post_ref_signal(stale_eps: list[dict], client) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     stale_eps = client.run(_Q_STALE) or []

@@ -20,6 +20,7 @@ resolved downstream by the coding resolver, which can use the
 observable_entity concept to its associated finding via the ``INTERPRETS``
 relationship.
 """
+
 from __future__ import annotations
 
 import re
@@ -43,23 +44,23 @@ _KNOWN_UNIT_TOKEN_RE = re.compile(
 # before "high".  Each entry maps to a normalised qualifier key.
 _INTERPRETATION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"outside\s+reference\s+range", re.I), "outside_reference_range"),
-    (re.compile(r"above\s+reference\s+range",   re.I), "above_reference_range"),
-    (re.compile(r"below\s+reference\s+range",   re.I), "below_reference_range"),
-    (re.compile(r"within\s+reference\s+range",  re.I), "within_reference_range"),
-    (re.compile(r"out(?:\s+of)?\s+range",       re.I), "outside_reference_range"),
-    (re.compile(r"in\s+range",                  re.I), "within_reference_range"),
-    (re.compile(r"above\s+range",               re.I), "above_reference_range"),
-    (re.compile(r"below\s+range",               re.I), "below_reference_range"),
-    (re.compile(r"very\s+high",                 re.I), "very_high"),
-    (re.compile(r"very\s+low",                  re.I), "very_low"),
-    (re.compile(r"high\b",                      re.I), "high"),
-    (re.compile(r"low\b",                       re.I), "low"),
-    (re.compile(r"elevated\b",                  re.I), "high"),
-    (re.compile(r"raised\b",                    re.I), "high"),
-    (re.compile(r"reduced\b",                   re.I), "low"),
-    (re.compile(r"abnormal\b",                  re.I), "abnormal"),
-    (re.compile(r"normal\b",                    re.I), "normal"),
-    (re.compile(r"borderline\b",                re.I), "borderline"),
+    (re.compile(r"above\s+reference\s+range", re.I), "above_reference_range"),
+    (re.compile(r"below\s+reference\s+range", re.I), "below_reference_range"),
+    (re.compile(r"within\s+reference\s+range", re.I), "within_reference_range"),
+    (re.compile(r"out(?:\s+of)?\s+range", re.I), "outside_reference_range"),
+    (re.compile(r"in\s+range", re.I), "within_reference_range"),
+    (re.compile(r"above\s+range", re.I), "above_reference_range"),
+    (re.compile(r"below\s+range", re.I), "below_reference_range"),
+    (re.compile(r"very\s+high", re.I), "very_high"),
+    (re.compile(r"very\s+low", re.I), "very_low"),
+    (re.compile(r"high\b", re.I), "high"),
+    (re.compile(r"low\b", re.I), "low"),
+    (re.compile(r"elevated\b", re.I), "high"),
+    (re.compile(r"raised\b", re.I), "high"),
+    (re.compile(r"reduced\b", re.I), "low"),
+    (re.compile(r"abnormal\b", re.I), "abnormal"),
+    (re.compile(r"normal\b", re.I), "normal"),
+    (re.compile(r"borderline\b", re.I), "borderline"),
 ]
 
 # Separator characters that may appear between value and interpretation.
@@ -73,7 +74,7 @@ def _detect_interpretation(text: str) -> tuple[str, str] | None:
     Only matches at the start of *text* (after optional separator tokens).
     """
     sep_m = _INTERP_SEP_RE.match(text)
-    after_sep = text[sep_m.end():] if sep_m else text
+    after_sep = text[sep_m.end() :] if sep_m else text
     for pat, key in _INTERPRETATION_PATTERNS:
         m = pat.match(after_sep)
         if m:
@@ -161,7 +162,9 @@ def parse_measurement_from_text(text: str) -> dict[str, str]:
 
     # Prefer clinically plausible unit patterns; then prefer the right-most
     # candidate because values usually occur after the test name.
-    plausible = [m for m in matches if _KNOWN_UNIT_TOKEN_RE.search(m.group("unit") or "")]
+    plausible = [
+        m for m in matches if _KNOWN_UNIT_TOKEN_RE.search(m.group("unit") or "")
+    ]
     if not plausible:
         return out
     match = plausible[-1]
@@ -172,7 +175,7 @@ def parse_measurement_from_text(text: str) -> dict[str, str]:
         out["numeric_value"] = value
     if unit:
         out["unit"] = unit
-    out["value_span"] = _collapse_ws(searchable[match.start():match.end()])
+    out["value_span"] = _collapse_ws(searchable[match.start() : match.end()])
     return out
 
 
@@ -220,11 +223,17 @@ def normalize_observable_entities(
         existing_unit = str(ent.get("unit", "") or "").strip()
         existing_range = str(ent.get("reference_range", "") or "").strip()
 
-        if parsed.get("numeric_value") and (not preserve_existing_structured or not existing_value):
+        if parsed.get("numeric_value") and (
+            not preserve_existing_structured or not existing_value
+        ):
             ent["value"] = parsed["numeric_value"]
-        if parsed.get("unit") and (not preserve_existing_structured or not existing_unit):
+        if parsed.get("unit") and (
+            not preserve_existing_structured or not existing_unit
+        ):
             ent["unit"] = parsed["unit"]
-        if parsed.get("reference_range") and (not preserve_existing_structured or not existing_range):
+        if parsed.get("reference_range") and (
+            not preserve_existing_structured or not existing_range
+        ):
             ent["reference_range"] = parsed["reference_range"]
 
         # Remove code snippets and bracketed ranges from display span.
@@ -243,14 +252,14 @@ def normalize_observable_entities(
 
                 # Capture any trailing text AFTER the value span to detect
                 # interpretation suffixes (e.g. "- Outside reference range").
-                after_value = stripped[value_pos + len(value_span):]
+                after_value = stripped[value_pos + len(value_span) :]
                 interp = _detect_interpretation(after_value)
                 if interp:
                     interpretation_text, interpretation_qualifier = interp
 
                 stripped = _collapse_ws(before)
             elif value_pos == 0:
-                after = stripped[len(value_span):]
+                after = stripped[len(value_span) :]
                 after_clean = _collapse_ws(after.strip(" -:;,"))
                 if after_clean:
                     stripped = after_clean
@@ -271,7 +280,8 @@ def normalize_observable_entities(
             if value_start is not None:
                 duplicate = any(
                     str(e.get("label", "")) == "qualifier_value"
-                    and _collapse_ws(str(e.get("text", ""))).lower().strip() == value_span.lower().strip()
+                    and _collapse_ws(str(e.get("text", ""))).lower().strip()
+                    == value_span.lower().strip()
                     for e in updated + extras
                 )
                 if not duplicate:
@@ -297,7 +307,8 @@ def normalize_observable_entities(
             if interp_start is not None:
                 duplicate = any(
                     str(e.get("label", "")) == "finding"
-                    and str(e.get("interpretation_qualifier", "")) == interpretation_qualifier
+                    and str(e.get("interpretation_qualifier", ""))
+                    == interpretation_qualifier
                     and str(e.get("parent_observable_text", "")) == stripped
                     for e in updated + extras
                 )

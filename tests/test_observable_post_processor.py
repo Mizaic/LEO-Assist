@@ -27,7 +27,9 @@ def test_normalize_observable_entity_splits_span_and_adds_qualifier() -> None:
             "confidence": 0.95,
         }
     ]
-    normalized = normalize_observable_entities(encounter, entities, add_qualifier_value=True)
+    normalized = normalize_observable_entities(
+        encounter, entities, add_qualifier_value=True
+    )
 
     assert len(normalized) == 2
     obs = normalized[0]
@@ -66,8 +68,14 @@ def test_normalize_does_not_duplicate_existing_qualifier() -> None:
             "confidence": 0.9,
         },
     ]
-    normalized = normalize_observable_entities(encounter, entities, add_qualifier_value=True)
-    qualifiers = [e for e in normalized if e.get("label") == "qualifier_value" and e.get("text") == value_text]
+    normalized = normalize_observable_entities(
+        encounter, entities, add_qualifier_value=True
+    )
+    qualifiers = [
+        e
+        for e in normalized
+        if e.get("label") == "qualifier_value" and e.get("text") == value_text
+    ]
     assert len(qualifiers) == 1
 
 
@@ -109,6 +117,7 @@ def test_preserve_existing_structured_fields_by_default() -> None:
 # Tests for interpretation-suffix detection (compound lab entity emission)
 # ---------------------------------------------------------------------------
 
+
 def test_detect_interpretation_outside_reference_range() -> None:
     matched_text, key = _detect_interpretation(" - Outside reference range")
     assert key == "outside_reference_range"
@@ -146,7 +155,9 @@ def test_normalize_emits_finding_entity_for_outside_reference_range() -> None:
             "confidence": 0.95,
         }
     ]
-    normalized = normalize_observable_entities(encounter, entities, add_qualifier_value=True)
+    normalized = normalize_observable_entities(
+        encounter, entities, add_qualifier_value=True
+    )
 
     labels = [e["label"] for e in normalized]
     assert "observable_entity" in labels
@@ -173,7 +184,9 @@ def test_normalize_handles_label_with_space() -> None:
             "confidence": 1.0,
         }
     ]
-    normalized = normalize_observable_entities(encounter, entities, add_qualifier_value=True)
+    normalized = normalize_observable_entities(
+        encounter, entities, add_qualifier_value=True
+    )
 
     assert len(normalized) == 3
     obs = [e for e in normalized if "observable" in str(e.get("label", ""))]
@@ -247,6 +260,7 @@ def test_normalize_suppresses_interpretation_finding_when_flag_off() -> None:
 # Tests for /concepts/{id}/related endpoint (mocked neo4j)
 # ---------------------------------------------------------------------------
 
+
 def test_related_concepts_endpoint_returns_family() -> None:
     """GET /terminology/concepts/{id}/related → RelatedConceptsResult."""
     from unittest.mock import MagicMock, patch
@@ -257,12 +271,20 @@ def test_related_concepts_endpoint_returns_family() -> None:
         "concept_fsn": "Mean corpuscular haemoglobin (observable entity)",
         "semantic_tag": "observable entity",
         "interpreted_by_findings": [
-            {"id": "365611000", "fsn": "Finding of mean cell hemoglobin level (finding)",
-             "semantic_tag": "finding", "rel": "INTERPRETED_BY"},
+            {
+                "id": "365611000",
+                "fsn": "Finding of mean cell hemoglobin level (finding)",
+                "semantic_tag": "finding",
+                "rel": "INTERPRETED_BY",
+            },
         ],
         "component_of_procedures": [
-            {"id": "54706004", "fsn": "Mean corpuscular hemoglobin determination (procedure)",
-             "semantic_tag": "procedure", "rel": "COMPONENT_OF"},
+            {
+                "id": "54706004",
+                "fsn": "Mean corpuscular hemoglobin determination (procedure)",
+                "semantic_tag": "procedure",
+                "rel": "COMPONENT_OF",
+            },
         ],
         "interprets_observables": [],
         "has_components": [],
@@ -310,6 +332,7 @@ def test_related_concepts_endpoint_404_for_missing() -> None:
 # Tests for CodingResolver lab-domain enrichment
 # ---------------------------------------------------------------------------
 
+
 def test_coding_resolver_enriches_lab_domain_top_candidate() -> None:
     from unittest.mock import MagicMock
     from services.terminology_api.app.services.coding_resolver import CodingResolver
@@ -326,8 +349,12 @@ def test_coding_resolver_enriches_lab_domain_top_candidate() -> None:
         "concept_fsn": "Mean corpuscular haemoglobin (observable entity)",
         "semantic_tag": "observable entity",
         "interpreted_by_findings": [
-            {"id": "365611000", "fsn": "Finding of mean cell hemoglobin level (finding)",
-             "semantic_tag": "finding", "rel": "INTERPRETED_BY"},
+            {
+                "id": "365611000",
+                "fsn": "Finding of mean cell hemoglobin level (finding)",
+                "semantic_tag": "finding",
+                "rel": "INTERPRETED_BY",
+            },
         ],
         "component_of_procedures": [],
         "interprets_observables": [],
@@ -344,7 +371,9 @@ def test_coding_resolver_enriches_lab_domain_top_candidate() -> None:
         return [obs_row]
 
     session = MagicMock()
-    session.run.side_effect = lambda q, **kw: [obs_row] if call_count["n"] == 0 else [related_row]
+    session.run.side_effect = lambda q, **kw: (
+        [obs_row] if call_count["n"] == 0 else [related_row]
+    )
 
     # Use a simpler mock: first call returns obs_row, subsequent returns related_row
     calls = []

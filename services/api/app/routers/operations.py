@@ -67,8 +67,8 @@ _POLICY: dict[str, Any] = {
 
 
 class ResolveTaskRequest(BaseModel):
-    status: str          # "resolved" | "dismissed" | "escalated"
-    resolution: str      # free-text decision/notes
+    status: str  # "resolved" | "dismissed" | "escalated"
+    resolution: str  # free-text decision/notes
     resolved_by: str = "unknown"
 
 
@@ -151,12 +151,15 @@ async def get_task_detail(
             result = session.run(_GET_TASK_DETAIL, task_id=task_id)
             row = result.single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Task {task_id!r} not found"
+                )
             if not scope.is_admin:
                 task_data = dict(row["t"])
                 pid = task_data.get("patient_id")
                 if pid:
                     from libs.auth.org_scope import require_patient_in_scope
+
                     require_patient_in_scope(client, scope, pid)
             return {
                 "task": dict(row["t"]),
@@ -214,6 +217,7 @@ async def resolve_task(
                 pid = task_check[0].get("patient_id")
                 if pid:
                     from libs.auth.org_scope import require_patient_in_scope
+
                     require_patient_in_scope(client, scope, pid)
 
         with client.session() as session:
@@ -228,17 +232,22 @@ async def resolve_task(
             )
             row = result.single()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Task {task_id!r} not found"
+                )
 
         logger.info(
             "HITL task %s resolved: status=%s by=%s",
-            task_id, payload.status, payload.resolved_by,
+            task_id,
+            payload.status,
+            payload.resolved_by,
         )
 
         # Write training label for approved resolutions only.
         if payload.status == "resolved" and task_row and task_row.get("sentences_json"):
             try:
                 import json as _json
+
                 sentences = _json.loads(task_row["sentences_json"] or "[]")
                 for sent in sentences:
                     entities = sent.get("entities", [])
@@ -256,7 +265,8 @@ async def resolve_task(
             except Exception:
                 logger.warning(
                     "HITL training label write failed for task %s — non-fatal",
-                    task_id, exc_info=True,
+                    task_id,
+                    exc_info=True,
                 )
 
         return {"task_id": row["task_id"], "status": row["status"]}
@@ -315,16 +325,14 @@ async def get_operations_metrics(
         # TrainingCandidate, GoldLabel, SurfaceFormTask live in the Knowledge Graph
         kg_client = KnowledgeGraphClient()
         try:
-            extra_counts = kg_client.run(
-                """
+            extra_counts = kg_client.run("""
                 OPTIONAL MATCH (s:SurfaceFormTask {status:'pending'})
                 WITH count(s) AS surface_form_tasks_pending
                 OPTIONAL MATCH (c:TrainingCandidate)
                 WITH surface_form_tasks_pending, count(c) AS training_candidates
                 OPTIONAL MATCH (g:GoldLabel)
                 RETURN surface_form_tasks_pending, training_candidates, count(g) AS gold_labels
-                """
-            )
+                """)
         finally:
             kg_client.close()
         first = extra_counts[0] if extra_counts else {}
@@ -372,10 +380,12 @@ def create_peer_review_task(
     """Create a peer-review HITLTask and return its task_id."""
     from libs.cypher.exclusion_queries import CREATE_EXCLUSION_HITL_TASK
 
-    task_id = str(uuid.uuid5(
-        uuid.NAMESPACE_URL,
-        f"peer-review:{episode_id}:{candidate_id}",
-    ))
+    task_id = str(
+        uuid.uuid5(
+            uuid.NAMESPACE_URL,
+            f"peer-review:{episode_id}:{candidate_id}",
+        )
+    )
 
     _CREATE_PEER_REVIEW = """
 MERGE (t:HITLTask {task_id: $task_id})

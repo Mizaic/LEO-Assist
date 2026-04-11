@@ -13,6 +13,7 @@ the value+unit is stripped so the surface form pinned is the clean label
 
 Outputs a summary + valid_gaps.json ready for feed_audit_gaps_to_surface_forms.py
 """
+
 import json
 import re
 import sys
@@ -23,8 +24,16 @@ sys.path.insert(0, str(ROOT))
 
 from libs.terminology.surface_normalize import strip_observable_value  # noqa: E402
 
-GAPS_FILE = ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps.json"
-OUT_VALID = ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps_valid.json"
+GAPS_FILE = (
+    ROOT / "scripts" / "investigations" / "encounter_audit" / "surface_form_gaps.json"
+)
+OUT_VALID = (
+    ROOT
+    / "scripts"
+    / "investigations"
+    / "encounter_audit"
+    / "surface_form_gaps_valid.json"
+)
 
 gaps = json.loads(GAPS_FILE.read_text(encoding="utf-8"))
 print(f"Loaded {len(gaps)} gaps")
@@ -34,14 +43,37 @@ print(f"Loaded {len(gaps)} gaps")
 # Reject / classify rules
 # ---------------------------------------------------------------------------
 ADMIN_PATTERNS = [
-    "entered at:", "care started", "care ended", "lll spa", "llr spa",
-    "woodbrook", "university hospitals", "admission to", "ambulance",
-    "receptionist", "surgery:", "it will take place", "video or in person",
-    "patient request via", "contact trigger", "walk in / front desk",
-    "breast clinic to", "oncology to", "to woodbrook", "to university",
-    "seen in fast track", "seen in general", "nhs 111", "111 report",
-    "appointment", "sms reminder", "text reminder", "friends and family",
-    "please rate", "would you recommend", "satisfaction",
+    "entered at:",
+    "care started",
+    "care ended",
+    "lll spa",
+    "llr spa",
+    "woodbrook",
+    "university hospitals",
+    "admission to",
+    "ambulance",
+    "receptionist",
+    "surgery:",
+    "it will take place",
+    "video or in person",
+    "patient request via",
+    "contact trigger",
+    "walk in / front desk",
+    "breast clinic to",
+    "oncology to",
+    "to woodbrook",
+    "to university",
+    "seen in fast track",
+    "seen in general",
+    "nhs 111",
+    "111 report",
+    "appointment",
+    "sms reminder",
+    "text reminder",
+    "friends and family",
+    "please rate",
+    "would you recommend",
+    "satisfaction",
     "reasons for request:",
 ]
 
@@ -66,8 +98,17 @@ def classify(ev: str) -> str:
     if len(ev) > 60 and (ev.count(",") >= 3 or ev.count(";") >= 2):
         return "LONG"
     sentence_starters = (
-        "patient ", "she ", "he ", "they ", "this ", "there ", "it ",
-        "please ", "we ", "i ", "you ",
+        "patient ",
+        "she ",
+        "he ",
+        "they ",
+        "this ",
+        "there ",
+        "it ",
+        "please ",
+        "we ",
+        "i ",
+        "you ",
     )
     if any(low.startswith(s) for s in sentence_starters) and len(ev) > 50:
         return "LONG"

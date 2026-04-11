@@ -21,7 +21,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from libs.llm_client.factory import LLMResponse, create_llm
-from libs.llm_client.prompt_safety import INJECTION_GUARD, cap_llm_response, sanitise_for_prompt
+from libs.llm_client.prompt_safety import (
+    INJECTION_GUARD,
+    cap_llm_response,
+    sanitise_for_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +128,12 @@ def escalate_label(
                         "role": "user",
                         "content": json.dumps(
                             {
-                                "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
-                                "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
+                                "entity_text": sanitise_for_prompt(
+                                    entity_text, max_chars=200
+                                ),
+                                "encounter_text": sanitise_for_prompt(
+                                    encounter_text, max_chars=16_000
+                                ),
                                 "current_label": current_label,
                                 "model_a_label": model_a_label,
                                 "model_a_rationale": model_a_rationale,
@@ -142,7 +150,9 @@ def escalate_label(
             parsed = _parse_json(response.text)
         except Exception:
             logger.warning(
-                "Escalation tier=%s failed for %r", tier, entity_text,
+                "Escalation tier=%s failed for %r",
+                tier,
+                entity_text,
                 exc_info=True,
             )
             attempts.append({"tier": tier, "error": True})
@@ -152,23 +162,28 @@ def escalate_label(
         confidence = _safe_float(parsed.get("confidence"))
         rationale = str(parsed.get("reason", ""))[:500]
 
-        attempts.append({
-            "tier": tier,
-            "model_id": response.model_id,
-            "resolved_label": resolved_label,
-            "confidence": confidence,
-            "rationale": rationale,
-        })
+        attempts.append(
+            {
+                "tier": tier,
+                "model_id": response.model_id,
+                "resolved_label": resolved_label,
+                "confidence": confidence,
+                "rationale": rationale,
+            }
+        )
 
         logger.info(
             "Escalation tier=%s entity=%r label=%r conf=%.2f threshold=%.2f",
-            tier, entity_text, resolved_label, confidence, confidence_threshold,
+            tier,
+            entity_text,
+            resolved_label,
+            confidence,
+            confidence_threshold,
         )
 
         result = EscalationResult(
             resolved=(
-                resolved_label in target_labels
-                and confidence >= confidence_threshold
+                resolved_label in target_labels and confidence >= confidence_threshold
             ),
             label=resolved_label if resolved_label in target_labels else None,
             confidence=confidence,
@@ -275,9 +290,13 @@ def escalate_coding(
                         "role": "user",
                         "content": json.dumps(
                             {
-                                "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+                                "entity_text": sanitise_for_prompt(
+                                    entity_text, max_chars=200
+                                ),
                                 "entity_label": entity_label,
-                                "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
+                                "encounter_text": sanitise_for_prompt(
+                                    encounter_text, max_chars=16_000
+                                ),
                             }
                         ),
                     }
@@ -289,7 +308,9 @@ def escalate_coding(
         except Exception:
             logger.warning(
                 "Coding escalation tier=%s failed for %r",
-                tier, entity_text, exc_info=True,
+                tier,
+                entity_text,
+                exc_info=True,
             )
             attempts.append({"tier": tier, "error": True})
             continue
@@ -298,17 +319,22 @@ def escalate_coding(
         confidence = _safe_float(parsed.get("confidence"))
         rationale = str(parsed.get("reason", ""))[:500]
 
-        attempts.append({
-            "tier": tier,
-            "model_id": response.model_id,
-            "concept_term": concept_term,
-            "confidence": confidence,
-            "rationale": rationale,
-        })
+        attempts.append(
+            {
+                "tier": tier,
+                "model_id": response.model_id,
+                "concept_term": concept_term,
+                "confidence": confidence,
+                "rationale": rationale,
+            }
+        )
 
         logger.info(
             "Coding escalation tier=%s entity=%r concept=%r conf=%.2f",
-            tier, entity_text, concept_term, confidence,
+            tier,
+            entity_text,
+            concept_term,
+            confidence,
         )
 
         result = EscalationResult(
@@ -359,14 +385,14 @@ _CANDIDATES_SYSTEM = INJECTION_GUARD + (
     "7. When a patient DECLINED, REFUSED, or CANCELLED a procedure, referral, "
     "appointment, or investigation: code the UNDERLYING clinical procedure or "
     "referral using its normal SNOMED concept -- do NOT search for "
-    "'patient declined X'. Add \"assertion\":\"declined\" (or \"cancelled\") to "
+    '\'patient declined X\'. Add "assertion":"declined" (or "cancelled") to '
     "your JSON response. The system stores the code with a declined/cancelled "
     "assertion on the relationship so the clinical record shows it was offered "
     "but not accepted. Example: 'patient declined lymph node biopsy' -> pick or "
     "search for 'Biopsy of lymph node' with assertion 'declined'.\n"
     "7b. When a clinical impression was OVERRIDDEN by subsequent investigation "
     "(e.g. 'initially suggested Barrett's oesophagus, but biopsy confirmed "
-    "cancer'), the overridden entity is 'refuted'. Add \"assertion\":\"refuted\" "
+    'cancer\'), the overridden entity is \'refuted\'. Add "assertion":"refuted" '
     "for the initial impression that was superseded. The CONFIRMED finding "
     "should remain 'present'. Example: 'thought to be eczema but biopsy "
     "confirmed psoriasis' -> eczema gets assertion 'refuted'.\n"
@@ -439,11 +465,13 @@ def escalate_coding_from_candidates(
         return CandidatesResult(action="ambiguous", reason="No candidates provided.")
 
     numbered = _format_candidates(candidates)
-    user_msg = json.dumps({
-        "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
-        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
-        "candidates": numbered,
-    })
+    user_msg = json.dumps(
+        {
+            "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+            "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
+            "candidates": numbered,
+        }
+    )
 
     resolved_tier = tier if tier in _TIERS else "small"
     try:
@@ -456,7 +484,9 @@ def escalate_coding_from_candidates(
         )
     except Exception:
         logger.warning(
-            "escalate_coding_from_candidates failed for %r", entity_text, exc_info=True,
+            "escalate_coding_from_candidates failed for %r",
+            entity_text,
+            exc_info=True,
         )
         return CandidatesResult(action="ambiguous", reason="LLM call failed.")
 
@@ -465,7 +495,11 @@ def escalate_coding_from_candidates(
     reason = str(parsed.get("reason", ""))[:400]
 
     raw_assertion = str(parsed.get("assertion", "present")).strip().lower()
-    assertion = raw_assertion if raw_assertion in {"declined", "cancelled", "refuted"} else "present"
+    assertion = (
+        raw_assertion
+        if raw_assertion in {"declined", "cancelled", "refuted"}
+        else "present"
+    )
 
     if action == "pick":
         try:
@@ -508,7 +542,9 @@ def escalate_coding_from_candidates(
             model_id=response.model_id,
             assertion=assertion,
         )
-    return CandidatesResult(action="ambiguous", reason=reason, model_id=response.model_id)
+    return CandidatesResult(
+        action="ambiguous", reason=reason, model_id=response.model_id
+    )
 
 
 # -- Dual-model consensus verification for autonomous coding ----------------
@@ -550,11 +586,13 @@ def verify_coding_consensus(
     from libs.llm_client.consensus import run_consensus
 
     fail_v = "uncertain" if coding_mode == "autonomous" else "correct"
-    user_msg = json.dumps({
-        "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
-        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=1500),
-        "matched_concept": f"{snomed_term} (SNOMED: {snomed_concept_id})",
-    })
+    user_msg = json.dumps(
+        {
+            "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+            "encounter_text": sanitise_for_prompt(encounter_text, max_chars=1500),
+            "matched_concept": f"{snomed_term} (SNOMED: {snomed_concept_id})",
+        }
+    )
 
     result = run_consensus(
         system_prompt=_VERIFY_SYSTEM,
@@ -565,6 +603,8 @@ def verify_coding_consensus(
     )
     logger.info(
         "verify_coding_consensus entity=%r verdict=%s agreed=%s",
-        entity_text, result.verdict, result.agreed,
+        entity_text,
+        result.verdict,
+        result.agreed,
     )
     return result.verdict

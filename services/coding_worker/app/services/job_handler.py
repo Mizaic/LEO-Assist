@@ -133,10 +133,7 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
 
     body = raw_message.body if isinstance(raw_message.body, dict) else {}
     run_id = str(
-        raw_message.correlation_id
-        or body.get("run_id")
-        or raw_message.message_id
-        or ""
+        raw_message.correlation_id or body.get("run_id") or raw_message.message_id or ""
     ).strip()
     if not run_id:
         run_id = f"run-{job.patient_id}"
@@ -146,7 +143,9 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
     try:
         audit_driver = get_async_patient_driver()
     except Exception:
-        logger.warning("Patient Graph async driver unavailable — spend audit writes disabled")
+        logger.warning(
+            "Patient Graph async driver unavailable — spend audit writes disabled"
+        )
     try:
         engine = WorkflowEngine(
             neo4j_driver=driver,
@@ -203,7 +202,9 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 run_id=run_id,
                 dry_run=job.dry_run,
             )
-        from services.coding_worker.app.services.progress_publisher import publish_progress
+        from services.coding_worker.app.services.progress_publisher import (
+            publish_progress,
+        )
 
         publish_progress(
             run_id,

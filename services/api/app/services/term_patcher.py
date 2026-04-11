@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 LOOKUP_QUERY = """
@@ -44,7 +43,11 @@ def normalize_surface(text: str) -> str:
 
 def _build_result(text: str, normalized: str, record: dict | None) -> dict[str, Any]:
     if not record or not record.get("snomed_concept_id"):
-        return {"text": text, "normalized_text": normalized, "coding": {**_EMPTY_CODING}}
+        return {
+            "text": text,
+            "normalized_text": normalized,
+            "coding": {**_EMPTY_CODING},
+        }
     return {
         "text": text,
         "normalized_text": normalized,
@@ -91,9 +94,7 @@ def batch_patch_surface_terms(
     if not norm_map:
         return empty_results
 
-    records = list(
-        neo4j_session.run(BATCH_LOOKUP_QUERY, terms=list(norm_map.keys()))
-    )
+    records = list(neo4j_session.run(BATCH_LOOKUP_QUERY, terms=list(norm_map.keys())))
     resolved: dict[str, dict] = {}
     for r in records:
         row = dict(r)

@@ -3,6 +3,7 @@
 These are high-frequency terms the audit found but the terminology API couldn't resolve.
 We verify each against the terminology server before writing.
 """
+
 import sys
 import json
 import requests
@@ -49,15 +50,12 @@ def _concept_id(item: dict) -> str:
 
 def _display(item: dict) -> str:
     """Extract preferred display term from a search result item."""
-    return (
-        item.get("term")
-        or item.get("preferredTerm")
-        or item.get("display")
-        or ""
-    )
+    return item.get("term") or item.get("preferredTerm") or item.get("display") or ""
 
 
-def upsert(normalized: str, concept_id: str, display: str, confidence: float = 0.95) -> bool:
+def upsert(
+    normalized: str, concept_id: str, display: str, confidence: float = 0.95
+) -> bool:
     body = {
         "normalized": normalized,
         "concept_id": concept_id,
@@ -87,68 +85,96 @@ CRITICAL_TERMS = [
     ("child protection plan", "child protection plan", "procedure", 0.98),
     ("on child protection register", "child protection plan", "procedure", 0.95),
     ("child protection case conference", "child protection plan", "procedure", 0.92),
-
     # Cancer / urgent referrals
-    ("secondary malignant neoplasm of bone", "secondary malignant neoplasm of bone", "disorder", 0.97),
+    (
+        "secondary malignant neoplasm of bone",
+        "secondary malignant neoplasm of bone",
+        "disorder",
+        0.97,
+    ),
     ("bone metastases", "secondary malignant neoplasm of bone", "disorder", 0.95),
     ("bone mets", "secondary malignant neoplasm of bone", "disorder", 0.92),
     ("small lymphocytic lymphoma", "small lymphocytic lymphoma", "disorder", 0.97),
     ("SLL", "small lymphocytic lymphoma", "disorder", 0.85),
-
     # Mental health
-    ("mixed anxiety and depressive disorder", "mixed anxiety and depressive disorder", "disorder", 0.97),
-    ("mixed anxiety depression", "mixed anxiety and depressive disorder", "disorder", 0.95),
+    (
+        "mixed anxiety and depressive disorder",
+        "mixed anxiety and depressive disorder",
+        "disorder",
+        0.97,
+    ),
+    (
+        "mixed anxiety depression",
+        "mixed anxiety and depressive disorder",
+        "disorder",
+        0.95,
+    ),
     ("generalised anxiety disorder", "generalised anxiety disorder", "disorder", 0.97),
     ("generalized anxiety disorder", "generalised anxiety disorder", "disorder", 0.95),
     ("GAD", "generalised anxiety disorder", "disorder", 0.88),
-
     # Cardiology
-    ("first degree atrioventricular block", "first degree atrioventricular block", "disorder", 0.97),
+    (
+        "first degree atrioventricular block",
+        "first degree atrioventricular block",
+        "disorder",
+        0.97,
+    ),
     ("first degree AV block", "first degree atrioventricular block", "disorder", 0.95),
     ("1st degree heart block", "first degree atrioventricular block", "disorder", 0.92),
-
     # Bowel / GI
     ("change in bowel habit", "change in bowel habit", "finding", 0.97),
     ("altered bowel habit", "change in bowel habit", "finding", 0.95),
     ("change in bowel habits", "change in bowel habit", "finding", 0.95),
-
     # Menopause
     ("menopausal symptoms", "menopausal symptoms", "finding", 0.97),
     ("perimenopausal symptoms", "menopausal symptoms", "finding", 0.93),
     ("climacteric symptoms", "menopausal symptoms", "finding", 0.90),
-
     # Facial flushing
     ("facial flushing", "flushing", "finding", 0.92),
     ("hot flushes", "hot flush", "finding", 0.97),
     ("facial flushing finding", "flushing", "finding", 0.90),
-
     # Lymphoedema
     ("unilateral lower limb lymphoedema", "lymphoedema", "disorder", 0.92),
     ("leg lymphoedema", "lymphoedema", "disorder", 0.90),
-
     # Electrolytes
     ("hyponatraemia", "hyponatraemia", "disorder", 0.97),
     ("hyponatremia", "hyponatraemia", "disorder", 0.97),
     ("low sodium", "hyponatraemia", "disorder", 0.88),
     ("hypophosphatemia", "hypophosphataemia", "disorder", 0.95),
     ("hypophosphataemia", "hypophosphataemia", "disorder", 0.97),
-
     # Vascular access
-    ("maintenance of peripherally inserted central catheter",
-     "maintenance of peripherally inserted central catheter", "procedure", 0.95),
-    ("PICC line maintenance", "maintenance of peripherally inserted central catheter", "procedure", 0.90),
-    ("PICC line care", "maintenance of peripherally inserted central catheter", "procedure", 0.88),
-
+    (
+        "maintenance of peripherally inserted central catheter",
+        "maintenance of peripherally inserted central catheter",
+        "procedure",
+        0.95,
+    ),
+    (
+        "PICC line maintenance",
+        "maintenance of peripherally inserted central catheter",
+        "procedure",
+        0.90,
+    ),
+    (
+        "PICC line care",
+        "maintenance of peripherally inserted central catheter",
+        "procedure",
+        0.88,
+    ),
     # Declined medications
     ("statin declined", "medication declined", "situation", 0.88),
     ("statin refusal", "medication declined", "situation", 0.85),
     ("declined statin", "medication declined", "situation", 0.88),
-
     # Other high-frequency misses
     ("QRISK2 score", "cardiovascular disease risk score", "observable entity", 0.88),
     ("QRISK2", "cardiovascular disease risk score", "observable entity", 0.85),
     ("QRISK3 score", "cardiovascular disease risk score", "observable entity", 0.88),
-    ("urine protein creatinine ratio", "urine protein creatinine ratio", "observable entity", 0.95),
+    (
+        "urine protein creatinine ratio",
+        "urine protein creatinine ratio",
+        "observable entity",
+        0.95,
+    ),
     ("uPCR", "urine protein creatinine ratio", "observable entity", 0.88),
     ("levonorgestrel IUS", "levonorgestrel intrauterine system", "device", 0.92),
     ("mirena coil", "levonorgestrel intrauterine system", "device", 0.92),

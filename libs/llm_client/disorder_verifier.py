@@ -22,7 +22,11 @@ import re
 from enum import Enum
 
 from libs.llm_client.consensus import ConsensusResult, run_consensus
-from libs.llm_client.prompt_safety import INJECTION_GUARD, cap_llm_response, sanitise_for_prompt
+from libs.llm_client.prompt_safety import (
+    INJECTION_GUARD,
+    cap_llm_response,
+    sanitise_for_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +97,9 @@ def _parse_verdict(text: str) -> str:
     text = re.sub(r"\s*```$", "", text)
     try:
         parsed = json.loads(text)
-        verdict = str(parsed.get("verdict", "")).strip() if isinstance(parsed, dict) else ""
+        verdict = (
+            str(parsed.get("verdict", "")).strip() if isinstance(parsed, dict) else ""
+        )
         return verdict if verdict in _VALID_VERDICTS else ""
     except json.JSONDecodeError:
         pass
@@ -102,7 +108,9 @@ def _parse_verdict(text: str) -> str:
         return ""
     try:
         parsed = json.loads(m.group(0))
-        verdict = str(parsed.get("verdict", "")).strip() if isinstance(parsed, dict) else ""
+        verdict = (
+            str(parsed.get("verdict", "")).strip() if isinstance(parsed, dict) else ""
+        )
         return verdict if verdict in _VALID_VERDICTS else ""
     except json.JSONDecodeError:
         return ""
@@ -128,10 +136,12 @@ def verify_disorder(
     In HITL mode, defaults to ACTIVE_DIAGNOSIS on failure so a human sees it.
     In AUTONOMOUS mode, defaults to UNCERTAIN so the entity is not coded.
     """
-    user_msg = json.dumps({
-        "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
-        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=2_000),
-    })
+    user_msg = json.dumps(
+        {
+            "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+            "encounter_text": sanitise_for_prompt(encounter_text, max_chars=2_000),
+        }
+    )
 
     fail_v = _fail_verdict_for_mode(coding_mode)
 

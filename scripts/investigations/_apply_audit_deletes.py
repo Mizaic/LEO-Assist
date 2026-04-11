@@ -36,33 +36,45 @@ REVERSE (FIT positive / faecal immunochemical test positive):
   FIT positive          -> 59614000 (DELETE)
                            KEEP 71711000112103 (immunoassay - specific)
 """
+
 import os, sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 # (normalized_form, concept_id_to_delete, reason)
 DELETES = [
-    ("bone metastases",                     "128462008", "broad catch-all, specific 94222008 exists"),
-    ("cmht",                                "74732009",  "GCL generic, 401272006 now correct"),
-    ("crhtt",                               "74732009",  "GCL generic, 401272006 now correct"),
-    ("lewy body dementia",                  "74732009",  "GCL generic, 312991009 now correct"),
-    ("fit",                                 "149421000000109", "Provision procedure, observable entity better"),
-    ("hba1c",                               "43396009",  "Procedure, observable entity 1003671000000109 better"),
-    ("urine albumin creatinine ratio",      "313500004", "Wrong analyte: protein vs albumin"),
+    ("bone metastases", "128462008", "broad catch-all, specific 94222008 exists"),
+    ("cmht", "74732009", "GCL generic, 401272006 now correct"),
+    ("crhtt", "74732009", "GCL generic, 401272006 now correct"),
+    ("lewy body dementia", "74732009", "GCL generic, 312991009 now correct"),
+    ("fit", "149421000000109", "Provision procedure, observable entity better"),
+    ("hba1c", "43396009", "Procedure, observable entity 1003671000000109 better"),
+    (
+        "urine albumin creatinine ratio",
+        "313500004",
+        "Wrong analyte: protein vs albumin",
+    ),
     # FIT positive: delete the less-specific general occult blood (my audit-fix was wrong)
-    ("faecal immunochemical test positive", "59614000",  "Immunoassay-specific 71711000112103 is better"),
-    ("fit positive",                        "59614000",  "Immunoassay-specific 71711000112103 is better"),
+    (
+        "faecal immunochemical test positive",
+        "59614000",
+        "Immunoassay-specific 71711000112103 is better",
+    ),
+    ("fit positive", "59614000", "Immunoassay-specific 71711000112103 is better"),
 ]
 
 _DELETE = """

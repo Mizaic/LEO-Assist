@@ -81,13 +81,17 @@ def main() -> None:
     logger.info("Wrote expanded domain cache: %s", out)
 
     total_forms = sum(len(d.surface_forms) for d in domains.values())
-    logger.info("Summary: %d domains, %d total surface forms", len(domains), total_forms)
+    logger.info(
+        "Summary: %d domains, %d total surface forms", len(domains), total_forms
+    )
     for name in sorted(domains):
         s = domains[name].stats
         logger.info(
             "  %-30s forms %5d -> %-5d (+%d)",
             name,
-            int(s.get("surface_form_count_before_kg", len(domains[name].surface_forms))),
+            int(
+                s.get("surface_form_count_before_kg", len(domains[name].surface_forms))
+            ),
             int(s.get("surface_form_count_after_kg", len(domains[name].surface_forms))),
             int(s.get("surface_forms_added_from_kg", 0)),
         )
@@ -95,4 +99,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

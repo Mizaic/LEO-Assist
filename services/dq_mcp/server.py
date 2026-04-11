@@ -20,6 +20,7 @@ Or via mcp.json:
 
 All mutation tools are excluded (R-LEO-AI-063). Read-only tools only.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # MCP protocol helpers (JSON-RPC 2.0 over stdio)
 # ---------------------------------------------------------------------------
+
 
 def _send(msg: dict) -> None:
     line = json.dumps(msg)
@@ -55,6 +57,7 @@ def _recv() -> dict | None:
 # ---------------------------------------------------------------------------
 # Request handlers
 # ---------------------------------------------------------------------------
+
 
 def _handle_initialize(req: dict) -> dict:
     return {
@@ -143,11 +146,13 @@ def run() -> None:
         if handler:
             _send(handler(req))
         elif req.get("id") is not None:
-            _send({
-                "jsonrpc": "2.0",
-                "id": req["id"],
-                "error": {"code": -32601, "message": f"Method not found: {method}"},
-            })
+            _send(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req["id"],
+                    "error": {"code": -32601, "message": f"Method not found: {method}"},
+                }
+            )
 
 
 if __name__ == "__main__":

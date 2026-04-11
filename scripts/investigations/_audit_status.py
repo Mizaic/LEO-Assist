@@ -1,4 +1,5 @@
 """Quick status report from the running audit SQLite DB."""
+
 import sqlite3
 from pathlib import Path
 
@@ -49,7 +50,9 @@ wrong_enc = db.execute("""
 
 print("\n=== Encounters with issues ===")
 print(f"  Missing codes:    {missing_enc:,}  ({100 * missing_enc // max(done, 1)}%)")
-print(f"  Overcoded:        {overcoded_enc:,}  ({100 * overcoded_enc // max(done, 1)}%)")
+print(
+    f"  Overcoded:        {overcoded_enc:,}  ({100 * overcoded_enc // max(done, 1)}%)"
+)
 print(f"  Wrong assertion:  {wrong_enc:,}  ({100 * wrong_enc // max(done, 1)}%)")
 
 sf_total = db.execute("SELECT COUNT(*) FROM surface_form_gaps").fetchone()[0]

@@ -1,7 +1,9 @@
 """Post-fix verification: entity label distribution + HDL record check."""
+
 from dotenv import load_dotenv
 from pathlib import Path
 import json, sys
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
@@ -11,13 +13,11 @@ from libs.neo4j_client.client import PatientGraphClient
 client = PatientGraphClient()
 try:
     # 1. Label distribution
-    rows = client.run(
-        """
+    rows = client.run("""
         MATCH (tl:TrainingLabel)
         WHERE tl.include = true AND tl.entities_json IS NOT NULL
         RETURN tl.entities_json AS ej
-        """
-    )
+        """)
     label_counts = {}
     total_entities = 0
     for r in rows:
@@ -42,13 +42,11 @@ try:
 
     # 3. Check the HDL record specifically
     print("\n=== HDL cholesterol record ===")
-    hdl = client.run(
-        """
+    hdl = client.run("""
         MATCH (tl:TrainingLabel)
         WHERE tl.label_id STARTS WITH '339f3d7fb3d2baffdd34'
         RETURN tl.label_id AS label_id, tl.text AS text, tl.entities_json AS ej
-        """
-    )
+        """)
     for r in hdl:
         entities = json.loads(r["ej"])
         print(f"  encounter: {r['text']!r}")
@@ -58,14 +56,12 @@ try:
 
     # 4. "Outside reference range" records
     print("\n=== 'Outside reference range' records ===")
-    orr = client.run(
-        """
+    orr = client.run("""
         MATCH (tl:TrainingLabel)
         WHERE tl.include = true AND tl.entities_json IS NOT NULL
           AND tl.text CONTAINS 'Outside reference range'
         RETURN tl.entities_json AS ej
-        """
-    )
+        """)
     with_finding = sum(1 for r in orr if '"finding"' in r["ej"])
     with_qv = sum(1 for r in orr if '"qualifier_value"' in r["ej"])
     print(f"  Total: {len(orr)}")

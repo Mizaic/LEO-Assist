@@ -88,7 +88,9 @@ def get_caller_scope_from_request(
         client.close()
 
 
-def require_admin(scope: CallerScope = Depends(get_caller_scope_from_request)) -> CallerScope:
+def require_admin(
+    scope: CallerScope = Depends(get_caller_scope_from_request),
+) -> CallerScope:
     """Dependency that raises 403 unless the caller is a platform admin (GAP-003)."""
     if not scope.is_admin:
         raise HTTPException(status_code=403, detail="Platform admin access required")

@@ -60,9 +60,7 @@ def fetch_practitioner_org_context(
         user = practitioner[0]
         is_admin = bool(user.get("is_platform_admin", False))
 
-        org_where = (
-            "o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization"
-        )
+        org_where = "o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization"
         if is_admin:
             orgs = client.run(
                 "MATCH (o) WHERE "

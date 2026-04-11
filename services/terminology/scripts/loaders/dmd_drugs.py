@@ -155,9 +155,7 @@ async def load_dmd(
             continue
         logger.info("Loading %s from %s", label, xml_file.name)
         async with driver.session() as session:
-            parent_writer = BatchWriter(
-                session, MERGE_DRUG_PARENT, batch_size, label
-            )
+            parent_writer = BatchWriter(session, MERGE_DRUG_PARENT, batch_size, label)
             orphan_writer = BatchWriter(
                 session, MERGE_DRUG, batch_size, f"{label}/orphan"
             )
@@ -165,22 +163,20 @@ async def load_dmd(
                 if item["parent_id"]:
                     await parent_writer.add(item)
                 else:
-                    await orphan_writer.add({
-                        "id": item["child_id"],
-                        "name": item["child_name"],
-                        "drug_type": item["child_type"],
-                    })
+                    await orphan_writer.add(
+                        {
+                            "id": item["child_id"],
+                            "name": item["child_name"],
+                            "drug_type": item["child_type"],
+                        }
+                    )
             total += await parent_writer.finish()
             total += await orphan_writer.finish()
 
     logger.info("Linking DrugConcepts to existing SNOMED Concepts")
     async with driver.session() as session:
-        writer = BatchWriter(
-            session, LINK_DRUG_TO_SNOMED, batch_size, "Drug→SNOMED"
-        )
-        result = await session.run(
-            "MATCH (d:DrugConcept) RETURN d.id AS id"
-        )
+        writer = BatchWriter(session, LINK_DRUG_TO_SNOMED, batch_size, "Drug→SNOMED")
+        result = await session.run("MATCH (d:DrugConcept) RETURN d.id AS id")
         records = await result.data()
         for rec in records:
             await writer.add({"id": rec["id"]})

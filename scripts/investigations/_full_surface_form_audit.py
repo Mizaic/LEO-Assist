@@ -31,6 +31,7 @@ Usage
 Without --apply: prints decisions and writes report.
 With    --apply: also executes the DELETE queries.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,14 +45,16 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
@@ -62,58 +65,88 @@ OUTPUT = ROOT / "scripts" / "investigations" / "full_surface_form_audit.json"
 # for a specific clinical term -- but are acceptable alongside better ones
 # ---------------------------------------------------------------------------
 _BROAD_IDS = {
-    "74732009",    # Mental disorder (disorder)
-    "128462008",   # Metastatic malignant neoplasm (disorder)
-    "415036007",   # Parent has physical disability (situation)
-    "160303001",   # FH of mental disorder (situation)
-    "267023007",   # Disorder of body system (disorder)  -- very broad
+    "74732009",  # Mental disorder (disorder)
+    "128462008",  # Metastatic malignant neoplasm (disorder)
+    "415036007",  # Parent has physical disability (situation)
+    "160303001",  # FH of mental disorder (situation)
+    "267023007",  # Disorder of body system (disorder)  -- very broad
 }
 
 # ---------------------------------------------------------------------------
 # Provenance ranking: higher = more authoritative. Audit-fix beats GCL.
 # ---------------------------------------------------------------------------
 _PROV_RANK = {
-    "audit-fix-mh-orphan-2026-04":       100,
-    "audit-fix-spot-check-2026-04":      100,
-    "audit-fix-abbrev-2026-04":          100,
+    "audit-fix-mh-orphan-2026-04": 100,
+    "audit-fix-spot-check-2026-04": 100,
+    "audit-fix-abbrev-2026-04": 100,
     "audit-fix-wrong-gcl-situations-2026-04": 100,
-    "audit-fix-2026-04":                 100,
-    "manual_correction":                  90,
+    "audit-fix-2026-04": 100,
+    "manual_correction": 90,
     "pin-fast-track-referrals-2026-04-05": 90,
     "fix-guideline-coding-ng12-2026-04-05": 90,
-    "manual-fix-2026-04-05":              90,
-    "manual-fix-fit-2026-04-05":          90,
+    "manual-fix-2026-04-05": 90,
+    "manual-fix-fit-2026-04-05": 90,
     "manual-fix-high-confidence-2026-04-05": 90,
-    "coding_review_resolution":           85,
-    "batch_coding_review_resolution":     85,
-    "synonym_audit_april_2026":           80,
-    "abbreviation_audit_april_2026":      80,
+    "coding_review_resolution": 85,
+    "batch_coding_review_resolution": 85,
+    "synonym_audit_april_2026": 80,
+    "abbreviation_audit_april_2026": 80,
     "abbreviation_audit_april_2026_review": 80,
-    "critical_audit_gap_april_2026":      75,
-    "fit_bcsp_surface_forms_april_2026":  75,
-    "batch7_audit_gap_april_2026":        70,
-    "batch6_audit_gap_april_2026":        65,
-    "batch2_audit_gap_april_2026":        60,
-    "eval_gap_correction":                55,
-    "guideline_config_loader":            10,
+    "critical_audit_gap_april_2026": 75,
+    "fit_bcsp_surface_forms_april_2026": 75,
+    "batch7_audit_gap_april_2026": 70,
+    "batch6_audit_gap_april_2026": 65,
+    "batch2_audit_gap_april_2026": 60,
+    "eval_gap_correction": 55,
+    "guideline_config_loader": 10,
 }
 
 _HISTORY_PREFIXES = (
-    "history of", "hx of", "h/o", "past history", "past ",
-    "previous ", "previously ", "former ", "formerly ",
-    "no history", "no known", "no ", "known history",
-    "background of mental", "family history", "fh of",
-    "absence of", "never had", "resolved ", "ex-",
-    "ex ", "old ", "remote history",
+    "history of",
+    "hx of",
+    "h/o",
+    "past history",
+    "past ",
+    "previous ",
+    "previously ",
+    "former ",
+    "formerly ",
+    "no history",
+    "no known",
+    "no ",
+    "known history",
+    "background of mental",
+    "family history",
+    "fh of",
+    "absence of",
+    "never had",
+    "resolved ",
+    "ex-",
+    "ex ",
+    "old ",
+    "remote history",
 )
 
 _NEGATIVE_PREFIXES = (
-    "no ", "not ", "without ", "absence of ", "denies ", "denied ",
-    "negative for ", "ruled out ", "excluded ", "never ",
+    "no ",
+    "not ",
+    "without ",
+    "absence of ",
+    "denies ",
+    "denied ",
+    "negative for ",
+    "ruled out ",
+    "excluded ",
+    "never ",
 )
 
 # Semantic tags that are NEVER appropriate for plain symptom/disorder forms
-_WRONG_CLINICAL_TAGS = {"record artifact", "occupation", "environment", "social concept"}
+_WRONG_CLINICAL_TAGS = {
+    "record artifact",
+    "occupation",
+    "environment",
+    "social concept",
+}
 
 # Procedure concept IDs often misused for clinical conditions
 # (checked against the form text being clearly non-procedural)
@@ -121,11 +154,29 @@ _PROCEDURE_TAGS = {"procedure", "regime/therapy"}
 
 # Tokens that indicate the form IS about a procedure (don't flag these)
 _PROCEDURE_FORM_TOKENS = {
-    "procedure", "therapy", "treatment", "operation", "surgery",
-    "referral", "appointment", "screening", "scan", "test",
-    "monitoring", "assessment", "review", "prescription",
-    "administered", "initiated", "started", "done", "booked",
-    "uptake", "attendance", "seen in", "admitted",
+    "procedure",
+    "therapy",
+    "treatment",
+    "operation",
+    "surgery",
+    "referral",
+    "appointment",
+    "screening",
+    "scan",
+    "test",
+    "monitoring",
+    "assessment",
+    "review",
+    "prescription",
+    "administered",
+    "initiated",
+    "started",
+    "done",
+    "booked",
+    "uptake",
+    "attendance",
+    "seen in",
+    "admitted",
 }
 
 
@@ -211,8 +262,7 @@ def audit_edges(groups: dict[str, list[dict]]) -> list[dict]:
         concept_ids = {e["concept_id"] for e in edges}
         active_concepts = {e["concept_id"] for e in edges if e["concept_active"]}
         has_active_non_broad = any(
-            e["concept_id"] not in _BROAD_IDS and e["concept_active"]
-            for e in edges
+            e["concept_id"] not in _BROAD_IDS and e["concept_active"] for e in edges
         )
         has_audit_fix = any(_prov_rank(e["provenance"]) >= 90 for e in edges)
         audit_fix_concepts = {
@@ -293,7 +343,8 @@ def audit_edges(groups: dict[str, list[dict]]) -> list[dict]:
                 if not is_legit_situation:
                     # Only delete if we have an active non-situation alternative
                     non_situation_alternatives = {
-                        e["concept_id"] for e in edges
+                        e["concept_id"]
+                        for e in edges
                         if e["concept_active"]
                         and (e["semantic_tag"] or "").lower() not in {"situation"}
                         and e["concept_id"] != cid
@@ -311,7 +362,8 @@ def audit_edges(groups: dict[str, list[dict]]) -> list[dict]:
             elif tag in _PROCEDURE_TAGS and not _is_procedure_form(form):
                 # Only flag if there's a better alternative
                 non_proc_alternatives = {
-                    e["concept_id"] for e in edges
+                    e["concept_id"]
+                    for e in edges
                     if e["concept_active"]
                     and (e["semantic_tag"] or "").lower() not in _PROCEDURE_TAGS
                     and e["concept_id"] != cid
@@ -329,7 +381,14 @@ def audit_edges(groups: dict[str, list[dict]]) -> list[dict]:
                     pass  # already caught above
                 # Check if form text is clearly clinical (not admin)
                 form_tokens = set(re.findall(r"[a-z]+", form.lower()))
-                admin_tokens = {"record", "document", "form", "letter", "report", "note"}
+                admin_tokens = {
+                    "record",
+                    "document",
+                    "form",
+                    "letter",
+                    "report",
+                    "note",
+                }
                 if not form_tokens & admin_tokens:
                     decision = "REVIEW"
                     rule = "R6_WRONG_SEMANTIC_TAG"
@@ -340,8 +399,7 @@ def audit_edges(groups: dict[str, list[dict]]) -> list[dict]:
             # This is rare but can happen; the DELETE will remove all matching prov edges
             # so we flag duplicates only if provenance matches another edge exactly
             same_concept_same_prov = [
-                e for e in edges
-                if e["concept_id"] == cid and e["provenance"] == prov
+                e for e in edges if e["concept_id"] == cid and e["provenance"] == prov
             ]
             if len(same_concept_same_prov) > 1 and decision == "KEEP":
                 decision = "REVIEW"
@@ -354,19 +412,21 @@ def audit_edges(groups: dict[str, list[dict]]) -> list[dict]:
                 rule = "R8_BROAD_NO_ALTERNATIVE"
                 reason = f"Only mapping is to broad catch-all {cid} ({fsn}); consider adding specific concept"
 
-            decisions.append({
-                "normalized":    normalized,
-                "form":          form,
-                "concept_id":    cid,
-                "concept_fsn":   fsn,
-                "semantic_tag":  tag,
-                "confidence":    round(conf, 4),
-                "provenance":    prov,
-                "concept_active": active,
-                "decision":      decision,
-                "rule":          rule,
-                "reason":        reason,
-            })
+            decisions.append(
+                {
+                    "normalized": normalized,
+                    "form": form,
+                    "concept_id": cid,
+                    "concept_fsn": fsn,
+                    "semantic_tag": tag,
+                    "confidence": round(conf, 4),
+                    "provenance": prov,
+                    "concept_active": active,
+                    "decision": decision,
+                    "rule": rule,
+                    "reason": reason,
+                }
+            )
 
     return decisions
 
@@ -410,9 +470,9 @@ def main(apply: bool) -> None:
         decisions = audit_edges(groups)
 
         # Summary counts
-        keep    = [d for d in decisions if d["decision"] == "KEEP"]
-        delete  = [d for d in decisions if d["decision"] == "DELETE"]
-        review  = [d for d in decisions if d["decision"] == "REVIEW"]
+        keep = [d for d in decisions if d["decision"] == "KEEP"]
+        delete = [d for d in decisions if d["decision"] == "DELETE"]
+        review = [d for d in decisions if d["decision"] == "REVIEW"]
 
         print(f"\n{'=' * 70}")
         print(f"KEEP  : {len(keep):>5}")
@@ -439,13 +499,19 @@ def main(apply: bool) -> None:
         # Show sample DELETEs
         print(f"\n--- Sample DELETE decisions (first 30) ---")
         for d in delete[:30]:
-            print(f"  [{d['rule']}] {d['form']!r} -> {d['concept_id']} | {d['concept_fsn'][:50]}")
-            print(f"    prov={d['provenance']}  conf={d['confidence']}  reason: {d['reason'][:80]}")
+            print(
+                f"  [{d['rule']}] {d['form']!r} -> {d['concept_id']} | {d['concept_fsn'][:50]}"
+            )
+            print(
+                f"    prov={d['provenance']}  conf={d['confidence']}  reason: {d['reason'][:80]}"
+            )
 
         # Show sample REVIEWs
         print(f"\n--- Sample REVIEW decisions (first 20) ---")
         for d in review[:20]:
-            print(f"  [{d['rule']}] {d['form']!r} -> {d['concept_id']} | {d['concept_fsn'][:50]}")
+            print(
+                f"  [{d['rule']}] {d['form']!r} -> {d['concept_id']} | {d['concept_fsn'][:50]}"
+            )
             print(f"    reason: {d['reason'][:80]}")
 
         if apply:
@@ -458,7 +524,7 @@ def main(apply: bool) -> None:
     # Save full report
     report = {
         "total": len(decisions),
-        "keep":   len(keep),
+        "keep": len(keep),
         "delete": len(delete),
         "review": len(review),
         "delete_by_rule": delete_by_rule,
@@ -471,7 +537,10 @@ def main(apply: bool) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--apply", action="store_true",
-                        help="Actually execute the DELETE queries (default: dry-run)")
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Actually execute the DELETE queries (default: dry-run)",
+    )
     args = parser.parse_args()
     main(apply=args.apply)

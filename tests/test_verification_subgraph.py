@@ -10,7 +10,13 @@ from libs.pipeline_graph.subgraphs.verification import (
 
 
 class _DummyResponse:
-    def __init__(self, text: str = "", *, tool_uses: list[dict] | None = None, stop_reason: str = "end_turn") -> None:
+    def __init__(
+        self,
+        text: str = "",
+        *,
+        tool_uses: list[dict] | None = None,
+        stop_reason: str = "end_turn",
+    ) -> None:
         self.text = text
         self.tool_uses = tool_uses or []
         self.stop_reason = stop_reason
@@ -37,7 +43,9 @@ def _state() -> dict:
     return {
         "encounter_text": "Patient has asthma.",
         "entities": [{"text": "asthma", "label": "disorder", "start": 12, "end": 18}],
-        "prompt_config": {"systemPrompt": "Verify entities.\n{encounter_text}\n{entities_json}"},
+        "prompt_config": {
+            "systemPrompt": "Verify entities.\n{encounter_text}\n{entities_json}"
+        },
         "errors": [],
         "extraction_attempts": [],
     }
@@ -66,7 +74,11 @@ def test_verify_entities_can_use_snomed_lookup_tool_before_final_verdict() -> No
                     {
                         "name": "lookup_snomed",
                         "toolUseId": "tu-1",
-                        "input": {"entity_index": 0, "query": "asthma", "expected_label": "disorder"},
+                        "input": {
+                            "entity_index": 0,
+                            "query": "asthma",
+                            "expected_label": "disorder",
+                        },
                     }
                 ],
                 stop_reason="tool_use",
@@ -76,30 +88,38 @@ def test_verify_entities_can_use_snomed_lookup_tool_before_final_verdict() -> No
                     {
                         "name": "verification_result",
                         "toolUseId": "tu-2",
-                        "input": {"is_accurate": True, "confidence": 0.92, "issues": [], "corrections": []},
+                        "input": {
+                            "is_accurate": True,
+                            "confidence": 0.92,
+                            "issues": [],
+                            "corrections": [],
+                        },
                     }
                 ],
                 stop_reason="tool_use",
             ),
         ]
     )
-    with patch("libs.llm_client.factory.create_llm", return_value=llm), patch(
-        "libs.pipeline_graph.subgraphs.verification.TerminologyClient.resolve",
-        return_value={
-            "asthma": [
-                type(
-                    "Resolved",
-                    (),
-                    {
-                        "concept_id": "195967001",
-                        "term": "Asthma",
-                        "semantic_tag": "disorder",
-                        "score": 0.98,
-                        "read_code": None,
-                    },
-                )()
-            ]
-        },
+    with (
+        patch("libs.llm_client.factory.create_llm", return_value=llm),
+        patch(
+            "libs.pipeline_graph.subgraphs.verification.TerminologyClient.resolve",
+            return_value={
+                "asthma": [
+                    type(
+                        "Resolved",
+                        (),
+                        {
+                            "concept_id": "195967001",
+                            "term": "Asthma",
+                            "semantic_tag": "disorder",
+                            "score": 0.98,
+                            "read_code": None,
+                        },
+                    )()
+                ]
+            },
+        ),
     ):
         result = verify_entities(state)
 
@@ -107,7 +127,9 @@ def test_verify_entities_can_use_snomed_lookup_tool_before_final_verdict() -> No
     assert result["verification_tool_trace"][0]["tool_name"] == "lookup_snomed"
     assert result["verification_tool_trace"][0]["candidate_count"] == 1
     assert len(llm.calls) == 2
-    tool_result_content = llm.calls[1]["messages"][-1]["content"][0]["toolResult"]["content"][0]["text"]
+    tool_result_content = llm.calls[1]["messages"][-1]["content"][0]["toolResult"][
+        "content"
+    ][0]["text"]
     parsed = json.loads(tool_result_content)
     assert parsed["candidates"][0]["concept_id"] == "195967001"
 
@@ -123,7 +145,9 @@ def test_verify_entities_records_failed_attempt_for_empty_response() -> None:
     assert result["verification_result"]["confidence"] == 0.0
     assert result["verification_non_retryable"] is True
     assert result["extraction_attempts"]
-    assert "verification_parse_error" in " ".join(result["verification_result"]["issues"])
+    assert "verification_parse_error" in " ".join(
+        result["verification_result"]["issues"]
+    )
 
 
 def test_route_ends_on_non_retryable_verification_error() -> None:

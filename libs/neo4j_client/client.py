@@ -55,9 +55,7 @@ def run_with_retry(
             last_exc = exc
             if attempt == _MAX_RETRIES - 1:
                 raise
-            delay = min(_MAX_DELAY, _BASE_DELAY * (2**attempt)) + random.uniform(
-                0, 0.5
-            )
+            delay = min(_MAX_DELAY, _BASE_DELAY * (2**attempt)) + random.uniform(0, 0.5)
             logger.warning(
                 "Neo4j transient error (attempt %d/%d): %s — retrying in %.1fs",
                 attempt + 1,
@@ -88,7 +86,7 @@ class _BaseClient:
         # long-running operations (e.g. LLM disambiguation batches).
         # max_connection_lifetime: retire connections older than 5 min regardless.
         _pool_kwargs: dict = {
-            "liveness_check_timeout": 5,   # Aura closes idle TCP in ~7-10s; check at 5s
+            "liveness_check_timeout": 5,  # Aura closes idle TCP in ~7-10s; check at 5s
             "max_connection_lifetime": 300,
         }
         try:
@@ -153,9 +151,12 @@ class KnowledgeGraphClient(_BaseClient):
 
     def __init__(self) -> None:
         super().__init__(
-            os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "") or os.getenv("NEO4J_KNOWLEDGE_URI", ""),
-            os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "") or os.getenv("NEO4J_KNOWLEDGE_USER", ""),
-            os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "") or os.getenv("NEO4J_KNOWLEDGE_PASSWORD", ""),
+            os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "")
+            or os.getenv("NEO4J_KNOWLEDGE_URI", ""),
+            os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+            or os.getenv("NEO4J_KNOWLEDGE_USER", ""),
+            os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
+            or os.getenv("NEO4J_KNOWLEDGE_PASSWORD", ""),
         )
 
 
@@ -178,7 +179,9 @@ def get_async_patient_driver():
     """Return an async Neo4j driver for the Patient Graph."""
     uri = os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", "")
     username = os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", "")
-    password = os.getenv("NEO4J_PASSWORD", "") or os.getenv("NEO4J_PATIENT_PASSWORD", "")
+    password = os.getenv("NEO4J_PASSWORD", "") or os.getenv(
+        "NEO4J_PATIENT_PASSWORD", ""
+    )
     if not all([uri, username, password]):
         raise RuntimeError("Neo4j credentials missing for async patient graph driver")
     return AsyncGraphDatabase.driver(uri, auth=(username, password))

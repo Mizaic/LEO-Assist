@@ -54,7 +54,9 @@ def upsert_candidate(candidate: dict[str, Any], session) -> None:
         "hard_fail_reasons": candidate["hard_fail_reasons"],
         "warning_reasons": candidate["warning_reasons"],
         "sentences_json": json.dumps(candidate["sentences"], ensure_ascii=False),
-        "llm_usage_json": json.dumps(llm_usage, ensure_ascii=False) if llm_usage else None,
+        "llm_usage_json": (
+            json.dumps(llm_usage, ensure_ascii=False) if llm_usage else None
+        ),
     }
     session.run(UPSERT_CANDIDATE, **payload)
 
@@ -93,7 +95,9 @@ def create_review_task(
     return task_id
 
 
-def list_review_tasks(session, status: str | None, patient_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+def list_review_tasks(
+    session, status: str | None, patient_id: str | None = None, limit: int = 100
+) -> list[dict[str, Any]]:
     records = session.run(LIST_TASKS, status=status, patient_id=patient_id, limit=limit)
     return [_normalize_record(dict(r)) for r in records]
 
@@ -147,8 +151,12 @@ def get_audit_timeline(candidate_id: str, session) -> dict[str, Any]:
     if not record:
         return {"candidate_id": candidate_id, "changes": [], "approvals": []}
     payload = dict(record)
-    payload["changes"] = [_normalize_record(dict(row)) for row in payload.get("changes", []) if row]
-    payload["approvals"] = [_normalize_record(dict(row)) for row in payload.get("approvals", []) if row]
+    payload["changes"] = [
+        _normalize_record(dict(row)) for row in payload.get("changes", []) if row
+    ]
+    payload["approvals"] = [
+        _normalize_record(dict(row)) for row in payload.get("approvals", []) if row
+    ]
     return payload
 
 
@@ -165,7 +173,9 @@ def list_approved_candidates(session) -> list[dict[str, Any]]:
     return payload
 
 
-def list_approved_candidates_for_patient(patient_id: str, session) -> list[dict[str, Any]]:
+def list_approved_candidates_for_patient(
+    patient_id: str, session
+) -> list[dict[str, Any]]:
     """Return approved EncounterCandidates for a patient."""
     records = session.run(LIST_APPROVED_CANDIDATES_FOR_PATIENT, patient_id=patient_id)
     payload: list[dict[str, Any]] = []

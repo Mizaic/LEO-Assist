@@ -1,4 +1,5 @@
 """Tests for libs.ner.scope_guard -- intended-use boundary enforcement."""
+
 from __future__ import annotations
 
 import pytest
@@ -10,7 +11,6 @@ from libs.ner.scope_guard import (
     is_safety_netting_sentence,
     reclassify_assertion,
 )
-
 
 # ---------------------------------------------------------------------------
 # Safety-netting detection
@@ -30,7 +30,9 @@ class TestSafetyNettingDetection:
         assert is_safety_netting_sentence("Attend A&E immediately if symptoms worsen")
 
     def test_call_999(self) -> None:
-        assert is_safety_netting_sentence("Call 999 if you experience severe chest pain")
+        assert is_safety_netting_sentence(
+            "Call 999 if you experience severe chest pain"
+        )
 
     def test_call_111(self) -> None:
         assert is_safety_netting_sentence("Call 111 if symptoms do not improve")
@@ -39,10 +41,14 @@ class TestSafetyNettingDetection:
         assert is_safety_netting_sentence("Red flag symptoms discussed with patient")
 
     def test_return_sooner_if(self) -> None:
-        assert is_safety_netting_sentence("Return sooner if symptoms worsen or new symptoms appear")
+        assert is_safety_netting_sentence(
+            "Return sooner if symptoms worsen or new symptoms appear"
+        )
 
     def test_ring_surgery_if(self) -> None:
-        assert is_safety_netting_sentence("Ring the surgery if not improving in 48 hours")
+        assert is_safety_netting_sentence(
+            "Ring the surgery if not improving in 48 hours"
+        )
 
     def test_normal_clinical_text_not_flagged(self) -> None:
         assert not is_safety_netting_sentence(
@@ -65,7 +71,9 @@ class TestSafetyNettingDetection:
 
 class TestRecommendationDetection:
     def test_consider_starting(self) -> None:
-        assert has_recommendation_language("Consider starting metformin 500mg once daily")
+        assert has_recommendation_language(
+            "Consider starting metformin 500mg once daily"
+        )
 
     def test_recommend_referral(self) -> None:
         assert has_recommendation_language("Recommend referral to cardiology")
@@ -81,13 +89,17 @@ class TestRecommendationDetection:
 
     def test_will_start_not_flagged(self) -> None:
         """'Will start' is ambiguous in UK GP notes — often means 'started today'."""
-        assert not has_recommendation_language("Will start amoxicillin 500mg TDS for 7 days")
+        assert not has_recommendation_language(
+            "Will start amoxicillin 500mg TDS for 7 days"
+        )
 
     def test_plan_to_refer(self) -> None:
         assert has_recommendation_language("Plan to refer to physiotherapy")
 
     def test_would_benefit_from(self) -> None:
-        assert has_recommendation_language("Would benefit from cognitive behavioural therapy")
+        assert has_recommendation_language(
+            "Would benefit from cognitive behavioural therapy"
+        )
 
     def test_current_medication_not_flagged(self) -> None:
         assert not has_recommendation_language(
@@ -108,7 +120,9 @@ class TestRecommendationDetection:
 
 class TestHedgedDiagnosis:
     def test_consistent_with(self) -> None:
-        assert has_hedged_diagnosis("Clinical picture consistent with viral upper respiratory infection")
+        assert has_hedged_diagnosis(
+            "Clinical picture consistent with viral upper respiratory infection"
+        )
 
     def test_in_keeping_with(self) -> None:
         assert has_hedged_diagnosis("Symptoms in keeping with gastroesophageal reflux")
@@ -238,6 +252,31 @@ class TestReclassifyAssertion:
         )
         assert result is None
 
+    def test_side_effect_counselling_finding_is_suppressed(self) -> None:
+        result = reclassify_assertion(
+            entity_semantic_tag="finding",
+            entity_assertion="present",
+            sentence_text=(
+                "Advised at increased risk of s/e such as dizziness, drowsiness, "
+                "breathing changes, constipation, blurred vision - advised to look "
+                "out for these and report back to surgery"
+            ),
+            entity_text="dizziness",
+        )
+        assert result == SUPPRESSED
+
+    def test_side_effect_counselling_does_not_suppress_unrelated_procedure(self) -> None:
+        result = reclassify_assertion(
+            entity_semantic_tag="procedure",
+            entity_assertion="present",
+            sentence_text=(
+                "Advised at increased risk of s/e such as dizziness, drowsiness - "
+                "advised to look out for these and report back to surgery"
+            ),
+            entity_text="Telephone consultation",
+        )
+        assert result is None
+
     def test_will_start_medication_not_reclassified(self) -> None:
         """'Will start' is too ambiguous in UK GP notes — no reclassification."""
         result = reclassify_assertion(
@@ -262,7 +301,9 @@ class TestReclassifyAssertion:
                 entity_assertion="present",
                 sentence_text="Call 999 if you experience severe chest pain",
             )
-            assert result == SUPPRESSED, f"Expected SUPPRESSED for tag {tag}, got {result!r}"
+            assert (
+                result == SUPPRESSED
+            ), f"Expected SUPPRESSED for tag {tag}, got {result!r}"
 
     def test_raises_suspicion_reclassifies_disorder(self) -> None:
         result = reclassify_assertion(

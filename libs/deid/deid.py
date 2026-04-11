@@ -11,6 +11,7 @@ Environment variables
 DEID_LOCAL_ORGS   Comma-separated list of additional organisation names to
                   redact (GAP-014). Example: "St Mary's Hospital,City Clinic"
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,9 +24,7 @@ logger = logging.getLogger(__name__)
 # -- NHS number: 10 digits, commonly space- or hyphen-separated ----------
 _NHS_NUMBER = re.compile(r"\b\d{3}[\s\-]\d{3}[\s\-]\d{4}\b|\b\d{10}\b")
 # -- UK postcode (full or partial) ----------------------------------------
-_UK_POSTCODE = re.compile(
-    r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.IGNORECASE
-)
+_UK_POSTCODE = re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.IGNORECASE)
 # -- UK date formats: DD/MM/YYYY, DD-MM-YYYY, D Month YYYY ---------------
 _DATE = re.compile(
     r"\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b"
@@ -55,6 +54,7 @@ def _build_org_pattern() -> re.Pattern | None:
 @dataclass
 class DeidResult:
     """Result of de-identification. Contains redacted text and a list of replacements."""
+
     text: str
     replacements: list[tuple[int, int, str]] = field(default_factory=list)
 
@@ -85,7 +85,7 @@ def deidentify(text: str) -> DeidResult:
         new_result = ""
         prev = 0
         for m in pattern.finditer(result):
-            new_result += result[prev:m.start()]
+            new_result += result[prev : m.start()]
             replacements.append((m.start(), m.end(), m.group()))
             new_result += token
             prev = m.end()

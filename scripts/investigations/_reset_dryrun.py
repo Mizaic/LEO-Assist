@@ -1,4 +1,5 @@
 """Reset the dry-run DB encounters back to pending for a re-run."""
+
 import sqlite3
 from pathlib import Path
 
@@ -21,8 +22,6 @@ con.execute("DELETE FROM wrong_concepts")
 con.execute("DELETE FROM ner_examples")
 con.commit()
 
-rows = con.execute(
-    "SELECT status, count(1) FROM encounters GROUP BY status"
-).fetchall()
+rows = con.execute("SELECT status, count(1) FROM encounters GROUP BY status").fetchall()
 print("After reset:", rows)
 con.close()

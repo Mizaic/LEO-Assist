@@ -5,6 +5,7 @@ Emits structured JSON to stdout (captured by ACA Log Analytics) AND
 sends a POST to the FHIR API /fhir/AuditEvent endpoint in a background
 thread so audit never blocks the request path.
 """
+
 from __future__ import annotations
 
 import logging
@@ -42,7 +43,11 @@ def _build_event(
     now = datetime.now(timezone.utc).isoformat()
     event: dict[str, Any] = {
         "resourceType": "AuditEvent",
-        "type": {"system": "http://dicom.nema.org/resources/ontology/DCM", "code": type_code, "display": type_display},
+        "type": {
+            "system": "http://dicom.nema.org/resources/ontology/DCM",
+            "code": type_code,
+            "display": type_display,
+        },
         "recorded": now,
         "outcome": outcome,
         "agent": [{"who": {"display": agent_email or "system"}, "requestor": True}],
@@ -51,7 +56,12 @@ def _build_event(
     if agent_role:
         event["agent"][0]["role"] = [{"text": agent_role}]
     if entity_id:
-        event["entity"] = [{"what": {"identifier": {"value": entity_id}}, "type": {"display": entity_type or ""}}]
+        event["entity"] = [
+            {
+                "what": {"identifier": {"value": entity_id}},
+                "type": {"display": entity_type or ""},
+            }
+        ]
     return event
 
 
@@ -84,15 +94,17 @@ def emit_auth_event(
     description: str = "",
     source_service: str = "core-api",
 ) -> None:
-    _emit_async(_build_event(
-        type_code="110114",
-        type_display="User Authentication",
-        outcome=outcome,
-        agent_email=agent_email,
-        agent_role=None,
-        source_service=source_service,
-        description=description,
-    ))
+    _emit_async(
+        _build_event(
+            type_code="110114",
+            type_display="User Authentication",
+            outcome=outcome,
+            agent_email=agent_email,
+            agent_role=None,
+            source_service=source_service,
+            description=description,
+        )
+    )
 
 
 def emit_access_event(
@@ -104,16 +116,18 @@ def emit_access_event(
     entity_type: str | None = None,
     source_service: str = "core-api",
 ) -> None:
-    _emit_async(_build_event(
-        type_code="110110",
-        type_display="Patient Record",
-        outcome=outcome,
-        agent_email=agent_email,
-        agent_role=agent_role,
-        source_service=source_service,
-        entity_id=entity_id,
-        entity_type=entity_type,
-    ))
+    _emit_async(
+        _build_event(
+            type_code="110110",
+            type_display="Patient Record",
+            outcome=outcome,
+            agent_email=agent_email,
+            agent_role=agent_role,
+            source_service=source_service,
+            entity_id=entity_id,
+            entity_type=entity_type,
+        )
+    )
 
 
 def emit_model_event(
@@ -124,17 +138,19 @@ def emit_model_event(
     model_version: str | None = None,
     source_service: str = "core-api",
 ) -> None:
-    _emit_async(_build_event(
-        type_code="110153",
-        type_display="Application Activity",
-        outcome=outcome,
-        agent_email=agent_email,
-        agent_role="admin",
-        source_service=source_service,
-        entity_id=model_version,
-        entity_type="model-version",
-        description=action,
-    ))
+    _emit_async(
+        _build_event(
+            type_code="110153",
+            type_display="Application Activity",
+            outcome=outcome,
+            agent_email=agent_email,
+            agent_role="admin",
+            source_service=source_service,
+            entity_id=model_version,
+            entity_type="model-version",
+            description=action,
+        )
+    )
 
 
 def emit_pipeline_event(
@@ -144,16 +160,18 @@ def emit_pipeline_event(
     agent_email: str | None = None,
     source_service: str = "core-api",
 ) -> None:
-    _emit_async(_build_event(
-        type_code="110112",
-        type_display="Query",
-        outcome=outcome,
-        agent_email=agent_email,
-        agent_role=None,
-        source_service=source_service,
-        entity_id=patient_id,
-        entity_type="patient",
-    ))
+    _emit_async(
+        _build_event(
+            type_code="110112",
+            type_display="Query",
+            outcome=outcome,
+            agent_email=agent_email,
+            agent_role=None,
+            source_service=source_service,
+            entity_id=patient_id,
+            entity_type="patient",
+        )
+    )
 
 
 def emit_application_event(
@@ -166,17 +184,19 @@ def emit_application_event(
     entity_type: str | None = None,
 ) -> None:
     """General-purpose application activity audit event."""
-    _emit_async(_build_event(
-        type_code="110153",
-        type_display="Application Activity",
-        outcome=outcome,
-        agent_email=agent_email,
-        agent_role=None,
-        source_service=source_service,
-        entity_id=entity_id,
-        entity_type=entity_type,
-        description=description,
-    ))
+    _emit_async(
+        _build_event(
+            type_code="110153",
+            type_display="Application Activity",
+            outcome=outcome,
+            agent_email=agent_email,
+            agent_role=None,
+            source_service=source_service,
+            entity_id=entity_id,
+            entity_type=entity_type,
+            description=description,
+        )
+    )
 
 
 def emit_ods_sync_summary(
@@ -196,17 +216,19 @@ def emit_ods_sync_summary(
         f"run_id={run_id} checked={checked} mismatches={mismatches} "
         f"closures={closures} errors={errors}"
     )
-    _emit_async(_build_event(
-        type_code="110153",
-        type_display="Application Activity",
-        outcome=outcome,
-        agent_email=None,
-        agent_role="system",
-        source_service=source_service,
-        entity_id=run_id,
-        entity_type="ods-sync-run",
-        description=description,
-    ))
+    _emit_async(
+        _build_event(
+            type_code="110153",
+            type_display="Application Activity",
+            outcome=outcome,
+            agent_email=None,
+            agent_role="system",
+            source_service=source_service,
+            entity_id=run_id,
+            entity_type="ods-sync-run",
+            description=description,
+        )
+    )
 
 
 def emit_ods_closure_alert(
@@ -218,17 +240,17 @@ def emit_ods_closure_alert(
     source_service: str = "ods-sync",
 ) -> None:
     """Emit a closure alert AuditEvent when ODS reports an org as Inactive or not found."""
-    description = (
-        f"ODS closure alert: org_id={org_id} name={org_name} ods_code={ods_code} run_id={run_id}"
+    description = f"ODS closure alert: org_id={org_id} name={org_name} ods_code={ods_code} run_id={run_id}"
+    _emit_async(
+        _build_event(
+            type_code="110110",
+            type_display="Patient Record",
+            outcome="4",  # Minor failure — informational alert requiring human review
+            agent_email=None,
+            agent_role="system",
+            source_service=source_service,
+            entity_id=org_id,
+            entity_type="organisation",
+            description=description,
+        )
     )
-    _emit_async(_build_event(
-        type_code="110110",
-        type_display="Patient Record",
-        outcome="4",  # Minor failure — informational alert requiring human review
-        agent_email=None,
-        agent_role="system",
-        source_service=source_service,
-        entity_id=org_id,
-        entity_type="organisation",
-        description=description,
-    ))

@@ -14,7 +14,6 @@ import pytest
 
 from libs.coding_engine.tier_classifier import TierDecision, classify_tier
 
-
 # -- Tier 3: hard gates that always prevent auto-coding --------------------
 
 

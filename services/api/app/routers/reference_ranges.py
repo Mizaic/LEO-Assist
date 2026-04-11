@@ -41,7 +41,9 @@ def _effective_org_id(scope: CallerScope, requested_org_id: str | None) -> str |
     if not scope.primary_org_id:
         raise HTTPException(status_code=403, detail="No primary org in caller scope")
     if requested_org_id and requested_org_id != scope.primary_org_id:
-        raise HTTPException(status_code=403, detail="Cannot modify another organization's ranges")
+        raise HTTPException(
+            status_code=403, detail="Cannot modify another organization's ranges"
+        )
     return scope.primary_org_id
 
 
@@ -116,8 +118,12 @@ def update_reference_range(
                 raise HTTPException(status_code=404, detail="Reference range not found")
             current_org_id = existing.get("org_id")
             if not scope.is_admin and current_org_id != scope.primary_org_id:
-                raise HTTPException(status_code=403, detail="Cannot modify another organization's range")
-            effective_org_id = _effective_org_id(scope, body.org_id if body.org_id is not None else current_org_id)
+                raise HTTPException(
+                    status_code=403, detail="Cannot modify another organization's range"
+                )
+            effective_org_id = _effective_org_id(
+                scope, body.org_id if body.org_id is not None else current_org_id
+            )
             s.run(
                 UPSERT_REFERENCE_RANGE,
                 range_id=range_id,
@@ -152,7 +158,9 @@ def delete_reference_range(
             if not existing:
                 raise HTTPException(status_code=404, detail="Reference range not found")
             if not scope.is_admin and existing.get("org_id") != scope.primary_org_id:
-                raise HTTPException(status_code=403, detail="Cannot delete another organization's range")
+                raise HTTPException(
+                    status_code=403, detail="Cannot delete another organization's range"
+                )
             result = s.run(DELETE_REFERENCE_RANGE, range_id=range_id).single()
             if not result or int(result.get("deleted") or 0) == 0:
                 raise HTTPException(status_code=404, detail="Reference range not found")

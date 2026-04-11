@@ -98,9 +98,7 @@ class BatchWriter:
         self._total += count
         elapsed = time.monotonic() - self._start
         rate = self._total / elapsed if elapsed > 0 else 0
-        logger.info(
-            "%s: %d rows (%.0f/s)", self._label, self._total, rate
-        )
+        logger.info("%s: %d rows (%.0f/s)", self._label, self._total, rate)
 
     async def finish(self) -> int:
         await self.flush()

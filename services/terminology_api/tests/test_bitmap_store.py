@@ -37,7 +37,9 @@ def store():
 
 def test_put_bitmap_returns_deterministic_id(store):
     """Same int_id set must always produce the same bitmap key."""
-    with patch("services.terminology_api.app.services.bitmap_store._get_client") as mock:
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client"
+    ) as mock:
         mock.return_value = _make_redis_mock()
         id1 = store.put_bitmap([1, 2, 3])
         id2 = store.put_bitmap([1, 2, 3])
@@ -47,7 +49,9 @@ def test_put_bitmap_returns_deterministic_id(store):
 
 def test_put_bitmap_different_sets_produce_different_ids(store):
     """Different int_id sets produce different bitmap keys."""
-    with patch("services.terminology_api.app.services.bitmap_store._get_client") as mock:
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client"
+    ) as mock:
         mock.return_value = _make_redis_mock()
         id1 = store.put_bitmap([1, 2, 3])
         id2 = store.put_bitmap([4, 5, 6])
@@ -60,7 +64,9 @@ def test_put_bitmap_skips_redis_write_if_key_exists(store):
     r = _make_redis_mock()
     r.exists.return_value = 1
 
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         store.put_bitmap([10, 20])
 
     r.set.assert_not_called()
@@ -72,7 +78,9 @@ def test_get_bitmap_returns_correct_bitmap(store):
     raw = bytes(bm.serialize())
 
     r = _make_redis_mock(get_returns=raw)
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         result = store.get_bitmap("somedigest")
 
     assert result is not None
@@ -84,7 +92,9 @@ def test_get_bitmap_returns_correct_bitmap(store):
 def test_get_bitmap_returns_none_on_cache_miss(store):
     """get_bitmap returns None when key is absent in Redis."""
     r = _make_redis_mock(get_returns=None)
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         result = store.get_bitmap("missing")
 
     assert result is None
@@ -95,7 +105,9 @@ def test_get_or_assign_int_id_returns_existing_id(store):
     r = _make_redis_mock()
     r.hget.return_value = b"42"
 
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         result = store.get_or_assign_int_id("443416000")
 
     assert result == 42
@@ -108,7 +120,9 @@ def test_get_or_assign_int_id_assigns_new_id(store):
     r.hget.return_value = None
     r.incr.return_value = 5
 
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         result = store.get_or_assign_int_id("new_concept")
 
     assert result == 5
@@ -128,7 +142,9 @@ def test_write_and_get_ruleset(store):
     r.set.side_effect = fake_set
     r.get.side_effect = lambda k: captured.get(k)
 
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         store.write_ruleset("v1", ruleset)
         result = store.get_ruleset("v1")
 
@@ -149,7 +165,9 @@ def test_write_and_get_ruleset_scoped(store):
     r.set.side_effect = fake_set
     r.get.side_effect = lambda k: captured.get(k)
 
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         store.write_ruleset("v2", ruleset, scope_type="guideline", scope_id="NG12")
         result = store.get_ruleset("v2", scope_type="guideline", scope_id="NG12")
 
@@ -163,7 +181,9 @@ def test_write_and_get_ruleset_scoped(store):
 def test_get_current_ruleset_returns_none_when_no_version_set(store):
     """get_current_ruleset returns None when no active version pointer exists."""
     r = _make_redis_mock(get_returns=None)
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         result = store.get_current_ruleset()
 
     assert result is None
@@ -178,7 +198,9 @@ def test_list_versions_excludes_current_key(store):
         b"ruleset:guideline:NG151:v3",
     ]
 
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         versions = store.list_versions(scope_type="guideline", scope_id="NG12")
 
     assert "v1" in versions
@@ -189,7 +211,9 @@ def test_list_versions_excludes_current_key(store):
 def test_set_current_version_writes_pointer(store):
     """set_current_version writes the version name to scoped pointer key."""
     r = _make_redis_mock()
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
         store.set_current_version("v20260308", scope_type="guideline", scope_id="NG12")
 
     r.set.assert_called_once_with(
@@ -201,8 +225,12 @@ def test_set_current_version_writes_pointer(store):
 def test_get_current_version_name_scoped(store):
     """get_current_version_name reads scoped pointer key."""
     r = _make_redis_mock(get_returns=b"v20260308")
-    with patch("services.terminology_api.app.services.bitmap_store._get_client", return_value=r):
-        version = store.get_current_version_name(scope_type="guideline", scope_id="NG12")
+    with patch(
+        "services.terminology_api.app.services.bitmap_store._get_client", return_value=r
+    ):
+        version = store.get_current_version_name(
+            scope_type="guideline", scope_id="NG12"
+        )
 
     assert version == "v20260308"
     r.get.assert_called_with(_scoped_current_key("guideline", "NG12"))

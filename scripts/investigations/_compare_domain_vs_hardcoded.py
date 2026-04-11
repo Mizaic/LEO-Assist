@@ -13,6 +13,7 @@ Usage
     python scripts/investigations/_compare_domain_vs_hardcoded.py --show-diffs
     python scripts/investigations/_compare_domain_vs_hardcoded.py --depth 5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -171,6 +172,7 @@ def _query_patient_ids(
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _pct(a: int, b: int) -> str:
     if b == 0:
         return "n/a"
@@ -205,6 +207,7 @@ def _set_diff_summary(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Compare domain-driven concept IDs (with IS_A expansion) vs hardcoded sets"
@@ -212,7 +215,9 @@ def main() -> None:
     parser.add_argument("--domain", default="cancer_audit")
     parser.add_argument("--show-diffs", action="store_true")
     parser.add_argument(
-        "--depth", type=int, default=5,
+        "--depth",
+        type=int,
+        default=5,
         help="IS_A traversal depth (default 5)",
     )
     args = parser.parse_args()
@@ -223,9 +228,7 @@ def main() -> None:
     try:
         rows = kg.run(_Q_DOMAIN_VALUESETS, domain_id=args.domain)
         if not rows:
-            logger.error(
-                "Domain '%s' not found or has no subdomains.", args.domain
-            )
+            logger.error("Domain '%s' not found or has no subdomains.", args.domain)
             sys.exit(1)
 
         logger.info(
@@ -239,11 +242,17 @@ def main() -> None:
             parent_ids = _extract_concept_ids(row["raw_json"])
             logger.info(
                 "  %-40s  milestone=%-20s  parent_concepts=%d",
-                row["vs_id"], milestone, len(parent_ids),
+                row["vs_id"],
+                milestone,
+                len(parent_ids),
             )
-            domain_by_milestone.setdefault(milestone, {
-                "concept_ids": [], "assertion_filter": assertion_filter,
-            })
+            domain_by_milestone.setdefault(
+                milestone,
+                {
+                    "concept_ids": [],
+                    "assertion_filter": assertion_filter,
+                },
+            )
             domain_by_milestone[milestone]["concept_ids"].extend(parent_ids)
 
         # Expand each milestone's concept IDs via IS_A while KG is open
@@ -261,9 +270,7 @@ def main() -> None:
     logger.info("\nConnecting to Patient Graph...")
     pg = PatientGraphClient()
     try:
-        total = pg.run(
-            "MATCH (p:Patient) RETURN count(p) AS n"
-        )[0]["n"]
+        total = pg.run("MATCH (p:Patient) RETURN count(p) AS n")[0]["n"]
         logger.info("Total patients: %d", total)
 
         def _get(milestone: str) -> set[str]:
@@ -274,11 +281,11 @@ def main() -> None:
                 cfg.get("assertion_filter") or None,
             )
 
-        domain_referral  = _get("referral")
+        domain_referral = _get("referral")
         domain_diagnosis = _get("diagnosis")
         domain_specialist = _get("specialist_visit")
 
-        hard_referral  = _query_patient_ids(pg, list(FAST_TRACK_REFERRAL_IDS))
+        hard_referral = _query_patient_ids(pg, list(FAST_TRACK_REFERRAL_IDS))
         hard_diagnosis = _query_patient_ids(pg, list(CANCER_TYPE_IDS))
         hard_specialist = _query_patient_ids(pg, list(SEEN_BY_SPECIALIST_IDS))
     finally:
@@ -289,10 +296,11 @@ def main() -> None:
     logger.info("=" * 70)
     logger.info(
         "COMPARISON (with IS_A expansion, depth=%d): domain '%s' vs hardcoded",
-        args.depth, args.domain,
+        args.depth,
+        args.domain,
     )
     logger.info("=" * 70)
-    _set_diff_summary("referral  ", domain_referral,  hard_referral,  args.show_diffs)
+    _set_diff_summary("referral  ", domain_referral, hard_referral, args.show_diffs)
     _set_diff_summary("diagnosis ", domain_diagnosis, hard_diagnosis, args.show_diffs)
     _set_diff_summary("specialist", domain_specialist, hard_specialist, args.show_diffs)
 
@@ -313,8 +321,12 @@ def main() -> None:
         logger.info(
             "  %-20s  domain=%d  hardcoded=%d  overlap=%d  "
             "only-domain=%d  only-hardcoded=%d",
-            milestone, len(ids), len(hard), len(overlap),
-            len(ids - hard), len(hard - ids),
+            milestone,
+            len(ids),
+            len(hard),
+            len(overlap),
+            len(ids - hard),
+            len(hard - ids),
         )
     logger.info("=" * 70)
 

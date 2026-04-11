@@ -11,15 +11,20 @@ from services.fhir_api.app.services.benchmark_loader import (
     flatten_benchmarks,
 )
 
-
 # ---------------------------------------------------------------------------
 # _build_entity_map
 # ---------------------------------------------------------------------------
 
+
 class TestBuildEntityMap:
     def test_practice_uses_ods_as_scope_id(self):
         entities = [
-            {"id": "e1", "type": "gp_practice", "name": "Woodbrook Medical Centre", "ods_code": "C84070"},
+            {
+                "id": "e1",
+                "type": "gp_practice",
+                "name": "Woodbrook Medical Centre",
+                "ods_code": "C84070",
+            },
         ]
         m = _build_entity_map(entities)
         assert "e1" in m
@@ -60,17 +65,35 @@ class TestBuildEntityMap:
 # _flatten_simple_value
 # ---------------------------------------------------------------------------
 
+
 class TestFlattenSimpleValue:
     def _entity_map(self):
         return {
-            "e1": {"scope_type": "gp_practice", "scope_name": "Test Practice", "scope_id": "ODS001", "ods_code": "ODS001"},
-            "nat": {"scope_type": "national", "scope_name": "England", "scope_id": "england", "ods_code": ""},
+            "e1": {
+                "scope_type": "gp_practice",
+                "scope_name": "Test Practice",
+                "scope_id": "ODS001",
+                "ods_code": "ODS001",
+            },
+            "nat": {
+                "scope_type": "national",
+                "scope_name": "England",
+                "scope_id": "england",
+                "ods_code": "",
+            },
         }
 
     def test_scalar_value_uses_canonical_scope_id(self):
         result = _flatten_simple_value(
-            "e1", 42.5, "primary_care_interval", "primary_care_interval.median_days",
-            "Median PCI days", "days", self._entity_map(), "ncda-2018", "NCDA 2018",
+            "e1",
+            42.5,
+            "primary_care_interval",
+            "primary_care_interval.median_days",
+            "Median PCI days",
+            "days",
+            self._entity_map(),
+            "ncda-2018",
+            "NCDA 2018",
         )
         assert len(result) == 1
         assert result[0]["scope_id"] == "ODS001"
@@ -79,22 +102,44 @@ class TestFlattenSimpleValue:
 
     def test_national_scope_id_preserved(self):
         result = _flatten_simple_value(
-            "nat", 30.0, "primary_care_interval", "primary_care_interval.median_days",
-            "Median PCI days", "days", self._entity_map(), "ncda-2018", "NCDA 2018",
+            "nat",
+            30.0,
+            "primary_care_interval",
+            "primary_care_interval.median_days",
+            "Median PCI days",
+            "days",
+            self._entity_map(),
+            "ncda-2018",
+            "NCDA 2018",
         )
         assert result[0]["scope_id"] == "england"
         assert result[0]["scope_type"] == "national"
 
     def test_unknown_entity_returns_empty(self):
         result = _flatten_simple_value(
-            "unknown_entity", 10, "cat", "cat.metric", "Label", "pct", self._entity_map(), "ncda-2018", "NCDA",
+            "unknown_entity",
+            10,
+            "cat",
+            "cat.metric",
+            "Label",
+            "pct",
+            self._entity_map(),
+            "ncda-2018",
+            "NCDA",
         )
         assert result == []
 
     def test_composite_sex_stored_as_value_json(self):
         result = _flatten_simple_value(
-            "e1", {"male": 48.0, "female": 52.0}, "demographics", "demographics.sex",
-            "Sex", "pct", self._entity_map(), "ncda-2018", "NCDA 2018",
+            "e1",
+            {"male": 48.0, "female": 52.0},
+            "demographics",
+            "demographics.sex",
+            "Sex",
+            "pct",
+            self._entity_map(),
+            "ncda-2018",
+            "NCDA 2018",
         )
         assert len(result) == 1
         assert result[0]["value"] is None
@@ -102,8 +147,15 @@ class TestFlattenSimpleValue:
 
     def test_dict_value_expands_to_sub_keys(self):
         result = _flatten_simple_value(
-            "nat", {"early": 40, "late": 60}, "cancer_stage", "cancer_stage.proportion",
-            "Stage", "pct", self._entity_map(), "ncda-2018", "NCDA 2018",
+            "nat",
+            {"early": 40, "late": 60},
+            "cancer_stage",
+            "cancer_stage.proportion",
+            "Stage",
+            "pct",
+            self._entity_map(),
+            "ncda-2018",
+            "NCDA 2018",
         )
         assert len(result) == 2
         metric_ids = {r["metric_id"] for r in result}
@@ -115,11 +167,17 @@ class TestFlattenSimpleValue:
 # _flatten_ncda (integration-style)
 # ---------------------------------------------------------------------------
 
+
 class TestFlattenNcda:
     def _minimal_ncda(self):
         return {
             "entities": [
-                {"id": "e1", "type": "gp_practice", "name": "Test Practice", "ods_code": "C84070"},
+                {
+                    "id": "e1",
+                    "type": "gp_practice",
+                    "name": "Test Practice",
+                    "ods_code": "C84070",
+                },
                 {"id": "nat", "type": "national", "name": "England"},
                 {"id": "em", "type": "cancer_alliance", "name": "East Midlands"},
             ],
@@ -161,6 +219,7 @@ class TestFlattenNcda:
 # flatten_benchmarks (top-level)
 # ---------------------------------------------------------------------------
 
+
 class TestFlattenBenchmarks:
     def test_ncda_template_produces_values(self):
         raw = {
@@ -170,7 +229,11 @@ class TestFlattenBenchmarks:
             ],
             "benchmarks": {
                 "primary_care_interval": {
-                    "median_days": {"label": "Median", "unit": "days", "values": {"nat": 25}},
+                    "median_days": {
+                        "label": "Median",
+                        "unit": "days",
+                        "values": {"nat": 25},
+                    },
                 }
             },
         }
@@ -184,7 +247,11 @@ class TestFlattenBenchmarks:
             "entities": [{"id": "nat", "type": "national", "name": "England"}],
             "benchmarks": {
                 "primary_care_interval": {
-                    "median_days": {"label": "Median", "unit": "days", "values": {"nat": 25}},
+                    "median_days": {
+                        "label": "Median",
+                        "unit": "days",
+                        "values": {"nat": 25},
+                    },
                 }
             },
         }

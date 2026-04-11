@@ -7,6 +7,8 @@ Cypher queries stored in Knowledge Graph.
 Ported from VRB fhir-api.
 """
 
+# aca-image: fhir-api build/deploy verification (no runtime effect).
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -30,8 +32,12 @@ from services.fhir_api.app.routers.measure import router as measure_router
 from services.fhir_api.app.routers.measure_report import router as measure_report_router
 from services.fhir_api.app.routers.library import router as library_router
 from services.fhir_api.app.routers.device import router as device_router
-from services.fhir_api.app.routers.plan_definition import router as plan_definition_router
-from services.fhir_api.app.routers.activity_definition import router as activity_definition_router
+from services.fhir_api.app.routers.plan_definition import (
+    router as plan_definition_router,
+)
+from services.fhir_api.app.routers.activity_definition import (
+    router as activity_definition_router,
+)
 from services.fhir_api.app.routers.schema import router as schema_router
 
 configure_logging(service_name="fhir-api")
@@ -47,6 +53,7 @@ async def lifespan(_app: FastAPI):
         try:
             from libs.neo4j_client.client import KnowledgeGraphClient
             from scripts.seed_plan_definitions import seed_with_client
+
             client = KnowledgeGraphClient()
             seed_with_client(client)
             client.close()
@@ -67,7 +74,10 @@ app = FastAPI(
 )
 
 import os
-_allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()] or ["*"]
+
+_allowed_origins = [
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()
+] or ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
@@ -83,7 +93,9 @@ app.include_router(measure_report_router, prefix="/fhir", tags=["MeasureReport"]
 app.include_router(library_router, prefix="/fhir", tags=["Library"])
 app.include_router(device_router, prefix="/fhir", tags=["Device"])
 app.include_router(plan_definition_router, prefix="/fhir", tags=["PlanDefinition"])
-app.include_router(activity_definition_router, prefix="/fhir", tags=["ActivityDefinition"])
+app.include_router(
+    activity_definition_router, prefix="/fhir", tags=["ActivityDefinition"]
+)
 app.include_router(schema_router, prefix="/fhir", tags=["Schema"])
 
 

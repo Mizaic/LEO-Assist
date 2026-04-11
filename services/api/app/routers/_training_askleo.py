@@ -17,9 +17,7 @@ from libs.auth.org_scope import CallerScope, get_caller_scope
 
 logger = logging.getLogger(__name__)
 
-_TERMINOLOGY_URL = os.getenv(
-    "TERMINOLOGY_API_URL", "http://localhost:8001"
-).rstrip("/")
+_TERMINOLOGY_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
 
 
 class AskLeoRequest(BaseModel):
@@ -195,13 +193,15 @@ def register_askleo_routes(router) -> None:
             "Reply ONLY with JSON: "
             '{"selected_index": <int>, "reason": "<one sentence>"}'
         )
-        user_msg = json.dumps({
-            "entity_text": sanitise_for_prompt(body.entity_text, max_chars=200),
-            "encounter_text": sanitise_for_prompt(
-                body.encounter_text, max_chars=16_000
-            ),
-            "candidates": numbered,
-        })
+        user_msg = json.dumps(
+            {
+                "entity_text": sanitise_for_prompt(body.entity_text, max_chars=200),
+                "encounter_text": sanitise_for_prompt(
+                    body.encounter_text, max_chars=16_000
+                ),
+                "candidates": numbered,
+            }
+        )
         tier = body.tier if body.tier in ("small", "big", "max") else "small"
         try:
             client = create_llm(provider="aws", tier=tier)
@@ -311,9 +311,7 @@ def register_askleo_routes(router) -> None:
             )
 
         if result1.action == "pick":
-            candidate = _pick_candidate(
-                body.initial_candidates, result1.selected_index
-            )
+            candidate = _pick_candidate(body.initial_candidates, result1.selected_index)
             return _smart_response(
                 candidate,
                 result1.reason,
@@ -332,9 +330,7 @@ def register_askleo_routes(router) -> None:
             if note:
                 pass2_ctx = f"{encounter_ctx}\n\nContext note: {note}"
 
-        new_candidates = _terminology_search(
-            alt_query, 10, body.semantic_tags
-        )
+        new_candidates = _terminology_search(alt_query, 10, body.semantic_tags)
         if not new_candidates:
             return _smart_response(
                 None,
@@ -361,9 +357,7 @@ def register_askleo_routes(router) -> None:
             )
 
         if result2.action == "pick":
-            candidate = _pick_candidate(
-                new_candidates, result2.selected_index
-            )
+            candidate = _pick_candidate(new_candidates, result2.selected_index)
             assertion = (
                 result2.assertion
                 if result2.assertion != "present"
@@ -378,9 +372,7 @@ def register_askleo_routes(router) -> None:
             )
 
         assertion = (
-            result2.assertion
-            if result2.assertion != "present"
-            else result1.assertion
+            result2.assertion if result2.assertion != "present" else result1.assertion
         )
         return _smart_response(
             None,

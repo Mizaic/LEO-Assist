@@ -1,4 +1,5 @@
 """Sample the audit SQLite DB to understand result_json structure."""
+
 import sqlite3
 import json
 from pathlib import Path

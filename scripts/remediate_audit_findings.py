@@ -371,8 +371,7 @@ Return ONLY valid JSON, no extra text:
 
 def _init_remediation_db(path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(path))
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS remediated (
             encounter_id    TEXT NOT NULL,
             action          TEXT NOT NULL,
@@ -386,16 +385,13 @@ def _init_remediation_db(path: Path) -> sqlite3.Connection:
             processed_at    TEXT NOT NULL,
             PRIMARY KEY (encounter_id, action, concept_id)
         )
-    """
-    )
-    conn.execute(
-        """
+    """)
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS enc_processed (
             encounter_id TEXT PRIMARY KEY,
             processed_at TEXT NOT NULL
         )
-    """
-    )
+    """)
     conn.commit()
     return conn
 
@@ -1037,10 +1033,13 @@ def remediate_encounter(
                     except Exception as exc:
                         is_deadlock = "DeadlockDetected" in str(exc)
                         if is_deadlock and _attempt < _MAX_DEADLOCK_RETRIES - 1:
-                            wait = 0.5 * (2 ** _attempt)
+                            wait = 0.5 * (2**_attempt)
                             logger.warning(
                                 "Deadlock enc=%s action=%s attempt=%d -- retry in %.1fs",
-                                encounter_id[:8], action, _attempt + 1, wait,
+                                encounter_id[:8],
+                                action,
+                                _attempt + 1,
+                                wait,
                             )
                             time.sleep(wait)
                             continue

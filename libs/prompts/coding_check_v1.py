@@ -69,4 +69,3 @@ CODING_CHECK_EXAMPLES_V1 = [
         "output": '{"drop":[],"force_review":[0]}',
     },
 ]
-

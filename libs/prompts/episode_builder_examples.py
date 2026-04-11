@@ -49,7 +49,6 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
         ),
         "output": '{"status": "confirmed", "confidence": 98, "reasoning": "Colonoscopy on 2022-10-18 confirmed T3 adenocarcinoma; MDT decision and surgical treatment on 2022-11-10 corroborate.", "diagnosis_date": "2022-10-18", "treatment_date": "2022-11-10"}',
     },
-
     # ── Episode: confirmed-inferred ───────────────────────────────────────────
     {
         "category": "episode:confirmed-inferred",
@@ -66,7 +65,6 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
         ),
         "output": '{"status": "confirmed", "confidence": 82, "reasoning": "No explicit diagnosis text present, but CHOP chemotherapy is cancer-specific treatment indicating confirmed haematological malignancy. Diagnosis inferred at earliest treatment encounter.", "diagnosis_date": "2022-01-08", "treatment_date": "2022-01-15"}',
     },
-
     # ── Episode: excluded ─────────────────────────────────────────────────────
     {
         "category": "episode:excluded",
@@ -97,7 +95,6 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
         ),
         "output": '{"status": "excluded", "confidence": 94, "reasoning": "Colonoscopy on 2023-03-20 found no polyps or cancer. NAD recorded with explicit no evidence of colorectal cancer.", "diagnosis_date": null, "treatment_date": null}',
     },
-
     # ── Episode: inconclusive ─────────────────────────────────────────────────
     {
         "category": "episode:inconclusive",
@@ -114,7 +111,6 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
         ),
         "output": '{"status": "inconclusive", "confidence": 35, "reasoning": "Suspicious MRI lesion warrants high suspicion but biopsy results are pending; no confirmed diagnosis or exclusion.", "diagnosis_date": null, "treatment_date": null}',
     },
-
     # ── Consolidation: merge ──────────────────────────────────────────────────
     {
         "category": "consolidation:merge",
@@ -146,7 +142,6 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
         ),
         "output": '{"should_merge": true, "primary_episode_id": "ep-B2", "reasoning": "Urological haematuria referral led to discovery of retroperitoneal lymphadenopathy; urology explicitly referred to haematology. Haematological episode (ep-B2) is the actual cancer with confirmed DLBCL and treatment.", "merged_cancer_type": "haematological"}',
     },
-
     # ── Consolidation: no-merge ───────────────────────────────────────────────
     {
         "category": "consolidation:no-merge",
@@ -165,7 +160,9 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
 ]
 
 
-def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+def _apply_core_by_first_category(
+    examples: list[dict], core_categories: set[str]
+) -> None:
     seen: set[str] = set()
     for example in examples:
         category = str(example.get("category", ""))

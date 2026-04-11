@@ -63,8 +63,7 @@ class SubgraphRegistry:
     def list_subgraphs(self) -> list[dict[str, Any]]:
         """Return metadata for all registered subgraphs."""
         return [
-            {"id": sid, **self._metadata.get(sid, {})}
-            for sid in sorted(self._builders)
+            {"id": sid, **self._metadata.get(sid, {})} for sid in sorted(self._builders)
         ]
 
     def has(self, subgraph_id: str) -> bool:
@@ -103,6 +102,7 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         from libs.pipeline_graph.subgraphs.encounter_loader import (
             build_encounter_loader_subgraph,
         )
+
         registry.register(
             "encounter_loader",
             build_encounter_loader_subgraph,
@@ -113,31 +113,62 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
 
     try:
         from libs.pipeline_graph.subgraphs.extraction import build_extraction_subgraph
-        registry.register("extraction", build_extraction_subgraph, description="NER/LLM entity extraction")
+
+        registry.register(
+            "extraction",
+            build_extraction_subgraph,
+            description="NER/LLM entity extraction",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'extraction': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.post_processing import build_post_processing_subgraph
-        registry.register("post_processing", build_post_processing_subgraph, description="9-layer post-processing pipeline")
+        from libs.pipeline_graph.subgraphs.post_processing import (
+            build_post_processing_subgraph,
+        )
+
+        registry.register(
+            "post_processing",
+            build_post_processing_subgraph,
+            description="9-layer post-processing pipeline",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'post_processing': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.terminology import build_terminology_subgraph
-        registry.register("terminology", build_terminology_subgraph, description="SNOMED terminology resolution")
+
+        registry.register(
+            "terminology",
+            build_terminology_subgraph,
+            description="SNOMED terminology resolution",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'terminology': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.tier_classify import build_tier_classify_subgraph
-        registry.register("tier_classify", build_tier_classify_subgraph, description="Three-tier confidence classification")
+        from libs.pipeline_graph.subgraphs.tier_classify import (
+            build_tier_classify_subgraph,
+        )
+
+        registry.register(
+            "tier_classify",
+            build_tier_classify_subgraph,
+            description="Three-tier confidence classification",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'tier_classify': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.verification import build_verification_subgraph
-        registry.register("verification", build_verification_subgraph, description="Big-model verification with retry")
+        from libs.pipeline_graph.subgraphs.verification import (
+            build_verification_subgraph,
+        )
+
+        registry.register(
+            "verification",
+            build_verification_subgraph,
+            description="Big-model verification with retry",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'verification': %s", exc)
 
@@ -146,6 +177,7 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
             build_coding_check_subgraph,
             build_extraction_check_subgraph,
         )
+
         registry.register(
             "extraction_check",
             build_extraction_check_subgraph,
@@ -161,19 +193,34 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
 
     try:
         from libs.pipeline_graph.subgraphs.persist import build_persist_subgraph
-        registry.register("persist", build_persist_subgraph, description="Write to patient graph or gold training")
+
+        registry.register(
+            "persist",
+            build_persist_subgraph,
+            description="Write to patient graph or gold training",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'persist': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.anchor import build_anchor_subgraph
-        registry.register("anchor_detect", build_anchor_subgraph, description="Cancer pathway anchor detection")
+
+        registry.register(
+            "anchor_detect",
+            build_anchor_subgraph,
+            description="Cancer pathway anchor detection",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'anchor_detect': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.episode import build_episode_subgraph
-        registry.register("episode_build", build_episode_subgraph, description="Episode of care construction")
+
+        registry.register(
+            "episode_build",
+            build_episode_subgraph,
+            description="Episode of care construction",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'episode_build': %s", exc)
 
@@ -181,6 +228,7 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         from libs.pipeline_graph.subgraphs.staging_enrichment import (
             build_staging_enrichment_subgraph,
         )
+
         registry.register(
             "staging_enrichment",
             build_staging_enrichment_subgraph,
@@ -191,31 +239,56 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
 
     try:
         from libs.pipeline_graph.subgraphs.safety_net import build_safety_net_subgraph
-        registry.register("safety_net", build_safety_net_subgraph, description="Safety netting signal detection")
+
+        registry.register(
+            "safety_net",
+            build_safety_net_subgraph,
+            description="Safety netting signal detection",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'safety_net': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.quality_check import build_quality_check_subgraph
-        registry.register("quality_check", build_quality_check_subgraph, description="Quality issue detection")
+        from libs.pipeline_graph.subgraphs.quality_check import (
+            build_quality_check_subgraph,
+        )
+
+        registry.register(
+            "quality_check",
+            build_quality_check_subgraph,
+            description="Quality issue detection",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'quality_check': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.sbar import build_sbar_subgraph
-        registry.register("sbar", build_sbar_subgraph, description="SBAR report generation")
+
+        registry.register(
+            "sbar", build_sbar_subgraph, description="SBAR report generation"
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'sbar': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.compliance import build_compliance_subgraph
-        registry.register("compliance", build_compliance_subgraph, description="Referral compliance evaluation")
+
+        registry.register(
+            "compliance",
+            build_compliance_subgraph,
+            description="Referral compliance evaluation",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'compliance': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.next_best_action import build_nba_subgraph
-        registry.register("next_best_action", build_nba_subgraph, description="Clinical next-best-action recommendation")
+
+        registry.register(
+            "next_best_action",
+            build_nba_subgraph,
+            description="Clinical next-best-action recommendation",
+        )
     except Exception as exc:
         logger.error("Failed to register subgraph 'next_best_action': %s", exc)
 
@@ -223,6 +296,7 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         from libs.pipeline_graph.subgraphs.surface_form_validation import (
             build_surface_form_validation_subgraph,
         )
+
         registry.register(
             "surface_form_validation",
             build_surface_form_validation_subgraph,
@@ -232,7 +306,10 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'surface_form_validation': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.rest_connector import build_rest_connector_subgraph
+        from libs.pipeline_graph.subgraphs.rest_connector import (
+            build_rest_connector_subgraph,
+        )
+
         registry.register(
             "rest_connector",
             build_rest_connector_subgraph,
@@ -242,7 +319,10 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'rest_connector': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.queue_publish import build_queue_publish_subgraph
+        from libs.pipeline_graph.subgraphs.queue_publish import (
+            build_queue_publish_subgraph,
+        )
+
         registry.register(
             "queue_publish",
             build_queue_publish_subgraph,
@@ -252,7 +332,10 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'queue_publish': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.human_review_gate import build_human_review_gate_subgraph
+        from libs.pipeline_graph.subgraphs.human_review_gate import (
+            build_human_review_gate_subgraph,
+        )
+
         registry.register(
             "human_review_gate",
             build_human_review_gate_subgraph,
@@ -265,6 +348,7 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         from libs.pipeline_graph.subgraphs.encounter_coding_agent import (
             build_encounter_coding_agent_subgraph,
         )
+
         registry.register(
             "encounter_coding_agent",
             build_encounter_coding_agent_subgraph,
@@ -281,6 +365,7 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction import (
             build_guidance_rule_extraction_subgraph,
         )
+
         registry.register(
             "guidance_rule_extraction",
             build_guidance_rule_extraction_subgraph,
@@ -289,18 +374,22 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
                 "with ANY/ALL/NOT modes) and the recommended action (SNOMED procedure) "
                 "from a single NICE recommendation using the dual-model consensus pipeline."
             ),
-            input_schema=json.dumps({
-                "recommendation": "Recommendation dict (id, verbatim, title, urgency, strength, section_title, chapter_title)",
-                "guideline_id": "NICE guideline code e.g. NG12",
-                "prompt_config": "Optional PromptConfig dict (systemPrompt key) — loaded from /admin/prompts if omitted",
-            }),
-            output_schema=json.dumps({
-                "coded_criteria": {
-                    "criteria_groups": "list of {mode: ANY|ALL|NOT, coded_terms: [...], applies_to: [...]}",
-                    "action": "{term, snomed_concept_id, preferred_term, semantic_tag} or null",
-                },
-                "errors": "list of error strings",
-            }),
+            input_schema=json.dumps(
+                {
+                    "recommendation": "Recommendation dict (id, verbatim, title, urgency, strength, section_title, chapter_title)",
+                    "guideline_id": "NICE guideline code e.g. NG12",
+                    "prompt_config": "Optional PromptConfig dict (systemPrompt key) — loaded from /admin/prompts if omitted",
+                }
+            ),
+            output_schema=json.dumps(
+                {
+                    "coded_criteria": {
+                        "criteria_groups": "list of {mode: ANY|ALL|NOT, coded_terms: [...], applies_to: [...]}",
+                        "action": "{term, snomed_concept_id, preferred_term, semantic_tag} or null",
+                    },
+                    "errors": "list of error strings",
+                }
+            ),
         )
     except Exception as exc:
         logger.error("Failed to register subgraph 'guidance_rule_extraction': %s", exc)

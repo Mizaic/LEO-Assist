@@ -23,6 +23,7 @@ Run:
     # Verify only (no writes):
     python scripts/investigations/_pin_fast_track_referrals.py --verify-only
 """
+
 from __future__ import annotations
 
 import argparse
@@ -282,7 +283,9 @@ def run_verify() -> None:
     print("=" * 70)
     print(f"Verification: {ok_count} passed  {fail_count} failed")
     if fail_count:
-        print("Check the resolver cache. Surface form writes may need a server restart.")
+        print(
+            "Check the resolver cache. Surface form writes may need a server restart."
+        )
         sys.exit(1)
 
 

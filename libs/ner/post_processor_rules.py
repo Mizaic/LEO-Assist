@@ -31,12 +31,32 @@ def parse_rules(rows: list[dict[str, Any]]) -> list[PostProcessorRule]:
                 rule_id=str(row.get("rule_id", "")),
                 priority=int(row.get("priority", 100) or 100),
                 action=str(row.get("action", "suppress") or "suppress"),
-                match_text=(str(row.get("match_text")).strip() if row.get("match_text") else None),
-                match_label=(str(row.get("match_label")).strip() if row.get("match_label") else None),
-                context_regex=(str(row.get("context_regex")).strip() if row.get("context_regex") else None),
+                match_text=(
+                    str(row.get("match_text")).strip()
+                    if row.get("match_text")
+                    else None
+                ),
+                match_label=(
+                    str(row.get("match_label")).strip()
+                    if row.get("match_label")
+                    else None
+                ),
+                context_regex=(
+                    str(row.get("context_regex")).strip()
+                    if row.get("context_regex")
+                    else None
+                ),
                 window_chars=int(row.get("window_chars", 40) or 40),
-                rewrite_text=(str(row.get("rewrite_text")).strip() if row.get("rewrite_text") else None),
-                rewrite_label=(str(row.get("rewrite_label")).strip() if row.get("rewrite_label") else None),
+                rewrite_text=(
+                    str(row.get("rewrite_text")).strip()
+                    if row.get("rewrite_text")
+                    else None
+                ),
+                rewrite_label=(
+                    str(row.get("rewrite_label")).strip()
+                    if row.get("rewrite_label")
+                    else None
+                ),
             )
         )
     return sorted(parsed, key=lambda r: r.priority)
@@ -114,7 +134,9 @@ def apply_rules_to_entities(
             if rule.action == "rewrite":
                 new_text = rule.rewrite_text or str(ent.get("text", ""))
                 old_start = int(ent.get("start", 0) or 0)
-                new_start = _find_nearest_occurrence(encounter_text, new_text, old_start)
+                new_start = _find_nearest_occurrence(
+                    encounter_text, new_text, old_start
+                )
                 if new_start is not None:
                     ent["text"] = new_text
                     ent["start"] = new_start

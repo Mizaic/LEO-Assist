@@ -13,6 +13,7 @@ Prints:
   - LLM-extracted terms (raw, before SNOMED resolution)
   - Side-by-side diff: new vs existing
 """
+
 from __future__ import annotations
 
 import json
@@ -60,6 +61,7 @@ ORDER BY s.semanticTag, s.name
 def _pick_encounter_id() -> str:
     """Return an encounter_id from the audit DB (a has_issues one if possible)."""
     import sqlite3
+
     if not AUDIT_DB.exists():
         raise FileNotFoundError(f"Audit DB not found at {AUDIT_DB}")
     db = sqlite3.connect(str(AUDIT_DB))
@@ -104,7 +106,11 @@ def main() -> None:
     text = str(rows[0].get("text") or "")
     date = rows[0].get("date", "?")
     print(f"Date: {date}")
-    print(f"Text ({len(text)} chars):\n  {text[:400]}...\n" if len(text) > 400 else f"Text:\n  {text}\n")
+    print(
+        f"Text ({len(text)} chars):\n  {text[:400]}...\n"
+        if len(text) > 400
+        else f"Text:\n  {text}\n"
+    )
 
     # -- Existing coded links
     coded = client.run(_Q_CODED, eid=eid)
@@ -120,7 +126,9 @@ def main() -> None:
     print(f"\nRunning LLMExtractor (tier=small)...")
     extractor = LLMExtractor()
     if not extractor.is_available():
-        print("LLMExtractor is NOT available -- check PIPELINE_MODEL_PROVIDER and AWS credentials.")
+        print(
+            "LLMExtractor is NOT available -- check PIPELINE_MODEL_PROVIDER and AWS credentials."
+        )
         return
     print(f"Model: {extractor.model_name}\n")
 
@@ -134,6 +142,7 @@ def main() -> None:
     # Raw LLM call to see the response directly
     from libs.prompts.extraction_v1 import EXTRACTION_SYSTEM_V1
     from services.coding_worker.app.pipeline.llm_extractor import _OUTPUT_FORMAT
+
     system = EXTRACTION_SYSTEM_V1 + _OUTPUT_FORMAT
     user_msg = extractor._build_user_prompt(text, sentences)
     resp = extractor.client.converse(
@@ -157,11 +166,10 @@ def main() -> None:
     existing_evidence = {
         str(c.get("evidence", "")).lower() for c in coded if c.get("evidence")
     }
-    existing_names = {
-        str(c.get("name", "")).lower() for c in coded if c.get("name")
-    }
+    existing_names = {str(c.get("name", "")).lower() for c in coded if c.get("name")}
     new_items = [
-        i for i in items
+        i
+        for i in items
         if i.text.lower() not in existing_evidence
         and i.normalized.lower() not in existing_names
     ]

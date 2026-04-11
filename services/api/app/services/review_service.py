@@ -23,9 +23,19 @@ class ReviewService:
     def __init__(self, neo4j_client: PatientGraphClient) -> None:
         self.neo4j = neo4j_client
 
-    def list_tasks(self, status: ReviewStatus | None, patient_id: str | None = None, limit: int = 100):
+    def list_tasks(
+        self,
+        status: ReviewStatus | None,
+        patient_id: str | None = None,
+        limit: int = 100,
+    ):
         with self.neo4j.session() as session:
-            return list_review_tasks(session=session, status=status.value if status else None, patient_id=patient_id, limit=limit)
+            return list_review_tasks(
+                session=session,
+                status=status.value if status else None,
+                patient_id=patient_id,
+                limit=limit,
+            )
 
     def get_task(self, task_id: str):
         with self.neo4j.session() as session:

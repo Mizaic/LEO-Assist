@@ -27,7 +27,9 @@ def search_activity_definitions(
             "RETURN ad.rawJson AS rawJson "
             "ORDER BY ad.name "
             "SKIP $offset LIMIT $limit",
-            status=status, offset=_offset, limit=_count,
+            status=status,
+            offset=_offset,
+            limit=_count,
         )
         items = [json.loads(r["rawJson"]) for r in rows if r.get("rawJson")]
         if name:
@@ -84,7 +86,16 @@ def upsert_activity_definition(activity_id: str, resource: Dict[str, Any]):
             status=resource.get("status"),
             name=resource.get("name"),
             sgid=subgraph_id,
-            dv=json.dumps({v["path"]: v.get("expression", {}).get("expression") for v in dynamic_values}) if dynamic_values else None,
+            dv=(
+                json.dumps(
+                    {
+                        v["path"]: v.get("expression", {}).get("expression")
+                        for v in dynamic_values
+                    }
+                )
+                if dynamic_values
+                else None
+            ),
         )
         return resource
     finally:

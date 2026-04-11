@@ -16,6 +16,7 @@ a secrets/.env file with hard-coded credentials.
 If AZURE_KEYVAULT_URL is not set the function is a no-op and secrets
 continue to come from the .env file (legacy local dev path).
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,44 +27,44 @@ logger = logging.getLogger(__name__)
 # Maps os.environ key -> Key Vault secret name (kebab-case)
 SECRET_MAP: dict[str, str] = {
     # Neo4j (usernames are not secret -- always "neo4j", set in .env.config)
-    "NEO4J_URI":                          "neo4j-patient-uri",
-    "NEO4J_PASSWORD":                     "neo4j-patient-password",
-    "KNOWLEDGE_GRAPH_NEO4J_URI":          "neo4j-knowledge-uri",
-    "KNOWLEDGE_GRAPH_NEO4J_PASSWORD":     "neo4j-knowledge-password",
-    "GUIDELINE_NEO4J_URI":                "neo4j-guideline-uri",
-    "GUIDELINE_NEO4J_PASSWORD":           "neo4j-guideline-password",
+    "NEO4J_URI": "neo4j-patient-uri",
+    "NEO4J_PASSWORD": "neo4j-patient-password",
+    "KNOWLEDGE_GRAPH_NEO4J_URI": "neo4j-knowledge-uri",
+    "KNOWLEDGE_GRAPH_NEO4J_PASSWORD": "neo4j-knowledge-password",
+    "GUIDELINE_NEO4J_URI": "neo4j-guideline-uri",
+    "GUIDELINE_NEO4J_PASSWORD": "neo4j-guideline-password",
     # Redis
-    "REDIS_URL":                          "redis-url",
+    "REDIS_URL": "redis-url",
     # Azure AD
-    "AZURE_AD_CLIENT_ID":                 "azure-ad-client-id",
-    "AZURE_AD_CLIENT_SECRET":             "azure-ad-client-secret",
-    "AZURE_AD_TENANT_ID":                 "azure-ad-tenant-id",
+    "AZURE_AD_CLIENT_ID": "azure-ad-client-id",
+    "AZURE_AD_CLIENT_SECRET": "azure-ad-client-secret",
+    "AZURE_AD_TENANT_ID": "azure-ad-tenant-id",
     # Azure OpenAI
-    "AZURE_OPENAI_API_KEY":               "azure-openai-api-key",
-    "AZURE_OPENAI_ENDPOINT":              "azure-openai-endpoint",
+    "AZURE_OPENAI_API_KEY": "azure-openai-api-key",
+    "AZURE_OPENAI_ENDPOINT": "azure-openai-endpoint",
     # Azure Storage + Service Bus
-    "AZURE_STORAGE_CONNECTION_STRING":    "azure-storage-connection-string",
-    "AZURE_SERVICE_BUS_CONNECTION_STRING":"azure-service-bus-connection-string",
+    "AZURE_STORAGE_CONNECTION_STRING": "azure-storage-connection-string",
+    "AZURE_SERVICE_BUS_CONNECTION_STRING": "azure-service-bus-connection-string",
     # AWS Bedrock
-    "AWS_ACCESS_KEY_ID":                  "aws-access-key-id",
-    "AWS_SECRET_ACCESS_KEY":              "aws-secret-access-key",
-    "AWS_BIG_MODEL":                      "aws-big-model",
-    "AWS_SMALL_MODEL":                    "aws-small-model",
-    "AWS_MAX_MODEL":                      "aws-max-model",
+    "AWS_ACCESS_KEY_ID": "aws-access-key-id",
+    "AWS_SECRET_ACCESS_KEY": "aws-secret-access-key",
+    "AWS_BIG_MODEL": "aws-big-model",
+    "AWS_SMALL_MODEL": "aws-small-model",
+    "AWS_MAX_MODEL": "aws-max-model",
     # NICE Syndication API
-    "NICE_API_KEY":                       "nice-api-key",
+    "NICE_API_KEY": "nice-api-key",
     # Terminology / clinical APIs
-    "SNOMED_API_KEY":                     "snomed-api-key",
-    "UMLS_API_KEY":                       "umls-api-key",
-    "NHS_TRUD_API_KEY":                   "nhs-trud-api-key",
+    "SNOMED_API_KEY": "snomed-api-key",
+    "UMLS_API_KEY": "umls-api-key",
+    "NHS_TRUD_API_KEY": "nhs-trud-api-key",
     # Service client IDs (used for service-to-service auth token acquisition)
-    "ANALYTICS_API_APP_ID":               "analytics-api-app-id",
-    "FHIR_API_APP_ID":                    "fhir-api-app-id",
-    "MODEL_INFERENCE_APP_ID":             "model-inference-app-id",
-    "TERMINOLOGY_API_APP_ID":             "terminology-api-app-id",
+    "ANALYTICS_API_APP_ID": "analytics-api-app-id",
+    "FHIR_API_APP_ID": "fhir-api-app-id",
+    "MODEL_INFERENCE_APP_ID": "model-inference-app-id",
+    "TERMINOLOGY_API_APP_ID": "terminology-api-app-id",
     # Auth
-    "AUTH_SECRET":                        "auth-secret",
-    "SERVICE_AUTH_SECRET":                "service-auth-secret",
+    "AUTH_SECRET": "auth-secret",
+    "SERVICE_AUTH_SECRET": "service-auth-secret",
 }
 
 
@@ -92,9 +93,13 @@ def load_keyvault_secrets() -> None:
             os.environ[env_key] = secret.value or ""
             loaded += 1
         except Exception as exc:
-            logger.warning("Could not load KV secret %s -> %s: %s", kv_name, env_key, exc)
+            logger.warning(
+                "Could not load KV secret %s -> %s: %s", kv_name, env_key, exc
+            )
 
     logger.info(
         "Loaded %d/%d secrets from Key Vault %s",
-        loaded, len(SECRET_MAP), vault_url,
+        loaded,
+        len(SECRET_MAP),
+        vault_url,
     )

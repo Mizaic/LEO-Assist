@@ -15,6 +15,7 @@ Expected confirmed_additions entry shape:
 Dry-run by default.
 Use --apply to commit changes.
 """
+
 from __future__ import annotations
 
 import json
@@ -122,20 +123,25 @@ def main() -> None:
         written = 0
         print("\nApplying mappings ...")
         for r in valid_rows:
-            out = kg.run(
-                UPSERT_SURFACE_FORM_MAPPING,
-                normalized=r["normalized"],
-                form=r["form"],
-                concept_id=r["concept_id"],
-                confidence=0.95,
-                source="manual_curation",
-                provenance="encounter_surface_form_scan_2026",
-            ) or []
+            out = (
+                kg.run(
+                    UPSERT_SURFACE_FORM_MAPPING,
+                    normalized=r["normalized"],
+                    form=r["form"],
+                    concept_id=r["concept_id"],
+                    confidence=0.95,
+                    source="manual_curation",
+                    provenance="encounter_surface_form_scan_2026",
+                )
+                or []
+            )
             if out:
                 written += 1
                 print(f"  OK  {r['normalized']!r:35s} -> {r['concept_id']}")
             else:
-                print(f"  WARN no write result for {r['normalized']!r} -> {r['concept_id']}")
+                print(
+                    f"  WARN no write result for {r['normalized']!r} -> {r['concept_id']}"
+                )
 
         print(f"\nDone. Wrote {written}/{len(valid_rows)} mappings.")
     finally:
@@ -144,4 +150,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -166,7 +166,9 @@ def _extract_json_block(text: str) -> dict[str, Any]:
 def _extract_pairs_from_obj(obj: dict[str, Any]) -> list[tuple[str, str, str]]:
     """Return (concept_id, entity_text, sentence_or_text)."""
     out: list[tuple[str, str, str]] = []
-    sentence = str(obj.get("sentence_text") or obj.get("sentence") or obj.get("text") or "").strip()
+    sentence = str(
+        obj.get("sentence_text") or obj.get("sentence") or obj.get("text") or ""
+    ).strip()
 
     top_cid = str(obj.get("concept_id", "")).strip()
     top_txt = str(obj.get("text", "")).strip()
@@ -194,7 +196,9 @@ def _extract_pairs_from_obj(obj: dict[str, Any]) -> list[tuple[str, str, str]]:
 def iter_export_files() -> list[Path]:
     files: list[Path] = []
     for rel_glob in EXPORT_GLOBS:
-        files.extend((EXPORTS / rel_glob.split("/")[0]).glob("/".join(rel_glob.split("/")[1:])))
+        files.extend(
+            (EXPORTS / rel_glob.split("/")[0]).glob("/".join(rel_glob.split("/")[1:]))
+        )
     # safer explicit for the single file path
     explicit = EXPORTS / "ner" / "training" / "exclusion_domain_v1.jsonl"
     if explicit.exists():
@@ -253,8 +257,12 @@ def build_concepts() -> dict[str, ConceptContext]:
             concept_to_refs[cid].append(MappingRef(fp, str(key)))
             forms = [str(key), str(obj.get("preferred_term", ""))]
             forms.extend(str(s) for s in (obj.get("guideline_synonyms") or []))
-            concept_forms[cid].update(_clean_candidate(f).lower() for f in forms if _clean_candidate(f))
-            preferred.setdefault(cid, str(obj.get("preferred_term", "")).strip() or str(key))
+            concept_forms[cid].update(
+                _clean_candidate(f).lower() for f in forms if _clean_candidate(f)
+            )
+            preferred.setdefault(
+                cid, str(obj.get("preferred_term", "")).strip() or str(key)
+            )
             semantic.setdefault(cid, str(obj.get("semantic_tag", "")).strip())
 
     evidence, snippets = collect_evidence()
@@ -290,12 +298,16 @@ def bedrock_call_with_backoff(
                 inferenceConfig={"temperature": 0.1, "maxTokens": 2000},
             )
             content = resp.get("output", {}).get("message", {}).get("content", [])
-            text = "\n".join(str(part.get("text", "")) for part in content if isinstance(part, dict)).strip()
+            text = "\n".join(
+                str(part.get("text", "")) for part in content if isinstance(part, dict)
+            ).strip()
             return _extract_json_block(text)
         except (ClientError, json.JSONDecodeError):
             if attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, 0.35
+            )
             time.sleep(sleep_s)
     raise RuntimeError("Bedrock request failed after retries")
 
@@ -332,7 +344,9 @@ def azure_chat_json_with_backoff(
             if resp.status_code in {429, 500, 502, 503, 504}:
                 if attempt == max_retries - 1:
                     resp.raise_for_status()
-                sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+                sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                    0, 0.35
+                )
                 time.sleep(sleep_s)
                 continue
             resp.raise_for_status()
@@ -342,7 +356,9 @@ def azure_chat_json_with_backoff(
         except (requests.RequestException, KeyError, ValueError, json.JSONDecodeError):
             if attempt == max_retries - 1:
                 raise
-            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(0, 0.35)
+            sleep_s = min(max_delay, base_delay * (2**attempt)) + random.uniform(
+                0, 0.35
+            )
             time.sleep(sleep_s)
     raise RuntimeError("Azure request failed after retries")
 
@@ -419,10 +435,14 @@ def parse_args() -> argparse.Namespace:
         help="Repeatable model env vars (e.g. AWS_BIG_MODEL, AZURE_OPENAI_BIG_MODEL)",
     )
     p.add_argument("--max-per-model", type=int, default=10)
-    p.add_argument("--workers", type=int, default=1, help="Concepts processed concurrently")
+    p.add_argument(
+        "--workers", type=int, default=1, help="Concepts processed concurrently"
+    )
     p.add_argument("--max-retries", type=int, default=8)
     p.add_argument("--limit-concepts", type=int, default=0)
-    p.add_argument("--concept-ids", default="", help="Comma-separated concept IDs filter")
+    p.add_argument(
+        "--concept-ids", default="", help="Comma-separated concept IDs filter"
+    )
     p.add_argument(
         "--config-file-contains",
         action="append",
@@ -435,18 +455,26 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--evidence-threshold", type=int, default=2)
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--report", type=Path, default=DEFAULT_REPORT)
-    p.add_argument("--sleep-ms", type=int, default=0, help="Delay between concept calls")
+    p.add_argument(
+        "--sleep-ms", type=int, default=0, help="Delay between concept calls"
+    )
     return p.parse_args()
 
 
-def _select_concepts(all_concepts: dict[str, ConceptContext], args: argparse.Namespace) -> list[ConceptContext]:
+def _select_concepts(
+    all_concepts: dict[str, ConceptContext], args: argparse.Namespace
+) -> list[ConceptContext]:
     ordered = [all_concepts[k] for k in sorted(all_concepts.keys())]
     if args.config_file_contains:
         needles = [n.lower().strip() for n in args.config_file_contains if n.strip()]
         if needles:
             ordered = [
-                c for c in ordered
-                if any(any(n in str(ref.file_path).lower() for n in needles) for ref in c.refs)
+                c
+                for c in ordered
+                if any(
+                    any(n in str(ref.file_path).lower() for n in needles)
+                    for ref in c.refs
+                )
             ]
     if args.concept_ids.strip():
         wanted = {x.strip() for x in args.concept_ids.split(",") if x.strip()}
@@ -508,7 +536,10 @@ def _process_concept(
                 candidates = []
         except Exception as exc:  # pragma: no cover - network/runtime branch
             candidates = []
-            concept_report["model_outputs"][model_var] = {"error": str(exc), "candidates": []}
+            concept_report["model_outputs"][model_var] = {
+                "error": str(exc),
+                "candidates": [],
+            }
             continue
 
         parsed: list[dict[str, Any]] = []
@@ -521,9 +552,13 @@ def _process_concept(
             conf = float(conf_raw) if isinstance(conf_raw, (int, float)) else 0.0
             reason = str(c.get("reason", "")).strip()
             if term:
-                parsed.append({"term": term, "style": style, "confidence": conf, "reason": reason})
+                parsed.append(
+                    {"term": term, "style": style, "confidence": conf, "reason": reason}
+                )
         model_outputs[model_var] = parsed[: args.max_per_model]
-        concept_report["model_outputs"][model_var] = {"candidates": model_outputs[model_var]}
+        concept_report["model_outputs"][model_var] = {
+            "candidates": model_outputs[model_var]
+        }
 
     grouped: dict[str, dict[str, Any]] = {}
     for model_var, cands in model_outputs.items():
@@ -548,7 +583,10 @@ def _process_concept(
                 g["reasons"].append(c["reason"])
 
     accepted: list[str] = []
-    for key, g in sorted(grouped.items(), key=lambda kv: (-len(kv[1]["models"]), -kv[1]["max_conf"], kv[1]["term"])):
+    for key, g in sorted(
+        grouped.items(),
+        key=lambda kv: (-len(kv[1]["models"]), -kv[1]["max_conf"], kv[1]["term"]),
+    ):
         term = g["term"]
         ok, invalid_reason = _is_valid_form(term)
         decision_reasons: list[str] = []
@@ -565,7 +603,11 @@ def _process_concept(
             if enough_consensus:
                 accepted_flag = True
                 decision_reasons.append("accept:consensus")
-            elif args.allow_single_model_with_evidence and model_count >= 1 and evidence_ok:
+            elif (
+                args.allow_single_model_with_evidence
+                and model_count >= 1
+                and evidence_ok
+            ):
                 accepted_flag = True
                 decision_reasons.append("accept:single_model_plus_evidence")
             else:
@@ -588,7 +630,9 @@ def _process_concept(
             accepted.append(term)
 
     concept_report["accepted"] = accepted
-    concept_report["rejected_count"] = len([d for d in concept_report["decisions"] if d["decision"] == "reject"])
+    concept_report["rejected_count"] = len(
+        [d for d in concept_report["decisions"] if d["decision"] == "reject"]
+    )
     return concept_report, accepted
 
 
@@ -596,14 +640,20 @@ def main() -> None:
     args = parse_args()
     load_dotenv(ROOT / "secrets" / ".env")
 
-    model_vars = list(dict.fromkeys(args.model_env_var or ["AWS_BIG_MODEL", "AZURE_OPENAI_BIG_MODEL"]))
+    model_vars = list(
+        dict.fromkeys(args.model_env_var or ["AWS_BIG_MODEL", "AZURE_OPENAI_BIG_MODEL"])
+    )
     azure_cfg = {
         "endpoint": os.getenv("AZURE_OPENAI_ENDPOINT", ""),
         "api_key": os.getenv("AZURE_OPENAI_API_KEY", ""),
         "api_version": os.getenv("AZURE_OPENAI_API_VERSION", ""),
     }
     bedrock_region = os.getenv("AWS_DEFAULT_REGION", "")
-    bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region) if (boto3 and bedrock_region) else None
+    bedrock_client = (
+        boto3.client("bedrock-runtime", region_name=bedrock_region)
+        if (boto3 and bedrock_region)
+        else None
+    )
 
     active_models: dict[str, str] = {}
     for mv in model_vars:
@@ -616,7 +666,9 @@ def main() -> None:
             continue
         active_models[mv] = mid
     if not active_models:
-        raise RuntimeError("No usable model env vars found. Set at least one model and credentials in secrets/.env")
+        raise RuntimeError(
+            "No usable model env vars found. Set at least one model and credentials in secrets/.env"
+        )
 
     concepts_map = build_concepts()
     concepts = _select_concepts(concepts_map, args)
@@ -648,7 +700,10 @@ def main() -> None:
                 args=args,
             )
             concept_results[concept.concept_id] = (concept_report, accepted)
-            print(f"[{idx}/{len(concepts)}] concept={concept.concept_id} accepted={len(accepted)}", flush=True)
+            print(
+                f"[{idx}/{len(concepts)}] concept={concept.concept_id} accepted={len(accepted)}",
+                flush=True,
+            )
             if args.sleep_ms > 0:
                 time.sleep(args.sleep_ms / 1000.0)
     else:
@@ -685,7 +740,10 @@ def main() -> None:
                     }
                     accepted = []
                 concept_results[concept.concept_id] = (concept_report, accepted)
-                print(f"[{completed}/{len(concepts)}] concept={concept.concept_id} accepted={len(accepted)}", flush=True)
+                print(
+                    f"[{completed}/{len(concepts)}] concept={concept.concept_id} accepted={len(accepted)}",
+                    flush=True,
+                )
                 if args.sleep_ms > 0:
                     time.sleep(args.sleep_ms / 1000.0)
 
@@ -700,18 +758,25 @@ def main() -> None:
             report["accepted_terms_total"] += len(accepted)
             for ref in concept.refs:
                 if ref.file_path not in file_cache:
-                    file_cache[ref.file_path] = json.loads(ref.file_path.read_text(encoding="utf-8"))
+                    file_cache[ref.file_path] = json.loads(
+                        ref.file_path.read_text(encoding="utf-8")
+                    )
                 obj = file_cache[ref.file_path]["mappings"][ref.mapping_key]
                 _dedupe_append_synonyms(obj, accepted)
                 touched_files.add(ref.file_path)
 
     if not args.dry_run:
         for fp, payload in file_cache.items():
-            fp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            fp.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
         report["files_updated"] = len(touched_files)
 
     args.report.parent.mkdir(parents=True, exist_ok=True)
-    args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    args.report.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(
         json.dumps(
             {

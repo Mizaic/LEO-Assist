@@ -11,6 +11,7 @@ Queue settings:
 Usage:
     python scripts/setup_service_bus.py
 """
+
 from __future__ import annotations
 
 import os
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env")
 
 from azure.servicebus.management import ServiceBusAdministrationClient, QueueProperties
@@ -35,8 +37,10 @@ QUEUES = [
 ]
 
 QUEUE_SETTINGS = dict(
-    lock_duration=timedelta(minutes=5),           # Max on Standard tier; AutoLockRenewer extends beyond this
-    max_delivery_count=3,                          # Dead-letter after 3 failures
+    lock_duration=timedelta(
+        minutes=5
+    ),  # Max on Standard tier; AutoLockRenewer extends beyond this
+    max_delivery_count=3,  # Dead-letter after 3 failures
     default_message_time_to_live=timedelta(days=1),
     dead_lettering_on_message_expiration=True,
     enable_batched_operations=True,
@@ -74,7 +78,9 @@ def main():
             print(f"  [new]    Queue '{queue_name}' created with production settings")
 
     print("\nQueue settings summary:")
-    print(f"  lock_duration          : 5 minutes (AutoLockRenewer extends for full job)")
+    print(
+        f"  lock_duration          : 5 minutes (AutoLockRenewer extends for full job)"
+    )
     print(f"  max_delivery_count     : 3 (dead-letter after 3 failures)")
     print(f"  message_ttl            : 1 day")
     print(f"  dead_letter_on_expiry  : yes")

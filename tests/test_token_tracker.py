@@ -69,15 +69,18 @@ class TestGetModelNames:
 
     def test_bedrock_arn_parsing(self):
         from libs.llm_client.token_tracker import get_model_name_from_arn
+
         arn = "arn:aws:bedrock:eu-west-2:123:inference-profile/eu.anthropic.claude-sonnet-4-5-v1:0"
         assert get_model_name_from_arn(arn) == "eu.anthropic.claude-sonnet-4-5-v1:0"
 
     def test_empty_arn(self):
         from libs.llm_client.token_tracker import get_model_name_from_arn
+
         assert get_model_name_from_arn("") == "unknown-bedrock"
 
     def test_azure_model_name(self):
         from libs.llm_client.token_tracker import get_azure_model_name
+
         assert get_azure_model_name("gpt-4o") == "azure-gpt-4o"
 
 
@@ -96,6 +99,7 @@ class TestTrackLLMUsage:
     @pytest.mark.asyncio
     async def test_no_callback_no_error(self):
         from libs.llm_client.token_tracker import set_tracking_callback, track_llm_usage
+
         set_tracking_callback(None)
         await track_llm_usage(model_name="test")
 

@@ -9,6 +9,7 @@ Locally: resolves via 'az login' -- no code changes required.
 Use get_credential() for sync clients (Key Vault, Blob Storage, etc.).
 Use get_async_credential() for async clients (Service Bus aio, etc.).
 """
+
 from __future__ import annotations
 
 from azure.identity import DefaultAzureCredential

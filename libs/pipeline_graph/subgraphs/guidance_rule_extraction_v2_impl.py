@@ -35,6 +35,7 @@ except Exception:  # pragma: no cover - unit tests may run without langgraph ins
         def compile(self) -> CompiledStateGraph:
             return CompiledStateGraph()
 
+
 from libs.terminology.client import ResolvedTerm, TerminologyClient, get_runtime_config
 
 from libs.pipeline_graph.subgraphs.verification import (
@@ -45,14 +46,19 @@ from libs.pipeline_graph.subgraphs.verification import (
 logger = logging.getLogger(__name__)
 
 # Max iterations for SNOMED resolver tool loop (same pattern as verification.py).
-_MAX_SNOMED_RESOLVER_ITERATIONS = max(1, int(os.getenv("GUIDANCE_SNOMED_RESOLVER_MAX_ITERATIONS", "4")))
+_MAX_SNOMED_RESOLVER_ITERATIONS = max(
+    1, int(os.getenv("GUIDANCE_SNOMED_RESOLVER_MAX_ITERATIONS", "4"))
+)
 
 # Bedrock tool config for guidance SNOMED resolver (lookup_snomed + accept_code).
 _ACCEPT_CODE_INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "concept_id": {"type": "string", "description": "SNOMED concept ID."},
-        "preferred_term": {"type": "string", "description": "Preferred term for the concept."},
+        "preferred_term": {
+            "type": "string",
+            "description": "Preferred term for the concept.",
+        },
         "confidence": {"type": "number", "description": "Confidence 0.0-1.0."},
         "reason": {"type": "string", "description": "Short explanation."},
     },
@@ -71,10 +77,22 @@ _GUIDANCE_SNOMED_TOOL_CONFIG: dict[str, Any] = {
                     "json": {
                         "type": "object",
                         "properties": {
-                            "query": {"type": "string", "description": "Term or phrase to look up."},
-                            "expected_label": {"type": "string", "description": "Optional semantic tag."},
-                            "entity_index": {"type": "integer", "description": "Unused; pass 0."},
-                            "reason": {"type": "string", "description": "Why lookup is needed."},
+                            "query": {
+                                "type": "string",
+                                "description": "Term or phrase to look up.",
+                            },
+                            "expected_label": {
+                                "type": "string",
+                                "description": "Optional semantic tag.",
+                            },
+                            "entity_index": {
+                                "type": "integer",
+                                "description": "Unused; pass 0.",
+                            },
+                            "reason": {
+                                "type": "string",
+                                "description": "Why lookup is needed.",
+                            },
                         },
                         "required": ["query"],
                     }
@@ -248,10 +266,14 @@ _ACTION_SITE_ALIASES: dict[str, list[str]] = {
     "sarcoma": ["fast track referral for suspected sarcoma"],
     "skin": ["fast track referral for suspected skin cancer"],
     "testicular": ["fast track referral for suspected urological cancer"],
-    "upper gastrointestinal": ["fast track referral for suspected upper gastrointestinal cancer"],
+    "upper gastrointestinal": [
+        "fast track referral for suspected upper gastrointestinal cancer"
+    ],
     "urological": ["fast track referral for suspected urological cancer"],
     "vulval": ["fast track referral for suspected gynaecological cancer"],
-    "lower gastrointestinal": ["fast track referral for suspected lower gastrointestinal cancer"],
+    "lower gastrointestinal": [
+        "fast track referral for suspected lower gastrointestinal cancer"
+    ],
     "children": ["fast track referral for suspected childrens tumour"],
     "non-site-specific": [
         "fast track referral for suspected cancer due to non-site-specific symptoms",
@@ -269,8 +291,28 @@ _ACTION_SITE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("lung", ("lung cancer", "lung tumour", "lung tumor")),
     ("myeloma", ("myeloma", "plasma cell")),
     ("haematological", ("haematological", "hematological", "lymphoma", "hodgkin")),
-    ("children", ("children", "child", "paediatric", "pediatric", "neuroblastoma", "retinoblastoma")),
-    ("brain_cns", ("brain cancer", "brain tumour", "brain tumor", "central nervous system", " cns ", "brain or cns")),
+    (
+        "children",
+        (
+            "children",
+            "child",
+            "paediatric",
+            "pediatric",
+            "neuroblastoma",
+            "retinoblastoma",
+        ),
+    ),
+    (
+        "brain_cns",
+        (
+            "brain cancer",
+            "brain tumour",
+            "brain tumor",
+            "central nervous system",
+            " cns ",
+            "brain or cns",
+        ),
+    ),
     ("vulval", ("vulval", "vulva")),
     ("cervical", ("cervical", "cervix")),
     ("gynaecological", ("gynaecological", "gynecological")),
@@ -283,7 +325,10 @@ _ACTION_SITE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("urological", ("urological", "urology")),
     ("stomach", ("stomach", "gastric")),
     ("oesophageal", ("oesophageal", "esophageal")),
-    ("upper_gi", ("upper gastrointestinal", "upper gi", "oesophagogastric", "esophagogastric")),
+    (
+        "upper_gi",
+        ("upper gastrointestinal", "upper gi", "oesophagogastric", "esophagogastric"),
+    ),
     ("lower_gi", ("lower gastrointestinal", "lower gi")),
     ("oral", (" oral ", "mouth cancer")),
     ("head_neck", ("head and neck",)),
@@ -481,11 +526,16 @@ def _gallbladder_action_boost(*text_parts: str) -> list[str]:
     return []
 
 
-def _merge_tokens(prior: dict[str, int], result_tokens: dict[str, int]) -> dict[str, int]:
+def _merge_tokens(
+    prior: dict[str, int], result_tokens: dict[str, int]
+) -> dict[str, int]:
     return {
-        "input_tokens": prior.get("input_tokens", 0) + result_tokens.get("input_tokens", 0),
-        "output_tokens": prior.get("output_tokens", 0) + result_tokens.get("output_tokens", 0),
-        "cached_input_tokens": prior.get("cached_input_tokens", 0) + result_tokens.get("cached_input_tokens", 0),
+        "input_tokens": prior.get("input_tokens", 0)
+        + result_tokens.get("input_tokens", 0),
+        "output_tokens": prior.get("output_tokens", 0)
+        + result_tokens.get("output_tokens", 0),
+        "cached_input_tokens": prior.get("cached_input_tokens", 0)
+        + result_tokens.get("cached_input_tokens", 0),
         "llm_calls": prior.get("llm_calls", 0) + result_tokens.get("llm_calls", 0),
     }
 
@@ -515,7 +565,19 @@ def _parse_sex_constraint(term: str) -> dict[str, Any] | None:
 def _make_term_obj(value: Any) -> dict[str, Any]:
     def _looks_like_threshold_term(text: str) -> bool:
         t = (text or "").lower()
-        return any(tok in t for tok in ("fit", "ca125", "microgram", "iu/ml", ">=", "<=", "threshold", "test result"))
+        return any(
+            tok in t
+            for tok in (
+                "fit",
+                "ca125",
+                "microgram",
+                "iu/ml",
+                ">=",
+                "<=",
+                "threshold",
+                "test result",
+            )
+        )
 
     def _expanded_search_terms(text: str, base_terms: list[str]) -> list[str]:
         variants = list(base_terms)
@@ -524,9 +586,13 @@ def _make_term_obj(value: Any) -> dict[str, Any]:
             variants.append(normalized)
         lowered = (text or "").lower()
         if "suggestive of" in lowered:
-            variants.append(re.sub(r"\bsuggestive of\b", "", text, flags=re.IGNORECASE).strip())
+            variants.append(
+                re.sub(r"\bsuggestive of\b", "", text, flags=re.IGNORECASE).strip()
+            )
         if "consistent with" in lowered:
-            variants.append(re.sub(r"\bconsistent with\b", "", text, flags=re.IGNORECASE).strip())
+            variants.append(
+                re.sub(r"\bconsistent with\b", "", text, flags=re.IGNORECASE).strip()
+            )
         if _looks_like_threshold_term(text):
             variants.extend(
                 [
@@ -565,8 +631,14 @@ def _make_term_obj(value: Any) -> dict[str, Any]:
             "text": text,
             "source_text": str(source_text) if source_text else None,
             "search_terms": search_terms or [text],
-            "semantic_hint": str(value.get("semantic_hint")) if value.get("semantic_hint") else None,
-            "ambiguity_reason": str(value.get("ambiguity_reason")) if value.get("ambiguity_reason") else None,
+            "semantic_hint": (
+                str(value.get("semantic_hint")) if value.get("semantic_hint") else None
+            ),
+            "ambiguity_reason": (
+                str(value.get("ambiguity_reason"))
+                if value.get("ambiguity_reason")
+                else None
+            ),
         }
     text = str(value or "").strip()
     return {
@@ -593,7 +665,9 @@ def _normalise_action(action: Any) -> dict[str, Any] | None:
     return {"text": text, "search_terms": [text]}
 
 
-def _expand_action_search_terms(action_text: str, recommendation_text: str) -> list[str]:
+def _expand_action_search_terms(
+    action_text: str, recommendation_text: str
+) -> list[str]:
     base = _dedupe_strs([action_text])
     if not action_text:
         return base
@@ -609,7 +683,11 @@ def _expand_action_search_terms(action_text: str, recommendation_text: str) -> l
                 "2ww suspected cancer referral",
             ]
         )
-        if "non-urgent" in lowered or "routine" in lowered or "routine referral" in lowered:
+        if (
+            "non-urgent" in lowered
+            or "routine" in lowered
+            or "routine referral" in lowered
+        ):
             variants.extend(
                 [
                     "non-urgent referral for suspected cancer",
@@ -617,7 +695,9 @@ def _expand_action_search_terms(action_text: str, recommendation_text: str) -> l
                     "routine cancer referral",
                 ]
             )
-    site_match = _SITE_REFERRAL_RE.search(action_text) or _SITE_REFERRAL_RE.search(recommendation_text or "")
+    site_match = _SITE_REFERRAL_RE.search(action_text) or _SITE_REFERRAL_RE.search(
+        recommendation_text or ""
+    )
     if site_match:
         site = " ".join(site_match.group(1).split())
         variants.extend(
@@ -631,7 +711,10 @@ def _expand_action_search_terms(action_text: str, recommendation_text: str) -> l
                 f"routine referral for suspected {site} cancer",
             ]
         )
-    if "mesothelioma" in lowered or "mesothelioma" in (recommendation_text or "").lower():
+    if (
+        "mesothelioma" in lowered
+        or "mesothelioma" in (recommendation_text or "").lower()
+    ):
         variants.extend(
             [
                 "fast track referral for suspected mesothelioma",
@@ -680,7 +763,11 @@ def _requested_action_urgency(rec: dict[str, Any], action_text: str) -> str:
         or "suspected cancer pathway" in action_blob
     ):
         return "fast_track"
-    if "very urgent" in action_blob or "48 hour" in action_blob or "48 hours" in action_blob:
+    if (
+        "very urgent" in action_blob
+        or "48 hour" in action_blob
+        or "48 hours" in action_blob
+    ):
         return "very_urgent"
     if "urgent" in action_blob and "non urgent" not in action_blob:
         return "urgent"
@@ -715,14 +802,25 @@ def _candidate_action_urgency(candidate: ResolutionCandidate) -> str:
         return "routine"
     if "very urgent" in low or "48 hour" in low or "48 hours" in low:
         return "very_urgent"
-    if "fast track" in low or "2 week wait" in low or "2ww" in low or "suspected cancer pathway" in low:
+    if (
+        "fast track" in low
+        or "2 week wait" in low
+        or "2ww" in low
+        or "suspected cancer pathway" in low
+    ):
         return "fast_track"
     if "urgent" in low:
         return "urgent"
-    return "routine" if _is_referral_text(str(candidate.get("preferred_term") or "")) else "unspecified"
+    return (
+        "routine"
+        if _is_referral_text(str(candidate.get("preferred_term") or ""))
+        else "unspecified"
+    )
 
 
-def _action_candidate_allowed_site(requested_site: str | None, candidate_site: str | None) -> bool:
+def _action_candidate_allowed_site(
+    requested_site: str | None, candidate_site: str | None
+) -> bool:
     if not requested_site:
         return True
     allowed = _ACTION_SITE_COMPATIBILITY.get(requested_site, (requested_site,))
@@ -768,7 +866,9 @@ def _select_action_candidate(
     def _score(candidate: ResolutionCandidate) -> tuple[int, int, float]:
         candidate_site = _detect_action_site(str(candidate.get("preferred_term") or ""))
         candidate_urgency = _candidate_action_urgency(candidate)
-        if requested_is_referral != _is_referral_text(str(candidate.get("preferred_term") or "")):
+        if requested_is_referral != _is_referral_text(
+            str(candidate.get("preferred_term") or "")
+        ):
             return (-1, -1, -1.0)
         if not _action_candidate_allowed_site(requested_site, candidate_site):
             return (-1, -1, -1.0)
@@ -781,12 +881,17 @@ def _select_action_candidate(
         site_score = 1
         if requested_site and candidate_site == requested_site:
             site_score = 3
-        elif requested_site and candidate_site in _ACTION_SITE_COMPATIBILITY.get(requested_site, ()):
+        elif requested_site and candidate_site in _ACTION_SITE_COMPATIBILITY.get(
+            requested_site, ()
+        ):
             site_score = 2
         urgency_score = 1
         if requested_urgency == candidate_urgency:
             urgency_score = 3
-        elif requested_urgency == "urgent" and candidate_urgency in {"fast_track", "very_urgent"}:
+        elif requested_urgency == "urgent" and candidate_urgency in {
+            "fast_track",
+            "very_urgent",
+        }:
             urgency_score = 2
         elif requested_urgency == "fast_track" and candidate_urgency == "very_urgent":
             urgency_score = 2
@@ -800,7 +905,9 @@ def _select_action_candidate(
     best = ranked[0] if ranked and _score(ranked[0])[0] >= 0 else None
     if best is None:
         return None, None
-    if verifier_choice and str(verifier_choice.get("concept_id")) == str(best.get("concept_id")):
+    if verifier_choice and str(verifier_choice.get("concept_id")) == str(
+        best.get("concept_id")
+    ):
         return best, None
     reason = (
         "Applied deterministic action fallback policy: selected the closest site/urgency-compatible "
@@ -809,7 +916,9 @@ def _select_action_candidate(
     return best, reason
 
 
-def _infer_expected_tag_for_term_obj(term: dict[str, Any], *, is_action: bool = False) -> str | None:
+def _infer_expected_tag_for_term_obj(
+    term: dict[str, Any], *, is_action: bool = False
+) -> str | None:
     hint = str(term.get("semantic_hint") or "").strip().lower()
     if hint in {"finding", "procedure", "disorder", "situation", "observable entity"}:
         return hint
@@ -822,13 +931,36 @@ def _infer_expected_tag_for_term_obj(term: dict[str, Any], *, is_action: bool = 
     ).lower()
     if is_action:
         return "procedure"
-    if any(tok in text for tok in ("fit", "ca125", "threshold", "test result", "microgram", "iu/ml")):
+    if any(
+        tok in text
+        for tok in ("fit", "ca125", "threshold", "test result", "microgram", "iu/ml")
+    ):
         return "observable entity"
     if "suspected" in text and "cancer" in text:
         return "situation"
-    if any(tok in text for tok in ("finding", "symptom", "sign", "pain", "lump", "mass", "bleeding", "hoarseness")):
+    if any(
+        tok in text
+        for tok in (
+            "finding",
+            "symptom",
+            "sign",
+            "pain",
+            "lump",
+            "mass",
+            "bleeding",
+            "hoarseness",
+        )
+    ):
         return "finding"
-    if any(tok in text for tok in ("x-ray finding", "ultrasound finding", "scan finding", "imaging finding")):
+    if any(
+        tok in text
+        for tok in (
+            "x-ray finding",
+            "ultrasound finding",
+            "scan finding",
+            "imaging finding",
+        )
+    ):
         return "finding"
     # Keep constraints high-confidence only; over-constraining every leaf to
     # "finding" reduced retrieval recall for mixed and edge-case phrasing.
@@ -858,7 +990,9 @@ def _logic_group_from_terms(mode: str, terms: list[Any]) -> dict[str, Any] | Non
     return {"kind": "AND", "children": leaves}
 
 
-def _assign_node_ids(node: dict[str, Any] | None, prefix: str = "n") -> dict[str, Any] | None:
+def _assign_node_ids(
+    node: dict[str, Any] | None, prefix: str = "n"
+) -> dict[str, Any] | None:
     if node is None:
         return None
     counter = {"i": 0}
@@ -868,7 +1002,11 @@ def _assign_node_ids(node: dict[str, Any] | None, prefix: str = "n") -> dict[str
         out = dict(cur)
         out.setdefault("node_id", f"{prefix}{counter['i']}")
         if out.get("kind") in {"AND", "OR", "NOT", "AT_LEAST"}:
-            out["children"] = [_walk(dict(c)) for c in (out.get("children") or []) if isinstance(c, dict)]
+            out["children"] = [
+                _walk(dict(c))
+                for c in (out.get("children") or [])
+                if isinstance(c, dict)
+            ]
         return out
 
     return _walk(node)
@@ -935,7 +1073,9 @@ def _normalise_to_logic_tree(data: dict[str, Any]) -> dict[str, Any] | None:
         for group in data.get("criteria_groups") or []:
             if not isinstance(group, dict):
                 continue
-            logic = _logic_group_from_terms(str(group.get("mode") or "ALL"), list(group.get("terms") or []))
+            logic = _logic_group_from_terms(
+                str(group.get("mode") or "ALL"), list(group.get("terms") or [])
+            )
             if logic:
                 groups.append(logic)
         logic_tree = {"kind": "AND", "children": groups} if groups else None
@@ -1002,15 +1142,67 @@ def _looks_like_vague_symptom_clause(text: str) -> bool:
 
 def _classify_leaf_difficulty(text: str) -> str:
     low = (text or "").lower()
-    if any(tok in low for tok in ("suggestive of", "compatible with", "consistent with", "raises suspicion", "suspicious")):
+    if any(
+        tok in low
+        for tok in (
+            "suggestive of",
+            "compatible with",
+            "consistent with",
+            "raises suspicion",
+            "suspicious",
+        )
+    ):
         return "abstract_phrase"
-    if any(tok in low for tok in ("new-onset", "new onset", "progressive", "increasing in size", "sub-acute", "subacute")):
+    if any(
+        tok in low
+        for tok in (
+            "new-onset",
+            "new onset",
+            "progressive",
+            "increasing in size",
+            "sub-acute",
+            "subacute",
+        )
+    ):
         return "temporal_modifier"
-    if any(tok in low for tok in ("fit", "ca125", "microgram", "iu/ml", "threshold", ">=", "<=", "per gram")):
+    if any(
+        tok in low
+        for tok in (
+            "fit",
+            "ca125",
+            "microgram",
+            "iu/ml",
+            "threshold",
+            ">=",
+            "<=",
+            "per gram",
+        )
+    ):
         return "quantitative"
-    if any(tok in low for tok in ("results suggest", "results of the blood tests", "results of blood tests", "panel", "combination of")):
+    if any(
+        tok in low
+        for tok in (
+            "results suggest",
+            "results of the blood tests",
+            "results of blood tests",
+            "panel",
+            "combination of",
+        )
+    ):
         return "composite_pattern"
-    if any(tok in low for tok in ("lip", "oral", "vulval", "vulva", "foreskin", "prepuce", "testicular", "glans")):
+    if any(
+        tok in low
+        for tok in (
+            "lip",
+            "oral",
+            "vulval",
+            "vulva",
+            "foreskin",
+            "prepuce",
+            "testicular",
+            "glans",
+        )
+    ):
         return "narrow_body_site"
     return "concrete"
 
@@ -1021,7 +1213,12 @@ def _expand_term_variants(text: str, category: str) -> list[str]:
     if category == "abstract_phrase":
         variants.extend(
             [
-                re.sub(r"\b(suggestive of|compatible with|consistent with|raises suspicion of)\b", "", text, flags=re.IGNORECASE).strip(),
+                re.sub(
+                    r"\b(suggestive of|compatible with|consistent with|raises suspicion of)\b",
+                    "",
+                    text,
+                    flags=re.IGNORECASE,
+                ).strip(),
                 f"{text} finding",
                 f"{text} symptom",
                 f"{text} sign",
@@ -1074,12 +1271,19 @@ def _expand_term_variants(text: str, category: str) -> list[str]:
 def _semantic_tag_for_category(category: str) -> str:
     if category == "quantitative":
         return "observable entity"
-    if category in {"abstract_phrase", "composite_pattern", "temporal_modifier", "narrow_body_site"}:
+    if category in {
+        "abstract_phrase",
+        "composite_pattern",
+        "temporal_modifier",
+        "narrow_body_site",
+    }:
         return "finding"
     return "finding"
 
 
-def _ask_big_for_semantic_expansions(term: str, semantic_tag: str, recommendation_text: str) -> list[str]:
+def _ask_big_for_semantic_expansions(
+    term: str, semantic_tag: str, recommendation_text: str
+) -> list[str]:
     """Get constrained expansion suggestions from a big model."""
     from libs.llm_client.factory import create_llm
     from libs.llm_client.prompt_safety import cap_llm_response, sanitise_for_prompt
@@ -1101,7 +1305,9 @@ def _ask_big_for_semantic_expansions(term: str, semantic_tag: str, recommendatio
         json_mode=True,
         max_tokens=500,
     )
-    parsed = _parse_json_object(cap_llm_response(resp.text or "", max_chars=2000), max_chars=2000)
+    parsed = _parse_json_object(
+        cap_llm_response(resp.text or "", max_chars=2000), max_chars=2000
+    )
     if not isinstance(parsed, dict):
         return []
     terms = parsed.get("search_terms")
@@ -1110,7 +1316,9 @@ def _ask_big_for_semantic_expansions(term: str, semantic_tag: str, recommendatio
     return _dedupe_strs([str(t).strip() for t in terms if str(t).strip()])[:8]
 
 
-def _run_small_to_big_expansion_tool_loop(term: str, semantic_tag: str, recommendation_text: str) -> list[str]:
+def _run_small_to_big_expansion_tool_loop(
+    term: str, semantic_tag: str, recommendation_text: str
+) -> list[str]:
     """Use a small model as controller with a tool-call to the big model."""
     from libs.llm_client.factory import create_llm
     from libs.llm_client.prompt_safety import sanitise_for_prompt
@@ -1126,7 +1334,9 @@ def _run_small_to_big_expansion_tool_loop(term: str, semantic_tag: str, recommen
                 {
                     "term": sanitise_for_prompt(term, max_chars=200),
                     "semantic_tag": semantic_tag,
-                    "recommendation_text": sanitise_for_prompt(recommendation_text, max_chars=2000),
+                    "recommendation_text": sanitise_for_prompt(
+                        recommendation_text, max_chars=2000
+                    ),
                 },
                 ensure_ascii=False,
             ),
@@ -1144,8 +1354,12 @@ def _run_small_to_big_expansion_tool_loop(term: str, semantic_tag: str, recommen
         )
         if not resp.tool_uses:
             parsed = _parse_json_object(resp.text or "", max_chars=1500)
-            if isinstance(parsed, dict) and isinstance(parsed.get("search_terms"), list):
-                out_terms.extend([str(t) for t in parsed["search_terms"] if str(t).strip()])
+            if isinstance(parsed, dict) and isinstance(
+                parsed.get("search_terms"), list
+            ):
+                out_terms.extend(
+                    [str(t) for t in parsed["search_terms"] if str(t).strip()]
+                )
             break
         assistant_content: list[dict[str, Any]] = []
         if resp.text:
@@ -1156,7 +1370,10 @@ def _run_small_to_big_expansion_tool_loop(term: str, semantic_tag: str, recommen
         for tu in resp.tool_uses:
             if tu.get("name") != "ask_big_for_expansions":
                 tool_results.append(
-                    _build_tool_result_block(str(tu.get("toolUseId") or ""), {"ok": False, "error": "unsupported_tool"})
+                    _build_tool_result_block(
+                        str(tu.get("toolUseId") or ""),
+                        {"ok": False, "error": "unsupported_tool"},
+                    )
                 )
                 continue
             inp = dict(tu.get("input") or {})
@@ -1178,18 +1395,24 @@ def _run_small_to_big_expansion_tool_loop(term: str, semantic_tag: str, recommen
     return _dedupe_strs(out_terms)[:8]
 
 
-def _expand_vague_term_semantically(text: str, category: str, recommendation_text: str) -> list[str]:
+def _expand_vague_term_semantically(
+    text: str, category: str, recommendation_text: str
+) -> list[str]:
     if category == "concrete":
         return []
     semantic_tag = _semantic_tag_for_category(category)
     try:
-        return _run_small_to_big_expansion_tool_loop(text, semantic_tag, recommendation_text)
+        return _run_small_to_big_expansion_tool_loop(
+            text, semantic_tag, recommendation_text
+        )
     except Exception:
         logger.exception("Semantic expansion failed for term %r", text)
         return []
 
 
-def _expand_leaves_in_logic_tree(node: dict[str, Any] | None, recommendation_text: str) -> None:
+def _expand_leaves_in_logic_tree(
+    node: dict[str, Any] | None, recommendation_text: str
+) -> None:
     if not node:
         return
     if node.get("kind") == "concept":
@@ -1197,15 +1420,23 @@ def _expand_leaves_in_logic_tree(node: dict[str, Any] | None, recommendation_tex
         text = str(term.get("text") or "")
         category = _classify_leaf_difficulty(text)
         expanded = _expand_term_variants(text, category)
-        term["search_terms"] = _dedupe_strs(list(term.get("search_terms") or []) + expanded)
+        term["search_terms"] = _dedupe_strs(
+            list(term.get("search_terms") or []) + expanded
+        )
         if category != "concrete":
             term["original_phrase"] = text
             term["expansion_source"] = category
             term["expanded_from"] = expanded
-            semantic = _expand_vague_term_semantically(text, category, recommendation_text)
+            semantic = _expand_vague_term_semantically(
+                text, category, recommendation_text
+            )
             if semantic:
-                term["search_terms"] = _dedupe_strs(list(term.get("search_terms") or []) + semantic)
-                term["expanded_from"] = _dedupe_strs(list(term.get("expanded_from") or []) + semantic)
+                term["search_terms"] = _dedupe_strs(
+                    list(term.get("search_terms") or []) + semantic
+                )
+                term["expanded_from"] = _dedupe_strs(
+                    list(term.get("expanded_from") or []) + semantic
+                )
                 term["expansion_source"] = f"{category}+semantic_llm"
             if not term.get("source_text"):
                 term["source_text"] = text
@@ -1303,7 +1534,11 @@ def resolve_prompt(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                         version,
                         guideline_id,
                     )
-                    return {"system_prompt": text, "few_shot_examples": examples, "errors": errors}
+                    return {
+                        "system_prompt": text,
+                        "few_shot_examples": examples,
+                        "errors": errors,
+                    }
                 except RuntimeError:
                     continue
         msg = (
@@ -1438,7 +1673,12 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 has_logic = verdict.get("logic_tree") is not None
                 has_action = bool(verdict.get("action"))
                 no_rule_expected = bool(verdict.get("no_rule_expected"))
-                if not has_logic and not has_action and not no_rule_expected and attempt == 0:
+                if (
+                    not has_logic
+                    and not has_action
+                    and not no_rule_expected
+                    and attempt == 0
+                ):
                     # Normative recommendation produced an empty payload; retry once
                     # with a stricter extraction instruction before failing.
                     logger.warning(
@@ -1478,7 +1718,9 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         return {"raw_criteria": None, "errors": errors, "llm_tokens": prior_tokens}
 
 
-def _collect_concept_targets(node: dict[str, Any] | None, out: dict[str, dict[str, Any]]) -> None:
+def _collect_concept_targets(
+    node: dict[str, Any] | None, out: dict[str, dict[str, Any]]
+) -> None:
     if not node:
         return
     kind = node.get("kind")
@@ -1497,7 +1739,9 @@ def _merge_candidates(
     merged: dict[str, list[ResolutionCandidate]] = {}
     for node_id, term in targets.items():
         candidates_by_id: dict[str, ResolutionCandidate] = {}
-        for search_term in _dedupe_strs(list(term.get("search_terms") or []) + [term.get("text", "")]):
+        for search_term in _dedupe_strs(
+            list(term.get("search_terms") or []) + [term.get("text", "")]
+        ):
             for cand in resolved.get(search_term, []):
                 key = str(cand.concept_id or cand.term or search_term)
                 candidate: ResolutionCandidate = {
@@ -1510,7 +1754,9 @@ def _merge_candidates(
                     "search_term": search_term,
                 }
                 existing = candidates_by_id.get(key)
-                if existing is None or candidate["score"] > float(existing.get("score") or 0.0):
+                if existing is None or candidate["score"] > float(
+                    existing.get("score") or 0.0
+                ):
                     candidates_by_id[key] = candidate
         merged[node_id] = sorted(
             candidates_by_id.values(),
@@ -1529,7 +1775,9 @@ def _resolve_term_with_controller(
 ) -> dict[str, Any]:
     """Single per-term resolve/search/refine controller with max 3 turns."""
     base_term = str(term_obj.get("text") or "")
-    search_terms = _dedupe_strs(list(term_obj.get("search_terms") or []) + [base_term])[:12]
+    search_terms = _dedupe_strs(list(term_obj.get("search_terms") or []) + [base_term])[
+        :12
+    ]
     history: list[list[str]] = []
     best: list[ResolutionCandidate] = []
     turns = 0
@@ -1544,8 +1792,15 @@ def _resolve_term_with_controller(
         resolved = client.resolve(turn_terms, expected_tags=tags or None)
         current = _flatten_resolved(resolved, turn_terms)
         if current:
-            merged = {str(c.get("concept_id") or c.get("preferred_term") or ""): c for c in (best + current)}
-            best = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+            merged = {
+                str(c.get("concept_id") or c.get("preferred_term") or ""): c
+                for c in (best + current)
+            }
+            best = sorted(
+                merged.values(),
+                key=lambda c: float(c.get("score") or 0.0),
+                reverse=True,
+            )[:8]
             if best and float(best[0].get("score") or 0.0) >= _RESOLVE_ACCEPT_SCORE:
                 return {
                     "candidates": best,
@@ -1557,8 +1812,15 @@ def _resolve_term_with_controller(
         agentic = _run_agentic_resolver(base_term, expected_tag, recommendation_text)
         extra = list(agentic.get("best_candidates") or [])
         if extra:
-            merged = {str(c.get("concept_id") or c.get("preferred_term") or ""): c for c in (best + extra)}
-            best = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+            merged = {
+                str(c.get("concept_id") or c.get("preferred_term") or ""): c
+                for c in (best + extra)
+            }
+            best = sorted(
+                merged.values(),
+                key=lambda c: float(c.get("score") or 0.0),
+                reverse=True,
+            )[:8]
         for h in agentic.get("search_history") or []:
             if isinstance(h, list) and h:
                 history.append([str(x) for x in h if str(x).strip()])
@@ -1569,9 +1831,15 @@ def _resolve_term_with_controller(
                 "search_history": history,
                 "needs_human_review": False,
             }
-        search_terms = _dedupe_strs(search_terms + _expand_term_variants(base_term, _classify_leaf_difficulty(base_term)))
+        search_terms = _dedupe_strs(
+            search_terms
+            + _expand_term_variants(base_term, _classify_leaf_difficulty(base_term))
+        )
         if is_action:
-            search_terms = _dedupe_strs(search_terms + _expand_action_search_terms(base_term, recommendation_text))
+            search_terms = _dedupe_strs(
+                search_terms
+                + _expand_action_search_terms(base_term, recommendation_text)
+            )
 
     best_score = float(best[0].get("score") or 0.0) if best else 0.0
     return {
@@ -1596,7 +1864,10 @@ def _resolve_candidate_lists(
     _collect_concept_targets(logic_tree, targets)
     action_targets: dict[str, dict[str, Any]] = {}
     if action:
-        action_targets["action"] = {"text": action["text"], "search_terms": list(action.get("search_terms") or [action["text"]])}
+        action_targets["action"] = {
+            "text": action["text"],
+            "search_terms": list(action.get("search_terms") or [action["text"]]),
+        }
 
     merged: dict[str, list[ResolutionCandidate]] = {}
     leaf_meta: dict[str, dict[str, Any]] = {}
@@ -1620,7 +1891,9 @@ def _resolve_candidate_lists(
     action_meta: dict[str, Any] = {}
     if action_targets.get("action"):
         action_term = action_targets["action"]
-        expected_tag = _infer_expected_tag_for_term_obj(action_term, is_action=True) or "procedure"
+        expected_tag = (
+            _infer_expected_tag_for_term_obj(action_term, is_action=True) or "procedure"
+        )
         result = _resolve_term_with_controller(
             term_obj=action_term,
             expected_tag=expected_tag,
@@ -1665,7 +1938,11 @@ def _annotate_candidate_tree(
         out.pop("term", None)
         return out
     out["children"] = [
-        c for c in (_annotate_candidate_tree(child, candidate_map) for child in (out.get("children") or []))
+        c
+        for c in (
+            _annotate_candidate_tree(child, candidate_map)
+            for child in (out.get("children") or [])
+        )
         if c is not None
     ]
     return out
@@ -1684,7 +1961,9 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 "logic_tree": None,
                 "action": None,
                 "no_rule_expected": True,
-                "reason": str(raw.get("reason") or "non_codable_service_recommendation"),
+                "reason": str(
+                    raw.get("reason") or "non_codable_service_recommendation"
+                ),
             },
             "errors": errors,
         }
@@ -1692,13 +1971,19 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     try:
         logic_tree = raw.get("logic_tree")
         action = raw.get("action")
-        recommendation_text = str((state.get("recommendation") or {}).get("verbatim") or "")
-        candidate_map, action_candidates, leaf_meta, action_meta = _resolve_candidate_lists(
-            logic_tree,
-            action,
-            recommendation_text,
+        recommendation_text = str(
+            (state.get("recommendation") or {}).get("verbatim") or ""
         )
-        candidate_tree = _annotate_candidate_tree(copy.deepcopy(logic_tree), candidate_map)
+        candidate_map, action_candidates, leaf_meta, action_meta = (
+            _resolve_candidate_lists(
+                logic_tree,
+                action,
+                recommendation_text,
+            )
+        )
+        candidate_tree = _annotate_candidate_tree(
+            copy.deepcopy(logic_tree), candidate_map
+        )
         hitl_terms: list[dict[str, Any]] = []
 
         def _annotate_meta(node: dict[str, Any] | None) -> None:
@@ -1776,16 +2061,24 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             "errors": errors,
         }
     except TerminologyAPIError as exc:
-        logger.error("Terminology API UNAVAILABLE for recommendation %s: %s", (state.get("recommendation") or {}).get("id"), exc)
+        logger.error(
+            "Terminology API UNAVAILABLE for recommendation %s: %s",
+            (state.get("recommendation") or {}).get("id"),
+            exc,
+        )
         errors.append(f"terminology_api_unavailable:{exc}")
         return {"candidate_criteria": None, "errors": errors}
     except Exception as exc:
-        logger.exception("SNOMED coding failed unexpectedly — rule will NOT be written to Neo4j.")
+        logger.exception(
+            "SNOMED coding failed unexpectedly — rule will NOT be written to Neo4j."
+        )
         errors.append(f"snomed_coding_error:{exc}")
         return {"candidate_criteria": None, "errors": errors}
 
 
-def _collect_leaf_payloads(node: dict[str, Any] | None, out: list[dict[str, Any]]) -> None:
+def _collect_leaf_payloads(
+    node: dict[str, Any] | None, out: list[dict[str, Any]]
+) -> None:
     if not node:
         return
     if node.get("kind") == "concept":
@@ -1852,7 +2145,9 @@ def _build_verifier_user_msg(
     return f"Examples:\n{examples_block}\n\nPayload:\n{body}"
 
 
-def _candidate_lookup(candidate_criteria: dict[str, Any]) -> tuple[dict[str, dict[str, ResolutionCandidate]], dict[str, ResolutionCandidate]]:
+def _candidate_lookup(
+    candidate_criteria: dict[str, Any],
+) -> tuple[dict[str, dict[str, ResolutionCandidate]], dict[str, ResolutionCandidate]]:
     by_leaf: dict[str, dict[str, ResolutionCandidate]] = {}
     leaves: list[dict[str, Any]] = []
     _collect_leaf_payloads(candidate_criteria.get("logic_tree"), leaves)
@@ -1868,7 +2163,11 @@ def _candidate_lookup(candidate_criteria: dict[str, Any]) -> tuple[dict[str, dic
     return by_leaf, action_lookup
 
 
-def _apply_leaf_decisions(node: dict[str, Any] | None, decisions: dict[str, dict[str, Any]], candidate_lookup: dict[str, dict[str, ResolutionCandidate]]) -> tuple[dict[str, Any] | None, list[str]]:
+def _apply_leaf_decisions(
+    node: dict[str, Any] | None,
+    decisions: dict[str, dict[str, Any]],
+    candidate_lookup: dict[str, dict[str, ResolutionCandidate]],
+) -> tuple[dict[str, Any] | None, list[str]]:
     if not node:
         return None, []
     errors: list[str] = []
@@ -1881,7 +2180,9 @@ def _apply_leaf_decisions(node: dict[str, Any] | None, decisions: dict[str, dict
         candidate = candidate_lookup.get(node_id, {}).get(concept_id)
         status = str(decision.get("status") or "")
         if not concept_id or candidate is None or status != "verified":
-            errors.append(f"verifier_unresolved:{node_id}:{decision.get('reason') or 'no approved concept'}")
+            errors.append(
+                f"verifier_unresolved:{node_id}:{decision.get('reason') or 'no approved concept'}"
+            )
             return None, errors
         out["criterion"] = {
             "node_id": node_id,
@@ -1891,7 +2192,9 @@ def _apply_leaf_decisions(node: dict[str, Any] | None, decisions: dict[str, dict
             "expansion_source": criterion.get("expansion_source"),
             "expanded_from": criterion.get("expanded_from"),
             "snomed_concept_id": candidate.get("concept_id"),
-            "preferred_term": candidate.get("preferred_term", criterion.get("term", "")),
+            "preferred_term": candidate.get(
+                "preferred_term", criterion.get("term", "")
+            ),
             "semantic_tag": candidate.get("semantic_tag", ""),
             "candidates": criterion.get("candidates") or [],
             "verification_status": "verified",
@@ -1904,7 +2207,9 @@ def _apply_leaf_decisions(node: dict[str, Any] | None, decisions: dict[str, dict
         return out, []
     children = []
     for child in out.get("children") or []:
-        resolved_child, child_errors = _apply_leaf_decisions(child, decisions, candidate_lookup)
+        resolved_child, child_errors = _apply_leaf_decisions(
+            child, decisions, candidate_lookup
+        )
         errors.extend(child_errors)
         if resolved_child is not None:
             children.append(resolved_child)
@@ -1927,16 +2232,26 @@ def _rerun_requested_searches(
             if isinstance(child, dict):
                 _leaf_term_lookup(child, out)
 
-    def _auto_retry_terms(reason: str, base_term: str, expected_tag: str | None) -> list[str]:
+    def _auto_retry_terms(
+        reason: str, base_term: str, expected_tag: str | None
+    ) -> list[str]:
         out: list[str] = [base_term]
         low = (reason or "").lower()
         base_low = (base_term or "").lower()
         for m in _QUOTED_TEXT_RE.finditer(reason or ""):
             out.append(m.group(1).strip())
         if expected_tag == "finding":
-            out.extend([f"{base_term} finding", f"{base_term} symptom", f"{base_term} sign"])
+            out.extend(
+                [f"{base_term} finding", f"{base_term} symptom", f"{base_term} sign"]
+            )
         if expected_tag == "observable entity":
-            out.extend([f"{base_term} result", f"{base_term} measurement", f"{base_term} threshold"])
+            out.extend(
+                [
+                    f"{base_term} result",
+                    f"{base_term} measurement",
+                    f"{base_term} threshold",
+                ]
+            )
         if expected_tag == "situation":
             out.extend([f"suspected {base_term}", f"{base_term} suspicious"])
         if "diagnosis" in low and expected_tag == "finding":
@@ -1944,8 +2259,17 @@ def _rerun_requested_searches(
         if "procedure" in low and expected_tag == "finding":
             out.append(f"{base_term} finding")
         if "threshold" in low or "fit" in low or "ca125" in low:
-            out.extend([f"{base_term} result", f"{base_term} above threshold", f"{base_term} below threshold"])
-        if ("ultrasound" in low and any(tok in low for tok in ("uncertain", "indeterminate", "equivocal", "inconclusive"))):
+            out.extend(
+                [
+                    f"{base_term} result",
+                    f"{base_term} above threshold",
+                    f"{base_term} below threshold",
+                ]
+            )
+        if "ultrasound" in low and any(
+            tok in low
+            for tok in ("uncertain", "indeterminate", "equivocal", "inconclusive")
+        ):
             out.extend(
                 [
                     "indeterminate ultrasound finding",
@@ -1955,7 +2279,15 @@ def _rerun_requested_searches(
                     "ultrasound scan abnormality",
                 ]
             )
-        if any(tok in low for tok in ("clinical concern", "clinical suspicion", "persistent concern", "ongoing clinical concern")):
+        if any(
+            tok in low
+            for tok in (
+                "clinical concern",
+                "clinical suspicion",
+                "persistent concern",
+                "ongoing clinical concern",
+            )
+        ):
             out.extend(
                 [
                     "clinical suspicion",
@@ -1975,7 +2307,11 @@ def _rerun_requested_searches(
                     "focal neurological deficit progressive",
                 ]
             )
-        if "pleural" in low or ("chest signs" in low and "pleural" in low) or "pleural disease" in base_low:
+        if (
+            "pleural" in low
+            or ("chest signs" in low and "pleural" in low)
+            or "pleural disease" in base_low
+        ):
             out.extend(
                 [
                     "pleural disease signs",
@@ -2035,7 +2371,16 @@ def _rerun_requested_searches(
                 ]
             )
         if expected_tag == "procedure":
-            if any(tok in low for tok in ("stomach", "gastric", "upper gastrointestinal", "upper gi", "oesophageal")):
+            if any(
+                tok in low
+                for tok in (
+                    "stomach",
+                    "gastric",
+                    "upper gastrointestinal",
+                    "upper gi",
+                    "oesophageal",
+                )
+            ):
                 out.extend(
                     [
                         "fast track referral for suspected stomach cancer",
@@ -2044,7 +2389,17 @@ def _rerun_requested_searches(
                         "urgent referral for suspected upper gastrointestinal cancer",
                     ]
                 )
-            if any(tok in low for tok in ("vulval", "vulva", "cervical", "cervix", "gynaecological", "gynecological")):
+            if any(
+                tok in low
+                for tok in (
+                    "vulval",
+                    "vulva",
+                    "cervical",
+                    "cervix",
+                    "gynaecological",
+                    "gynecological",
+                )
+            ):
                 out.extend(
                     [
                         "fast track referral for suspected gynaecological cancer",
@@ -2059,7 +2414,9 @@ def _rerun_requested_searches(
                         "urgent suspected cancer referral",
                     ]
                 )
-            if "bladder" in low and any(tok in low for tok in ("non-urgent", "routine")):
+            if "bladder" in low and any(
+                tok in low for tok in ("non-urgent", "routine")
+            ):
                 out.extend(
                     [
                         "non-urgent referral for suspected bladder cancer",
@@ -2077,7 +2434,20 @@ def _rerun_requested_searches(
                         "fast track referral for suspected bone sarcoma",
                     ]
                 )
-            if any(tok in low for tok in ("children", "child", "young people", "young person", "paediatric", "pediatric")) and "suspected cancer" in low:
+            if (
+                any(
+                    tok in low
+                    for tok in (
+                        "children",
+                        "child",
+                        "young people",
+                        "young person",
+                        "paediatric",
+                        "pediatric",
+                    )
+                )
+                and "suspected cancer" in low
+            ):
                 out.extend(
                     [
                         "referral for suspected cancer",
@@ -2093,10 +2463,16 @@ def _rerun_requested_searches(
     for item in verifier_result.get("leaf_decisions") or []:
         if str(item.get("status") or "") == "retry_search":
             node_id = str(item.get("node_id") or "")
-            retry_terms[node_id] = _dedupe_strs(list(item.get("retry_search_terms") or []))
+            retry_terms[node_id] = _dedupe_strs(
+                list(item.get("retry_search_terms") or [])
+            )
             leaf_reason[node_id] = str(item.get("reason") or "")
     action_retry = verifier_result.get("action_decision") or {}
-    action_search_terms = _dedupe_strs(list(action_retry.get("retry_search_terms") or [])) if str(action_retry.get("status") or "") == "retry_search" else []
+    action_search_terms = (
+        _dedupe_strs(list(action_retry.get("retry_search_terms") or []))
+        if str(action_retry.get("status") or "") == "retry_search"
+        else []
+    )
     action_reason = str(action_retry.get("reason") or "")
     leaf_terms: dict[str, str] = {}
     _leaf_term_lookup(candidate_criteria.get("logic_tree"), leaf_terms)
@@ -2148,7 +2524,10 @@ def _rerun_requested_searches(
             node_id = str(criterion.get("node_id") or "")
             extra_terms = retry_terms.get(node_id) or []
             if extra_terms:
-                merged = {str(c.get("concept_id") or c.get("preferred_term") or ""): c for c in (criterion.get("candidates") or [])}
+                merged = {
+                    str(c.get("concept_id") or c.get("preferred_term") or ""): c
+                    for c in (criterion.get("candidates") or [])
+                }
                 for search_term in extra_terms:
                     for cand in resolved.get(search_term, []):
                         key = str(cand.concept_id or cand.term or search_term)
@@ -2161,7 +2540,11 @@ def _rerun_requested_searches(
                             "source": str(cand.raw.get("source") or "hybrid"),
                             "search_term": search_term,
                         }
-                criterion["candidates"] = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:5]
+                criterion["candidates"] = sorted(
+                    merged.values(),
+                    key=lambda c: float(c.get("score") or 0.0),
+                    reverse=True,
+                )[:5]
                 node["criterion"] = criterion
             return
         for child in node.get("children") or []:
@@ -2170,7 +2553,10 @@ def _rerun_requested_searches(
     _inject(updated.get("logic_tree"))
     action = dict(updated.get("action") or {})
     if action and action_search_terms:
-        merged = {str(c.get("concept_id") or c.get("preferred_term") or ""): c for c in (action.get("candidates") or [])}
+        merged = {
+            str(c.get("concept_id") or c.get("preferred_term") or ""): c
+            for c in (action.get("candidates") or [])
+        }
         for search_term in action_search_terms:
             for cand in resolved.get(search_term, []):
                 key = str(cand.concept_id or cand.term or search_term)
@@ -2183,19 +2569,25 @@ def _rerun_requested_searches(
                     "source": str(cand.raw.get("source") or "hybrid"),
                     "search_term": search_term,
                 }
-        action["candidates"] = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:5]
+        action["candidates"] = sorted(
+            merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True
+        )[:5]
         updated["action"] = action
     return updated
 
 
-def _needs_agentic_retry(candidates: list[ResolutionCandidate], *, threshold: float = 0.8) -> bool:
+def _needs_agentic_retry(
+    candidates: list[ResolutionCandidate], *, threshold: float = 0.8
+) -> bool:
     if not candidates:
         return True
     best = max(float(c.get("score") or 0.0) for c in candidates)
     return best < threshold
 
 
-def _flatten_resolved(resolved: dict[str, list[ResolvedTerm]], search_terms: list[str]) -> list[ResolutionCandidate]:
+def _flatten_resolved(
+    resolved: dict[str, list[ResolvedTerm]], search_terms: list[str]
+) -> list[ResolutionCandidate]:
     candidates: dict[str, ResolutionCandidate] = {}
     for search_term in search_terms:
         for cand in resolved.get(search_term, []):
@@ -2209,14 +2601,20 @@ def _flatten_resolved(resolved: dict[str, list[ResolvedTerm]], search_terms: lis
                 "source": str(cand.raw.get("source") or "hybrid"),
                 "search_term": search_term,
             }
-    return sorted(candidates.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+    return sorted(
+        candidates.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True
+    )[:8]
 
 
-def _heuristic_agentic_search(base_term: str, expected_tag: str | None, recommendation_text: str) -> dict[str, Any]:
+def _heuristic_agentic_search(
+    base_term: str, expected_tag: str | None, recommendation_text: str
+) -> dict[str, Any]:
     """Fallback when Bedrock tool loop fails: deterministic multi-turn terminology search."""
     variants = _expand_term_variants(base_term, _classify_leaf_difficulty(base_term))
     if expected_tag == "procedure":
-        variants = _dedupe_strs(variants + _expand_action_search_terms(base_term, recommendation_text))
+        variants = _dedupe_strs(
+            variants + _expand_action_search_terms(base_term, recommendation_text)
+        )
     turns = [variants[:5], variants[5:10], variants[10:15]]
     search_history: list[list[str]] = []
     best: list[ResolutionCandidate] = []
@@ -2229,8 +2627,15 @@ def _heuristic_agentic_search(base_term: str, expected_tag: str | None, recommen
         resolved = client.resolve(turn_terms, expected_tags=expected_tags or None)
         current = _flatten_resolved(resolved, turn_terms)
         if current:
-            merged = {str(c.get("concept_id") or c.get("preferred_term") or ""): c for c in (best + current)}
-            best = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+            merged = {
+                str(c.get("concept_id") or c.get("preferred_term") or ""): c
+                for c in (best + current)
+            }
+            best = sorted(
+                merged.values(),
+                key=lambda c: float(c.get("score") or 0.0),
+                reverse=True,
+            )[:8]
             if not _needs_agentic_retry(best):
                 return {
                     "selected": best[0],
@@ -2292,7 +2697,9 @@ def _run_snomed_resolver_tool_loop(
             assistant_content.extend({"toolUse": tu} for tu in resp.tool_uses)
             messages.append({"role": "assistant", "content": assistant_content})
 
-            accept_tool = next((tu for tu in resp.tool_uses if tu.get("name") == "accept_code"), None)
+            accept_tool = next(
+                (tu for tu in resp.tool_uses if tu.get("name") == "accept_code"), None
+            )
             if accept_tool is not None:
                 accepted = dict(accept_tool.get("input") or {})
                 break
@@ -2303,7 +2710,10 @@ def _run_snomed_resolver_tool_loop(
                     tool_results.append(
                         _build_tool_result_block(
                             str(tu.get("toolUseId") or ""),
-                            {"ok": False, "error": f"unsupported_tool:{tu.get('name')}"},
+                            {
+                                "ok": False,
+                                "error": f"unsupported_tool:{tu.get('name')}",
+                            },
                         )
                     )
                     continue
@@ -2312,19 +2722,23 @@ def _run_snomed_resolver_tool_loop(
                 payload, _ = _execute_lookup_snomed(inp)
                 if payload.get("ok") and payload.get("candidates"):
                     for c in payload["candidates"]:
-                        pool.append({
-                            "concept_id": c.get("concept_id"),
-                            "preferred_term": c.get("term"),
-                            "semantic_tag": c.get("semantic_tag"),
-                            "score": c.get("score", 0.0),
-                            "read_code": c.get("read_code"),
-                            "source": "agentic_tool",
-                            "search_term": inp.get("query", ""),
-                        })
+                        pool.append(
+                            {
+                                "concept_id": c.get("concept_id"),
+                                "preferred_term": c.get("term"),
+                                "semantic_tag": c.get("semantic_tag"),
+                                "score": c.get("score", 0.0),
+                                "read_code": c.get("read_code"),
+                                "source": "agentic_tool",
+                                "search_term": inp.get("query", ""),
+                            }
+                        )
                     q = str(inp.get("query") or "").strip()
                     if q:
                         search_history.append([q])
-                tool_results.append(_build_tool_result_block(str(tu.get("toolUseId") or ""), payload))
+                tool_results.append(
+                    _build_tool_result_block(str(tu.get("toolUseId") or ""), payload)
+                )
 
             if not tool_results:
                 break
@@ -2338,11 +2752,18 @@ def _run_snomed_resolver_tool_loop(
         for c in pool
         if isinstance(c, dict)
     }
-    best = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+    best = sorted(
+        merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True
+    )[:8]
 
     if accepted:
         selected = next(
-            (c for c in best if str(c.get("concept_id") or "") == str(accepted.get("concept_id") or "")),
+            (
+                c
+                for c in best
+                if str(c.get("concept_id") or "")
+                == str(accepted.get("concept_id") or "")
+            ),
             best[0] if best else None,
         )
         return {
@@ -2374,12 +2795,18 @@ def _run_snomed_resolver_tool_loop(
     }
 
 
-def _run_agentic_resolver(base_term: str, expected_tag: str | None, recommendation_text: str) -> dict[str, Any]:
+def _run_agentic_resolver(
+    base_term: str, expected_tag: str | None, recommendation_text: str
+) -> dict[str, Any]:
     """Run verification-style SNOMED tool loop; fall back to heuristic search on failure."""
     try:
-        return _run_snomed_resolver_tool_loop(base_term, expected_tag, recommendation_text)
+        return _run_snomed_resolver_tool_loop(
+            base_term, expected_tag, recommendation_text
+        )
     except Exception:
-        logger.exception("Agentic resolver failed for term %r; falling back.", base_term)
+        logger.exception(
+            "Agentic resolver failed for term %r; falling back.", base_term
+        )
         return _heuristic_agentic_search(base_term, expected_tag, recommendation_text)
 
 
@@ -2387,9 +2814,17 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     errors: list[str] = list(state.get("errors") or [])
     candidate_criteria = copy.deepcopy(state.get("candidate_criteria"))
     if not candidate_criteria:
-        return {"candidate_criteria": candidate_criteria, "agentic_terms": [], "errors": errors}
+        return {
+            "candidate_criteria": candidate_criteria,
+            "agentic_terms": [],
+            "errors": errors,
+        }
     if bool(candidate_criteria.get("no_rule_expected")):
-        return {"candidate_criteria": candidate_criteria, "agentic_terms": [], "errors": errors}
+        return {
+            "candidate_criteria": candidate_criteria,
+            "agentic_terms": [],
+            "errors": errors,
+        }
 
     rec = state.get("recommendation") or {}
     recommendation_text = str(rec.get("verbatim") or "")
@@ -2401,7 +2836,9 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         if node.get("kind") == "concept":
             criterion = dict(node.get("criterion") or {})
             candidates = list(criterion.get("candidates") or [])
-            if _needs_agentic_retry(candidates) and not bool(criterion.get("resolver_turns")):
+            if _needs_agentic_retry(candidates) and not bool(
+                criterion.get("resolver_turns")
+            ):
                 term = str(criterion.get("term") or "")
                 expected_tag = _infer_expected_tag_for_term_obj(
                     {
@@ -2433,7 +2870,9 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                             "term": term,
                             "reason": result.get("reason"),
                             "search_history": criterion.get("search_history") or [],
-                            "best_candidates": list(result.get("best_candidates") or []),
+                            "best_candidates": list(
+                                result.get("best_candidates") or []
+                            ),
                         }
                     )
                 node["criterion"] = criterion
@@ -2444,7 +2883,11 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
 
     _walk(candidate_criteria.get("logic_tree"))
     action = dict(candidate_criteria.get("action") or {})
-    if action and _needs_agentic_retry(list(action.get("candidates") or [])) and not bool(action.get("resolver_turns")):
+    if (
+        action
+        and _needs_agentic_retry(list(action.get("candidates") or []))
+        and not bool(action.get("resolver_turns"))
+    ):
         term = str(action.get("term") or "")
         result = _run_agentic_resolver(term, "procedure", recommendation_text)
         extra = list(result.get("best_candidates") or [])
@@ -2453,7 +2896,11 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 str(c.get("concept_id") or c.get("preferred_term") or ""): c
                 for c in (list(action.get("candidates") or []) + extra)
             }
-            action["candidates"] = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+            action["candidates"] = sorted(
+                merged.values(),
+                key=lambda c: float(c.get("score") or 0.0),
+                reverse=True,
+            )[:8]
         action["resolver_turns"] = int(result.get("resolver_turns") or 0)
         action["search_history"] = list(result.get("search_history") or [])
         if bool(result.get("needs_human_review")):
@@ -2470,7 +2917,9 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         candidate_criteria["action"] = action
 
     for item in hitl_terms:
-        errors.append(f"needs_human_review:{item.get('kind')}:{item.get('term') or item.get('node_id')}")
+        errors.append(
+            f"needs_human_review:{item.get('kind')}:{item.get('term') or item.get('node_id')}"
+        )
 
     return {
         "candidate_criteria": candidate_criteria,
@@ -2479,7 +2928,9 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     }
 
 
-def _build_partial_from_candidates(candidate_criteria: dict[str, Any], hitl_terms: list[dict[str, Any]]) -> dict[str, Any]:
+def _build_partial_from_candidates(
+    candidate_criteria: dict[str, Any], hitl_terms: list[dict[str, Any]]
+) -> dict[str, Any]:
     def _walk(node: dict[str, Any] | None) -> dict[str, Any] | None:
         if not node:
             return None
@@ -2493,18 +2944,27 @@ def _build_partial_from_candidates(candidate_criteria: dict[str, Any], hitl_term
                 "term": criterion.get("term", ""),
                 "source_text": criterion.get("source_text"),
                 "snomed_concept_id": (best or {}).get("concept_id"),
-                "preferred_term": (best or {}).get("preferred_term", criterion.get("term", "")),
+                "preferred_term": (best or {}).get(
+                    "preferred_term", criterion.get("term", "")
+                ),
                 "semantic_tag": (best or {}).get("semantic_tag", ""),
                 "candidates": cands,
-                "verification_status": "needs_human_review" if not best else "provisionally_verified",
+                "verification_status": (
+                    "needs_human_review" if not best else "provisionally_verified"
+                ),
                 "verification_reason": "partial_hitl",
                 "confidence": float((best or {}).get("score") or 0.0),
                 "resolver_turns": criterion.get("resolver_turns"),
-                "needs_human_review": not bool(best) or bool(criterion.get("needs_human_review")),
+                "needs_human_review": not bool(best)
+                or bool(criterion.get("needs_human_review")),
                 "search_history": criterion.get("search_history"),
             }
             return out
-        out["children"] = [c for c in (_walk(ch) for ch in (out.get("children") or [])) if c is not None]
+        out["children"] = [
+            c
+            for c in (_walk(ch) for ch in (out.get("children") or []))
+            if c is not None
+        ]
         return out
 
     action = dict(candidate_criteria.get("action") or {})
@@ -2515,14 +2975,19 @@ def _build_partial_from_candidates(candidate_criteria: dict[str, Any], hitl_term
         action_payload = {
             "term": action.get("term", ""),
             "snomed_concept_id": (best or {}).get("concept_id"),
-            "preferred_term": (best or {}).get("preferred_term", action.get("term", "")),
+            "preferred_term": (best or {}).get(
+                "preferred_term", action.get("term", "")
+            ),
             "semantic_tag": (best or {}).get("semantic_tag", ""),
             "candidates": cands,
-            "verification_status": "needs_human_review" if not best else "provisionally_verified",
+            "verification_status": (
+                "needs_human_review" if not best else "provisionally_verified"
+            ),
             "verification_reason": "partial_hitl",
             "confidence": float((best or {}).get("score") or 0.0),
             "resolver_turns": action.get("resolver_turns"),
-            "needs_human_review": not bool(best) or bool(action.get("needs_human_review")),
+            "needs_human_review": not bool(best)
+            or bool(action.get("needs_human_review")),
             "search_history": action.get("search_history"),
         }
     return {
@@ -2535,7 +3000,9 @@ def _build_partial_from_candidates(candidate_criteria: dict[str, Any], hitl_term
     }
 
 
-def _derive_hitl_terms_from_errors(candidate_criteria: dict[str, Any], errors: list[str]) -> list[dict[str, Any]]:
+def _derive_hitl_terms_from_errors(
+    candidate_criteria: dict[str, Any], errors: list[str]
+) -> list[dict[str, Any]]:
     hitl_terms: list[dict[str, Any]] = list(candidate_criteria.get("hitl_terms") or [])
     if any(str(e).startswith("verifier_unresolved:action:") for e in errors):
         action = dict(candidate_criteria.get("action") or {})
@@ -2577,12 +3044,18 @@ def _derive_hitl_terms_from_errors(candidate_criteria: dict[str, Any], errors: l
 def _dedupe_hitl_terms(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: dict[str, dict[str, Any]] = {}
     for item in items:
-        key = str(item.get("kind") or "") + ":" + str(item.get("node_id") or item.get("term") or "")
+        key = (
+            str(item.get("kind") or "")
+            + ":"
+            + str(item.get("node_id") or item.get("term") or "")
+        )
         deduped[key] = item
     return list(deduped.values())
 
 
-def _draft_rule_small(recommendation: dict[str, Any], coded_criteria: dict[str, Any]) -> dict[str, Any]:
+def _draft_rule_small(
+    recommendation: dict[str, Any], coded_criteria: dict[str, Any]
+) -> dict[str, Any]:
     from libs.llm_client.factory import create_llm
 
     payload = {
@@ -2606,10 +3079,22 @@ def _draft_rule_small(recommendation: dict[str, Any], coded_criteria: dict[str, 
         max_tokens=700,
     )
     parsed = _parse_json_object(resp.text or "", max_chars=4000)
-    return parsed if isinstance(parsed, dict) else {"rule_summary": "draft_unavailable", "potential_risks": [], "clinical_rationale": ""}
+    return (
+        parsed
+        if isinstance(parsed, dict)
+        else {
+            "rule_summary": "draft_unavailable",
+            "potential_risks": [],
+            "clinical_rationale": "",
+        }
+    )
 
 
-def _review_rule_big(recommendation: dict[str, Any], coded_criteria: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any]:
+def _review_rule_big(
+    recommendation: dict[str, Any],
+    coded_criteria: dict[str, Any],
+    draft: dict[str, Any],
+) -> dict[str, Any]:
     from libs.llm_client.factory import create_llm
 
     system = (
@@ -2628,19 +3113,31 @@ def _review_rule_big(recommendation: dict[str, Any], coded_criteria: dict[str, A
         max_tokens=700,
     )
     parsed = _parse_json_object(resp.text or "", max_chars=4000)
-    if isinstance(parsed, dict) and str(parsed.get("status") or "") in {"approve", "needs_fix", "reject_to_hitl"}:
+    if isinstance(parsed, dict) and str(parsed.get("status") or "") in {
+        "approve",
+        "needs_fix",
+        "reject_to_hitl",
+    }:
         return parsed
-    return {"status": "needs_fix", "reason": "unparseable_big_review", "revision_instructions": "Recheck semantic fidelity and referral/investigation intent."}
+    return {
+        "status": "needs_fix",
+        "reason": "unparseable_big_review",
+        "revision_instructions": "Recheck semantic fidelity and referral/investigation intent.",
+    }
 
 
-def _apply_authoring_gate(recommendation: dict[str, Any], coded_criteria: dict[str, Any]) -> dict[str, Any]:
+def _apply_authoring_gate(
+    recommendation: dict[str, Any], coded_criteria: dict[str, Any]
+) -> dict[str, Any]:
     """Small draft -> big review -> optional small revision -> big final review."""
     draft = _draft_rule_small(recommendation, coded_criteria)
     first_review = _review_rule_big(recommendation, coded_criteria, draft)
     final_review = first_review
     if str(first_review.get("status") or "") == "needs_fix":
         revised = dict(draft)
-        revised["revision_instructions"] = first_review.get("revision_instructions") or ""
+        revised["revision_instructions"] = (
+            first_review.get("revision_instructions") or ""
+        )
         final_review = _review_rule_big(recommendation, coded_criteria, revised)
         draft = revised
     gate = {
@@ -2676,7 +3173,9 @@ def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         try:
             coded = _apply_authoring_gate(state.get("recommendation") or {}, coded)
         except Exception:
-            logger.exception("Authoring gate failed; preserving coded criteria and routing to HITL.")
+            logger.exception(
+                "Authoring gate failed; preserving coded criteria and routing to HITL."
+            )
             coded["needs_human_review"] = True
         verified["coded_criteria"] = coded
         return verified
@@ -2696,7 +3195,8 @@ def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         return {
             "coded_criteria": partial,
             "errors": errors,
-            "llm_tokens": verified.get("llm_tokens") or dict(state.get("llm_tokens") or {}),
+            "llm_tokens": verified.get("llm_tokens")
+            or dict(state.get("llm_tokens") or {}),
         }
     return verified
 
@@ -2717,10 +3217,16 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 "logic_tree": None,
                 "action": None,
                 "no_rule_expected": True,
-                "reason": str(candidate_criteria.get("reason") or "non_codable_service_recommendation"),
+                "reason": str(
+                    candidate_criteria.get("reason")
+                    or "non_codable_service_recommendation"
+                ),
                 "verifier": {
                     "overall_status": "no_rule_expected",
-                    "reason": str(candidate_criteria.get("reason") or "non_codable_service_recommendation"),
+                    "reason": str(
+                        candidate_criteria.get("reason")
+                        or "non_codable_service_recommendation"
+                    ),
                 },
             },
             "errors": errors,
@@ -2739,7 +3245,10 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     verifier_result: dict[str, Any] | None = None
     for attempt in range(2):
         try:
-            from libs.llm_client.consensus import run_consensus, _consensus_verifier_tier
+            from libs.llm_client.consensus import (
+                run_consensus,
+                _consensus_verifier_tier,
+            )
 
             verdict = run_consensus(
                 system_prompt=verifier_prompt,
@@ -2764,11 +3273,22 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 if attempt == 0:
                     continue
                 errors.append(f"verifier_empty:{rec.get('id')}")
-                return {"coded_criteria": None, "errors": errors, "llm_tokens": merged_tokens}
-            if str(verifier_result.get("overall_status") or "") == "retry_search" and attempt == 0:
+                return {
+                    "coded_criteria": None,
+                    "errors": errors,
+                    "llm_tokens": merged_tokens,
+                }
+            if (
+                str(verifier_result.get("overall_status") or "") == "retry_search"
+                and attempt == 0
+            ):
                 working = _rerun_requested_searches(working, verifier_result)
                 continue
-            if str(verifier_result.get("overall_status") or "") == "rejected" and attempt == 0 and _has_instruction_issue(verifier_result):
+            if (
+                str(verifier_result.get("overall_status") or "") == "rejected"
+                and attempt == 0
+                and _has_instruction_issue(verifier_result)
+            ):
                 logger.warning(
                     "Verifier rejected %s due to likely instruction/schema issue; retrying once.",
                     rec.get("id"),
@@ -2777,11 +3297,19 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             break
         except TerminologyAPIError as exc:
             errors.append(f"terminology_api_unavailable:{exc}")
-            return {"coded_criteria": None, "errors": errors, "llm_tokens": merged_tokens}
+            return {
+                "coded_criteria": None,
+                "errors": errors,
+                "llm_tokens": merged_tokens,
+            }
         except Exception as exc:
             logger.exception("Verifier failed for recommendation %s", rec.get("id"))
             errors.append(f"verifier_error:{rec.get('id')}:{exc}")
-            return {"coded_criteria": None, "errors": errors, "llm_tokens": merged_tokens}
+            return {
+                "coded_criteria": None,
+                "errors": errors,
+                "llm_tokens": merged_tokens,
+            }
 
     if verifier_result is None:
         errors.append(f"verifier_empty:{rec.get('id')}")
@@ -2793,7 +3321,9 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         for item in (verifier_result.get("leaf_decisions") or [])
         if item.get("node_id")
     }
-    verified_tree, tree_errors = _apply_leaf_decisions(working.get("logic_tree"), decisions, leaf_lookup)
+    verified_tree, tree_errors = _apply_leaf_decisions(
+        working.get("logic_tree"), decisions, leaf_lookup
+    )
     errors.extend(tree_errors)
 
     action_payload = None
@@ -2806,10 +3336,16 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             rec,
             str(action.get("term") or ""),
             list(action.get("candidates") or []),
-            candidate if str(action_decision.get("status") or "") == "verified" else None,
+            (
+                candidate
+                if str(action_decision.get("status") or "") == "verified"
+                else None
+            ),
         )
         if selected_action is None:
-            errors.append(f"verifier_unresolved:action:{action_decision.get('reason') or 'no approved action'}")
+            errors.append(
+                f"verifier_unresolved:action:{action_decision.get('reason') or 'no approved action'}"
+            )
         else:
             action_payload = {
                 "term": action.get("term", ""),
@@ -2817,27 +3353,37 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 "expansion_source": action.get("expansion_source"),
                 "expanded_from": action.get("expanded_from"),
                 "snomed_concept_id": selected_action.get("concept_id"),
-                "preferred_term": selected_action.get("preferred_term", action.get("term", "")),
+                "preferred_term": selected_action.get(
+                    "preferred_term", action.get("term", "")
+                ),
                 "semantic_tag": selected_action.get("semantic_tag", ""),
                 "candidates": action.get("candidates") or [],
                 "verification_status": "verified",
                 "verification_reason": (
-                    fallback_reason
-                    or str(action_decision.get("reason") or "")
+                    fallback_reason or str(action_decision.get("reason") or "")
                 ),
-                "confidence": float(action_decision.get("confidence") or selected_action.get("score") or 0.0),
+                "confidence": float(
+                    action_decision.get("confidence")
+                    or selected_action.get("score")
+                    or 0.0
+                ),
                 "resolver_turns": action.get("resolver_turns"),
                 "needs_human_review": bool(action.get("needs_human_review")),
                 "search_history": action.get("search_history"),
             }
 
-    if errors or verified_tree is None or (
-        str(verifier_result.get("overall_status") or "") != "verified"
-        and action_payload is None
+    if (
+        errors
+        or verified_tree is None
+        or (
+            str(verifier_result.get("overall_status") or "") != "verified"
+            and action_payload is None
+        )
     ):
         logger.error(
             "Verifier rejected or left unresolved terms for %s — rule will NOT be written. Errors=%s",
-            rec.get("id"), errors,
+            rec.get("id"),
+            errors,
         )
         return {"coded_criteria": None, "errors": errors, "llm_tokens": merged_tokens}
 
@@ -2857,7 +3403,15 @@ def _should_resolve(state: GuidanceRuleExtractionState) -> str:
     raw = state.get("raw_criteria")
     if not raw:
         return "end"
-    return "resolve" if (raw.get("logic_tree") is not None or raw.get("action") or raw.get("no_rule_expected")) else "end"
+    return (
+        "resolve"
+        if (
+            raw.get("logic_tree") is not None
+            or raw.get("action")
+            or raw.get("no_rule_expected")
+        )
+        else "end"
+    )
 
 
 def _should_verify(state: GuidanceRuleExtractionState) -> str:
@@ -2887,9 +3441,15 @@ def build_guidance_rule_extraction_subgraph() -> CompiledStateGraph:
     g.add_node("assemble_result", assemble_result)
     g.add_edge(START, "resolve_prompt")
     g.add_edge("resolve_prompt", "extract_criteria")
-    g.add_conditional_edges("extract_criteria", _should_resolve, {"resolve": "expand_leaves", "end": END})
-    g.add_conditional_edges("expand_leaves", _should_batch, {"resolve": "batch_resolve", "end": END})
-    g.add_conditional_edges("batch_resolve", _should_agentic, {"agentic": "agentic_resolve", "end": END})
+    g.add_conditional_edges(
+        "extract_criteria", _should_resolve, {"resolve": "expand_leaves", "end": END}
+    )
+    g.add_conditional_edges(
+        "expand_leaves", _should_batch, {"resolve": "batch_resolve", "end": END}
+    )
+    g.add_conditional_edges(
+        "batch_resolve", _should_agentic, {"agentic": "agentic_resolve", "end": END}
+    )
     g.add_edge("agentic_resolve", "assemble_result")
     g.add_edge("assemble_result", END)
     return g.compile()

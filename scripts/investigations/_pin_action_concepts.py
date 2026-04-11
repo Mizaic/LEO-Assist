@@ -3,6 +3,7 @@ Pin action concept surface forms that the resolver is failing to find:
   1. OGD procedure (76009000) for 'direct access upper GI endoscopy' terms
   2. Fast track lung cancer referral (276491000000101) for mesothelioma terms
 """
+
 import os
 import re
 import sys
@@ -12,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from neo4j import GraphDatabase  # noqa: E402
 

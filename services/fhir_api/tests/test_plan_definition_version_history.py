@@ -11,6 +11,7 @@ Covers:
 
 VT-LEO-AI-067 / DI-LEO-AI-067
 """
+
 from __future__ import annotations
 
 import json
@@ -28,7 +29,12 @@ _app.include_router(router, prefix="/fhir")
 client = TestClient(_app)
 
 PLAN_ID = "pd-test-001"
-_RAW_PLAN = {"id": PLAN_ID, "resourceType": "PlanDefinition", "name": "Test Pathway", "status": "active"}
+_RAW_PLAN = {
+    "id": PLAN_ID,
+    "resourceType": "PlanDefinition",
+    "name": "Test Pathway",
+    "status": "active",
+}
 
 
 def _mock_client(**kw):
@@ -43,19 +49,32 @@ def _mock_client(**kw):
 
 # ── GET /_history ──────────────────────────────────────────────────────────────
 
+
 @patch("services.fhir_api.app.routers.plan_definition.KnowledgeGraphClient")
 def test_get_history_returns_bundle_sorted_newest_first(mock_cls):
     v1_raw = json.dumps({**_RAW_PLAN, "name": "v1 state"})
     v2_raw = json.dumps({**_RAW_PLAN, "name": "v2 state"})
-    mc = _mock_client(run_side_effect=[
-        [{"id": PLAN_ID}],                       # plan existence check
-        [                                          # version rows (newest first)
-            {"versionId": 2, "rawJson": v2_raw, "publishedAt": "2026-02-01T12:00:00+00:00",
-             "versionNotes": "Added verification", "status": "active"},
-            {"versionId": 1, "rawJson": v1_raw, "publishedAt": "2026-01-01T12:00:00+00:00",
-             "versionNotes": "Initial publish", "status": "active"},
-        ],
-    ])
+    mc = _mock_client(
+        run_side_effect=[
+            [{"id": PLAN_ID}],  # plan existence check
+            [  # version rows (newest first)
+                {
+                    "versionId": 2,
+                    "rawJson": v2_raw,
+                    "publishedAt": "2026-02-01T12:00:00+00:00",
+                    "versionNotes": "Added verification",
+                    "status": "active",
+                },
+                {
+                    "versionId": 1,
+                    "rawJson": v1_raw,
+                    "publishedAt": "2026-01-01T12:00:00+00:00",
+                    "versionNotes": "Initial publish",
+                    "status": "active",
+                },
+            ],
+        ]
+    )
     mock_cls.return_value = mc
 
     resp = client.get(f"/fhir/PlanDefinition/{PLAN_ID}/_history")
@@ -79,10 +98,12 @@ def test_get_history_returns_bundle_sorted_newest_first(mock_cls):
 
 @patch("services.fhir_api.app.routers.plan_definition.KnowledgeGraphClient")
 def test_get_history_empty_bundle_when_no_versions(mock_cls):
-    mc = _mock_client(run_side_effect=[
-        [{"id": PLAN_ID}],   # plan exists
-        [],                   # no versions
-    ])
+    mc = _mock_client(
+        run_side_effect=[
+            [{"id": PLAN_ID}],  # plan exists
+            [],  # no versions
+        ]
+    )
     mock_cls.return_value = mc
 
     resp = client.get(f"/fhir/PlanDefinition/{PLAN_ID}/_history")
@@ -94,9 +115,11 @@ def test_get_history_empty_bundle_when_no_versions(mock_cls):
 
 @patch("services.fhir_api.app.routers.plan_definition.KnowledgeGraphClient")
 def test_get_history_404_when_plan_not_found(mock_cls):
-    mc = _mock_client(run_side_effect=[
-        [],  # plan not found
-    ])
+    mc = _mock_client(
+        run_side_effect=[
+            [],  # plan not found
+        ]
+    )
     mock_cls.return_value = mc
 
     resp = client.get(f"/fhir/PlanDefinition/nonexistent/_history")
@@ -104,6 +127,7 @@ def test_get_history_404_when_plan_not_found(mock_cls):
 
 
 # ── POST /_restore/{vid} ───────────────────────────────────────────────────────
+
 
 @patch("services.fhir_api.app.routers.plan_definition.KnowledgeGraphClient")
 def test_restore_publishes_snapshot_with_active_status(mock_cls):
@@ -115,13 +139,13 @@ def test_restore_publishes_snapshot_with_active_status(mock_cls):
         return mc
 
     clients = [make_client() for _ in range(2)]
-    clients[0].run.return_value = [{"rawJson": old_raw}]   # version fetch
+    clients[0].run.return_value = [{"rawJson": old_raw}]  # version fetch
     # upsert: MERGE, version max, CREATE version, delete actions
     clients[1].run.side_effect = [
-        None,                    # MERGE PlanDefinition
-        [{"max_ver": 1}],        # version max query
-        None,                    # CREATE PlanDefinitionVersion
-        None,                    # delete old actions
+        None,  # MERGE PlanDefinition
+        [{"max_ver": 1}],  # version max query
+        None,  # CREATE PlanDefinitionVersion
+        None,  # delete old actions
     ]
     mock_cls.side_effect = clients
 
@@ -129,12 +153,14 @@ def test_restore_publishes_snapshot_with_active_status(mock_cls):
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "active"
-    assert "Rolled back to v1" in body.get("versionNotes", "") or True  # versionNotes stripped before return
+    assert (
+        "Rolled back to v1" in body.get("versionNotes", "") or True
+    )  # versionNotes stripped before return
 
 
 @patch("services.fhir_api.app.routers.plan_definition.KnowledgeGraphClient")
 def test_restore_404_when_version_missing(mock_cls):
-    mc = _mock_client(run_return=[])   # version not found
+    mc = _mock_client(run_return=[])  # version not found
     mock_cls.return_value = mc
 
     resp = client.post(f"/fhir/PlanDefinition/{PLAN_ID}/_restore/999")
@@ -143,14 +169,15 @@ def test_restore_404_when_version_missing(mock_cls):
 
 # ── PUT (upsert) version snapshot behaviour ────────────────────────────────────
 
+
 @patch("services.fhir_api.app.routers.plan_definition.KnowledgeGraphClient")
 def test_put_creates_version_snapshot_when_status_is_active(mock_cls):
     mc = MagicMock()
     mc.run.side_effect = [
-        None,               # MERGE PlanDefinition
-        [{"max_ver": 0}],   # version max query -> next ver = 1
-        None,               # CREATE PlanDefinitionVersion
-        None,               # delete old actions
+        None,  # MERGE PlanDefinition
+        [{"max_ver": 0}],  # version max query -> next ver = 1
+        None,  # CREATE PlanDefinitionVersion
+        None,  # delete old actions
     ]
     mock_cls.return_value = mc
 
@@ -171,8 +198,8 @@ def test_put_creates_version_snapshot_when_status_is_active(mock_cls):
 def test_put_no_version_snapshot_when_status_is_draft(mock_cls):
     mc = MagicMock()
     mc.run.side_effect = [
-        None,   # MERGE PlanDefinition
-        None,   # delete old actions
+        None,  # MERGE PlanDefinition
+        None,  # delete old actions
     ]
     mock_cls.return_value = mc
 
@@ -189,10 +216,10 @@ def test_put_no_version_snapshot_when_status_is_draft(mock_cls):
 def test_put_strips_version_notes_from_stored_raw_json(mock_cls):
     mc = MagicMock()
     mc.run.side_effect = [
-        None,               # MERGE
-        [{"max_ver": 3}],   # version max
-        None,               # CREATE version
-        None,               # delete actions
+        None,  # MERGE
+        [{"max_ver": 3}],  # version max
+        None,  # CREATE version
+        None,  # delete actions
     ]
     mock_cls.return_value = mc
 
@@ -225,7 +252,11 @@ def test_put_version_notes_stored_in_snapshot_node(mock_cls):
 
     client.put(
         f"/fhir/PlanDefinition/{PLAN_ID}",
-        json={"name": "Test", "status": "active", "versionNotes": "Bump extraction prompt to v4"},
+        json={
+            "name": "Test",
+            "status": "active",
+            "versionNotes": "Bump extraction prompt to v4",
+        },
     )
 
     # CREATE version call (index 2) should carry the notes in kwargs
@@ -242,13 +273,18 @@ def test_put_version_notes_accepted_via_meta_field(mock_cls):
 
     client.put(
         f"/fhir/PlanDefinition/{PLAN_ID}",
-        json={"name": "Test", "status": "active", "meta": {"versionNotes": "Via meta field"}},
+        json={
+            "name": "Test",
+            "status": "active",
+            "meta": {"versionNotes": "Via meta field"},
+        },
     )
     create_call = mc.run.call_args_list[2]
     assert create_call[1].get("notes") == "Via meta field"
 
 
 # ── DELETE cleans up versions ──────────────────────────────────────────────────
+
 
 @patch("services.fhir_api.app.routers.plan_definition.KnowledgeGraphClient")
 def test_delete_removes_version_nodes(mock_cls):

@@ -114,7 +114,11 @@ class SnomedFiles:
 
     def uked_extended_map(self) -> Path | None:
         d = self._snap_refset_map(UKED_DIR_PREFIX)
-        return _find_one(d, "der2_iisssciRefset_ExtendedMapUKEDSnapshot_*.txt") if d else None
+        return (
+            _find_one(d, "der2_iisssciRefset_ExtendedMapUKEDSnapshot_*.txt")
+            if d
+            else None
+        )
 
     def ukcr_concept(self) -> Path | None:
         d = self._snap_term(UKCR_DIR_PREFIX)
@@ -138,15 +142,27 @@ class SnomedFiles:
 
     def ukcr_extended_map(self) -> Path | None:
         d = self._snap_refset_map(UKCR_DIR_PREFIX)
-        return _find_one(d, "der2_iisssciRefset_ExtendedMapUKCRSnapshot_*.txt") if d else None
+        return (
+            _find_one(d, "der2_iisssciRefset_ExtendedMapUKCRSnapshot_*.txt")
+            if d
+            else None
+        )
 
     def int_extended_map(self) -> Path | None:
         d = self._snap_refset_map(INT_DIR_PREFIX)
-        return _find_one(d, "der2_iisssccRefset_ExtendedMapSnapshot_INT_*.txt") if d else None
+        return (
+            _find_one(d, "der2_iisssccRefset_ExtendedMapSnapshot_INT_*.txt")
+            if d
+            else None
+        )
 
     def ukcl_extended_map(self) -> Path | None:
         d = self._snap_refset_map(UKCL_DIR_PREFIX)
-        return _find_one(d, "der2_iisssciRefset_ExtendedMapUKCLSnapshot_*.txt") if d else None
+        return (
+            _find_one(d, "der2_iisssciRefset_ExtendedMapUKCLSnapshot_*.txt")
+            if d
+            else None
+        )
 
     def int_simple_map(self) -> Path | None:
         d = self._snap_refset_map(INT_DIR_PREFIX)

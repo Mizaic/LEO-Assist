@@ -1,4 +1,5 @@
 """Detail view of stale_post_specialist episodes: referral, visit, and post-referral encounter counts."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -54,7 +57,9 @@ def main() -> None:
             episodes = s.run(_Q_EPISODES).data()
             print(f"stale_post_specialist episodes: {len(episodes)}")
             print()
-            print(f"{'Site':<20} {'Ref date':<12} {'Visit date':<12} {'Days/ref':>8} {'Days/vis':>8} {'Enc after':>10}  Referral concept")
+            print(
+                f"{'Site':<20} {'Ref date':<12} {'Visit date':<12} {'Days/ref':>8} {'Days/vis':>8} {'Enc after':>10}  Referral concept"
+            )
             print("-" * 110)
             for ep in episodes:
                 pid = ep["pid"]
@@ -63,7 +68,9 @@ def main() -> None:
                 enc_row = s.run(_Q_ENC_AFTER, pid=str(pid), ref_date=ref_date).single()
                 enc_after = enc_row["enc_after"] if enc_row else 0
 
-                concept_row = s.run(_Q_REF_CONCEPT, pid=str(pid), ref_date=ref_date).single()
+                concept_row = s.run(
+                    _Q_REF_CONCEPT, pid=str(pid), ref_date=ref_date
+                ).single()
                 concept = (concept_row["concept_name"] if concept_row else "") or ""
                 # Trim long concept names
                 if len(concept) > 60:
@@ -79,7 +86,9 @@ def main() -> None:
                     f"{concept}"
                 )
             print()
-            print("Key: Days/ref = days since referral, Days/vis = days since specialist visit, Enc after = encounters on/after referral date")
+            print(
+                "Key: Days/ref = days since referral, Days/vis = days since specialist visit, Enc after = encounters on/after referral date"
+            )
     finally:
         client.close()
 

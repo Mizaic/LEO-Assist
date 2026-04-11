@@ -9,6 +9,7 @@ This script builds the descendant -> site key mapping and writes the output.
 Usage:
   python scripts/investigations/_generate_cancer_type_descendant_map.py
 """
+
 import json
 import sys
 from pathlib import Path
@@ -17,9 +18,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -87,7 +90,9 @@ def main() -> None:
     kg = KnowledgeGraphClient()
     parent_ids = list(_BASE_CONCEPT_SITE.keys())
 
-    print(f"Querying IS_A descendants for {len(parent_ids)} base cancer type concepts...")
+    print(
+        f"Querying IS_A descendants for {len(parent_ids)} base cancer type concepts..."
+    )
     rows = kg.run(_ISA_QUERY, ids=parent_ids)
     kg.close()
 
@@ -125,7 +130,13 @@ def main() -> None:
         print(f"  {pid} ({site}): {cnt} descendants")
 
     # Save full descendant map as JSON for review
-    out_path = ROOT / "scripts" / "investigations" / "output" / "cancer_type_descendant_map.json"
+    out_path = (
+        ROOT
+        / "scripts"
+        / "investigations"
+        / "output"
+        / "cancer_type_descendant_map.json"
+    )
     out_path.parent.mkdir(exist_ok=True)
     with open(out_path, "w") as f:
         json.dump(descendant_map, f, indent=2, sort_keys=True)
@@ -133,8 +144,13 @@ def main() -> None:
 
     # Check which of the unresolved concept IDs from the audit are in the map
     _UNRESOLVED_FROM_AUDIT = [
-        "10743008", "363478007", "84229001", "68496003",
-        "62315008", "254701007", "262285001",
+        "10743008",
+        "363478007",
+        "84229001",
+        "68496003",
+        "62315008",
+        "254701007",
+        "262285001",
     ]
     print("\nAudit unresolved IDs coverage:")
     for cid in _UNRESOLVED_FROM_AUDIT:

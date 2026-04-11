@@ -23,11 +23,11 @@ ORD_BASE_URL = "https://directory.spineservices.nhs.uk/ORD/2-0-0/organisations"
 # Maps ORD primary role IDs → our org type labels.
 # Verified against live ORD API March 2026.
 _ORD_TYPE_MAP: dict[str, str] = {
-    "RO177": "gp",       # PRESCRIBING COST CENTRE — primary role for GP practices
-    "RO76":  "gp",       # GP PRACTICE — secondary role, used as fallback
-    "RO272": "pcn",      # PRIMARY CARE NETWORK
-    "RO98":  "icb",      # CLINICAL COMMISSIONING GROUP / ICB
-    "RO209": "alliance", # CANCER ALLIANCE (was incorrectly RO72 in STU3 client)
+    "RO177": "gp",  # PRESCRIBING COST CENTRE — primary role for GP practices
+    "RO76": "gp",  # GP PRACTICE — secondary role, used as fallback
+    "RO272": "pcn",  # PRIMARY CARE NETWORK
+    "RO98": "icb",  # CLINICAL COMMISSIONING GROUP / ICB
+    "RO209": "alliance",  # CANCER ALLIANCE (was incorrectly RO72 in STU3 client)
 }
 
 # Active relationship IDs that indicate a commissioned/operated-by parent.
@@ -60,10 +60,10 @@ class OdsOrg:
 
     ods_code: str
     name: str
-    status: str        # "Active" | "Inactive"
-    org_type: str      # "gp" | "pcn" | "icb" | "alliance" | "unknown"
-    address: dict      # {line1, city, postcode}
-    part_of_ods: str | None = None   # ODS code of active parent org, if present
+    status: str  # "Active" | "Inactive"
+    org_type: str  # "gp" | "pcn" | "icb" | "alliance" | "unknown"
+    address: dict  # {line1, city, postcode}
+    part_of_ods: str | None = None  # ODS code of active parent org, if present
 
 
 def get_org(ods_code: str, timeout: float = 10.0) -> OdsOrg:
@@ -118,7 +118,10 @@ def _parse(ods_code: str, data: dict) -> OdsOrg:
     roles = _ensure_list(org.get("Roles", {}).get("Role"))
     # Try primary role first
     for role in roles:
-        if role.get("primaryRole") is True or str(role.get("primaryRole", "")).lower() == "true":
+        if (
+            role.get("primaryRole") is True
+            or str(role.get("primaryRole", "")).lower() == "true"
+        ):
             code = role.get("id", "")
             if code in _ORD_TYPE_MAP:
                 org_type = _ORD_TYPE_MAP[code]

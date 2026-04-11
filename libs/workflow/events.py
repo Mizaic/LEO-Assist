@@ -64,7 +64,11 @@ class ServiceBusEventHandler:
             context=body.get("context", {}),
             run_id=run_id,
         )
-        logger.info("Handling Service Bus event: %s for patient %s", event.event_type, event.patient_id)
+        logger.info(
+            "Handling Service Bus event: %s for patient %s",
+            event.event_type,
+            event.patient_id,
+        )
         return await self._engine.handle_event(event, step_callback=step_callback)
 
 
@@ -98,7 +102,11 @@ class TimerEventHandler:
         self._engine = engine
 
     async def handle_timer(self, message_body: str | bytes) -> dict[str, Any]:
-        body = json.loads(message_body) if isinstance(message_body, (str, bytes)) else message_body
+        body = (
+            json.loads(message_body)
+            if isinstance(message_body, (str, bytes))
+            else message_body
+        )
         event = WorkflowEventEnvelope(
             event_type="timer",
             patient_id=body.get("patient_id", ""),

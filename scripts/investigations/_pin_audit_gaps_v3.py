@@ -15,6 +15,7 @@ Run:
     python scripts/investigations/_pin_audit_gaps_v3.py
     python scripts/investigations/_pin_audit_gaps_v3.py --verify-only
 """
+
 from __future__ import annotations
 
 import argparse
@@ -356,9 +357,7 @@ def run_verify() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Pin surface forms for v3 audit gaps"
-    )
+    parser = argparse.ArgumentParser(description="Pin surface forms for v3 audit gaps")
     parser.add_argument("--verify-only", action="store_true")
     args = parser.parse_args()
     if args.verify_only:

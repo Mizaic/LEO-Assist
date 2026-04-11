@@ -16,6 +16,7 @@ Usage:
     python scripts/investigations/_patch_hypothetical_to_planned.py            (dry run)
     python scripts/investigations/_patch_hypothetical_to_planned.py --apply   (write)
 """
+
 from __future__ import annotations
 
 import json
@@ -27,10 +28,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 import os
@@ -49,9 +52,9 @@ _PLANNING_RE = re.compile(
     r"on\s+waiting\s+list|waiting\s+list|"
     r"arranged\s+for|"
     r"have\s+requested|"
-    r"appointment\s+at\s+\w|"          # 'appointment at Woodbrook...'
-    r"appointment\s+on\s+\d|"          # 'appointment on 27 Feb...'
-    r"appointment\s+\d|"               # 'appointment 03 Sep...'
+    r"appointment\s+at\s+\w|"  # 'appointment at Woodbrook...'
+    r"appointment\s+on\s+\d|"  # 'appointment on 27 Feb...'
+    r"appointment\s+\d|"  # 'appointment 03 Sep...'
     r"physiotherapy\s+appointment|"
     r"outpatient\s+appointment"
     r")",
@@ -71,16 +74,16 @@ _AUDIT_FLAG = "assertion_patched_planned_v1"
 
 def _new_context_json(assertion: str) -> str:
     ctx = {
-        "assertion":    assertion,
-        "negated":      assertion == "absent",
-        "refuted":      assertion == "refuted",
-        "uncertain":    assertion == "possible",
-        "historical":   assertion == "historical",
-        "planned":      assertion == "planned",
+        "assertion": assertion,
+        "negated": assertion == "absent",
+        "refuted": assertion == "refuted",
+        "uncertain": assertion == "possible",
+        "historical": assertion == "historical",
+        "planned": assertion == "planned",
         "hypothetical": assertion == "hypothetical",
-        "family":       assertion == "family",
-        "declined":     assertion == "declined",
-        "cancelled":    assertion == "cancelled",
+        "family": assertion == "family",
+        "declined": assertion == "declined",
+        "cancelled": assertion == "cancelled",
     }
     return json.dumps(ctx, separators=(", ", ": "))
 
@@ -122,9 +125,13 @@ RETURN count(r) AS updated
 def main() -> None:
     apply = "--apply" in sys.argv
 
-    pg_uri = os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", "bolt://localhost:7687")
+    pg_uri = os.getenv("NEO4J_URI", "") or os.getenv(
+        "NEO4J_PATIENT_URI", "bolt://localhost:7687"
+    )
     pg_user = os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", "neo4j")
-    pg_pass = os.getenv("NEO4J_PASSWORD", "") or os.getenv("NEO4J_PATIENT_PASSWORD", "patient-dev")
+    pg_pass = os.getenv("NEO4J_PASSWORD", "") or os.getenv(
+        "NEO4J_PATIENT_PASSWORD", "patient-dev"
+    )
 
     driver = GraphDatabase.driver(pg_uri, auth=(pg_user, pg_pass))
     try:
@@ -133,19 +140,24 @@ def main() -> None:
             print(f"Total plain-string 'hypothetical' DOCUMENTS edges: {len(rows)}")
 
             buckets: dict[str, list] = {
-                "planned": [], "possible": [], "present": [], "hypothetical": []
+                "planned": [],
+                "possible": [],
+                "present": [],
+                "hypothetical": [],
             }
             for row in rows:
                 ev = str(row["evidence"] or "")
                 new_assertion = _classify(ev)
-                buckets[new_assertion].append({
-                    "encounter_id": row["encounter_id"],
-                    "concept_id":   row["concept_id"],
-                    "evidence":     ev,
-                    "concept_name": str(row["concept_name"] or ""),
-                    "new_assertion": new_assertion,
-                    "new_context":  _new_context_json(new_assertion),
-                })
+                buckets[new_assertion].append(
+                    {
+                        "encounter_id": row["encounter_id"],
+                        "concept_id": row["concept_id"],
+                        "evidence": ev,
+                        "concept_name": str(row["concept_name"] or ""),
+                        "new_assertion": new_assertion,
+                        "new_context": _new_context_json(new_assertion),
+                    }
+                )
 
             print(f"\n--- Triage ---")
             for label, items in sorted(buckets.items(), key=lambda x: -len(x[1])):
@@ -156,9 +168,11 @@ def main() -> None:
                     continue
                 print(f"\n-- {label} sample --")
                 for h in items[:5]:
-                    print(f"  enc={h['encounter_id'][:8]}  "
-                          f"concept={h['concept_name'][:35]}  "
-                          f"evidence={h['evidence'][:70]!r}")
+                    print(
+                        f"  enc={h['encounter_id'][:8]}  "
+                        f"concept={h['concept_name'][:35]}  "
+                        f"evidence={h['evidence'][:70]!r}"
+                    )
 
             if not apply:
                 print("\n[DRY RUN] -- pass --apply to write changes.")
@@ -179,7 +193,9 @@ def main() -> None:
                         ).single()
                         updated += res["updated"] if res else 0
                     except Exception as exc:
-                        print(f"ERROR enc={h['encounter_id'][:8]} cid={h['concept_id']}: {exc}")
+                        print(
+                            f"ERROR enc={h['encounter_id'][:8]} cid={h['concept_id']}: {exc}"
+                        )
                         errors += 1
 
             print(f"\nApplied. Updated={updated}  Errors={errors}")

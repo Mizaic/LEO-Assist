@@ -34,6 +34,7 @@ pytestmark = pytest.mark.skip(
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_extraction_item(
     text="colorectal cancer",
     source="llm",
@@ -56,7 +57,9 @@ def _make_extraction_item(
     )
 
 
-def _stub_patient_client(encounter_text: str = "Patient referred for colorectal cancer"):
+def _stub_patient_client(
+    encounter_text: str = "Patient referred for colorectal cancer",
+):
     client = MagicMock()
     client.run.return_value = [
         {
@@ -75,6 +78,7 @@ def _stub_patient_client(encounter_text: str = "Patient referred for colorectal 
 # ---------------------------------------------------------------------------
 # Progress events
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_run_single_encounter_emits_events():
@@ -103,9 +107,15 @@ async def test_run_single_encounter_emits_events():
         with patch(
             "services.coding_worker.app.pipeline.pipeline_service.CodingPipeline._resolve_via_api",
             new_callable=AsyncMock,
-            return_value={"colorectal cancer": [{"snomed_concept_id": "363346000",
-                                                  "snomed_term": "Malignant neoplasm",
-                                                  "score": 0.95}]},
+            return_value={
+                "colorectal cancer": [
+                    {
+                        "snomed_concept_id": "363346000",
+                        "snomed_term": "Malignant neoplasm",
+                        "score": 0.95,
+                    }
+                ]
+            },
         ):
             await pipeline.run_single_encounter(
                 patient_id="pat-001",
@@ -131,7 +141,9 @@ async def test_run_id_in_events():
 
     from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
 
-    pipeline = CodingPipeline(patient_client=patient_client, knowledge_client=knowledge_client)
+    pipeline = CodingPipeline(
+        patient_client=patient_client, knowledge_client=knowledge_client
+    )
     mock_extractor = MagicMock()
     mock_extractor.source = "llm"
     mock_extractor.model_name = "bedrock"
@@ -168,6 +180,7 @@ async def test_run_id_in_events():
 # Dry-run: no persistence
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_dry_run_skips_persistence():
     patient_client = _stub_patient_client()
@@ -175,7 +188,9 @@ async def test_dry_run_skips_persistence():
 
     from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
 
-    pipeline = CodingPipeline(patient_client=patient_client, knowledge_client=knowledge_client)
+    pipeline = CodingPipeline(
+        patient_client=patient_client, knowledge_client=knowledge_client
+    )
     mock_extractor = MagicMock()
     mock_extractor.source = "llm"
     mock_extractor.model_name = "bedrock"
@@ -205,14 +220,11 @@ async def test_dry_run_skips_persistence():
 # Idempotency: same candidate_id for same patient+encounter
 # ---------------------------------------------------------------------------
 
+
 def test_candidate_id_deterministic():
     """Same patient_id+encounter_id always produces the same candidate_id."""
-    candidate_id_1 = str(
-        uuid.uuid5(uuid.NAMESPACE_URL, "candidate:pat-001:enc-001")
-    )
-    candidate_id_2 = str(
-        uuid.uuid5(uuid.NAMESPACE_URL, "candidate:pat-001:enc-001")
-    )
+    candidate_id_1 = str(uuid.uuid5(uuid.NAMESPACE_URL, "candidate:pat-001:enc-001"))
+    candidate_id_2 = str(uuid.uuid5(uuid.NAMESPACE_URL, "candidate:pat-001:enc-001"))
     assert candidate_id_1 == candidate_id_2
 
 
@@ -255,18 +267,21 @@ async def test_run_twice_calls_upsert_not_insert():
             new_callable=AsyncMock,
             return_value={},
         ):
-            with patch.object(pipeline, "_persist_documents", side_effect=_count_persist):
+            with patch.object(
+                pipeline, "_persist_documents", side_effect=_count_persist
+            ):
                 await pipeline.run_single_encounter("pat-001", "enc-001", dry_run=False)
                 await pipeline.run_single_encounter("pat-001", "enc-001", dry_run=False)
 
-    assert persist_call_count == 2, (
-        f"Expected _persist_documents called twice (idempotent MERGE), got {persist_call_count}"
-    )
+    assert (
+        persist_call_count == 2
+    ), f"Expected _persist_documents called twice (idempotent MERGE), got {persist_call_count}"
 
 
 # ---------------------------------------------------------------------------
 # Provenance in sentences payload
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_sentences_payload_has_provenance():
@@ -276,7 +291,9 @@ async def test_sentences_payload_has_provenance():
 
     from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
 
-    item = _make_extraction_item(source="model", model_name="spacy-ner", model_version="2.1")
+    item = _make_extraction_item(
+        source="model", model_name="spacy-ner", model_version="2.1"
+    )
     mock_extractor = MagicMock()
     mock_extractor.source = "model"
     mock_extractor.model_name = "spacy-ner"
@@ -288,7 +305,9 @@ async def test_sentences_payload_has_provenance():
     async def _fake_resolve(terms, **kwargs):
         return {}
 
-    pipeline = CodingPipeline(patient_client=patient_client, knowledge_client=knowledge_client)
+    pipeline = CodingPipeline(
+        patient_client=patient_client, knowledge_client=knowledge_client
+    )
 
     def _capture_persist(encounter_id, sentences_payload, extractor, run_id=""):
         captured_payload.extend(sentences_payload)
@@ -298,16 +317,16 @@ async def test_sentences_payload_has_provenance():
         return_value=mock_extractor,
     ):
         with patch.object(pipeline, "_resolve_via_api", new=_fake_resolve):
-            with patch.object(pipeline, "_persist_documents", side_effect=_capture_persist):
+            with patch.object(
+                pipeline, "_persist_documents", side_effect=_capture_persist
+            ):
                 await pipeline.run_single_encounter(
                     patient_id="pat-001",
                     encounter_id="enc-001",
                     dry_run=False,
                 )
 
-    all_terms = [
-        term for sent in captured_payload for term in sent.get("terms", [])
-    ]
+    all_terms = [term for sent in captured_payload for term in sent.get("terms", [])]
     for term in all_terms:
         assert term.get("extraction_source") == "model"
         assert term.get("extraction_model_name") == "spacy-ner"
@@ -318,6 +337,7 @@ async def test_sentences_payload_has_provenance():
 # ---------------------------------------------------------------------------
 # Extraction failure emits failed event
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_extraction_failure_emits_failed_event():
@@ -338,7 +358,9 @@ async def test_extraction_failure_emits_failed_event():
         "services.coding_worker.app.pipeline.pipeline_service.build_extractor",
         return_value=mock_extractor,
     ):
-        pipeline = CodingPipeline(patient_client=patient_client, knowledge_client=knowledge_client)
+        pipeline = CodingPipeline(
+            patient_client=patient_client, knowledge_client=knowledge_client
+        )
         await pipeline.run_single_encounter(
             patient_id="pat-001",
             encounter_id="enc-001",

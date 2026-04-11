@@ -10,6 +10,7 @@ Fixes applied:
   P4   stopped Diannette a year ago: delete (not a clinical concept)
   P3   307 orphan ncda_preapproved nodes: DETACH DELETE (cleanup only)
 """
+
 from __future__ import annotations
 
 import os
@@ -93,8 +94,9 @@ def del_node(s, form: str) -> int:
 
 def upsert(s, form: str, cid: str, conf: float) -> bool:
     norm = normalize_surface(form)
-    rows = list(s.run(_UPSERT, normalized=norm, form=form,
-                       cid=cid, conf=conf, prov=PROV))
+    rows = list(
+        s.run(_UPSERT, normalized=norm, form=form, cid=cid, conf=conf, prov=PROV)
+    )
     return bool(rows)
 
 
@@ -201,7 +203,11 @@ def main() -> None:
             for term, expected in checks:
                 candidates = results.get(term, [])
                 got = candidates[0].get("snomed_concept_id") if candidates else "?"
-                got_term = (candidates[0].get("snomed_term") or "?")[:50] if candidates else "?"
+                got_term = (
+                    (candidates[0].get("snomed_term") or "?")[:50]
+                    if candidates
+                    else "?"
+                )
                 status = "PASS" if got == expected else "FAIL"
                 if status == "PASS":
                     passed += 1

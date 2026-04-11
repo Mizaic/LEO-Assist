@@ -20,9 +20,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -74,9 +76,7 @@ def main() -> None:
             continue
         if cid not in concept_counts:
             # Check if concept name looks like a raw ID (unresolved)
-            name_is_numeric = cname.isdigit() or (
-                cname and cname == cid
-            )
+            name_is_numeric = cname.isdigit() or (cname and cname == cid)
             concept_counts[cid] = {
                 "concept_id": cid,
                 "concept_name": cname,
@@ -109,8 +109,7 @@ def main() -> None:
     no_anchor_eps = [
         r["episode_id"]
         for r in unknown_rows
-        if r["episode_id"]
-        not in {row["episode_id"] for row in anchor_rows}
+        if r["episode_id"] not in {row["episode_id"] for row in anchor_rows}
     ]
     print(f"\nEpisodes with NO diagnosis anchor linked: {len(no_anchor_eps)}")
     if no_anchor_eps:

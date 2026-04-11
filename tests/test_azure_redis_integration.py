@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
-
 ROOT = Path(__file__).resolve().parents[1]
 API_ROOT = ROOT / "services" / "api"
 if str(API_ROOT) not in sys.path:
@@ -26,7 +25,9 @@ def test_azure_redis_session_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
     try:
         import redis  # noqa: F401
     except ModuleNotFoundError as exc:
-        pytest.fail(f"Python package 'redis' is required for this integration test: {exc}")
+        pytest.fail(
+            f"Python package 'redis' is required for this integration test: {exc}"
+        )
 
     from app.services import session_store
 

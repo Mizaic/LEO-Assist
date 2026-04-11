@@ -98,7 +98,9 @@ def _build_filter_conditions(
         elif op == "between" and isinstance(value, (list, tuple)) and len(value) == 2:
             start_key = f"{param_key}_start"
             end_key = f"{param_key}_end"
-            conditions.append(f"{target_var}.{prop} >= date(${start_key}) AND {target_var}.{prop} <= date(${end_key})")
+            conditions.append(
+                f"{target_var}.{prop} >= date(${start_key}) AND {target_var}.{prop} <= date(${end_key})"
+            )
             params[start_key] = str(value[0])
             params[end_key] = str(value[1])
         elif op == "neq":
@@ -145,7 +147,9 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
     # else: Patient - we're already matching p
 
     # User filters
-    filter_conditions, filter_params = _build_filter_conditions(node_label, target_var, filters)
+    filter_conditions, filter_params = _build_filter_conditions(
+        node_label, target_var, filters
+    )
     params.update(filter_params)
 
     # Cohort filter (when target is EpisodeOfCare) - inject status filter
@@ -182,10 +186,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
     if aggregation == "median" and value_property and node_label == "EpisodeOfCare":
         expr = DERIVED_VALUE_EXPRESSIONS.get("EpisodeOfCare", {}).get(value_property)
         if expr:
-            parts.append(
-                f"WITH {target_var}, {expr} AS val "
-                "WHERE val IS NOT NULL "
-            )
+            parts.append(f"WITH {target_var}, {expr} AS val " "WHERE val IS NOT NULL ")
             parts.append(
                 "WITH collect(val) AS vals "
                 "RETURN 'Median' AS name, percentileCont(vals, 0.5) AS value, "
@@ -193,7 +194,11 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
             )
             cypher = " ".join(parts)
             return cypher, params
-    elif aggregation == "percentage" and percentage_property and node_label == "EpisodeOfCare":
+    elif (
+        aggregation == "percentage"
+        and percentage_property
+        and node_label == "EpisodeOfCare"
+    ):
         parts.append(
             f"WITH count(*) AS total, "
             f"sum(CASE WHEN {target_var}.{percentage_property} = $pct_val THEN 1 ELSE 0 END) AS yes_count "
@@ -207,9 +212,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
 
     if group_by:
         if patient_prop == "age_band_at_diagnosis" and node_label == "EpisodeOfCare":
-            age_expr = (
-                "toInteger(duration.between(date(p.birthDate), date(ep.diagnosis_date)).days / 365.25)"
-            )
+            age_expr = "toInteger(duration.between(date(p.birthDate), date(ep.diagnosis_date)).days / 365.25)"
             band_expr = (
                 f"CASE WHEN {age_expr} < 25 THEN '0-24' "
                 f"WHEN {age_expr} < 50 THEN '25-49' "
@@ -231,7 +234,10 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
                 f"RETURN coalesce(toString({group_var}.{patient_prop}), '(unknown)') AS name, count(*) AS value "
                 "ORDER BY value DESC"
             )
-        elif group_by in ("primary_care_interval_band", "diagnostic_interval_band") and node_label == "EpisodeOfCare":
+        elif (
+            group_by in ("primary_care_interval_band", "diagnostic_interval_band")
+            and node_label == "EpisodeOfCare"
+        ):
             if group_by == "primary_care_interval_band":
                 days_expr = "duration.between(date(ep.first_presentation_date), date(ep.referral_date)).days"
             else:
@@ -253,12 +259,8 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
                 "ORDER BY value DESC"
             )
         elif group_by == "count_per_patient_band" and node_label == "Encounter":
-            parts.append(
-                f"WITH {patient_var}, count({target_var}) AS cnt "
-            )
-            parts.append(
-                "WITH CASE WHEN cnt < 3 THEN '<3' ELSE '3+' END AS band "
-            )
+            parts.append(f"WITH {patient_var}, count({target_var}) AS cnt ")
+            parts.append("WITH CASE WHEN cnt < 3 THEN '<3' ELSE '3+' END AS band ")
             parts.append(
                 "RETURN coalesce(band, '(unknown)') AS name, count(*) AS value "
                 "ORDER BY value DESC"

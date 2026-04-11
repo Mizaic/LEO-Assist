@@ -1,4 +1,5 @@
 """Test the merge/NSS-close Cypher queries on a known problem patient."""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env.secrets", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -64,6 +67,7 @@ try:
     # Test same-site merge using Python logic
     episodes = [r for r in rows2 if r["status"] not in ("merged", "closed_phantom")]
     from collections import defaultdict
+
     by_site = defaultdict(list)
     for r in episodes:
         by_site[r["ctype"]].append(r)
@@ -76,11 +80,14 @@ try:
         primary = eps_sorted[0]
         for dup in eps_sorted[1:]:
             from datetime import date
+
             d1 = date.fromisoformat(primary["rdate"])
             d2 = date.fromisoformat(dup["rdate"])
             gap = (d2 - d1).days
             if gap <= 180:
-                print(f"\n  Would merge {dup['eid'][:12]} ({ctype}, {dup['rdate']}) into {primary['eid'][:12]} ({primary['rdate']}) gap={gap}d")
+                print(
+                    f"\n  Would merge {dup['eid'][:12]} ({ctype}, {dup['rdate']}) into {primary['eid'][:12]} ({primary['rdate']}) gap={gap}d"
+                )
                 client.run(
                     "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
                     "SET ep.status = 'merged', ep.merged_into = $primary, "

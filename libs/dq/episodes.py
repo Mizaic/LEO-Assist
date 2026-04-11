@@ -1,4 +1,5 @@
 """Episode health, stale analysis, completeness, and outcome inference."""
+
 from __future__ import annotations
 
 import logging
@@ -76,7 +77,9 @@ ORDER BY enc.date
 """
 
 
-def get_episode_health(client: Any, filters: Optional[DQFilters] = None) -> EpisodeHealthResult:
+def get_episode_health(
+    client: Any, filters: Optional[DQFilters] = None
+) -> EpisodeHealthResult:
     """Return episode status distribution and summary counts."""
     from libs.neo4j_client.client import run_with_retry
 
@@ -93,10 +96,7 @@ def get_episode_health(client: Any, filters: Optional[DQFilters] = None) -> Epis
         if r.get("auto_closed"):
             auto_closed_count += 1
 
-    stale_count = sum(
-        v for k, v in status_counts.items()
-        if "stale" in k
-    )
+    stale_count = sum(v for k, v in status_counts.items() if "stale" in k)
     return EpisodeHealthResult(
         total_count=len(rows),
         status_counts=status_counts,
@@ -113,25 +113,25 @@ def get_stale_episodes(
     from libs.neo4j_client.client import run_with_retry
 
     f = filters or DQFilters()
-    rows = run_with_retry(
-        client, _STALE_Q, site=f.site, limit=f.limit
-    )
+    rows = run_with_retry(client, _STALE_Q, site=f.site, limit=f.limit)
     today = date.today()
     result = []
     for r in rows:
         ref = r.get("referral_date")
         days = _days_since(ref, today) if ref else 0
-        result.append(StaleEpisode(
-            patient_id=r.get("patient_id") or "",
-            episode_id=r.get("episode_id") or "",
-            site=r.get("site") or "unknown",
-            status=r.get("status") or "unknown",
-            days_stale=days,
-            referral_date=ref,
-            specialist_date=r.get("specialist_date"),
-            last_encounter_date=r.get("last_encounter_date"),
-            encounter_count=int(r.get("encounter_count") or 0),
-        ))
+        result.append(
+            StaleEpisode(
+                patient_id=r.get("patient_id") or "",
+                episode_id=r.get("episode_id") or "",
+                site=r.get("site") or "unknown",
+                status=r.get("status") or "unknown",
+                days_stale=days,
+                referral_date=ref,
+                specialist_date=r.get("specialist_date"),
+                last_encounter_date=r.get("last_encounter_date"),
+                encounter_count=int(r.get("encounter_count") or 0),
+            )
+        )
     return result
 
 
@@ -142,9 +142,7 @@ def get_completeness(
     from libs.neo4j_client.client import run_with_retry
 
     f = filters or DQFilters()
-    rows = run_with_retry(
-        client, _COMPLETENESS_Q, site=f.site, limit=f.limit
-    )
+    rows = run_with_retry(client, _COMPLETENESS_Q, site=f.site, limit=f.limit)
     return [
         MilestoneRow(
             patient_id=r.get("patient_id") or "",
@@ -226,6 +224,7 @@ def infer_outcome(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _phase2(rows: list[dict], specialist_date: Optional[str]) -> list[dict]:
     if not specialist_date:

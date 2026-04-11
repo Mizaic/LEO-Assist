@@ -19,10 +19,29 @@ class TestGetOrgContext:
 
         instance = MockPG.return_value
         instance.run.side_effect = [
-            [{"id": "pr-1", "name": "Rob Smith", "email": "rob@test.ai", "is_platform_admin": True}],
             [
-                {"id": "org-1", "name": "Practice A", "odsCode": "A001", "short_name": None, "type": "GP"},
-                {"id": "org-2", "name": "Practice B", "odsCode": "B002", "short_name": None, "type": "GP"},
+                {
+                    "id": "pr-1",
+                    "name": "Rob Smith",
+                    "email": "rob@test.ai",
+                    "is_platform_admin": True,
+                }
+            ],
+            [
+                {
+                    "id": "org-1",
+                    "name": "Practice A",
+                    "odsCode": "A001",
+                    "short_name": None,
+                    "type": "GP",
+                },
+                {
+                    "id": "org-2",
+                    "name": "Practice B",
+                    "odsCode": "B002",
+                    "short_name": None,
+                    "type": "GP",
+                },
             ],
         ]
 
@@ -44,9 +63,22 @@ class TestGetOrgContext:
 
         instance = MockPG.return_value
         instance.run.side_effect = [
-            [{"id": "pr-2", "name": "Ben Noble", "email": "ben@nhs.net", "is_platform_admin": False}],
             [
-                {"id": "org-3", "name": "WOODBROOK MEDICAL CENTRE", "odsCode": "C82070", "short_name": None, "type": "GP"},
+                {
+                    "id": "pr-2",
+                    "name": "Ben Noble",
+                    "email": "ben@nhs.net",
+                    "is_platform_admin": False,
+                }
+            ],
+            [
+                {
+                    "id": "org-3",
+                    "name": "WOODBROOK MEDICAL CENTRE",
+                    "odsCode": "C82070",
+                    "short_name": None,
+                    "type": "GP",
+                },
             ],
         ]
 
@@ -78,7 +110,14 @@ class TestGetOrgContext:
 
         instance = MockPG.return_value
         instance.run.side_effect = [
-            [{"id": "pr-1", "name": "Test", "email": "test@example.com", "is_platform_admin": False}],
+            [
+                {
+                    "id": "pr-1",
+                    "name": "Test",
+                    "email": "test@example.com",
+                    "is_platform_admin": False,
+                }
+            ],
             [],
         ]
 
@@ -93,7 +132,14 @@ class TestGetOrgContext:
 
         instance = MockPG.return_value
         instance.run.side_effect = [
-            [{"id": "pr-1", "name": "Test", "email": "t@t.com", "is_platform_admin": True}],
+            [
+                {
+                    "id": "pr-1",
+                    "name": "Test",
+                    "email": "t@t.com",
+                    "is_platform_admin": True,
+                }
+            ],
             [],
         ]
 
@@ -119,8 +165,23 @@ class TestGetOrgContext:
 
         instance = MockPG.return_value
         instance.run.side_effect = [
-            [{"id": "pr-1", "name": "Test", "email": "t@t.com", "is_platform_admin": False}],
-            [{"id": "o1", "name": "Org One", "odsCode": "X1", "short_name": "O1", "type": "GP"}],
+            [
+                {
+                    "id": "pr-1",
+                    "name": "Test",
+                    "email": "t@t.com",
+                    "is_platform_admin": False,
+                }
+            ],
+            [
+                {
+                    "id": "o1",
+                    "name": "Org One",
+                    "odsCode": "X1",
+                    "short_name": "O1",
+                    "type": "GP",
+                }
+            ],
         ]
 
         result = get_org_context(email="t@t.com")
@@ -131,4 +192,11 @@ class TestGetOrgContext:
         assert set(user.keys()) == {"id", "name", "email", "is_platform_admin"}
 
         org = result["organizations"][0]
-        assert set(org.keys()) == {"id", "name", "odsCode", "shortName", "type", "scopeType"}
+        assert set(org.keys()) == {
+            "id",
+            "name",
+            "odsCode",
+            "shortName",
+            "type",
+            "scopeType",
+        }

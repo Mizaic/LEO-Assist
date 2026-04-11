@@ -22,6 +22,7 @@ Decisions:
   faecal immunochemical test abnormal -> keep 1101371000000105 (BCSP FIT abnormal finding)
   fit result positive             -> keep 71711000112103 (Occult blood by immunoassay finding)
 """
+
 import os
 import sys
 from pathlib import Path

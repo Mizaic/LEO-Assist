@@ -6,6 +6,7 @@ to prevent AI agents from triggering graph writes (R-LEO-AI-063).
 Each tool calls the core API at DQ_API_BASE_URL/admin/dq/* with an admin
 session cookie or bearer token supplied via DQ_API_COOKIE env var.
 """
+
 from __future__ import annotations
 
 import json
@@ -47,6 +48,7 @@ def _get(path: str, params: dict | None = None) -> dict:
 # Tool implementations
 # ---------------------------------------------------------------------------
 
+
 def dq_patient_inspect(patient_id: str, with_text: bool = False) -> dict:
     """Inspect a patient: encounters, episodes, coded concepts."""
     return _get(f"/admin/dq/patient/{patient_id}", {"with_text": with_text})
@@ -72,9 +74,7 @@ def dq_episodes_health() -> dict:
     return _get("/admin/dq/episodes/health")
 
 
-def dq_episodes_stale(
-    site: str | None = None, threshold_days: int = 90
-) -> dict:
+def dq_episodes_stale(site: str | None = None, threshold_days: int = 90) -> dict:
     """Return stale and long-running episodes."""
     params: dict = {"threshold_days": threshold_days}
     if site:

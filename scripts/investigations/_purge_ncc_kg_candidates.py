@@ -9,6 +9,7 @@ Run:
     python scripts/investigations/_purge_ncc_kg_candidates.py --dry-run
     python scripts/investigations/_purge_ncc_kg_candidates.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,7 +48,9 @@ def main() -> None:
             candidates = row["candidates"] if row else 0
             labels = row["labels"] if row else 0
 
-        print(f"Found {candidates} empty-entity TrainingCandidates, {labels} GoldLabels")
+        print(
+            f"Found {candidates} empty-entity TrainingCandidates, {labels} GoldLabels"
+        )
 
         if candidates == 0:
             print("Nothing to delete.")

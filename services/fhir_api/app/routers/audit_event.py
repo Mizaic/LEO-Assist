@@ -7,6 +7,7 @@ structured log entry to stdout (captured by ACA Log Analytics) and persists to N
 The Neo4j write is best-effort and non-blocking; a log failure never interrupts the
 calling service.
 """
+
 from __future__ import annotations
 
 import logging
@@ -40,7 +41,9 @@ def create_audit_event(
     """Receive, log, and persist a FHIR R4B AuditEvent from an internal service."""
     resource_type = body.get("resourceType", "")
     if resource_type != "AuditEvent":
-        logger.warning("AuditEvent endpoint received unexpected resourceType: %s", resource_type)
+        logger.warning(
+            "AuditEvent endpoint received unexpected resourceType: %s", resource_type
+        )
 
     logger.info(
         "fhir_audit_event outcome=%s recorded=%s agent=%s",
@@ -66,6 +69,7 @@ def _extract_agent(body: dict[str, Any]) -> str:
 def _persist_to_neo4j(body: dict[str, Any]) -> None:
     try:
         from libs.neo4j_client.client import PatientGraphClient
+
         client = PatientGraphClient()
         client.run(
             """

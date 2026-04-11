@@ -1,4 +1,5 @@
 """Analyse the current remediation run - what are we learning?"""
+
 import sqlite3, pathlib, json
 from collections import Counter, defaultdict
 
@@ -17,8 +18,12 @@ print("CUMULATIVE DB STATE")
 print("=" * 70)
 total = conn.execute("SELECT COUNT(*) FROM remediated").fetchone()[0]
 applied = conn.execute("SELECT COUNT(*) FROM remediated WHERE applied=1").fetchone()[0]
-skipped = conn.execute("SELECT COUNT(*) FROM remediated WHERE applied=0 AND sonnet_reason='terminology_not_found'").fetchone()[0]
-disputed = conn.execute("SELECT COUNT(*) FROM remediated WHERE applied=0 AND sonnet_reason!='terminology_not_found'").fetchone()[0]
+skipped = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE applied=0 AND sonnet_reason='terminology_not_found'"
+).fetchone()[0]
+disputed = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE applied=0 AND sonnet_reason!='terminology_not_found'"
+).fetchone()[0]
 enc = conn.execute("SELECT COUNT(*) FROM enc_processed").fetchone()[0]
 print(f"Encounters processed : {enc}")
 print(f"Total proposed       : {total}")
@@ -72,14 +77,26 @@ for reason, n in rows:
 print("\n" + "=" * 70)
 print("ADD ACTION BREAKDOWN")
 print("=" * 70)
-add_applied = conn.execute("SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=1").fetchone()[0]
-add_not = conn.execute("SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=0").fetchone()[0]
-add_no_term = conn.execute("SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=0 AND sonnet_reason='terminology_not_found'").fetchone()[0]
-add_disputed = conn.execute("SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=0 AND sonnet_reason!='terminology_not_found'").fetchone()[0]
+add_applied = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=1"
+).fetchone()[0]
+add_not = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=0"
+).fetchone()[0]
+add_no_term = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=0 AND sonnet_reason='terminology_not_found'"
+).fetchone()[0]
+add_disputed = conn.execute(
+    "SELECT COUNT(*) FROM remediated WHERE action='add' AND applied=0 AND sonnet_reason!='terminology_not_found'"
+).fetchone()[0]
 print(f"  ADD applied        : {add_applied}")
 print(f"  ADD not applied    : {add_not}")
-print(f"    - no term found  : {add_no_term}  ({100*add_no_term/max(1,add_not):.0f}% of not-applied adds)")
-print(f"    - Sonnet disputed: {add_disputed}  ({100*add_disputed/max(1,add_not):.0f}% of not-applied adds)")
+print(
+    f"    - no term found  : {add_no_term}  ({100*add_no_term/max(1,add_not):.0f}% of not-applied adds)"
+)
+print(
+    f"    - Sonnet disputed: {add_disputed}  ({100*add_disputed/max(1,add_not):.0f}% of not-applied adds)"
+)
 
 # -- 6. Recent batch rate (last 500 rows) ----------------------------------
 print("\n" + "=" * 70)
@@ -90,15 +107,19 @@ rows = conn.execute("""
     FROM remediated ORDER BY rowid DESC LIMIT 500
 """).fetchall()
 recent_applied = sum(1 for r in rows if r[0] == 1)
-recent_no_term = sum(1 for r in rows if r[0] == 0 and r[1] == 'terminology_not_found')
-recent_disputed = sum(1 for r in rows if r[0] == 0 and r[1] != 'terminology_not_found')
+recent_no_term = sum(1 for r in rows if r[0] == 0 and r[1] == "terminology_not_found")
+recent_disputed = sum(1 for r in rows if r[0] == 0 and r[1] != "terminology_not_found")
 print(f"  In last 500 rows:")
 print(f"    Applied           : {recent_applied}")
 print(f"    Skipped (no term) : {recent_no_term}")
 print(f"    Disputed          : {recent_disputed}")
 if recent_applied + recent_no_term + recent_disputed > 0:
-    apply_rate = 100 * recent_applied / (recent_applied + recent_no_term + recent_disputed)
-    skip_rate  = 100 * recent_no_term / (recent_applied + recent_no_term + recent_disputed)
+    apply_rate = (
+        100 * recent_applied / (recent_applied + recent_no_term + recent_disputed)
+    )
+    skip_rate = (
+        100 * recent_no_term / (recent_applied + recent_no_term + recent_disputed)
+    )
     print(f"    Apply rate        : {apply_rate:.1f}%  (up from ~4% in old run?)")
     print(f"    Skip rate         : {skip_rate:.1f}%  (was ~50% before tag stripping)")
 

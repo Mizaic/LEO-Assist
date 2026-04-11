@@ -58,6 +58,7 @@ logger = logging.getLogger(__name__)
 # Neo4j connection
 # ---------------------------------------------------------------------------
 
+
 def get_neo4j_driver():
     uri = os.getenv("NEO4J_URI", "")
     user = os.getenv("NEO4J_USER", "neo4j")
@@ -73,6 +74,7 @@ def get_neo4j_driver():
 # ---------------------------------------------------------------------------
 # Normalisation helper (mirrors terminology API logic)
 # ---------------------------------------------------------------------------
+
 
 def _normalize(text: str) -> str:
     """Lowercase, strip, collapse whitespace, NFD-normalise."""
@@ -190,13 +192,15 @@ REVIEWER = "remediate_hitl_queue.py"
 # Dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SurfaceFormEntry:
     """One surface form variation to upsert."""
-    form: str           # display form
+
+    form: str  # display form
     concept_id: str
-    concept_fsn: str    # human-readable label for the report
-    entity_label: str   # NER label (for resolving reviews)
+    concept_fsn: str  # human-readable label for the report
+    entity_label: str  # NER label (for resolving reviews)
     assertion: str = "present"
     confidence: float = 0.95
     provenance: str = "hitl_remediation"
@@ -224,6 +228,7 @@ class Phase3Fix:
 # Report accumulator
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Report:
     surface_forms_added: list = field(default_factory=list)
@@ -238,7 +243,9 @@ class Report:
             "dry_run": self.dry_run,
             "summary": {
                 "surface_forms_added": len(self.surface_forms_added),
-                "reviews_resolved": sum(r.get("resolved_count", 0) for r in self.reviews_resolved),
+                "reviews_resolved": sum(
+                    r.get("resolved_count", 0) for r in self.reviews_resolved
+                ),
                 "entities_json_updated": len(self.entities_json_updated),
                 "ignore_rules_added": len(self.ignore_rules_added),
                 "errors": len(self.errors),
@@ -255,7 +262,10 @@ class Report:
 # Core write functions
 # ---------------------------------------------------------------------------
 
-def upsert_surface_form(session, entry: SurfaceFormEntry, execute: bool, report: Report):
+
+def upsert_surface_form(
+    session, entry: SurfaceFormEntry, execute: bool, report: Report
+):
     normalized = _normalize(entry.form)
     if execute:
         try:
@@ -269,28 +279,41 @@ def upsert_surface_form(session, entry: SurfaceFormEntry, execute: bool, report:
                 confidence=entry.confidence,
                 provenance=entry.provenance,
             ).single()
-            report.surface_forms_added.append({
+            report.surface_forms_added.append(
+                {
+                    "form": entry.form,
+                    "normalized": normalized,
+                    "concept_id": entry.concept_id,
+                    "concept_fsn": entry.concept_fsn,
+                }
+            )
+            logger.debug("  SF upserted: %r -> %s", entry.form, entry.concept_id)
+        except Exception as exc:
+            report.errors.append(
+                {"op": "upsert_surface_form", "form": entry.form, "error": str(exc)}
+            )
+            logger.warning("  SF FAILED %r: %s", entry.form, exc)
+    else:
+        report.surface_forms_added.append(
+            {
                 "form": entry.form,
                 "normalized": normalized,
                 "concept_id": entry.concept_id,
                 "concept_fsn": entry.concept_fsn,
-            })
-            logger.debug("  SF upserted: %r -> %s", entry.form, entry.concept_id)
-        except Exception as exc:
-            report.errors.append({"op": "upsert_surface_form", "form": entry.form, "error": str(exc)})
-            logger.warning("  SF FAILED %r: %s", entry.form, exc)
-    else:
-        report.surface_forms_added.append({
-            "form": entry.form,
-            "normalized": normalized,
-            "concept_id": entry.concept_id,
-            "concept_fsn": entry.concept_fsn,
-            "dry_run": True,
-        })
+                "dry_run": True,
+            }
+        )
 
 
-def batch_resolve(session, entity_text: str, concept_id: str, concept_fsn: str,
-                  assertion: str, execute: bool, report: Report):
+def batch_resolve(
+    session,
+    entity_text: str,
+    concept_id: str,
+    concept_fsn: str,
+    assertion: str,
+    execute: bool,
+    report: Report,
+):
     if execute:
         try:
             result = session.run(
@@ -302,28 +325,34 @@ def batch_resolve(session, entity_text: str, concept_id: str, concept_fsn: str,
                 resolved_assertion=assertion,
             ).single()
             resolved_count = result["resolved_count"] if result else 0
-            report.reviews_resolved.append({
-                "entity_text": entity_text,
-                "concept_id": concept_id,
-                "resolved_count": resolved_count,
-                "assertion": assertion,
-            })
+            report.reviews_resolved.append(
+                {
+                    "entity_text": entity_text,
+                    "concept_id": concept_id,
+                    "resolved_count": resolved_count,
+                    "assertion": assertion,
+                }
+            )
             logger.debug("  Resolved %d reviews for %r", resolved_count, entity_text)
         except Exception as exc:
-            report.errors.append({"op": "batch_resolve", "entity_text": entity_text, "error": str(exc)})
+            report.errors.append(
+                {"op": "batch_resolve", "entity_text": entity_text, "error": str(exc)}
+            )
             logger.warning("  Resolve FAILED %r: %s", entity_text, exc)
     else:
         pending_row = session.run(
             GET_UNRESOLVED_FOR_TEXT, entity_text=entity_text
         ).single()
         pending_count = pending_row["pending_count"] if pending_row else 0
-        report.reviews_resolved.append({
-            "entity_text": entity_text,
-            "concept_id": concept_id,
-            "resolved_count": pending_count,
-            "assertion": assertion,
-            "dry_run": True,
-        })
+        report.reviews_resolved.append(
+            {
+                "entity_text": entity_text,
+                "concept_id": concept_id,
+                "resolved_count": pending_count,
+                "assertion": assertion,
+                "dry_run": True,
+            }
+        )
 
 
 def upsert_ignore_rule(session, entry: IgnoreRuleEntry, execute: bool, report: Report):
@@ -343,32 +372,48 @@ def upsert_ignore_rule(session, entry: IgnoreRuleEntry, execute: bool, report: R
                 entity_text=entry.entity_text,
                 reviewer=REVIEWER,
             )
-            report.ignore_rules_added.append({
-                "entity_text": entry.entity_text,
-                "reason": entry.reason,
-            })
+            report.ignore_rules_added.append(
+                {
+                    "entity_text": entry.entity_text,
+                    "reason": entry.reason,
+                }
+            )
             logger.info("  Ignore rule added: %r", entry.entity_text)
         except Exception as exc:
-            report.errors.append({"op": "upsert_ignore_rule", "entity_text": entry.entity_text, "error": str(exc)})
+            report.errors.append(
+                {
+                    "op": "upsert_ignore_rule",
+                    "entity_text": entry.entity_text,
+                    "error": str(exc),
+                }
+            )
             logger.warning("  Ignore rule FAILED %r: %s", entry.entity_text, exc)
     else:
-        report.ignore_rules_added.append({
-            "entity_text": entry.entity_text,
-            "reason": entry.reason,
-            "dry_run": True,
-        })
+        report.ignore_rules_added.append(
+            {
+                "entity_text": entry.entity_text,
+                "reason": entry.reason,
+                "dry_run": True,
+            }
+        )
 
 
 def update_entities_json_for_text(
-    session, entity_text: str, old_label: str, new_label: str,
-    execute: bool, report: Report
+    session,
+    entity_text: str,
+    old_label: str,
+    new_label: str,
+    execute: bool,
+    report: Report,
 ):
     """Update entities_json on all TrainingLabels where entity_text + label match."""
-    rows = list(session.run(
-        GET_LABELS_WITH_ENTITY_TEXT,
-        entity_text=entity_text,
-        entity_label=old_label,
-    ))
+    rows = list(
+        session.run(
+            GET_LABELS_WITH_ENTITY_TEXT,
+            entity_text=entity_text,
+            entity_label=old_label,
+        )
+    )
     for row in rows:
         label_id = row["label_id"]
         entities = json.loads(row["entities_json"] or "[]")
@@ -387,34 +432,47 @@ def update_entities_json_for_text(
                     label_id=label_id,
                     entities_json=new_json,
                 )
-                report.entities_json_updated.append({
+                report.entities_json_updated.append(
+                    {
+                        "label_id": label_id,
+                        "entity_text": entity_text,
+                        "old_label": old_label,
+                        "new_label": new_label,
+                    }
+                )
+            except Exception as exc:
+                report.errors.append(
+                    {
+                        "op": "update_entities_json",
+                        "label_id": label_id,
+                        "error": str(exc),
+                    }
+                )
+        else:
+            report.entities_json_updated.append(
+                {
                     "label_id": label_id,
                     "entity_text": entity_text,
                     "old_label": old_label,
                     "new_label": new_label,
-                })
-            except Exception as exc:
-                report.errors.append({
-                    "op": "update_entities_json",
-                    "label_id": label_id,
-                    "error": str(exc),
-                })
-        else:
-            report.entities_json_updated.append({
-                "label_id": label_id,
-                "entity_text": entity_text,
-                "old_label": old_label,
-                "new_label": new_label,
-                "dry_run": True,
-            })
+                    "dry_run": True,
+                }
+            )
 
 
 # ---------------------------------------------------------------------------
 # Phase 1 data definitions
 # ---------------------------------------------------------------------------
 
-def _sf(form: str, concept_id: str, concept_fsn: str, entity_label: str,
-        assertion: str = "present", confidence: float = 0.95) -> SurfaceFormEntry:
+
+def _sf(
+    form: str,
+    concept_id: str,
+    concept_fsn: str,
+    entity_label: str,
+    assertion: str = "present",
+    confidence: float = 0.95,
+) -> SurfaceFormEntry:
     return SurfaceFormEntry(
         form=form,
         concept_id=concept_id,
@@ -432,9 +490,24 @@ def build_phase1_surface_forms() -> list[SurfaceFormEntry]:
     # 1a. Medications
     # -----------------------------------------------------------------------
     MEDS = [
-        ("ezetimibe", "775914003", "Product containing only ezetimibe (medicinal product)", "medicinal_product"),
-        ("Ezetimibe", "775914003", "Product containing only ezetimibe (medicinal product)", "medicinal_product"),
-        ("?Ezetimibe", "775914003", "Product containing only ezetimibe (medicinal product)", "medicinal_product"),
+        (
+            "ezetimibe",
+            "775914003",
+            "Product containing only ezetimibe (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "Ezetimibe",
+            "775914003",
+            "Product containing only ezetimibe (medicinal product)",
+            "medicinal_product",
+        ),
+        (
+            "?Ezetimibe",
+            "775914003",
+            "Product containing only ezetimibe (medicinal product)",
+            "medicinal_product",
+        ),
         ("Mounjaro", "634991000001102", "Mounjaro (product)", "medicinal_product"),
         ("mounjaro", "634991000001102", "Mounjaro (product)", "medicinal_product"),
         ("Fybogel", "9500401000001102", "Fybogel (product)", "medicinal_product"),
@@ -442,8 +515,18 @@ def build_phase1_surface_forms() -> list[SurfaceFormEntry]:
         ("Cilest", "9567801000001100", "Cilest (product)", "medicinal_product"),
         ("cilest", "9567801000001100", "Cilest (product)", "medicinal_product"),
         ("NRT", "151159008", "Nicotine replacement therapy (procedure)", "procedure"),
-        ("nicotine replacement therapy", "151159008", "Nicotine replacement therapy (procedure)", "procedure"),
-        ("Nicotine replacement therapy", "151159008", "Nicotine replacement therapy (procedure)", "procedure"),
+        (
+            "nicotine replacement therapy",
+            "151159008",
+            "Nicotine replacement therapy (procedure)",
+            "procedure",
+        ),
+        (
+            "Nicotine replacement therapy",
+            "151159008",
+            "Nicotine replacement therapy (procedure)",
+            "procedure",
+        ),
     ]
     for form, cid, fsn, label in MEDS:
         entries.append(_sf(form, cid, fsn, label))
@@ -463,12 +546,32 @@ def build_phase1_surface_forms() -> list[SurfaceFormEntry]:
         ("breast", "134405005", "Malignant neoplasm of breast suspected (situation)"),
         ("kidney", "315270004", "Malignant neoplasm of kidney suspected (situation)"),
         ("ovarian", "762997004", "Malignant neoplasm of ovary suspected (situation)"),
-        ("bladder", "315269000", "Malignant neoplasm of urinary bladder suspected (situation)"),
-        ("cervical", "315266007", "Malignant neoplasm of cervix uteri suspected (situation)"),
-        ("prostate", "315268008", "Malignant neoplasm of prostate suspected (situation)"),
-        ("testicular", "315272007", "Malignant neoplasm of testis suspected (situation)"),
+        (
+            "bladder",
+            "315269000",
+            "Malignant neoplasm of urinary bladder suspected (situation)",
+        ),
+        (
+            "cervical",
+            "315266007",
+            "Malignant neoplasm of cervix uteri suspected (situation)",
+        ),
+        (
+            "prostate",
+            "315268008",
+            "Malignant neoplasm of prostate suspected (situation)",
+        ),
+        (
+            "testicular",
+            "315272007",
+            "Malignant neoplasm of testis suspected (situation)",
+        ),
         ("pancreatic", "247591000000101", "Suspected pancreatic cancer (situation)"),
-        ("endometrial", "315267003", "Malignant neoplasm of endometrium of corpus uteri suspected (situation)"),
+        (
+            "endometrial",
+            "315267003",
+            "Malignant neoplasm of endometrium of corpus uteri suspected (situation)",
+        ),
     ]
     for body_part, cid, fsn in CANCERS:
         cap = body_part.capitalize()
@@ -629,10 +732,30 @@ def build_phase1_surface_forms() -> list[SurfaceFormEntry]:
     # -----------------------------------------------------------------------
     SHORTHAND = [
         ("CIBH", "88111009", "Altered bowel function (finding)", "finding"),
-        ("Change in bowel habit", "88111009", "Altered bowel function (finding)", "finding"),
-        ("change in bowel habit", "88111009", "Altered bowel function (finding)", "finding"),
-        ("Fibroscan", "441491005", "Ultrasound elastography of liver (procedure)", "procedure"),
-        ("fibroscan", "441491005", "Ultrasound elastography of liver (procedure)", "procedure"),
+        (
+            "Change in bowel habit",
+            "88111009",
+            "Altered bowel function (finding)",
+            "finding",
+        ),
+        (
+            "change in bowel habit",
+            "88111009",
+            "Altered bowel function (finding)",
+            "finding",
+        ),
+        (
+            "Fibroscan",
+            "441491005",
+            "Ultrasound elastography of liver (procedure)",
+            "procedure",
+        ),
+        (
+            "fibroscan",
+            "441491005",
+            "Ultrasound elastography of liver (procedure)",
+            "procedure",
+        ),
         ("NWB", "261999007", "Non-weight-bearing (finding)", "finding"),
         ("non-weight-bearing", "261999007", "Non-weight-bearing (finding)", "finding"),
         ("Non-weight-bearing", "261999007", "Non-weight-bearing (finding)", "finding"),
@@ -664,8 +787,18 @@ def build_phase1_surface_forms() -> list[SurfaceFormEntry]:
         ("?DM", "73211009", "Diabetes mellitus (disorder)", "disorder"),
         ("?Hypothyroid", "40930008", "Hypothyroidism (disorder)", "disorder"),
         ("?hypothyroid", "40930008", "Hypothyroidism (disorder)", "disorder"),
-        ("High Cholesterol", "13644009", "Hypercholesterolaemia (disorder)", "disorder"),
-        ("high cholesterol", "13644009", "Hypercholesterolaemia (disorder)", "disorder"),
+        (
+            "High Cholesterol",
+            "13644009",
+            "Hypercholesterolaemia (disorder)",
+            "disorder",
+        ),
+        (
+            "high cholesterol",
+            "13644009",
+            "Hypercholesterolaemia (disorder)",
+            "disorder",
+        ),
         ("COPD", "13645005", "Chronic obstructive lung disease (disorder)", "disorder"),
         ("NDH", "714628002", "Prediabetes (finding)", "finding"),
         ("Pre-diabetes", "714628002", "Prediabetes (finding)", "finding"),
@@ -709,6 +842,7 @@ def build_phase1_ignore_rules() -> list[IgnoreRuleEntry]:
 # ---------------------------------------------------------------------------
 # Phase 3 data definitions
 # ---------------------------------------------------------------------------
+
 
 def build_phase3_fixes() -> list[Phase3Fix]:
     return [
@@ -813,12 +947,17 @@ def build_phase3_fixes() -> list[Phase3Fix]:
 # Phase runners
 # ---------------------------------------------------------------------------
 
+
 def run_phase1(driver, execute: bool, report: Report):
     """Surface forms for medications, cancers, shorthand, ignore rules."""
     surface_forms = build_phase1_surface_forms()
     ignore_rules = build_phase1_ignore_rules()
 
-    logger.info("Phase 1: %d surface forms to upsert, %d ignore rules", len(surface_forms), len(ignore_rules))
+    logger.info(
+        "Phase 1: %d surface forms to upsert, %d ignore rules",
+        len(surface_forms),
+        len(ignore_rules),
+    )
 
     # Group surface forms by canonical entity_text for resolving reviews
     # We track which texts we've already resolved to avoid duplicates
@@ -827,7 +966,9 @@ def run_phase1(driver, execute: bool, report: Report):
     with driver.session() as session:
         for idx, entry in enumerate(surface_forms):
             if idx % 20 == 0:
-                logger.info("  Phase 1 progress: %d/%d surface forms", idx, len(surface_forms))
+                logger.info(
+                    "  Phase 1 progress: %d/%d surface forms", idx, len(surface_forms)
+                )
 
             upsert_surface_form(session, entry, execute, report)
 
@@ -848,8 +989,11 @@ def run_phase1(driver, execute: bool, report: Report):
         for rule in ignore_rules:
             upsert_ignore_rule(session, rule, execute, report)
 
-    logger.info("Phase 1 complete. Surface forms: %d, Ignore rules: %d",
-                len(report.surface_forms_added), len(report.ignore_rules_added))
+    logger.info(
+        "Phase 1 complete. Surface forms: %d, Ignore rules: %d",
+        len(report.surface_forms_added),
+        len(report.ignore_rules_added),
+    )
 
 
 def run_phase2(driver, execute: bool, report: Report):
@@ -857,10 +1001,15 @@ def run_phase2(driver, execute: bool, report: Report):
     with driver.session() as session:
         lab_tests = list(session.run(GET_LAB_TEST_REVIEWS))
 
-    logger.info("Phase 2: %d unique lab test texts (observable_entity->procedure) to process", len(lab_tests))
+    logger.info(
+        "Phase 2: %d unique lab test texts (observable_entity->procedure) to process",
+        len(lab_tests),
+    )
 
     if not lab_tests:
-        logger.info("Phase 2: nothing to do (no observable_entity->procedure mismatches found)")
+        logger.info(
+            "Phase 2: nothing to do (no observable_entity->procedure mismatches found)"
+        )
         return
 
     with driver.session() as session:
@@ -912,12 +1061,22 @@ def run_phase3(driver, execute: bool, report: Report):
 
     with driver.session() as session:
         for fix in fixes:
-            logger.info("  Fix: %r -> %s | %s (assertion=%s)",
-                        fix.entity_text, fix.new_concept_id, fix.new_concept_fsn, fix.assertion)
+            logger.info(
+                "  Fix: %r -> %s | %s (assertion=%s)",
+                fix.entity_text,
+                fix.new_concept_id,
+                fix.new_concept_fsn,
+                fix.assertion,
+            )
 
             # 1. Add correct surface form
-            sf_entry = _sf(fix.entity_text, fix.new_concept_id, fix.new_concept_fsn,
-                           fix.new_entity_label, assertion=fix.assertion)
+            sf_entry = _sf(
+                fix.entity_text,
+                fix.new_concept_id,
+                fix.new_concept_fsn,
+                fix.new_entity_label,
+                assertion=fix.assertion,
+            )
             upsert_surface_form(session, sf_entry, execute, report)
 
             # 2. Batch-resolve reviews with corrected concept
@@ -935,7 +1094,13 @@ def run_phase3(driver, execute: bool, report: Report):
             if fix.old_concept_id is not None or fix.new_entity_label:
                 # We update all matching entity_text regardless of old_label
                 # since we may have multiple labels in the queue for the same text
-                for from_label in ["finding", "disorder", "situation", "observable_entity", "procedure"]:
+                for from_label in [
+                    "finding",
+                    "disorder",
+                    "situation",
+                    "observable_entity",
+                    "procedure",
+                ]:
                     if from_label != fix.new_entity_label:
                         update_entities_json_for_text(
                             session,
@@ -952,6 +1117,7 @@ def run_phase3(driver, execute: bool, report: Report):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     parser = argparse.ArgumentParser(description="HITL Queue Remediation")

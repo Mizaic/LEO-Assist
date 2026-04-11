@@ -1,4 +1,5 @@
 """Read and print disputes as clean JSON."""
+
 import json
 from pathlib import Path
 

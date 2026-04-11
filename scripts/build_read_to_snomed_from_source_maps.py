@@ -17,7 +17,6 @@ from typing import Any
 
 import pyodbc
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "external_content" / "trud-snomed-data-migration"
 READ_DB = BASE / "DMWB NHS READ.mdb"
@@ -117,7 +116,9 @@ def load_source_maps(conn: pyodbc.Connection) -> dict[str, list[dict[str, Any]]]
     return mappings
 
 
-def pick_best_candidate(candidates: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+def pick_best_candidate(
+    candidates: list[dict[str, Any]],
+) -> tuple[str, list[dict[str, Any]]]:
     # deterministic sort: assured first, then map_type E first, then lowest code
     ranked = sorted(
         candidates,
@@ -167,12 +168,20 @@ def build_rows(
 
         best_code, ranked = pick_best_candidate(candidates)
         unique_codes = sorted({c["snomed_code"] for c in ranked})
-        status = "deterministic_source_map" if len(unique_codes) == 1 else "ambiguous_source_map"
+        status = (
+            "deterministic_source_map"
+            if len(unique_codes) == 1
+            else "ambiguous_source_map"
+        )
         row = {
             "read_code": read_code,
             "read_term": read_meta["read_term"],
             "snomed_code": best_code if status == "deterministic_source_map" else None,
-            "snomed_term": snomed_pt.get(best_code, "") if status == "deterministic_source_map" else "",
+            "snomed_term": (
+                snomed_pt.get(best_code, "")
+                if status == "deterministic_source_map"
+                else ""
+            ),
             "mapping_status": status,
             "mapping_source": "dmwb_source_maps",
             "candidate_count": len(unique_codes),
@@ -180,9 +189,15 @@ def build_rows(
                 {
                     "snomed_code": code,
                     "snomed_term": snomed_pt.get(code, ""),
-                    "assured_any": any(c["assured"] for c in ranked if c["snomed_code"] == code),
-                    "map_tables": sorted({c["map_table"] for c in ranked if c["snomed_code"] == code}),
-                    "map_types": sorted({c["map_type"] for c in ranked if c["snomed_code"] == code}),
+                    "assured_any": any(
+                        c["assured"] for c in ranked if c["snomed_code"] == code
+                    ),
+                    "map_tables": sorted(
+                        {c["map_table"] for c in ranked if c["snomed_code"] == code}
+                    ),
+                    "map_types": sorted(
+                        {c["map_type"] for c in ranked if c["snomed_code"] == code}
+                    ),
                 }
                 for code in unique_codes
             ],

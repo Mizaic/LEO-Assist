@@ -18,6 +18,7 @@ Run:
     python scripts/investigations/_seed_treatment_domain.py --dry-run
     python scripts/investigations/_seed_treatment_domain.py --verify-only
 """
+
 from __future__ import annotations
 
 import argparse
@@ -50,9 +51,7 @@ BATCH_URL = (
     f"{ANALYTICS_URL}/analytics/domains/{DOMAIN_ID}"
     f"/subdomains/{SUBDOMAIN}/concepts/batch"
 )
-SUBDOMAIN_URL = (
-    f"{ANALYTICS_URL}/analytics/domains/{DOMAIN_ID}/subdomains/{SUBDOMAIN}"
-)
+SUBDOMAIN_URL = f"{ANALYTICS_URL}/analytics/domains/{DOMAIN_ID}/subdomains/{SUBDOMAIN}"
 TERMINOLOGY_SEARCH_URL = f"{TERMINOLOGY_URL}/terminology/search"
 
 MAPPING_FILE = ROOT / "configs" / "snomed" / "snomed_ncda_treatment_mapping.json"
@@ -66,30 +65,63 @@ MAPPING_FILE = ROOT / "configs" / "snomed" / "snomed_ncda_treatment_mapping.json
 _AUDIT_EXTRA_CONCEPTS: list[dict] = [
     # -- Systemic treatment --
     {"concept_id": 367336001, "term": "Chemotherapy (procedure)"},
-    {"concept_id": 70292004,  "term": "Treatment planning for chemotherapy (procedure)"},
+    {"concept_id": 70292004, "term": "Treatment planning for chemotherapy (procedure)"},
     {"concept_id": 829591000000101, "term": "Neoadjuvant chemotherapy (procedure)"},
     {"concept_id": 394895009, "term": "Postoperative chemotherapy (procedure)"},
-    {"concept_id": 235391000000102, "term": "Delivery of chemotherapy for neoplasm (procedure)"},
-    {"concept_id": 1255831008, "term": "Chemotherapy for malignant neoplastic disease using targeted agent (procedure)"},
-    {"concept_id": 1290226008, "term": "Administration of antineoplastic agent via intravenous route (procedure)"},
-    {"concept_id": 1255904006, "term": "Administration of palliative antineoplastic agent (procedure)"},
+    {
+        "concept_id": 235391000000102,
+        "term": "Delivery of chemotherapy for neoplasm (procedure)",
+    },
+    {
+        "concept_id": 1255831008,
+        "term": "Chemotherapy for malignant neoplastic disease using targeted agent (procedure)",
+    },
+    {
+        "concept_id": 1290226008,
+        "term": "Administration of antineoplastic agent via intravenous route (procedure)",
+    },
+    {
+        "concept_id": 1255904006,
+        "term": "Administration of palliative antineoplastic agent (procedure)",
+    },
     {"concept_id": 386918005, "term": "Docetaxel (substance)"},
     # -- Radiotherapy --
     {"concept_id": 1287742003, "term": "Radiotherapy (procedure)"},
     {"concept_id": 428923005, "term": "Radiotherapy to breast (procedure)"},
     {"concept_id": 168528006, "term": "Palliative course of radiotherapy (procedure)"},
-    {"concept_id": 429867000, "term": "Computed tomography of head for radiotherapy planning (procedure)"},
-    {"concept_id": 429856001, "term": "Computed tomography of prostate for radiotherapy planning (procedure)"},
-    {"concept_id": 429851006, "term": "Computed tomography of thorax for radiotherapy planning (procedure)"},
-    {"concept_id": 431200001, "term": "Radionuclide iodine 131 therapy to thyroid (procedure)"},
+    {
+        "concept_id": 429867000,
+        "term": "Computed tomography of head for radiotherapy planning (procedure)",
+    },
+    {
+        "concept_id": 429856001,
+        "term": "Computed tomography of prostate for radiotherapy planning (procedure)",
+    },
+    {
+        "concept_id": 429851006,
+        "term": "Computed tomography of thorax for radiotherapy planning (procedure)",
+    },
+    {
+        "concept_id": 431200001,
+        "term": "Radionuclide iodine 131 therapy to thyroid (procedure)",
+    },
     # -- Hormone / endocrine --
     {"concept_id": 724161009, "term": "Tamoxifen therapy (procedure)"},
     {"concept_id": 169413002, "term": "Hormone therapy (procedure)"},
     {"concept_id": 170814007, "term": "Endocrine treatment change (regime/therapy)"},
     {"concept_id": 707266006, "term": "Androgen deprivation therapy (procedure)"},
-    {"concept_id": 865211000000104, "term": "Intramuscular injection of gonadorelin analogue (procedure)"},
-    {"concept_id": 892651000000109, "term": "Subcutaneous injection of gonadorelin analogue (procedure)"},
-    {"concept_id": 313247009, "term": "Subcutaneous injection of hormone antagonist (procedure)"},
+    {
+        "concept_id": 865211000000104,
+        "term": "Intramuscular injection of gonadorelin analogue (procedure)",
+    },
+    {
+        "concept_id": 892651000000109,
+        "term": "Subcutaneous injection of gonadorelin analogue (procedure)",
+    },
+    {
+        "concept_id": 313247009,
+        "term": "Subcutaneous injection of hormone antagonist (procedure)",
+    },
     {"concept_id": 700139004, "term": "Denosumab therapy (procedure)"},
     {"concept_id": 775465003, "term": "Degarelix (product)"},
     {"concept_id": 441864003, "term": "Degarelix (substance)"},
@@ -98,63 +130,108 @@ _AUDIT_EXTRA_CONCEPTS: list[dict] = [
     {"concept_id": 724159000, "term": "Rituximab therapy (procedure)"},
     # -- Surgical - breast --
     {"concept_id": 735086001, "term": "Lumpectomy of right breast (procedure)"},
-    {"concept_id": 237371007, "term": "Wide local excision of breast lesion (procedure)"},
+    {
+        "concept_id": 237371007,
+        "term": "Wide local excision of breast lesion (procedure)",
+    },
     {"concept_id": 396487001, "term": "Sentinel lymph node biopsy (procedure)"},
-    {"concept_id": 79544006,  "term": "Complete axillary lymphadenectomy (procedure)"},
-    {"concept_id": 27865001,  "term": "Excision of bilateral breasts (procedure)"},
-    {"concept_id": 1303631000, "term": "Excision of malignant neoplasm of left breast (procedure)"},
+    {"concept_id": 79544006, "term": "Complete axillary lymphadenectomy (procedure)"},
+    {"concept_id": 27865001, "term": "Excision of bilateral breasts (procedure)"},
+    {
+        "concept_id": 1303631000,
+        "term": "Excision of malignant neoplasm of left breast (procedure)",
+    },
     {"concept_id": 429400009, "term": "Excision of right breast (procedure)"},
     # -- Surgical - colorectal --
     {"concept_id": 359571009, "term": "Right colectomy (procedure)"},
-    {"concept_id": 50774009,  "term": "Laparoscopic-assisted right colectomy (procedure)"},
-    {"concept_id": 82619000,  "term": "Left colectomy (procedure)"},
-    {"concept_id": 43075005,  "term": "Partial resection of colon (procedure)"},
+    {
+        "concept_id": 50774009,
+        "term": "Laparoscopic-assisted right colectomy (procedure)",
+    },
+    {"concept_id": 82619000, "term": "Left colectomy (procedure)"},
+    {"concept_id": 43075005, "term": "Partial resection of colon (procedure)"},
     {"concept_id": 314635004, "term": "Creation of loop ileostomy (procedure)"},
     {"concept_id": 173980008, "term": "Creation of temporary ileostomy (procedure)"},
     # -- Surgical - urological --
-    {"concept_id": 90470006,  "term": "Prostatectomy (procedure)"},
-    {"concept_id": 90199006,  "term": "Transurethral prostatectomy (procedure)"},
-    {"concept_id": 81516001,  "term": "Partial nephrectomy (procedure)"},
+    {"concept_id": 90470006, "term": "Prostatectomy (procedure)"},
+    {"concept_id": 90199006, "term": "Transurethral prostatectomy (procedure)"},
+    {"concept_id": 81516001, "term": "Partial nephrectomy (procedure)"},
     {"concept_id": 175905003, "term": "Total nephrectomy (procedure)"},
-    {"concept_id": 439739008, "term": "Laparoscopic partial excision of kidney (procedure)"},
-    {"concept_id": 386792000, "term": "Transurethral excision of neoplasm of urinary bladder (procedure)"},
-    {"concept_id": 386791007, "term": "Cystoscopy and transurethral resection of neoplasm of urinary bladder (procedure)"},
+    {
+        "concept_id": 439739008,
+        "term": "Laparoscopic partial excision of kidney (procedure)",
+    },
+    {
+        "concept_id": 386792000,
+        "term": "Transurethral excision of neoplasm of urinary bladder (procedure)",
+    },
+    {
+        "concept_id": 386791007,
+        "term": "Cystoscopy and transurethral resection of neoplasm of urinary bladder (procedure)",
+    },
     # -- Surgical - gynaecological --
-    {"concept_id": 414575003, "term": "Laparoscopic total abdominal hysterectomy and bilateral salpingo-oophorectomy (procedure)"},
-    {"concept_id": 609230000, "term": "Laparoscopic bilateral salpingo-oophorectomy (procedure)"},
+    {
+        "concept_id": 414575003,
+        "term": "Laparoscopic total abdominal hysterectomy and bilateral salpingo-oophorectomy (procedure)",
+    },
+    {
+        "concept_id": 609230000,
+        "term": "Laparoscopic bilateral salpingo-oophorectomy (procedure)",
+    },
     {"concept_id": 236888001, "term": "Laparoscopic total hysterectomy (procedure)"},
     {"concept_id": 116140006, "term": "Total hysterectomy (procedure)"},
-    {"concept_id": 116144002, "term": "Total abdominal hysterectomy with bilateral salpingo-oophorectomy (procedure)"},
+    {
+        "concept_id": 116144002,
+        "term": "Total abdominal hysterectomy with bilateral salpingo-oophorectomy (procedure)",
+    },
     # -- Surgical - head and neck / thyroid --
-    {"concept_id": 13619001,  "term": "Thyroidectomy (procedure)"},
-    {"concept_id": 24443003,  "term": "Total thyroidectomy (procedure)"},
-    {"concept_id": 30956003,  "term": "Subtotal thyroidectomy (procedure)"},
+    {"concept_id": 13619001, "term": "Thyroidectomy (procedure)"},
+    {"concept_id": 24443003, "term": "Total thyroidectomy (procedure)"},
+    {"concept_id": 30956003, "term": "Subtotal thyroidectomy (procedure)"},
     {"concept_id": 719753008, "term": "Completion thyroidectomy (procedure)"},
     {"concept_id": 302338000, "term": "Lobectomy of thyroid gland (procedure)"},
-    {"concept_id": 744854002, "term": "Excision of left lobe of thyroid gland (procedure)"},
-    {"concept_id": 178283002, "term": "Block dissection of cervical lymph nodes (procedure)"},
+    {
+        "concept_id": 744854002,
+        "term": "Excision of left lobe of thyroid gland (procedure)",
+    },
+    {
+        "concept_id": 178283002,
+        "term": "Block dissection of cervical lymph nodes (procedure)",
+    },
     # -- Surgical - thoracic --
-    {"concept_id": 87604009,  "term": "Sleeve resection of stomach (procedure)"},
+    {"concept_id": 87604009, "term": "Sleeve resection of stomach (procedure)"},
     # -- Skin cancer surgery --
     {"concept_id": 177281002, "term": "Excision of melanoma (procedure)"},
     {"concept_id": 300025007, "term": "Excision of basal cell carcinoma (procedure)"},
-    {"concept_id": 39559009,  "term": "Excision of malignant lesion of scalp and neck (procedure)"},
+    {
+        "concept_id": 39559009,
+        "term": "Excision of malignant lesion of scalp and neck (procedure)",
+    },
     {"concept_id": 787439005, "term": "Wide excision (procedure)"},
     {"concept_id": 405846001, "term": "Wide re-excision of lesion of skin (procedure)"},
     {"concept_id": 302396003, "term": "Cryotherapy to skin lesion (procedure)"},
     {"concept_id": 302390009, "term": "Shave excision of skin lesion (procedure)"},
     # -- Upper GI surgery --
-    {"concept_id": 45900003,  "term": "Esophagectomy (procedure)"},
+    {"concept_id": 45900003, "term": "Esophagectomy (procedure)"},
     {"concept_id": 235161003, "term": "Ivor Lewis subtotal esophagectomy (procedure)"},
-    {"concept_id": 49209004,  "term": "Subtotal gastrectomy (procedure)"},
+    {"concept_id": 49209004, "term": "Subtotal gastrectomy (procedure)"},
     {"concept_id": 174431000, "term": "Wedge resection of liver (procedure)"},
-    {"concept_id": 840280000, "term": "Osteocutaneous fibular free flap reconstruction (procedure)"},
+    {
+        "concept_id": 840280000,
+        "term": "Osteocutaneous fibular free flap reconstruction (procedure)",
+    },
     # -- Haematology treatment --
     {"concept_id": 119966007, "term": "Bone marrow excision (procedure)"},
     # -- Supportive / palliative --
     {"concept_id": 103735009, "term": "Palliative care (regime/therapy)"},
-    {"concept_id": 306237005, "term": "Referral to palliative care service (procedure)"},
-    {"concept_id": 306597006, "term": "Discharge from palliative care service (procedure)"},
+    {
+        "concept_id": 306237005,
+        "term": "Referral to palliative care service (procedure)",
+    },
+    {
+        "concept_id": 306597006,
+        "term": "Discharge from palliative care service (procedure)",
+    },
     {"concept_id": 413742003, "term": "Cancer pain and symptom management (procedure)"},
     {"concept_id": 713058002, "term": "End of life care planning (procedure)"},
     {"concept_id": 182964004, "term": "Terminal care (regime/therapy)"},
@@ -163,7 +240,10 @@ _AUDIT_EXTRA_CONCEPTS: list[dict] = [
     # -- Cancer care review / safety netting --
     {"concept_id": 720006006, "term": "Cancer care review (procedure)"},
     {"concept_id": 1239431000000107, "term": "Cancer safety netting (regime/therapy)"},
-    {"concept_id": 306140002, "term": "Referral to clinical oncology service (procedure)"},
+    {
+        "concept_id": 306140002,
+        "term": "Referral to clinical oncology service (procedure)",
+    },
     {"concept_id": 183529009, "term": "Referral to oncologist (procedure)"},
     {"concept_id": 306148009, "term": "Referral to hematology service (procedure)"},
 ]
@@ -172,6 +252,7 @@ _AUDIT_EXTRA_CONCEPTS: list[dict] = [
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_mapping_concepts() -> list[dict]:
     """Load all concepts from the curated treatment mapping JSON."""
@@ -187,10 +268,12 @@ def _load_mapping_concepts() -> list[dict]:
         cid = entry.get("concept_id")
         preferred = entry.get("preferred_term") or term_name
         if cid:
-            concepts.append({
-                "concept_id": int(cid),
-                "term": preferred,
-            })
+            concepts.append(
+                {
+                    "concept_id": int(cid),
+                    "term": preferred,
+                }
+            )
     return concepts
 
 
@@ -208,11 +291,19 @@ def _verify_concept_via_terminology(concept_id: int) -> Optional[str]:
         if resp.status_code != 200:
             return None
         results = resp.json()
-        items = results if isinstance(results, list) else results.get("items") or results.get("results") or []
+        items = (
+            results
+            if isinstance(results, list)
+            else results.get("items") or results.get("results") or []
+        )
         for item in items:
             item_cid = item.get("concept_id") or item.get("conceptId") or item.get("id")
             if str(item_cid) == str(concept_id):
-                return item.get("term") or item.get("preferred_term") or item.get("display")
+                return (
+                    item.get("term")
+                    or item.get("preferred_term")
+                    or item.get("display")
+                )
         return None
     except Exception:
         return None
@@ -251,6 +342,7 @@ def _batch_insert(concepts: list[dict], dry_run: bool) -> dict:
 # Sections
 # ---------------------------------------------------------------------------
 
+
 def _section_load_and_merge() -> list[dict]:
     """Merge curated mapping + audit extras, de-duplicated by concept_id."""
     curated = _load_mapping_concepts()
@@ -278,7 +370,9 @@ def _section_terminology_verify(
         print("  Terminology server unreachable - skipping validation.")
         return extra_only
 
-    print(f"\n  Validating {len(extra_only)} audit-extra concepts via terminology API...")
+    print(
+        f"\n  Validating {len(extra_only)} audit-extra concepts via terminology API..."
+    )
     validated = []
     for c in extra_only:
         preferred = _verify_concept_via_terminology(c["concept_id"])
@@ -311,6 +405,7 @@ def _section_verify_result() -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -364,13 +459,16 @@ def main() -> None:
     if not args.skip_terminology_check:
         curated_ids = {c["concept_id"] for c in _load_mapping_concepts()}
         audit_extras_to_validate = [
-            c for c in new_concepts
-            if c["concept_id"] not in curated_ids
+            c for c in new_concepts if c["concept_id"] not in curated_ids
         ]
         if audit_extras_to_validate:
             print("\n[3] Validating audit-extra concepts via terminology server...")
             try:
-                resp = requests.get(TERMINOLOGY_SEARCH_URL, params={"q": "chemotherapy", "limit": 1}, timeout=5)
+                resp = requests.get(
+                    TERMINOLOGY_SEARCH_URL,
+                    params={"q": "chemotherapy", "limit": 1},
+                    timeout=5,
+                )
                 terminology_available = resp.status_code == 200
             except Exception:
                 terminology_available = False
@@ -382,7 +480,10 @@ def main() -> None:
 
     # API caps at 500; split into chunks if needed
     chunk_size = 450
-    chunks = [new_concepts[i:i + chunk_size] for i in range(0, len(new_concepts), chunk_size)]
+    chunks = [
+        new_concepts[i : i + chunk_size]
+        for i in range(0, len(new_concepts), chunk_size)
+    ]
     print(f"  Chunks: {len(chunks)} (chunk size: {chunk_size})")
 
     for idx, chunk in enumerate(chunks, 1):
@@ -393,7 +494,9 @@ def main() -> None:
                 added = result.get("concept_count", "?")
                 print(f"  -> ncda-treatment concept count after chunk: {added}")
         except requests.HTTPError as exc:
-            print(f"  ERROR: HTTP {exc.response.status_code}: {exc.response.text[:200]}")
+            print(
+                f"  ERROR: HTTP {exc.response.status_code}: {exc.response.text[:200]}"
+            )
             sys.exit(1)
         except Exception as exc:
             print(f"  ERROR: {exc}")

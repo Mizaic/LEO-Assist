@@ -9,6 +9,7 @@ Extracts relations between entities in a single sentence using:
 
 Relations are added to canonical records produced by schema_mapper.
 """
+
 from __future__ import annotations
 
 import re
@@ -25,13 +26,9 @@ from libs.ner.schema_mapper import (
 _PROXIMITY_CHARS = 120
 
 # Negation cue patterns (surface forms that negate the nearest clinical entity)
-_NEGATION_CUE_LABELS: frozenset[str] = frozenset(
-    {"X_NEGATION_CUE"}
-)
+_NEGATION_CUE_LABELS: frozenset[str] = frozenset({"X_NEGATION_CUE"})
 
-_TEMPORAL_LABELS: frozenset[str] = frozenset(
-    {"X_TEMPORAL"}
-)
+_TEMPORAL_LABELS: frozenset[str] = frozenset({"X_TEMPORAL"})
 
 _CLINICAL_ENTITY_LABELS: frozenset[str] = frozenset(
     {
@@ -99,7 +96,9 @@ def _build_negation_relations(
     for cue in negation_cues:
         target = _nearest_clinical(cue, clinical, max_dist=80)
         if target:
-            rid = _stable_relation_id(document_id, cue["entity_id"], target["entity_id"], "negates")
+            rid = _stable_relation_id(
+                document_id, cue["entity_id"], target["entity_id"], "negates"
+            )
             rels.append(
                 {
                     "relation_id": rid,
@@ -123,7 +122,9 @@ def _build_temporal_relations(
     for temp in temporals:
         target = _nearest_clinical(temp, clinical, max_dist=_PROXIMITY_CHARS)
         if target:
-            rid = _stable_relation_id(document_id, temp["entity_id"], target["entity_id"], "temporal_of")
+            rid = _stable_relation_id(
+                document_id, temp["entity_id"], target["entity_id"], "temporal_of"
+            )
             rels.append(
                 {
                     "relation_id": rid,
@@ -143,8 +144,10 @@ def _build_location_relations(
     rels: list[dict[str, Any]] = []
     body_parts = [e for e in entities if e["label"] in _BODY_STRUCTURE_LABELS]
     clinical = [
-        e for e in entities
-        if e["label"] in ("disorder", "finding") and e["label"] not in _BODY_STRUCTURE_LABELS
+        e
+        for e in entities
+        if e["label"] in ("disorder", "finding")
+        and e["label"] not in _BODY_STRUCTURE_LABELS
     ]
 
     seen: set[tuple[str, str]] = set()
@@ -154,7 +157,9 @@ def _build_location_relations(
             key = (bp["entity_id"], target["entity_id"])
             if key not in seen:
                 seen.add(key)
-                rid = _stable_relation_id(document_id, bp["entity_id"], target["entity_id"], "location_of")
+                rid = _stable_relation_id(
+                    document_id, bp["entity_id"], target["entity_id"], "location_of"
+                )
                 rels.append(
                     {
                         "relation_id": rid,
@@ -182,7 +187,12 @@ def _build_associated_finding_relations(
             key = (finding["entity_id"], target["entity_id"])
             if key not in seen:
                 seen.add(key)
-                rid = _stable_relation_id(document_id, finding["entity_id"], target["entity_id"], "associated_finding")
+                rid = _stable_relation_id(
+                    document_id,
+                    finding["entity_id"],
+                    target["entity_id"],
+                    "associated_finding",
+                )
                 rels.append(
                     {
                         "relation_id": rid,
@@ -201,7 +211,11 @@ def _build_trigger_relations(
     """Link findings/disorders to nearby pathway milestones as triggers."""
     rels: list[dict[str, Any]] = []
     milestones = [e for e in entities if e["label"] == "X_PATHWAY_MILESTONE"]
-    triggers = [e for e in entities if e["label"] in ("finding", "disorder", "observable_entity")]
+    triggers = [
+        e
+        for e in entities
+        if e["label"] in ("finding", "disorder", "observable_entity")
+    ]
 
     seen: set[tuple[str, str]] = set()
     for ms in milestones:
@@ -210,7 +224,9 @@ def _build_trigger_relations(
             key = (best["entity_id"], ms["entity_id"])
             if key not in seen:
                 seen.add(key)
-                rid = _stable_relation_id(document_id, best["entity_id"], ms["entity_id"], "triggers")
+                rid = _stable_relation_id(
+                    document_id, best["entity_id"], ms["entity_id"], "triggers"
+                )
                 rels.append(
                     {
                         "relation_id": rid,

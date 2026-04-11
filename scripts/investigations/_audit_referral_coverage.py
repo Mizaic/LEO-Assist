@@ -4,6 +4,7 @@ Searches for concepts whose name suggests a cancer referral but that fall
 outside the IS_A expansion of the referral subdomain's parent concept.
 Also reports how many patients they affect.
 """
+
 from __future__ import annotations
 
 import sys
@@ -14,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
@@ -104,9 +106,7 @@ def main() -> None:
     # -- Scan patient graph for referral-like concepts --
     pg = PatientGraphClient()
     try:
-        total_patients = pg.run(
-            "MATCH (p:Patient) RETURN count(p) AS n"
-        )[0]["n"]
+        total_patients = pg.run("MATCH (p:Patient) RETURN count(p) AS n")[0]["n"]
 
         print(f"Total patients: {total_patients}\n")
         print("=" * 70)
@@ -134,9 +134,7 @@ def main() -> None:
                 cid=cid,
             )
             n_patients = pat_rows[0]["n"] if pat_rows else 0
-            print(
-                f"  [{status}] {cid:20s}  {n_patients:3d} patients  {row['name']}"
-            )
+            print(f"  [{status}] {cid:20s}  {n_patients:3d} patients  {row['name']}")
 
         print()
         print(f"  Covered by domain IS_A:  {covered_count}")

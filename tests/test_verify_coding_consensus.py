@@ -24,13 +24,21 @@ from libs.llm_client.escalation import (
 class TestParseVerifyVerdict:
 
     def test_correct(self):
-        assert _parse_verify_verdict('{"verdict": "correct", "reason": "ok"}') == "correct"
+        assert (
+            _parse_verify_verdict('{"verdict": "correct", "reason": "ok"}') == "correct"
+        )
 
     def test_incorrect(self):
-        assert _parse_verify_verdict('{"verdict": "incorrect", "reason": "bad"}') == "incorrect"
+        assert (
+            _parse_verify_verdict('{"verdict": "incorrect", "reason": "bad"}')
+            == "incorrect"
+        )
 
     def test_uncertain(self):
-        assert _parse_verify_verdict('{"verdict": "uncertain", "reason": "?"}') == "uncertain"
+        assert (
+            _parse_verify_verdict('{"verdict": "uncertain", "reason": "?"}')
+            == "uncertain"
+        )
 
     def test_invalid_verdict_returns_empty(self):
         assert _parse_verify_verdict('{"verdict": "maybe", "reason": "?"}') == ""

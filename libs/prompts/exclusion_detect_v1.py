@@ -67,4 +67,3 @@ not_relevant — The encounter has no bearing on the cancer referral pathway:
 5. Be conservative: only classify as cancer_excluded or cancer_confirmed when
    there is genuine evidence. When uncertain, prefer still_investigating.\
 """
-

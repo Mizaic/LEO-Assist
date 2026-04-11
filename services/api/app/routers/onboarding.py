@@ -62,7 +62,7 @@ class AddressPayload(BaseModel):
 
 
 class SubscriptionPayload(BaseModel):
-    tier: str                        # "cancer_alliance" | "icb" | "pcn"
+    tier: str  # "cancer_alliance" | "icb" | "pcn"
     credits: Optional[int] = None
     expires_at: Optional[str] = None  # ISO 8601
     purchase_ref: Optional[str] = None
@@ -70,7 +70,7 @@ class SubscriptionPayload(BaseModel):
 
 class OrgPayload(BaseModel):
     name: str
-    type: str                         # "gp" | "icb" | "alliance" | "pcn"
+    type: str  # "gp" | "icb" | "alliance" | "pcn"
     ods_code: str
     parent_org_id: Optional[str] = None
     region: Optional[str] = None
@@ -138,7 +138,11 @@ def onboard(
                 ),
             )
         # Org admin must link child to their own org (cannot specify arbitrary parent)
-        if org.parent_org_id and scope.primary_org_id and org.parent_org_id != scope.primary_org_id:
+        if (
+            org.parent_org_id
+            and scope.primary_org_id
+            and org.parent_org_id != scope.primary_org_id
+        ):
             raise HTTPException(
                 status_code=403,
                 detail="Org admin can only add sub-organisations to their own org",
@@ -151,9 +155,13 @@ def onboard(
     try:
         ods_org = get_org(org.ods_code)
     except OdsNotFoundError:
-        raise HTTPException(status_code=422, detail=f"ODS code '{org.ods_code}' not found in NHS ODS")
+        raise HTTPException(
+            status_code=422, detail=f"ODS code '{org.ods_code}' not found in NHS ODS"
+        )
     except OdsRateLimitError:
-        raise HTTPException(status_code=502, detail="NHS ODS API rate limited — please retry shortly")
+        raise HTTPException(
+            status_code=502, detail="NHS ODS API rate limited — please retry shortly"
+        )
     except OdsApiError as exc:
         logger.warning("ODS API error during onboarding: %s", exc)
         raise HTTPException(status_code=502, detail=f"ODS API error: {exc}")
@@ -189,19 +197,34 @@ def onboard(
             name=org.name,
             ods_code=org.ods_code.upper(),
             short_name=org.name[:30],
-            entra_tenant_id="",            # set when tenant authenticates for first time
+            entra_tenant_id="",  # set when tenant authenticates for first time
             onboarding_status="pending",
         )
-        logger.info("[Onboarding] Created org %s (%s, type=%s)", org_id, org.name, org.type)
+        logger.info(
+            "[Onboarding] Created org %s (%s, type=%s)", org_id, org.name, org.type
+        )
 
         # -- Step 2c: link to parent org --------------------------------------
         if org.parent_org_id:
             if org.type == "icb":
-                client.run(aq.LINK_ORG_PART_OF_ALLIANCE, icb_id=org_id, alliance_id=org.parent_org_id)
+                client.run(
+                    aq.LINK_ORG_PART_OF_ALLIANCE,
+                    icb_id=org_id,
+                    alliance_id=org.parent_org_id,
+                )
             elif org.type == "gp" and _is_pcn(client, org.parent_org_id):
-                client.run(aq.LINK_GP_TO_PCN, gp_id=org_id, pcn_id=org.parent_org_id, effective_from=now_iso)
+                client.run(
+                    aq.LINK_GP_TO_PCN,
+                    gp_id=org_id,
+                    pcn_id=org.parent_org_id,
+                    effective_from=now_iso,
+                )
             else:
-                client.run(aq.LINK_ORG_COMMISSIONED_BY, child_id=org_id, parent_id=org.parent_org_id)
+                client.run(
+                    aq.LINK_ORG_COMMISSIONED_BY,
+                    child_id=org_id,
+                    parent_id=org.parent_org_id,
+                )
 
         # -- Step 2d: create subscription node --------------------------------
         if org.subscription:
@@ -234,7 +257,9 @@ def onboard(
             role_name="org_admin",
             org_id=org_id,
         )
-        logger.info("[Onboarding] Created primary user %s for org %s", email_lower, org_id)
+        logger.info(
+            "[Onboarding] Created primary user %s for org %s", email_lower, org_id
+        )
 
     except HTTPException:
         client.close()
@@ -242,7 +267,9 @@ def onboard(
     except Exception as exc:
         client.close()
         logger.error("[Onboarding] Neo4j error: %s", exc)
-        raise HTTPException(status_code=500, detail="Database error during onboarding") from exc
+        raise HTTPException(
+            status_code=500, detail="Database error during onboarding"
+        ) from exc
 
     # -- Step 4: send invite email (non-fatal) --------------------------------
     try:

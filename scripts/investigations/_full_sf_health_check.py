@@ -8,6 +8,7 @@ Checks:
   5. Forms where concept is inactive
   6. Sample of each problem category for review
 """
+
 from __future__ import annotations
 
 import os
@@ -68,9 +69,14 @@ def run() -> None:
 
         # ---- 4. Wrong semantic tag -----------------------------------
         bad_tags = [
-            "qualifier value", "body structure", "organism",
-            "substance", "attribute", "environment",
-            "physical object", "regime/therapy",
+            "qualifier value",
+            "body structure",
+            "organism",
+            "substance",
+            "attribute",
+            "environment",
+            "physical object",
+            "regime/therapy",
         ]
         # finding and observable entity are OK for criteria context but
         # bad for action context; we flag them separately
@@ -85,14 +91,16 @@ def run() -> None:
             print(f"  {row['tag']:<35s} {row['n']}")
 
         # Sample of bad-tag forms (up to 10)
-        bad_samples = list(s.run(
-            "MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept) "
-            "WHERE c.semantic_tag IN $tags "
-            "RETURN sf.form AS form, c.id AS cid, c.fsn AS fsn, "
-            "       c.semantic_tag AS tag, sf.status AS status "
-            "ORDER BY sf.form LIMIT 10",
-            tags=bad_tags,
-        ))
+        bad_samples = list(
+            s.run(
+                "MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept) "
+                "WHERE c.semantic_tag IN $tags "
+                "RETURN sf.form AS form, c.id AS cid, c.fsn AS fsn, "
+                "       c.semantic_tag AS tag, sf.status AS status "
+                "ORDER BY sf.form LIMIT 10",
+                tags=bad_tags,
+            )
+        )
         if bad_samples:
             print("  Samples:")
             for r in bad_samples:
@@ -108,14 +116,16 @@ def run() -> None:
         print(f"\nMulti-mapped SurfaceForm nodes (-> >1 concept): {multi_count}")
 
         # Sample multi-mapped
-        multi_samples = list(s.run(
-            "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
-            "WITH sf, count(c) AS nc WHERE nc > 1 "
-            "MATCH (sf)-[r2:MAPS_TO]->(c2:Concept) "
-            "RETURN sf.form AS form, c2.id AS cid, c2.fsn AS fsn, "
-            "       r2.confidence AS conf, nc "
-            "ORDER BY sf.form, r2.confidence DESC LIMIT 20"
-        ))
+        multi_samples = list(
+            s.run(
+                "MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept) "
+                "WITH sf, count(c) AS nc WHERE nc > 1 "
+                "MATCH (sf)-[r2:MAPS_TO]->(c2:Concept) "
+                "RETURN sf.form AS form, c2.id AS cid, c2.fsn AS fsn, "
+                "       r2.confidence AS conf, nc "
+                "ORDER BY sf.form, r2.confidence DESC LIMIT 20"
+            )
+        )
         if multi_samples:
             current = None
             for r in multi_samples:
@@ -178,8 +188,10 @@ def run() -> None:
             "       c.semantic_tag AS tag "
             "ORDER BY sf.form LIMIT 20"
         ):
-            print(f"    {r['form']!r:<45s} -> {r['tag'][:10]} "
-                  f"{r['cid']} | {(r['fsn'] or '')[:45]}")
+            print(
+                f"    {r['form']!r:<45s} -> {r['tag'][:10]} "
+                f"{r['cid']} | {(r['fsn'] or '')[:45]}"
+            )
 
     driver.close()
 

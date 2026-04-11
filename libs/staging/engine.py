@@ -91,7 +91,9 @@ class StagingRulesEngine:
     def _resolve_site(self, cancer_type_snomed: str) -> str | None:
         return self.site_index.get(str(cancer_type_snomed or ""))
 
-    def _resolve_explicit_stage(self, explicit_stage: str, source: str) -> StagingResult | None:
+    def _resolve_explicit_stage(
+        self, explicit_stage: str, source: str
+    ) -> StagingResult | None:
         text = explicit_stage.strip()
         if not text:
             return None
@@ -101,7 +103,9 @@ class StagingRulesEngine:
             hay = text.lower()
             if aliases and not any(a in hay for a in aliases):
                 continue
-            stage_map = {k.upper(): v for k, v in (system.get("stage_to_group") or {}).items()}
+            stage_map = {
+                k.upper(): v for k, v in (system.get("stage_to_group") or {}).items()
+            }
             for key in sorted(stage_map.keys(), key=len, reverse=True):
                 val = stage_map[key]
                 if key in hay.upper():
@@ -165,7 +169,9 @@ class StagingRulesEngine:
                 cancer_stage = stage_map.get(stage_group)
                 if cancer_stage is None:
                     # Try with stripped suffix for IIIA style values
-                    cancer_stage = stage_map.get(re.sub(r"[ABC]$", "", stage_group), "unknown")
+                    cancer_stage = stage_map.get(
+                        re.sub(r"[ABC]$", "", stage_group), "unknown"
+                    )
                 return StagingResult(
                     cancer_stage=str(cancer_stage),
                     cancer_stage_raw=tnm.raw or f"{tnm.t}{tnm.n}{tnm.m}",

@@ -47,18 +47,14 @@ async def load_language_refset(
     label = f"Language({filepath.name})"
     logger.info("%s: starting", label)
     async with driver.session() as session:
-        writer = BatchWriter(
-            session, SET_ACCEPTABILITY, batch_size, label
-        )
+        writer = BatchWriter(session, SET_ACCEPTABILITY, batch_size, label)
         for row in stream_rf2(filepath):
             if row["active"] != "1":
                 continue
             await writer.add(
                 {
                     "desc_id": row["referencedComponentId"],
-                    "acceptability": _acceptability_label(
-                        row["acceptabilityId"]
-                    ),
+                    "acceptability": _acceptability_label(row["acceptabilityId"]),
                 }
             )
         return await writer.finish()

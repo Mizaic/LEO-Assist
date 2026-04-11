@@ -6,6 +6,7 @@ from expected).  This script:
   2. Searches the knowledge graph for correct IDs for the forms that were skipped.
   3. Upserts the correct mappings.
 """
+
 from __future__ import annotations
 
 import os
@@ -17,15 +18,17 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI",      "bolt://localhost:7688")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "bolt://localhost:7688")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
@@ -34,12 +37,20 @@ kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 # --------------------------------------------------------------------------
 _WRONG_UPSERTS = [
     # (normalized, bad_concept_id, reason)
-    ("left hemiplegia",            "193093009", "resolved to Bell's palsy"),
-    ("paraparesis",                "26538006",  "resolved to lumbar disc degeneration"),
-    ("flaccid hemiplegia",         "1734006",   "resolved to vertebral fracture with cord injury"),
-    ("intermittent claudication",  "29819009",  "resolved to aortocoronary bypass"),
-    ("intermittent claudication (finding)", "29819009", "resolved to aortocoronary bypass"),
-    ("past ctd",                   "396230008", "resolved to dermatomyositis"),
+    ("left hemiplegia", "193093009", "resolved to Bell's palsy"),
+    ("paraparesis", "26538006", "resolved to lumbar disc degeneration"),
+    (
+        "flaccid hemiplegia",
+        "1734006",
+        "resolved to vertebral fracture with cord injury",
+    ),
+    ("intermittent claudication", "29819009", "resolved to aortocoronary bypass"),
+    (
+        "intermittent claudication (finding)",
+        "29819009",
+        "resolved to aortocoronary bypass",
+    ),
+    ("past ctd", "396230008", "resolved to dermatomyositis"),
 ]
 
 _DELETE_SPECIFIC = """
@@ -77,39 +88,39 @@ LIMIT 5
 # --------------------------------------------------------------------------
 _TO_FIND_AND_UPSERT = [
     # Forms where the original concept was not found in graph
-    ("Paraplegia",           "paraplegia disorder",       "disorder"),
-    ("Paraplegic",           "paraplegia disorder",       "disorder"),
-    ("Quadriplegia",         "tetraplegia disorder",      "disorder"),
-    ("Quadriplegic",         "tetraplegia disorder",      "disorder"),
-    ("Tetraplegic",          "tetraplegia disorder",      "disorder"),
-    ("Monoplegia",           "monoplegia disorder",       "disorder"),
-    ("Monoplegic",           "monoplegia disorder",       "disorder"),
-    ("Monoparesis",          "monoparesis finding",       "finding"),
-    ("Diplegia",             "diplegia disorder",         "disorder"),
-    ("Diplegic",             "diplegia disorder",         "disorder"),
-    ("Spastic diplegia",     "spastic diplegia",          "disorder"),
-    ("Spastic hemiplegia",   "spastic hemiplegia",        "disorder"),
-    ("LMN paralysis",        "lower motor neuron disorder",  "disorder"),
-    ("UMN weakness",         "upper motor neuron disorder",  "disorder"),
+    ("Paraplegia", "paraplegia disorder", "disorder"),
+    ("Paraplegic", "paraplegia disorder", "disorder"),
+    ("Quadriplegia", "tetraplegia disorder", "disorder"),
+    ("Quadriplegic", "tetraplegia disorder", "disorder"),
+    ("Tetraplegic", "tetraplegia disorder", "disorder"),
+    ("Monoplegia", "monoplegia disorder", "disorder"),
+    ("Monoplegic", "monoplegia disorder", "disorder"),
+    ("Monoparesis", "monoparesis finding", "finding"),
+    ("Diplegia", "diplegia disorder", "disorder"),
+    ("Diplegic", "diplegia disorder", "disorder"),
+    ("Spastic diplegia", "spastic diplegia", "disorder"),
+    ("Spastic hemiplegia", "spastic hemiplegia", "disorder"),
+    ("LMN paralysis", "lower motor neuron disorder", "disorder"),
+    ("UMN weakness", "upper motor neuron disorder", "disorder"),
     ("Lower motor neuron lesion", "lower motor neuron disorder", "disorder"),
     ("Upper motor neuron lesion", "upper motor neuron disorder", "disorder"),
-    ("Paralysis of legs",    "paraplegia disorder",       "disorder"),
-    ("Paralysed legs",       "paraplegia disorder",       "disorder"),
-    ("Lower limb paralysis", "paraplegia disorder",       "disorder"),
-    ("B/L lower limb paralysis", "paraplegia disorder",   "disorder"),
-    ("Paralyzed from waist down", "paraplegia disorder",  "disorder"),
-    ("Paralysis of all four limbs", "tetraplegia disorder","disorder"),
-    ("Single limb paralysis","monoplegia disorder",       "disorder"),
-    ("Unilateral paralysis", "monoplegia disorder",       "disorder"),
+    ("Paralysis of legs", "paraplegia disorder", "disorder"),
+    ("Paralysed legs", "paraplegia disorder", "disorder"),
+    ("Lower limb paralysis", "paraplegia disorder", "disorder"),
+    ("B/L lower limb paralysis", "paraplegia disorder", "disorder"),
+    ("Paralyzed from waist down", "paraplegia disorder", "disorder"),
+    ("Paralysis of all four limbs", "tetraplegia disorder", "disorder"),
+    ("Single limb paralysis", "monoplegia disorder", "disorder"),
+    ("Unilateral paralysis", "monoplegia disorder", "disorder"),
     # Left hemiplegia correction (Bell's palsy was wrong)
-    ("Left hemiplegia",      "left hemiplegia disorder",  "disorder"),
+    ("Left hemiplegia", "left hemiplegia disorder", "disorder"),
     # PMR
-    ("PMR",                        "polymyalgia rheumatica", "disorder"),
-    ("Polymyalgia rheumatica",     "polymyalgia rheumatica", "disorder"),
+    ("PMR", "polymyalgia rheumatica", "disorder"),
+    ("Polymyalgia rheumatica", "polymyalgia rheumatica", "disorder"),
     ("Polymyalgia rheumatica (disorder)", "polymyalgia rheumatica", "disorder"),
     # Emphysema
-    ("Emphysema",            "emphysema disorder",        "disorder"),
-    ("Pulmonary emphysema",  "emphysema disorder",        "disorder"),
+    ("Emphysema", "emphysema disorder", "disorder"),
+    ("Pulmonary emphysema", "emphysema disorder", "disorder"),
     ("Pulmonary emphysema (disorder)", "emphysema disorder", "disorder"),
     # Intermittent claudication
     ("Intermittent claudication", "intermittent claudication", "finding"),

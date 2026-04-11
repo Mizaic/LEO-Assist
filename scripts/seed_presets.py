@@ -20,12 +20,14 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 try:
     from dotenv import load_dotenv
+
     load_dotenv("secrets/.env.config", override=False)
     load_dotenv("secrets/.env", override=False)
 except ImportError:
     pass
 try:
     from libs.keyvault.loader import load_keyvault_secrets
+
     load_keyvault_secrets()
 except Exception:
     pass
@@ -39,58 +41,58 @@ from libs.neo4j_client.client import KnowledgeGraphClient
 
 PRESETS = [
     {
-        "preset_id":        "preset-training",
-        "name":             "Training",
-        "description":      (
+        "preset_id": "preset-training",
+        "name": "Training",
+        "description": (
             "Used when running the gold training pipeline. "
             "Two AI assistants check each other's work — more reliable for building accurate training data."
         ),
-        "consensus_mode":   True,
-        "primary_model":    "device-aws-small",   # Amazon Claude Haiku
-        "secondary_model":  "device-azure-small", # Microsoft GPT-5 mini
-        "tiebreaker_model": "device-aws-big",     # Amazon Claude Sonnet arbitrates
-        "extractor":        "llm",                # AI finds terms (NER not yet trained on gold data)
-        "strict":           False,
+        "consensus_mode": True,
+        "primary_model": "device-aws-small",  # Amazon Claude Haiku
+        "secondary_model": "device-azure-small",  # Microsoft GPT-5 mini
+        "tiebreaker_model": "device-aws-big",  # Amazon Claude Sonnet arbitrates
+        "extractor": "llm",  # AI finds terms (NER not yet trained on gold data)
+        "strict": False,
         "prompt_config_id": "",
-        "color":            "success",
-        "is_system":        True,
-        "is_default":       False,
+        "color": "success",
+        "is_system": True,
+        "is_default": False,
     },
     {
-        "preset_id":        "preset-inference",
-        "name":             "Inference",
-        "description":      (
+        "preset_id": "preset-inference",
+        "name": "Inference",
+        "description": (
             "Used for live patient processing. "
             "Single fast AI with the trained medical coder as primary extractor — quick and accurate."
         ),
-        "consensus_mode":   False,
-        "primary_model":    "device-aws-small",   # Amazon Claude Haiku
-        "secondary_model":  "device-azure-small", # not used in single mode
-        "tiebreaker_model": "device-aws-big",     # not used in single mode
-        "extractor":        "ner+llm",            # medical coder first, AI as backup
-        "strict":           False,
+        "consensus_mode": False,
+        "primary_model": "device-aws-small",  # Amazon Claude Haiku
+        "secondary_model": "device-azure-small",  # not used in single mode
+        "tiebreaker_model": "device-aws-big",  # not used in single mode
+        "extractor": "ner+llm",  # medical coder first, AI as backup
+        "strict": False,
         "prompt_config_id": "",
-        "color":            "primary",
-        "is_system":        True,
-        "is_default":       True,
+        "color": "primary",
+        "is_system": True,
+        "is_default": True,
     },
     {
-        "preset_id":        "preset-quality-check",
-        "name":             "Quality check",
-        "description":      (
+        "preset_id": "preset-quality-check",
+        "name": "Quality check",
+        "description": (
             "Used for verification and auditing runs. "
             "Two AIs check each other; the most careful model steps in if they disagree."
         ),
-        "consensus_mode":   True,
-        "primary_model":    "device-aws-small",   # Amazon Claude Haiku
-        "secondary_model":  "device-azure-small", # Microsoft GPT-5 mini
-        "tiebreaker_model": "device-aws-max",     # Amazon Claude Opus — most careful
-        "extractor":        "llm",
-        "strict":           True,
+        "consensus_mode": True,
+        "primary_model": "device-aws-small",  # Amazon Claude Haiku
+        "secondary_model": "device-azure-small",  # Microsoft GPT-5 mini
+        "tiebreaker_model": "device-aws-max",  # Amazon Claude Opus — most careful
+        "extractor": "llm",
+        "strict": True,
         "prompt_config_id": "",
-        "color":            "warning",
-        "is_system":        True,
-        "is_default":       False,
+        "color": "warning",
+        "is_system": True,
+        "is_default": False,
     },
 ]
 
@@ -98,13 +100,16 @@ PRESETS = [
 # Seed
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     client = KnowledgeGraphClient()
     default_preset_id = None
 
     try:
         with client.session() as session:
-            result = session.run("MATCH (p:ModelPreset) RETURN count(p) AS cnt").single()
+            result = session.run(
+                "MATCH (p:ModelPreset) RETURN count(p) AS cnt"
+            ).single()
             existing = result["cnt"] if result else 0
             if existing > 0:
                 print(f"Skipped — {existing} ModelPreset(s) already present.")

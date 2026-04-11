@@ -21,8 +21,12 @@ def _terminology_runtime_defaults() -> dict[str, float | int]:
         "max_retries": int(os.getenv("TERMINOLOGY_API_RETRIES", "3")),
         "cooldown_seconds": float(os.getenv("TERMINOLOGY_API_COOLDOWN_SECONDS", "60")),
         "final_attempts": int(os.getenv("TERMINOLOGY_API_FINAL_ATTEMPTS", "1")),
-        "max_concurrent_requests": int(os.getenv("TERMINOLOGY_API_MAX_CONCURRENT_REQUESTS", "2")),
-        "max_terms_per_request": int(os.getenv("TERMINOLOGY_API_MAX_TERMS_PER_REQUEST", "8")),
+        "max_concurrent_requests": int(
+            os.getenv("TERMINOLOGY_API_MAX_CONCURRENT_REQUESTS", "2")
+        ),
+        "max_terms_per_request": int(
+            os.getenv("TERMINOLOGY_API_MAX_TERMS_PER_REQUEST", "8")
+        ),
     }
 
 
@@ -36,7 +40,10 @@ def seed_service_configs(client) -> None:
                 key="terminology:resolve_runtime",
             ).single()
             if existing:
-                logger.info("ServiceConfig %s already in Neo4j — skipping seed", "terminology:resolve_runtime")
+                logger.info(
+                    "ServiceConfig %s already in Neo4j — skipping seed",
+                    "terminology:resolve_runtime",
+                )
                 return
             config = _terminology_runtime_defaults()
             session.run(
@@ -50,6 +57,8 @@ def seed_service_configs(client) -> None:
                 config_json=json.dumps(config, sort_keys=True),
                 source="seed",
             )
-        logger.info("ServiceConfig bootstrap done: terminology runtime settings created")
+        logger.info(
+            "ServiceConfig bootstrap done: terminology runtime settings created"
+        )
     except Exception as exc:
         logger.warning("ServiceConfig seed failed (non-fatal): %s", exc)

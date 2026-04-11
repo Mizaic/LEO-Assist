@@ -65,7 +65,10 @@ def generate_recommendations(state: NBAState) -> dict[str, Any]:
                 "reason": "No blocking issues were detected in the current state",
             }
         )
-    return {"recommendations": recommendations, "errors": list(state.get("errors") or [])}
+    return {
+        "recommendations": recommendations,
+        "errors": list(state.get("errors") or []),
+    }
 
 
 def build_nba_subgraph() -> CompiledStateGraph:

@@ -68,16 +68,18 @@ def _extract_surface_form_rows(
                 seen.add(key)
 
                 stats.eligible += 1
-                rows.append({
-                    "form": surface_text,
-                    "normalized": normalized,
-                    "concept_id": concept_id,
-                    "confidence": float(coding.get("score", 0.9)),
-                    "source": "hitl_approved",
-                    "approved_by": "hitl_approved",
-                    "status": "pending",
-                    "provenance": "hitl_gold_sync",
-                })
+                rows.append(
+                    {
+                        "form": surface_text,
+                        "normalized": normalized,
+                        "concept_id": concept_id,
+                        "confidence": float(coding.get("score", 0.9)),
+                        "source": "hitl_approved",
+                        "approved_by": "hitl_approved",
+                        "status": "pending",
+                        "provenance": "hitl_gold_sync",
+                    }
+                )
 
     return rows, stats
 
@@ -90,9 +92,11 @@ def writeback_approved_terms(
     batch_size: int = 500,
 ) -> dict[str, Any]:
     if patient_id:
-        records = list(patient_session.run(
-            LIST_APPROVED_FOR_PATIENT_WITH_REVIEWER, patient_id=patient_id
-        ))
+        records = list(
+            patient_session.run(
+                LIST_APPROVED_FOR_PATIENT_WITH_REVIEWER, patient_id=patient_id
+            )
+        )
     else:
         records = list(patient_session.run(LIST_APPROVED_WITH_REVIEWER))
 
@@ -115,7 +119,9 @@ def writeback_approved_terms(
 
     logger.info(
         "Writeback complete — %d candidates, %d terms, %d surface forms written",
-        stats.candidates_scanned, stats.terms_scanned, stats.written,
+        stats.candidates_scanned,
+        stats.terms_scanned,
+        stats.written,
     )
     return {
         "candidates_scanned": stats.candidates_scanned,

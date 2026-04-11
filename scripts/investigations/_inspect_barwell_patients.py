@@ -1,4 +1,5 @@
 """Inspect the 2 patients linked to C82061 (Barwell & Hollycroft) before any fix."""
+
 from libs.neo4j_client.client import PatientGraphClient
 
 c = PatientGraphClient()
@@ -19,8 +20,7 @@ for r in rows:
 print()
 print("=== Confirm C82070 (Woodbrook) exists ===")
 rows2 = c.run(
-    "MATCH (o:Organization {id: 'C82070'}) "
-    "RETURN o.id AS id, o.name AS name"
+    "MATCH (o:Organization {id: 'C82070'}) " "RETURN o.id AS id, o.name AS name"
 )
 for r in rows2:
     print(r)

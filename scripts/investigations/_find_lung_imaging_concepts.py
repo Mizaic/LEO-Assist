@@ -2,6 +2,7 @@
 Find correct SNOMED concept IDs for radiological lung findings via the
 Terminology API search endpoint.
 """
+
 import os
 import sys
 import time
@@ -13,9 +14,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
+
 load_keyvault_secrets()
 from libs.auth.service_auth import get_service_auth_header  # noqa: E402
 
@@ -41,9 +44,15 @@ def search(term: str) -> list:
     try:
         r = SESSION.post(
             f"{BASE}/terminology/search",
-            json={"query": term, "limit": 5, "filter_semantic_tags": [
-                "finding", "disorder", "morphologic abnormality"
-            ]},
+            json={
+                "query": term,
+                "limit": 5,
+                "filter_semantic_tags": [
+                    "finding",
+                    "disorder",
+                    "morphologic abnormality",
+                ],
+            },
             timeout=30,
         )
         body = r.json()

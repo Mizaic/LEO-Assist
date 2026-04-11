@@ -51,7 +51,12 @@ def update_from_event(patient_id: str, run_id: str, event: dict[str, Any]) -> No
     ev_type = str(event.get("type") or "")
     status = str(current.get("status") or "queued")
     message = str(current.get("message") or "")
-    if ev_type in {"step_completed", "run_started", "patient_started", "encounter_started"}:
+    if ev_type in {
+        "step_completed",
+        "run_started",
+        "patient_started",
+        "encounter_started",
+    }:
         status = "running"
         step = str(event.get("subgraph_id") or "").strip()
         message = f"Running{f' ({step})' if step else ''}."

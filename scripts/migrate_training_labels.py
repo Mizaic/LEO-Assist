@@ -82,7 +82,11 @@ def main() -> None:
         )
 
     pg_driver = GraphDatabase.driver(pg_uri, auth=(pg_user, pg_password))
-    kg_driver = GraphDatabase.driver(kg_uri, auth=(kg_user, kg_password)) if not dry_run else None
+    kg_driver = (
+        GraphDatabase.driver(kg_uri, auth=(kg_user, kg_password))
+        if not dry_run
+        else None
+    )
 
     migrated_candidates = 0
 
@@ -134,4 +138,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

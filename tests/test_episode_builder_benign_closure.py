@@ -10,6 +10,7 @@ Rules under test:
   - 395100000 exactly on day 365 -> closed_benign (boundary inclusive)
   - 395100000 coded before referral -> no benign closure
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -27,10 +28,10 @@ from services.analysis_worker.app.analyzers.episode_builder import (
     build_episodes,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _anchor(concept_id: int, concept_name: str, enc_date: str) -> dict[str, Any]:
     return {
@@ -97,6 +98,7 @@ def _run(anchors: AnchorResult, client=None) -> EpisodeBuildResult:
 # VT-085-TC-001: Benign closure within 365 days -> closed_benign
 # ---------------------------------------------------------------------------
 
+
 def test_benign_closure_within_window_sets_closed_benign():
     """Registry-supplied benign_closure_anchors within the window -> closed_benign."""
     ref_date = "2024-07-01"
@@ -137,6 +139,7 @@ def test_benign_closure_within_window_via_direct_query():
 # VT-085-TC-002: 395100000 beyond 365 days -> in_progress
 # ---------------------------------------------------------------------------
 
+
 def test_benign_closure_beyond_window_stays_in_progress():
     ref_date = "2024-01-01"
     benign_date = _days_after(ref_date, 411)  # > 365
@@ -158,6 +161,7 @@ def test_benign_closure_beyond_window_stays_in_progress():
 # VT-085-TC-003: No referral -> no episode created
 # ---------------------------------------------------------------------------
 
+
 def test_no_episode_created_without_referral():
     # Only benign coding, no referral anchor, no diagnosis
     anchors = AnchorResult(patient_id="test-patient")
@@ -172,6 +176,7 @@ def test_no_episode_created_without_referral():
 # ---------------------------------------------------------------------------
 # VT-085-TC-004: Diagnosis takes precedence over benign closure
 # ---------------------------------------------------------------------------
+
 
 def test_diagnosis_takes_precedence_over_benign_closure():
     ref_date = "2024-07-01"
@@ -216,6 +221,7 @@ def test_diagnosis_precedence_via_mock_client():
 # VT-085-TC-005: Benign closure on day 365 (boundary) is accepted
 # ---------------------------------------------------------------------------
 
+
 def test_benign_closure_on_day_365_is_accepted():
     ref_date = "2024-01-01"
     benign_date = _days_after(ref_date, _MAX_BENIGN_CLOSURE_DAYS)  # == 365
@@ -235,6 +241,7 @@ def test_benign_closure_on_day_365_is_accepted():
 # ---------------------------------------------------------------------------
 # VT-085-TC-006: 395100000 coded before referral is rejected
 # ---------------------------------------------------------------------------
+
 
 def test_benign_closure_before_referral_is_rejected():
     ref_date = "2024-07-01"
@@ -257,6 +264,7 @@ def test_benign_closure_before_referral_is_rejected():
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
 
 def _make_client_side_effect(benign_date: str):
     """Return a side_effect that simulates Neo4j date-window filtering.

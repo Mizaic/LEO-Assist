@@ -10,6 +10,7 @@ Output: scripts/investigations/encounter_audit/no_cancer_phrase_inventory.jsonl
 Run:
     python scripts/investigations/_inventory_no_cancer_phrases.py
 """
+
 from __future__ import annotations
 
 import json
@@ -22,14 +23,16 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
-OUT_DIR    = ROOT / "scripts" / "investigations" / "encounter_audit"
-OUT_MAIN   = OUT_DIR / "no_cancer_phrase_inventory.jsonl"
-OUT_T3     = OUT_DIR / "no_cancer_t3_review.jsonl"
+OUT_DIR = ROOT / "scripts" / "investigations" / "encounter_audit"
+OUT_MAIN = OUT_DIR / "no_cancer_phrase_inventory.jsonl"
+OUT_T3 = OUT_DIR / "no_cancer_t3_review.jsonl"
 
 CONCEPT_ID = 395100000
 
@@ -182,31 +185,37 @@ T3_PHRASES = [
 ]
 
 # Phrases to EXCLUDE even if they contain a T1/T2 substring (separate clinical class)
-EXCLUSION_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
-    r"rule\s+out\s+malign",
-    r"r/o\s+malign",
-    r"cannot\s+exclude\s+malign",
-    r"can(?:not|'t)\s+rule\s+out",
-    r"history\s+of\s+(cancer|malign|carcinoma|tumou?r)",
-    r"prior\s+(cancer|malign|carcinoma|tumou?r)",
-    r"known\s+(cancer|malign|carcinoma|tumou?r)",
-    r"background\s+of\s+(cancer|malign)",
-]]
+EXCLUSION_PATTERNS = [
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"rule\s+out\s+malign",
+        r"r/o\s+malign",
+        r"cannot\s+exclude\s+malign",
+        r"can(?:not|'t)\s+rule\s+out",
+        r"history\s+of\s+(cancer|malign|carcinoma|tumou?r)",
+        r"prior\s+(cancer|malign|carcinoma|tumou?r)",
+        r"known\s+(cancer|malign|carcinoma|tumou?r)",
+        r"background\s+of\s+(cancer|malign)",
+    ]
+]
 
 # Also exclude screening-programme phrases (already guarded in post-processing)
-SCREENING_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
-    r"cervical\s+smear",
-    r"cervical\s+cytology",
-    r"hpv\s+(test|not\s+detected)",
-    r"negative\s+fit\b",
-    r"\bfobt\b",
-    r"faecal\s+immunochemical",
-    r"faecal\s+occult\s+blood",
-    r"bowel\s+cancer\s+screening\s+programme",
-    r"overall\s+negative\s+result",
-    r"sent\s+following\s+(?:an\s+)?overall\s+negative",
-    r"normal\s+recall",
-]]
+SCREENING_PATTERNS = [
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"cervical\s+smear",
+        r"cervical\s+cytology",
+        r"hpv\s+(test|not\s+detected)",
+        r"negative\s+fit\b",
+        r"\bfobt\b",
+        r"faecal\s+immunochemical",
+        r"faecal\s+occult\s+blood",
+        r"bowel\s+cancer\s+screening\s+programme",
+        r"overall\s+negative\s+result",
+        r"sent\s+following\s+(?:an\s+)?overall\s+negative",
+        r"normal\s+recall",
+    ]
+]
 
 
 def _build_patterns(phrases: list[str]) -> list[tuple[str, re.Pattern]]:
@@ -216,8 +225,16 @@ def _build_patterns(phrases: list[str]) -> list[tuple[str, re.Pattern]]:
 def _load_patient_ids() -> list[str]:
     ids: set[str] = set()
     for inv in [
-        ROOT / "scripts" / "investigations" / "encounter_audit" / "fast_track_specialist_encounters.jsonl",
-        ROOT / "scripts" / "investigations" / "encounter_audit" / "fast_track_referral_encounters.jsonl",
+        ROOT
+        / "scripts"
+        / "investigations"
+        / "encounter_audit"
+        / "fast_track_specialist_encounters.jsonl",
+        ROOT
+        / "scripts"
+        / "investigations"
+        / "encounter_audit"
+        / "fast_track_referral_encounters.jsonl",
     ]:
         if not inv.exists():
             print(f"WARNING: {inv} not found")
@@ -246,9 +263,8 @@ RETURN patient_id, encounter_id, date, enc_text, already_coded
 
 
 def _is_excluded(text: str) -> bool:
-    return (
-        any(p.search(text) for p in EXCLUSION_PATTERNS)
-        or any(p.search(text) for p in SCREENING_PATTERNS)
+    return any(p.search(text) for p in EXCLUSION_PATTERNS) or any(
+        p.search(text) for p in SCREENING_PATTERNS
     )
 
 
@@ -281,16 +297,16 @@ def main() -> None:
     }
     phrase_enc_counts: dict[str, int] = defaultdict(int)
 
-    out_rows   = []
-    t3_rows    = []
+    out_rows = []
+    t3_rows = []
 
     for row in rows:
-        text          = row["enc_text"] or ""
+        text = row["enc_text"] or ""
         already_coded = row["already_coded"]
-        enc_id        = row["encounter_id"]
-        pid           = row["patient_id"]
-        date          = row["date"][:10] if row["date"] else ""
-        excluded      = _is_excluded(text)
+        enc_id = row["encounter_id"]
+        pid = row["patient_id"]
+        date = row["date"][:10] if row["date"] else ""
+        excluded = _is_excluded(text)
 
         t1 = _match_tier(text, t1_pats)
         t2 = _match_tier(text, t2_pats)
@@ -318,14 +334,14 @@ def main() -> None:
                 stats[tier.lower()]["uncoded"] += 1
 
             record = {
-                "patient_id":              pid,
-                "encounter_id":            enc_id,
-                "date":                    date,
-                "tier":                    tier,
-                "matched_phrases":         matched,
+                "patient_id": pid,
+                "encounter_id": enc_id,
+                "date": date,
+                "tier": tier,
+                "matched_phrases": matched,
                 "already_coded_395100000": already_coded,
-                "excluded":                excluded,
-                "enc_text_snippet":        text[:200],
+                "excluded": excluded,
+                "enc_text_snippet": text[:200],
             }
             out_rows.append(record)
 
@@ -334,16 +350,18 @@ def main() -> None:
                 stats["t3"]["excluded"] += 1
             else:
                 stats["t3"]["already_coded" if already_coded else "uncoded"] += 1
-            t3_rows.append({
-                "patient_id":              pid,
-                "encounter_id":            enc_id,
-                "date":                    date,
-                "tier":                    "T3",
-                "matched_phrases":         t3,
-                "already_coded_395100000": already_coded,
-                "excluded":                excluded,
-                "enc_text_snippet":        text[:300],
-            })
+            t3_rows.append(
+                {
+                    "patient_id": pid,
+                    "encounter_id": enc_id,
+                    "date": date,
+                    "tier": "T3",
+                    "matched_phrases": t3,
+                    "already_coded_395100000": already_coded,
+                    "excluded": excluded,
+                    "enc_text_snippet": text[:300],
+                }
+            )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     with OUT_MAIN.open("w") as fh:
@@ -364,7 +382,9 @@ def main() -> None:
     print(f"  {'-'*6}  {'-'*14}  {'-'*9}  {'-'*9}")
     for tier_key, label in [("t1", "T1"), ("t2", "T2"), ("t3", "T3")]:
         s = stats[tier_key]
-        print(f"  {label:<6}  {s['already_coded']:>14}  {s['uncoded']:>9}  {s['excluded']:>9}")
+        print(
+            f"  {label:<6}  {s['already_coded']:>14}  {s['uncoded']:>9}  {s['excluded']:>9}"
+        )
 
     print()
     print("  Top 20 matched phrases (T1+T2):")

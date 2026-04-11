@@ -168,4 +168,3 @@ Constraints:
 - Keep rationale <= 220 chars.
 - confidence is 0.0 to 1.0.
 """
-

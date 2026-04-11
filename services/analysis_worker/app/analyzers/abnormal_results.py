@@ -168,9 +168,14 @@ def detect_abnormal_results(
     org_id: str | None = None,
     knowledge_client: Any | None = None,
 ) -> list[dict[str, Any]]:
-    demographics = list(patient_client.run(_GET_PATIENT_DEMOGRAPHICS, patient_id=patient_id) or [])
-    sex = str((demographics[0].get("sex") if demographics else "") or "").strip().lower() or None
-    dob_raw = (demographics[0].get("date_of_birth") if demographics else None)
+    demographics = list(
+        patient_client.run(_GET_PATIENT_DEMOGRAPHICS, patient_id=patient_id) or []
+    )
+    sex = (
+        str((demographics[0].get("sex") if demographics else "") or "").strip().lower()
+        or None
+    )
+    dob_raw = demographics[0].get("date_of_birth") if demographics else None
 
     rows = list(
         patient_client.run(
@@ -195,7 +200,9 @@ def detect_abnormal_results(
         if not concept_id or value is None:
             continue
 
-        age_years = _age_years_on(str(dob_raw) if dob_raw else None, str(row.get("date") or ""))
+        age_years = _age_years_on(
+            str(dob_raw) if dob_raw else None, str(row.get("date") or "")
+        )
         reference = lookup_reference_range(
             concept_id=concept_id,
             unit=row.get("unit"),
@@ -225,7 +232,9 @@ def detect_abnormal_results(
         high = _safe_float(reference.get("high"))
         critical_low = _safe_float(reference.get("critical_low"))
         critical_high = _safe_float(reference.get("critical_high"))
-        classification = classify_severity(value, low, high, critical_low, critical_high)
+        classification = classify_severity(
+            value, low, high, critical_low, critical_high
+        )
         if classification == "normal":
             continue
 
@@ -282,7 +291,11 @@ def detect_abnormal_results(
                 "patient_id": patient_id,
                 "encounter_id": encounter_id,
                 "date": row.get("date"),
-                "severity": "critical" if re.search(r"\bcritical|critically low\b", text, re.I) else "warning",
+                "severity": (
+                    "critical"
+                    if re.search(r"\bcritical|critically low\b", text, re.I)
+                    else "warning"
+                ),
                 "classification": "text_fallback",
                 "description": text,
             }

@@ -53,6 +53,7 @@ LIMIT $limit
 @dataclass
 class TrainingLabelRecord:
     """A single approved candidate record as a training label."""
+
     candidate_id: str
     encounter_id: str
     patient_id: str
@@ -65,6 +66,7 @@ class TrainingLabelRecord:
 
     def to_dict(self) -> dict[str, Any]:
         import json as _json
+
         return {
             "candidate_id": self.candidate_id,
             "encounter_id": self.encounter_id,
@@ -118,7 +120,8 @@ def fetch_training_labels(
             ]
         logger.info(
             "fetch_training_labels: fetched %d approved labels (limit=%d)",
-            len(records), limit,
+            len(records),
+            limit,
         )
         return records
     finally:

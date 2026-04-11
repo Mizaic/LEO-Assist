@@ -27,9 +27,7 @@ def _has_possible_only_diagnosis(diag_anchors: list[dict[str, Any]]) -> bool:
     cancer_diags = _cancer_diag_anchors(diag_anchors)
     if not cancer_diags:
         return False
-    return all(
-        str(a.get("assertion", "present")) == "possible" for a in cancer_diags
-    )
+    return all(str(a.get("assertion", "present")) == "possible" for a in cancer_diags)
 
 
 def _treatment_after_referral(
@@ -71,9 +69,7 @@ def _infer_completed_from_specialist_letter(
     if (today - spec_date).days <= cfg.STALE_POST_SPECIALIST_DAYS:
         return None, None
 
-    letter_deadline = spec_date + timedelta(
-        days=cfg.LETTER_WITHIN_DAYS_AFTER_VISIT
-    )
+    letter_deadline = spec_date + timedelta(days=cfg.LETTER_WITHIN_DAYS_AFTER_VISIT)
     letter_dates: list[date] = []
     for a in letter_anchors:
         ld = _parse_date(a.get("encounter_date"))
@@ -85,9 +81,7 @@ def _infer_completed_from_specialist_letter(
         return None, None
 
     letter_date = min(letter_dates)
-    treat_end = letter_date + timedelta(
-        days=cfg.NO_TREATMENT_WINDOW_AFTER_LETTER_DAYS
-    )
+    treat_end = letter_date + timedelta(days=cfg.NO_TREATMENT_WINDOW_AFTER_LETTER_DAYS)
     if _treatment_between(treatment_anchors, letter_date, treat_end):
         return None, None
 

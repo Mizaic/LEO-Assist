@@ -51,8 +51,8 @@ TYPE_ID_TO_REL = {
     "127489000": "HAS_ACTIVE_INGREDIENT",
     # --- Lab-domain family relationships ---
     # Enables: procedure <-> observable_entity <-> finding navigation
-    "246093002": "HAS_COMPONENT",           # procedure -[HAS_COMPONENT]-> observable_entity
-    "363713009": "INTERPRETS",              # finding -[INTERPRETS]-> observable_entity
+    "246093002": "HAS_COMPONENT",  # procedure -[HAS_COMPONENT]-> observable_entity
+    "363713009": "INTERPRETS",  # finding -[INTERPRETS]-> observable_entity
     "246090004": "HAS_ASSOCIATED_FINDING",  # concept -[HAS_ASSOCIATED_FINDING]-> finding
 }
 

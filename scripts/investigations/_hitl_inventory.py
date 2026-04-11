@@ -1,4 +1,5 @@
 """Query Neo4j for all pending HITL-related task queues."""
+
 import sys
 from pathlib import Path
 
@@ -6,9 +7,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 from libs.neo4j_client.client import PatientGraphClient
@@ -49,7 +52,9 @@ with client.session() as s:
         ORDER BY auto_resolved, assertion
     """)]
     for row in rows:
-        print(f"  assertion={str(row['assertion']):15s} auto_resolved={str(row['auto_resolved']):6s} {row['n']}")
+        print(
+            f"  assertion={str(row['assertion']):15s} auto_resolved={str(row['auto_resolved']):6s} {row['n']}"
+        )
     if not rows:
         print("  (none)")
 
@@ -75,7 +80,11 @@ with client.session() as s:
 
     print("\n=== AnchorReview / EncounterReview / LabelVerificationReview ===")
     for label in ["AnchorReview", "EncounterReview", "LabelVerificationReview"]:
-        query = "MATCH (n:" + label + ") RETURN coalesce(n.status, '?') AS status, count(*) AS n ORDER BY status"
+        query = (
+            "MATCH (n:"
+            + label
+            + ") RETURN coalesce(n.status, '?') AS status, count(*) AS n ORDER BY status"
+        )
         rows = [dict(x) for x in s.run(query)]
         print(f"  {label}:")
         for row in rows:
@@ -88,7 +97,11 @@ with client.session() as s:
         q = "MATCH (n:" + label + ") RETURN keys(n) AS props LIMIT 1"
         rows = [dict(x) for x in s.run(q)]
         print(f"  {label} props: {rows[0]['props'] if rows else 'n/a'}")
-        q2 = "MATCH (n:" + label + ")-[r]-() RETURN type(r) AS rel, count(*) AS n ORDER BY n DESC LIMIT 3"
+        q2 = (
+            "MATCH (n:"
+            + label
+            + ")-[r]-() RETURN type(r) AS rel, count(*) AS n ORDER BY n DESC LIMIT 3"
+        )
         rels = [dict(x) for x in s.run(q2)]
         for rel in rels:
             print(f"    -{rel['rel']}-> x{rel['n']}")

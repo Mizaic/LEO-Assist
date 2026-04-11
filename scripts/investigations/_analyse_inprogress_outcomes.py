@@ -12,6 +12,7 @@ and classify each episode into an outcome category:
 Run:
     python scripts/investigations/_analyse_inprogress_outcomes.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -23,9 +24,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 _Q_OPEN = """
@@ -86,31 +89,53 @@ _CANCER_IDS = {
     "363358000",  # Malignant neoplasm of intestine
     "188145008",  # CLL/SLL
     "413448000",  # Metastatic malignant neoplasm
-    "3344001",    # Malignant lymphoma
+    "3344001",  # Malignant lymphoma
 }
 _BENIGN_ALT_IDS = {
     "126736007",  # Fibroadenoma of breast
     "444896006",  # Tubular adenoma of colon
-    "34840004",   # Haemorrhoids
+    "34840004",  # Haemorrhoids
     "235494005",  # Hiatus hernia
-    "40121002",   # Ulcerative colitis
+    "40121002",  # Ulcerative colitis
     "196808003",  # Benign prostatic hyperplasia
     "194786009",  # Presbycusis
 }
 _BENIGN_ALT_NAMES_LOWER = {
-    "fibroadenoma", "tubular adenoma", "haemorrhoid", "hemorrhoid",
-    "hiatus hernia", "ulcerative colitis", "benign prostatic",
-    "presbycusis", "benign pathology", "benign histology", "benign on biopsy",
-    "no dysplasia", "no malignancy", "no evidence of cancer",
-    "confirmed benign", "not suspicious for malignancy",
-    "normal colonoscopy", "normal endoscopy", "normal colposcopy",
-    "normal mammog", "polyp removed but no cancer",
-    "no sinister findings", "nad", "normal and discharged",
-    "discharged from clinic", "safe to discharge",
+    "fibroadenoma",
+    "tubular adenoma",
+    "haemorrhoid",
+    "hemorrhoid",
+    "hiatus hernia",
+    "ulcerative colitis",
+    "benign prostatic",
+    "presbycusis",
+    "benign pathology",
+    "benign histology",
+    "benign on biopsy",
+    "no dysplasia",
+    "no malignancy",
+    "no evidence of cancer",
+    "confirmed benign",
+    "not suspicious for malignancy",
+    "normal colonoscopy",
+    "normal endoscopy",
+    "normal colposcopy",
+    "normal mammog",
+    "polyp removed but no cancer",
+    "no sinister findings",
+    "nad",
+    "normal and discharged",
+    "discharged from clinic",
+    "safe to discharge",
 }
 _CANCEL_TERMS = {
-    "cancelled by patient", "referral cancelled", "did not attend",
-    "patient declined", "dna", "unable to attend", "withdrawn",
+    "cancelled by patient",
+    "referral cancelled",
+    "did not attend",
+    "patient declined",
+    "dna",
+    "unable to attend",
+    "withdrawn",
     "patient cancelled",
 }
 
@@ -148,6 +173,7 @@ def _classify_encounter(edate: str, enc_text: str, codings: list[dict]) -> str |
 
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
+
     client = PatientGraphClient()
 
     open_rows = client.run(_Q_OPEN) or []
@@ -156,21 +182,25 @@ def main() -> None:
 
     eps_by_pid: dict[str, list[dict]] = defaultdict(list)
     for row in open_rows:
-        eps_by_pid[row["pid"]].append({
-            "site": row["site"] or "unknown",
-            "ref_date": str(row["ref_date"] or ""),
-            "ep_id": row["ep_id"],
-            "spec_seen": bool(row["spec_seen"]),
-        })
+        eps_by_pid[row["pid"]].append(
+            {
+                "site": row["site"] or "unknown",
+                "ref_date": str(row["ref_date"] or ""),
+                "ep_id": row["ep_id"],
+                "spec_seen": bool(row["spec_seen"]),
+            }
+        )
 
     results: list[dict] = []
 
     for pid in sorted(eps_by_pid.keys()):
         episodes = eps_by_pid[pid]
         # Pull all encounters from 14d before earliest referral
-        min_ref = min(
-            ep["ref_date"][:10] for ep in episodes if ep["ref_date"]
-        ) if any(ep["ref_date"] for ep in episodes) else "2000-01-01"
+        min_ref = (
+            min(ep["ref_date"][:10] for ep in episodes if ep["ref_date"])
+            if any(ep["ref_date"] for ep in episodes)
+            else "2000-01-01"
+        )
         try:
             from_date = (
                 date.fromisoformat(min_ref) if min_ref else date(2000, 1, 1)
@@ -184,7 +214,9 @@ def main() -> None:
         overall_signal = None
         cancer_enc = benign_enc = cancel_enc = None
         for enc in enc_rows:
-            sig = _classify_encounter(enc["edate"], enc["enc_text"], enc["codings"] or [])
+            sig = _classify_encounter(
+                enc["edate"], enc["enc_text"], enc["codings"] or []
+            )
             if sig == "CANCER_CONFIRMED" and not cancer_enc:
                 cancer_enc = enc["edate"]
                 overall_signal = "CANCER_CONFIRMED"
@@ -194,7 +226,11 @@ def main() -> None:
                     overall_signal = sig
             elif sig == "CANCELLED" and not cancel_enc:
                 cancel_enc = enc["edate"]
-                if overall_signal not in ("CANCER_CONFIRMED", "BENIGN_CODED", "BENIGN_ALT"):
+                if overall_signal not in (
+                    "CANCER_CONFIRMED",
+                    "BENIGN_CODED",
+                    "BENIGN_ALT",
+                ):
                     overall_signal = "CANCELLED"
 
         if not overall_signal:
@@ -205,28 +241,40 @@ def main() -> None:
             spec = "Y" if ep["spec_seen"] else "N"
             # Age of referral
             try:
-                days = (date.today() - date.fromisoformat(ref)).days if ref != "???" else -1
+                days = (
+                    (date.today() - date.fromisoformat(ref)).days
+                    if ref != "???"
+                    else -1
+                )
                 age = (
-                    "<3mo" if days < 90 else
-                    "3-6mo" if days < 180 else
-                    "6-12mo" if days < 365 else
-                    "1-2yr" if days < 730 else
-                    ">2yr"
+                    "<3mo"
+                    if days < 90
+                    else (
+                        "3-6mo"
+                        if days < 180
+                        else (
+                            "6-12mo"
+                            if days < 365
+                            else "1-2yr" if days < 730 else ">2yr"
+                        )
+                    )
                 )
             except Exception:
                 age = "?"
 
-            results.append({
-                "pid": pid,
-                "site": ep["site"],
-                "ref_date": ref,
-                "age": age,
-                "spec": spec,
-                "outcome": overall_signal,
-                "cancer_enc": cancer_enc or "",
-                "benign_enc": benign_enc or "",
-                "cancel_enc": cancel_enc or "",
-            })
+            results.append(
+                {
+                    "pid": pid,
+                    "site": ep["site"],
+                    "ref_date": ref,
+                    "age": age,
+                    "spec": spec,
+                    "outcome": overall_signal,
+                    "cancer_enc": cancer_enc or "",
+                    "benign_enc": benign_enc or "",
+                    "cancel_enc": cancel_enc or "",
+                }
+            )
 
     client.close()
 
@@ -235,7 +283,14 @@ def main() -> None:
     for r in results:
         by_outcome[r["outcome"]].append(r)
 
-    order = ["CANCER_CONFIRMED", "BENIGN_CODED", "BENIGN_ALT", "CANCELLED", "UNKNOWN", "NO_FOLLOWUP"]
+    order = [
+        "CANCER_CONFIRMED",
+        "BENIGN_CODED",
+        "BENIGN_ALT",
+        "CANCELLED",
+        "UNKNOWN",
+        "NO_FOLLOWUP",
+    ]
     total = len(results)
 
     print(f"{'='*90}")
@@ -247,10 +302,14 @@ def main() -> None:
         if not items:
             continue
         print(f"\n--- {outcome} ({len(items)}) ---")
-        print(f"  {'PID':<14} {'SITE':<22} {'REF_DATE':<12} {'AGE':<7} {'SPEC':<5} {'SIGNAL DATE'}")
+        print(
+            f"  {'PID':<14} {'SITE':<22} {'REF_DATE':<12} {'AGE':<7} {'SPEC':<5} {'SIGNAL DATE'}"
+        )
         for r in sorted(items, key=lambda x: x["ref_date"]):
             sig_date = r["cancer_enc"] or r["benign_enc"] or r["cancel_enc"] or ""
-            print(f"  {r['pid']:<14} {r['site']:<22} {r['ref_date']:<12} {r['age']:<7} {r['spec']:<5} {sig_date}")
+            print(
+                f"  {r['pid']:<14} {r['site']:<22} {r['ref_date']:<12} {r['age']:<7} {r['spec']:<5} {sig_date}"
+            )
 
     print()
     print("SUMMARY:")

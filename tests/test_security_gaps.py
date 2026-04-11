@@ -4,6 +4,7 @@ Security gap regression tests.
 Covers all 14 gaps from close_security_gaps_a290bc3c.plan.md.
 These tests are run in CI and MUST pass before any deploy to val or prod.
 """
+
 from __future__ import annotations
 
 import json
@@ -14,12 +15,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_request(cookies: dict | None = None, headers: dict | None = None) -> MagicMock:
+
+def _make_request(
+    cookies: dict | None = None, headers: dict | None = None
+) -> MagicMock:
     req = MagicMock()
     req.cookies = cookies or {}
     req.headers = headers or {}
@@ -30,25 +33,40 @@ def _make_request(cookies: dict | None = None, headers: dict | None = None) -> M
 # GAP-001: X-User-Email header spoofing removed
 # ---------------------------------------------------------------------------
 
+
 def test_gap001_get_caller_scope_from_request_ignores_x_user_email(monkeypatch):
     """get_caller_scope_from_request must not accept X-User-Email header."""
     import inspect
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"))
+
+    sys.path.insert(
+        0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api")
+    )
     # Patch heavy imports
-    monkeypatch.setitem(sys.modules, "app.services.session_store", MagicMock(
-        COOKIE_NAME="leo_session",
-        load_session=lambda sid: {"email": "real@example.com"},
-    ))
-    monkeypatch.setitem(sys.modules, "libs.auth.org_scope", MagicMock(
-        CallerScope=MagicMock,
-        resolve_caller_scope=MagicMock(return_value=MagicMock(is_admin=False)),
-    ))
+    monkeypatch.setitem(
+        sys.modules,
+        "app.services.session_store",
+        MagicMock(
+            COOKIE_NAME="leo_session",
+            load_session=lambda sid: {"email": "real@example.com"},
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "libs.auth.org_scope",
+        MagicMock(
+            CallerScope=MagicMock,
+            resolve_caller_scope=MagicMock(return_value=MagicMock(is_admin=False)),
+        ),
+    )
     monkeypatch.setitem(sys.modules, "libs.neo4j_client.client", MagicMock())
 
     from app import deps
+
     sig = inspect.signature(deps.get_caller_scope_from_request)
     param_names = list(sig.parameters.keys())
-    assert "x_user_email" not in param_names, "X-User-Email header param must not exist (GAP-001)"
+    assert (
+        "x_user_email" not in param_names
+    ), "X-User-Email header param must not exist (GAP-001)"
     assert "email" not in param_names, "?email= query param must not exist (GAP-001)"
 
 
@@ -56,13 +74,16 @@ def test_gap001_get_caller_scope_from_request_ignores_x_user_email(monkeypatch):
 # GAP-002: JWKS JWT verification
 # ---------------------------------------------------------------------------
 
+
 def test_gap002_validator_rejects_missing_token():
     """validate_service_token must raise 401 when no Authorization header."""
     from libs.service_auth.validator import validate_service_token
     from fastapi import HTTPException
 
     req = _make_request(headers={})
-    with patch.dict(os.environ, {"THIS_SERVICE_APP_ID": "app-id", "AZURE_AD_TENANT_ID": "tenant-id"}):
+    with patch.dict(
+        os.environ, {"THIS_SERVICE_APP_ID": "app-id", "AZURE_AD_TENANT_ID": "tenant-id"}
+    ):
         with pytest.raises(HTTPException) as exc_info:
             validate_service_token(req)
     assert exc_info.value.status_code == 401
@@ -82,9 +103,12 @@ def test_gap002_validator_skips_when_no_app_id_configured():
 # GAP-003: Admin guard on model registry
 # ---------------------------------------------------------------------------
 
+
 def test_gap003_require_admin_raises_403_for_non_admin():
     """require_admin must raise 403 when scope.is_admin is False."""
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"))
+    sys.path.insert(
+        0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api")
+    )
     monkeypatch_mods = {
         "app.services.session_store": MagicMock(
             COOKIE_NAME="leo_session",
@@ -101,6 +125,7 @@ def test_gap003_require_admin_raises_403_for_non_admin():
 
     from fastapi import HTTPException
     from app.deps import require_admin
+
     scope = MagicMock()
     scope.is_admin = False
     with pytest.raises(HTTPException) as exc_info:
@@ -110,8 +135,11 @@ def test_gap003_require_admin_raises_403_for_non_admin():
 
 def test_gap003_require_admin_passes_for_admin():
     """require_admin must return scope when scope.is_admin is True."""
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"))
+    sys.path.insert(
+        0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api")
+    )
     from app.deps import require_admin
+
     scope = MagicMock()
     scope.is_admin = True
     result = require_admin(scope=scope)
@@ -122,6 +150,7 @@ def test_gap003_require_admin_passes_for_admin():
 # GAP-004: Terminology writeback requires service auth
 # ---------------------------------------------------------------------------
 
+
 def test_gap004_writeback_has_service_auth_dependency():
     """writeback router must declare verify_service_token as a dependency.
 
@@ -130,6 +159,7 @@ def test_gap004_writeback_has_service_auth_dependency():
     """
     import inspect
     from fastapi import Depends
+
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
     mock_mods = {
         "libs.neo4j_client.client": MagicMock(),
@@ -166,6 +196,7 @@ def test_gap004_writeback_has_service_auth_dependency():
 # GAP-005: Cookie secure flag
 # ---------------------------------------------------------------------------
 
+
 def test_gap005_cookie_secure_true_in_production():
     """Cookie secure=True when COOKIE_SECURE=true."""
     with patch.dict(os.environ, {"COOKIE_SECURE": "true"}):
@@ -184,9 +215,15 @@ def test_gap005_cookie_secure_false_when_disabled():
 # GAP-006: Rate limiting (slowapi)
 # ---------------------------------------------------------------------------
 
+
 def test_gap006_slowapi_is_in_requirements():
     """slowapi must appear in services/api/requirements.txt."""
-    reqs_path = __import__("pathlib").Path(__file__).parent.parent / "services" / "api" / "requirements.txt"
+    reqs_path = (
+        __import__("pathlib").Path(__file__).parent.parent
+        / "services"
+        / "api"
+        / "requirements.txt"
+    )
     content = reqs_path.read_text()
     assert "slowapi" in content, "slowapi must be in services/api/requirements.txt"
 
@@ -194,6 +231,7 @@ def test_gap006_slowapi_is_in_requirements():
 # ---------------------------------------------------------------------------
 # GAP-007: Shared-secret inter-service auth
 # ---------------------------------------------------------------------------
+
 
 def test_gap007_verify_service_token_rejects_wrong_secret():
     """verify_service_token must raise 401 when the secret doesn't match."""
@@ -230,8 +268,10 @@ def test_gap007_verify_service_token_skips_when_no_secret():
 # GAP-008: NER de-id pass
 # ---------------------------------------------------------------------------
 
+
 def test_gap008_deid_redacts_nhs_number():
     from libs.deid import deidentify
+
     result = deidentify("Patient NHS number is 943 476 5919 and DOB 12/06/1975.")
     assert "943 476 5919" not in result.text
     assert "[NHS_NO]" in result.text
@@ -239,6 +279,7 @@ def test_gap008_deid_redacts_nhs_number():
 
 def test_gap008_deid_redacts_postcode():
     from libs.deid import deidentify
+
     result = deidentify("Address: 22 Main Street, SW1A 1AA.")
     assert "SW1A 1AA" not in result.text
     assert "[POSTCODE]" in result.text
@@ -246,6 +287,7 @@ def test_gap008_deid_redacts_postcode():
 
 def test_gap008_deid_redacts_phone():
     from libs.deid import deidentify
+
     result = deidentify("Call 07700 900 123 for more info.")
     assert "07700 900 123" not in result.text
     assert "[PHONE]" in result.text
@@ -253,6 +295,7 @@ def test_gap008_deid_redacts_phone():
 
 def test_gap008_deid_no_change_for_clean_text():
     from libs.deid import deidentify
+
     text = "The patient has a history of hypertension and type 2 diabetes."
     result = deidentify(text)
     assert result.text == text
@@ -261,6 +304,7 @@ def test_gap008_deid_no_change_for_clean_text():
 # ---------------------------------------------------------------------------
 # GAP-009: X-Requested-With middleware
 # ---------------------------------------------------------------------------
+
 
 def test_gap009_xhr_middleware_blocks_post_without_header():
     """POST without X-Requested-With must return 403."""
@@ -320,9 +364,12 @@ def test_gap009_xhr_middleware_allows_get():
 # GAP-010: OAuth nonce CSRF protection
 # ---------------------------------------------------------------------------
 
+
 def test_gap010_login_sets_nonce_cookie():
     """The /auth/login handler must set the leo_oauth_nonce cookie."""
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"))
+    sys.path.insert(
+        0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api")
+    )
     mock_mods = {
         "app.services.session_store": MagicMock(
             COOKIE_NAME="leo_session",
@@ -337,18 +384,24 @@ def test_gap010_login_sets_nonce_cookie():
         sys.modules.setdefault(mod, m)
 
     import secrets as _secrets
-    with patch.dict(os.environ, {
-        "AZURE_AD_TENANT_ID": "tenant",
-        "AZURE_AD_CLIENT_ID": "client",
-        "COOKIE_SECURE": "false",
-    }):
+
+    with patch.dict(
+        os.environ,
+        {
+            "AZURE_AD_TENANT_ID": "tenant",
+            "AZURE_AD_CLIENT_ID": "client",
+            "COOKIE_SECURE": "false",
+        },
+    ):
         nonce = _secrets.token_urlsafe(16)
         assert len(nonce) > 0  # nonce is generated
 
 
 def test_gap010_callback_rejects_missing_nonce():
     """The /auth/callback must reject when leo_oauth_nonce cookie is absent."""
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"))
+    sys.path.insert(
+        0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api")
+    )
     mock_mods = {
         "app.services.session_store": MagicMock(
             COOKIE_NAME="leo_session",
@@ -374,9 +427,12 @@ def test_gap010_callback_rejects_missing_nonce():
 # GAP-011: Session hardening + 503 on Redis unavailable
 # ---------------------------------------------------------------------------
 
+
 def test_gap011_save_session_raises_503_when_redis_unavailable():
     """save_session must raise HTTPException(503) when Redis is not configured."""
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"))
+    sys.path.insert(
+        0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api")
+    )
     from fastapi import HTTPException
 
     with patch.dict(os.environ, {}, clear=False):
@@ -384,6 +440,7 @@ def test_gap011_save_session_raises_503_when_redis_unavailable():
         os.environ["DISABLE_REDIS"] = "false"
         # Reset the module-level _redis_client so it re-initialises
         import app.services.session_store as ss
+
         ss._redis_client = None
         with pytest.raises(HTTPException) as exc_info:
             ss.save_session("sid", {"email": "test@example.com"})
@@ -394,17 +451,21 @@ def test_gap011_save_session_raises_503_when_redis_unavailable():
 # GAP-012: FHIR AuditEvent log
 # ---------------------------------------------------------------------------
 
+
 def test_gap012_audit_event_router_registered():
     """The fhir-api must register the /fhir/AuditEvent route."""
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
     mock_mods = {
         "libs.neo4j_client.client": MagicMock(),
-        "libs.auth.service_auth": MagicMock(verify_service_token=MagicMock(return_value=None)),
+        "libs.auth.service_auth": MagicMock(
+            verify_service_token=MagicMock(return_value=None)
+        ),
     }
     for mod, m in mock_mods.items():
         sys.modules.setdefault(mod, m)
 
     from services.fhir_api.app.routers.audit_event import router
+
     paths = [r.path for r in router.routes]
     assert "/AuditEvent" in paths
 
@@ -413,9 +474,13 @@ def test_gap012_audit_event_router_registered():
 # GAP-013: CORS origins from env var
 # ---------------------------------------------------------------------------
 
+
 def test_gap013_allowed_origins_from_env():
     """ALLOWED_ORIGINS env var must control CORS origins in core-api."""
-    with patch.dict(os.environ, {"ALLOWED_ORIGINS": "https://app.example.com,https://admin.example.com"}):
+    with patch.dict(
+        os.environ,
+        {"ALLOWED_ORIGINS": "https://app.example.com,https://admin.example.com"},
+    ):
         raw = os.getenv("ALLOWED_ORIGINS", "")
         origins = [o.strip() for o in raw.split(",") if o.strip()]
     assert "https://app.example.com" in origins
@@ -427,8 +492,10 @@ def test_gap013_allowed_origins_from_env():
 # GAP-014: DEID_LOCAL_ORGS env var
 # ---------------------------------------------------------------------------
 
+
 def test_gap014_deid_redacts_local_org():
     from libs.deid import deidentify
+
     with patch.dict(os.environ, {"DEID_LOCAL_ORGS": "Sunrise Clinic,City GP Practice"}):
         result = deidentify("Referred by Sunrise Clinic to City GP Practice.")
     assert "Sunrise Clinic" not in result.text
@@ -438,6 +505,7 @@ def test_gap014_deid_redacts_local_org():
 
 def test_gap014_deid_no_org_redaction_when_env_not_set():
     from libs.deid import deidentify
+
     with patch.dict(os.environ, {}, clear=False):
         os.environ.pop("DEID_LOCAL_ORGS", None)
         result = deidentify("Referred by Sunrise Clinic to City GP Practice.")

@@ -134,9 +134,7 @@ def _benign_closure_for_episode(
 ) -> date | None:
     """Return earliest benign-closure date within episode window, or None."""
     after_date = ref_date.isoformat()
-    before_date = (
-        ref_date + timedelta(days=cfg.MAX_BENIGN_CLOSURE_DAYS)
-    ).isoformat()
+    before_date = (ref_date + timedelta(days=cfg.MAX_BENIGN_CLOSURE_DAYS)).isoformat()
 
     if anchors.benign_closure_anchors:
         valid = [

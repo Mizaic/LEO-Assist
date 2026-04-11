@@ -26,6 +26,7 @@ Usage
 Do NOT run this script more than once. Holdout set is immutable after
 selection. To verify current holdout set use --verify-only.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -65,8 +66,15 @@ TOTAL_HOLDOUT = 500
 DOMAINS: dict[str, dict[str, Any]] = {
     "oncology": {
         "keywords": [
-            "cancer", "carcinoma", "malignant", "tumour", "tumor",
-            "leukaemia", "lymphoma", "melanoma", "neoplasm",
+            "cancer",
+            "carcinoma",
+            "malignant",
+            "tumour",
+            "tumor",
+            "leukaemia",
+            "lymphoma",
+            "melanoma",
+            "neoplasm",
         ],
         "target": 65,
         "min_required": 20,
@@ -75,8 +83,14 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "mental_health": {
         "keywords": [
-            "depression", "anxiety", "schizophrenia", "bipolar", "psychosis",
-            "mental health", "ptsd", "eating disorder",
+            "depression",
+            "anxiety",
+            "schizophrenia",
+            "bipolar",
+            "psychosis",
+            "mental health",
+            "ptsd",
+            "eating disorder",
         ],
         "target": 60,
         "min_required": 20,
@@ -85,8 +99,14 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "safeguarding": {
         "keywords": [
-            "self-harm", "suicidal", "safeguarding", "suicide", "self harm",
-            "overdose", "crisis", "at risk",
+            "self-harm",
+            "suicidal",
+            "safeguarding",
+            "suicide",
+            "self harm",
+            "overdose",
+            "crisis",
+            "at risk",
         ],
         "target": 25,
         "min_required": 20,
@@ -95,8 +115,15 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "respiratory": {
         "keywords": [
-            "asthma", "copd", "pneumonia", "bronchitis", "respiratory",
-            "lung", "pleural", "emphysema", "dyspnoea",
+            "asthma",
+            "copd",
+            "pneumonia",
+            "bronchitis",
+            "respiratory",
+            "lung",
+            "pleural",
+            "emphysema",
+            "dyspnoea",
         ],
         "target": 60,
         "min_required": 0,
@@ -105,8 +132,14 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "cardiovascular": {
         "keywords": [
-            "heart failure", "atrial fibrillation", "hypertension",
-            "coronary", "angina", "myocardial", "cardiac", "stroke",
+            "heart failure",
+            "atrial fibrillation",
+            "hypertension",
+            "coronary",
+            "angina",
+            "myocardial",
+            "cardiac",
+            "stroke",
         ],
         "target": 60,
         "min_required": 0,
@@ -115,8 +148,13 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "musculoskeletal": {
         "keywords": [
-            "arthritis", "osteoporosis", "fracture", "back pain",
-            "musculoskeletal", "joint", "rheumatoid",
+            "arthritis",
+            "osteoporosis",
+            "fracture",
+            "back pain",
+            "musculoskeletal",
+            "joint",
+            "rheumatoid",
         ],
         "target": 50,
         "min_required": 0,
@@ -125,8 +163,13 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "endocrine": {
         "keywords": [
-            "diabetes", "thyroid", "hyperthyroid", "hypothyroid",
-            "adrenal", "insulin", "hba1c",
+            "diabetes",
+            "thyroid",
+            "hyperthyroid",
+            "hypothyroid",
+            "adrenal",
+            "insulin",
+            "hba1c",
         ],
         "target": 50,
         "min_required": 0,
@@ -135,8 +178,16 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "gastrointestinal": {
         "keywords": [
-            "ibs", "crohn", "colitis", "gastro", "reflux", "bowel",
-            "hepatitis", "liver", "gallstone", "coeliac",
+            "ibs",
+            "crohn",
+            "colitis",
+            "gastro",
+            "reflux",
+            "bowel",
+            "hepatitis",
+            "liver",
+            "gallstone",
+            "coeliac",
         ],
         "target": 50,
         "min_required": 0,
@@ -145,8 +196,14 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
     "dermatology": {
         "keywords": [
-            "eczema", "psoriasis", "dermatitis", "rash", "acne",
-            "urticaria", "cellulitis", "wound",
+            "eczema",
+            "psoriasis",
+            "dermatitis",
+            "rash",
+            "acne",
+            "urticaria",
+            "cellulitis",
+            "wound",
         ],
         "target": 30,
         "min_required": 0,
@@ -280,7 +337,9 @@ def _mark_holdout(
         total_updated += updated
         logger.info(
             "Batch %d-%d: marked %d DOCUMENTS relationships",
-            i, i + len(batch), updated,
+            i,
+            i + len(batch),
+            updated,
         )
     return total_updated
 
@@ -368,7 +427,9 @@ def main() -> None:
     if args.verify_only:
         rows = client.run(_Q_VERIFY_HOLDOUT)
         count = rows[0]["holdout_encounter_count"] if rows else 0
-        logger.info("Existing holdout encounters: %d (target: %d)", count, TOTAL_HOLDOUT)
+        logger.info(
+            "Existing holdout encounters: %d (target: %d)", count, TOTAL_HOLDOUT
+        )
         return
 
     existing = _check_existing_holdout(client)
@@ -389,17 +450,18 @@ def main() -> None:
         sys.exit(1)
 
     set_date = datetime.utcnow().isoformat() + "Z"
-    logger.info("Selecting %d holdout encounters across %d domains...",
-                TOTAL_HOLDOUT, len(DOMAINS))
+    logger.info(
+        "Selecting %d holdout encounters across %d domains...",
+        TOTAL_HOLDOUT,
+        len(DOMAINS),
+    )
 
     selected = _select_stratified(client)
     total_selected = sum(len(v) for v in selected.values())
     logger.info("Total encounters selected: %d", total_selected)
 
     all_encounter_ids = [
-        enc["encounter_id"]
-        for encs in selected.values()
-        for enc in encs
+        enc["encounter_id"] for encs in selected.values() for enc in encs
     ]
 
     total_marked = _mark_holdout(client, all_encounter_ids, set_date, args.dry_run)

@@ -17,10 +17,10 @@ from services.coding_worker.app.pipeline.extractor_contract import (
     ExtractorProvider,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_item(**kwargs) -> ExtractionItem:
     defaults = dict(
@@ -51,14 +51,22 @@ class _StubProvider:
     def is_available(self) -> bool:
         return True
 
-    def extract_batch(self, encounter_text: str, sentences: list) -> list[ExtractionItem]:
-        return [make_item(source=self.source, model_name=self.model_name,
-                          model_version=self.model_version)]
+    def extract_batch(
+        self, encounter_text: str, sentences: list
+    ) -> list[ExtractionItem]:
+        return [
+            make_item(
+                source=self.source,
+                model_name=self.model_name,
+                model_version=self.model_version,
+            )
+        ]
 
 
 # ---------------------------------------------------------------------------
 # Protocol checks
 # ---------------------------------------------------------------------------
+
 
 def test_stub_satisfies_protocol():
     provider = _StubProvider()
@@ -105,11 +113,13 @@ def test_with_provenance_preserves_other_fields():
 # LLMExtractorProvider
 # ---------------------------------------------------------------------------
 
+
 def test_llm_provider_satisfies_protocol():
     """LLMExtractorProvider must satisfy ExtractorProvider at import time."""
     from services.coding_worker.app.pipeline.providers.llm_provider import (
         LLMExtractorProvider,
     )
+
     provider = LLMExtractorProvider()
     assert isinstance(provider, ExtractorProvider)
     assert provider.source == "llm"
@@ -122,6 +132,7 @@ def test_llm_provider_is_available_without_credentials():
     from services.coding_worker.app.pipeline.providers.llm_provider import (
         LLMExtractorProvider,
     )
+
     provider = LLMExtractorProvider()
     # Without real AWS creds this returns False — must not raise
     result = provider.is_available()
@@ -132,10 +143,12 @@ def test_llm_provider_is_available_without_credentials():
 # ModelExtractorProvider
 # ---------------------------------------------------------------------------
 
+
 def test_model_provider_satisfies_protocol():
     from services.coding_worker.app.pipeline.providers.model_provider import (
         ModelExtractorProvider,
     )
+
     provider = ModelExtractorProvider()
     assert isinstance(provider, ExtractorProvider)
     assert provider.source == "model"
@@ -155,6 +168,7 @@ def test_model_provider_service_unavailable_returns_false(monkeypatch):
     from services.coding_worker.app.pipeline.providers.model_provider import (
         ModelExtractorProvider,
     )
+
     provider = ModelExtractorProvider()
     assert not provider.is_available()
 
@@ -162,6 +176,7 @@ def test_model_provider_service_unavailable_returns_false(monkeypatch):
 # ---------------------------------------------------------------------------
 # ExtractionItem equality and hashing
 # ---------------------------------------------------------------------------
+
 
 def test_extraction_item_equality():
     a = make_item()

@@ -21,6 +21,7 @@ Usage
 -----
   python scripts/investigations/_fix_wrong_situation_orphans.py [--dry-run]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,20 +34,22 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
+
 load_keyvault_secrets()
 
 import requests
 from neo4j import GraphDatabase
 
-kg_uri  = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI",      "bolt://localhost:7688")
+kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "bolt://localhost:7688")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
-_API    = "http://localhost:8001"
-_TOKEN  = os.getenv("SERVICE_TOKEN", "")
+_API = "http://localhost:8001"
+_TOKEN = os.getenv("SERVICE_TOKEN", "")
 
 # ---------------------------------------------------------------------------
 # A: Delete ALL GCL edges to 'Parent has physical disability' unless form
@@ -73,8 +76,17 @@ RETURN count(*) AS deleted
 # 'history of', 'past', 'previous', 'old', 'healed', 'h/o' etc.
 # ---------------------------------------------------------------------------
 _HISTORY_PREFIXES = [
-    "history of ", "h/o ", "hx ", "hx. ", "past ", "previous ",
-    "old ", "healed ", "prior ", "pre-existing ", "former ",
+    "history of ",
+    "h/o ",
+    "hx ",
+    "hx. ",
+    "past ",
+    "previous ",
+    "old ",
+    "healed ",
+    "prior ",
+    "pre-existing ",
+    "former ",
 ]
 _WRONG_SITUATION_MAP = {
     "161445009": "History of diabetes mellitus",
@@ -118,123 +130,199 @@ RETURN count(*) AS deleted
 # ---------------------------------------------------------------------------
 _CORRECT_MAPPINGS = [
     # Neurological paralysis/weakness -> correct SNOMED disorder/finding
-    ("Hemiplegia",                "50582007",  "Hemiplegia (disorder)"),
-    ("Hemiparesis",               "278286009",  "Hemiparesis (finding)"),
-    ("Hemiparetic",               "278286009",  "Hemiparesis (finding)"),
-    ("Hemiplegic",                "50582007",  "Hemiplegia (disorder)"),
-    ("Left hemiplegia",           "193093009",  "Left hemiplegia (disorder)"),
-    ("Right hemiplegia",          "193092004",  "Right hemiplegia (disorder)"),
-    ("Left-sided weakness",       "278286009",  "Hemiparesis (finding)"),
-    ("Right-sided weakness",      "278286009",  "Hemiparesis (finding)"),
-    ("Paraplegia",                "60654006",   "Paraplegia (disorder)"),
-    ("Paraplegic",                "60654006",   "Paraplegia (disorder)"),
-    ("Paraparesis",               "26538006",   "Paraparesis (finding)"),
-    ("Quadriplegia",              "363456007",  "Quadriplegia (disorder)"),
-    ("Quadriplegic",              "363456007",  "Quadriplegia (disorder)"),
-    ("Quadriparesis",             "44695005",   "Quadriparesis (finding)"),
-    ("Tetraparesis",              "44695005",   "Quadriparesis (finding)"),
-    ("Tetraplegic",               "363456007",  "Quadriplegia (disorder)"),
-    ("Monoplegia",                "65988001",   "Monoplegia (disorder)"),
-    ("Monoplegic",                "65988001",   "Monoplegia (disorder)"),
-    ("Monoparesis",               "20022007",   "Monoparesis (finding)"),
-    ("Diplegia",                  "9482001",    "Diplegia (disorder)"),
-    ("Diplegic",                  "9482001",    "Diplegia (disorder)"),
-    ("Spastic diplegia",          "43171001",   "Spastic diplegia (disorder)"),
-    ("Spastic hemiplegia",        "38484009",   "Spastic hemiplegia (disorder)"),
-    ("Dense hemiplegia",          "50582007",   "Hemiplegia (disorder)"),
-    ("Flaccid hemiplegia",        "1734006",    "Flaccid hemiplegia (disorder)"),
-    ("Spinal cord injury",        "90584004",   "Injury of spinal cord (disorder)"),
-    ("Paralysis of legs",         "60654006",   "Paraplegia (disorder)"),
-    ("Paralysed legs",            "60654006",   "Paraplegia (disorder)"),
-    ("Lower limb paralysis",      "60654006",   "Paraplegia (disorder)"),
-    ("B/L lower limb paralysis",  "60654006",   "Paraplegia (disorder)"),
-    ("Paralysed",                 "44695005",   "Quadriparesis (finding)"),
-    ("Paralyzed",                 "44695005",   "Quadriparesis (finding)"),
-    ("Paralyzed from waist down", "60654006",   "Paraplegia (disorder)"),
-    ("Paralysis of all four limbs","363456007", "Quadriplegia (disorder)"),
-    ("Single limb paralysis",     "65988001",   "Monoplegia (disorder)"),
-    ("Unilateral paralysis",      "65988001",   "Monoplegia (disorder)"),
-    ("Unilateral weakness",       "278286009",  "Hemiparesis (finding)"),
-    ("Post-stroke paralysis",     "50582007",   "Hemiplegia (disorder)"),
-    ("Stroke with hemiparesis",   "278286009",  "Hemiparesis (finding)"),
-    ("CVA with hemiplegia",       "50582007",   "Hemiplegia (disorder)"),
-    ("LMN paralysis",             "75508008",   "Lower motor neuron disorder (disorder)"),
-    ("UMN weakness",              "57920002",   "Upper motor neuron disorder (disorder)"),
-    ("Lower motor neuron lesion", "75508008",   "Lower motor neuron disorder (disorder)"),
-    ("Upper motor neuron lesion", "57920002",   "Upper motor neuron disorder (disorder)"),
-    ("Cauda equina syndrome",     "192970008",  "Cauda equina syndrome (disorder)"),
+    ("Hemiplegia", "50582007", "Hemiplegia (disorder)"),
+    ("Hemiparesis", "278286009", "Hemiparesis (finding)"),
+    ("Hemiparetic", "278286009", "Hemiparesis (finding)"),
+    ("Hemiplegic", "50582007", "Hemiplegia (disorder)"),
+    ("Left hemiplegia", "193093009", "Left hemiplegia (disorder)"),
+    ("Right hemiplegia", "193092004", "Right hemiplegia (disorder)"),
+    ("Left-sided weakness", "278286009", "Hemiparesis (finding)"),
+    ("Right-sided weakness", "278286009", "Hemiparesis (finding)"),
+    ("Paraplegia", "60654006", "Paraplegia (disorder)"),
+    ("Paraplegic", "60654006", "Paraplegia (disorder)"),
+    ("Paraparesis", "26538006", "Paraparesis (finding)"),
+    ("Quadriplegia", "363456007", "Quadriplegia (disorder)"),
+    ("Quadriplegic", "363456007", "Quadriplegia (disorder)"),
+    ("Quadriparesis", "44695005", "Quadriparesis (finding)"),
+    ("Tetraparesis", "44695005", "Quadriparesis (finding)"),
+    ("Tetraplegic", "363456007", "Quadriplegia (disorder)"),
+    ("Monoplegia", "65988001", "Monoplegia (disorder)"),
+    ("Monoplegic", "65988001", "Monoplegia (disorder)"),
+    ("Monoparesis", "20022007", "Monoparesis (finding)"),
+    ("Diplegia", "9482001", "Diplegia (disorder)"),
+    ("Diplegic", "9482001", "Diplegia (disorder)"),
+    ("Spastic diplegia", "43171001", "Spastic diplegia (disorder)"),
+    ("Spastic hemiplegia", "38484009", "Spastic hemiplegia (disorder)"),
+    ("Dense hemiplegia", "50582007", "Hemiplegia (disorder)"),
+    ("Flaccid hemiplegia", "1734006", "Flaccid hemiplegia (disorder)"),
+    ("Spinal cord injury", "90584004", "Injury of spinal cord (disorder)"),
+    ("Paralysis of legs", "60654006", "Paraplegia (disorder)"),
+    ("Paralysed legs", "60654006", "Paraplegia (disorder)"),
+    ("Lower limb paralysis", "60654006", "Paraplegia (disorder)"),
+    ("B/L lower limb paralysis", "60654006", "Paraplegia (disorder)"),
+    ("Paralysed", "44695005", "Quadriparesis (finding)"),
+    ("Paralyzed", "44695005", "Quadriparesis (finding)"),
+    ("Paralyzed from waist down", "60654006", "Paraplegia (disorder)"),
+    ("Paralysis of all four limbs", "363456007", "Quadriplegia (disorder)"),
+    ("Single limb paralysis", "65988001", "Monoplegia (disorder)"),
+    ("Unilateral paralysis", "65988001", "Monoplegia (disorder)"),
+    ("Unilateral weakness", "278286009", "Hemiparesis (finding)"),
+    ("Post-stroke paralysis", "50582007", "Hemiplegia (disorder)"),
+    ("Stroke with hemiparesis", "278286009", "Hemiparesis (finding)"),
+    ("CVA with hemiplegia", "50582007", "Hemiplegia (disorder)"),
+    ("LMN paralysis", "75508008", "Lower motor neuron disorder (disorder)"),
+    ("UMN weakness", "57920002", "Upper motor neuron disorder (disorder)"),
+    ("Lower motor neuron lesion", "75508008", "Lower motor neuron disorder (disorder)"),
+    ("Upper motor neuron lesion", "57920002", "Upper motor neuron disorder (disorder)"),
+    ("Cauda equina syndrome", "192970008", "Cauda equina syndrome (disorder)"),
     # Diabetes forms
-    ("Diabetes mellitus type 1",  "46635009",   "Diabetes mellitus type 1 (disorder)"),
-    ("Diabetes mellitus type 1 (disorder)", "46635009", "Diabetes mellitus type 1 (disorder)"),
-    ("Diabetes mellitus type 2",  "44054006",   "Diabetes mellitus type 2 (disorder)"),
-    ("Diabetes mellitus type 2 (disorder)", "44054006", "Diabetes mellitus type 2 (disorder)"),
-    ("Type 1 diabetes",           "46635009",   "Diabetes mellitus type 1 (disorder)"),
-    ("DM",                        "73211009",   "Diabetes mellitus (disorder)"),
+    ("Diabetes mellitus type 1", "46635009", "Diabetes mellitus type 1 (disorder)"),
+    (
+        "Diabetes mellitus type 1 (disorder)",
+        "46635009",
+        "Diabetes mellitus type 1 (disorder)",
+    ),
+    ("Diabetes mellitus type 2", "44054006", "Diabetes mellitus type 2 (disorder)"),
+    (
+        "Diabetes mellitus type 2 (disorder)",
+        "44054006",
+        "Diabetes mellitus type 2 (disorder)",
+    ),
+    ("Type 1 diabetes", "46635009", "Diabetes mellitus type 1 (disorder)"),
+    ("DM", "73211009", "Diabetes mellitus (disorder)"),
     # Rheumatological
-    ("Lupus",                     "55464009",   "Systemic lupus erythematosus (disorder)"),
-    ("SLE",                       "55464009",   "Systemic lupus erythematosus (disorder)"),
-    ("Systemic lupus erythematosus", "55464009", "Systemic lupus erythematosus (disorder)"),
-    ("Systemic lupus erythematosus (disorder)", "55464009", "Systemic lupus erythematosus (disorder)"),
-    ("PMR",                       "61350008",   "Polymyalgia rheumatica (disorder)"),
-    ("Polymyalgia rheumatica",    "61350008",   "Polymyalgia rheumatica (disorder)"),
-    ("Polymyalgia rheumatica (disorder)", "61350008", "Polymyalgia rheumatica (disorder)"),
-    ("Polymyositis",              "31384009",   "Polymyositis (disorder)"),
-    ("Polymyositis (disorder)",   "31384009",   "Polymyositis (disorder)"),
-    ("Scleroderma",               "89155008",   "Systemic sclerosis (disorder)"),
-    ("Systemic sclerosis",        "89155008",   "Systemic sclerosis (disorder)"),
+    ("Lupus", "55464009", "Systemic lupus erythematosus (disorder)"),
+    ("SLE", "55464009", "Systemic lupus erythematosus (disorder)"),
+    (
+        "Systemic lupus erythematosus",
+        "55464009",
+        "Systemic lupus erythematosus (disorder)",
+    ),
+    (
+        "Systemic lupus erythematosus (disorder)",
+        "55464009",
+        "Systemic lupus erythematosus (disorder)",
+    ),
+    ("PMR", "61350008", "Polymyalgia rheumatica (disorder)"),
+    ("Polymyalgia rheumatica", "61350008", "Polymyalgia rheumatica (disorder)"),
+    (
+        "Polymyalgia rheumatica (disorder)",
+        "61350008",
+        "Polymyalgia rheumatica (disorder)",
+    ),
+    ("Polymyositis", "31384009", "Polymyositis (disorder)"),
+    ("Polymyositis (disorder)", "31384009", "Polymyositis (disorder)"),
+    ("Scleroderma", "89155008", "Systemic sclerosis (disorder)"),
+    ("Systemic sclerosis", "89155008", "Systemic sclerosis (disorder)"),
     ("Systemic sclerosis (disorder)", "89155008", "Systemic sclerosis (disorder)"),
     ("Rheumatoid arthritis (disorder)", "69896004", "Rheumatoid arthritis (disorder)"),
     # Vascular / cardiac
-    ("Cerebrovascular accident",  "230690007",  "Cerebrovascular accident (disorder)"),
-    ("Cerebrovascular accident (disorder)", "230690007", "Cerebrovascular accident (disorder)"),
-    ("Transient ischemic attack", "266257000",  "Transient ischemic attack (disorder)"),
-    ("Transient ischemic attack (disorder)", "266257000", "Transient ischemic attack (disorder)"),
-    ("Mini stroke",               "266257000",  "Transient ischemic attack (disorder)"),
-    ("AAA",                       "233985008",  "Abdominal aortic aneurysm (disorder)"),
-    ("Abdominal aortic aneurysm", "233985008",  "Abdominal aortic aneurysm (disorder)"),
-    ("Abdominal aortic aneurysm (disorder)", "233985008", "Abdominal aortic aneurysm (disorder)"),
-    ("Intermittent claudication", "29819009",   "Intermittent claudication (disorder)"),
-    ("Intermittent claudication (finding)", "29819009", "Intermittent claudication (disorder)"),
-    ("Peripheral vascular disease", "400047006", "Peripheral vascular disease (disorder)"),
-    ("Peripheral vascular disease (disorder)", "400047006", "Peripheral vascular disease (disorder)"),
+    ("Cerebrovascular accident", "230690007", "Cerebrovascular accident (disorder)"),
+    (
+        "Cerebrovascular accident (disorder)",
+        "230690007",
+        "Cerebrovascular accident (disorder)",
+    ),
+    ("Transient ischemic attack", "266257000", "Transient ischemic attack (disorder)"),
+    (
+        "Transient ischemic attack (disorder)",
+        "266257000",
+        "Transient ischemic attack (disorder)",
+    ),
+    ("Mini stroke", "266257000", "Transient ischemic attack (disorder)"),
+    ("AAA", "233985008", "Abdominal aortic aneurysm (disorder)"),
+    ("Abdominal aortic aneurysm", "233985008", "Abdominal aortic aneurysm (disorder)"),
+    (
+        "Abdominal aortic aneurysm (disorder)",
+        "233985008",
+        "Abdominal aortic aneurysm (disorder)",
+    ),
+    ("Intermittent claudication", "29819009", "Intermittent claudication (disorder)"),
+    (
+        "Intermittent claudication (finding)",
+        "29819009",
+        "Intermittent claudication (disorder)",
+    ),
+    (
+        "Peripheral vascular disease",
+        "400047006",
+        "Peripheral vascular disease (disorder)",
+    ),
+    (
+        "Peripheral vascular disease (disorder)",
+        "400047006",
+        "Peripheral vascular disease (disorder)",
+    ),
     # Neurological
-    ("Alzheimer's",               "26929004",   "Alzheimer's disease (disorder)"),
+    ("Alzheimer's", "26929004", "Alzheimer's disease (disorder)"),
     ("Alzheimer's disease (disorder)", "26929004", "Alzheimer's disease (disorder)"),
-    ("Vascular dementia",         "429998004",  "Vascular dementia (disorder)"),
+    ("Vascular dementia", "429998004", "Vascular dementia (disorder)"),
     ("Vascular dementia (disorder)", "429998004", "Vascular dementia (disorder)"),
-    ("Dementia (disorder)",       "52448006",   "Dementia (disorder)"),
+    ("Dementia (disorder)", "52448006", "Dementia (disorder)"),
     # Respiratory
-    ("Asthma (disorder)",         "195967001",  "Asthma (disorder)"),
-    ("Chronic bronchitis",        "63480004",   "Chronic bronchitis (disorder)"),
-    ("Emphysema",                 "49601000",   "Emphysema (disorder)"),
-    ("Pulmonary emphysema",       "49601000",   "Emphysema (disorder)"),
+    ("Asthma (disorder)", "195967001", "Asthma (disorder)"),
+    ("Chronic bronchitis", "63480004", "Chronic bronchitis (disorder)"),
+    ("Emphysema", "49601000", "Emphysema (disorder)"),
+    ("Pulmonary emphysema", "49601000", "Emphysema (disorder)"),
     ("Pulmonary emphysema (disorder)", "49601000", "Emphysema (disorder)"),
-    ("Chronic obstructive lung disease", "13645005", "Chronic obstructive pulmonary disease (disorder)"),
-    ("Chronic obstructive lung disease (disorder)", "13645005", "Chronic obstructive pulmonary disease (disorder)"),
+    (
+        "Chronic obstructive lung disease",
+        "13645005",
+        "Chronic obstructive pulmonary disease (disorder)",
+    ),
+    (
+        "Chronic obstructive lung disease (disorder)",
+        "13645005",
+        "Chronic obstructive pulmonary disease (disorder)",
+    ),
     # Hepatic
-    ("Chronic hepatitis",         "10295004",   "Chronic hepatitis (disorder)"),
-    ("Hepatitis B",               "66071002",   "Hepatitis B (disorder)"),
-    ("Hepatitis C",               "50711007",   "Hepatitis C (disorder)"),
+    ("Chronic hepatitis", "10295004", "Chronic hepatitis (disorder)"),
+    ("Hepatitis B", "66071002", "Hepatitis B (disorder)"),
+    ("Hepatitis C", "50711007", "Hepatitis C (disorder)"),
     ("Nonalcoholic fatty liver disease", "197321007", "Steatosis of liver (disorder)"),
-    ("Steatosis of liver",        "197321007",  "Steatosis of liver (disorder)"),
+    ("Steatosis of liver", "197321007", "Steatosis of liver (disorder)"),
     ("Steatosis of liver (disorder)", "197321007", "Steatosis of liver (disorder)"),
     # Renal
-    ("Chronic kidney disease (disorder)", "709044004", "Chronic kidney disease (disorder)"),
-    ("Chronic kidney disease stage 3 (disorder)", "433144002", "Chronic kidney disease stage 3 (disorder)"),
-    ("Chronic kidney disease stage 4 (disorder)", "431857002", "Chronic kidney disease stage 4 (disorder)"),
-    ("Chronic kidney disease stage 5 (disorder)", "433146000", "Chronic kidney disease stage 5 (disorder)"),
-    ("ESRD",                      "433146000",  "Chronic kidney disease stage 5 (disorder)"),
-    ("End stage renal disease",   "433146000",  "Chronic kidney disease stage 5 (disorder)"),
-    ("End stage renal disease (disorder)", "433146000", "Chronic kidney disease stage 5 (disorder)"),
+    (
+        "Chronic kidney disease (disorder)",
+        "709044004",
+        "Chronic kidney disease (disorder)",
+    ),
+    (
+        "Chronic kidney disease stage 3 (disorder)",
+        "433144002",
+        "Chronic kidney disease stage 3 (disorder)",
+    ),
+    (
+        "Chronic kidney disease stage 4 (disorder)",
+        "431857002",
+        "Chronic kidney disease stage 4 (disorder)",
+    ),
+    (
+        "Chronic kidney disease stage 5 (disorder)",
+        "433146000",
+        "Chronic kidney disease stage 5 (disorder)",
+    ),
+    ("ESRD", "433146000", "Chronic kidney disease stage 5 (disorder)"),
+    (
+        "End stage renal disease",
+        "433146000",
+        "Chronic kidney disease stage 5 (disorder)",
+    ),
+    (
+        "End stage renal disease (disorder)",
+        "433146000",
+        "Chronic kidney disease stage 5 (disorder)",
+    ),
     # GI
-    ("Peptic ulcer",              "13200003",   "Peptic ulcer (disorder)"),
-    ("Peptic ulcer (disorder)",   "13200003",   "Peptic ulcer (disorder)"),
-    ("Gastric ulcer",             "397825006",  "Gastric ulcer (disorder)"),
-    ("Gastric ulcer (disorder)",  "397825006",  "Gastric ulcer (disorder)"),
-    ("Duodenal ulcer",            "51868009",   "Duodenal ulcer (disorder)"),
-    ("Duodenal ulcer (disorder)", "51868009",   "Duodenal ulcer (disorder)"),
-    ("Stomach ulcer",             "397825006",  "Gastric ulcer (disorder)"),
-    ("PUD",                       "13200003",   "Peptic ulcer (disorder)"),
+    ("Peptic ulcer", "13200003", "Peptic ulcer (disorder)"),
+    ("Peptic ulcer (disorder)", "13200003", "Peptic ulcer (disorder)"),
+    ("Gastric ulcer", "397825006", "Gastric ulcer (disorder)"),
+    ("Gastric ulcer (disorder)", "397825006", "Gastric ulcer (disorder)"),
+    ("Duodenal ulcer", "51868009", "Duodenal ulcer (disorder)"),
+    ("Duodenal ulcer (disorder)", "51868009", "Duodenal ulcer (disorder)"),
+    ("Stomach ulcer", "397825006", "Gastric ulcer (disorder)"),
+    ("PUD", "13200003", "Peptic ulcer (disorder)"),
 ]
 
 

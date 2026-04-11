@@ -21,9 +21,21 @@ class TestCCIScoring:
         instance = MockPG.return_value
         instance.run.side_effect = [
             [
-                {"concept_name": "Congestive heart failure", "concept_id": "42343007", "semantic_tag": "disorder"},
-                {"concept_name": "Diabetes without complications", "concept_id": "73211009", "semantic_tag": "disorder"},
-                {"concept_name": "Metastatic cancer", "concept_id": "128462008", "semantic_tag": "disorder"},
+                {
+                    "concept_name": "Congestive heart failure",
+                    "concept_id": "42343007",
+                    "semantic_tag": "disorder",
+                },
+                {
+                    "concept_name": "Diabetes without complications",
+                    "concept_id": "73211009",
+                    "semantic_tag": "disorder",
+                },
+                {
+                    "concept_name": "Metastatic cancer",
+                    "concept_id": "128462008",
+                    "semantic_tag": "disorder",
+                },
             ],
             [],
         ]
@@ -37,11 +49,18 @@ class TestCCIScoring:
     def test_cci_no_matches(self, MockPG):
         instance = MockPG.return_value
         instance.run.side_effect = [
-            [{"concept_name": "Common cold", "concept_id": "123", "semantic_tag": "disorder"}],
+            [
+                {
+                    "concept_name": "Common cold",
+                    "concept_id": "123",
+                    "semantic_tag": "disorder",
+                }
+            ],
             [],
         ]
 
         from services.analytics_api.app.routers.cci import calculate_cci
+
         result = calculate_cci("patient-2")
         assert result["cci_score"] == 0
         assert len(result["matched_conditions"]) == 0
@@ -55,6 +74,7 @@ class TestCCIScoring:
         ]
 
         from services.analytics_api.app.routers.cci import calculate_cci
+
         result = calculate_cci("patient-3")
         assert result["cci_score"] == 0
 
@@ -82,15 +102,18 @@ class TestBenchmarks:
     @patch("services.analytics_api.app.routers.benchmarks.PatientGraphClient")
     def test_kpi_benchmarks_returns_data(self, MockPG):
         instance = MockPG.return_value
-        instance.run.return_value = [{
-            "avg_days_to_referral": 12.5,
-            "avg_days_to_diagnosis": 25.3,
-            "avg_days_to_treatment": 35.1,
-            "avg_consultations": 3.2,
-            "episode_count": 150,
-        }]
+        instance.run.return_value = [
+            {
+                "avg_days_to_referral": 12.5,
+                "avg_days_to_diagnosis": 25.3,
+                "avg_days_to_treatment": 35.1,
+                "avg_consultations": 3.2,
+                "episode_count": 150,
+            }
+        ]
 
         from services.analytics_api.app.routers.benchmarks import kpi_benchmarks
+
         result = kpi_benchmarks(org_id=None)
         assert len(result) == 1
         assert result[0]["episode_count"] == 150
@@ -100,6 +123,7 @@ class TestBenchmarks:
         MockPG.return_value.run.return_value = []
 
         from services.analytics_api.app.routers.benchmarks import kpi_benchmarks
+
         kpi_benchmarks(org_id=None)
 
         query = MockPG.return_value.run.call_args[0][0]
@@ -111,6 +135,7 @@ class TestBenchmarks:
         MockPG.return_value.run.return_value = []
 
         from services.analytics_api.app.routers.benchmarks import kpi_benchmarks
+
         kpi_benchmarks(org_id="org-1")
 
         query = MockPG.return_value.run.call_args[0][0]
@@ -123,6 +148,7 @@ class TestBenchmarks:
         MockPG.return_value.run.return_value = []
 
         from services.analytics_api.app.routers.benchmarks import peer_comparison
+
         peer_comparison(org_id="org-1")
 
         query = MockPG.return_value.run.call_args[0][0]
@@ -134,6 +160,7 @@ class TestBenchmarks:
         MockPG.return_value.run.return_value = []
 
         from services.analytics_api.app.routers.benchmarks import kpi_trends
+
         kpi_trends(org_id="org-1")
 
         query = MockPG.return_value.run.call_args[0][0]
@@ -145,6 +172,7 @@ class TestBenchmarks:
         MockPG.return_value.run.return_value = []
 
         from services.analytics_api.app.routers.benchmarks import kpi_trends
+
         kpi_trends(org_id=None)
 
         query = MockPG.return_value.run.call_args[0][0]
@@ -155,6 +183,7 @@ class TestBenchmarks:
         MockPG.return_value.run.return_value = []
 
         from services.analytics_api.app.routers.benchmarks import kpi_benchmarks
+
         kpi_benchmarks(org_id=None)
 
         MockPG.return_value.close.assert_called_once()
