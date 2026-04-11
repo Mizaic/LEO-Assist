@@ -15,8 +15,7 @@ WITH collect(DISTINCT c) AS candidates,
      collect(DISTINCT chg) AS changes
 WITH [x IN (candidates + tasks + approvals + changes) WHERE x IS NOT NULL | x] AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -33,8 +32,7 @@ WITH collect(DISTINCT c) AS candidates,
      collect(DISTINCT chg) AS changes
 WITH [x IN (candidates + tasks + approvals + changes) WHERE x IS NOT NULL | x] AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -43,8 +41,7 @@ MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
 WHERE toString(p.id) = $patient_id
 WITH collect(r) AS rels
 WITH rels, size(rels) AS links_deleted
-UNWIND rels AS rel
-DELETE rel
+FOREACH (rel IN rels | DELETE rel)
 RETURN links_deleted
 """
 
@@ -53,8 +50,7 @@ MATCH (p:Patient)-[r:HAS_FINDING|HAS_DISORDER|HAS_SITUATION|HAS_OBSERVABLE|HAS_P
 WHERE toString(p.id) = $patient_id
 WITH collect(r) AS rels
 WITH rels, size(rels) AS direct_deleted
-UNWIND rels AS rel
-DELETE rel
+FOREACH (rel IN rels | DELETE rel)
 RETURN direct_deleted
 """
 
@@ -63,8 +59,7 @@ MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)--(u:LLMUsage)
 WHERE toString(p.id) = $patient_id
 WITH collect(DISTINCT u) AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -77,8 +72,7 @@ MATCH (d:CodingDecision)
 WHERE d.decision_id STARTS WITH ('dec:' + eid + ':')
 WITH collect(d) AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -100,8 +94,7 @@ WITH linked_alerts, collect(DISTINCT a) AS direct_alerts
 WITH linked_alerts + direct_alerts AS alerts
 WITH [x IN alerts WHERE x IS NOT NULL | x] AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -115,8 +108,7 @@ WITH linked_episodes, collect(DISTINCT ep) AS direct_episodes
 WITH linked_episodes + direct_episodes AS episodes
 WITH [x IN episodes WHERE x IS NOT NULL | x] AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -130,8 +122,7 @@ WITH linked_alerts, collect(DISTINCT a) AS direct_alerts
 WITH linked_alerts + direct_alerts AS alerts
 WITH [x IN alerts WHERE x IS NOT NULL | x] AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -145,8 +136,7 @@ WITH linked_episodes, collect(DISTINCT ep) AS direct_episodes
 WITH linked_episodes + direct_episodes AS episodes
 WITH [x IN episodes WHERE x IS NOT NULL | x] AS nodes
 WITH nodes, size(nodes) AS deleted
-UNWIND nodes AS n
-DETACH DELETE n
+FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
@@ -155,8 +145,7 @@ MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
 WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
 WITH collect(r) AS rels
 WITH rels, size(rels) AS deleted
-UNWIND rels AS rel
-DELETE rel
+FOREACH (rel IN rels | DELETE rel)
 RETURN deleted
 """
 
@@ -165,8 +154,7 @@ MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:IS_PART_OF]->(:EpisodeOfCar
 WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
 WITH collect(r) AS rels
 WITH rels, size(rels) AS deleted
-UNWIND rels AS rel
-DELETE rel
+FOREACH (rel IN rels | DELETE rel)
 RETURN deleted
 """
 
@@ -213,15 +201,19 @@ OPTIONAL MATCH (u)--(other:Encounter)
 WHERE other <> e
 WITH u, count(other) AS other_encounters
 WHERE other_encounters = 0
-DETACH DELETE u
-RETURN count(u) AS llm_usage_deleted
+WITH collect(u) AS to_delete
+WITH to_delete, size(to_delete) AS llm_usage_deleted
+FOREACH (x IN to_delete | DETACH DELETE x)
+RETURN llm_usage_deleted
 """
 
 DELETE_ENCOUNTER_CODING_DECISIONS = """
 MATCH (d:CodingDecision)
 WHERE toString(d.decision_id) STARTS WITH $decision_prefix
-DETACH DELETE d
-RETURN count(d) AS decisions_deleted
+WITH collect(d) AS nodes
+WITH nodes, size(nodes) AS decisions_deleted
+FOREACH (n IN nodes | DETACH DELETE n)
+RETURN decisions_deleted
 """
 
 CLEAR_ENCOUNTER_SENTENCES_PAYLOAD = """

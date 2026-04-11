@@ -75,9 +75,9 @@ class TestResetPatient:
         assert result["links_deleted"] == 0
 
     def test_documents_query_uses_rel_type_syntax(self) -> None:
-        """RESET_PATIENT_DOCUMENTS must use collect/UNWIND pattern (atomic count)."""
+        """RESET_PATIENT_DOCUMENTS must collect rels then FOREACH delete (one result row)."""
         assert "collect(r)" in RESET_PATIENT_DOCUMENTS
-        assert "UNWIND" in RESET_PATIENT_DOCUMENTS
+        assert "FOREACH" in RESET_PATIENT_DOCUMENTS
         assert "links_deleted" in RESET_PATIENT_DOCUMENTS
         # Old double-MATCH pattern must be gone
         assert RESET_PATIENT_DOCUMENTS.count("MATCH") == 1

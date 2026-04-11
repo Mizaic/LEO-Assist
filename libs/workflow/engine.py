@@ -862,6 +862,7 @@ class WorkflowEngine:
         WHERE a.canvas_id = $action_id
         OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition)
         RETURN a, ad
+        LIMIT 1
         """
         async with self._driver.session() as session:
             result = await session.run(query, plan_id=plan_id, action_id=action_id)
