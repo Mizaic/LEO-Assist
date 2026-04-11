@@ -230,14 +230,15 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
             UPDATE_TRAINING_CANDIDATE_STATUS,
             UPSERT_TRAINING_CANDIDATE,
         )
+        from libs.utils.deidentify import deidentify_text
 
-        candidate_id = _candidate_id(encounter_text)
-        label_id = _entity_fingerprint(encounter_text, entities)
         quality_score = float(verification.get("confidence", 1.0))
 
+        # Always de-identify before de-id validation and KG persistence.
+        deid_text = deidentify_text(encounter_text, ner=True)
         canonical_entities = [
             {
-                "text": e.get("text", ""),
+                "text": deidentify_text(str(e.get("text", "") or ""), ner=True),
                 "label": e.get("label") or e.get("semantic_tag", ""),
                 "start": e.get("start", 0),
                 "end": e.get("end", 0),
@@ -245,13 +246,15 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
             }
             for e in entities
         ]
+        candidate_id = _candidate_id(deid_text)
+        label_id = _entity_fingerprint(deid_text, canonical_entities)
 
         # DI-ID gate: reject residual PHI before entering learning loop.
         from libs.ner.deid_validator import DeIdValidator
 
         deid_issues = DeIdValidator().check_record(
             {
-                "text": encounter_text,
+                "text": deid_text,
                 "entities": canonical_entities,
             }
         )
@@ -267,7 +270,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                         session.run(
                             UPSERT_TRAINING_CANDIDATE,
                             candidate_id=candidate_id,
-                            text=encounter_text,
+                            text=deid_text,
                             source="pipeline_gold",
                             status="failed",
                             schema_version="v4",
@@ -300,7 +303,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                 session.run(
                     UPSERT_TRAINING_CANDIDATE,
                     candidate_id=candidate_id,
-                    text=encounter_text,
+                    text=deid_text,
                     source="pipeline_gold",
                     status="processing",
                     schema_version="v4",
@@ -308,7 +311,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                 session.run(
                     UPSERT_GOLD_LABEL,
                     label_id=label_id,
-                    text=encounter_text,
+                    text=deid_text,
                     entities_json=json.dumps(canonical_entities),
                     source="pipeline_gold",
                     verified_by="pipeline",

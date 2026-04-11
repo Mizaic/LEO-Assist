@@ -41,3 +41,25 @@ def test_deid_gate_allows_placeholder_text() -> None:
     ):
         result = write_gold_training(_state("Patient has chest pain and no dyspnoea."))
     assert result.get("status") != "deid_failed"
+
+
+def test_deid_gate_validates_deidentified_payload() -> None:
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = False
+    client = MagicMock()
+    client.session.return_value = session
+    with (
+        patch(
+            "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+            return_value=client,
+        ),
+        patch(
+            "libs.pipeline_graph.subgraphs.persist.deidentify_text",
+            side_effect=lambda text, ner=True: text.replace("GOPEE, Dinesha", "[PERSON]"),
+        ),
+    ):
+        result = write_gold_training(
+            _state("Review done by GOPEE, Dinesha (Dr) - 15 May 2024")
+        )
+    assert result.get("status") != "deid_failed"
