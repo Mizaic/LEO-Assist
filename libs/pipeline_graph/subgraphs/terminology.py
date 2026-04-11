@@ -14,6 +14,23 @@ logger = logging.getLogger(__name__)
 
 
 _DEFAULT_MIN_SCORE = 0.70  # matches the UI slider default
+_TERM_CONCEPT_BLOCKLIST: dict[str, set[str]] = {
+    # Generic mention in notes; do not auto-code to a specific named operation.
+    "spinal surgery": {"1287097003"},
+    # Symptom phrasing should not be coerced to broad malaise.
+    "not sleeping well": {"367391008"},
+}
+
+
+def _normalise_text_key(value: str) -> str:
+    return " ".join((value or "").strip().lower().split())
+
+
+def _is_blocked_mapping(text: str, concept_id: str | None) -> bool:
+    if not concept_id:
+        return False
+    blocked = _TERM_CONCEPT_BLOCKLIST.get(_normalise_text_key(text))
+    return bool(blocked and str(concept_id) in blocked)
 
 
 class TerminologyState(TypedDict, total=False):
@@ -35,6 +52,18 @@ def _merge_resolution(
         merged["terminology_unresolved"] = True
         return merged
     best = candidates[0]
+    if _is_blocked_mapping(str(e.get("text") or ""), best.concept_id):
+        merged["score"] = round(float(best.score or 0.0), 4)
+        merged["terminology_unresolved"] = True
+        for field in ("concept_id", "term", "read_code"):
+            merged[field] = None
+        logger.info(
+            "Terminology: blocked unsafe mapping %r -> %s (%r)",
+            e.get("text"),
+            best.concept_id,
+            best.term,
+        )
+        return merged
     if best.score < min_score:
         # Score too low — keep the entity but do not apply a code.
         # Downstream steps (surface form validation, persist) must not trust

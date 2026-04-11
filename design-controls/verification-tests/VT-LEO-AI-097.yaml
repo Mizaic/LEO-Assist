@@ -107,6 +107,17 @@
       acceptance_criteria:
         - "TrainingCandidate UPSERT receives entities_json with canonical entity objects"
         - "Gold label ensure endpoint hydrates entities_json from candidate"
+    - case_id: "VT-097-TC-008"
+      case_name: "Unsafe term-to-concept mappings are blocked during terminology merge"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Resolve blocked generic phrases that previously over-coded to specific concepts"
+          expected_result: "Mapped concept fields are cleared and terminology_unresolved is set true"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "spinal surgery does not auto-code to unilateral biportal endoscopic operation on spine"
+        - "not sleeping well does not auto-code to malaise"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -164,3 +175,14 @@
         Added TrainingCandidate entities_json persistence and ensure-gold-label
         hydration from candidate payload. Executed tests/test_persist_subgraph_gold.py,
         tests/test_training_candidate_queries.py, and services/api/tests/test_training_candidate_delete.py.
+    - run_id: "VT-097-RUN-005"
+      date: "2026-04-11"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 8
+      failed_cases: 0
+      notes: >
+        Added terminology merge blocklist coverage for unsafe generic-to-specific
+        mappings. Executed tests/test_terminology_subgraph.py and encounter trace
+        regression for df8bb218-c0de-4679-b85f-7b18e4ff3c80.

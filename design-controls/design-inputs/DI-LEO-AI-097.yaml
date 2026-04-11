@@ -37,6 +37,8 @@
       - type: "functional"
         spec: "Sentence-level TrainingCandidate records persist entities_json with mention text, assertion, and semantic_tag for reviewer handoff to GoldLabel"
       - type: "safety"
+        spec: "Terminology resolution SHALL block configured unsafe term-to-concept mappings where generic evidence text would otherwise auto-code to over-specific concepts"
+      - type: "safety"
         spec: "Side-effect counselling list items are suppressed from coding persistence and do not appear as present patient findings"
     constraints:
       - type: "safety"

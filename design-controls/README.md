@@ -610,13 +610,13 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | User Need | UN-LEO-AI-049 | draft | Coding quality monitoring loop extended with runtime LLM quality gates |
 | User Need | UN-LEO-AI-050 | draft | NER training feedback loop extended with extraction correction provenance |
 | Design Input | DI-LEO-AI-096 | draft | NER-first extraction route and deterministic non-evidence pre-filter |
-| Design Input | DI-LEO-AI-097 | draft | Pre-terminology extraction quality check (drop/correct/add) with provenance, referral-procedure assertion guard, side-effect counselling suppression, gold-training write gating on extraction-check signal, and sentence-level candidate entities_json persistence |
+| Design Input | DI-LEO-AI-097 | draft | Pre-terminology extraction quality check (drop/correct/add) with provenance, referral-procedure assertion guard, side-effect counselling suppression, gold-training write gating on extraction-check signal, sentence-level candidate entities_json persistence, and unsafe terminology mapping blocklist |
 | Design Input | DI-LEO-AI-098 | draft | Post-terminology coding quality check (drop/force_review only) |
 | Design Output | DO-LEO-AI-094 | draft | Extraction routing, model provider integration, and sentence pre-filter implementation |
-| Design Output | DO-LEO-AI-095 | draft | Extraction check subgraph, referral-procedure assertion guard, side-effect counselling suppression, candidate entities_json persistence, and prompt seeding implementation |
+| Design Output | DO-LEO-AI-095 | draft | Extraction check subgraph, referral-procedure assertion guard, side-effect counselling suppression, candidate entities_json persistence, unsafe terminology mapping blocklist, and prompt seeding implementation |
 | Design Output | DO-LEO-AI-096 | draft | Coding check subgraph, plan sequencing, and persist-to-both routing |
 | Risk | R-LEO-AI-067 | analyzed | Extraction check may drop valid entities or add unsupported mentions |
 | Risk | R-LEO-AI-068 | analyzed | Coding check may suppress valid coded entities or over-escalate review |
 | Verification Test | VT-LEO-AI-096 | draft | NER route + deterministic pre-filter verification |
-| Verification Test | VT-LEO-AI-097 | passed | Extraction check parse/apply/provenance verification including referral-procedure safeguard, side-effect counselling suppression, gold-training signal gate, and candidate entities_json persistence |
+| Verification Test | VT-LEO-AI-097 | passed | Extraction check parse/apply/provenance verification including referral-procedure safeguard, side-effect counselling suppression, gold-training signal gate, candidate entities_json persistence, and unsafe terminology mapping blocklist |
 | Verification Test | VT-LEO-AI-098 | draft | Coding check drop/force-review and plan routing verification |
