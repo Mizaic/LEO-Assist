@@ -142,10 +142,20 @@ WHERE ae.type = 'PipelineRun'
   AND ($patient_id IS NULL OR ae.patient_id = $patient_id)
   AND ($from_date  IS NULL OR ae.created_at >= datetime($from_date))
   AND ($to_date    IS NULL OR ae.created_at <= datetime($to_date))
-  AND ($is_admin = true OR EXISTS {
-    MATCH (ae_p:Patient {id: ae.patient_id})-[:HAS_GENERAL_PRACTITIONER]->(ae_gp)
-    WHERE ae_gp.id IN $org_ids
-  })
+  AND (
+    ($selected_org_id IS NOT NULL AND EXISTS {
+      MATCH (ae_p:Patient {id: ae.patient_id})-[:HAS_GENERAL_PRACTITIONER]->(ae_gp)
+      WHERE ae_gp.id = $selected_org_id
+    })
+    OR
+    ($selected_org_id IS NULL AND (
+      $is_admin = true
+      OR EXISTS {
+        MATCH (ae_p:Patient {id: ae.patient_id})-[:HAS_GENERAL_PRACTITIONER]->(ae_gp)
+        WHERE ae_gp.id IN $org_ids
+      }
+    ))
+  )
 """
 
 GET_AUDIT_EVENT_SPEND = (

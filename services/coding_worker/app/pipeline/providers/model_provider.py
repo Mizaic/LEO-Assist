@@ -5,6 +5,9 @@ import os
 
 import httpx
 
+from libs.ner.extractor_contract import ExtractionItem
+from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG, normalise_label
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +17,14 @@ class ModelExtractorProvider:
     def __init__(self) -> None:
         self.model_name = "model-inference"
         self.model_version = "1.0"
-        self._health_url = os.getenv("MODEL_INFERENCE_HEALTH_URL", "http://localhost:8010/health")
+        self._health_url = os.getenv(
+            "MODEL_INFERENCE_HEALTH_URL",
+            "http://localhost:8004/health",
+        )
+        self._extract_url = os.getenv(
+            "MODEL_INFERENCE_EXTRACT_URL",
+            "http://localhost:8004/extract",
+        )
         self._enabled = os.getenv("CODING_MODEL_PROVIDER_ENABLED", "false").lower() in {
             "true",
             "1",
@@ -31,12 +41,77 @@ class ModelExtractorProvider:
         except Exception:
             return False
 
-    def extract_batch(self, encounter_text: str, sentences: list) -> list:
-        _ = (encounter_text, sentences)
+    def _to_item(self, raw: dict, sentence_index: dict[str, str]) -> ExtractionItem | None:
+        sentence_id = str(raw.get("sentence_id") or "").strip()
+        if not sentence_id:
+            return None
+        entity_text = str(raw.get("text") or "").strip()
+        if not entity_text:
+            return None
+
+        canonical_label = normalise_label(
+            str(raw.get("semantic_tag") or raw.get("label") or "")
+        )
+        if not canonical_label:
+            return None
+        semantic_tag = LABEL_TO_SNOMED_TAG.get(canonical_label, canonical_label)
+
+        try:
+            start = int(raw.get("span_start"))
+            end = int(raw.get("span_end"))
+            confidence = float(raw.get("confidence") or 0.0)
+        except (TypeError, ValueError):
+            return None
+
+        normalized = str(raw.get("normalized") or entity_text).strip() or entity_text
+
+        return ExtractionItem(
+            sentence_id=sentence_index.get(sentence_id, sentence_id),
+            text=entity_text,
+            span_start=start,
+            span_end=end,
+            semantic_tag=semantic_tag,
+            assertion="present",
+            confidence=confidence,
+            normalized=normalized,
+            source_meta=dict(raw.get("source_meta") or {}),
+            source=self.source,
+            model_name=self.model_name,
+            model_version=self.model_version,
+        )
+
+    def extract_batch(self, encounter_text: str, sentences: list) -> list[ExtractionItem]:
         if not self._enabled:
             raise RuntimeError(
                 "model extractor backend is deprecated by default; "
                 "set CODING_MODEL_PROVIDER_ENABLED=true only for validated rollout"
             )
-        logger.warning("Model extractor called but implementation is not wired")
-        return []
+        payload = {
+            "text": encounter_text,
+            "sentences": [
+                {
+                    "sentence_id": str(s.sentence_id),
+                    "text": str(s.text),
+                    "start": int(s.start),
+                    "end": int(s.end),
+                }
+                for s in sentences
+            ],
+        }
+        sentence_index = {str(s.sentence_id): str(s.sentence_id) for s in sentences}
+        with httpx.Client(timeout=15.0) as client:
+            response = client.post(self._extract_url, json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+        self.model_name = str(data.get("model_name") or self.model_name)
+        self.model_version = str(data.get("model_version") or self.model_version)
+
+        items: list[ExtractionItem] = []
+        for raw in data.get("entities", []):
+            if not isinstance(raw, dict):
+                continue
+            item = self._to_item(raw, sentence_index)
+            if item is not None:
+                items.append(item)
+        return items

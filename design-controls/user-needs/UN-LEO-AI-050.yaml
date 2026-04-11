@@ -118,7 +118,9 @@
   design_inputs: [
     "DI-LEO-AI-077",
     "DI-LEO-AI-078",
-    "DI-LEO-AI-079"
+    "DI-LEO-AI-079",
+    "DI-LEO-AI-096",
+    "DI-LEO-AI-097"
   ]
   validation_tests: []
   tags: ["ner-training", "de-identification", "holdout-set", "pii", "training-data", "loop3", "gdpr"]

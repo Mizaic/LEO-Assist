@@ -9,6 +9,7 @@ import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
@@ -22,6 +23,7 @@ import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
+import MenuItem from "@mui/material/MenuItem";
 import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
@@ -38,8 +40,9 @@ import NotInterestedIcon from "@mui/icons-material/NotInterested";
 import SearchIcon from "@mui/icons-material/Search";
 import SyncIcon from "@mui/icons-material/Sync";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import { exportMedSpaCyTraining, patchGoldLabelEntities, upsertSurfaceFormMapping } from "@/lib/api/legacy";
+import { exportMedSpaCyTraining, fetchSurfaceForms, patchGoldLabelEntities, upsertSurfaceFormMapping } from "@/lib/api/legacy";
 import type { TermSearchResult } from "@/lib/types";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import TermSearch from "@/components/TermSearch";
 
 // ---------------------------------------------------------------------------
@@ -96,6 +99,12 @@ interface DeleteGoldLabelResult {
   candidate_status: string | null;
 }
 
+interface DeleteTrainingCandidateResult {
+  candidate_id: string;
+  gold_labels_deleted: number;
+  surface_form_tasks_deleted: number;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -134,6 +143,50 @@ const ASSERTION_LABEL: Record<string, string> = {
   family:       "Family history",
   hypothetical: "Hypothetical",
 };
+
+const ENTITY_LABEL_OPTIONS = [
+  "finding",
+  "disorder",
+  "procedure",
+  "observable_entity",
+  "situation",
+  "event",
+  "body_structure",
+  "substance",
+  "medicinal_product",
+  "clinical_drug",
+  "qualifier_value",
+  "tumor_staging",
+  "assessment_scale",
+  "staging_scale",
+  "regime_therapy",
+  "record_artifact",
+  "physical_object",
+  "organism",
+  "morphologic_abnormality",
+  "occupation",
+  "attribute",
+  "environment",
+  "product",
+  "X_TEMPORAL",
+  "X_DOSAGE",
+  "X_FREQUENCY",
+  "X_ROUTE",
+] as const;
+
+const ASSERTION_OPTIONS = [
+  "present",
+  "possible",
+  "uncertain",
+  "historical",
+  "family",
+  "absent",
+  "refuted",
+  "hypothetical",
+  "planned",
+  "declined",
+  "cancelled",
+] as const;
 
 function formatAssertion(assertion: string | undefined): string {
   const key = (assertion ?? "present").toLowerCase().replace(/_/g, " ").trim();
@@ -247,7 +300,25 @@ function DetailField({ label, children }: { label: string; children: React.React
   );
 }
 
-function CandidateDetailDialog({ item, onClose }: { item: Candidate; onClose: () => void }) {
+function CandidateDetailDialog({
+  item,
+  onClose,
+  onDelete,
+  deleting,
+  onEditTerms,
+  openingLabelEditor,
+  onMarkGold,
+  markingGold,
+}: {
+  item: Candidate;
+  onClose: () => void;
+  onDelete: (candidateId: string) => void;
+  deleting: boolean;
+  onEditTerms: (candidateId: string) => void;
+  openingLabelEditor: boolean;
+  onMarkGold: (candidateId: string) => void;
+  markingGold: boolean;
+}) {
   return (
     <Dialog open onClose={onClose} maxWidth="md" fullWidth scroll="paper">
       <DialogTitle sx={{ pr: 6 }}>
@@ -287,6 +358,37 @@ function CandidateDetailDialog({ item, onClose }: { item: Candidate; onClose: ()
           </DetailField>
         </Stack>
       </DialogContent>
+      <DialogActions>
+        <Button variant="text" onClick={onClose}>
+          Close
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={openingLabelEditor ? <CircularProgress size={14} /> : <SearchIcon fontSize="small" />}
+          disabled={deleting || openingLabelEditor || markingGold}
+          onClick={() => onEditTerms(item.candidate_id)}
+        >
+          Edit terms and assertions
+        </Button>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={markingGold ? <CircularProgress size={14} /> : <VerifiedIcon fontSize="small" />}
+          disabled={deleting || openingLabelEditor || markingGold}
+          onClick={() => onMarkGold(item.candidate_id)}
+        >
+          Mark as gold data
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          startIcon={deleting ? <CircularProgress size={14} /> : <DeleteOutlineIcon fontSize="small" />}
+          disabled={deleting}
+          onClick={() => onDelete(item.candidate_id)}
+        >
+          Delete candidate
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -311,6 +413,9 @@ function GoldLabelDetailDialog({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [newEntityText, setNewEntityText] = useState("");
+  const [newEntityLabel, setNewEntityLabel] = useState<(typeof ENTITY_LABEL_OPTIONS)[number]>("finding");
+  const [newEntityAssertion, setNewEntityAssertion] = useState<(typeof ASSERTION_OPTIONS)[number]>("present");
   const [lookupTarget, setLookupTarget] = useState<LookupTarget | null>(null);
 
   async function persistEntities(next: Entity[], successMsg: string) {
@@ -343,6 +448,45 @@ function GoldLabelDetailDialog({
     void persistEntities(next, `Removed "${entities[idx].text}" from this label.`);
   }
 
+  function handleUpdateEntityAssertion(idx: number, assertion: string) {
+    const next = entities.map((entity, i) =>
+      i === idx ? { ...entity, assertion } : entity,
+    );
+    void persistEntities(
+      next,
+      `Updated assertion for "${entities[idx].text}" to ${formatAssertion(assertion)}.`,
+    );
+  }
+
+  function handleAddEntity() {
+    const text = newEntityText.trim();
+    if (!text) {
+      setSaveError("Enter a term before adding it.");
+      return;
+    }
+    const duplicate = entities.some(
+      (entity) =>
+        entity.text.trim().toLowerCase() === text.toLowerCase() &&
+        (entity.label ?? "").trim().toLowerCase() === newEntityLabel.toLowerCase() &&
+        (entity.assertion ?? "present").trim().toLowerCase() === newEntityAssertion.toLowerCase(),
+    );
+    if (duplicate) {
+      setSaveError("This term is already in the label with the same type and assertion.");
+      return;
+    }
+    const next = [
+      ...entities,
+      {
+        text,
+        label: newEntityLabel,
+        assertion: newEntityAssertion,
+      },
+    ];
+    setNewEntityText("");
+    setSaveError(null);
+    void persistEntities(next, `Added "${text}" to this label.`);
+  }
+
   async function handleSnomedSelected(result: TermSearchResult, alsoFixSurfaceForm: boolean) {
     if (lookupTarget === null) return;
     const { entityIndex, entityText } = lookupTarget;
@@ -354,19 +498,35 @@ function GoldLabelDetailDialog({
         : e,
     );
 
+    let surfaceFormNote = "";
     if (alsoFixSurfaceForm) {
       try {
         const normalized = entityText.toLowerCase().trim();
-        await upsertSurfaceFormMapping(normalized, entityText, result.snomed_concept_id, {
-          provenance: "manual_correction",
-          source: "gold_label_editor",
-        });
+        const existing = await fetchSurfaceForms(normalized, result.snomed_concept_id, 1, 0);
+        const mappingExists = existing.items.some(
+          (item) =>
+            item.normalized === normalized &&
+            item.concept_id === result.snomed_concept_id,
+        );
+        if (mappingExists) {
+          surfaceFormNote = " Surface form mapping already exists.";
+        } else {
+          await upsertSurfaceFormMapping(normalized, entityText, result.snomed_concept_id, {
+            provenance: "manual_correction",
+            source: "gold_label_editor",
+          });
+          surfaceFormNote = " Surface form mapping created.";
+        }
       } catch {
-        // Surface form failure is non-blocking - entity save continues
+        // Surface form check/write is non-blocking - entity save continues.
+        surfaceFormNote = " Could not verify surface form mapping.";
       }
     }
 
-    void persistEntities(next, `Updated SNOMED code to ${result.snomed_concept_id} — ${result.term}.`);
+    void persistEntities(
+      next,
+      `Updated SNOMED code to ${result.snomed_concept_id} - ${result.term}.${surfaceFormNote}`,
+    );
   }
 
   const summary = assertionSummary(entities);
@@ -399,6 +559,54 @@ function GoldLabelDetailDialog({
             <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
               {item.text || "—"}
             </Typography>
+          </DetailField>
+
+          <Divider sx={{ my: 2 }} />
+          <DetailField label="Add term">
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1} useFlexGap>
+              <TextField
+                value={newEntityText}
+                onChange={(event) => setNewEntityText(event.target.value)}
+                label="Term"
+                size="small"
+                fullWidth
+                placeholder="Add a term to this verified label"
+                disabled={saving}
+              />
+              <TextField
+                select
+                label="Type"
+                size="small"
+                value={newEntityLabel}
+                onChange={(event) => setNewEntityLabel(event.target.value as (typeof ENTITY_LABEL_OPTIONS)[number])}
+                disabled={saving}
+                sx={{ minWidth: 170 }}
+              >
+                {ENTITY_LABEL_OPTIONS.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select
+                label="Assertion"
+                size="small"
+                value={newEntityAssertion}
+                onChange={(event) => setNewEntityAssertion(event.target.value as (typeof ASSERTION_OPTIONS)[number])}
+                disabled={saving}
+                sx={{ minWidth: 170 }}
+              >
+                {ASSERTION_OPTIONS.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {formatAssertion(option)}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Button variant="contained" size="small" onClick={handleAddEntity} disabled={saving || !newEntityText.trim()}>
+                Add term
+              </Button>
+            </Stack>
           </DetailField>
 
           {entities.length > 0 && (
@@ -445,18 +653,29 @@ function GoldLabelDetailDialog({
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {nonPresent ? (
-                              <Chip
-                                icon={<NotInterestedIcon sx={{ fontSize: "0.75rem !important" }} />}
-                                label={formatAssertion(e.assertion)}
-                                size="small"
-                                color={aColor}
-                                variant="filled"
-                                sx={{ fontSize: "0.7rem", fontWeight: 600, height: 20 }}
-                              />
-                            ) : (
-                              <Typography variant="caption" color="text.disabled">Present</Typography>
-                            )}
+                            <TextField
+                              select
+                              size="small"
+                              value={(e.assertion ?? "present").toLowerCase()}
+                              onChange={(event) =>
+                                handleUpdateEntityAssertion(i, event.target.value)
+                              }
+                              disabled={saving}
+                              sx={{
+                                minWidth: 132,
+                                "& .MuiInputBase-input": {
+                                  py: 0.45,
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                },
+                              }}
+                            >
+                              {ASSERTION_OPTIONS.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                  {formatAssertion(option)}
+                                </MenuItem>
+                              ))}
+                            </TextField>
                           </TableCell>
                           <TableCell>
                             {hasSnomed ? (
@@ -820,6 +1039,12 @@ export default function GoldDatasetPanel() {
   const [exportMsg, setExportMsg] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [resettingLabelId, setResettingLabelId] = useState<string | null>(null);
+  const [deletingCandidateId, setDeletingCandidateId] = useState<string | null>(null);
+  const [confirmGoldLabel, setConfirmGoldLabel] = useState<GoldLabel | null>(null);
+  const [confirmCandidateId, setConfirmCandidateId] = useState<string | null>(null);
+  const [openingCandidateLabelId, setOpeningCandidateLabelId] = useState<string | null>(null);
+  const [candidateGoldLabel, setCandidateGoldLabel] = useState<GoldLabel | null>(null);
+  const [markingGoldCandidateId, setMarkingGoldCandidateId] = useState<string | null>(null);
 
   const [selectedItem, setSelectedItem] = useState<Candidate | GoldLabel | null>(null);
 
@@ -864,7 +1089,7 @@ export default function GoldDatasetPanel() {
     try {
       const skip = (page - 1) * PAGE_SIZE;
       if (tab === "candidates") {
-        const url = `/api/training/candidates?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const url = `/api/training/candidates?page=${page}&page_size=${PAGE_SIZE}&exclude_completed=true${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
         const data = await jsonFetch<{ items: Candidate[]; total: number }>(url);
         setItems(data.items);
         setTotal(data.total);
@@ -912,11 +1137,6 @@ export default function GoldDatasetPanel() {
 
   async function handleDeleteGoldLabel(item: GoldLabel) {
     if (!item.label_id || resettingLabelId) return;
-    const confirmed = window.confirm(
-      "Delete this verified gold label and reset its training candidate back to pending?",
-    );
-    if (!confirmed) return;
-
     setResettingLabelId(item.label_id);
     setExportMsg(null);
     setActionMsg(null);
@@ -939,6 +1159,83 @@ export default function GoldDatasetPanel() {
       setListError(e instanceof Error ? e.message : "Failed to delete gold label");
     } finally {
       setResettingLabelId(null);
+    }
+  }
+
+  function requestDeleteGoldLabel(item: GoldLabel) {
+    setConfirmGoldLabel(item);
+  }
+
+  function requestDeleteCandidate(candidateId: string) {
+    if (!candidateId || deletingCandidateId) return;
+    setConfirmCandidateId(candidateId);
+  }
+
+  async function handleDeleteCandidate(candidateId: string) {
+    if (!candidateId || deletingCandidateId) return;
+    setDeletingCandidateId(candidateId);
+    setExportMsg(null);
+    setActionMsg(null);
+    setListError(null);
+    try {
+      const result = await jsonFetch<DeleteTrainingCandidateResult>(
+        `/api/training/candidates/${encodeURIComponent(candidateId)}`,
+        { method: "DELETE" },
+      );
+      setActionMsg(
+        `Candidate deleted. Removed ${result.gold_labels_deleted} gold labels and ${result.surface_form_tasks_deleted} surface-form tasks.`,
+      );
+      if (selectedItem && "candidate_id" in selectedItem && selectedItem.candidate_id === candidateId) {
+        setSelectedItem(null);
+      }
+      await Promise.all([loadList(), loadStats()]);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Failed to delete candidate");
+    } finally {
+      setDeletingCandidateId(null);
+    }
+  }
+
+  async function openCandidateLabelEditor(candidateId: string) {
+    if (!candidateId || openingCandidateLabelId) return;
+    setOpeningCandidateLabelId(candidateId);
+    setListError(null);
+    try {
+      const label = await jsonFetch<GoldLabel>(
+        `/api/training/gold-labels/by-candidate/${encodeURIComponent(candidateId)}/ensure`,
+        { method: "POST" },
+      );
+      setCandidateGoldLabel(label);
+    } catch (e) {
+      setListError(
+        e instanceof Error
+          ? e.message
+          : "Could not open candidate label editor.",
+      );
+    } finally {
+      setOpeningCandidateLabelId(null);
+    }
+  }
+
+  async function markCandidateAsGold(candidateId: string) {
+    if (!candidateId || markingGoldCandidateId) return;
+    setMarkingGoldCandidateId(candidateId);
+    setActionMsg(null);
+    setListError(null);
+    try {
+      const result = await jsonFetch<{ candidate_id: string; status: string; gold_label_id: string | null }>(
+        `/api/training/candidates/${encodeURIComponent(candidateId)}/mark-completed`,
+        { method: "POST" },
+      );
+      setActionMsg("Saved as gold data. Candidate status updated to completed.");
+      if (selectedItem && "candidate_id" in selectedItem && selectedItem.candidate_id === candidateId) {
+        setSelectedItem({ ...(selectedItem as Candidate), status: result.status });
+      }
+      await Promise.all([loadList(), loadStats()]);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Could not mark candidate as gold data");
+    } finally {
+      setMarkingGoldCandidateId(null);
     }
   }
 
@@ -1080,7 +1377,7 @@ export default function GoldDatasetPanel() {
                   key={item.label_id ?? `g-${i}`}
                   item={item}
                   onClick={() => setSelectedItem(item)}
-                  onReset={() => void handleDeleteGoldLabel(item)}
+                  onReset={() => requestDeleteGoldLabel(item)}
                   resetting={resettingLabelId === item.label_id}
                 />
               ))
@@ -1104,13 +1401,66 @@ export default function GoldDatasetPanel() {
 
       {/* Detail dialog */}
       {selectedItem && tab === "candidates" && (
-        <CandidateDetailDialog item={selectedItem as Candidate} onClose={() => setSelectedItem(null)} />
+        <CandidateDetailDialog
+          item={selectedItem as Candidate}
+          onClose={() => setSelectedItem(null)}
+          onDelete={requestDeleteCandidate}
+          deleting={deletingCandidateId === (selectedItem as Candidate).candidate_id}
+          onEditTerms={openCandidateLabelEditor}
+          openingLabelEditor={openingCandidateLabelId === (selectedItem as Candidate).candidate_id}
+          onMarkGold={markCandidateAsGold}
+          markingGold={markingGoldCandidateId === (selectedItem as Candidate).candidate_id}
+        />
       )}
       {selectedItem && tab === "gold" && (
         <GoldLabelDetailDialog
           item={selectedItem as GoldLabel}
           onClose={() => setSelectedItem(null)}
           onEntitiesChanged={() => void loadList()}
+        />
+      )}
+      {confirmGoldLabel && (
+        <ConfirmDialog
+          title="Delete verified label?"
+          body="This will permanently delete this verified gold label and reset its linked candidate to pending."
+          confirmLabel="Delete label"
+          variant="danger"
+          onCancel={() => setConfirmGoldLabel(null)}
+          onConfirm={() => {
+            const item = confirmGoldLabel;
+            setConfirmGoldLabel(null);
+            if (item) {
+              void handleDeleteGoldLabel(item);
+            }
+          }}
+        />
+      )}
+      {confirmCandidateId && (
+        <ConfirmDialog
+          title="Delete training candidate?"
+          body="This will permanently delete this candidate, its linked gold labels, and related surface-form tasks from Neo4j."
+          confirmLabel="Delete candidate"
+          variant="danger"
+          onCancel={() => setConfirmCandidateId(null)}
+          onConfirm={() => {
+            const candidateId = confirmCandidateId;
+            setConfirmCandidateId(null);
+            if (candidateId) {
+              void handleDeleteCandidate(candidateId);
+            }
+          }}
+        />
+      )}
+      {candidateGoldLabel && (
+        <GoldLabelDetailDialog
+          item={candidateGoldLabel}
+          onClose={() => setCandidateGoldLabel(null)}
+          onEntitiesChanged={async () => {
+            await Promise.all([loadList(), loadStats()]);
+            if (selectedItem && "candidate_id" in selectedItem) {
+              void openCandidateLabelEditor(selectedItem.candidate_id);
+            }
+          }}
         />
       )}
     </Box>

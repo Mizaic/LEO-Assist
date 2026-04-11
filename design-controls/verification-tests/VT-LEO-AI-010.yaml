@@ -82,21 +82,21 @@
         - "Each action updates the proposal status immediately in the UI"
 
     - case_id: "VT-010-TC-003"
-      case_name: "Confidence scores and context flags visible"
+      case_name: "Confidence bands and context flags visible"
       priority: "high"
       preconditions:
         - "Detail view is open for a proposal with a confidence score and context flags"
       test_steps:
         - step_number: 1
-          action: "Inspect the proposal detail view for confidence score display"
-          expected_result: "Confidence score is displayed as a percentage or decimal value"
-          verification_method: "Assert confidence score element is visible and contains a numeric value"
+          action: "Inspect the proposal detail view for confidence label display"
+          expected_result: "Confidence is displayed as low, medium, or high with plain-language wording"
+          verification_method: "Assert confidence label element is visible and contains low, medium, or high text"
         - step_number: 2
           action: "Inspect the proposal detail view for context flags (e.g. negation, historical)"
           expected_result: "Context flags are displayed as labelled badges or indicators"
           verification_method: "Assert context flag elements are visible and match the expected flags for this proposal"
       acceptance_criteria:
-        - "Confidence score is visible and readable"
+        - "Confidence band is visible and readable in plain language"
         - "Context flags are clearly displayed and accurate"
         - "Low-confidence proposals are visually distinguished (e.g. highlighted)"
 

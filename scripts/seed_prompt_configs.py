@@ -75,6 +75,8 @@ def _add(
 # ── Extraction — structured output schema + example library ─────────────────
 from libs.prompts.extraction_output_schema import EXTRACTION_OUTPUT_SCHEMA
 from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
+from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_EXAMPLES_V1
+from libs.prompts.coding_check_v1 import CODING_CHECK_EXAMPLES_V1
 
 _add(
     "extraction", 1,
@@ -99,6 +101,100 @@ _add(
         "consultation text. Produces surface forms, semantic tags, assertions, "
         "and structured measurement fields for observable entities and staging scales."
     ),
+)
+
+_EXTRACTION_CHECK_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "drop": {"type": "array", "items": {"type": "integer"}},
+        "correct_assertion": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "index": {"type": "integer"},
+                    "assertion": {"type": "string"},
+                },
+                "required": ["index", "assertion"],
+            },
+        },
+        "correct_label": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "index": {"type": "integer"},
+                    "label": {"type": "string"},
+                },
+                "required": ["index", "label"],
+            },
+        },
+        "add": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "label": {"type": "string"},
+                    "assertion": {"type": "string"},
+                    "lookup_term": {"type": "string"},
+                },
+                "required": ["text", "label", "assertion", "lookup_term"],
+            },
+        },
+    },
+    "required": ["drop", "correct_assertion", "correct_label", "add"],
+}
+
+_add(
+    "extraction_check", 1,
+    "libs.prompts.extraction_check_v1.EXTRACTION_CHECK_SYSTEM_V1",
+    output_schema=json.dumps(_EXTRACTION_CHECK_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_excheck_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
+        }
+        for i, ex in enumerate(EXTRACTION_CHECK_EXAMPLES_V1)
+    ],
+    max_few_shot=12,
+    description="Single-turn quality check that drops noise, fixes assertion/label, and adds missed extraction mentions.",
+)
+
+_CODING_CHECK_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "drop": {"type": "array", "items": {"type": "integer"}},
+        "force_review": {"type": "array", "items": {"type": "integer"}},
+    },
+    "required": ["drop", "force_review"],
+}
+
+_add(
+    "coding_check", 1,
+    "libs.prompts.coding_check_v1.CODING_CHECK_SYSTEM_V1",
+    output_schema=json.dumps(_CODING_CHECK_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_codecheck_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
+        }
+        for i, ex in enumerate(CODING_CHECK_EXAMPLES_V1)
+    ],
+    max_few_shot=8,
+    description="Single-turn quality check that drops unsupported codes and forces review on ambiguous coding.",
 )
 
 # ── Disambiguation ────────────────────────────────────────────────────────────

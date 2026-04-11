@@ -1,0 +1,96 @@
+- id: "VT-LEO-AI-097"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-097"]
+    risks: ["R-LEO-AI-067"]
+
+  metadata:
+    title: "Extraction quality LLM check verification"
+    description: >
+      Verifies extraction_check output parsing and constrained patch application
+      for drop, assertion correction, label correction, and additive mentions.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_llm_check_subgraph.py"
+      - "tests/test_post_processing_pipeline.py"
+      - "tests/test_sentence_splitter.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-097-TC-001"
+      case_name: "Extraction check parses strict JSON and applies drop"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock LLM response with drop indices and invoke extraction_check"
+          expected_result: "Specified entities are removed from state entities"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Drop index operations are deterministic"
+
+    - case_id: "VT-097-TC-002"
+      case_name: "Extraction check applies assertion and label corrections"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock LLM response with correct_assertion and correct_label payload"
+          expected_result: "Entity assertion and label fields are updated with provenance markers"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "_llm_check_source is set for corrected entities"
+
+    - case_id: "VT-097-TC-003"
+      case_name: "Extraction check adds missed mention with lookup term"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock LLM add payload and invoke extraction_check"
+          expected_result: "New entity includes text, label, assertion, lookup_term, and llm_added provenance"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Added entities are appended with valid start/end offsets"
+    - case_id: "VT-097-TC-004"
+      case_name: "Referral procedure assertion guard keeps planned procedure context"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock extraction_check correction that sets a referral procedure to possible"
+          expected_result: "Entity assertion is normalised to planned and tagged with referral guard metadata"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Referral procedure phrase is not persisted with possible assertion"
+        - "_assertion_guard metadata is present on guarded entities"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-097/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-097-RUN-001"
+      date: "2026-04-11"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 4
+      failed_cases: 0
+      notes: >
+        Executed tests/test_llm_check_subgraph.py including referral-procedure
+        assertion guard coverage. All extraction-check cases passed.

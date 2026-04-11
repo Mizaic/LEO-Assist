@@ -1,0 +1,73 @@
+- id: "VT-LEO-AI-098"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-098"]
+    risks: ["R-LEO-AI-068"]
+
+  metadata:
+    title: "Coding quality LLM check verification"
+    description: >
+      Verifies coding_check constrained actions (drop and force_review only),
+      tier override application, and no concept mutation behavior.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_llm_check_subgraph.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-098-TC-001"
+      case_name: "Coding check applies drop list"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock coding_check output with drop indices and invoke subgraph"
+          expected_result: "Dropped entities are removed before downstream persistence"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Entity list size decreases by dropped count"
+
+    - case_id: "VT-098-TC-002"
+      case_name: "Coding check force_review sets tier override"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock coding_check output with force_review indices"
+          expected_result: "Entities are tagged with _tier_override=2 and override reason"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "No concept_id field mutation occurs during force_review"
+
+    - case_id: "VT-098-TC-003"
+      case_name: "PlanDefinition routes coding_check and persist both"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Validate seeded plan/action definitions for coding_check placement and persist target"
+          expected_result: "pd-gp-encounter-coding includes coding_check after terminology and persist output_target both"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Action sequence is extraction -> post -> extraction_check -> terminology -> coding_check -> tier -> persist"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-098/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

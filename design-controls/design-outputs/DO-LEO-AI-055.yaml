@@ -7,7 +7,7 @@
   traceability:
     design_inputs: ["DI-LEO-AI-055"]
     risks_addressed: ["R-LEO-AI-039", "R-LEO-AI-040"]
-    verification_tests: ["VT-LEO-AI-055", "VT-LEO-AI-061"]
+    verification_tests: ["VT-LEO-AI-055", "VT-LEO-AI-061", "VT-LEO-AI-096"]
   specification:
     title: "Surface-form validation and tasking"
     description: >
@@ -21,6 +21,9 @@
       - criterion: "No patient linkage in tasks"
         type: "safety"
         target: "task uses candidate_id + anonymised context only"
+      - criterion: "Cascade delete for training candidate"
+        type: "functional"
+        target: "DELETE /training/candidates/{candidate_id} removes TrainingCandidate and linked GoldLabel and SurfaceFormTask records"
   implementation:
     artifacts:
       - artifact_type: "source_code"
@@ -28,6 +31,12 @@
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/cypher/surface_form_task_queries.py"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/cypher/training_candidate_queries.py"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
         storage_location: "git"
   safety_characteristics:
     safety_class: "B"

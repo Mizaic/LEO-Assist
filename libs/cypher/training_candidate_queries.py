@@ -50,6 +50,7 @@ RETURN
 GET_TRAINING_CANDIDATES_PAGE = """
 MATCH (c:TrainingCandidate)
 WHERE ($status IS NULL OR c.status = $status)
+  AND ($exclude_completed = false OR c.status <> 'completed')
   AND ($source IS NULL OR c.source = $source)
   AND ($search IS NULL OR toLower(c.text) CONTAINS toLower($search))
 RETURN
@@ -68,6 +69,7 @@ LIMIT $limit
 COUNT_TRAINING_CANDIDATES_PAGE = """
 MATCH (c:TrainingCandidate)
 WHERE ($status IS NULL OR c.status = $status)
+  AND ($exclude_completed = false OR c.status <> 'completed')
   AND ($source IS NULL OR c.source = $source)
   AND ($search IS NULL OR toLower(c.text) CONTAINS toLower($search))
 RETURN count(c) AS total
@@ -82,4 +84,20 @@ WITH
     sum(CASE WHEN c.status = 'completed' THEN 1 ELSE 0 END) AS completed,
     sum(CASE WHEN c.status = 'failed' THEN 1 ELSE 0 END) AS failed
 RETURN total, pending, processing, completed, failed
+"""
+
+DELETE_TRAINING_CANDIDATE_AND_ARTIFACTS = """
+MATCH (c:TrainingCandidate {candidate_id: $candidate_id})
+OPTIONAL MATCH (gl:GoldLabel {candidate_id: $candidate_id})
+WITH c, collect(DISTINCT gl) AS gold_labels
+OPTIONAL MATCH (sf:SurfaceFormTask {candidate_id: $candidate_id})
+WITH c, gold_labels, collect(DISTINCT sf) AS surface_form_tasks
+FOREACH (n IN gold_labels | DETACH DELETE n)
+FOREACH (n IN surface_form_tasks | DETACH DELETE n)
+WITH c, size(gold_labels) AS gold_labels_deleted, size(surface_form_tasks) AS surface_form_tasks_deleted
+DETACH DELETE c
+RETURN
+    $candidate_id AS candidate_id,
+    gold_labels_deleted AS gold_labels_deleted,
+    surface_form_tasks_deleted AS surface_form_tasks_deleted
 """

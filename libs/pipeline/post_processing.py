@@ -27,6 +27,7 @@ import time
 from typing import Any
 
 from libs.llm_client.disorder_verifier import DisorderVerdict, verify_disorder
+from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.context_detector import normalize_situation_lookup
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
@@ -494,6 +495,26 @@ def _apply_situation_lookup(entities: list[dict[str, Any]]) -> None:
             ent["normalized_lookup"] = canonical
 
 
+def _apply_referral_procedure_assertion_guard(
+    entities: list[dict[str, Any]],
+) -> None:
+    """Keep referral procedures from being marked as uncertain disease mentions."""
+    for ent in entities:
+        label = str(ent.get("label", "")).strip().lower().replace(" ", "_")
+        assertion = str(ent.get("assertion") or "").strip().lower()
+        if label != "procedure" or assertion != "possible":
+            continue
+        text = str(
+            ent.get("text")
+            or ent.get("normalized")
+            or ent.get("normalized_lookup")
+            or ""
+        )
+        if is_referral_procedure_phrase(text):
+            ent["assertion"] = "planned"
+            ent["_assertion_guard"] = "referral_procedure"
+
+
 # ── Public API ──
 
 
@@ -700,6 +721,13 @@ def run_post_processing_with_trace(
         "layer_7",
         "ConText Assertion Detection",
         lambda current: (apply_context_detection_to_dicts(encounter_text, current), current)[1],
+    )
+
+    # Layer 7b: Referral Procedure Assertion Guard
+    _run_layer(
+        "layer_7b",
+        "Referral Procedure Assertion Guard",
+        lambda current: (_apply_referral_procedure_assertion_guard(current), current)[1],
     )
 
     # Layer 8: Situation Lookup Normalisation

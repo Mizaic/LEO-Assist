@@ -27,6 +27,7 @@ import { askLeoSmart, searchTerms } from "@/lib/api/legacy";
 import type { ReviewItem } from "@/components/operations/ReviewCard";
 import type { AskLeoSmartResult, TermSearchResult } from "@/lib/types";
 import { ASSERTION_CHIP } from "@/lib/types";
+import { getTerminologyConfidenceLabel } from "@/lib/terminologyConfidence";
 
 const ASSERTION_OPTIONS = [
   "present", "absent", "refuted", "possible", "historical", "planned", "hypothetical", "family", "declined", "cancelled",
@@ -605,7 +606,7 @@ function EncounterContextPanel({
                   <Chip label={s.resolved_term} size="small" color="success" variant="outlined" sx={{ fontSize: "0.7rem", height: 20 }} />
                 ) : s.snomed_term ? (
                   <Chip
-                    label={`${s.snomed_term} (${((s.score ?? 0) * 100).toFixed(0)}%)`}
+                    label={`${s.snomed_term} (${getTerminologyConfidenceLabel(s.score)} confidence)`}
                     size="small"
                     variant="outlined"
                     sx={{ fontSize: "0.7rem", height: 20 }}
@@ -809,7 +810,7 @@ function CaseCard({
         <Chip label={caseRecord.source} size="small" />
         {caseRecord.snomed_term && (
           <Chip
-            label={`Best match: ${caseRecord.snomed_term} (${((caseRecord.score ?? 0) * 100).toFixed(0)}%)`}
+            label={`Best match: ${caseRecord.snomed_term} (${getTerminologyConfidenceLabel(caseRecord.score)} confidence)`}
             size="small"
             color="warning"
             variant="outlined"

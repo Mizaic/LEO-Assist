@@ -1,0 +1,71 @@
+- id: "DO-LEO-AI-094"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-096"]
+    user_needs: ["UN-LEO-AI-012", "UN-LEO-AI-050"]
+    risks_addressed: ["R-LEO-AI-015"]
+    verification_tests: ["VT-LEO-AI-096"]
+
+  specification:
+    title: "NER-first extraction routing and deterministic pre-filtering"
+    description: |
+      Implements deterministic filtering of non-evidence sentence lines and
+      routes extraction to the model inference backend when extraction_method is
+      set to ner. The model provider calls the /extract endpoint on the model
+      inference service and maps responses into canonical ExtractionItem records.
+    acceptance_criteria:
+      - criterion: "NER route selection"
+        type: "functional"
+        measurement: "Test"
+        target: "extraction_method=ner invokes ModelExtractorProvider path"
+      - criterion: "Pre-filter coverage"
+        type: "safety"
+        measurement: "Test"
+        target: "Header and deterministic non-evidence lines are excluded before extraction"
+      - criterion: "Model service contract"
+        type: "functional"
+        measurement: "Test"
+        target: "Provider posts sentence batch to localhost:8004/extract and returns canonical items"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/nlp/sentence_splitter.py"
+        description: "is_non_evidence_line plus pre-existing header filter support"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/extraction.py"
+        description: "extraction_method routing and sentence filter wiring"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/providers/model_provider.py"
+        description: "Model inference HTTP client and ExtractionItem mapping"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "scripts/seed_plan_definitions.py"
+        description: "pd-gp-encounter-coding extraction activity switched to ad-extraction-ner"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 220
+      key_functions:
+        - "is_non_evidence_line"
+        - "split_sentences"
+        - "ModelExtractorProvider.extract_batch"
+        - "extract_entities"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Exclude known non-clinical text before entity generation"
+      - "Preserve milestone phrases while filtering administrative headers"
+    risk_control_measures:
+      - "Fast-track milestone allowlist in filtering"
+      - "Deterministic regex gates before model extraction"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

@@ -76,17 +76,21 @@ from libs.cypher.coding_review_queries import (
 from libs.cypher.exclusion_queries import DELETE_ALL_HITL_TASKS
 from libs.cypher.training_candidate_queries import (
     COUNT_TRAINING_CANDIDATES_PAGE,
+    DELETE_TRAINING_CANDIDATE_AND_ARTIFACTS,
     GET_TRAINING_CANDIDATE_BY_ID,
     GET_TRAINING_CANDIDATE_STATS,
     GET_TRAINING_CANDIDATES_PAGE,
+    UPDATE_TRAINING_CANDIDATE_STATUS,
 )
 from libs.cypher.gold_label_queries import (
     COUNT_GOLD_LABELS_PAGE,
     DELETE_GOLD_LABEL_AND_RESET_CANDIDATE,
     GET_ALL_GOLD_LABELS_FOR_EXPORT,
+    GET_GOLD_LABEL_BY_CANDIDATE_ID,
     GET_GOLD_LABEL_BY_ID,
     GET_GOLD_LABEL_STATS,
     GET_GOLD_LABELS_PAGE,
+    UPSERT_GOLD_LABEL,
     UPDATE_GOLD_LABEL_ENTITIES,
 )
 from libs.cypher.surface_form_task_queries import (
@@ -2565,6 +2569,7 @@ def list_training_candidates(
     status: str | None = None,
     source: str | None = None,
     search: str | None = None,
+    exclude_completed: bool = Query(False),
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     skip = (page - 1) * page_size
@@ -2576,6 +2581,7 @@ def list_training_candidates(
                 skip=skip,
                 limit=page_size,
                 status=status,
+                exclude_completed=exclude_completed,
                 source=source,
                 search=search,
             )
@@ -2583,6 +2589,7 @@ def list_training_candidates(
             count_row = session.run(
                 COUNT_TRAINING_CANDIDATES_PAGE,
                 status=status,
+                exclude_completed=exclude_completed,
                 source=source,
                 search=search,
             ).single()
@@ -2604,6 +2611,81 @@ def get_training_candidate(
         if not row:
             raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
         return dict(row)
+    finally:
+        client.close()
+
+
+@router.delete("/candidates/{candidate_id}")
+def delete_training_candidate(
+    candidate_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                DELETE_TRAINING_CANDIDATE_AND_ARTIFACTS,
+                candidate_id=candidate_id,
+            ).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+        payload = dict(row)
+        logger.info(
+            "TrainingCandidate deleted id=%s gold_labels=%s surface_form_tasks=%s actor=%s",
+            candidate_id[:12],
+            payload.get("gold_labels_deleted", 0),
+            payload.get("surface_form_tasks_deleted", 0),
+            getattr(scope, "email", "unknown"),
+        )
+        return payload
+    finally:
+        client.close()
+
+
+@router.post("/candidates/{candidate_id}/mark-completed")
+def mark_training_candidate_completed(
+    candidate_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            candidate_row = session.run(
+                GET_TRAINING_CANDIDATE_BY_ID,
+                candidate_id=candidate_id,
+            ).single()
+            if not candidate_row:
+                raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+
+            gold_row = session.run(
+                GET_GOLD_LABEL_BY_CANDIDATE_ID,
+                candidate_id=candidate_id,
+            ).single()
+            if not gold_row:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Cannot mark completed until a linked gold label exists.",
+                )
+
+            update_row = session.run(
+                UPDATE_TRAINING_CANDIDATE_STATUS,
+                candidate_id=candidate_id,
+                status="completed",
+            ).single()
+            if not update_row:
+                raise HTTPException(status_code=500, detail="Failed to update candidate status")
+
+        logger.info(
+            "TrainingCandidate marked completed id=%s label=%s actor=%s",
+            candidate_id[:12],
+            str(gold_row.get("label_id", ""))[:12],
+            getattr(scope, "email", "unknown"),
+        )
+        return {
+            "candidate_id": update_row["candidate_id"],
+            "status": update_row["status"],
+            "gold_label_id": gold_row.get("label_id"),
+        }
     finally:
         client.close()
 
@@ -2664,6 +2746,71 @@ def get_gold_label(
         if not row:
             raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
         return dict(row)
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/by-candidate/{candidate_id}")
+def get_gold_label_by_candidate_id(
+    candidate_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                GET_GOLD_LABEL_BY_CANDIDATE_ID,
+                candidate_id=candidate_id,
+            ).single()
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No GoldLabel linked to candidate {candidate_id!r}",
+            )
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.post("/gold-labels/by-candidate/{candidate_id}/ensure")
+def ensure_gold_label_for_candidate(
+    candidate_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return existing GoldLabel for a candidate, or create one if missing."""
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            candidate_row = session.run(
+                GET_TRAINING_CANDIDATE_BY_ID,
+                candidate_id=candidate_id,
+            ).single()
+            if not candidate_row:
+                raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+
+            row = session.run(
+                GET_GOLD_LABEL_BY_CANDIDATE_ID,
+                candidate_id=candidate_id,
+            ).single()
+            if row:
+                return dict(row)
+
+            label_id = f"manual-{uuid.uuid4().hex}"
+            session.run(
+                UPSERT_GOLD_LABEL,
+                label_id=label_id,
+                text=candidate_row.get("text", ""),
+                entities_json="[]",
+                quality_score=None,
+                source="manual_gold_editor",
+                verified_by=getattr(scope, "email", "operations_ui"),
+                candidate_id=candidate_id,
+                schema_version=candidate_row.get("schema_version") or "v4",
+            )
+            created = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
+            if not created:
+                raise HTTPException(status_code=500, detail="Failed to create GoldLabel")
+            return dict(created)
     finally:
         client.close()
 

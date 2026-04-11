@@ -172,3 +172,13 @@ def get_async_driver():
     if not all([uri, username, password]):
         raise RuntimeError("Neo4j credentials missing for async knowledge graph driver")
     return AsyncGraphDatabase.driver(uri, auth=(username, password))
+
+
+def get_async_patient_driver():
+    """Return an async Neo4j driver for the Patient Graph."""
+    uri = os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", "")
+    username = os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", "")
+    password = os.getenv("NEO4J_PASSWORD", "") or os.getenv("NEO4J_PATIENT_PASSWORD", "")
+    if not all([uri, username, password]):
+        raise RuntimeError("Neo4j credentials missing for async patient graph driver")
+    return AsyncGraphDatabase.driver(uri, auth=(username, password))

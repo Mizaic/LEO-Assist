@@ -369,7 +369,7 @@ export default function DashboardPage() {
           </Card>
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <LLMSpendPanel />
+          <LLMSpendPanel orgId={orgId} from={appliedFrom} to={appliedTo} />
         </Grid>
       </Grid>
     </Box>

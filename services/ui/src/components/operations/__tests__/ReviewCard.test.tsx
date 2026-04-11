@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import ReviewCard from "../ReviewCard";
+import ReviewCard, { buildExplanation } from "../ReviewCard";
 import type { ReviewItem } from "../ReviewCard";
 
 jest.mock("@/lib/api/legacy", () => ({
@@ -99,5 +99,21 @@ describe("ReviewCard — TierBadge", () => {
     const itemWithTier: ReviewItem = { ...hitlItem, decisionTier: 1 };
     renderReviewCard(itemWithTier);
     expect(screen.getByText("Tier 1")).toBeInTheDocument();
+  });
+});
+
+describe("ReviewCard — plain confidence wording", () => {
+  it("uses high/medium/low wording instead of percentages", () => {
+    const codingItem: ReviewItem = {
+      ...hitlItem,
+      kind: "coding",
+      uncoded: false,
+      confidence: 1.3,
+      question: "Is this code right?",
+      explanation: "",
+    };
+    const text = buildExplanation(codingItem);
+    expect(text).toContain("High confidence");
+    expect(text).not.toContain("%");
   });
 });

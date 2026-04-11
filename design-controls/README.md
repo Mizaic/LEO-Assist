@@ -292,7 +292,7 @@ terms when LEO has identified a specific non-codeable context.
 
 | ID | Title | Change |
 |----|-------|--------|
-| DI-LEO-AI-016 | Coding Review UI | Extended: suppress form context-phrase guard and LEO phrase suggestion added to requirements, constraints, and acceptance criteria; `CodingReviewCasesModal.tsx` added to file structure; risk R-LEO-AI-027 added |
+| DI-LEO-AI-016 | Coding Review UI | Extended: suppress form context-phrase guard and LEO phrase suggestion added to requirements, constraints, and acceptance criteria; confidence display changed to low/medium/high plain-language bands in operations review UI; `CodingReviewCasesModal.tsx` added to file structure; risk R-LEO-AI-027 added |
 
 ### New Risk
 
@@ -587,3 +587,36 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | VT-LEO-AI-077 | Loop 3 De-identified Evidence Collection and Zero-PII | tests/test_deidentify_evidence.py | B | Draft |
 | VT-LEO-AI-078 | Loop 3 Holdout Set Integrity and Export Exclusion | tests/test_holdout_integrity.py | B | Draft |
 | VT-LEO-AI-079 | Loop 3 Training Export PII Gate and Safety Block | tests/test_ner_training_export.py | B | Draft |
+
+---
+
+## GDPR-Isolated Candidate Cascade Delete (April 2026)
+
+| Artefact | ID | Status | Notes |
+|----------|----|--------|-------|
+| User Need | UN-LEO-AI-027 | implemented | AI-augmented training data quality assurance with terminology verification |
+| Design Input | DI-LEO-AI-055 | draft | Extended with candidate cascade delete acceptance criterion |
+| Design Output | DO-LEO-AI-055 | draft | Includes candidate delete implementation in query, router, and admin UI |
+| Risk | R-LEO-AI-039; R-LEO-AI-040; R-LEO-AI-041 | analyzed | Existing mitigations retained |
+| Verification Test | VT-LEO-AI-096 | passed | API delete returns cascade counts and 404 for missing candidate |
+
+---
+
+## NER + Dual LLM Quality Gates (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-012 | implemented | Composable workflow routing enables extraction/coding quality stages via PlanDefinition |
+| User Need | UN-LEO-AI-049 | draft | Coding quality monitoring loop extended with runtime LLM quality gates |
+| User Need | UN-LEO-AI-050 | draft | NER training feedback loop extended with extraction correction provenance |
+| Design Input | DI-LEO-AI-096 | draft | NER-first extraction route and deterministic non-evidence pre-filter |
+| Design Input | DI-LEO-AI-097 | draft | Pre-terminology extraction quality check (drop/correct/add) with provenance and referral-procedure assertion guard |
+| Design Input | DI-LEO-AI-098 | draft | Post-terminology coding quality check (drop/force_review only) |
+| Design Output | DO-LEO-AI-094 | draft | Extraction routing, model provider integration, and sentence pre-filter implementation |
+| Design Output | DO-LEO-AI-095 | draft | Extraction check subgraph, referral-procedure assertion guard, and prompt seeding implementation |
+| Design Output | DO-LEO-AI-096 | draft | Coding check subgraph, plan sequencing, and persist-to-both routing |
+| Risk | R-LEO-AI-067 | analyzed | Extraction check may drop valid entities or add unsupported mentions |
+| Risk | R-LEO-AI-068 | analyzed | Coding check may suppress valid coded entities or over-escalate review |
+| Verification Test | VT-LEO-AI-096 | draft | NER route + deterministic pre-filter verification |
+| Verification Test | VT-LEO-AI-097 | passed | Extraction check parse/apply/provenance verification including referral-procedure safeguard |
+| Verification Test | VT-LEO-AI-098 | draft | Coding check drop/force-review and plan routing verification |

@@ -142,6 +142,24 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'verification': %s", exc)
 
     try:
+        from libs.pipeline_graph.subgraphs.llm_check import (
+            build_coding_check_subgraph,
+            build_extraction_check_subgraph,
+        )
+        registry.register(
+            "extraction_check",
+            build_extraction_check_subgraph,
+            description="Single-turn extraction quality check",
+        )
+        registry.register(
+            "coding_check",
+            build_coding_check_subgraph,
+            description="Single-turn coding quality check",
+        )
+    except Exception as exc:
+        logger.error("Failed to register llm check subgraphs: %s", exc)
+
+    try:
         from libs.pipeline_graph.subgraphs.persist import build_persist_subgraph
         registry.register("persist", build_persist_subgraph, description="Write to patient graph or gold training")
     except Exception as exc:

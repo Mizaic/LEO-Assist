@@ -123,7 +123,11 @@ async def _dispatch_engine_for_encounter(
 
 
 async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
-    from libs.neo4j_client.client import PatientGraphClient, get_async_driver
+    from libs.neo4j_client.client import (
+        PatientGraphClient,
+        get_async_driver,
+        get_async_patient_driver,
+    )
     from libs.workflow.engine import WorkflowEngine
     from libs.workflow.events import ServiceBusEventHandler
 
@@ -138,8 +142,16 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
         run_id = f"run-{job.patient_id}"
 
     driver = get_async_driver()
+    audit_driver = None
     try:
-        engine = WorkflowEngine(neo4j_driver=driver)
+        audit_driver = get_async_patient_driver()
+    except Exception:
+        logger.warning("Patient Graph async driver unavailable — spend audit writes disabled")
+    try:
+        engine = WorkflowEngine(
+            neo4j_driver=driver,
+            audit_neo4j_driver=audit_driver,
+        )
         handler = ServiceBusEventHandler(engine)
 
         if job.mode == "extract_encounter":
@@ -223,4 +235,6 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 exc_info=True,
             )
     finally:
+        if audit_driver is not None:
+            await audit_driver.close()
         await driver.close()

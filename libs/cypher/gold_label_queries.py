@@ -53,6 +53,24 @@ RETURN
     toString(g.updated_at) AS updated_at
 """
 
+GET_GOLD_LABEL_BY_CANDIDATE_ID = """
+MATCH (g:GoldLabel {candidate_id: $candidate_id})
+RETURN
+    g.label_id AS label_id,
+    g.text AS text,
+    g.entities_json AS entities_json,
+    g.quality_score AS quality_score,
+    g.source AS source,
+    g.verified_by AS verified_by,
+    toString(g.verified_at) AS verified_at,
+    g.candidate_id AS candidate_id,
+    g.schema_version AS schema_version,
+    toString(g.created_at) AS created_at,
+    toString(g.updated_at) AS updated_at
+ORDER BY g.updated_at DESC
+LIMIT 1
+"""
+
 GET_GOLD_LABELS_PAGE = """
 MATCH (g:GoldLabel)
 WHERE ($source IS NULL OR g.source = $source)

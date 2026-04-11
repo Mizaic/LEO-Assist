@@ -87,8 +87,9 @@ class WorkflowEngine:
     each step to the next.
     """
 
-    def __init__(self, neo4j_driver=None, message_bus=None):
+    def __init__(self, neo4j_driver=None, audit_neo4j_driver=None, message_bus=None):
         self._driver = neo4j_driver
+        self._audit_driver = audit_neo4j_driver or neo4j_driver
         self._bus = message_bus
         self._registry = get_registry()
 
@@ -1059,7 +1060,7 @@ class WorkflowEngine:
         status: str, pipeline_state: dict[str, Any],
     ) -> None:
         """Write a PipelineRun AuditEvent to the patient graph."""
-        if not self._driver:
+        if not self._audit_driver:
             return
         try:
             total_ms = sum(s.duration_ms for s in steps)
@@ -1166,7 +1167,7 @@ class WorkflowEngine:
                 MERGE (ae)-[:AUDIT_FOR]->(p)
             )
             """
-            async with self._driver.session() as session:
+            async with self._audit_driver.session() as session:
                 await session.run(query, id=audit["id"], props=audit, patient_id=event.patient_id)
             logger.info(
                 "AuditEvent %s written: status=%s entities=%d duration=%dms",

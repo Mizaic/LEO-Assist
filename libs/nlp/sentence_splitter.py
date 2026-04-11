@@ -51,6 +51,20 @@ _FAST_TRACK_MILESTONE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_NON_EVIDENCE_PATTERNS = [
+    re.compile(r"^[A-Z][A-Za-z0-9\s\-/]{0,40}:\s+[A-Z0-9]{6,}$"),
+    re.compile(r"^\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml)\b.*\b(?:tablet|capsule|inhaler|cream|patch)\b", re.IGNORECASE),
+    re.compile(r"^[A-Z][A-Za-z0-9\s\-/]+\s+\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml)\b.*\b(?:tablet|capsule|inhaler|cream|patch)\b", re.IGNORECASE),
+    re.compile(r"^(Discussed|Advised|Counselled)\b", re.IGNORECASE),
+    re.compile(r"^(Vision\s+forward|EMIS|QOF)\b", re.IGNORECASE),
+]
+
+_REFERRAL_PROCEDURE_RE = re.compile(
+    r"(?:\bfast\s*track\b|\b2ww\b|\btwo\s*week\s*wait\b|\burgent\b)?\s*"
+    r"(?:\breferral\b|\breferred?\s+to\b)",
+    re.IGNORECASE,
+)
+
 
 def filter_header_sentences(chunks: list["SentenceChunk"]) -> list["SentenceChunk"]:
     """Remove administrative header sentences from a sentence chunk list.
@@ -63,6 +77,24 @@ def filter_header_sentences(chunks: list["SentenceChunk"]) -> list["SentenceChun
         c for c in chunks
         if not is_header_sentence(c.text) or _FAST_TRACK_MILESTONE_RE.search(c.text)
     ]
+
+
+def is_non_evidence_line(text: str) -> bool:
+    """Return True when a sentence looks like non-clinical template noise."""
+    stripped = text.strip()
+    if not stripped:
+        return True
+    if _FAST_TRACK_MILESTONE_RE.search(stripped):
+        return False
+    return any(pattern.match(stripped) for pattern in _NON_EVIDENCE_PATTERNS)
+
+
+def is_referral_procedure_phrase(text: str) -> bool:
+    """Return True when text describes a referral procedure phrase."""
+    stripped = text.strip()
+    if not stripped:
+        return False
+    return bool(_REFERRAL_PROCEDURE_RE.search(stripped))
 
 
 @dataclass(frozen=True)

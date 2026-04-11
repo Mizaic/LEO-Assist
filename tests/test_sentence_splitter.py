@@ -113,3 +113,35 @@ class TestAssertionInference:
         from libs.nlp.assertion_inference import infer_assertion
         record = {"disambiguation": "historical"}
         assert infer_assertion("active disease", record=record) == "historical"
+
+
+class TestNonEvidenceFilter:
+
+    def test_non_evidence_patterns(self):
+        from libs.nlp.sentence_splitter import is_non_evidence_line
+
+        assert is_non_evidence_line("Discussed smoking cessation leaflet")
+        assert is_non_evidence_line("EMIS template completed")
+        assert is_non_evidence_line("Salbutamol 100 mcg/dose inhaler")
+
+    def test_fast_track_phrase_is_not_filtered(self):
+        from libs.nlp.sentence_splitter import is_non_evidence_line
+
+        assert not is_non_evidence_line(
+            "fast track referral for suspected bowel cancer arranged"
+        )
+
+
+class TestReferralProcedurePhrase:
+
+    def test_detects_referral_phrase(self):
+        from libs.nlp.sentence_splitter import is_referral_procedure_phrase
+
+        assert is_referral_procedure_phrase(
+            "Fast track referral for suspected breast cancer"
+        )
+
+    def test_ignores_non_referral_phrase(self):
+        from libs.nlp.sentence_splitter import is_referral_procedure_phrase
+
+        assert not is_referral_procedure_phrase("Possible breast cancer")

@@ -1,0 +1,77 @@
+# -- R-LEO-AI-068 -- Coding check suppresses valid coded entities
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-068"
+  title: "Coding quality check removes valid coded entities or escalates excessively"
+
+  hazard:
+    description: >
+      The coding quality LLM check may drop valid coded entities or overuse
+      force_review, reducing autonomous throughput and creating hidden under-coding.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    After terminology resolution, coding_check marks a valid coded entity for
+    drop or applies force_review too broadly. Persisted coding output is reduced
+    or delayed, and operational queues increase.
+
+  harm:
+    description: >
+      Valid clinically relevant coding may not be written to the patient graph
+      or may be delayed for manual review, reducing timeliness and completeness
+      of coding-driven audit outputs.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Constrain coding_check to drop and force_review actions only; prohibit
+        concept ID edits after terminology resolution.
+      implemented_by: ["DI-LEO-AI-098"]
+      verified_by: ["VT-LEO-AI-098"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Apply force_review as tier override metadata rather than direct code
+        mutation, preserving deterministic terminology output and auditability.
+      implemented_by: ["DI-LEO-AI-098"]
+      verified_by: ["VT-LEO-AI-098"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Constrained action space and explicit tier override semantics make harmful
+      mutation unlikely. Residual risk is detectable through queue analytics and
+      post-deployment coding quality monitoring.
+
+  monitoring:
+    monitoring_plan: >
+      Track coding_check drop and force_review rates by week; alert on sudden
+      increase from baseline and sample discrepancies for clinical review.
+    metrics:
+      - "Coding check drop rate per 100 resolved entities"
+      - "Coding check force_review rate per 100 resolved entities"
+      - "Reviewer agreement rate on force_review decisions"
+    review_frequency: "Weekly"
+
+  metadata:
+    identified_by: "NER + dual LLM quality gate design review 2026-04-11"
+    identified_date: "2026-04-11"
+    status: "analyzed"
+    tags:
+      - "coding-check"
+      - "llm"
+      - "tier-override"

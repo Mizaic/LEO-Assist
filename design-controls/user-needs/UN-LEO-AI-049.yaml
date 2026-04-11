@@ -113,7 +113,9 @@
     "DI-LEO-AI-073",
     "DI-LEO-AI-074",
     "DI-LEO-AI-075",
-    "DI-LEO-AI-076"
+    "DI-LEO-AI-076",
+    "DI-LEO-AI-097",
+    "DI-LEO-AI-098"
   ]
   validation_tests: []
   tags: ["coding-quality", "audit", "drift-detection", "surface-forms", "loop1", "loop2", "post-market-surveillance"]

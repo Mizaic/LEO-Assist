@@ -17,6 +17,7 @@ import type { AskLeoSmartResult, DecisionTier, TermSearchResult } from "@/lib/ty
 import { TIER_META } from "@/lib/types";
 import CodingReviewCasesModal from "@/components/operations/CodingReviewCasesModal";
 import Tooltip from "@mui/material/Tooltip";
+import { getTerminologyConfidenceExplanation } from "@/lib/terminologyConfidence";
 
 // -- Types -------------------------------------------------------------------
 
@@ -154,12 +155,10 @@ export function buildExplanation(item: ReviewItem): string {
     );
   }
   if (item.kind === "coding") {
-    const pct = item.confidence != null ? Math.round(item.confidence * 100) : 0;
     return (
-      `We matched '${item.entityText}' to a code but our system is ` +
-      `only ${pct}% sure. This appears in ${item.count} ` +
-      `${item.count === 1 ? "record" : "records"}. ` +
-      `Please check if this is right.`
+      `We matched '${item.entityText}' to a code. ` +
+      `${getTerminologyConfidenceExplanation(item.confidence)} ` +
+      `This appears in ${item.count} ${item.count === 1 ? "record" : "records"}.`
     );
   }
   return item.reason ?? "Please review this item.";

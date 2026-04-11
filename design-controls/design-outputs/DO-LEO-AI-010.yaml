@@ -19,7 +19,7 @@
     description: |
       Provides the user interface for reviewing AI-generated clinical coding
       suggestions. Displays encounter narrative with highlighted entity spans,
-      candidate SNOMED codes with confidence scores, and controls for
+      candidate SNOMED codes with plain-language confidence bands (low/medium/high), and controls for
       accepting, rejecting, or modifying each suggestion. Supports side-by-side
       view of source text and coded entities.
     purpose: "Enable clinicians to efficiently review, verify, and approve AI-generated coding suggestions with full source text context"
@@ -55,6 +55,18 @@
       - artifact_type: "source_code"
         location: "services/ui/src/components/EntitySidebar.tsx"
         description: "Sidebar navigation for entity list and filtering"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/ReviewCard.tsx"
+        description: "Plain-language confidence explanations for coding review cards"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/CodingReviewCasesModal.tsx"
+        description: "Low/medium/high confidence labels for best-match and sibling chips"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/terminologyConfidence.ts"
+        description: "Shared mapper from raw terminology score to low/medium/high confidence bands"
         storage_location: "git"
     technical_details:
       language: ["TypeScript"]

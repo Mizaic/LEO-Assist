@@ -1,0 +1,76 @@
+- id: "DO-LEO-AI-096"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-098"]
+    user_needs: ["UN-LEO-AI-049"]
+    risks_addressed: ["R-LEO-AI-068"]
+    verification_tests: ["VT-LEO-AI-098"]
+
+  specification:
+    title: "Coding quality LLM check and dual-target persistence routing"
+    description: |
+      Adds a single-turn coding quality check after terminology resolution and
+      before persistence. The check can drop unsupported coded entities and mark
+      ambiguous entities for human review by applying tier override metadata.
+      The GP coding plan persists to both patient graph and knowledge-graph
+      training candidates to close the learning loop.
+    acceptance_criteria:
+      - criterion: "Coding check contract"
+        type: "functional"
+        measurement: "Test"
+        target: "coding_check accepts drop/force_review JSON and applies only allowed mutations"
+      - criterion: "Tier override"
+        type: "safety"
+        measurement: "Test"
+        target: "force_review sets _tier_override=2 and override reason"
+      - criterion: "Persist target"
+        type: "functional"
+        measurement: "Test"
+        target: "pd-gp-encounter-coding persists with output_target both"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/llm_check.py"
+        description: "Coding check execution and force-review/drop application"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/coding_check_v1.py"
+        description: "Coding check prompt and example library"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/registry.py"
+        description: "Registers coding_check subgraph"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "scripts/seed_prompt_configs.py"
+        description: "Seeds coding_check PromptConfig"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "scripts/seed_plan_definitions.py"
+        description: "Adds ad-coding-check, act-coding-check, and ad-persist-both routing"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 200
+      key_functions:
+        - "coding_check"
+        - "_apply_coding_check"
+        - "build_coding_check_subgraph"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Prevent unsupported SNOMED coding write-back"
+      - "Escalate ambiguous codings to human review"
+    risk_control_measures:
+      - "No concept ID mutation after terminology"
+      - "Tier override enforcement for force_review cases"
+      - "Dual persistence target to preserve retraining evidence"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

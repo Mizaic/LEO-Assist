@@ -307,6 +307,7 @@ def patient_llm_spend(
 @router.get("/analytics/llm-spend/runs")
 def run_llm_spend(
     patient_id: str | None = Query(None),
+    org_id: str | None = Query(None),
     from_date: str | None = Query(None, alias="from"),
     to_date: str | None = Query(None, alias="to"),
     limit: int = Query(100, le=500),
@@ -320,9 +321,14 @@ def run_llm_spend(
     """
     is_admin = scope.is_admin
     org_ids = scope.org_ids or []
+    selected_org_id = (org_id or "").strip() or None
+
+    if selected_org_id and (not is_admin) and (selected_org_id not in org_ids):
+        raise HTTPException(status_code=403, detail="org_id is outside your scope")
 
     shared_params: dict = {
         "patient_id": patient_id,
+        "selected_org_id": selected_org_id,
         "from_date": from_date,
         "to_date": to_date,
         "is_admin": is_admin,

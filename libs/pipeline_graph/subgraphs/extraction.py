@@ -14,7 +14,12 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from libs.nlp.sentence_splitter import SentenceChunk, SentenceSplitter
+from libs.nlp.sentence_splitter import (
+    SentenceChunk,
+    SentenceSplitter,
+    filter_header_sentences,
+    is_non_evidence_line,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +103,8 @@ def split_sentences(state: ExtractionState) -> dict[str, Any]:
     text = _hydrate_encounter_text_if_missing(state)
     splitter = SentenceSplitter()
     chunks = splitter.split(text)
+    chunks = filter_header_sentences(chunks)
+    chunks = [chunk for chunk in chunks if not is_non_evidence_line(chunk.text)]
     return {"encounter_text": text, "sentences": [asdict(c) for c in chunks]}
 
 
@@ -113,7 +120,33 @@ def _resolve_system_prompt(state: ExtractionState) -> str:
 def extract_entities(state: ExtractionState) -> dict[str, Any]:
     encounter_text = state.get("encounter_text") or ""
     raw_sentences = state.get("sentences") or []
+    extraction_method = str(state.get("extraction_method") or "llm").lower()
     try:
+        chunks = [
+            SentenceChunk(
+                sentence_id=s.get("sentence_id", ""),
+                text=s.get("text", ""),
+                start=int(s.get("start", 0)),
+                end=int(s.get("end", 0)),
+            )
+            for s in raw_sentences
+        ]
+        if extraction_method == "ner":
+            from services.coding_worker.app.pipeline.providers.model_provider import (
+                ModelExtractorProvider,
+            )
+            extractor = ModelExtractorProvider()
+            items = extractor.extract_batch(encounter_text, chunks)
+            return {
+                "entities": _items_to_dicts(items),
+                "llm_tokens": {
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "cached_tokens": 0,
+                    "cost_usd": 0.0,
+                },
+            }
+
         from libs.pipeline_graph.subgraphs._extractor import build_extractor
 
         cfg = state.get("prompt_config") or {}
@@ -151,15 +184,6 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             prompt_name=str(cfg.get("name") or "extraction"),
             prompt_version=prompt_version,
         )
-        chunks = [
-            SentenceChunk(
-                sentence_id=s.get("sentence_id", ""),
-                text=s.get("text", ""),
-                start=int(s.get("start", 0)),
-                end=int(s.get("end", 0)),
-            )
-            for s in raw_sentences
-        ]
         items, llm_tokens = extractor.extract_batch_with_usage(encounter_text, chunks)
         return {"entities": _items_to_dicts(items), "llm_tokens": llm_tokens}
     except ImportError as e:

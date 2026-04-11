@@ -8,7 +8,8 @@
   requirement: >
     The system SHALL provide a review interface that displays AI coding proposals
     alongside the de-identified source text, enabling reviewers to confirm, edit,
-    or reject each proposal with contextual information including confidence scores,
+    or reject each proposal with contextual information including confidence bands
+    (low, medium, high) in plain language,
     alternative candidates, and context flags.
     The system SHALL also provide a suppress workflow within the review interface
     that allows reviewers to create ignore rules for terms that should not be coded
@@ -74,7 +75,7 @@
       - type: "demonstration"
         spec: "Reviewer can view source text and coding proposals side by side"
       - type: "demonstration"
-        spec: "Confidence scores and alternative candidates are visible"
+        spec: "Confidence bands (low, medium, high) and alternative candidates are visible"
       - type: "demonstration"
         spec: "Context flags (negation, family history) are clearly displayed"
       - type: "demonstration"

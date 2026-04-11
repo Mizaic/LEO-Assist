@@ -35,7 +35,15 @@ SUBGRAPH_PORTS: dict[str, dict[str, object]] = {
     "encounter_loader": {"reads": ["encounter_id"], "writes": ["encounter_text"]},
     "extraction": {"reads": ["encounter_text"], "writes": ["entities", "sentences", "errors"]},
     "post_processing": {"reads": ["entities", "encounter_text"], "writes": ["entities", "errors"]},
+    "extraction_check": {
+        "reads": ["entities", "encounter_text", "model_tier", "prompt_config"],
+        "writes": ["entities", "llm_check_result", "llm_check_changes", "errors"],
+    },
     "terminology": {"reads": ["entities"], "writes": ["entities", "errors"]},
+    "coding_check": {
+        "reads": ["entities", "encounter_text", "model_tier", "prompt_config"],
+        "writes": ["entities", "llm_check_result", "llm_check_changes", "errors"],
+    },
     "tier_classify": {"reads": ["entities"], "writes": ["entities", "tier_decisions"]},
     "verification": {"reads": ["entities", "encounter_text"], "writes": ["is_verified", "verification_result", "errors"]},
     "persist": {"reads": ["entities", "encounter_id", "patient_id", "output_target"], "writes": ["documents_written", "training_labels_written"]},

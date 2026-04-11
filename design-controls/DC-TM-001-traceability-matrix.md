@@ -120,6 +120,9 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-CW-004 | LLM fallback (Bedrock -> Azure OpenAI) | Plan WS-C | libs/llm-client/providers.py | -- | ST-CW-002 |
 | FR-CW-005 | Redis progress streaming | Plan WS-C | coding-worker/app/services/progress_publisher.py | -- | -- |
 | FR-CW-006 | Production coding routing through WorkflowEngine with encounter_loader and queue payload hardening | DI-LEO-AI-094, DO-LEO-AI-092 | services/coding_worker/app/services/job_handler.py, libs/workflow/engine.py, libs/pipeline_graph/subgraphs/encounter_loader.py, services/api/app/routers/pipeline.py, scripts/seed_plan_definitions.py | services/coding_worker/tests/test_job_handler_engine.py, tests/test_workflow_events.py | VT-LEO-AI-094 |
+| FR-CW-007 | NER-first extraction route with deterministic non-evidence pre-filter and model-inference provider integration | DI-LEO-AI-096, DO-LEO-AI-094 | libs/nlp/sentence_splitter.py, libs/pipeline_graph/subgraphs/extraction.py, services/coding_worker/app/pipeline/providers/model_provider.py | tests/test_sentence_splitter.py, tests/test_model_provider.py, tests/test_extraction_subgraph_routing.py | VT-LEO-AI-096 |
+| FR-CW-008 | Pre-terminology extraction quality LLM check with constrained drop/correct/add operations, referral-procedure assertion guard, and provenance tagging | DI-LEO-AI-097, DO-LEO-AI-095 | libs/pipeline_graph/subgraphs/llm_check.py, libs/pipeline/post_processing.py, libs/nlp/sentence_splitter.py, libs/prompts/extraction_check_v1.py, libs/pipeline_graph/registry.py, scripts/seed_prompt_configs.py | tests/test_llm_check_subgraph.py, tests/test_post_processing_pipeline.py, tests/test_sentence_splitter.py | VT-LEO-AI-097 |
+| FR-CW-009 | Post-terminology coding quality LLM check with drop or force_review only, and dual persist target for training loop | DI-LEO-AI-098, DO-LEO-AI-096 | libs/pipeline_graph/subgraphs/llm_check.py, libs/prompts/coding_check_v1.py, scripts/seed_plan_definitions.py | tests/test_llm_check_subgraph.py, tests/test_seed_plan_definitions.py | VT-LEO-AI-098 |
 
 ### 2.11 Analysis Worker (New — from VRB + auditor_2)
 
@@ -617,6 +620,22 @@ Safety constraints enforced:
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
 | DI-LEO-AI-093 | Spinal-TNM context disambiguation guard | R-LEO-AI-066 | VT-LEO-AI-093 |
+
+---
+
+### 3.xx GDPR-Isolated Candidate Cascade Delete (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-027 | implemented | AI-augmented training data quality assurance with terminology verification |
+| Design Input | DI-LEO-AI-055 | draft | GDPR-isolated learning loop supports cascade delete of TrainingCandidate records |
+| Design Output | DO-LEO-AI-055 | draft | Candidate cascade delete query and API/UI integration for admin gold dataset |
+| Risk | R-LEO-AI-039; R-LEO-AI-040; R-LEO-AI-041 | analyzed | Protect training data quality and prevent patient linkage or identity leakage |
+| Verification Test | VT-LEO-AI-096 | passed | DELETE /training/candidates returns deletion counts and 404 for unknown candidate |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-055 | GDPR-isolated learning loop and operations UX | R-LEO-AI-039; R-LEO-AI-040; R-LEO-AI-041 | VT-LEO-AI-055; VT-LEO-AI-096 |
 
 ---
 

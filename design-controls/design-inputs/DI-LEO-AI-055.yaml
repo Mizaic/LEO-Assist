@@ -19,12 +19,14 @@
         spec: "DI-ID gate blocks persistence on residual PHI patterns"
       - type: "functional"
         spec: "Operations UI presents card-based dashboard and dedicated reviews page"
+      - type: "functional"
+        spec: "Authorized users can permanently delete a TrainingCandidate and its linked GoldLabel and SurfaceFormTask records by candidate_id"
     dependencies:
       - "DI-LEO-AI-054"
   verification:
     method: "Test"
     phase: "OQ"
-    test_protocol: "VT-LEO-AI-055"
+    test_protocol: "VT-LEO-AI-096"
   safety_class: "B"
   risks:
     - "R-LEO-AI-039"

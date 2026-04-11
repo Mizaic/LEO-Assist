@@ -190,13 +190,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     bus = create_message_bus()
 
     neo4j_driver = None
+    patient_audit_driver = None
     try:
         from libs.neo4j_client.client import get_async_driver
         neo4j_driver = get_async_driver()
     except Exception:
-        logger.warning("Neo4j driver not available — running without graph storage")
+        logger.warning("Knowledge Graph driver not available — running without graph storage")
+    try:
+        from libs.neo4j_client.client import get_async_patient_driver
+        patient_audit_driver = get_async_patient_driver()
+    except Exception:
+        logger.warning("Patient Graph driver not available — pipeline spend audit writes disabled")
 
-    engine = WorkflowEngine(neo4j_driver=neo4j_driver, message_bus=bus)
+    engine = WorkflowEngine(
+        neo4j_driver=neo4j_driver,
+        audit_neo4j_driver=patient_audit_driver,
+        message_bus=bus,
+    )
     handler = ServiceBusEventHandler(engine)
 
     async def on_message(msg: Message) -> None:
@@ -235,6 +245,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await bus.close()
     if neo4j_driver is not None:
         await neo4j_driver.close()
+    if patient_audit_driver is not None:
+        await patient_audit_driver.close()
     logger.info("Pipeline Worker: shutdown complete")
 
 

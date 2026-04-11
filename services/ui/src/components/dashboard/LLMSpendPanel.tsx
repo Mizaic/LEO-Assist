@@ -47,6 +47,12 @@ interface RunSpendResponse {
   totals: SpendTotals;
 }
 
+interface LLMSpendPanelProps {
+  orgId?: string | null;
+  from?: string | null;
+  to?: string | null;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt$(n: number): string {
@@ -75,9 +81,13 @@ function CostSummaryRow({ label, value, highlight = false }: { label: string; va
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function LLMSpendPanel() {
+export default function LLMSpendPanel({ orgId, from, to }: LLMSpendPanelProps) {
   const { session } = useAuth();
   const isAdmin = session?.isPlatformAdmin ?? false;
+  const usesExternalFilters = typeof from === "string" || typeof to === "string";
+  const scopeLabel = isAdmin
+    ? (orgId ? "(selected organisation)" : "(all organisations)")
+    : "(your organisation)";
 
   const [period, setPeriod] = useState<"today" | "7d" | "30d">("7d");
   const [loading, setLoading] = useState(false);
@@ -89,15 +99,28 @@ export default function LLMSpendPanel() {
     setError(null);
     try {
       const now = new Date();
-      const from = new Date(now);
-      if (period === "today") {
-        from.setHours(0, 0, 0, 0);
+      const fromDate = new Date(now);
+      let toDate: Date | null = null;
+
+      if (usesExternalFilters) {
+        if (from) fromDate.setTime(new Date(from).getTime());
+        if (to) {
+          toDate = new Date(to);
+          toDate.setHours(23, 59, 59, 999);
+        }
+      } else if (period === "today") {
+        fromDate.setHours(0, 0, 0, 0);
       } else if (period === "7d") {
-        from.setDate(now.getDate() - 7);
+        fromDate.setDate(now.getDate() - 7);
       } else {
-        from.setDate(now.getDate() - 30);
+        fromDate.setDate(now.getDate() - 30);
       }
-      const params = new URLSearchParams({ limit: "200", from: from.toISOString() });
+
+      const params = new URLSearchParams({ limit: "200" });
+      if (!Number.isNaN(fromDate.getTime())) params.set("from", fromDate.toISOString());
+      if (toDate && !Number.isNaN(toDate.getTime())) params.set("to", toDate.toISOString());
+      if (orgId) params.set("org_id", orgId);
+
       const resp = await api.get<RunSpendResponse>(`/api/analytics/llm-spend/runs?${params}`);
       setData(resp);
     } catch {
@@ -105,7 +128,7 @@ export default function LLMSpendPanel() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, from, to, orgId, usesExternalFilters]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -122,7 +145,7 @@ export default function LLMSpendPanel() {
               AI model spend
             </Typography>
             <Typography variant="caption" color="text.disabled">
-              {isAdmin ? "(all organisations)" : "(your organisation)"}
+              {scopeLabel}
             </Typography>
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
@@ -133,12 +156,18 @@ export default function LLMSpendPanel() {
                 </Typography>
               </Link>
             )}
-            <Select size="small" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)}
-              sx={{ fontSize: "0.8rem", height: 30 }}>
-              <MenuItem value="today">Today</MenuItem>
-              <MenuItem value="7d">Last 7 days</MenuItem>
-              <MenuItem value="30d">Last 30 days</MenuItem>
-            </Select>
+            {usesExternalFilters ? (
+              <Typography variant="caption" color="text.secondary">
+                Uses dashboard filters
+              </Typography>
+            ) : (
+              <Select size="small" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)}
+                sx={{ fontSize: "0.8rem", height: 30 }}>
+                <MenuItem value="today">Today</MenuItem>
+                <MenuItem value="7d">Last 7 days</MenuItem>
+                <MenuItem value="30d">Last 30 days</MenuItem>
+              </Select>
+            )}
           </Stack>
         </Stack>
 

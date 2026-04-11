@@ -113,7 +113,7 @@
     created_date: "2026-03-05"
     status: "implemented"
 
-  design_inputs: ["DI-LEO-AI-054"]
+  design_inputs: ["DI-LEO-AI-054", "DI-LEO-AI-055"]
   validation_tests: []
 
   tags: ["training-data", "audit", "llm", "snomed", "tool-use", "agentic", "quality-assurance"]

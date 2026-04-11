@@ -1,0 +1,61 @@
+- id: "DI-LEO-AI-096"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-012", "UN-LEO-AI-050"]
+  requirement: >
+    The coding pipeline SHALL support a production NER-first extraction route
+    by calling the model inference service per sentence and SHALL apply
+    deterministic pre-filters for non-evidence lines and administrative headers
+    before extraction. The route SHALL be selectable through PlanDefinition
+    ActivityDefinition dynamic values without code redeploy.
+  rationale: >
+    Sentence-level NER extraction reduces baseline LLM usage and provides a
+    stable primary extraction layer. Deterministic pre-filtering removes known
+    template noise before entity generation to reduce false positives and review
+    burden. PlanDefinition routing preserves composable workflow control.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "extraction_method=ner routes extraction subgraph to ModelExtractorProvider"
+      - type: "functional"
+        spec: "ModelExtractorProvider calls model-inference /extract and maps response to canonical ExtractionItem"
+      - type: "safety"
+        spec: "Sentence splitter excludes header and non-evidence lines before extraction"
+      - type: "functional"
+        spec: "MODEL_INFERENCE_HEALTH_URL default points to localhost:8004/health"
+    constraints:
+      - type: "architecture"
+        spec: "LLM extraction path remains available for fallback and comparison"
+      - type: "safety"
+        spec: "Non-evidence filtering must preserve fast-track referral milestone phrases"
+    dependencies: ["DI-LEO-AI-094", "DI-LEO-AI-077"]
+    downstream_impacts:
+      - "libs/nlp/sentence_splitter.py"
+      - "libs/pipeline_graph/subgraphs/extraction.py"
+      - "services/coding_worker/app/pipeline/providers/model_provider.py"
+      - "scripts/seed_plan_definitions.py"
+    technical_details:
+      language: "Python"
+      framework: "LangGraph / FastAPI"
+      file_structure:
+        - "libs/nlp/sentence_splitter.py"
+        - "libs/pipeline_graph/subgraphs/extraction.py"
+        - "services/coding_worker/app/pipeline/providers/model_provider.py"
+        - "scripts/seed_plan_definitions.py"
+      estimated_loc: 220
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-096 passes all critical checks for non-evidence filtering,
+      model provider integration, and extraction-method NER routing.
+    test_protocol: "VT-LEO-AI-096"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-015"]
+  tags:
+    - "pipeline"
+    - "ner"
+    - "prefilter"
+    - "workflow-engine"
