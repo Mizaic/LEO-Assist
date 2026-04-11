@@ -1457,8 +1457,12 @@ export default function GoldDatasetPanel() {
           onClose={() => setCandidateGoldLabel(null)}
           onEntitiesChanged={async () => {
             await Promise.all([loadList(), loadStats()]);
-            if (selectedItem && "candidate_id" in selectedItem) {
-              void openCandidateLabelEditor(selectedItem.candidate_id);
+            const cid =
+              selectedItem && "candidate_id" in selectedItem
+                ? selectedItem.candidate_id
+                : null;
+            if (cid) {
+              void openCandidateLabelEditor(cid);
             }
           }}
         />

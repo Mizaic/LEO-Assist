@@ -11,6 +11,25 @@ from typing import Optional
 
 from libs.neo4j_client.client import PatientGraphClient
 
+_SAFE_BIRTH_DATE = (
+    "CASE "
+    "  WHEN trim(coalesce(toString(p.birthDate), '')) = '' THEN NULL "
+    "  ELSE date(toString(p.birthDate)) "
+    "END"
+)
+_SAFE_REFERRAL_DATE = (
+    "CASE "
+    "  WHEN trim(coalesce(toString(ep.referral_date), '')) = '' THEN NULL "
+    "  ELSE date(toString(ep.referral_date)) "
+    "END"
+)
+_SAFE_FIRST_PRESENTATION_DATE = (
+    "CASE "
+    "  WHEN trim(coalesce(toString(ep.first_presentation_date), '')) = '' THEN NULL "
+    "  ELSE date(toString(ep.first_presentation_date)) "
+    "END"
+)
+
 
 # ---------------------------------------------------------------------------
 # Cancer type
@@ -182,10 +201,13 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
     )
     age_rows = client.run(
         f"{base}"
-        "AND p.birthDate IS NOT NULL AND ep.referral_date IS NOT NULL "
         "WITH p, ep, "
-        "  duration.inDays(date(p.birthDate), "
-        "date(toString(ep.referral_date))).days / 365 AS age_at_referral "
+        f"  {_SAFE_BIRTH_DATE} AS birth_date_value, "
+        f"  {_SAFE_REFERRAL_DATE} AS referral_date_value "
+        "WHERE birth_date_value IS NOT NULL AND referral_date_value IS NOT NULL "
+        "WITH p, ep, "
+        "  duration.inDays(birth_date_value, "
+        "referral_date_value).days / 365 AS age_at_referral "
         "WITH age_at_referral, "
         "  CASE WHEN age_at_referral < 25 THEN '0-24' "
         "       WHEN age_at_referral < 50 THEN '25-49' "
@@ -198,9 +220,12 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
     )
     age_vals_rows = client.run(
         f"{base}"
-        "AND p.birthDate IS NOT NULL AND ep.referral_date IS NOT NULL "
-        "WITH duration.inDays(date(p.birthDate), "
-        "date(toString(ep.referral_date))).days / 365 AS age "
+        "WITH p, ep, "
+        f"  {_SAFE_BIRTH_DATE} AS birth_date_value, "
+        f"  {_SAFE_REFERRAL_DATE} AS referral_date_value "
+        "WHERE birth_date_value IS NOT NULL AND referral_date_value IS NOT NULL "
+        "WITH duration.inDays(birth_date_value, "
+        "referral_date_value).days / 365 AS age "
         "RETURN age ORDER BY age",
         **params,
     )
@@ -291,12 +316,14 @@ def _q_consultations(base: str, params: dict, client: PatientGraphClient) -> dic
     # NCDA definition: GP consultations BEFORE referral to secondary care.
     # Window: first_presentation_date (or 365d before referral) up to referral.
     _PRE_REF = (
-        "  WHERE enc.date IS NOT NULL AND ep.referral_date IS NOT NULL "
+        f"WITH ep, p, enc, {_SAFE_REFERRAL_DATE} AS referral_date_value, "
+        f"{_SAFE_FIRST_PRESENTATION_DATE} AS first_presentation_date_value "
+        "  WHERE enc.date IS NOT NULL AND referral_date_value IS NOT NULL "
         "    AND coalesce(enc.classification_content_type, 'clinical') = 'clinical' "
-        "    AND enc.date <= date(toString(ep.referral_date)) "
+        "    AND enc.date <= referral_date_value "
         "    AND enc.date >= coalesce("
-        "      date(toString(ep.first_presentation_date)), "
-        "      date(toString(ep.referral_date)) - duration('P365D')"
+        "      first_presentation_date_value, "
+        "      referral_date_value - duration('P365D')"
         "    ) "
     )
     rows = client.run(

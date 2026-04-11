@@ -153,6 +153,45 @@ class TestAuditConsultations:
         assert practice["fewer_than_3_pct"] == round(42 * 100.0 / 51, 1)
         assert practice["three_or_more_pct"] == round(9 * 100.0 / 51, 1)
 
+    def test_query_guards_empty_temporal_strings(self):
+        summary_rows = [
+            {
+                "fewer_than_3": 1,
+                "three_or_more": 1,
+                "total_episodes": 2,
+                "avg_consultations": 2.0,
+            }
+        ]
+        per_ep_rows = [{"consult_count": 1}, {"consult_count": 3}]
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            mock = _mock_client([summary_rows, per_ep_rows])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import (
+                audit_consultations,
+            )
+
+            audit_consultations(
+                scope=_mock_scope(),
+                org_id=None,
+                date_from=None,
+                date_to=None,
+                benchmark_set_id=None,
+            )
+
+        queries = [str(c.args[0]) for c in mock.run.call_args_list]
+        assert any(
+            "trim(coalesce(toString(ep.referral_date), '')) = ''" in q
+            for q in queries
+        )
+        assert any(
+            "trim(coalesce(toString(ep.first_presentation_date), '')) = ''"
+            in q
+            for q in queries
+        )
+
 
 # ---------------------------------------------------------------------------
 # Tests: interval stats computation (pure logic)
@@ -200,6 +239,88 @@ class TestIntervalStats:
         assert practice["pci"]["median"] is None
         assert practice["di"]["median"] is None
         assert practice["patients"] == []
+
+    def test_interval_queries_guard_empty_temporal_strings(self):
+        agg_rows = [
+            {
+                "pci_n": 1,
+                "mean_pci": 4.0,
+                "median_pci": 4.0,
+                "pci_q1": 4.0,
+                "pci_q3": 4.0,
+                "di_n": 1,
+                "mean_di": 12.0,
+                "median_di": 12.0,
+                "di_q1": 12.0,
+                "di_q3": 12.0,
+            }
+        ]
+        patient_rows = [
+            {
+                "episode_id": "ep-1",
+                "cancer_type": "breast",
+                "pci_days": 4,
+                "di_days": 12,
+            }
+        ]
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            mock = _mock_client([agg_rows, patient_rows])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import audit_intervals
+
+            audit_intervals(
+                scope=_mock_scope(),
+                org_id=None,
+                date_from=None,
+                date_to=None,
+                benchmark_set_id=None,
+            )
+
+        queries = [str(c.args[0]) for c in mock.run.call_args_list]
+        assert any("trim(coalesce(fp_date, '')) <> ''" in q for q in queries)
+        assert any(
+            "trim(coalesce(effective_diag_date, '')) <> ''" in q
+            for q in queries
+        )
+
+
+class TestAuditDemographics:
+    def test_query_guards_empty_temporal_strings(self):
+        sex_rows = [{"gender": "female", "n": 1}]
+        age_rows = [{"age_band": "50-64", "n": 1}]
+        age_vals_rows = [{"age": 58}]
+        eth_rows = [{"ethnicity": "White", "n": 1}]
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            mock = _mock_client([sex_rows, age_rows, age_vals_rows, eth_rows])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import (
+                audit_demographics,
+            )
+
+            result = audit_demographics(
+                scope=_mock_scope(),
+                org_id=None,
+                date_from=None,
+                date_to=None,
+                benchmark_set_id=None,
+            )
+
+        assert result["scopes"]["practice"]["median_age"] == 58
+        queries = [str(c.args[0]) for c in mock.run.call_args_list]
+        assert any(
+            "trim(coalesce(toString(ep.referral_date), '')) = ''" in q
+            for q in queries
+        )
+        assert any(
+            "trim(coalesce(toString(p.birthDate), '')) = ''" in q
+            for q in queries
+        )
 
 
 # ---------------------------------------------------------------------------
