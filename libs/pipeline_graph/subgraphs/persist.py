@@ -9,9 +9,9 @@ Routes based on ``output_target`` in state:
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import os
+import re
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -60,6 +60,78 @@ def _entity_fingerprint(encounter_text: str, entities: list[dict]) -> str:
     parts = sorted(e.get("text", "") for e in entities)
     raw = f"{encounter_text}|{'|'.join(parts)}"
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def _build_sentence_lookup(
+    sentences: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    lookup: dict[str, dict[str, Any]] = {}
+    for sentence in sentences:
+        sid = str(sentence.get("sentence_id") or "").strip()
+        if not sid:
+            continue
+        lookup[sid] = sentence
+    return lookup
+
+
+def _resolve_entity_sentence(
+    entity: dict[str, Any],
+    sentence_lookup: dict[str, dict[str, Any]],
+) -> tuple[str, str]:
+    entity_sid = str(entity.get("__sentence_id") or "").strip()
+    if entity_sid and entity_sid in sentence_lookup:
+        sentence = sentence_lookup[entity_sid]
+        return entity_sid, str(sentence.get("text") or "")
+
+    start = int(entity.get("start", 0) or 0)
+    for sid, sentence in sentence_lookup.items():
+        sent_start = int(sentence.get("start", 0) or 0)
+        sent_end = int(sentence.get("end", 0) or 0)
+        if sent_start <= start <= sent_end:
+            return sid, str(sentence.get("text") or "")
+
+    fallback_text = str(entity.get("text") or "").strip()
+    return "__fallback__", fallback_text
+
+
+def _split_sentence_lines(sentence_text: str) -> list[str]:
+    lines: list[str] = []
+    for raw in (sentence_text or "").splitlines():
+        cleaned = re.sub(r"\s+", " ", raw).strip(" -:;\t")
+        if cleaned:
+            lines.append(cleaned)
+    return lines
+
+
+def _pick_best_line_for_entity(entity: dict[str, Any], sentence_text: str) -> str:
+    lines = _split_sentence_lines(sentence_text)
+    if not lines:
+        return str(entity.get("text") or "").strip()
+
+    entity_text = str(entity.get("text") or "").strip().lower()
+    value_text = str(entity.get("value") or "").strip().lower()
+    unit_text = str(entity.get("unit") or "").strip().lower()
+
+    best_line = lines[0]
+    best_score = -1
+    for line in lines:
+        lower = line.lower()
+        score = 0
+        if entity_text and entity_text in lower:
+            score += 10
+        if value_text and value_text in lower:
+            score += 3
+        if unit_text and unit_text in lower:
+            score += 2
+        if score > best_score:
+            best_score = score
+            best_line = line
+
+    if best_score <= 0 and len(lines) == 1:
+        return lines[0]
+    if best_score <= 0 and entity_text:
+        return str(entity.get("text") or "").strip()
+    return best_line
 
 
 def write_patient_graph(state: PersistState) -> dict[str, Any]:
@@ -201,6 +273,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
 
     entities = state.get("entities") or []
     encounter_text = state.get("encounter_text") or ""
+    raw_sentences = state.get("sentences") or []
     verification = state.get("verification_result") or {}
     errors = list(state.get("errors") or [])
 
@@ -225,7 +298,6 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
         }
 
     try:
-        from libs.cypher.gold_label_queries import UPSERT_GOLD_LABEL
         from libs.cypher.training_candidate_queries import (
             UPDATE_TRAINING_CANDIDATE_STATUS,
             UPSERT_TRAINING_CANDIDATE,
@@ -234,52 +306,90 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
 
         quality_score = float(verification.get("confidence", 1.0))
 
-        # Always de-identify before de-id validation and KG persistence.
-        deid_text = deidentify_text(encounter_text, ner=True)
-        canonical_entities = [
-            {
-                "text": deidentify_text(str(e.get("text", "") or ""), ner=True),
-                "label": e.get("label") or e.get("semantic_tag", ""),
-                "start": e.get("start", 0),
-                "end": e.get("end", 0),
-                "assertion": e.get("assertion", "present"),
+        sentence_lookup = _build_sentence_lookup(raw_sentences)
+        sentence_groups: dict[str, dict[str, Any]] = {}
+        for entity in entities:
+            sid, sentence_text = _resolve_entity_sentence(entity, sentence_lookup)
+            candidate_line = _pick_best_line_for_entity(entity, sentence_text)
+            group_key = f"{sid}|{candidate_line.lower()}"
+            group = sentence_groups.setdefault(
+                group_key,
+                {
+                    "sentence_text": candidate_line,
+                    "entities": [],
+                },
+            )
+            group["entities"].append(
+                {
+                    "text": deidentify_text(str(entity.get("text", "") or ""), ner=True),
+                    "label": entity.get("label") or entity.get("semantic_tag", ""),
+                    "start": entity.get("start", 0),
+                    "end": entity.get("end", 0),
+                    "assertion": entity.get("assertion", "present"),
+                }
+            )
+
+        if not sentence_groups:
+            deid_text = deidentify_text(encounter_text, ner=True)
+            sentence_groups["__fallback__"] = {
+                "sentence_text": deid_text,
+                "entities": [],
             }
-            for e in entities
-        ]
-        candidate_id = _candidate_id(deid_text)
-        label_id = _entity_fingerprint(deid_text, canonical_entities)
 
         # DI-ID gate: reject residual PHI before entering learning loop.
         from libs.ner.deid_validator import DeIdValidator
 
-        deid_issues = DeIdValidator().check_record(
-            {
-                "text": deid_text,
-                "entities": canonical_entities,
-            }
-        )
-        if deid_issues:
+        validation_failures: list[tuple[str, str]] = []
+        for sid, group in sentence_groups.items():
+            deid_sentence_text = deidentify_text(
+                str(group.get("sentence_text") or ""),
+                ner=True,
+            )
+            canonical_entities = group.get("entities") or []
+            deid_issues = DeIdValidator().check_record(
+                {
+                    "text": deid_sentence_text,
+                    "entities": canonical_entities,
+                }
+            )
+            if deid_issues:
+                validation_failures.append(
+                    (
+                        sid,
+                        ", ".join(i.issue_type for i in deid_issues[:5]),
+                    )
+                )
+        if validation_failures:
+            issue_summary = "; ".join(
+                f"{sid}: {issue_types}" for sid, issue_types in validation_failures
+            )
             errors.append(
                 "deid_failed: residual_phi_detected "
-                + ", ".join(i.issue_type for i in deid_issues[:5])
+                + issue_summary
             )
             try:
                 client = _get_knowledge_graph_client()
                 try:
                     with client.session() as session:
-                        session.run(
-                            UPSERT_TRAINING_CANDIDATE,
-                            candidate_id=candidate_id,
-                            text=deid_text,
-                            source="pipeline_gold",
-                            status="failed",
-                            schema_version="v4",
-                        )
-                        session.run(
-                            UPDATE_TRAINING_CANDIDATE_STATUS,
-                            candidate_id=candidate_id,
-                            status="failed",
-                        )
+                        for group in sentence_groups.values():
+                            deid_sentence_text = deidentify_text(
+                                str(group.get("sentence_text") or ""),
+                                ner=True,
+                            )
+                            candidate_id = _candidate_id(deid_sentence_text)
+                            session.run(
+                                UPSERT_TRAINING_CANDIDATE,
+                                candidate_id=candidate_id,
+                                text=deid_sentence_text,
+                                source="pipeline_gold",
+                                status="failed",
+                                schema_version="v4",
+                            )
+                            session.run(
+                                UPDATE_TRAINING_CANDIDATE_STATUS,
+                                candidate_id=candidate_id,
+                                status="failed",
+                            )
                 finally:
                     client.close()
             except Exception:
@@ -300,39 +410,30 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
             client = _get_knowledge_graph_client()
         try:
             with client.session() as session:
-                session.run(
-                    UPSERT_TRAINING_CANDIDATE,
-                    candidate_id=candidate_id,
-                    text=deid_text,
-                    source="pipeline_gold",
-                    status="processing",
-                    schema_version="v4",
-                )
-                session.run(
-                    UPSERT_GOLD_LABEL,
-                    label_id=label_id,
-                    text=deid_text,
-                    entities_json=json.dumps(canonical_entities),
-                    source="pipeline_gold",
-                    verified_by="pipeline",
-                    candidate_id=candidate_id,
-                    quality_score=quality_score,
-                    schema_version="v4",
-                )
-                session.run(
-                    UPDATE_TRAINING_CANDIDATE_STATUS,
-                    candidate_id=candidate_id,
-                    status="completed",
-                )
+                written = 0
+                for group in sentence_groups.values():
+                    deid_sentence_text = deidentify_text(
+                        str(group.get("sentence_text") or ""),
+                        ner=True,
+                    )
+                    candidate_id = _candidate_id(deid_sentence_text)
+                    session.run(
+                        UPSERT_TRAINING_CANDIDATE,
+                        candidate_id=candidate_id,
+                        text=deid_sentence_text,
+                        source="pipeline_gold",
+                        status="pending",
+                        schema_version="v4",
+                    )
+                    written += 1
         finally:
             client.close()
         logger.info(
-            "Wrote GoldLabel %s candidate=%s (score=%.2f)",
-            label_id[:12],
-            candidate_id[:12],
+            "Wrote %d sentence-level TrainingCandidate record(s) (score=%.2f)",
+            written,
             quality_score,
         )
-        return {"training_labels_written": 1, "errors": errors}
+        return {"training_labels_written": written, "errors": errors}
     except Exception as exc:
         logger.exception("Gold training persist failed")
         errors.append(f"persist_gold_training: {exc}")

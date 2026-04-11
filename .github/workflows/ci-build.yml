@@ -33,7 +33,7 @@ jobs:
           pip install pytest pytest-asyncio black flake8
 
       - name: Lint - black format check
-        run: black --check --diff --target-version py312 .
+        run: black --check --diff .
 
       - name: Lint - flake8
         run: flake8 --max-line-length=88 --extend-ignore=E203,W503 libs/ services/ tests/

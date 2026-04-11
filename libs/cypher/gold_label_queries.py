@@ -72,8 +72,9 @@ LIMIT 1
 """
 
 GET_GOLD_LABELS_PAGE = """
-MATCH (g:GoldLabel)
-WHERE ($source IS NULL OR g.source = $source)
+MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+WHERE c.status = 'completed'
+  AND ($source IS NULL OR g.source = $source)
   AND ($search IS NULL OR toLower(g.text) CONTAINS toLower($search))
 RETURN
     g.label_id AS label_id,
@@ -93,14 +94,16 @@ LIMIT $limit
 """
 
 COUNT_GOLD_LABELS_PAGE = """
-MATCH (g:GoldLabel)
-WHERE ($source IS NULL OR g.source = $source)
+MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+WHERE c.status = 'completed'
+  AND ($source IS NULL OR g.source = $source)
   AND ($search IS NULL OR toLower(g.text) CONTAINS toLower($search))
 RETURN count(g) AS total
 """
 
 GET_GOLD_LABEL_STATS = """
-MATCH (g:GoldLabel)
+MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+WHERE c.status = 'completed'
 RETURN
     count(g) AS total,
     avg(g.quality_score) AS avg_quality_score,
@@ -108,8 +111,9 @@ RETURN
 """
 
 GET_ALL_GOLD_LABELS_FOR_EXPORT = """
-MATCH (g:GoldLabel)
-WHERE g.entities_json IS NOT NULL
+MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+WHERE c.status = 'completed'
+  AND g.entities_json IS NOT NULL
 RETURN
     g.label_id AS label_id,
     g.text AS text,

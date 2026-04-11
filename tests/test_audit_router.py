@@ -379,12 +379,16 @@ class TestFetchBenchmarkMetrics:
              "scope_id": "england", "scope_name": "England", "value": 25},
         ]
 
-        with patch("services.analytics_api.app.routers.audit.KnowledgeGraphClient") as MockKG:
+        with patch(
+            "services.analytics_api.app.routers._audit_helpers.KnowledgeGraphClient"
+        ) as MockKG:
             mock_kg = MagicMock()
             mock_kg.run.side_effect = [set_rows, value_rows]
             MockKG.return_value = mock_kg
 
-            from services.analytics_api.app.routers.audit import _fetch_benchmark_metrics
+            from services.analytics_api.app.routers._audit_helpers import (
+                _fetch_benchmark_metrics,
+            )
             result = _fetch_benchmark_metrics(
                 "ncda-2018", "primary_care_interval",
                 org_id="woodbrook-gp", org_ods_code="C84070", alliance_id=None,
@@ -399,12 +403,16 @@ class TestFetchBenchmarkMetrics:
 
     def test_no_values_returns_none(self):
         set_rows = [{"set_name": "NCDA 2018"}]
-        with patch("services.analytics_api.app.routers.audit.KnowledgeGraphClient") as MockKG:
+        with patch(
+            "services.analytics_api.app.routers._audit_helpers.KnowledgeGraphClient"
+        ) as MockKG:
             mock_kg = MagicMock()
             mock_kg.run.side_effect = [set_rows, []]
             MockKG.return_value = mock_kg
 
-            from services.analytics_api.app.routers.audit import _fetch_benchmark_metrics
+            from services.analytics_api.app.routers._audit_helpers import (
+                _fetch_benchmark_metrics,
+            )
             result = _fetch_benchmark_metrics("ncda-2018", "primary_care_interval")
 
         assert result is None

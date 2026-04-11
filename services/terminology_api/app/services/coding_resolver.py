@@ -125,6 +125,12 @@ _MAX_TOKENS_FOR_RAW_QUERY = 5
 _LUCENE_SPECIAL = re.compile(r'([+\-!(){}[\]^"~*?:\\/])')
 
 
+def _normalise_semantic_tag(tag: str | None) -> str:
+    if not tag:
+        return ""
+    return str(tag).strip().lower().replace("_", " ")
+
+
 def _escape_lucene(text: str) -> str:
     return _LUCENE_SPECIAL.sub(r"\\\1", text)
 
@@ -574,16 +580,20 @@ class CodingResolver:
         max_vec_raw = max(v["vector_raw"] for v in merged.values())
         max_lex = max_lex_raw or 1.0
         max_vec = max_vec_raw or 1.0
-        expected_group = TAG_GROUPS.get(expected_tag, "") if expected_tag else ""
+        normalised_expected_tag = _normalise_semantic_tag(expected_tag)
+        expected_group = (
+            TAG_GROUPS.get(normalised_expected_tag, "")
+            if normalised_expected_tag
+            else ""
+        )
 
         scored: list[tuple[float, dict[str, Any]]] = []
-        expected_group = TAG_GROUPS.get(expected_tag, "") if expected_tag else ""
         hard_block_non_clinical = bool(
-            expected_tag and _CLINICAL_GROUPS.intersection({expected_group})
+            normalised_expected_tag and _CLINICAL_GROUPS.intersection({expected_group})
         )
 
         for c in merged.values():
-            candidate_tag = (c.get("semantic_tag") or "").lower()
+            candidate_tag = _normalise_semantic_tag(c.get("semantic_tag") or "")
 
             # Hard-block non-clinical tags when the caller expects a clinical result.
             if hard_block_non_clinical and candidate_tag in _NON_CLINICAL_TAGS:
@@ -598,9 +608,9 @@ class CodingResolver:
             else:
                 fused = (self.w_lexical * lex_norm) + (self.w_vector * vec_norm)
 
-            if expected_tag:
+            if normalised_expected_tag:
                 candidate_group = TAG_GROUPS.get(candidate_tag, "")
-                if candidate_tag == expected_tag:
+                if candidate_tag == normalised_expected_tag:
                     fused *= _TAG_BOOST
                 elif candidate_group and candidate_group == expected_group:
                     fused *= _TAG_COMPAT_BOOST

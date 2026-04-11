@@ -1363,7 +1363,7 @@ export default function GoldDatasetPanel() {
               ? `No ${tab === "candidates" ? "candidates" : "verified labels"} matching "${debouncedSearch}".`
               : tab === "candidates"
                 ? "No training candidates yet. Run the pipeline to generate them."
-                : "No verified gold labels yet. Complete candidates will appear here once the pipeline verifies them."}
+                : "No verified gold labels yet. Labels appear here after a reviewer saves a candidate as gold data."}
           </Typography>
         </Box>
       ) : (

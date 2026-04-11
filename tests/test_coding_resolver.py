@@ -165,6 +165,30 @@ class TestCodingResolver:
             procedure_candidate = next(c for c in candidates if c.snomed_concept_id == "222")
             assert finding_candidate.score >= procedure_candidate.score
 
+    def test_expected_tag_underscore_not_penalized(self):
+        from services.terminology_api.app.services.coding_resolver import CodingResolver
+
+        resolver = CodingResolver()
+        merged = {
+            "obs-1": {
+                "concept_id": "obs-1",
+                "fsn": "Neutrophil count (observable entity)",
+                "semantic_tag": "observable entity",
+                "read_codes": [],
+                "lexical_raw": 1.0,
+                "vector_raw": 0.0,
+                "surface_form_status": "",
+            }
+        }
+
+        candidates = resolver._fuse_and_rank(
+            merged,
+            expected_tag="observable_entity",
+        )
+
+        assert len(candidates) == 1
+        assert candidates[0].score >= 1.0
+
 
 class TestBatchExact:
 

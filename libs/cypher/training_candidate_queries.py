@@ -22,7 +22,10 @@ ON CREATE SET
 ON MATCH SET
     c.text = $text,
     c.source = $source,
-    c.status = $status,
+    c.status = CASE
+        WHEN c.status = 'completed' AND $status = 'pending' THEN c.status
+        ELSE $status
+    END,
     c.schema_version = $schema_version,
     c.updated_at = datetime()
 RETURN c.candidate_id AS candidate_id, c.status AS status

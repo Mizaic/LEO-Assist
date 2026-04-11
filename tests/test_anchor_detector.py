@@ -99,7 +99,7 @@ class TestClassifyAnchorRows:
         )
 
         buckets, _ = _build_buckets(mock_registry)
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows([], buckets)
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows([], buckets)
         assert (
             refs == []
             and diags == []
@@ -107,6 +107,7 @@ class TestClassifyAnchorRows:
             and specs == []
             and benign == []
             and letters == []
+            and first_pres == []
         )
 
     def test_routes_referral_correctly(self, mock_registry):
@@ -117,11 +118,17 @@ class TestClassifyAnchorRows:
 
         buckets, _ = _build_buckets(mock_registry)
         row = _make_row("E1", "2024-03-15", _REFERRAL_ID, "Fast track referral")
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
             [row], buckets
         )
         assert len(refs) == 1
-        assert diags == [] and treats == [] and specs == [] and letters == []
+        assert (
+            diags == []
+            and treats == []
+            and specs == []
+            and letters == []
+            and first_pres == []
+        )
 
     def test_routes_diagnosis_correctly(self, mock_registry):
         from services.analysis_worker.app.analyzers.anchor_detector import (
@@ -131,11 +138,11 @@ class TestClassifyAnchorRows:
 
         buckets, _ = _build_buckets(mock_registry)
         row = _make_row("E2", "2024-05-10", _DIAGNOSIS_ID, "Malignant tumour")
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
             [row], buckets
         )
         assert len(diags) == 1
-        assert refs == [] and letters == []
+        assert refs == [] and letters == [] and first_pres == []
 
     # VT-084-TC-001: assertion filter excludes non-matching assertion
     def test_assertion_filter_excludes_non_matching(self, mock_registry):
@@ -152,11 +159,11 @@ class TestClassifyAnchorRows:
         row = _make_row(
             "E3", "2024-05-10", _DIAGNOSIS_ID, "Malignant tumour", assertion="present"
         )
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
             [row], buckets
         )
         # present != hypothetical => excluded
-        assert diags == [] and letters == []
+        assert diags == [] and letters == [] and first_pres == []
 
     # VT-084-TC-002: assertion filter accepts matching assertion
     def test_assertion_filter_accepts_matching(self, mock_registry):
@@ -176,10 +183,10 @@ class TestClassifyAnchorRows:
             "Malignant tumour",
             assertion="hypothetical",
         )
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
             [row], buckets
         )
-        assert len(diags) == 1 and letters == []
+        assert len(diags) == 1 and letters == [] and first_pres == []
 
     # VT-084-TC-003: empty assertion_filter accepts all assertions
     def test_empty_assertion_filter_accepts_all(self, mock_registry):
@@ -212,10 +219,10 @@ class TestClassifyAnchorRows:
                 assertion="hypothetical",
             ),
         ]
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
             rows, buckets
         )
-        assert len(diags) == 3 and letters == []
+        assert len(diags) == 3 and letters == [] and first_pres == []
 
     def test_two_diagnosis_domains_both_classified(self, mock_registry):
         """_build_buckets must merge concept IDs across domains sharing milestone_type.
@@ -243,7 +250,7 @@ class TestClassifyAnchorRows:
         benign_row = _make_row(
             "E9", "2024-06-01", _BENIGN_ID, "No evidence of cancer found"
         )
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
             [cancer_row, benign_row], buckets, pathway_ids
         )
 
@@ -256,7 +263,7 @@ class TestClassifyAnchorRows:
         assert len(untagged) == 1
         assert _BENIGN_ID in pathway_ids
         assert _DIAGNOSIS_ID not in pathway_ids
-        assert letters == []
+        assert letters == [] and first_pres == []
 
     # VT-LEO-AI-087: specialist outcome letter bucket
     def test_routes_specialist_letter_concept(self, mock_registry):
@@ -281,7 +288,7 @@ class TestClassifyAnchorRows:
         mock_registry.get_concept_ids.side_effect = _concept_ids
         buckets, _ = _build_buckets(mock_registry)
         row = _make_row("EL1", "2024-08-30", _LETTER, "Letter (record artifact)")
-        refs, diags, treats, specs, benign, letters = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
             [row], buckets
         )
         assert len(letters) == 1
@@ -301,9 +308,10 @@ class TestClassifyAnchorRows:
                 "text": "Dermatology to Woodbrook Medical Centre",
             }
         ]
-        r, d, t, s, b, letters = _classify_text_encounters(rows, set())
+        r, d, t, s, b, letters, first_pres = _classify_text_encounters(rows, set())
         assert len(letters) == 1
         assert letters[0]["concept_id"] == 308470004
+        assert first_pres == []
 
 
 # ---------------------------------------------------------------------------
