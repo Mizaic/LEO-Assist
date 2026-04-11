@@ -33,6 +33,10 @@ def _terminology_runtime_defaults() -> dict[str, object]:
             r"\babpi\b.*\bcould\s+suggest\s+significant\s+arterial\s+stenosis\b",
             r"\breduced\s+abpi\b.*\bmay\s+indicate\s+peripheral\s+arterial\s+disease\b",
             r"\bnot\s+on\s+thyroid\s+tx\b",
+            r"\bno\s+abnormality\s+detected\b",
+            r"\balt\s+level\s+may\s+be\s+raised\s+given\s+the\s+clinical\s+picture\b",
+            r"\bif\s+symptoms\s+worsen\b.*\bamy\b.*\bmay\s+rise\s+above\b",
+            r"\bast\b.*\bcould\s+be\s+elevated\b.*\bpossibly\b.*\bgiven\s+the\s+clinical\s+picture\b",
         ],
     }
 

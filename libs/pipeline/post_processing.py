@@ -16,6 +16,8 @@ Layer order
 5. Entity-Type Norm.      -- deterministic label corrections
 6. Value-Unit Linking     -- attach numeric values to nearby observables
 7. ConText Assertion Det. -- MedSpaCy negation/historical/family detection
+7b. Referral Proc Guard   -- keep referral procedures as present
+7c. Observable Trend Split -- split current vs historical result values
 8. Situation Lookup Norm. -- normalise situation text for terminology
 9. Disorder Gate          -- LLM dual-model disorder classification (optional)
 """
@@ -52,6 +54,10 @@ except Exception:
 
 
 _SENTENCE_BOUNDARY_RE = re.compile(r"(?:\.(?:\s|$)|\n)")
+_TREND_SPLIT_RE = re.compile(
+    r"\b(?:trending\s+(?:down|up)|down\s+from|up\s+from|from\s+peak(?:\s+of)?|from\s+previous(?:ly)?|from\s+prior)\b",
+    re.IGNORECASE,
+)
 
 # ---------------------------------------------------------------------------
 # Concept-specific suppression guard (runs before all other layers)
@@ -133,6 +139,29 @@ def _extract_sentence_window(
         win_end = end + boundary.end()
 
     return encounter_text[win_start:win_end]
+
+
+def _extract_sentence_bounds(
+    encounter_text: str,
+    start: int,
+    end: int,
+    margin: int = 300,
+) -> tuple[int, int]:
+    """Return sentence-level (start, end) bounds around an entity span."""
+    win_start = max(0, start - margin)
+    win_end = min(len(encounter_text), end + margin)
+
+    left = encounter_text[win_start:start]
+    boundary = _SENTENCE_BOUNDARY_RE.search(left[::-1])
+    if boundary:
+        win_start = start - boundary.start()
+
+    right = encounter_text[end:win_end]
+    boundary = _SENTENCE_BOUNDARY_RE.search(right)
+    if boundary:
+        win_end = end + boundary.end()
+
+    return win_start, win_end
 
 
 # ── regex / constants for entity-type normalisation (Layer 5) ──
@@ -613,6 +642,79 @@ def _apply_referral_procedure_assertion_guard(
             ent["_assertion_guard"] = "referral_procedure"
 
 
+def _split_observable_trend_results(
+    encounter_text: str,
+    entities: list[dict[str, Any]],
+) -> None:
+    """Split dual-value trend sentences into present + historical observables."""
+    additions: list[dict[str, Any]] = []
+    for ent in entities:
+        if str(ent.get("label", "")) != "observable_entity":
+            continue
+        if ent.get("_trend_split_role") == "historical":
+            continue
+
+        start = int(ent.get("start", 0) or 0)
+        end = int(ent.get("end", 0) or 0)
+        s_start, s_end = _extract_sentence_bounds(encounter_text, start, end)
+        sentence = encounter_text[s_start:s_end]
+        if not _TREND_SPLIT_RE.search(sentence):
+            continue
+
+        matches = list(_VALUE_UNIT_RE.finditer(sentence))
+        if len(matches) < 2:
+            continue
+
+        marker = re.search(
+            r"\bfrom\s+(?:peak(?:\s+of)?|previous(?:ly)?|prior)\b",
+            sentence,
+            re.IGNORECASE,
+        )
+        current_m = matches[0]
+        historical_m = matches[-1]
+        if marker:
+            after_marker = [m for m in matches if m.start() >= marker.end()]
+            before_marker = [m for m in matches if m.end() <= marker.start()]
+            if after_marker:
+                historical_m = after_marker[0]
+            if before_marker:
+                current_m = before_marker[-1]
+            elif len(matches) >= 2:
+                current_m = matches[0]
+                historical_m = matches[-1]
+
+        current_value = (current_m.group("value") or "").strip()
+        current_unit = (current_m.group("unit") or "").strip()
+        historical_value = (historical_m.group("value") or "").strip()
+        historical_unit = (historical_m.group("unit") or "").strip()
+        if (
+            not current_value
+            or not current_unit
+            or not historical_value
+            or not historical_unit
+            or (
+                current_value == historical_value
+                and current_unit.lower() == historical_unit.lower()
+            )
+        ):
+            continue
+
+        ent["value"] = current_value
+        ent["unit"] = current_unit
+        ent["assertion"] = "present"
+        ent["_trend_split_role"] = "current"
+
+        hist_ent = dict(ent)
+        hist_ent["value"] = historical_value
+        hist_ent["unit"] = historical_unit
+        hist_ent["assertion"] = "historical"
+        hist_ent["_trend_split_role"] = "historical"
+        additions.append(hist_ent)
+
+    if additions:
+        entities.extend(additions)
+
+
 # ── Public API ──
 
 
@@ -837,6 +939,15 @@ def run_post_processing_with_trace(
         "layer_7b",
         "Referral Procedure Assertion Guard",
         lambda current: (_apply_referral_procedure_assertion_guard(current), current)[
+            1
+        ],
+    )
+
+    # Layer 7c: Observable Trend Split
+    _run_layer(
+        "layer_7c",
+        "Observable Trend Split",
+        lambda current: (_split_observable_trend_results(encounter_text, current), current)[
             1
         ],
     )

@@ -38,28 +38,6 @@ _OBS_VALUE_RE = re.compile(
     r"\b(?:[<>]?\s*\d+(?:\.\d+)?(?:\s*/\s*\d+(?:\.\d+)?)?)\b",
     re.IGNORECASE,
 )
-_OBS_RANGE_STATUS_RE = re.compile(
-    r"\b("
-    r"out\s+of\s+reference\s+range|"
-    r"outside\s+reference\s+range|"
-    r"above\s+(?:the\s+)?reference\s+range|"
-    r"below\s+(?:the\s+)?reference\s+range|"
-    r"within\s+(?:the\s+)?reference\s+range|"
-    r"high|raised|elevated|low|reduced"
-    r")\b",
-    re.IGNORECASE,
-)
-_BLOOD_LAB_CONTEXT_RE = re.compile(
-    r"\b("
-    r"blood|serum|plasma|lab(?:oratory)?|biochem(?:istry)?|haematology|"
-    r"full\s+blood\s+count|fbc|"
-    r"haemoglobin|hemoglobin|platelet|neutrophil|lymphocyte|"
-    r"potassium|sodium|creatinine|urea|egfr|crp|hba1c|"
-    r"tsh|thyroid|free\s+t4|cholesterol|triglyceride|ferritin|bilirubin|"
-    r"alt|ast|alp|albumin|globulin"
-    r")\b",
-    re.IGNORECASE,
-)
 
 
 def _normalise_for_resolve(text: str) -> str:
@@ -77,11 +55,7 @@ def _normalise_tag(tag: str | None) -> str:
 
 
 def _has_observation_value(text: str) -> bool:
-    raw = str(text or "")
-    has_numeric = bool(_OBS_VALUE_RE.search(raw))
-    has_range_phrase = bool(_OBS_RANGE_STATUS_RE.search(raw))
-    has_blood_context = bool(_BLOOD_LAB_CONTEXT_RE.search(raw))
-    return has_numeric or (has_range_phrase and has_blood_context)
+    return bool(_OBS_VALUE_RE.search(str(text or "")))
 
 
 def _candidate_tag(candidate: Any) -> str:
@@ -130,6 +104,16 @@ _ALWAYS_IGNORE_PATTERNS: tuple[re.Pattern[str], ...] = (
         re.IGNORECASE,
     ),
     re.compile(r"\bnot\s+on\s+thyroid\s+tx\b", re.IGNORECASE),
+    re.compile(r"\bno\s+abnormality\s+detected\b", re.IGNORECASE),
+    re.compile(r"\balt\s+level\s+may\s+be\s+raised\s+given\s+the\s+clinical\s+picture\b", re.IGNORECASE),
+    re.compile(
+        r"\bif\s+symptoms\s+worsen\b.*\bamy\b.*\bmay\s+rise\s+above\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bast\b.*\bcould\s+be\s+elevated\b.*\bpossibly\b.*\bgiven\s+the\s+clinical\s+picture\b",
+        re.IGNORECASE,
+    ),
 )
 
 # ---------------------------------------------------------------------------

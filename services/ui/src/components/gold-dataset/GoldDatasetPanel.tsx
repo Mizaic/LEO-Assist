@@ -82,6 +82,14 @@ interface SyntheticStats {
   tag_options: SyntheticTagOption[];
 }
 
+interface ValuesetOption {
+  id: string;
+  title: string;
+  concept_count: number;
+  sf_count: number;
+  no_sf_count: number;
+}
+
 interface Candidate {
   candidate_id: string;
   text: string;
@@ -126,10 +134,16 @@ interface DeleteTrainingCandidateResult {
 
 interface SyntheticGenerateResult {
   forms_processed?: number;
+  forms_zero_written?: number;
   candidates_written?: number;
   gold_labels_written?: number;
   skipped_phi?: number;
   skipped_no_match?: number;
+  skipped_non_evidence?: number;
+  skipped_speculative?: number;
+  skipped_semantic_mismatch?: number;
+  skipped_planned_observable?: number;
+  skipped_observable_no_value?: number;
   skipped_empty?: number;
   errors?: string[];
 }
@@ -309,6 +323,37 @@ function statusIcon(status: string) {
   }
 }
 
+function buildSyntheticRunSummary(result: SyntheticGenerateResult): string {
+  const forms = result.forms_processed ?? 0;
+  const labels = result.gold_labels_written ?? 0;
+  const parts: string[] = [
+    `Synthetic generation complete: ${labels} labels from ${forms} forms.`,
+  ];
+  if ((result.forms_zero_written ?? 0) > 0) {
+    parts.push(`No accepted outputs for ${result.forms_zero_written} form(s).`);
+  }
+  const skips: Array<[string, number | undefined]> = [
+    ["speculative", result.skipped_speculative],
+    ["non-evidence", result.skipped_non_evidence],
+    ["semantic mismatch", result.skipped_semantic_mismatch],
+    ["planned observable", result.skipped_planned_observable],
+    ["observable without value", result.skipped_observable_no_value],
+    ["no span match", result.skipped_no_match],
+    ["phi", result.skipped_phi],
+    ["empty", result.skipped_empty],
+  ];
+  const used = skips
+    .filter(([, count]) => typeof count === "number" && count > 0)
+    .map(([label, count]) => `${label}: ${count}`);
+  if (used.length > 0) {
+    parts.push(`Filtered: ${used.join(", ")}.`);
+  }
+  if ((result.errors?.length ?? 0) > 0) {
+    parts.push(`Errors: ${result.errors?.length}.`);
+  }
+  return parts.join(" ");
+}
+
 // ---------------------------------------------------------------------------
 // Stat tile
 // ---------------------------------------------------------------------------
@@ -438,6 +483,17 @@ interface LookupTarget {
   entityIndex: number;
   entityText: string;
   entityLabel: string;
+}
+
+function normaliseLookupTag(raw: string): string | null {
+  const tag = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/-]+/g, "_");
+  if (!tag) return null;
+  if (tag === "observable") return "observable_entity";
+  if (tag === "observation") return "observable_entity";
+  return tag;
 }
 
 function GoldLabelDetailDialog({
@@ -939,6 +995,7 @@ function SnomedLookupDialog({
   onClose: () => void;
 }) {
   const [pendingResult, setPendingResult] = useState<TermSearchResult | null>(null);
+  const hintTag = normaliseLookupTag(entityLabel);
 
   if (pendingResult) {
     return (
@@ -990,6 +1047,7 @@ function SnomedLookupDialog({
   return (
     <TermSearch
       initialQuery={entityText}
+      hintTags={hintTag ? [hintTag] : undefined}
       entityText={entityText}
       entityLabel={entityLabel}
       title={hasExistingCode ? "Fix SNOMED code" : "Find SNOMED code"}
@@ -1076,27 +1134,43 @@ function GoldLabelRow({
               {truncate(item.text)}
             </Typography>
             {entities.length > 0 && (
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                 {entities.slice(0, 6).map((e, i) => {
                   const nonPresent = isNonPresent(e.assertion);
-                  const tipParts = [e.label ?? e.semantic_tag, e.snomed_concept_id];
+                  const tipParts = [e.label ?? e.semantic_tag];
                   if (nonPresent) tipParts.push(formatAssertion(e.assertion));
                   return (
                     <Tooltip key={i} title={tipParts.filter(Boolean).join(" · ")}>
-                      <Chip
-                        label={e.text}
-                        size="small"
-                        sx={{
-                          fontSize: "0.72rem",
-                          bgcolor: nonPresent ? `${assertionColor(e.assertion)}.50` : "primary.50",
-                          borderColor: nonPresent ? `${assertionColor(e.assertion)}.300` : "primary.200",
-                          color: nonPresent ? `${assertionColor(e.assertion)}.dark` : undefined,
-                          fontWeight: 500,
-                          cursor: "default",
-                          mb: 0.5,
-                        }}
-                        variant="outlined"
-                      />
+                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", mb: 0.5 }}>
+                        <Chip
+                          label={e.text}
+                          size="small"
+                          sx={{
+                            fontSize: "0.72rem",
+                            bgcolor: nonPresent ? `${assertionColor(e.assertion)}.50` : "primary.50",
+                            borderColor: nonPresent ? `${assertionColor(e.assertion)}.300` : "primary.200",
+                            color: nonPresent ? `${assertionColor(e.assertion)}.dark` : undefined,
+                            fontWeight: 500,
+                            cursor: "default",
+                          }}
+                          variant="outlined"
+                        />
+                        {e.snomed_concept_id ? (
+                          <Typography
+                            variant="caption"
+                            sx={{ fontFamily: "monospace", fontSize: "0.65rem", color: "text.disabled", mt: 0.25, lineHeight: 1.2 }}
+                          >
+                            {e.snomed_concept_id}
+                          </Typography>
+                        ) : (
+                          <Typography
+                            variant="caption"
+                            sx={{ fontSize: "0.65rem", color: "warning.main", fontStyle: "italic", mt: 0.25, lineHeight: 1.2 }}
+                          >
+                            no code
+                          </Typography>
+                        )}
+                      </Box>
                     </Tooltip>
                   );
                 })}
@@ -1192,6 +1266,8 @@ export default function GoldDatasetPanel() {
   const [syntheticMode, setSyntheticMode] = useState<"inline" | "queue">("inline");
   const [syntheticLimit, setSyntheticLimit] = useState(50);
   const [selectedSyntheticTags, setSelectedSyntheticTags] = useState<string[]>([]);
+  const [selectedValuesetIds, setSelectedValuesetIds] = useState<string[]>([]);
+  const [availableValuesets, setAvailableValuesets] = useState<ValuesetOption[]>([]);
   const [purgingSynthetic, setPurgingSynthetic] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<Candidate | GoldLabel | null>(null);
@@ -1231,6 +1307,14 @@ export default function GoldDatasetPanel() {
   useEffect(() => {
     void loadStats();
   }, [loadStats]);
+
+  // Load valueset options once when the synthetic dialog is first opened
+  useEffect(() => {
+    if (!syntheticDialogOpen || availableValuesets.length > 0) return;
+    jsonFetch<{ valuesets: ValuesetOption[] }>("/api/training/synthetic-gold/valuesets")
+      .then((data) => setAvailableValuesets(data.valuesets ?? []))
+      .catch(() => { /* non-critical — dialog still usable without valueset list */ });
+  }, [syntheticDialogOpen, availableValuesets.length]);
 
   // Load list when tab / page / search changes
   const loadList = useCallback(async () => {
@@ -1300,6 +1384,7 @@ export default function GoldDatasetPanel() {
         limit: syntheticMode === "inline" ? Math.min(syntheticLimit, 50) : Math.min(syntheticLimit, 500),
         sentences_per_form: 10,
         semantic_tags: selectedSyntheticTags.length ? selectedSyntheticTags : null,
+        valueset_ids: selectedValuesetIds.length ? selectedValuesetIds : null,
       };
       if (syntheticMode === "inline") {
         const result = await jsonFetch<SyntheticGenerateResult>(
@@ -1310,9 +1395,7 @@ export default function GoldDatasetPanel() {
             body: JSON.stringify(payload),
           },
         );
-        setActionMsg(
-          `Synthetic generation complete: ${result.gold_labels_written ?? 0} labels from ${result.forms_processed ?? 0} forms.`,
-        );
+        setActionMsg(buildSyntheticRunSummary(result));
       } else {
         const result = await jsonFetch<SyntheticQueueResult>(
           "/api/training/synthetic-candidates/queue",
@@ -1776,52 +1859,118 @@ export default function GoldDatasetPanel() {
           }}
         />
       )}
-      <Dialog open={syntheticDialogOpen} onClose={() => !generatingSynthetic && setSyntheticDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={syntheticDialogOpen} onClose={() => !generatingSynthetic && setSyntheticDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Generate synthetic gold labels</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 0.5 }}>
-            <TextField
-              select
-              label="Mode"
-              value={syntheticMode}
-              onChange={(e) => setSyntheticMode(e.target.value as "inline" | "queue")}
-              size="small"
-            >
-              <MenuItem value="inline">Inline (up to 50 forms)</MenuItem>
-              <MenuItem value="queue">Queued (up to 500 forms)</MenuItem>
-            </TextField>
-            <TextField
-              label="Surface forms to process"
-              type="number"
-              size="small"
-              value={syntheticLimit}
-              onChange={(e) => setSyntheticLimit(Number(e.target.value || 0))}
-              inputProps={{ min: 1, max: syntheticMode === "inline" ? 50 : 500 }}
-              helperText="10 sentences are generated per selected surface form."
-            />
-            <Typography variant="body2" color="text.secondary">
-              Semantic tags (multi-select):
-            </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {(syntheticStats?.tag_options ?? []).map((opt) => {
-                const selected = selectedSyntheticTags.includes(opt.semantic_tag);
-                return (
-                  <Chip
-                    key={opt.semantic_tag}
-                    label={`${opt.semantic_tag} (${opt.total_surface_forms})`}
-                    color={selected ? "secondary" : "default"}
-                    variant={selected ? "filled" : "outlined"}
-                    onClick={() => {
-                      setSelectedSyntheticTags((prev) =>
-                        prev.includes(opt.semantic_tag)
-                          ? prev.filter((tag) => tag !== opt.semantic_tag)
-                          : [...prev, opt.semantic_tag],
-                      );
-                    }}
-                  />
-                );
-              })}
+        <DialogContent dividers sx={{ overflowY: "auto", maxHeight: "70vh" }}>
+          <Stack spacing={3} sx={{ mt: 0.5 }}>
+            {/* ── Run options ── */}
+            <Stack direction="row" spacing={2}>
+              <TextField
+                select
+                label="Mode"
+                value={syntheticMode}
+                onChange={(e) => setSyntheticMode(e.target.value as "inline" | "queue")}
+                size="small"
+                sx={{ minWidth: 220 }}
+              >
+                <MenuItem value="inline">Inline (up to 50 forms)</MenuItem>
+                <MenuItem value="queue">Queued (up to 500 forms)</MenuItem>
+              </TextField>
+              <TextField
+                label="Surface forms to process"
+                type="number"
+                size="small"
+                value={syntheticLimit}
+                onChange={(e) => setSyntheticLimit(Number(e.target.value || 0))}
+                inputProps={{ min: 1, max: syntheticMode === "inline" ? 50 : 500 }}
+                helperText="10 sentences per form."
+                sx={{ minWidth: 180 }}
+              />
             </Stack>
+
+            {/* ── Domain / Sub-domain ── */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                Domain / Sub-domain
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                Restrict generation to concepts in one or more clinical domains.
+                Each chip shows <strong>surface forms with coverage / total concepts</strong>.
+                Domains with no surface forms are hidden.
+              </Typography>
+              {availableValuesets.filter((vs) => vs.sf_count > 0).length === 0 ? (
+                <Typography variant="caption" color="text.disabled">
+                  Loading domains…
+                </Typography>
+              ) : (
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {availableValuesets
+                    .filter((vs) => vs.sf_count > 0)
+                    .map((vs) => {
+                      const selected = selectedValuesetIds.includes(vs.id);
+                      const pct = vs.concept_count > 0
+                        ? Math.round((vs.sf_count / vs.concept_count) * 100)
+                        : 0;
+                      return (
+                        <Chip
+                          key={vs.id}
+                          label={`${vs.title}  ${vs.sf_count} / ${vs.concept_count} (${pct}%)`}
+                          color={selected ? "primary" : "default"}
+                          variant={selected ? "filled" : "outlined"}
+                          onClick={() => {
+                            setSelectedValuesetIds((prev) =>
+                              prev.includes(vs.id)
+                                ? prev.filter((id) => id !== vs.id)
+                                : [...prev, vs.id],
+                            );
+                          }}
+                        />
+                      );
+                    })}
+                </Stack>
+              )}
+              {selectedValuesetIds.length > 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                  {selectedValuesetIds.length} domain{selectedValuesetIds.length > 1 ? "s" : ""} selected
+                  {" — "}
+                  <Box
+                    component="span"
+                    sx={{ cursor: "pointer", textDecoration: "underline" }}
+                    onClick={() => setSelectedValuesetIds([])}
+                  >
+                    clear
+                  </Box>
+                </Typography>
+              )}
+            </Box>
+
+            {/* ── Semantic type filter ── */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                Semantic type filter <Typography component="span" variant="caption" color="text.secondary">(optional — leave blank for all types)</Typography>
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {(syntheticStats?.tag_options ?? []).map((opt) => {
+                  const selected = selectedSyntheticTags.includes(opt.semantic_tag);
+                  return (
+                    <Chip
+                      key={opt.semantic_tag}
+                      label={`${opt.semantic_tag} (${opt.total_surface_forms})`}
+                      color={selected ? "secondary" : "default"}
+                      variant={selected ? "filled" : "outlined"}
+                      size="small"
+                      onClick={() => {
+                        setSelectedSyntheticTags((prev) =>
+                          prev.includes(opt.semantic_tag)
+                            ? prev.filter((tag) => tag !== opt.semantic_tag)
+                            : [...prev, opt.semantic_tag],
+                        );
+                      }}
+                    />
+                  );
+                })}
+              </Stack>
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>

@@ -141,6 +141,35 @@ class TestNonBlockedTermsUnchanged:
         result = _filter_abbrev_noise("Not on Thyroid Tx", candidates)
         assert result == []
 
+    def test_no_abnormality_detected_is_suppressed(self) -> None:
+        candidates = [_make_term("38341003", "disorder")]
+        result = _filter_abbrev_noise("No abnormality detected", candidates)
+        assert result == []
+
+    def test_alt_level_may_be_raised_is_suppressed(self) -> None:
+        candidates = [_make_term("38341003", "disorder")]
+        result = _filter_abbrev_noise(
+            "ALT level may be raised given the clinical picture.",
+            candidates,
+        )
+        assert result == []
+
+    def test_if_symptoms_worsen_amy_may_rise_is_suppressed(self) -> None:
+        candidates = [_make_term("38341003", "disorder")]
+        result = _filter_abbrev_noise(
+            "If symptoms worsen, AMY may rise above 500 U/L warranting further review.",
+            candidates,
+        )
+        assert result == []
+
+    def test_ast_could_be_elevated_speculative_phrase_is_suppressed(self) -> None:
+        candidates = [_make_term("38341003", "disorder")]
+        result = _filter_abbrev_noise(
+            "AST could be elevated, possibly around 90 U/L, given the clinical picture.",
+            candidates,
+        )
+        assert result == []
+
     def test_service_config_ignore_pattern_is_applied(self, monkeypatch) -> None:
         from libs import terminology
 
@@ -230,7 +259,7 @@ class TestObservableNeedsValue:
         )
         assert len(filtered) == 0
 
-    def test_observable_kept_with_blood_reference_range_phrase(self) -> None:
+    def test_observable_reference_range_phrase_removed_even_with_blood_context(self) -> None:
         obs = ResolvedTerm(
             text="serum potassium",
             concept_id="446841001",
@@ -242,8 +271,7 @@ class TestObservableNeedsValue:
             "Serum potassium is out of reference range on repeat blood test",
             [obs],
         )
-        assert len(filtered) == 1
-        assert filtered[0].semantic_tag == "observable_entity"
+        assert len(filtered) == 0
 
 
 # ---------------------------------------------------------------------------

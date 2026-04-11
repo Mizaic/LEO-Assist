@@ -137,6 +137,14 @@ class TestNonEvidenceFilter:
             "A reduced ABPI - ankle brachial pressure index may indicate peripheral arterial disease."
         )
         assert is_non_evidence_line("Not on Thyroid Tx")
+        assert is_non_evidence_line("No abnormality detected")
+        assert is_non_evidence_line("ALT level may be raised given the clinical picture.")
+        assert is_non_evidence_line(
+            "If symptoms worsen, AMY may rise above 500 U/L warranting further review."
+        )
+        assert is_non_evidence_line(
+            "AST could be elevated, possibly around 90 U/L, given the clinical picture."
+        )
 
     def test_fast_track_phrase_is_not_filtered(self):
         from libs.nlp.sentence_splitter import is_non_evidence_line
