@@ -100,3 +100,26 @@ def test_extraction_check_keeps_referral_procedure_as_present(monkeypatch):
     )
     assert out["entities"][0]["assertion"] == "present"
     assert out["entities"][0]["_assertion_guard"] == "referral_procedure"
+
+
+def test_extraction_check_suppresses_medication_instruction_indication(monkeypatch):
+    payload = '{"add":[{"text":"low mood","label":"finding","assertion":"present"}]}'
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(payload),
+    )
+    graph = build_extraction_check_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": "Fluoxetine 20mg capsules - take two daily for low mood",
+            "entities": [
+                {
+                    "text": "Fluoxetine 20mg capsules",
+                    "label": "substance",
+                    "assertion": "present",
+                },
+            ],
+        }
+    )
+    assert any(e["text"] == "Fluoxetine 20mg capsules" for e in out["entities"])
+    assert all(e["text"] != "low mood" for e in out["entities"])

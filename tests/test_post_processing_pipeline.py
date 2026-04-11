@@ -215,6 +215,32 @@ def test_scope_guard_keeps_recommendation_as_hypothetical() -> None:
     assert result[0]["assertion"] == "hypothetical"
 
 
+def test_scope_guard_suppresses_instruction_indication_finding() -> None:
+    entities = [
+        {
+            "text": "Fluoxetine 20mg capsules",
+            "label": "substance",
+            "start": 0,
+            "end": 23,
+            "assertion": "present",
+        },
+        {
+            "text": "low mood",
+            "label": "finding",
+            "start": 46,
+            "end": 54,
+            "assertion": "present",
+        },
+    ]
+    encounter = "Fluoxetine 20mg capsules - take two daily for low mood"
+
+    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
+        result = run_post_processing(encounter, entities)
+
+    assert any(e["text"] == "Fluoxetine 20mg capsules" for e in result)
+    assert all(e["text"] != "low mood" for e in result)
+
+
 # ── Situation Lookup (Layer 8) ──
 
 def test_situation_lookup_adds_normalized_key() -> None:

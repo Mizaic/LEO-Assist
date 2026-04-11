@@ -13,11 +13,13 @@ from langgraph.graph.state import CompiledStateGraph
 
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
+from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
 
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", re.IGNORECASE)
 _JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
+_SENTENCE_BOUNDARY_RE = re.compile(r"(?:\.(?:\s|$)|\n)")
 
 
 class LLMCheckState(TypedDict, total=False):
@@ -112,6 +114,62 @@ def _resolve_span(encounter_text: str, needle: str) -> tuple[int, int]:
     if idx >= 0:
         return idx, idx + len(cleaned)
     return 0, len(cleaned)
+
+
+def _extract_sentence_window(
+    encounter_text: str,
+    start: int,
+    end: int,
+    margin: int = 300,
+) -> str:
+    win_start = max(0, start - margin)
+    win_end = min(len(encounter_text), end + margin)
+
+    left = encounter_text[win_start:start]
+    boundary = _SENTENCE_BOUNDARY_RE.search(left[::-1])
+    if boundary:
+        win_start = start - boundary.start()
+
+    right = encounter_text[end:win_end]
+    boundary = _SENTENCE_BOUNDARY_RE.search(right)
+    if boundary:
+        win_end = end + boundary.end()
+
+    return encounter_text[win_start:win_end]
+
+
+def _apply_scope_guard_after_extraction_check(
+    encounter_text: str,
+    entities: list[dict[str, Any]],
+    changes: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    to_remove: list[int] = []
+    for idx, ent in enumerate(entities):
+        assertion = str(ent.get("assertion") or "present").strip().lower()
+        if assertion not in ("present", ""):
+            continue
+        start = int(ent.get("start", 0) or 0)
+        end = int(ent.get("end", 0) or 0)
+        sentence_text = _extract_sentence_window(encounter_text, start, end)
+        new_assertion = reclassify_assertion(
+            entity_semantic_tag=str(ent.get("label") or ""),
+            entity_assertion=assertion,
+            sentence_text=sentence_text,
+            entity_text=str(ent.get("text") or ent.get("normalized") or ""),
+        )
+        if new_assertion == SUPPRESSED:
+            to_remove.append(idx)
+            changes.append(
+                {"type": "drop", "index": idx, "reason": "scope_guard_post_extraction_check"}
+            )
+        elif new_assertion is not None:
+            ent["assertion"] = new_assertion
+            changes.append(
+                {"type": "assertion_corrected", "index": idx, "assertion": new_assertion}
+            )
+    if not to_remove:
+        return entities
+    return [ent for i, ent in enumerate(entities) if i not in set(to_remove)]
 
 
 def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
@@ -219,6 +277,8 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
             new_entity["_assertion_guard"] = "referral_procedure"
         entities.append(new_entity)
         changes.append({"type": "added", "text": text, "label": label})
+
+    entities = _apply_scope_guard_after_extraction_check(encounter_text, entities, changes)
 
     return {"entities": entities, "llm_check_changes": changes}
 

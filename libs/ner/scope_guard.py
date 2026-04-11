@@ -115,6 +115,25 @@ _CONFIRMED_DIAGNOSIS_RE = re.compile(
     re.IGNORECASE,
 )
 
+_MED_INSTRUCTION_RE = re.compile(
+    r"\b(?:take|taking|continue|continued|on)\b.{0,40}\b(?:once|twice|daily|od|bd|tds|qds)\b",
+    re.IGNORECASE,
+)
+
+_MED_FORM_OR_DOSE_RE = re.compile(
+    r"\b(?:mg|mcg|g|ml|capsules?|tablets?|tabs?|patch(?:es)?|inhaler|drops?)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_instruction_indication_phrase(sentence_text: str, entity_text: str) -> bool:
+    text = (entity_text or "").strip()
+    if not text:
+        return False
+    escaped = re.escape(text)
+    pattern = re.compile(rf"\bfor\s+(?:\w+\s+){{0,2}}{escaped}\b", re.IGNORECASE)
+    return bool(pattern.search(sentence_text))
+
 
 def is_safety_netting_sentence(sentence_text: str) -> bool:
     """Return True if the sentence is safety-netting / contingency advice."""
@@ -231,6 +250,18 @@ def reclassify_assertion(
         return "hypothetical"
 
     tag = (entity_semantic_tag or "").lower().replace("_", " ")
+    if tag in {"finding", "disorder", "situation"}:
+        if _MED_INSTRUCTION_RE.search(sentence_text) and _MED_FORM_OR_DOSE_RE.search(
+            sentence_text
+        ):
+            if _is_instruction_indication_phrase(sentence_text, entity_text):
+                logger.info(
+                    "scope_guard: %s -> SUPPRESSED (medication instruction indication, not standalone finding) | sent: %.120s",
+                    label,
+                    sentence_text,
+                )
+                return SUPPRESSED
+
     if tag == "disorder" and has_hedged_diagnosis(sentence_text):
         logger.info(
             "scope_guard: %s -> 'possible' (hedged diagnosis) | sent: %.120s",

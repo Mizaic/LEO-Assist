@@ -220,6 +220,24 @@ class TestReclassifyAssertion:
         )
         assert result is None
 
+    def test_medication_instruction_indication_is_suppressed(self) -> None:
+        result = reclassify_assertion(
+            entity_semantic_tag="finding",
+            entity_assertion="present",
+            sentence_text="Fluoxetine 20mg capsules - take two daily for low mood",
+            entity_text="low mood",
+        )
+        assert result == SUPPRESSED
+
+    def test_medication_entity_not_suppressed_by_instruction_phrase(self) -> None:
+        result = reclassify_assertion(
+            entity_semantic_tag="substance",
+            entity_assertion="present",
+            sentence_text="Fluoxetine 20mg capsules - take two daily for low mood",
+            entity_text="Fluoxetine 20mg capsules",
+        )
+        assert result is None
+
     def test_will_start_medication_not_reclassified(self) -> None:
         """'Will start' is too ambiguous in UK GP notes — no reclassification."""
         result = reclassify_assertion(
