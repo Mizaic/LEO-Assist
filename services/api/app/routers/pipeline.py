@@ -762,6 +762,17 @@ async def run_patient(
                 preview=payload.preview,
                 trigger_analysis=True,
             )
+            try:
+                from libs.redis_client.rebuild_status import begin_rebuild
+
+                begin_rebuild(patient_id, run_id, len(encounter_jobs))
+            except Exception:
+                logger.warning(
+                    "Could not set rebuild status patient=%s run=%s",
+                    patient_id,
+                    run_id,
+                    exc_info=True,
+                )
         else:  # pragma: no cover - Literal keeps this unreachable
             raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
     except RuntimeError as exc:
