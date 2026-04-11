@@ -21,6 +21,8 @@ import sysconfig
 from pathlib import Path
 from typing import Callable, Optional
 
+from libs.utils.device_resolver import AcceleratorDecision, resolve_accelerator
+
 logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path(__file__).parent / "config" / "base.cfg"
@@ -51,15 +53,8 @@ def _register_nvidia_dll_dirs() -> None:
             pass  # add_dll_directory only exists on Windows Python 3.8+
 
 
-def _should_use_gpu() -> bool:
-    """Return True only if CuPy can actually initialise a CUDA device.
-
-    torch.cuda.is_available() is not sufficient — spaCy uses CuPy internally
-    and will crash if CuPy cannot load the CUDA runtime even when torch can.
-    Set TRAINING_USE_GPU=false to force CPU (avoids CuPy/CUDA issues on Windows).
-    """
-    if os.getenv("TRAINING_USE_GPU", "true").lower() in ("false", "0", "no"):
-        return False
+def _probe_cupy_cuda() -> tuple[bool, str]:
+    """Return whether CuPy/CUDA is truly usable for spaCy training."""
     try:
         # Register nvidia wheel DLL dirs so Windows can find cublas, nvrtc, etc.
         _register_nvidia_dll_dirs()
@@ -68,10 +63,44 @@ def _should_use_gpu() -> bool:
         # Touch runtime APIs to fail fast if CUDA DLLs are genuinely missing.
         cupy.cuda.runtime.getDeviceCount()
         cupy.array([1.0])
-        return True
+        return True, ""
     except Exception as exc:
-        logger.warning("CuPy GPU preflight failed (%s) — falling back to CPU", exc)
-        return False
+        return False, f"cupy cuda preflight failed: {type(exc).__name__}: {exc}"
+
+
+def _requested_training_accelerator() -> str:
+    """Resolve requested accelerator from env, preserving old TRAINING_USE_GPU."""
+    explicit = os.getenv("TRAINING_ACCELERATOR", "").strip().lower()
+    if explicit in {"auto", "cpu", "cuda", "mps"}:
+        return explicit
+    if os.getenv("TRAINING_USE_GPU", "true").lower() in ("false", "0", "no"):
+        return "cpu"
+    return "auto"
+
+
+def _resolve_training_accelerator() -> AcceleratorDecision:
+    """Resolve and validate accelerator for training workloads."""
+    decision = resolve_accelerator(
+        _requested_training_accelerator(),
+        prefer_mps_on_macos=True,
+        min_macos_major_for_mps=int(os.getenv("MPS_MIN_MACOS_MAJOR", "26")),
+        enforce_apple_silicon_for_mps=True,
+    )
+    if decision.resolved != "cuda":
+        return decision
+    ok, reason = _probe_cupy_cuda()
+    if ok:
+        return decision
+    logger.warning("CuPy/CUDA training preflight failed — falling back to CPU: %s", reason)
+    return AcceleratorDecision(
+        requested=decision.requested,
+        resolved="cpu",
+        fallback_applied=True,
+        fallback_reason=reason,
+        platform_name=decision.platform_name,
+        machine=decision.machine,
+        macos_major=decision.macos_major,
+    )
 
 
 def _build_env() -> dict:
@@ -107,7 +136,7 @@ def run_training(
     train_path: Path,
     dev_path: Path,
     log_fn: Optional[Callable[[str], None]] = None,
-) -> Path:
+) -> tuple[Path, dict]:
     """Run spaCy training and return the path to the best model.
 
     Retry strategy (each attempt gets its own named config file):
@@ -137,7 +166,12 @@ def run_training(
         if log_fn:
             log_fn(msg)
 
-    use_gpu = _should_use_gpu()
+    accelerator = _resolve_training_accelerator()
+    use_gpu = accelerator.resolved in {"cuda", "mps"}
+    mps_fail_fast = (
+        accelerator.resolved == "mps"
+        and os.getenv("TRAINING_MPS_FAIL_FAST", "true").lower() in ("1", "true", "yes")
+    )
     frozen_components = [c.strip() for c in _FROZEN.split(",") if c.strip()]
     if "transformer" in frozen_components and not _ALLOW_TRANSFORMER_FREEZE:
         frozen_components = [c for c in frozen_components if c != "transformer"]
@@ -149,9 +183,17 @@ def run_training(
         "Starting spaCy training "
         f"(frozen: {','.join(frozen_components) or 'none'}, base: {_HF_MODEL}, gpu: {use_gpu})"
     )
+    _log(
+        "Accelerator decision "
+        f"(requested={accelerator.requested}, resolved={accelerator.resolved}, "
+        f"fallback_applied={accelerator.fallback_applied}, "
+        f"fallback_reason={accelerator.fallback_reason or 'none'})"
+    )
     _log(f"Train: {train_path} | Dev: {dev_path}")
 
     env = _build_env()
+    if accelerator.resolved == "mps":
+        env.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
     # --- Attempt 1: primary run (GPU if available) --------------------------
     current_gpu = use_gpu
@@ -167,8 +209,12 @@ def run_training(
         config_name="train.cfg",
     )
 
-    # --- Attempt 2: GPU → CPU fallback --------------------------------------
+    # --- Attempt 2: GPU -> CPU fallback --------------------------------------
     if returncode != 0 and current_gpu:
+        if mps_fail_fast:
+            raise RuntimeError(
+                "spaCy training failed while running on MPS; fail-fast policy is enabled"
+            )
         if _is_gpu_runtime_error(lines):
             _log("Detected GPU runtime error; retrying training on CPU.")
         else:
@@ -206,6 +252,10 @@ def run_training(
 
         # --- Attempt 4: unfreeze + CPU if unfrozen GPU attempt also failed --
         if returncode != 0 and current_gpu:
+            if mps_fail_fast:
+                raise RuntimeError(
+                    "spaCy training failed while running on MPS; fail-fast policy is enabled"
+                )
             _log("Detected GPU runtime error after unfreeze retry; retrying on CPU.")
             returncode, lines = _run_spacy_train(
                 work_dir=work_dir,
@@ -232,7 +282,13 @@ def run_training(
             raise RuntimeError("Training completed but no output model found")
 
     _log(f"Training complete — model at {model_best}")
-    return model_best
+    accelerator_meta = {
+        "requested_accelerator": accelerator.requested,
+        "resolved_accelerator": accelerator.resolved,
+        "fallback_applied": accelerator.fallback_applied,
+        "fallback_reason": accelerator.fallback_reason,
+    }
+    return model_best, accelerator_meta
 
 
 def _write_filled_config(
@@ -304,6 +360,10 @@ def _is_gpu_runtime_error(lines: list[str]) -> bool:
         if "dlpack" in low and "consumed only once" in low:
             return True
         if "cupy" in low and "cuda" in low and "error" in low:
+            return True
+        if "mps" in low and ("error" in low or "unsupported" in low or "failed" in low):
+            return True
+        if "metal" in low and ("error" in low or "failed" in low):
             return True
     return False
 

@@ -168,11 +168,26 @@ def _phase_train(
     store.append_log(job, f"Phase 2/5 — Trainer ready in {time.perf_counter() - load_t:.2f}s")
     store.append_log(job, "Phase 2/5 — Running spaCy training (Bio_ClinicalBERT backbone)…")
 
-    model_dir = run_training(
+    model_dir, accel_meta = run_training(
         work_dir,
         train_path=train_path,
         dev_path=dev_path,
         log_fn=lambda line: store.append_log(job, line),
+    )
+    store.update(
+        job,
+        metrics={
+            **job.metrics,
+            "accelerator": accel_meta,
+        },
+    )
+    store.append_log(
+        job,
+        "Accelerator telemetry "
+        f"(requested={accel_meta.get('requested_accelerator')}, "
+        f"resolved={accel_meta.get('resolved_accelerator')}, "
+        f"fallback_applied={accel_meta.get('fallback_applied')}, "
+        f"fallback_reason={accel_meta.get('fallback_reason') or 'none'})",
     )
     return model_dir
 
@@ -246,6 +261,7 @@ def _phase_register(
     from libs.model_registry.registry import ModelRecord
 
     training_duration_s = round(time.time() - started_at, 1)
+    accelerator_meta = (job.metrics or {}).get("accelerator", {})
 
     # Build the full V&V-traceable record.
     record = ModelRecord(
@@ -262,6 +278,10 @@ def _phase_register(
             "base_model": os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"),
             "frozen_components": os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer"),
             "training_duration_s": training_duration_s,
+            "requested_accelerator": accelerator_meta.get("requested_accelerator", "auto"),
+            "resolved_accelerator": accelerator_meta.get("resolved_accelerator", "cpu"),
+            "fallback_applied": bool(accelerator_meta.get("fallback_applied", False)),
+            "fallback_reason": accelerator_meta.get("fallback_reason", ""),
             # Dataset statistics
             "train_count": export_meta.get("train_count", 0),
             "dev_count": export_meta.get("dev_count", 0),

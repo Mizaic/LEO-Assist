@@ -9,6 +9,7 @@ import threading
 from typing import Sequence
 
 import numpy as np
+from libs.utils.device_resolver import resolve_accelerator
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,13 @@ class _LazySentenceEmbedder:
 
     def __init__(self) -> None:
         self.model_name = os.getenv("VECTOR_MODEL", "").strip()
-        self.device = os.getenv("VECTOR_DEVICE", "auto").strip()
+        self.device_requested = os.getenv("VECTOR_DEVICE", "auto").strip()
+        self.mps_fail_fast = os.getenv("VECTOR_MPS_FAIL_FAST", "true").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        self._resolved_device = "cpu"
         self._model = None
         self._load_failed = False
         self._lock = threading.Lock()
@@ -52,23 +59,21 @@ class _LazySentenceEmbedder:
                 self._load_failed = True
                 return False
             try:
-                device = self.device
-                if device == "auto":
-                    try:
-                        import torch
-                        device = "cuda" if torch.cuda.is_available() else "cpu"
-                    except Exception:
-                        device = "cpu"
-                elif device == "cuda":
-                    try:
-                        import torch
-                        if not torch.cuda.is_available():
-                            raise RuntimeError("cuda unavailable")
-                    except Exception:
-                        logger.warning(
-                            "VECTOR_DEVICE=cuda but CUDA is not available; falling back to CPU"
-                        )
-                        device = "cpu"
+                decision = resolve_accelerator(
+                    self.device_requested,
+                    prefer_mps_on_macos=True,
+                    min_macos_major_for_mps=int(os.getenv("MPS_MIN_MACOS_MAJOR", "26")),
+                    enforce_apple_silicon_for_mps=True,
+                )
+                device = decision.resolved
+                self._resolved_device = device
+                if decision.fallback_applied:
+                    logger.warning(
+                        "Few-shot embedder accelerator fallback applied: requested=%s resolved=%s reason=%s",
+                        decision.requested,
+                        decision.resolved,
+                        decision.fallback_reason,
+                    )
                 offline = os.getenv("HF_HUB_OFFLINE", "0") == "1"
                 self._model = SentenceTransformer(
                     self.model_name,
@@ -89,12 +94,20 @@ class _LazySentenceEmbedder:
     def encode(self, texts: Sequence[str]) -> np.ndarray | None:
         if not self._ensure_model():
             return None
-        vectors = self._model.encode(
-            list(texts),
-            normalize_embeddings=True,
-            show_progress_bar=False,
-            convert_to_numpy=True,
-        )
+        try:
+            vectors = self._model.encode(
+                list(texts),
+                normalize_embeddings=True,
+                show_progress_bar=False,
+                convert_to_numpy=True,
+            )
+        except Exception:
+            if self._resolved_device == "mps" and self.mps_fail_fast:
+                raise RuntimeError(
+                    "MPS runtime failure in few-shot embedder; fail-fast is enabled"
+                )
+            logger.warning("Few-shot embedder encode failed", exc_info=True)
+            return None
         arr = np.asarray(vectors, dtype=np.float32)
         if arr.ndim == 1:
             arr = arr.reshape(1, -1)

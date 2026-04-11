@@ -245,11 +245,24 @@ def health() -> dict[str, Any]:
     store = get_store()
     jobs = store.list_all(log_tail=0)
     running = sum(1 for j in jobs if j["status"] == "running")
+    accel_rows = [((j.get("metrics") or {}).get("accelerator") or {}) for j in jobs]
+    mps_resolved = sum(1 for row in accel_rows if row.get("resolved_accelerator") == "mps")
+    startup_fallbacks = sum(1 for row in accel_rows if bool(row.get("fallback_applied")))
+    fail_fast_errors = sum(
+        1
+        for j in jobs
+        if j.get("status") == "failed"
+        and "mps" in str(j.get("error", "")).lower()
+        and "fail-fast" in str(j.get("error", "")).lower()
+    )
     return {
         "status": "ok",
         "hf_base_model": os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT"),
         "running_jobs": running,
         "total_jobs": len(jobs),
+        "mps_resolved_jobs": mps_resolved,
+        "accelerator_startup_fallbacks": startup_fallbacks,
+        "mps_fail_fast_errors": fail_fast_errors,
     }
 
 

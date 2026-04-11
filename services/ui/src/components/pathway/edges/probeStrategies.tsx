@@ -575,6 +575,46 @@ const qualityCheck: ProbeStrategy = {
   },
 };
 
+const llmQualityCheck: ProbeStrategy = {
+  icon: "QA",
+  headline: (out) => {
+    const changes = arr(out.llm_check_changes);
+    const result = isRec(out.llm_check_result) ? out.llm_check_result : {};
+    const accepted = bool(result.accepted, true);
+    if (changes.length === 0) {
+      return accepted ? "Quality check passed -- no corrections needed" : "Quality check flagged issues";
+    }
+    return `Quality check applied ${pl(changes.length, "correction")}`;
+  },
+  Detail: ({ output, input, openInspector }) => {
+    const changes = arr(output.llm_check_changes).filter(isRec) as Record<string, unknown>[];
+    const result = isRec(output.llm_check_result) ? output.llm_check_result : null;
+    const accepted = result ? bool(result.accepted, true) : true;
+    return (
+      <div style={{ display: "grid", gap: 8 }}>
+        <EntityDelta input={input} output={output} />
+        <Verdict
+          passed={accepted}
+          label={accepted ? "Quality gate passed" : "Quality gate flagged issues"}
+          detail={result ? str(result.summary, "") || undefined : undefined}
+        />
+        {changes.length > 0 ? (
+          <MiniTable
+            cols={["path", "before", "after", "reason"]}
+            rows={changes}
+            onRow={(i) => openInspector(["llm_check_changes", i])}
+          />
+        ) : (
+          <div style={{ color: C.dim, fontSize: 10 }}>No structured corrections recorded for this run.</div>
+        )}
+        {result && (
+          <InspectButton label="View full quality check result" onClick={() => openInspector(["llm_check_result"])} />
+        )}
+      </div>
+    );
+  },
+};
+
 const persist: ProbeStrategy = {
   icon: "💾",
   headline: (out) => {
@@ -858,7 +898,9 @@ const guidanceRuleExtraction: ProbeStrategy = {
 export const PROBE_STRATEGIES: Record<string, ProbeStrategy> = {
   extraction,
   post_processing: postProcessing,
+  extraction_check: llmQualityCheck,
   terminology,
+  coding_check: llmQualityCheck,
   tier_classify: tierClassify,
   verification,
   surface_form_validation: surfaceFormValidation,

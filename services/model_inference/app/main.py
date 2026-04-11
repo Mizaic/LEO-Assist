@@ -30,6 +30,7 @@ from __future__ import annotations
 from pathlib import Path
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+from libs.utils.device_resolver import resolve_accelerator
 
 _ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
@@ -44,9 +45,17 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Optional
 
-# Inference runs on CPU only. Disable GPU device visibility before any
-# spaCy / thinc / CuPy import so the CUDA probe is skipped entirely.
-os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+_INFERENCE_ACCEL = resolve_accelerator(
+    os.getenv("MODEL_INFERENCE_ACCELERATOR", "auto"),
+    prefer_mps_on_macos=True,
+    min_macos_major_for_mps=int(os.getenv("MPS_MIN_MACOS_MAJOR", "26")),
+    enforce_apple_silicon_for_mps=True,
+)
+if _INFERENCE_ACCEL.resolved == "cpu":
+    # Keep existing deterministic CPU mode when accelerator resolves to CPU.
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+elif _INFERENCE_ACCEL.resolved == "mps":
+    os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -59,7 +68,11 @@ logger = logging.getLogger(__name__)
 
 # Global model loader — shared across all requests.
 # Hot-reload swaps the internal nlp object atomically under a RLock.
-_loader = ModelLoader()
+_loader = ModelLoader(
+    accelerator=_INFERENCE_ACCEL.resolved,
+    mps_fail_fast=os.getenv("MODEL_INFERENCE_MPS_FAIL_FAST", "true").lower()
+    in ("1", "true", "yes"),
+)
 
 
 def _resolve_startup_version() -> str:
@@ -89,6 +102,13 @@ def _resolve_startup_version() -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info(
+        "Inference accelerator decision (requested=%s resolved=%s fallback_applied=%s reason=%s)",
+        _INFERENCE_ACCEL.requested,
+        _INFERENCE_ACCEL.resolved,
+        _INFERENCE_ACCEL.fallback_applied,
+        _INFERENCE_ACCEL.fallback_reason or "none",
+    )
     version = _resolve_startup_version()
     if version:
         try:
@@ -164,6 +184,10 @@ def health() -> dict[str, Any]:
         "model_name": _loader.model_name,
         "active_version": active or "none",
         "loaded": active is not None,
+        "requested_accelerator": _INFERENCE_ACCEL.requested,
+        "resolved_accelerator": _INFERENCE_ACCEL.resolved,
+        "fallback_applied": _INFERENCE_ACCEL.fallback_applied,
+        "fallback_reason": _INFERENCE_ACCEL.fallback_reason,
     }
 
 

@@ -10,35 +10,33 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from dotenv import load_dotenv
+from libs.utils.device_resolver import resolve_accelerator
 
 log = logging.getLogger(__name__)
 
 
 def _resolve_device(requested: str) -> str:
-    """Return 'cuda' or 'cpu' depending on availability.
-
-    *  ``"auto"`` / ``""`` -> try CUDA, fall back to CPU
-    *  ``"cuda"``          -> use CUDA (will fail fast if unavailable)
-    *  ``"cpu"``           -> always CPU
-    """
-    requested = (requested or "auto").strip().lower()
-    if requested == "cpu":
-        return "cpu"
-    try:
-        import torch
-        cuda_ok = torch.cuda.is_available()
-        if cuda_ok:
-            name = torch.cuda.get_device_name(0)
-            log.info("CUDA available - using GPU: %s", name)
-            return "cuda"
-        log.info("torch.cuda.is_available() = False (CUDA_VISIBLE_DEVICES=%s)", os.environ.get("CUDA_VISIBLE_DEVICES", "not set"))
-    except Exception as e:
-        log.warning("CUDA check failed: %s: %s", type(e).__name__, e)
-    if requested == "cuda":
-        log.warning("CUDA was explicitly requested but is not available - falling back to CPU")
+    """Return resolved accelerator string for embeddings."""
+    decision = resolve_accelerator(
+        requested,
+        prefer_mps_on_macos=True,
+        min_macos_major_for_mps=int(os.getenv("MPS_MIN_MACOS_MAJOR", "26")),
+        enforce_apple_silicon_for_mps=True,
+    )
+    if decision.fallback_applied:
+        log.warning(
+            "Embedding accelerator fallback applied: requested=%s resolved=%s reason=%s",
+            decision.requested,
+            decision.resolved,
+            decision.fallback_reason,
+        )
     else:
-        log.info("CUDA not available - using CPU for embeddings")
-    return "cpu"
+        log.info(
+            "Embedding accelerator resolved: requested=%s resolved=%s",
+            decision.requested,
+            decision.resolved,
+        )
+    return decision.resolved
 
 
 @dataclass(frozen=True)

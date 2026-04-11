@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 class ModelLoader:
     """Thread-safe model holder for the inference service."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, accelerator: str = "cpu", mps_fail_fast: bool = True) -> None:
         # Guards in-memory swap of _nlp / _active_version.
         self._lock = threading.RLock()
         # Serialises concurrent load_version calls — prevents duplicate
@@ -48,6 +48,8 @@ class ModelLoader:
         self._nlp: Any = None
         self._active_version: Optional[str] = None
         self._model_name = os.getenv("CODING_MODEL_NAME", "medspacy_clinical_ner")
+        self._accelerator = accelerator
+        self._mps_fail_fast = mps_fail_fast
 
     @property
     def nlp(self) -> Any:
@@ -98,6 +100,16 @@ class ModelLoader:
 
             # Load in staging — outside the swap lock so requests keep flowing.
             try:
+                if self._accelerator in {"cuda", "mps"}:
+                    gpu_ok = spacy.prefer_gpu()
+                    if not gpu_ok:
+                        msg = (
+                            "ModelLoader: spaCy GPU activation failed for "
+                            f"accelerator={self._accelerator}"
+                        )
+                        if self._accelerator == "mps" and self._mps_fail_fast:
+                            raise RuntimeError(msg)
+                        logger.warning("%s; continuing on CPU", msg)
                 new_nlp = spacy.load(str(local_model_dir))
             except Exception as exc:
                 raise RuntimeError(

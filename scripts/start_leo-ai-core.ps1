@@ -1,6 +1,8 @@
 # LEO-AI-CORE - Local Development Startup
 # Creates / activates .venv, installs all deps, starts every microservice.
 #
+# Requires Python 3.12 on PATH (python3.12, or Windows py -3.12), or set env LEO_PYTHON to python.exe.
+#
 # Usage:
 #   .\scripts\start_leo-ai-core.ps1                            # full stack — ALL services including inference + training worker
 #   .\scripts\start_leo-ai-core.ps1 -SkipInstall               # skip pip/npm install
@@ -77,12 +79,52 @@ $TrainingWorkerDir      = Join-Path $RepoRoot "services\training_worker"
 $ReqFile                = Join-Path $RepoRoot "requirements.txt"
 $ApiReq                 = Join-Path $ApiDir "requirements.txt"
 $ModelInferenceReq      = Join-Path $ModelInferenceDir "requirements.txt"
+$PipelineWorkerReq      = Join-Path $RepoRoot "services\pipeline_worker\requirements.txt"
+$TerminologyApiReq      = Join-Path $RepoRoot "services\terminology_api\requirements.txt"
+$FhirApiReq             = Join-Path $RepoRoot "services\fhir_api\requirements.txt"
+$AnalyticsApiReq        = Join-Path $RepoRoot "services\analytics_api\requirements.txt"
 $TrainingWorkerReq      = Join-Path $TrainingWorkerDir "requirements.txt"
 $ModelCacheDir          = Join-Path $RepoRoot ".model_cache"
+
+function Get-LeoPython312Bootstrap {
+    if ($env:LEO_PYTHON -and (Test-Path -LiteralPath $env:LEO_PYTHON)) {
+        return $env:LEO_PYTHON
+    }
+    $cmd312 = Get-Command python3.12 -ErrorAction SilentlyContinue
+    if ($cmd312) { return $cmd312.Source }
+    $pyCmd = Get-Command py -ErrorAction SilentlyContinue
+    if ($pyCmd) {
+        $out = $null
+        try {
+            $out = & py -3.12 -c "import sys; print(sys.executable)" 2>$null
+        } catch {
+            $out = $null
+        }
+        if ($out) {
+            if ($out -is [array]) { return ([string]$out[-1]).Trim() }
+            return ([string]$out).Trim()
+        }
+    }
+    return $null
+}
 
 Write-Host ""
 Write-Host "  LEO-AI-CORE - Local Dev Startup" -ForegroundColor Cyan
 Write-Host ""
+
+$PyBootstrap = Get-LeoPython312Bootstrap
+if (-not $PyBootstrap) {
+    Write-Host "  Python 3.12 is required (matches CI). Install 3.12, then re-run." -ForegroundColor Red
+    Write-Host "  Examples: winget install Python.Python.3.12  OR  py -0p (list runtimes)" -ForegroundColor Yellow
+    Write-Host "  Optional: set LEO_PYTHON to the full path of python.exe (3.12)." -ForegroundColor Yellow
+    exit 1
+}
+$bootstrapMm = [int](& $PyBootstrap -c "import sys; print(sys.version_info.major * 100 + sys.version_info.minor)")
+if ($bootstrapMm -ne 312) {
+    Write-Host "  LEO_PYTHON / bootstrap must be Python 3.12.x. Found: $(& $PyBootstrap -V) ($PyBootstrap)" -ForegroundColor Red
+    exit 1
+}
+Write-Host "  [py]   Bootstrap interpreter: $(& $PyBootstrap -V) ($PyBootstrap)" -ForegroundColor DarkGray
 
 # -- Environment / secrets -------------------------------------------------
 # Load order (later overrides earlier):
@@ -137,6 +179,21 @@ if ($kvUrl) {
 } else {
     Write-Host "  [kv]   AZURE_KEYVAULT_URL not set - KV secret loading disabled." -ForegroundColor Yellow
 }
+$vectorDevice = [System.Environment]::GetEnvironmentVariable("VECTOR_DEVICE", "Process")
+if (-not $vectorDevice) { $vectorDevice = "auto" }
+$mpsMin = [System.Environment]::GetEnvironmentVariable("MPS_MIN_MACOS_MAJOR", "Process")
+if (-not $mpsMin) { $mpsMin = "26" }
+$trainAccel = [System.Environment]::GetEnvironmentVariable("TRAINING_ACCELERATOR", "Process")
+if (-not $trainAccel) { $trainAccel = "auto" }
+$trainFailFast = [System.Environment]::GetEnvironmentVariable("TRAINING_MPS_FAIL_FAST", "Process")
+if (-not $trainFailFast) { $trainFailFast = "true" }
+$inferAccel = [System.Environment]::GetEnvironmentVariable("MODEL_INFERENCE_ACCELERATOR", "Process")
+if (-not $inferAccel) { $inferAccel = "auto" }
+$inferFailFast = [System.Environment]::GetEnvironmentVariable("MODEL_INFERENCE_MPS_FAIL_FAST", "Process")
+if (-not $inferFailFast) { $inferFailFast = "true" }
+Write-Host ("  [accel] VECTOR_DEVICE={0}  (MPS min macOS {1})" -f $vectorDevice, $mpsMin) -ForegroundColor DarkGray
+Write-Host ("  [accel] TRAINING_ACCELERATOR={0}  TRAINING_MPS_FAIL_FAST={1}" -f $trainAccel, $trainFailFast) -ForegroundColor DarkGray
+Write-Host ("  [accel] MODEL_INFERENCE_ACCELERATOR={0}  MODEL_INFERENCE_MPS_FAIL_FAST={1}" -f $inferAccel, $inferFailFast) -ForegroundColor DarkGray
 
 # Model registry: use Neo4j by default. Set MODEL_REGISTRY_STORE=json for file-based.
 if (-not [System.Environment]::GetEnvironmentVariable("MODEL_REGISTRY_STORE", 'Process')) {
@@ -155,17 +212,29 @@ if (-not (Test-Path $ModelCacheDir)) {
 }
 
 # -- Python virtual environment (shared — no GPU/cupy deps) ----------------
-if (-not (Test-Path $VenvPython)) {
+if (Test-Path $VenvPython) {
+    $venvMm = [int](& $VenvPython -c "import sys; print(sys.version_info.major * 100 + sys.version_info.minor)")
+    if ($venvMm -ne 312) {
+        Write-Host "  [venv] Existing .venv must be Python 3.12 (found $venvMm). Remove .venv and .venv-training, then re-run." -ForegroundColor Yellow
+        exit 1
+    }
+} else {
     Write-Host "  [venv] Creating shared virtual environment (.venv)..." -ForegroundColor Yellow
-    python -m venv $VenvDir
+    & $PyBootstrap -m venv $VenvDir
     Write-Host "  [venv] .venv created." -ForegroundColor Green
 }
 
 # -- Training worker virtual environment (isolated — cupy + torch + spacy-transformers) --
 if (-not $NoTrainingWorker) {
-    if (-not (Test-Path $TrainingVenvPython)) {
+    if (Test-Path $TrainingVenvPython) {
+        $tvm = [int](& $TrainingVenvPython -c "import sys; print(sys.version_info.major * 100 + sys.version_info.minor)")
+        if ($tvm -ne 312) {
+            Write-Host "  [venv] .venv-training must be Python 3.12 (found $tvm). Remove .venv-training, then re-run." -ForegroundColor Yellow
+            exit 1
+        }
+    } else {
         Write-Host "  [venv] Creating training worker virtual environment (.venv-training)..." -ForegroundColor Yellow
-        python -m venv $TrainingVenvDir
+        & $PyBootstrap -m venv $TrainingVenvDir
         Write-Host "  [venv] .venv-training created." -ForegroundColor Green
     }
 }
@@ -183,6 +252,11 @@ if (-not $SkipInstall) {
     # that may drift from the monorepo floor - install on top of the venv.
     if (Test-Path $ModelInferenceReq) {
         & $VenvPython -m pip install --quiet --upgrade -r $ModelInferenceReq
+    }
+    foreach ($extra in @($PipelineWorkerReq, $TerminologyApiReq, $FhirApiReq, $AnalyticsApiReq)) {
+        if (Test-Path $extra) {
+            & $VenvPython -m pip install --quiet --upgrade -r $extra
+        }
     }
     Write-Host "  [pip]  Shared Python dependencies up to date." -ForegroundColor Green
 

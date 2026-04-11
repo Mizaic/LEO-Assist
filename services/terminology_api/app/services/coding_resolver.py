@@ -646,6 +646,11 @@ class CodingResolver:
         try:
             return self._embedder.encode(texts)
         except Exception:
+            if (
+                getattr(self._embedder, "resolved_device", "") == "mps"
+                and os.getenv("VECTOR_MPS_FAIL_FAST", "true").lower() in ("1", "true", "yes")
+            ):
+                raise
             logger.warning("Embedding failed — vector branch disabled", exc_info=True)
             return None
 

@@ -7,6 +7,7 @@ import os
 from typing import Sequence
 
 import numpy as np
+from libs.utils.device_resolver import resolve_accelerator
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,19 @@ class TerminologyTextEmbedder:
 
     def __init__(self) -> None:
         self.model_name = os.getenv("VECTOR_MODEL", "").strip()
-        self.device = os.getenv("VECTOR_DEVICE", "auto").strip()
+        self.device_requested = os.getenv("VECTOR_DEVICE", "auto").strip()
+        self.mps_fail_fast = os.getenv("VECTOR_MPS_FAIL_FAST", "true").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        self._resolved_device = "cpu"
         self._model = None
         self._load_failed = False
+
+    @property
+    def resolved_device(self) -> str:
+        return self._resolved_device
 
     def _ensure_model(self) -> bool:
         if self._model is not None:
@@ -40,26 +51,21 @@ class TerminologyTextEmbedder:
             self._load_failed = True
             return False
         try:
-            device = self.device
-            if device == "auto":
-                try:
-                    import torch
-                    device = "cuda" if torch.cuda.is_available() else "cpu"
-                except Exception:
-                    device = "cpu"
-            elif device == "cuda":
-                # Verify CUDA is actually usable; CPU-only torch builds raise
-                # AssertionError inside torch.cuda rather than returning False.
-                try:
-                    import torch
-                    if not torch.cuda.is_available():
-                        raise RuntimeError("cuda unavailable")
-                except Exception:
-                    logger.warning(
-                        "VECTOR_DEVICE=cuda but CUDA is not available on this build "
-                        "— falling back to CPU"
-                    )
-                    device = "cpu"
+            decision = resolve_accelerator(
+                self.device_requested,
+                prefer_mps_on_macos=True,
+                min_macos_major_for_mps=int(os.getenv("MPS_MIN_MACOS_MAJOR", "26")),
+                enforce_apple_silicon_for_mps=True,
+            )
+            device = decision.resolved
+            self._resolved_device = device
+            if decision.fallback_applied:
+                logger.warning(
+                    "Terminology embedder accelerator fallback applied: requested=%s resolved=%s reason=%s",
+                    decision.requested,
+                    decision.resolved,
+                    decision.fallback_reason,
+                )
             offline = os.getenv("HF_HUB_OFFLINE", "0") == "1"
             self._model = SentenceTransformer(
                 self.model_name,
@@ -83,10 +89,18 @@ class TerminologyTextEmbedder:
     def encode(self, texts: Sequence[str]) -> list[list[float]] | None:
         if not self._ensure_model():
             return None
-        vectors = self._model.encode(
-            list(texts),
-            normalize_embeddings=True,
-            show_progress_bar=False,
-            convert_to_numpy=True,
-        )
+        try:
+            vectors = self._model.encode(
+                list(texts),
+                normalize_embeddings=True,
+                show_progress_bar=False,
+                convert_to_numpy=True,
+            )
+        except Exception:
+            if self._resolved_device == "mps" and self.mps_fail_fast:
+                raise RuntimeError(
+                    "MPS runtime failure in terminology embedder; fail-fast is enabled"
+                )
+            logger.warning("Terminology embedder encode failed", exc_info=True)
+            return None
         return [np.asarray(v, dtype=np.float32, copy=True).tolist() for v in vectors]

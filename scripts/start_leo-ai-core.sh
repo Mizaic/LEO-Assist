@@ -1,0 +1,413 @@
+#!/usr/bin/env bash
+# LEO-AI-CORE - Local Development Startup (macOS / Linux)
+# Creates / activates .venv, installs deps, starts microservices in new Terminal windows.
+#
+# Usage:
+#   ./scripts/start_leo-ai-core.sh
+#   ./scripts/start_leo-ai-core.sh --skip-install
+#   ./scripts/start_leo-ai-core.sh --no-workers
+#   ./scripts/start_leo-ai-core.sh --no-model-inference
+#   ./scripts/start_leo-ai-core.sh --no-training-worker
+#   ./scripts/start_leo-ai-core.sh --services api,ui
+#   ./scripts/start_leo-ai-core.sh --pipeline-workers 3
+#   ./scripts/start_leo-ai-core.sh --term-workers 3
+#
+# Environment overrides (optional):
+#   LEO_PYTHON  -- full path to python3.12 used to create .venv (must be 3.12.x; matches CI)
+#   API_PORT, TERM_PORT, FHIR_PORT, ANALYTICS_PORT, MODEL_INFERENCE_PORT,
+#   TRAINING_WORKER_PORT, PIPELINE_WORKER_PORT, UI_PORT,
+#   PIPELINE_WORKERS, TERM_WORKERS
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+API_PORT="${API_PORT:-8000}"
+TERM_PORT="${TERM_PORT:-8001}"
+FHIR_PORT="${FHIR_PORT:-8002}"
+ANALYTICS_PORT="${ANALYTICS_PORT:-8003}"
+MODEL_INFERENCE_PORT="${MODEL_INFERENCE_PORT:-8004}"
+TRAINING_WORKER_PORT="${TRAINING_WORKER_PORT:-8005}"
+PIPELINE_WORKER_PORT="${PIPELINE_WORKER_PORT:-8006}"
+UI_PORT="${UI_PORT:-3000}"
+PIPELINE_WORKERS="${PIPELINE_WORKERS:-1}"
+TERM_WORKERS="${TERM_WORKERS:-1}"
+
+SKIP_INSTALL=0
+NO_WORKERS=0
+NO_MODEL_INFERENCE=0
+NO_TRAINING_WORKER=0
+SERVICES_FILTER=""
+
+usage() {
+  sed -n '1,25p' "$0" | tail -n +2
+  exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-install) SKIP_INSTALL=1; shift ;;
+    --no-workers) NO_WORKERS=1; shift ;;
+    --no-model-inference) NO_MODEL_INFERENCE=1; shift ;;
+    --no-training-worker) NO_TRAINING_WORKER=1; shift ;;
+    --services)
+      [[ $# -lt 2 ]] && usage
+      SERVICES_FILTER="$2"
+      shift 2
+      ;;
+    --api-port) API_PORT="$2"; shift 2 ;;
+    --term-port) TERM_PORT="$2"; shift 2 ;;
+    --fhir-port) FHIR_PORT="$2"; shift 2 ;;
+    --analytics-port) ANALYTICS_PORT="$2"; shift 2 ;;
+    --model-inference-port) MODEL_INFERENCE_PORT="$2"; shift 2 ;;
+    --training-worker-port) TRAINING_WORKER_PORT="$2"; shift 2 ;;
+    --pipeline-worker-port) PIPELINE_WORKER_PORT="$2"; shift 2 ;;
+    --ui-port) UI_PORT="$2"; shift 2 ;;
+    --pipeline-workers) PIPELINE_WORKERS="$2"; shift 2 ;;
+    --term-workers) TERM_WORKERS="$2"; shift 2 ;;
+    -h|--help) usage ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage
+      ;;
+  esac
+done
+
+python_major_minor() {
+  "$1" -c 'import sys; print(sys.version_info[0] * 100 + sys.version_info[1])'
+}
+
+if [[ -n "${LEO_PYTHON:-}" ]]; then
+  if [[ ! -x "$LEO_PYTHON" ]]; then
+    echo "LEO_PYTHON is not an executable file: $LEO_PYTHON" >&2
+    exit 1
+  fi
+  PY_BOOTSTRAP="$LEO_PYTHON"
+elif command -v python3.12 >/dev/null 2>&1; then
+  PY_BOOTSTRAP="$(command -v python3.12)"
+else
+  echo "Python 3.12 is required (matches CI). python3.12 was not found on PATH." >&2
+  echo "Install it (example: brew install python@3.12), then either:" >&2
+  echo "  PATH=\"\$(brew --prefix python@3.12)/bin:\$PATH\" ./scripts/start_leo-ai-core.sh" >&2
+  echo "Or: export LEO_PYTHON=\"\$(brew --prefix python@3.12)/bin/python3.12\"" >&2
+  exit 1
+fi
+
+py_mm="$(python_major_minor "$PY_BOOTSTRAP")"
+if [[ "$py_mm" -ne 312 ]]; then
+  echo "Bootstrap Python must be 3.12.x. Found: \"$PY_BOOTSTRAP\" $("$PY_BOOTSTRAP" -V 2>/dev/null)" >&2
+  echo "Set LEO_PYTHON to a python3.12 binary or fix PATH so python3.12 is 3.12." >&2
+  exit 1
+fi
+
+VENV_DIR="${REPO_ROOT}/.venv"
+VENV_PYTHON="${VENV_DIR}/bin/python"
+TRAINING_VENV_DIR="${REPO_ROOT}/.venv-training"
+TRAINING_VENV_PYTHON="${TRAINING_VENV_DIR}/bin/python"
+UI_DIR="${REPO_ROOT}/services/ui"
+API_DIR="${REPO_ROOT}/services/api"
+MODEL_INFERENCE_DIR="${REPO_ROOT}/services/model_inference"
+TRAINING_WORKER_DIR="${REPO_ROOT}/services/training_worker"
+REQ_FILE="${REPO_ROOT}/requirements.txt"
+API_REQ="${API_DIR}/requirements.txt"
+MODEL_INFERENCE_REQ="${MODEL_INFERENCE_DIR}/requirements.txt"
+PIPELINE_WORKER_REQ="${REPO_ROOT}/services/pipeline_worker/requirements.txt"
+TERMINOLOGY_API_REQ="${REPO_ROOT}/services/terminology_api/requirements.txt"
+FHIR_API_REQ="${REPO_ROOT}/services/fhir_api/requirements.txt"
+ANALYTICS_API_REQ="${REPO_ROOT}/services/analytics_api/requirements.txt"
+TRAINING_WORKER_REQ="${TRAINING_WORKER_DIR}/requirements.txt"
+MODEL_CACHE_DIR="${REPO_ROOT}/.model_cache"
+
+echo ""
+echo "  LEO-AI-CORE - Local Dev Startup"
+echo ""
+echo "  [py]   Bootstrap interpreter: $($PY_BOOTSTRAP -V) ($PY_BOOTSTRAP)"
+
+# Load .env-style files into this shell (export). Later files override earlier.
+# import_dotenv PATH [override: 0|1]
+import_dotenv() {
+  local path="$1"
+  local override="${2:-0}"
+  local count=0
+  [[ -f "$path" ]] || { echo "$count"; return 0; }
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    [[ "$line" != *=* ]] && continue
+    local key="${line%%=*}"
+    local val="${line#*=}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+    val="${val#"${val%%[![:space:]]*}"}"
+    val="${val%"${val##*[![:space:]]}"}"
+    local already=""
+    eval "already=\${$key+x}"
+    if [[ "$override" == "1" ]] || [[ -z "$already" ]]; then
+      export "${key}=${val}"
+      count=$((count + 1))
+    fi
+  done < "$path"
+  echo "$count"
+}
+
+n="$(import_dotenv "${REPO_ROOT}/secrets/.env" 0)"
+if [[ "$n" -gt 0 ]]; then echo "  [env]  Loaded $n vars from secrets/.env"; fi
+
+n="$(import_dotenv "${REPO_ROOT}/secrets/.env.secrets" 0)"
+if [[ "$n" -gt 0 ]]; then echo "  [env]  Loaded $n vars from secrets/.env.secrets"; fi
+
+CONFIG_FILE="${REPO_ROOT}/secrets/.env.config"
+n="$(import_dotenv "$CONFIG_FILE" 1)"
+if [[ "$n" -gt 0 ]]; then
+  echo "  [env]  Applied $n config vars from secrets/.env.config (override)"
+else
+  echo "  [env]  secrets/.env.config not found - using system env vars only."
+fi
+
+if [[ -n "${AZURE_KEYVAULT_URL:-}" ]]; then
+  echo "  [kv]   Key Vault: ${AZURE_KEYVAULT_URL}"
+else
+  echo "  [kv]   AZURE_KEYVAULT_URL not set - KV secret loading disabled."
+fi
+echo "  [accel] VECTOR_DEVICE=${VECTOR_DEVICE:-auto}  (MPS min macOS ${MPS_MIN_MACOS_MAJOR:-26})"
+echo "  [accel] TRAINING_ACCELERATOR=${TRAINING_ACCELERATOR:-auto}  TRAINING_MPS_FAIL_FAST=${TRAINING_MPS_FAIL_FAST:-true}"
+echo "  [accel] MODEL_INFERENCE_ACCELERATOR=${MODEL_INFERENCE_ACCELERATOR:-auto}  MODEL_INFERENCE_MPS_FAIL_FAST=${MODEL_INFERENCE_MPS_FAIL_FAST:-true}"
+
+if [[ -z "${MODEL_REGISTRY_STORE:-}" ]]; then
+  export MODEL_REGISTRY_STORE="neo4j"
+fi
+export MODEL_REGISTRY_STORE_PATH="${MODEL_CACHE_DIR}/model_registry.json"
+
+if [[ ! -d "$MODEL_CACHE_DIR" ]]; then
+  mkdir -p "$MODEL_CACHE_DIR"
+  echo "  [dir]  Created .model_cache/ for NER model artifacts."
+fi
+
+if [[ -x "$VENV_PYTHON" ]]; then
+  venv_mm="$(python_major_minor "$VENV_PYTHON")"
+  if [[ "$venv_mm" -ne 312 ]]; then
+    echo "  [venv] Existing .venv must be Python 3.12 (found ${venv_mm}, need 312). Recreate venvs:" >&2
+    echo "    rm -rf \"$VENV_DIR\" \"$TRAINING_VENV_DIR\"" >&2
+    exit 1
+  fi
+elif [[ ! -x "$VENV_PYTHON" ]]; then
+  echo "  [venv] Creating shared virtual environment (.venv)..."
+  "$PY_BOOTSTRAP" -m venv "$VENV_DIR"
+  echo "  [venv] .venv created."
+fi
+
+if [[ "$NO_TRAINING_WORKER" -eq 0 ]]; then
+  if [[ -x "$TRAINING_VENV_PYTHON" ]]; then
+    tvm="$(python_major_minor "$TRAINING_VENV_PYTHON")"
+    if [[ "$tvm" -ne 312 ]]; then
+      echo "  [venv] .venv-training must be Python 3.12 (found ${tvm}). Remove it and re-run:" >&2
+      echo "    rm -rf \"$TRAINING_VENV_DIR\"" >&2
+      exit 1
+    fi
+  elif [[ ! -x "$TRAINING_VENV_PYTHON" ]]; then
+    echo "  [venv] Creating training worker virtual environment (.venv-training)..."
+    "$PY_BOOTSTRAP" -m venv "$TRAINING_VENV_DIR"
+    echo "  [venv] .venv-training created."
+  fi
+fi
+
+if [[ "$SKIP_INSTALL" -eq 0 ]]; then
+  echo "  [pip]  Installing / upgrading shared Python dependencies..."
+  "$VENV_PYTHON" -m pip install --quiet --upgrade pip
+  "$VENV_PYTHON" -m pip install --quiet --upgrade -r "$REQ_FILE"
+  if [[ -f "$API_REQ" ]]; then
+    "$VENV_PYTHON" -m pip install --quiet --upgrade -r "$API_REQ"
+  fi
+  if [[ -f "$MODEL_INFERENCE_REQ" ]]; then
+    "$VENV_PYTHON" -m pip install --quiet --upgrade -r "$MODEL_INFERENCE_REQ"
+  fi
+  for extra in "$PIPELINE_WORKER_REQ" "$TERMINOLOGY_API_REQ" "$FHIR_API_REQ" "$ANALYTICS_API_REQ"; do
+    if [[ -f "$extra" ]]; then
+      "$VENV_PYTHON" -m pip install --quiet --upgrade -r "$extra"
+    fi
+  done
+  echo "  [pip]  Shared Python dependencies up to date."
+
+  if [[ "$NO_TRAINING_WORKER" -eq 0 && -f "$TRAINING_WORKER_REQ" ]]; then
+    echo "  [pip]  Installing training worker dependencies (.venv-training)..."
+    "$TRAINING_VENV_PYTHON" -m pip install --quiet --upgrade pip
+    "$TRAINING_VENV_PYTHON" -m pip install --quiet --upgrade -r "$TRAINING_WORKER_REQ"
+    echo "  [pip]  Training worker dependencies up to date."
+  fi
+else
+  if [[ "$NO_TRAINING_WORKER" -eq 0 && -f "$TRAINING_WORKER_REQ" && ! -x "$TRAINING_VENV_PYTHON" ]]; then
+    echo "  [venv] Creating training worker virtual environment (.venv-training)..."
+    "$PY_BOOTSTRAP" -m venv "$TRAINING_VENV_DIR"
+    echo "  [pip]  Installing training worker dependencies (.venv-training)..."
+    "$TRAINING_VENV_PYTHON" -m pip install --quiet --upgrade pip
+    "$TRAINING_VENV_PYTHON" -m pip install --quiet --upgrade -r "$TRAINING_WORKER_REQ"
+  fi
+fi
+
+if [[ "$SKIP_INSTALL" -eq 0 ]]; then
+  echo "  [npm]  Installing / updating UI dependencies..."
+  (cd "$UI_DIR" && npm install --silent)
+  echo "  [npm]  UI dependencies up to date."
+elif [[ ! -d "${UI_DIR}/node_modules" ]]; then
+  echo "  [npm]  node_modules missing - running npm install..."
+  (cd "$UI_DIR" && npm install --silent)
+  echo "  [npm]  UI dependencies installed."
+fi
+
+should_start() {
+  local name="$1"
+  if [[ -z "$SERVICES_FILTER" ]]; then
+    return 0
+  fi
+  local IFS=,
+  local s
+  for s in $SERVICES_FILTER; do
+    s="${s#"${s%%[![:space:]]*}"}"
+    s="${s%"${s##*[![:space:]]}"}"
+    if [[ "$s" == "$name" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# macOS: open a new Terminal.app window running a generated launcher script.
+# Args: title, inner_command, [workdir defaults to REPO_ROOT]
+start_service_window() {
+  local title="$1"
+  local inner_cmd="$2"
+  local workdir="${3:-$REPO_ROOT}"
+  local launcher
+  launcher="$(mktemp "${TMPDIR:-/tmp}/leo-ai-core-launcher.XXXXXX")"
+  {
+    echo '#!/usr/bin/env bash'
+    printf '# %s\n' "$title"
+    printf 'cd %q\n' "$workdir"
+    printf 'export PYTHONPATH=%q\n' "$REPO_ROOT"
+    if [[ -n "${TERMINOLOGY_API_URLS:-}" ]]; then
+      printf 'export TERMINOLOGY_API_URLS=%q\n' "$TERMINOLOGY_API_URLS"
+    fi
+    printf 'exec bash -c %q\n' "$inner_cmd"
+  } > "$launcher"
+  chmod +x "$launcher"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    osascript -e "tell application \"Terminal\" to do script quoted form of \"$launcher\"" >/dev/null
+  else
+    echo "  [note] Non-macOS: starting in background: $title"
+    bash "$launcher" &
+  fi
+}
+
+kill_listener_on_port() {
+  local port="$1"
+  local pids
+  pids="$(lsof -ti TCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  if [[ -n "$pids" ]]; then
+    # shellcheck disable=SC2086
+    kill -9 $pids 2>/dev/null || true
+    echo "    Training Worker    [freed port $port]"
+    sleep 2
+  fi
+}
+
+TERMINOLOGY_API_URLS=""
+WINDOW_COUNT=0
+
+echo ""
+echo "  Starting services..."
+
+if should_start "api"; then
+  start_service_window "Core API :${API_PORT}" \
+    "'$VENV_PYTHON' -m uvicorn app.main:app --app-dir '$API_DIR' --reload --reload-dir services/api --reload-dir libs --host 0.0.0.0 --port $API_PORT"
+  echo "    Core API           http://localhost:${API_PORT}"
+  WINDOW_COUNT=$((WINDOW_COUNT + 1))
+fi
+
+if should_start "terminology_api"; then
+  term_urls=()
+  for ((t = 0; t < TERM_WORKERS; t++)); do
+    t_port=$((TERM_PORT + t * 10))
+    term_urls+=("http://localhost:${t_port}")
+    if [[ "$t" -eq 0 ]]; then
+      term_cmd="'$VENV_PYTHON' -m uvicorn services.terminology_api.app.main:app --reload --reload-dir services/terminology_api --reload-dir libs --host 0.0.0.0 --port $t_port"
+      start_service_window "Terminology API :${t_port}" "$term_cmd"
+      echo "    Terminology API    http://localhost:${t_port} (primary)"
+    else
+      term_cmd="'$VENV_PYTHON' -m uvicorn services.terminology_api.app.main:app --workers 4 --host 0.0.0.0 --port $t_port"
+      start_service_window "Terminology API :${t_port}" "$term_cmd"
+      echo "    Terminology API    http://localhost:${t_port} (worker $t)"
+    fi
+    WINDOW_COUNT=$((WINDOW_COUNT + 1))
+  done
+  TERMINOLOGY_API_URLS=$(IFS=,; echo "${term_urls[*]}")
+  export TERMINOLOGY_API_URLS
+  if [[ "$TERM_WORKERS" -gt 1 ]]; then
+    echo "    TERMINOLOGY_API_URLS=${TERMINOLOGY_API_URLS}"
+  fi
+fi
+
+if should_start "fhir_api"; then
+  start_service_window "FHIR API :${FHIR_PORT}" \
+    "'$VENV_PYTHON' -m uvicorn services.fhir_api.app.main:app --reload --reload-dir services/fhir_api --reload-dir libs --host 0.0.0.0 --port $FHIR_PORT"
+  echo "    FHIR API           http://localhost:${FHIR_PORT}"
+  WINDOW_COUNT=$((WINDOW_COUNT + 1))
+fi
+
+if should_start "analytics_api"; then
+  start_service_window "Analytics API :${ANALYTICS_PORT}" \
+    "'$VENV_PYTHON' -m uvicorn services.analytics_api.app.main:app --reload --reload-dir services/analytics_api --reload-dir libs --host 0.0.0.0 --port $ANALYTICS_PORT"
+  echo "    Analytics API      http://localhost:${ANALYTICS_PORT}"
+  WINDOW_COUNT=$((WINDOW_COUNT + 1))
+fi
+
+if [[ "$NO_MODEL_INFERENCE" -eq 0 ]] && should_start "model_inference"; then
+  start_service_window "Model Inference :${MODEL_INFERENCE_PORT}" \
+    "'$VENV_PYTHON' -m uvicorn app.main:app --app-dir '$MODEL_INFERENCE_DIR' --host 0.0.0.0 --port $MODEL_INFERENCE_PORT"
+  echo "    Model Inference    http://localhost:${MODEL_INFERENCE_PORT}  (NER /extract /health /reload /versions)"
+  WINDOW_COUNT=$((WINDOW_COUNT + 1))
+else
+  echo "    Model Inference    [skipped; omit --no-model-inference to start]"
+fi
+
+if [[ "$NO_TRAINING_WORKER" -eq 0 ]] && should_start "training_worker"; then
+  kill_listener_on_port "$TRAINING_WORKER_PORT"
+  start_service_window "Training Worker :${TRAINING_WORKER_PORT}" \
+    "'$TRAINING_VENV_PYTHON' -m uvicorn app.main:app --app-dir '$TRAINING_WORKER_DIR' --host 0.0.0.0 --port $TRAINING_WORKER_PORT"
+  echo "    Training Worker    http://localhost:${TRAINING_WORKER_PORT}  (NER fine-tuning /train/jobs /train/progress)"
+  WINDOW_COUNT=$((WINDOW_COUNT + 1))
+else
+  echo "    Training Worker    [skipped; omit --no-training-worker to start]"
+fi
+
+if [[ "$NO_WORKERS" -eq 0 ]] && should_start "pipeline_worker"; then
+  for ((i = 1; i <= PIPELINE_WORKERS; i++)); do
+    worker_port=$((PIPELINE_WORKER_PORT + i - 1))
+    start_service_window "Pipeline Worker ${i} :${worker_port}" \
+      "export PIPELINE_WORKER_PORT='${worker_port}'; '$VENV_PYTHON' -m uvicorn services.pipeline_worker.app.main:app --host 0.0.0.0 --port ${worker_port} --log-level info"
+  done
+  echo "    Pipeline Workers   (x${PIPELINE_WORKERS} - HTTP :${PIPELINE_WORKER_PORT} + message bus)"
+  WINDOW_COUNT=$((WINDOW_COUNT + PIPELINE_WORKERS))
+fi
+
+if should_start "ui"; then
+  start_service_window "UI :${UI_PORT}" \
+    "npm run dev -- --port $UI_PORT" \
+    "$UI_DIR"
+  echo "    UI                 http://localhost:${UI_PORT}"
+  WINDOW_COUNT=$((WINDOW_COUNT + 1))
+fi
+
+echo ""
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  echo "  ${WINDOW_COUNT} Terminal window(s) opened. Close them to stop services."
+else
+  echo "  ${WINDOW_COUNT} background service(s) started from this shell."
+fi
+if [[ "$TERM_WORKERS" -gt 1 ]]; then
+  echo "  Terminology API running on ${TERM_WORKERS} instances. TERMINOLOGY_API_URLS is exported for round-robin."
+  echo "  To run the evaluation script against all instances:"
+  echo "    .venv/bin/python -m scripts.evaluate_training_data"
+fi
+echo ""

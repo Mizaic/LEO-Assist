@@ -4,7 +4,9 @@ export const SUBGRAPH_OPTIONS = [
   { id: "encounter_loader",  label: "Load Encounter Text",     color: "#607D8B", category: "Data",            description: "Load encounter clinical text from Neo4j using encounter_id." },
   { id: "extraction",        label: "Find Clinical Facts",    color: "#4CAF50", category: "Clinical AI",     description: "Read patient notes and pull out clinical facts — symptoms, conditions, procedures, test results." },
   { id: "post_processing",   label: "Clean Up Results",       color: "#2196F3", category: "Clinical AI",     description: "Tidy the found facts — remove duplicates, expand abbreviations, and apply context rules." },
+  { id: "extraction_check",  label: "Extraction Quality Check", color: "#616161", category: "Quality",        description: "Run a lightweight AI pass to catch extraction-level issues before terminology coding." },
   { id: "terminology",       label: "Code to SNOMED CT",      color: "#FF9800", category: "Clinical AI",     description: "Match each clinical fact to an official SNOMED CT medical code." },
+  { id: "coding_check",      label: "Coding Quality Check",   color: "#424242", category: "Quality",          description: "Run a lightweight AI plausibility check on coded entities before confidence grading." },
   { id: "tier_classify",     label: "Grade Confidence",       color: "#9C27B0", category: "Clinical AI",     description: "Rate each clinical fact as gold, silver, or bronze based on how confident the AI is." },
   { id: "verification",      label: "Double-Check with AI",   color: "#F44336", category: "Quality",         description: "Run a second, more capable AI over the results to spot errors before saving." },
   { id: "surface_form_validation", label: "Validate Surface Forms", color: "#8BC34A", category: "Quality",  description: "Check resolved codes against the extracted wording and flag mapping mismatches." },
@@ -33,6 +35,11 @@ export const SUBGRAPH_IO: Record<string, {
     writes: ["entities", "errors"],
     requiredFields: { entities: ["text", "semantic_tag", "assertion"] },
   },
+  extraction_check: {
+    reads: ["entities", "encounter_text"],
+    writes: ["entities", "llm_check_result", "llm_check_changes", "errors"],
+    requiredFields: { entities: ["text", "semantic_tag", "assertion"] },
+  },
   verification: {
     reads: ["entities", "encounter_text"],
     writes: ["is_verified", "verification_result", "errors"],
@@ -47,6 +54,11 @@ export const SUBGRAPH_IO: Record<string, {
     reads: ["entities"],
     writes: ["entities", "errors"],
     requiredFields: { entities: ["text", "lookup_term", "semantic_tag"] },
+  },
+  coding_check: {
+    reads: ["entities", "encounter_text"],
+    writes: ["entities", "llm_check_result", "llm_check_changes", "errors"],
+    requiredFields: { entities: ["text", "lookup_term", "semantic_tag", "assertion"] },
   },
   tier_classify: {
     reads: ["entities"],
@@ -105,7 +117,9 @@ export type SubgraphCategory = "llm" | "persist" | "post_process" | "terminology
 
 export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   extraction: "llm",
+  extraction_check: "llm",
   verification: "llm",
+  coding_check: "llm",
   sbar: "llm",
   anchor_detect: "llm",
   episode_build: "llm",

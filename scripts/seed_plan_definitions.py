@@ -528,7 +528,7 @@ def _to_ui_format(pd_def: dict) -> dict:
             "id": act["id"],
             "subgraphId": act.get("_subgraphId", ""),
             "label": act.get("title", act.get("_subgraphId", "")),
-            "position": {"x": 250, "y": 80 + i * 120},
+            "position": {"x": 250, "y": 80 + i * 160},
             "config": config,
         })
 

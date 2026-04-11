@@ -94,6 +94,24 @@ const edgeTypes = { portEdge: PortEdge };
 
 const NODE_WIDTH  = 220;
 const NODE_HEIGHT = 80;
+
+// -- Layout helpers -----------------------------------------------------------
+
+/** Per-port height in pixels used to estimate the rendered node height. */
+const PORT_ROW_PX = 28;
+
+/**
+ * Estimate the rendered height of an action node based on how many port
+ * handles it will render on each side (input vs output).  Nodes with more
+ * ports must be given more vertical space in the Dagre graph so they do not
+ * visually overlap their neighbours.
+ */
+function estimatedNodeHeight(subgraphId: string): number {
+  const io = SUBGRAPH_IO[subgraphId];
+  if (!io) return NODE_HEIGHT;
+  const portCount = Math.max(io.reads.length, io.writes.length);
+  return Math.max(NODE_HEIGHT, portCount * PORT_ROW_PX + 40);
+}
 const CANVAS_ONLY_NODE_TYPES = new Set(["source", "output", "viewer"]);
 
 function isCanvasOnlyNodeType(nodeType: string | null | undefined): boolean {
@@ -122,14 +140,22 @@ type PersistedCanvasEdge = {
 
 function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: "TB", nodesep: 60, ranksep: 80 });
+  // ranksep: vertical gap between pipeline stages (increased to avoid port overlap)
+  // nodesep: horizontal gap between sibling nodes in the same rank
+  g.setGraph({ rankdir: "TB", nodesep: 80, ranksep: 120 });
   g.setDefaultEdgeLabel(() => ({}));
-  nodes.forEach((n) => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+  nodes.forEach((n) => {
+    const subgraphId = (n.data as Record<string, unknown>)?.subgraphId as string | undefined;
+    const h = subgraphId ? estimatedNodeHeight(subgraphId) : NODE_HEIGHT;
+    g.setNode(n.id, { width: NODE_WIDTH, height: h });
+  });
   edges.forEach((e) => { if (e.source && e.target) g.setEdge(e.source, e.target); });
   dagre.layout(g);
   return nodes.map((n) => {
     const pos = g.node(n.id);
-    return { ...n, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } };
+    const subgraphId = (n.data as Record<string, unknown>)?.subgraphId as string | undefined;
+    const h = subgraphId ? estimatedNodeHeight(subgraphId) : NODE_HEIGHT;
+    return { ...n, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - h / 2 } };
   });
 }
 
@@ -3689,9 +3715,30 @@ export default function PathwayBuilderPage() {
             data: { ...vn.data, onConfigure: () => setViewerConfigOpen(vn.id) },
           }));
           nodeConfigsRef.current = configs;
-          nodesRef.current = [...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes, ...loadedViewerNodes];
+          // Auto-layout when the pathway still carries seed-default positions
+          // (all action nodes share the same x=250 column).  This fires once
+          // on first open of a freshly seeded plan; user-saved positions are
+          // preserved because they spread across multiple x values.
+          const allActionX = loadedActionNodes.map((n) => n.position.x);
+          const allAtSeedDefault =
+            loadedActionNodes.length > 1 &&
+            allActionX.every((x) => x === allActionX[0]);
+          const allNodes = [...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes, ...loadedViewerNodes];
+          const allEdgesForLayout = (data.edges || []).map((e, i) => ({
+            id: `e${i}-${e.source}-${e.target}`,
+            source: e.source,
+            target: e.target,
+            sourceHandle: e.sourceHandle ?? null,
+            targetHandle: e.targetHandle ?? null,
+            type: "portEdge",
+            data: {},
+          }));
+          const finalNodes = allAtSeedDefault
+            ? applyDagreLayout(allNodes, allEdgesForLayout)
+            : allNodes;
+          nodesRef.current = finalNodes;
           setNodeConfigs(configs);
-          setNodes([...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes, ...loadedViewerNodes]);
+          setNodes(finalNodes);
           const legacySourceEdges = ((data as unknown as Record<string, unknown>).sourceEdges as PersistedCanvasEdge[]) || [];
           const canvasEdges = ((data as unknown as Record<string, unknown>).canvasEdges as PersistedCanvasEdge[]) || [];
           const allEdges: PersistedCanvasEdge[] = [
