@@ -15,6 +15,18 @@ def _strip_snomed_qualifier(fsn: str) -> str:
     """
     return _SNOMED_QUALIFIER_RE.sub("", (fsn or "")).strip()
 
+_REFERRAL_LIKE_RE = re.compile(
+    r"\b(?:referral|referred|2ww|two\s*week|fast\s*track|urgent\s*suspected|"
+    r"cancer\s*pathway|suspected\s*cancer|suspected\s*cancer\s*clinic)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_referral_like(surface_form: str, preferred_term: str) -> bool:
+    blob = f"{surface_form} {preferred_term}"
+    return bool(_REFERRAL_LIKE_RE.search(blob))
+
+
 _TAG_GUIDANCE: dict[str, str] = {
     "procedure": (
         'Write a sentence where "{surface_form}" names a clinical action '
@@ -62,6 +74,11 @@ Every sentence you write must:
 6. Use straightforward factual language: past tense ("was found", "recorded",
    "confirmed", "noted") or present tense ("remains", "is documented", "shows").
 7. Match the semantic type instruction given in the user message.
+8. UK cancer pathway language: if the sentence describes a referral, fast-track wait,
+   two-week wait (2WW), urgent suspected cancer pathway, or a suspected cancer clinic
+   visit, you MUST name the clinical speciality or tumour site in the same sentence
+   (for example urological, breast, lung, colorectal, skin, gynaecological, upper GI,
+   head and neck, haematology). Do not write a vague referral with no site or stream.
 
 Before writing each sentence, silently ask:
   a) Does this sentence state a documented fact? (yes required)
@@ -125,6 +142,8 @@ def build_synthetic_sentence_prompts(
     n_sentences: int,
     context_examples: list[str] | None = None,
     gold_output_examples: list[dict[str, str]] | None = None,
+    valueset_scope_titles: list[str] | None = None,
+    domain_preferred_terms: list[str] | None = None,
 ) -> tuple[str, str, str]:
     """Return (system_prompt, user_prompt, clean_preferred_term).
 
@@ -138,6 +157,12 @@ def build_synthetic_sentence_prompts(
     system_prompt = SYSTEM_PROMPT.format(n_sentences=n_sentences)
     raw_guidance = _TAG_GUIDANCE.get(semantic_tag, _DEFAULT_TAG_GUIDANCE)
     tag_guidance = raw_guidance.format(surface_form=surface_form)
+    if semantic_tag == "procedure" and _is_referral_like(surface_form, preferred_term):
+        tag_guidance += (
+            " For referral or 2WW / fast-track wording, always pair the referral term "
+            "with an explicit speciality or cancer site (UK notes style), e.g. "
+            '"Urgent urological 2WW referral was raised."'
+        )
     display_preferred = clean_preferred_term if clean_preferred_term else preferred_term
     user_prompt = USER_PROMPT_TEMPLATE.format(
         surface_form=surface_form,
@@ -174,4 +199,25 @@ def build_synthetic_sentence_prompts(
             "Verified gold output examples (match this output format exactly):\n"
             f"{style_json}\n"
         )
+
+    vtitles = [str(t).strip() for t in (valueset_scope_titles or []) if str(t).strip()]
+    vterms = [str(t).strip() for t in (domain_preferred_terms or []) if str(t).strip()][
+        :50
+    ]
+    if vtitles or vterms:
+        domain_lines: list[str] = []
+        if vtitles:
+            domain_lines.append(
+                "Selected clinical domain(s): " + "; ".join(sorted(set(vtitles)))
+            )
+        if vterms:
+            domain_lines.append(
+                "Domain vocabulary (preferred-term names of other concepts in these "
+                "domains; use ONLY as a short tumour site, stream, or speciality "
+                "modifier in the same phrase as the target term — not as a second "
+                "named diagnosis or procedure):\n"
+                + "; ".join(vterms)
+            )
+        user_prompt = f"{user_prompt}\n\n" + "\n\n".join(domain_lines) + "\n"
+
     return system_prompt, user_prompt, clean_preferred_term

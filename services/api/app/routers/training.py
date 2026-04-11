@@ -147,7 +147,10 @@ from libs.nlp.sentence_splitter import (
     is_non_evidence_line,
     is_referral_procedure_phrase,
 )
-from libs.prompts.synthetic_ner_sentences import build_synthetic_sentence_prompts
+from libs.prompts.synthetic_ner_sentences import (
+    build_synthetic_sentence_prompts,
+    _strip_snomed_qualifier,
+)
 from libs.terminology.client import TerminologyClient, get_always_ignore_patterns
 from libs.pipeline.post_processing import run_post_processing
 from libs.ner.deid_validator import DeIdValidator
@@ -2966,6 +2969,42 @@ def _extract_concept_ids_from_valuesets(
     return concept_ids
 
 
+def _load_valueset_prompt_context(
+    client: Any, valueset_ids: list[str]
+) -> tuple[list[str], list[str]]:
+    """Return (valueset titles, domain PT strings) for prompt conditioning."""
+    import json as _json
+
+    ids = [v for v in valueset_ids if v]
+    if not ids:
+        return [], []
+    with client.session() as session:
+        rows = [
+            dict(r)
+            for r in session.run(GET_VALUESET_RAW_JSON, valueset_ids=ids)
+        ]
+    titles_by_id: dict[str, str] = {}
+    terms: set[str] = set()
+    for row in rows:
+        vid = str(row.get("id") or "").strip()
+        if vid and vid not in titles_by_id:
+            titles_by_id[vid] = str(row.get("title") or vid).strip()
+        raw = row.get("raw_json") or "{}"
+        try:
+            parsed = _json.loads(raw)
+        except Exception:
+            continue
+        includes = (parsed.get("compose") or parsed).get("include") or []
+        for inc in includes:
+            for c in inc.get("concept") or []:
+                display = str(c.get("display") or "").strip()
+                if display:
+                    cleaned = _strip_snomed_qualifier(display)
+                    if cleaned and len(cleaned) > 1:
+                        terms.add(cleaned)
+    return list(titles_by_id.values()), sorted(terms)
+
+
 def _count_exact_phrase(text: str, phrase: str) -> int:
     if not text or not phrase:
         return 0
@@ -3217,6 +3256,74 @@ def _pick_diverse_context_examples(rows: list[dict[str, Any]], cap: int = 10) ->
     return selected
 
 
+def _pick_similarity_context_examples(
+    rows: list[dict[str, Any]],
+    query_terms: list[str],
+    cap: int = 10,
+) -> list[str]:
+    """Pick encounter snippets most similar to the target terms.
+
+    Uses full de-identified encounter text for lexical matching so prompt
+    examples reflect real note phrasing for this specific term/domain.
+    """
+    cleaned_terms = [str(t).strip().lower() for t in query_terms if str(t).strip()]
+    if not cleaned_terms:
+        return []
+    token_stop = {
+        "the",
+        "and",
+        "with",
+        "from",
+        "that",
+        "this",
+        "was",
+        "were",
+        "for",
+        "has",
+        "have",
+        "had",
+        "of",
+        "in",
+        "on",
+        "to",
+    }
+    tokens: set[str] = set()
+    for term in cleaned_terms:
+        for tok in re.findall(r"[a-z0-9]{3,}", term):
+            if tok not in token_stop:
+                tokens.add(tok)
+    ranked: list[tuple[int, str]] = []
+    for row in rows:
+        snippet = str(row.get("_context_snippet") or "").strip()
+        text_l = str(row.get("_text_lower") or "").strip()
+        if not snippet or not text_l:
+            continue
+        score = 0
+        for phrase in cleaned_terms:
+            if len(phrase) >= 4 and phrase in text_l:
+                score += 12
+        for tok in tokens:
+            if tok in text_l:
+                score += 1
+        if score <= 0:
+            continue
+        ranked.append((score, snippet))
+    if not ranked:
+        return []
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    picked: list[str] = []
+    seen: set[str] = set()
+    for _, snippet in ranked:
+        k = snippet.lower()
+        if k in seen:
+            continue
+        seen.add(k)
+        picked.append(snippet)
+        if len(picked) >= cap:
+            break
+    return picked
+
+
 def _extract_gold_output_examples(
     rows: list[dict[str, Any]],
     cap: int = 5,
@@ -3388,26 +3495,38 @@ def generate_synthetic_candidates(
                     limit=5000,
                 )
             ]
-        picked_rows = _pick_diverse_context_examples(raw_context_rows, cap=10)
-        context_examples: list[str] = []
-        for row in picked_rows:
+        prepared_context_rows: list[dict[str, Any]] = []
+        for row in raw_context_rows:
             text = str(row.get("encounter_text") or "").strip()
             if not text:
                 continue
             snippet = _extract_context_snippet(text, max_chars=500)
             if not snippet:
                 continue
-            context_examples.append(snippet)
-            if len(context_examples) >= 10:
-                break
-        counts["context_examples_sampled"] = len(context_examples)
-        counts["context_examples_used"] = len(context_examples)
-        counts["context_examples_preview"] = context_examples[:2]
+            enriched = dict(row)
+            enriched["_text_lower"] = text.lower()
+            enriched["_context_snippet"] = snippet
+            prepared_context_rows.append(enriched)
+
+        picked_rows = _pick_diverse_context_examples(prepared_context_rows, cap=10)
+        fallback_context_examples = [
+            str(r.get("_context_snippet") or "").strip()
+            for r in picked_rows
+            if str(r.get("_context_snippet") or "").strip()
+        ][:10]
+        counts["context_examples_sampled"] = len(fallback_context_examples)
+        counts["context_examples_used"] = len(fallback_context_examples)
+        counts["context_examples_preview"] = fallback_context_examples[:2]
 
         # Resolve valueset concept IDs so we can filter surface forms.
         valueset_concept_ids: list[str] | None = None
+        valueset_scope_titles: list[str] = []
+        domain_preferred_terms: list[str] = []
         if body.valueset_ids:
             valueset_concept_ids = _extract_concept_ids_from_valuesets(
+                client, body.valueset_ids
+            )
+            valueset_scope_titles, domain_preferred_terms = _load_valueset_prompt_context(
                 client, body.valueset_ids
             )
 
@@ -3479,6 +3598,17 @@ def generate_synthetic_candidates(
                     gold_output_examples = _extract_gold_output_examples(gold_rows, cap=5)
                     gold_examples_cache[semantic_tag] = gold_output_examples
 
+                similarity_context = _pick_similarity_context_examples(
+                    prepared_context_rows,
+                    query_terms=[form, preferred_term],
+                    cap=10,
+                )
+                context_examples = (
+                    similarity_context
+                    if similarity_context
+                    else fallback_context_examples
+                )
+
                 system_prompt, user_prompt, clean_preferred_term = (
                     build_synthetic_sentence_prompts(
                         surface_form=form,
@@ -3488,6 +3618,8 @@ def generate_synthetic_candidates(
                         n_sentences=body.sentences_per_form,
                         context_examples=context_examples,
                         gold_output_examples=gold_output_examples,
+                        valueset_scope_titles=valueset_scope_titles,
+                        domain_preferred_terms=domain_preferred_terms,
                     )
                 )
                 target_count = body.sentences_per_form
