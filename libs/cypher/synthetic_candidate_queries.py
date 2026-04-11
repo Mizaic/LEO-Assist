@@ -160,6 +160,39 @@ ORDER BY sf.form ASC
 LIMIT $limit
 """
 
+GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS = """
+MATCH (c:Concept)
+WHERE toString(c.id) IN $concept_ids
+  AND c.fsn IS NOT NULL
+  AND trim(c.fsn) <> ''
+  AND (
+      $semantic_tags IS NULL
+      OR size($semantic_tags) = 0
+      OR """
+GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS += _NORMALISED_TAG
+GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS += """ IN $semantic_tags
+  )
+  AND NOT EXISTS {
+      MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c)
+      WHERE coalesce(sf.status, 'active') = 'active'
+  }
+  AND NOT EXISTS {
+      MATCH (g:GoldLabel)
+      WHERE g.source = 'synthetic_llm'
+        AND g.entities_json IS NOT NULL
+        AND g.entities_json CONTAINS toString(c.id)
+  }
+RETURN
+    c.fsn AS form,
+    c.fsn AS preferred_term,
+    toString(c.id) AS concept_id,
+    """
+GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS += _NORMALISED_TAG
+GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS += """ AS semantic_tag
+ORDER BY c.fsn ASC
+LIMIT $limit
+"""
+
 GET_GOLD_OUTPUT_EXAMPLE_CANDIDATES = """
 MATCH (g:GoldLabel)
 WHERE g.text IS NOT NULL

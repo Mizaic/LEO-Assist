@@ -97,6 +97,7 @@ from libs.cypher.gold_label_queries import (
 )
 from libs.cypher.synthetic_candidate_queries import (
     GET_ALL_VALUESETS_RAW_JSON,
+    GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS,
     GET_ENCOUNTER_CONTEXT_CANDIDATES,
     GET_GOLD_OUTPUT_EXAMPLE_CANDIDATES,
     GET_SURFACE_FORMS_FOR_CONCEPT_IDS,
@@ -314,6 +315,7 @@ class SyntheticGenerationRequest(BaseModel):
     sentences_per_form: int = Field(default=10, ge=1, le=10)
     semantic_tags: list[str] | None = None
     valueset_ids: list[str] | None = None
+    use_derived_forms: bool = False
 
 
 class SyntheticQueueRequest(BaseModel):
@@ -321,6 +323,7 @@ class SyntheticQueueRequest(BaseModel):
     sentences_per_form: int = Field(default=10, ge=1, le=10)
     semantic_tags: list[str] | None = None
     valueset_ids: list[str] | None = None
+    use_derived_forms: bool = False
 
 
 # ------------------------------------------------------------------
@@ -2896,6 +2899,24 @@ _ABSENT_CUE_RE = re.compile(
     r"\b(?:no|not|without|denies?|denied|negative\s+for|free\s+of|absence\s+of)\b",
     re.IGNORECASE,
 )
+# Explicit past-time markers that genuinely indicate a historical assertion.
+# "following" and "after" are intentionally excluded — they describe temporal
+# sequencing of a procedure and do not make the coded entity historical.
+_HISTORICAL_CUE_RE = re.compile(
+    r"\b(?:"
+    r"history\s+of"
+    r"|previous(?:ly)?"
+    r"|prior\s+(?:to\s+)?(?:this\s+)?"
+    r"|background\s+of"
+    r"|known\s+(?:history\s+of\s+)?"
+    r"|formerly"
+    r"|(?:was|were)\s+diagnosed\s+with"
+    r"|(?:diagnosed|treated)\s+in\s+\d{4}"
+    r"|\d+\s+(?:year|month|week)s?\s+ago"
+    r"|in\s+(?:19|20)\d{2}"
+    r")\b",
+    re.IGNORECASE,
+)
 _PLANNED_PROCEDURE_CUE_RE = re.compile(
     r"\b(?:to\s+be\s+rechecked|to\s+be\s+repeated|for\s+repeat|repeat\s+test|recheck(?:ed)?|retest)\b",
     re.IGNORECASE,
@@ -3014,6 +3035,15 @@ def _is_speculative_or_educational(sentence: str) -> bool:
 
 def _has_absent_evidence(sentence: str) -> bool:
     return bool(_ABSENT_CUE_RE.search(str(sentence or "")))
+
+
+def _has_historical_evidence(sentence: str) -> bool:
+    """Return True only when the sentence contains an explicit past-time marker.
+
+    Words like 'following' and 'after' are excluded because they describe
+    procedural sequencing, not temporal distance from the present.
+    """
+    return bool(_HISTORICAL_CUE_RE.search(str(sentence or "")))
 
 
 def _is_invalid_observable_assertion(semantic_tag: str, assertion: str) -> bool:
@@ -3299,6 +3329,7 @@ def get_synthetic_gold_valuesets(
                 "concept_count": len(concepts),
                 "sf_count": len(with_sf),
                 "no_sf_count": len(concepts) - len(with_sf),
+                "derivable_count": len(concepts) - len(with_sf),
             }
         )
     result.sort(key=lambda x: x["id"])
@@ -3334,6 +3365,7 @@ def generate_synthetic_candidates(
         "skipped_no_match": 0,
         "skipped_both_forms": 0,
         "enriched_multi_entity": 0,
+        "derived_forms_used": 0,
         "skipped_non_evidence": 0,
         "skipped_speculative": 0,
         "skipped_planned_observable": 0,
@@ -3390,6 +3422,23 @@ def generate_synthetic_candidates(
                         semantic_tags=semantic_tags,
                     )
                 ]
+                # For valueset concepts that have no surface forms, derive a
+                # form from the concept's preferred term so generation still
+                # produces training data for those concepts.
+                if body.use_derived_forms:
+                    remaining = max(0, body.limit - len(form_rows))
+                    if remaining > 0:
+                        derived_rows = [
+                            dict(r)
+                            for r in session.run(
+                                GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS,
+                                concept_ids=valueset_concept_ids,
+                                limit=remaining,
+                                semantic_tags=semantic_tags,
+                            )
+                        ]
+                        form_rows = form_rows + derived_rows
+                        counts["derived_forms_used"] = len(derived_rows)
             else:
                 form_rows = [
                     dict(r)
@@ -3486,6 +3535,8 @@ def generate_synthetic_candidates(
 
                         deid_sentence = deidentify_text(sentence, ner=True)
                         if assertion == "absent" and not _has_absent_evidence(deid_sentence):
+                            assertion = "present"
+                        if assertion == "historical" and not _has_historical_evidence(deid_sentence):
                             assertion = "present"
                         if _is_mismatched_semantic_sentence(semantic_tag, deid_sentence):
                             counts["skipped_semantic_mismatch"] += 1
@@ -3782,6 +3833,19 @@ async def queue_synthetic_candidates(
                         semantic_tags=semantic_tags,
                     )
                 ]
+                if body.use_derived_forms:
+                    remaining = max(0, body.limit - len(rows))
+                    if remaining > 0:
+                        derived = [
+                            dict(r)
+                            for r in session.run(
+                                GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS,
+                                concept_ids=valueset_concept_ids,
+                                limit=remaining,
+                                semantic_tags=semantic_tags,
+                            )
+                        ]
+                        rows = rows + derived
             else:
                 rows = [
                     dict(r)

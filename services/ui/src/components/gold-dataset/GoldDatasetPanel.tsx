@@ -28,6 +28,8 @@ import MenuItem from "@mui/material/MenuItem";
 import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -88,6 +90,7 @@ interface ValuesetOption {
   concept_count: number;
   sf_count: number;
   no_sf_count: number;
+  derivable_count: number;
 }
 
 interface Candidate {
@@ -1268,6 +1271,7 @@ export default function GoldDatasetPanel() {
   const [selectedSyntheticTags, setSelectedSyntheticTags] = useState<string[]>([]);
   const [selectedValuesetIds, setSelectedValuesetIds] = useState<string[]>([]);
   const [availableValuesets, setAvailableValuesets] = useState<ValuesetOption[]>([]);
+  const [useDerivedForms, setUseDerivedForms] = useState(false);
   const [purgingSynthetic, setPurgingSynthetic] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<Candidate | GoldLabel | null>(null);
@@ -1385,6 +1389,7 @@ export default function GoldDatasetPanel() {
         sentences_per_form: 10,
         semantic_tags: selectedSyntheticTags.length ? selectedSyntheticTags : null,
         valueset_ids: selectedValuesetIds.length ? selectedValuesetIds : null,
+        use_derived_forms: useDerivedForms,
       };
       if (syntheticMode === "inline") {
         const result = await jsonFetch<SyntheticGenerateResult>(
@@ -1895,51 +1900,98 @@ export default function GoldDatasetPanel() {
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
                 Restrict generation to concepts in one or more clinical domains.
-                Each chip shows <strong>surface forms with coverage / total concepts</strong>.
-                Domains with no surface forms are hidden.
+                Each chip shows <strong>covered / total concepts</strong>.
+                Grey count = concepts with existing surface forms.
+                Orange count = concepts derivable from preferred term (no surface forms yet).
               </Typography>
-              {availableValuesets.filter((vs) => vs.sf_count > 0).length === 0 ? (
+              {availableValuesets.length === 0 ? (
                 <Typography variant="caption" color="text.disabled">
                   Loading domains…
                 </Typography>
               ) : (
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {availableValuesets
-                    .filter((vs) => vs.sf_count > 0)
+                    .filter((vs) => vs.concept_count > 0)
                     .map((vs) => {
                       const selected = selectedValuesetIds.includes(vs.id);
                       const pct = vs.concept_count > 0
                         ? Math.round((vs.sf_count / vs.concept_count) * 100)
                         : 0;
+                      const derivableLabel = useDerivedForms && vs.derivable_count > 0
+                        ? ` +${vs.derivable_count}`
+                        : "";
                       return (
-                        <Chip
+                        <Tooltip
                           key={vs.id}
-                          label={`${vs.title}  ${vs.sf_count} / ${vs.concept_count} (${pct}%)`}
-                          color={selected ? "primary" : "default"}
-                          variant={selected ? "filled" : "outlined"}
-                          onClick={() => {
-                            setSelectedValuesetIds((prev) =>
-                              prev.includes(vs.id)
-                                ? prev.filter((id) => id !== vs.id)
-                                : [...prev, vs.id],
-                            );
-                          }}
-                        />
+                          title={
+                            vs.sf_count === 0
+                              ? `No surface forms yet — ${vs.concept_count} concept(s) will use preferred term`
+                              : `${vs.sf_count} surface-form-mapped, ${vs.derivable_count} derivable from preferred term`
+                          }
+                        >
+                          <Chip
+                            label={`${vs.title}  ${vs.sf_count}${derivableLabel} / ${vs.concept_count} (${pct}%)`}
+                            color={selected ? "primary" : "default"}
+                            variant={selected ? "filled" : "outlined"}
+                            sx={
+                              selected && vs.sf_count === 0
+                                ? { borderColor: "warning.main", color: "warning.main" }
+                                : undefined
+                            }
+                            onClick={() => {
+                              setSelectedValuesetIds((prev) =>
+                                prev.includes(vs.id)
+                                  ? prev.filter((id) => id !== vs.id)
+                                  : [...prev, vs.id],
+                              );
+                            }}
+                          />
+                        </Tooltip>
                       );
                     })}
                 </Stack>
               )}
               {selectedValuesetIds.length > 0 && (
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                  {selectedValuesetIds.length} domain{selectedValuesetIds.length > 1 ? "s" : ""} selected
-                  {" — "}
-                  <Box
-                    component="span"
-                    sx={{ cursor: "pointer", textDecoration: "underline" }}
-                    onClick={() => setSelectedValuesetIds([])}
-                  >
-                    clear
-                  </Box>
+                <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {selectedValuesetIds.length} domain{selectedValuesetIds.length > 1 ? "s" : ""} selected
+                    {" — "}
+                    <Box
+                      component="span"
+                      sx={{ cursor: "pointer", textDecoration: "underline" }}
+                      onClick={() => setSelectedValuesetIds([])}
+                    >
+                      clear
+                    </Box>
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        size="small"
+                        checked={useDerivedForms}
+                        onChange={(e) => setUseDerivedForms(e.target.checked)}
+                        color="warning"
+                      />
+                    }
+                    label={
+                      <Typography variant="caption">
+                        Include concepts without surface forms
+                        {useDerivedForms && (() => {
+                          const total = selectedValuesetIds.reduce((sum, id) => {
+                            const vs = availableValuesets.find((v) => v.id === id);
+                            return sum + (vs?.derivable_count ?? 0);
+                          }, 0);
+                          return total > 0 ? ` (${total} derivable)` : "";
+                        })()}
+                      </Typography>
+                    }
+                  />
+                </Stack>
+              )}
+              {useDerivedForms && (
+                <Typography variant="caption" color="warning.main" display="block" sx={{ mt: 0.5 }}>
+                  Derived forms use the concept preferred term as the surface form.
+                  Generated sentences will bootstrap new surface form mappings.
                 </Typography>
               )}
             </Box>
