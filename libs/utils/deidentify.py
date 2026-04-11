@@ -163,6 +163,10 @@ EMAIL_RE = re.compile(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b", re.IGNORECASE)
 DATE_SLASH_RE = re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
 DATE_DOT_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b")
 DATE_ISO_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+DATE_NATURAL_RE = re.compile(
+    r"\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4}\b",
+    re.IGNORECASE,
+)
 
 # ---------------------------------------------------------------------------
 # Optional spaCy NER second pass (GAP-008)
@@ -249,6 +253,7 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     out = DATE_SLASH_RE.sub("[DATE]", out)
     out = DATE_DOT_RE.sub("[DATE]", out)
     out = DATE_ISO_RE.sub("[DATE]", out)
+    out = DATE_NATURAL_RE.sub("[DATE]", out)
 
     # Optional NER second pass — catches residual first names in free narrative
     run_ner = ner if ner is not None else bool(os.environ.get("DEIDENTIFY_NER_MODEL", "").strip())
@@ -311,4 +316,6 @@ def detect_phi(text: str) -> list[str]:
         found.append("postcode")
     if DATE_ISO_RE.search(text):
         found.append("iso_date")
+    if DATE_NATURAL_RE.search(text):
+        found.append("natural_date")
     return found

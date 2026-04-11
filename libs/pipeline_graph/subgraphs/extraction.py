@@ -8,6 +8,7 @@ Prompt resolution order:
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import asdict
 from typing import Any, TypedDict
 
@@ -22,6 +23,33 @@ from libs.nlp.sentence_splitter import (
 )
 
 logger = logging.getLogger(__name__)
+
+_LAB_VALUE_RE = re.compile(
+    r"(?P<name>[A-Za-z][A-Za-z\s\-']{2,}?)\s*(?:\([^)]*\))?\s*"
+    r"(?P<value>[<>]?\s*\d+(?:\.\d+)?)\s*"
+    r"(?P<unit>(?:10\^\d+\s*/\s*[A-Za-z]+|[A-Za-z%]+(?:\s*/\s*[A-Za-z]+)*))",
+    re.IGNORECASE,
+)
+_LAB_NAME_HINTS = (
+    "count",
+    "concentration",
+    "haematocrit",
+    "hematocrit",
+    "haemoglobin",
+    "hemoglobin",
+    "cell volume",
+    "cell haemoglobin",
+    "cell hemoglobin",
+    "platelet",
+    "neutrophil",
+    "lymphocyte",
+    "monocyte",
+    "eosinophil",
+    "basophil",
+    "blood cell",
+    "white blood",
+    "red blood",
+)
 
 
 class ExtractionState(TypedDict, total=False):
@@ -99,6 +127,46 @@ def _hydrate_encounter_text_if_missing(state: ExtractionState) -> str:
     return hydrated
 
 
+def _extract_lab_fallback_entities(
+    encounter_text: str,
+    chunks: list[SentenceChunk],
+) -> list[dict[str, Any]]:
+    fallback: list[dict[str, Any]] = []
+    for chunk in chunks:
+        text = chunk.text or ""
+        for m in _LAB_VALUE_RE.finditer(text):
+            name = " ".join((m.group("name") or "").split()).strip()
+            lower_name = name.lower()
+            if not name or not any(h in lower_name for h in _LAB_NAME_HINTS):
+                continue
+            value = " ".join((m.group("value") or "").split()).strip()
+            unit = re.sub(r"\s*/\s*", "/", (m.group("unit") or "").strip())
+            start = chunk.start + m.start("name")
+            end = chunk.start + m.end("name")
+            fallback.append(
+                {
+                    "text": name,
+                    "label": "observable_entity",
+                    "start": start,
+                    "end": end,
+                    "assertion": "present",
+                    "confidence": 0.7,
+                    "normalized": None,
+                    "value": value or None,
+                    "unit": unit or None,
+                    "reference_range": None,
+                    "__sentence_id": chunk.sentence_id,
+                    "__source": "ner_lab_fallback",
+                    "__model_name": "deterministic-fallback",
+                    "__model_version": "v1",
+                    "__contract_version": "",
+                    "__source_meta": {},
+                    "__relations": [],
+                }
+            )
+    return fallback
+
+
 def split_sentences(state: ExtractionState) -> dict[str, Any]:
     text = _hydrate_encounter_text_if_missing(state)
     splitter = SentenceSplitter()
@@ -137,8 +205,17 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             )
             extractor = ModelExtractorProvider()
             items = extractor.extract_batch(encounter_text, chunks)
+            entities = _items_to_dicts(items)
+            if not entities:
+                entities = _extract_lab_fallback_entities(encounter_text, chunks)
+                if entities:
+                    logger.warning(
+                        "NER extraction returned 0 entities; deterministic lab fallback "
+                        "generated %d entities",
+                        len(entities),
+                    )
             return {
-                "entities": _items_to_dicts(items),
+                "entities": entities,
                 "llm_tokens": {
                     "input_tokens": 0,
                     "output_tokens": 0,

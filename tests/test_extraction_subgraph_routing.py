@@ -44,3 +44,38 @@ def test_extract_entities_uses_ner_provider_when_requested(monkeypatch):
     assert len(result["entities"]) == 1
     assert result["entities"][0]["text"] == "asthma"
     assert result["llm_tokens"]["input_tokens"] == 0
+
+
+def test_extract_entities_uses_deterministic_lab_fallback_when_ner_empty(monkeypatch):
+    class _Provider:
+        def extract_batch(self, encounter_text, chunks):
+            assert encounter_text
+            assert chunks
+            return []
+
+    monkeypatch.setattr(
+        "services.coding_worker.app.pipeline.providers.model_provider.ModelExtractorProvider",
+        _Provider,
+    )
+
+    result = extract_entities(
+        {
+            "encounter_text": "Neutrophil count (42J..) 5.14 10^9 / L [1.5-7.5]",
+            "extraction_method": "ner",
+            "sentences": [
+                {
+                    "sentence_id": "s0",
+                    "text": "Neutrophil count (42J..) 5.14 10^9 / L [1.5-7.5]",
+                    "start": 0,
+                    "end": 49,
+                }
+            ],
+        }
+    )
+    assert len(result["entities"]) == 1
+    ent = result["entities"][0]
+    assert ent["text"] == "Neutrophil count"
+    assert ent["label"] == "observable_entity"
+    assert ent["value"] == "5.14"
+    assert ent["unit"] == "10^9/L"
+    assert ent["__source"] == "ner_lab_fallback"

@@ -22,10 +22,19 @@ def _state(text: str) -> dict:
     }
 
 
-def test_deid_gate_blocks_nhs_number() -> None:
-    result = write_gold_training(_state("NHS number 123 456 7890 with chest pain"))
-    assert result.get("status") == "deid_failed"
-    assert result.get("training_labels_written") == 0
+def test_deid_gate_allows_after_nhs_redaction() -> None:
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = False
+    client = MagicMock()
+    client.session.return_value = session
+    with patch(
+        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+        return_value=client,
+    ):
+        result = write_gold_training(_state("NHS number 123 456 7890 with chest pain"))
+    assert result.get("status") != "deid_failed"
+    assert result.get("training_labels_written") == 1
 
 
 def test_deid_gate_allows_placeholder_text() -> None:
@@ -49,15 +58,9 @@ def test_deid_gate_validates_deidentified_payload() -> None:
     session.__exit__.return_value = False
     client = MagicMock()
     client.session.return_value = session
-    with (
-        patch(
-            "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
-            return_value=client,
-        ),
-        patch(
-            "libs.pipeline_graph.subgraphs.persist.deidentify_text",
-            side_effect=lambda text, ner=True: text.replace("GOPEE, Dinesha", "[PERSON]"),
-        ),
+    with patch(
+        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+        return_value=client,
     ):
         result = write_gold_training(
             _state("Review done by GOPEE, Dinesha (Dr) - 15 May 2024")

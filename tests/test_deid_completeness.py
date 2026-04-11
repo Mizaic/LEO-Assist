@@ -436,6 +436,7 @@ DATES = [
     ("3/1/22", "D/M/YY short"),
     ("12.06.1975", "DD.MM.YYYY dot"),
     ("1975-06-12", "ISO YYYY-MM-DD"),
+    ("15 May 2024", "D Month YYYY natural"),
     ("01/01/2000", "DD/MM/YYYY millennium"),
     ("31/12/1999", "DD/MM/YYYY end of year"),
 ]
