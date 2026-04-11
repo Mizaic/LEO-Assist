@@ -511,7 +511,7 @@ def _apply_referral_procedure_assertion_guard(
             or ""
         )
         if is_referral_procedure_phrase(text):
-            ent["assertion"] = "planned"
+            ent["assertion"] = "present"
             ent["_assertion_guard"] = "referral_procedure"
 
 

@@ -11,7 +11,10 @@ def test_write_gold_training_writes_candidate_and_gold() -> None:
     session.__exit__.return_value = False
     client = MagicMock()
     client.session.return_value = session
-    with patch("libs.pipeline_graph.subgraphs.persist._get_patient_graph_client", return_value=client):
+    with patch(
+        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+        return_value=client,
+    ):
         out = write_gold_training(
             {
                 "encounter_text": "chest pain for 3 days",
@@ -36,11 +39,12 @@ def test_write_gold_training_skips_without_llm_signal() -> None:
     out = write_gold_training(
         {
             "encounter_text": "chest pain for 3 days",
-            "entities": [{"text": "chest pain", "label": "finding", "start": 0, "end": 10}],
+            "entities": [
+                {"text": "chest pain", "label": "finding", "start": 0, "end": 10}
+            ],
             "verification_result": {"confidence": 0.95},
             "errors": [],
         }
     )
     assert out["training_labels_written"] == 0
     assert out["status"] == "skipped_no_training_signal"
-

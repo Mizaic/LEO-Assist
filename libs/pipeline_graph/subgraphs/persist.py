@@ -1,9 +1,9 @@
 """Persistence subgraph for writing to patient graph and gold training.
 
 Routes based on ``output_target`` in state:
-- ``patient_graph`` — writes :DOCUMENTS/:HAS_<tag> links and CodingDecision nodes
-- ``gold_training`` — writes GoldLabel/TrainingCandidate nodes (GDPR isolated)
-- ``both`` — writes to both stores
+- ``patient_graph`` - writes :DOCUMENTS/:HAS_<tag> links and CodingDecision nodes
+- ``gold_training`` - writes GoldLabel/TrainingCandidate nodes (GDPR isolated)
+- ``both`` - writes to both stores
 """
 
 from __future__ import annotations
@@ -39,12 +39,14 @@ class PersistState(TypedDict, total=False):
 
 def _get_patient_graph_client():
     from libs.neo4j_client.client import PatientGraphClient
+
     return PatientGraphClient()
 
 
 def _get_knowledge_graph_client():
-    """TrainingCandidate and GoldLabel are de-identified model knowledge → Knowledge Graph."""
+    """Client for TrainingCandidate and GoldLabel (de-identified, Knowledge Graph)."""
     from libs.neo4j_client.client import KnowledgeGraphClient
+
     return KnowledgeGraphClient()
 
 
@@ -62,7 +64,7 @@ def _entity_fingerprint(encounter_text: str, entities: list[dict]) -> str:
 
 def write_patient_graph(state: PersistState) -> dict[str, Any]:
     if state.get("dry_run"):
-        logger.info("dry_run=True — skipping patient graph write")
+        logger.info("dry_run=True - skipping patient graph write")
         return {"documents_written": 0}
 
     entities = state.get("entities") or []
@@ -102,7 +104,9 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                     terms_by_sentence.setdefault(sentence_id, []).append(
                         {
                             "text": e.get("text", ""),
-                            "semantic_tag": e.get("semantic_tag") or e.get("label") or "other",
+                            "semantic_tag": e.get("semantic_tag")
+                            or e.get("label")
+                            or "other",
                             "assertion": e.get("assertion", "present"),
                             "modifiers": e.get("modifiers") or {},
                             "numeric_value": e.get("value"),
@@ -161,7 +165,9 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                         UPSERT_CODING_DECISION,
                         decision_id=decision_id,
                         encounter_id=encounter_id,
-                        patient_id_hash=hashlib.sha256(patient_id.encode()).hexdigest()[:16],
+                        patient_id_hash=hashlib.sha256(patient_id.encode()).hexdigest()[
+                            :16
+                        ],
                         entity_text=text,
                         entity_label=e.get("label") or e.get("semantic_tag", ""),
                         assertion=e.get("assertion", "present"),
@@ -190,7 +196,7 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
 
 def write_gold_training(state: PersistState) -> dict[str, Any]:
     if state.get("dry_run"):
-        logger.info("dry_run=True — skipping gold training write")
+        logger.info("dry_run=True - skipping gold training write")
         return {"training_labels_written": 0}
 
     entities = state.get("entities") or []
@@ -209,7 +215,8 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
     )
     if not has_training_signal:
         logger.info(
-            "Skipping gold training write: no extraction-check learning signal for encounter"
+            "Skipping gold training write: no extraction-check learning signal "
+            "for encounter"
         )
         return {
             "training_labels_written": 0,
@@ -254,10 +261,6 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                 + ", ".join(i.issue_type for i in deid_issues[:5])
             )
             try:
-                from libs.cypher.training_candidate_queries import (
-                    UPDATE_TRAINING_CANDIDATE_STATUS,
-                    UPSERT_TRAINING_CANDIDATE,
-                )
                 client = _get_knowledge_graph_client()
                 try:
                     with client.session() as session:
@@ -277,7 +280,10 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                 finally:
                     client.close()
             except Exception:
-                logger.warning("Failed to mark TrainingCandidate as failed after DI-ID block", exc_info=True)
+                logger.warning(
+                    "Failed to mark TrainingCandidate as failed after DI-ID block",
+                    exc_info=True,
+                )
             logger.warning("Gold training blocked by DI-ID gate: %s", errors[-1])
             return {
                 "training_labels_written": 0,

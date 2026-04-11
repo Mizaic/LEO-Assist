@@ -79,7 +79,7 @@ def test_coding_check_applies_drop_and_force_review(monkeypatch):
     assert out["entities"][0]["_tier_override_reason"] == "llm_coding_check_force_review"
 
 
-def test_extraction_check_keeps_referral_procedure_as_planned(monkeypatch):
+def test_extraction_check_keeps_referral_procedure_as_present(monkeypatch):
     payload = '{"correct_assertion":[{"index":0,"assertion":"possible"}]}'
     monkeypatch.setattr(
         "libs.llm_client.factory.create_llm",
@@ -98,5 +98,5 @@ def test_extraction_check_keeps_referral_procedure_as_planned(monkeypatch):
             ],
         }
     )
-    assert out["entities"][0]["assertion"] == "planned"
+    assert out["entities"][0]["assertion"] == "present"
     assert out["entities"][0]["_assertion_guard"] == "referral_procedure"

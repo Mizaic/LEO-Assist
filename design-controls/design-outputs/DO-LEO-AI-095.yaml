@@ -34,7 +34,7 @@
       - criterion: "Referral procedure assertion safety"
         type: "safety"
         measurement: "Test"
-        target: "Procedure referral phrases are normalised to planned when an extraction check suggests possible"
+        target: "Procedure referral phrases are normalised to present when an extraction check suggests possible"
       - criterion: "Gold-training gating"
         type: "functional"
         measurement: "Test"

@@ -55,7 +55,7 @@ def test_context_detection_runs_after_normalisation() -> None:
     assert result[0]["label"] == "finding", "Entity-type normalisation (L5) should run before L7"
 
 
-def test_referral_procedure_possible_is_forced_to_planned() -> None:
+def test_referral_procedure_possible_is_forced_to_present() -> None:
     entities = [
         {
             "text": "Fast track referral for suspected breast cancer",
@@ -70,7 +70,7 @@ def test_referral_procedure_possible_is_forced_to_planned() -> None:
             "Fast track referral for suspected breast cancer",
             entities,
         )
-    assert result[0]["assertion"] == "planned"
+    assert result[0]["assertion"] == "present"
     assert result[0]["_assertion_guard"] == "referral_procedure"
 
 

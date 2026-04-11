@@ -35,7 +35,9 @@ def test_deid_gate_allows_placeholder_text() -> None:
     mock_session.__exit__.return_value = False
     mock_client = MagicMock()
     mock_client.session.return_value = mock_session
-    with patch("libs.pipeline_graph.subgraphs.persist._get_patient_graph_client", return_value=mock_client):
+    with patch(
+        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+        return_value=mock_client,
+    ):
         result = write_gold_training(_state("Patient has chest pain and no dyspnoea."))
     assert result.get("status") != "deid_failed"
-

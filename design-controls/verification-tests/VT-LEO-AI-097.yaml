@@ -63,12 +63,12 @@
       acceptance_criteria:
         - "Added entities are appended with valid start/end offsets"
     - case_id: "VT-097-TC-004"
-      case_name: "Referral procedure assertion guard keeps planned procedure context"
+      case_name: "Referral procedure assertion guard normalises to present (referral was performed)"
       priority: "critical"
       test_steps:
         - step_number: 1
           action: "Mock extraction_check correction that sets a referral procedure to possible"
-          expected_result: "Entity assertion is normalised to planned and tagged with referral guard metadata"
+          expected_result: "Entity assertion is normalised to present and tagged with referral guard metadata"
       verification_method: "automated"
       acceptance_criteria:
         - "Referral procedure phrase is not persisted with possible assertion"
@@ -107,3 +107,15 @@
         Executed tests/test_llm_check_subgraph.py including referral-procedure
         assertion guard coverage, plus tests/test_persist_subgraph_gold.py for
         provenance-gated gold-training writes. All extraction-check cases passed.
+    - run_id: "VT-097-RUN-002"
+      date: "2026-04-11"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 5
+      failed_cases: 0
+      notes: >
+        Referral assertion guard corrected from planned to present. A referral
+        recorded in a GP encounter is a completed action, not a future plan.
+        Guard now normalises possible -> present so the tier classifier treats
+        it as tier 1/2 instead of tier 3 non_codeable_assertion.

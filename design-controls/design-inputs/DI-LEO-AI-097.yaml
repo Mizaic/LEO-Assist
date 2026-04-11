@@ -28,7 +28,7 @@
       - type: "functional"
         spec: "PromptConfig name extraction_check v1 is seedable and loadable from Neo4j"
       - type: "safety"
-        spec: "Referral procedure phrases corrected to possible are normalised to planned assertion"
+        spec: "Referral procedure phrases corrected to possible are normalised to present assertion (the referral was performed)"
       - type: "functional"
         spec: "Gold-training persistence runs only when entities include extraction-check provenance markers (llm_added, assertion_corrected, or label_corrected)"
     constraints:

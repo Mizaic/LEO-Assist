@@ -47,7 +47,7 @@ def _normalise_referral_procedure_assertion(
         and _label_is_procedure(label)
         and is_referral_procedure_phrase(text)
     ):
-        return "planned"
+        return "present"
     return cleaned_assertion
 
 
