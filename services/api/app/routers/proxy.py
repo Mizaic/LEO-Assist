@@ -11,7 +11,7 @@ import logging
 import os
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 import httpx
 from starlette.requests import ClientDisconnect
@@ -72,8 +72,21 @@ async def _proxy_request(
             url,
         )
         raise
-    async with httpx.AsyncClient(timeout=60) as client:
-        return await client.request(method, url, headers=headers, content=body)
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            return await client.request(method, url, headers=headers, content=body)
+    except httpx.TimeoutException as exc:
+        logger.warning("Proxy upstream timeout: %s %s", method, url)
+        raise HTTPException(
+            status_code=504,
+            detail="Upstream service timed out. Please retry with a smaller result set.",
+        ) from exc
+    except httpx.RequestError as exc:
+        logger.warning("Proxy upstream request error: %s %s error=%s", method, url, exc)
+        raise HTTPException(
+            status_code=502,
+            detail="Upstream service is unavailable. Please retry shortly.",
+        ) from exc
 
 
 def _copy_headers(resp: httpx.Response) -> dict:
