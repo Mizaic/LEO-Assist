@@ -1,158 +1,190 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
-import Switch from "@mui/material/Switch";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useOrgId } from "@/context/OrgContext";
 import {
-  batchResetAndRecodeEncounters,
   fetchEncounterCodedLinks,
   fetchEncounterKPIs,
   fetchEncounterList,
   type EncounterCodedLink,
+  type EncounterKPIs,
   type EncounterListItem,
   type EncounterListResponse,
 } from "@/lib/missionControlApi";
-import { ASSERTION_CHIP } from "@/lib/types";
+import EncounterSearchPanel, { type EncounterSearchState } from "./EncounterSearchPanel";
+import EncounterKpiStrip from "./EncounterKpiStrip";
+import EncounterBatchBar from "./EncounterBatchBar";
+import EncounterResultsTable from "./EncounterResultsTable";
+import EncounterPreviewDialog from "./EncounterPreviewDialog";
+import Score3DMap from "./Score3DMap";
+import TrainingSetAdvisor, { type AppliedConfig } from "./TrainingSetAdvisor";
+import { useEncounterBatch } from "./useEncounterBatch";
 
-type JobState = "queued" | "running" | "completed" | "failed";
+const DEFAULT_KPI: EncounterKPIs = {
+  total_encounters: 0,
+  total_patients: 0,
+  coded_encounters: 0,
+  median_codes_per_encounter: 0,
+};
+const RESULT_CAP = 1200;
+const FETCH_PAGE_SIZE = 100;
 
-type ChipColor = "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
 
-function chipPropsForAssertion(assertionRaw: string): {
-  color: ChipColor;
-  variant: "filled" | "outlined";
-} {
-  const key = assertionRaw.trim().toLowerCase();
-  const meta = ASSERTION_CHIP[key];
-  if (!meta) {
-    return { color: "default", variant: "outlined" };
-  }
-  const strong = meta.color === "error" || meta.color === "warning";
-  return { color: meta.color, variant: strong ? "filled" : "outlined" };
+function buildDefaultSearch(): EncounterSearchState {
+  const today = new Date();
+  const yearAgo = new Date(today);
+  yearAgo.setFullYear(today.getFullYear() - 1);
+  return {
+    query: "",
+    dateFrom: isoDate(yearAgo),
+    dateTo: isoDate(today),
+    selectedYears: [],
+    excludeNearDuplicates: false,
+    nearDuplicateThreshold: "0.95",
+    minCombinedScore: "0.05",
+    minVectorScore: "",
+    requireKeywordAnchor: false,
+  };
 }
 
 export default function EncounterMissionControl() {
   const currentYear = new Date().getFullYear();
-  const yearOptions = useMemo(
-    () => [currentYear, currentYear - 1, currentYear - 2],
-    [currentYear]
-  );
+  const yearOptions = useMemo(() => [currentYear, currentYear - 1, currentYear - 2], [currentYear]);
   const orgId = useOrgId();
-  const [query, setQuery] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [selectedYears, setSelectedYears] = useState<number[]>([]);
+
+  const [search, setSearch] = useState<EncounterSearchState>(buildDefaultSearch);
   const [rows, setRows] = useState<EncounterListItem[]>([]);
   const [totalResults, setTotalResults] = useState(0);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
   const [selected, setSelected] = useState<Record<string, EncounterListItem>>({});
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [kpis, setKpis] = useState({
-    total_encounters: 0,
-    total_patients: 0,
-    coded_encounters: 0,
-    median_codes_per_encounter: 0,
-  });
+  const [kpis, setKpis] = useState<EncounterKPIs>(DEFAULT_KPI);
+  const [kpisLoading, setKpisLoading] = useState(false);
   const [triggerAnalysis, setTriggerAnalysis] = useState(false);
-  const [excludeNearDuplicates, setExcludeNearDuplicates] = useState(false);
-  const [nearDuplicateThreshold, setNearDuplicateThreshold] = useState("0.95");
-  const [statuses, setStatuses] = useState<Record<string, JobState>>({});
+  const [show3D, setShow3D] = useState(false);
+  const [autoSearch, setAutoSearch] = useState(false);
   const [queryDiagnostics, setQueryDiagnostics] =
     useState<EncounterListResponse["query_diagnostics"]>(undefined);
   const [activePreview, setActivePreview] = useState<EncounterListItem | null>(null);
   const [previewCodedLinks, setPreviewCodedLinks] = useState<EncounterCodedLink[]>([]);
   const [previewLinksLoading, setPreviewLinksLoading] = useState(false);
   const [previewLinksError, setPreviewLinksError] = useState<string | null>(null);
+  const lastBatchRefreshKeyRef = useRef<string>("");
 
   const selectedItems = useMemo(() => Object.values(selected), [selected]);
+
   const nearDuplicateThresholdValue = useMemo(() => {
-    if (!excludeNearDuplicates) {
-      return undefined;
-    }
-    const parsed = Number(nearDuplicateThreshold);
-    if (!Number.isFinite(parsed)) {
-      return undefined;
-    }
-    return Math.min(0.99, Math.max(0.8, parsed));
-  }, [excludeNearDuplicates, nearDuplicateThreshold]);
-  const completedCount = Object.values(statuses).filter((s) => s === "completed").length;
-  const failedCount = Object.values(statuses).filter((s) => s === "failed").length;
-  const runningCount = Object.values(statuses).filter((s) => s === "running").length;
-  const queuedCount = Object.values(statuses).filter((s) => s === "queued").length;
+    if (!search.excludeNearDuplicates) return undefined;
+    const n = Number(search.nearDuplicateThreshold);
+    return Number.isFinite(n) ? Math.min(0.99, Math.max(0.8, n)) : undefined;
+  }, [search.excludeNearDuplicates, search.nearDuplicateThreshold]);
+
+  const scoreValues = useMemo(() => {
+    const combined = Number(search.minCombinedScore);
+    const vector = Number(search.minVectorScore);
+    return {
+      minCombinedScore: Number.isFinite(combined) ? Math.min(1, Math.max(0, combined)) : undefined,
+      minVectorScore: search.minVectorScore.trim() && Number.isFinite(vector)
+        ? Math.min(1, Math.max(0, vector))
+        : undefined,
+    };
+  }, [search.minCombinedScore, search.minVectorScore]);
 
   const buildSearchParams = useCallback(
     (page = 1, pageSize = 100) => ({
       orgId,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      query: query.trim() || undefined,
+      dateFrom: search.dateFrom || undefined,
+      dateTo: search.dateTo || undefined,
+      query: search.query.trim() || undefined,
       page,
       pageSize,
-      maxResults: 1200,
+      maxResults: RESULT_CAP,
+      minCombinedScore: scoreValues.minCombinedScore,
+      minVectorScore: scoreValues.minVectorScore,
+      requireKeywordAnchor: search.requireKeywordAnchor,
       nearDuplicateThreshold: nearDuplicateThresholdValue,
     }),
-    [orgId, dateFrom, dateTo, query, nearDuplicateThresholdValue]
+    [orgId, search, scoreValues, nearDuplicateThresholdValue]
   );
 
-  const load = useCallback(async () => {
+  const { statuses, message, loading: batchLoading, runBatchForItems, runBatchAll } =
+    useEncounterBatch({ triggerAnalysis, queryDiagnostics, buildSearchParams });
+
+  const fetchAllEncounterRows = useCallback(async (): Promise<EncounterListResponse> => {
+    const first = await fetchEncounterList(buildSearchParams(1, FETCH_PAGE_SIZE));
+    const cap = Math.min(first.total, RESULT_CAP);
+    if (cap <= first.items.length) {
+      return {
+        ...first,
+        items: first.items.slice(0, cap),
+      };
+    }
+
+    const allItems = [...first.items];
+    const totalPages = Math.ceil(cap / FETCH_PAGE_SIZE);
+    for (let pageNum = 2; pageNum <= totalPages; pageNum += 1) {
+      const next = await fetchEncounterList(buildSearchParams(pageNum, FETCH_PAGE_SIZE));
+      if (!next.items.length) break;
+      allItems.push(...next.items);
+      if (allItems.length >= cap) break;
+    }
+
+    return {
+      ...first,
+      items: allItems.slice(0, cap),
+      total: cap,
+      page: 1,
+      page_size: FETCH_PAGE_SIZE,
+    };
+  }, [buildSearchParams]);
+
+  const loadAll = useCallback(async (resetKpis = false) => {
     setLoading(true);
-    setMessage(null);
+    if (resetKpis) setKpisLoading(true);
     try {
-      const [encounters, nextKpis] = await Promise.all([
-        fetchEncounterList(buildSearchParams(1, 100)),
-        fetchEncounterKPIs({
-          orgId,
-          dateFrom: dateFrom || undefined,
-          dateTo: dateTo || undefined,
-        }),
-      ]);
+      const encountersFetch = fetchAllEncounterRows();
+      const kpisFetch = resetKpis
+        ? fetchEncounterKPIs({ orgId, dateFrom: search.dateFrom || undefined, dateTo: search.dateTo || undefined })
+        : Promise.resolve(null);
+      const [encounters, nextKpis] = await Promise.all([encountersFetch, kpisFetch]);
       setRows(encounters.items);
       setTotalResults(encounters.total);
       setQueryDiagnostics(encounters.query_diagnostics);
-      setKpis(nextKpis);
+      if (nextKpis) setKpis(nextKpis);
       setSelected({});
-      setStatuses({});
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not load encounters.");
       setRows([]);
       setTotalResults(0);
       setQueryDiagnostics(undefined);
+      console.error("Could not load encounters:", err);
     } finally {
       setLoading(false);
+      if (resetKpis) setKpisLoading(false);
     }
-  }, [buildSearchParams, orgId, dateFrom, dateTo]);
+  }, [fetchAllEncounterRows, orgId, search.dateFrom, search.dateTo]);
 
-  const toggleSelection = (item: EncounterListItem) => {
-    setSelected((prev) => {
-      const next = { ...prev };
-      if (next[item.encounter_id]) delete next[item.encounter_id];
-      else next[item.encounter_id] = item;
-      return next;
-    });
-  };
+  const load = useCallback(() => {
+    setPage(1);
+    void loadAll(true);
+  }, [loadAll]);
 
-  const openPreview = (item: EncounterListItem) => {
-    setActivePreview(item);
-  };
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((newRpp: number) => {
+    setRowsPerPage(newRpp);
+    setPage(1);
+  }, []);
 
   useEffect(() => {
     if (!activePreview) {
@@ -164,482 +196,202 @@ export default function EncounterMissionControl() {
     let mounted = true;
     setPreviewLinksLoading(true);
     setPreviewLinksError(null);
-    setPreviewCodedLinks([]);
     void fetchEncounterCodedLinks(activePreview.patient_id, activePreview.encounter_id)
-      .then((rows) => {
-        if (!mounted) {
-          return;
-        }
-        setPreviewCodedLinks(rows ?? []);
-      })
+      .then((links) => { if (mounted) setPreviewCodedLinks(links ?? []); })
       .catch((err) => {
-        if (!mounted) {
-          return;
-        }
-        setPreviewLinksError(
-          err instanceof Error ? err.message : "Could not load coded links."
-        );
+        if (mounted) setPreviewLinksError(err instanceof Error ? err.message : "Could not load coded links.");
       })
-      .finally(() => {
-        if (mounted) {
-          setPreviewLinksLoading(false);
-        }
-      });
-    return () => {
-      mounted = false;
-    };
+      .finally(() => { if (mounted) setPreviewLinksLoading(false); });
+    return () => { mounted = false; };
   }, [activePreview]);
 
-  const selectAllVisibleRows = () => {
-    const next: Record<string, EncounterListItem> = {};
-    rows.forEach((row) => {
-      next[row.encounter_id] = row;
+  const toggleSelection = (item: EncounterListItem) => {
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (next[item.encounter_id]) delete next[item.encounter_id];
+      else next[item.encounter_id] = item;
+      return next;
     });
-    setSelected(next);
-  };
-
-  const clearSelection = () => {
-    setSelected({});
   };
 
   const toggleYear = (year: number) => {
-    setSelectedYears((prev) => {
-      const exists = prev.includes(year);
-      const next = exists ? prev.filter((y) => y !== year) : [...prev, year];
-      if (!next.length) {
-        setDateFrom("");
-        setDateTo("");
-        return [];
-      }
-      const minYear = Math.min(...next);
-      const maxYear = Math.max(...next);
-      setDateFrom(`${minYear}-01-01`);
-      setDateTo(`${maxYear}-12-31`);
-      return next.sort((a, b) => a - b);
+    setSearch((prev) => {
+      const years = prev.selectedYears.includes(year)
+        ? prev.selectedYears.filter((y) => y !== year)
+        : [...prev.selectedYears, year];
+      const sorted = years.sort((a, b) => a - b);
+      return {
+        ...prev,
+        selectedYears: sorted,
+        dateFrom: sorted.length ? `${Math.min(...sorted)}-01-01` : "",
+        dateTo: sorted.length ? `${Math.max(...sorted)}-12-31` : "",
+      };
     });
   };
 
-  const subscribeToRun = (runId: string, encounterId: string) => {
-    const source = new EventSource(
-      `${window.location.origin}/api/pipeline/progress/${encodeURIComponent(runId)}`
-    );
-    const mark = (state: JobState) =>
-      setStatuses((prev) => ({ ...prev, [encounterId]: state }));
+  const isLoading = loading || batchLoading;
+  const displayRows = useMemo(
+    () => rows.slice((page - 1) * rowsPerPage, page * rowsPerPage),
+    [rows, page, rowsPerPage]
+  );
+  const statusEntries = useMemo(() => Object.entries(statuses), [statuses]);
+  const allBatchTerminal = useMemo(
+    () =>
+      statusEntries.length > 0 &&
+      statusEntries.every(([, s]) => s === "completed" || s === "failed"),
+    [statusEntries]
+  );
+  const anyBatchCompleted = useMemo(
+    () => statusEntries.some(([, s]) => s === "completed"),
+    [statusEntries]
+  );
+  const batchStatusKey = useMemo(
+    () => statusEntries.map(([id, s]) => `${id}:${s}`).sort().join("|"),
+    [statusEntries]
+  );
 
-    const onEvent = (ev: MessageEvent) => {
-      try {
-        const payload = JSON.parse(ev.data) as { type?: string };
-        const type = payload.type ?? "";
-        if (type === "run_started" || type === "patient_started" || type === "encounter_started") {
-          mark("running");
-        }
-        if (type === "run_completed" || type === "pipeline_done" || type === "extraction_done") {
-          mark("completed");
-          source.close();
-        }
-        if (type === "pipeline_error" || type === "run_error") {
-          mark("failed");
-          source.close();
-        }
-      } catch {
-        // Ignore malformed progress events.
-      }
-    };
-    source.addEventListener("run_started", onEvent as EventListener);
-    source.addEventListener("patient_started", onEvent as EventListener);
-    source.addEventListener("encounter_started", onEvent as EventListener);
-    source.addEventListener("run_completed", onEvent as EventListener);
-    source.addEventListener("pipeline_done", onEvent as EventListener);
-    source.addEventListener("extraction_done", onEvent as EventListener);
-    source.addEventListener("pipeline_error", onEvent as EventListener);
-    source.addEventListener("run_error", onEvent as EventListener);
-    source.onerror = () => {
-      mark("failed");
-      source.close();
-    };
-  };
+  useEffect(() => {
+    if (!autoSearch) return;
+    setAutoSearch(false);
+    void loadAll(true);
+  }, [autoSearch, loadAll]);
 
-  const runBatchForItems = async (
-    items: Array<Pick<EncounterListItem, "patient_id" | "encounter_id">>,
-    label: "selected" | "all"
-  ) => {
-    if (!items.length) {
-      setMessage(label === "all" ? "No encounters available for this search." : "Select at least one encounter first.");
-      return;
-    }
-    setMessage(null);
-    const chunkSize = 500;
-    const chunks: typeof items[] = [];
-    for (let i = 0; i < items.length; i += chunkSize) {
-      chunks.push(items.slice(i, i + chunkSize));
-    }
-    const initial: Record<string, JobState> = {};
-    let queuedCount = 0;
-    let failedCount = 0;
-    try {
-      for (const chunk of chunks) {
-        const result = await batchResetAndRecodeEncounters(
-          chunk.map((item) => ({
-            patient_id: item.patient_id,
-            encounter_id: item.encounter_id,
-          })),
-          triggerAnalysis,
-          queryDiagnostics
-        );
-        queuedCount += result.queued_count;
-        failedCount += result.failed_count;
-        result.queued.forEach((job) => {
-          initial[job.encounter_id] = "queued";
-          subscribeToRun(job.run_id, job.encounter_id);
-        });
-        result.failed.forEach((job) => {
-          initial[job.encounter_id] = "failed";
-        });
-      }
-      setStatuses(initial);
-      setMessage(
-        `Batch queued (${label}): ${queuedCount} queued, ${failedCount} failed across ${chunks.length} batch request(s).`
-      );
-    } catch (err) {
-      setMessage(
-        err instanceof Error ? err.message : "Batch reset and recode failed."
-      );
-    }
-  };
+  useEffect(() => {
+    if (!allBatchTerminal || !anyBatchCompleted) return;
+    if (!batchStatusKey || batchStatusKey === lastBatchRefreshKeyRef.current) return;
+    lastBatchRefreshKeyRef.current = batchStatusKey;
+    void loadAll(false);
+  }, [allBatchTerminal, anyBatchCompleted, batchStatusKey, loadAll]);
 
-  const runBatch = async () => {
-    await runBatchForItems(selectedItems, "selected");
-  };
+  const handleThresholdDrag = useCallback((combined: number, vector?: number) => {
+    setSearch((prev) => ({
+      ...prev,
+      minCombinedScore: combined.toFixed(2),
+      minVectorScore: typeof vector === "number"
+        ? vector.toFixed(2)
+        : prev.minVectorScore === ""
+          ? ""
+          : prev.minVectorScore,
+    }));
+  }, []);
 
-  const fetchAllSearchRows = useCallback(async (): Promise<EncounterListItem[]> => {
-    const pageSize = 100;
-    let page = 1;
-    let total = 0;
-    const all: EncounterListItem[] = [];
-    do {
-      const response = await fetchEncounterList(buildSearchParams(page, pageSize));
-      total = response.total;
-      all.push(...response.items);
-      if (!response.items.length) {
-        break;
-      }
-      page += 1;
-      if (page > 100) {
-        break;
-      }
-    } while (all.length < total);
-    return all;
-  }, [buildSearchParams]);
-
-  const runBatchAllResults = async () => {
-    if (!totalResults) {
-      setMessage("Search first to load encounter results.");
-      return;
-    }
-    const proceed = window.confirm(
-      `Queue reset + recode for all ${totalResults} matching encounters?`
-    );
-    if (!proceed) {
-      return;
-    }
-    setLoading(true);
-    try {
-      const allRows = await fetchAllSearchRows();
-      await runBatchForItems(
-        allRows.map((item) => ({
-          patient_id: item.patient_id,
-          encounter_id: item.encounter_id,
-        })),
-        "all"
-      );
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not queue all results.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleAdvisorApply = useCallback((config: AppliedConfig) => {
+    setSearch((prev) => ({
+      ...prev,
+      minCombinedScore: config.minCombinedScore.toFixed(2),
+      excludeNearDuplicates: config.enableDedup,
+      nearDuplicateThreshold: config.dedupThreshold.toFixed(2),
+    }));
+    setAutoSearch(true);
+  }, []);
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
+      <Typography variant="h5" component="h1" sx={{ mb: 2.5, fontWeight: 700 }}>
         Encounters
       </Typography>
-      <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: "wrap" }}>
-        <TextField
-          label="Search encounters (hybrid)"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              void load();
-            }
-          }}
-          size="small"
-          sx={{ minWidth: 320 }}
-        />
-        <TextField
-          label="From"
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          size="small"
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          label="To"
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          size="small"
-          InputLabelProps={{ shrink: true }}
-        />
-        <Button variant="contained" onClick={load} disabled={loading}>
-          Search
-        </Button>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="body2">Exclude near-duplicates</Typography>
-          <Switch
-            checked={excludeNearDuplicates}
-            onChange={(e) => setExcludeNearDuplicates(e.target.checked)}
-          />
-          <TextField
-            label="Similarity"
-            size="small"
-            type="number"
-            value={nearDuplicateThreshold}
-            onChange={(e) => setNearDuplicateThreshold(e.target.value)}
-            inputProps={{ min: 0.8, max: 0.99, step: 0.01 }}
-            sx={{ width: 110 }}
-            disabled={!excludeNearDuplicates}
-          />
-        </Stack>
-      </Stack>
-      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
-        <Typography variant="body2" sx={{ alignSelf: "center" }}>
-          Quick years:
-        </Typography>
-        {yearOptions.map((year) => (
-          <Chip
-            key={year}
-            label={String(year)}
-            clickable
-            color={selectedYears.includes(year) ? "primary" : "default"}
-            variant={selectedYears.includes(year) ? "filled" : "outlined"}
-            onClick={() => toggleYear(year)}
-          />
-        ))}
-      </Stack>
-      {queryDiagnostics && (
-        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
-          <Chip
-            size="small"
-            label={`Original: ${queryDiagnostics.original_query}`}
-            variant="outlined"
-          />
-          <Chip
-            size="small"
-            color={queryDiagnostics.rewrite_applied ? "info" : "default"}
-            label={`Rewritten: ${queryDiagnostics.rewritten_query}`}
-          />
-          <Chip
-            size="small"
-            label={`Source: ${queryDiagnostics.rewrite_source}`}
-            variant="outlined"
-          />
-        </Stack>
-      )}
 
-      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-        <Card><CardContent><Typography variant="caption">Encounters</Typography><Typography variant="h6">{kpis.total_encounters}</Typography></CardContent></Card>
-        <Card><CardContent><Typography variant="caption">Patients</Typography><Typography variant="h6">{kpis.total_patients}</Typography></CardContent></Card>
-        <Card><CardContent><Typography variant="caption">Coded</Typography><Typography variant="h6">{kpis.coded_encounters}</Typography></CardContent></Card>
-        <Card><CardContent><Typography variant="caption">Median codes</Typography><Typography variant="h6">{kpis.median_codes_per_encounter.toFixed(1)}</Typography></CardContent></Card>
-      </Stack>
-
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button variant="contained" color="warning" onClick={runBatch}>
-            Reset + recode selected ({selectedItems.length})
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={runBatchAllResults}
-            disabled={!totalResults || loading}
-          >
-            Reset + recode all results ({totalResults})
-          </Button>
-          <Button variant="outlined" onClick={selectAllVisibleRows} disabled={!rows.length}>
-            Select loaded results
-          </Button>
-          <Button variant="text" onClick={clearSelection} disabled={!selectedItems.length}>
-            Clear selection
-          </Button>
-          <Typography variant="body2">Also rerun analytics</Typography>
-          <Switch
-            checked={triggerAnalysis}
-            onChange={(e) => setTriggerAnalysis(e.target.checked)}
-          />
-          {message && <Typography variant="body2">{message}</Typography>}
-        </Stack>
-        {!!Object.keys(statuses).length && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2">
-              Queued {queuedCount} | Running {runningCount} | Completed {completedCount} |
-              Failed {failedCount}
-            </Typography>
-          </Box>
-        )}
-      </Paper>
-
-      {loading && <LinearProgress sx={{ mb: 1 }} />}
-      <Typography variant="body2" sx={{ mb: 1 }}>
-        Search results: {totalResults} (showing {rows.length})
-      </Typography>
-      {totalResults >= 1200 && (
-        <Typography variant="caption" color="warning.main" sx={{ display: "block", mb: 1 }}>
-          Result cap reached (1200). Narrow the search or date range for full coverage.
-        </Typography>
-      )}
-      <Paper>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Pick</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Patient</TableCell>
-              <TableCell>Match</TableCell>
-              <TableCell>Coded links</TableCell>
-              <TableCell>Progress</TableCell>
-              <TableCell>Text</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow
-                key={row.encounter_id}
-                hover
-                onClick={() => openPreview(row)}
-                sx={{ cursor: "pointer" }}
-              >
-                <TableCell>
-                  <Switch
-                    size="small"
-                    checked={Boolean(selected[row.encounter_id])}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={() => toggleSelection(row)}
-                  />
-                </TableCell>
-                <TableCell>{row.encounter_date ?? "-"}</TableCell>
-                <TableCell>{row.patient_id}</TableCell>
-                <TableCell>
-                  <Chip size="small" label={row.match_type} />
-                </TableCell>
-                <TableCell>{row.coded_count}</TableCell>
-                <TableCell>{statuses[row.encounter_id] ?? "-"}</TableCell>
-                <TableCell sx={{ maxWidth: 520 }}>
-                  <Typography variant="body2" noWrap title={row.text ?? ""}>
-                    {row.text ?? ""}
-                  </Typography>
-                  {!!row.match_rationale?.length && (
-                    <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: "wrap" }}>
-                      {row.match_rationale.slice(0, 4).map((term, idx) => (
-                        <Chip
-                          key={`${row.encounter_id}-mr-${idx}-${term}`}
-                          size="small"
-                          label={term}
-                          variant="outlined"
-                        />
-                      ))}
-                    </Stack>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
-
-      <Dialog
-        open={Boolean(activePreview)}
-        onClose={() => setActivePreview(null)}
-        fullWidth
-        maxWidth="md"
+      <Paper
+        elevation={0}
+        sx={{ p: 2.5, mb: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
       >
-        <DialogTitle>Encounter preview</DialogTitle>
-        <DialogContent dividers>
-          {activePreview && (
-            <Stack spacing={1.5}>
-              <Typography variant="body2">
-                Date: {activePreview.encounter_date ?? "-"}
-              </Typography>
-              <Typography variant="body2">
-                Patient: {activePreview.patient_id}
-              </Typography>
-              <Typography variant="body2">
-                Encounter ID: {activePreview.encounter_id}
-              </Typography>
-              <Typography variant="body2">
-                Match: {activePreview.match_type}
-              </Typography>
-              <Typography variant="body2">
-                Coded links: {activePreview.coded_count}
-              </Typography>
-              {previewLinksLoading && (
-                <Typography variant="body2" color="text.secondary">
-                  Loading coded terms...
-                </Typography>
-              )}
-              {previewLinksError && (
-                <Typography variant="body2" color="error">
-                  {previewLinksError}
-                </Typography>
-              )}
-              {!!previewCodedLinks.length && (
-                <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
-                  {previewCodedLinks.map((item, index) => {
-                    const term = (item.term || item.concept_id || "unknown").trim();
-                    const assertion = (item.assertion || "present").trim();
-                    const label = `${term} (${assertion})`;
-                    const { color, variant } = chipPropsForAssertion(assertion);
-                    return (
-                      <Chip
-                        key={`${activePreview.encounter_id}-coded-${index}-${item.concept_id}`}
-                        size="small"
-                        label={label}
-                        color={color}
-                        variant={variant}
-                        title={`${term} | ${item.concept_id}`}
-                      />
-                    );
-                  })}
-                </Stack>
-              )}
-              <Typography variant="subtitle2">Encounter text</Typography>
-              <Paper variant="outlined" sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
-                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                  {activePreview.text?.trim() || "No encounter text available."}
-                </Typography>
-              </Paper>
-              {!!activePreview.match_rationale?.length && (
-                <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
-                  {activePreview.match_rationale.map((term, idx) => (
-                    <Chip
-                      key={`preview-${activePreview.encounter_id}-mr-${idx}-${term}`}
-                      size="small"
-                      label={term}
-                      variant="outlined"
-                    />
-                  ))}
-                </Stack>
-              )}
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setActivePreview(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        <EncounterSearchPanel
+          state={search}
+          yearOptions={yearOptions}
+          queryDiagnostics={queryDiagnostics}
+          loading={isLoading}
+          onQueryChange={(v) => setSearch((s) => ({ ...s, query: v }))}
+          onDateFromChange={(v) => setSearch((s) => ({ ...s, dateFrom: v, selectedYears: [] }))}
+          onDateToChange={(v) => setSearch((s) => ({ ...s, dateTo: v, selectedYears: [] }))}
+          onToggleYear={toggleYear}
+          onSearch={load}
+        />
+      </Paper>
+
+      <EncounterKpiStrip kpis={kpis} loading={kpisLoading} />
+
+      <Box sx={{ mt: 2.5 }}>
+        <EncounterBatchBar
+          selectedCount={selectedItems.length}
+          totalResults={totalResults}
+          loading={isLoading}
+          triggerAnalysis={triggerAnalysis}
+          onTriggerAnalysisChange={setTriggerAnalysis}
+          statuses={statuses}
+          message={message}
+          onRunBatchSelected={() => runBatchForItems(selectedItems, "selected")}
+          onRunBatchAll={() => void runBatchAll(totalResults)}
+          onSelectAll={() => {
+            const next: Record<string, EncounterListItem> = {};
+            displayRows.forEach((r) => { next[r.encounter_id] = r; });
+            setSelected(next);
+          }}
+          onClearSelection={() => setSelected({})}
+          hasRows={rows.length > 0}
+        />
+      </Box>
+
+      {rows.length > 0 && (
+        <>
+          <TrainingSetAdvisor
+            rows={rows}
+            currentMinScore={scoreValues.minCombinedScore ?? 0.2}
+            onApply={handleAdvisorApply}
+            onThresholdChange={handleThresholdDrag}
+            onShow3D={() => setShow3D(true)}
+          />
+          <Score3DMap
+            open={show3D}
+            onClose={() => setShow3D(false)}
+            rows={rows}
+            minCombinedScore={scoreValues.minCombinedScore ?? 0.2}
+            minVectorScore={scoreValues.minVectorScore}
+            onEncounterSelect={(id) => {
+              setShow3D(false);
+              const item = rows.find((r) => r.encounter_id === id);
+              if (item) setActivePreview(item);
+            }}
+          />
+        </>
+      )}
+
+      {isLoading && <LinearProgress sx={{ mt: 2.5, mb: 1 }} />}
+      {!isLoading && totalResults === 0 && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5, mb: 1 }}>
+          Run a search to see encounters.
+        </Typography>
+      )}
+      {rows.length >= RESULT_CAP && !isLoading && (
+        <Alert severity="warning" sx={{ mt: 2.5, mb: 1, py: 0 }}>
+          Result cap reached (1,200). Narrow your search for full coverage.
+        </Alert>
+      )}
+
+      <EncounterResultsTable
+        rows={displayRows}
+        selected={selected}
+        statuses={statuses}
+        totalResults={rows.length}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        liveMinScore={scoreValues.minCombinedScore ?? 0.2}
+        liveMinVectorScore={scoreValues.minVectorScore}
+        lastSearchedMinScore={scoreValues.minCombinedScore ?? 0.2}
+        lastSearchedMinVectorScore={scoreValues.minVectorScore}
+        highlightedEncounterId={null}
+        onToggleSelection={toggleSelection}
+        onOpenPreview={setActivePreview}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+      />
+
+      <EncounterPreviewDialog
+        item={activePreview}
+        codedLinks={previewCodedLinks}
+        loading={previewLinksLoading}
+        error={previewLinksError}
+        onClose={() => setActivePreview(null)}
+      />
     </Box>
   );
 }

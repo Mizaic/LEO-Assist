@@ -92,6 +92,16 @@
       verification_method: "automated"
       acceptance_criteria:
         - "All matching encounter IDs are queued, not only currently rendered rows"
+    - case_id: "VT-099-TC-007"
+      case_name: "Relevance floor removes weak semantic rows"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call GET /analytics/mission-control/encounters with q and relevance floor params"
+          expected_result: "Rows below combined/vector thresholds and semantic rows without keyword anchors are filtered"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Diagnostics include min_combined_score, min_vector_score, require_keyword_anchor, and relevance_filtered_count"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -136,5 +146,15 @@
         Updated mission-control coverage for near-duplicate suppression and queue-all-results:
         - .venv/bin/pytest services/analytics_api/tests/test_mission_control_encounters.py -q (6 passed)
         - .venv/bin/pytest services/api/tests/test_patients_batch_recode.py -q (2 passed)
+        - npx jest src/__tests__/mission-control/EncounterMissionControl.test.tsx --no-coverage (3 passed)
+        Playwright remained out of scope in this run; VT status stays draft pending E2E execution.
+    - run_id: "VT-099-RUN-004"
+      date: "2026-04-12"
+      executor: "automated"
+      environment: "development"
+      result: "fail"
+      notes: >
+        Added relevance-floor coverage in encounter search:
+        - .venv/bin/pytest services/analytics_api/tests/test_mission_control_encounters.py -q (7 passed)
         - npx jest src/__tests__/mission-control/EncounterMissionControl.test.tsx --no-coverage (3 passed)
         Playwright remained out of scope in this run; VT status stays draft pending E2E execution.

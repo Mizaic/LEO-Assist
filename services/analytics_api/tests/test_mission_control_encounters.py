@@ -210,3 +210,58 @@ def test_suppress_near_duplicates_filters_similar_text():
     kept, filtered = mce._suppress_near_duplicates(ranked, 0.8)
     assert len(kept) == 2
     assert filtered == 1
+
+
+def test_suppress_near_duplicates_uses_neo4j_vector_ids():
+    ranked = [
+        {"encounter_id": "e1", "text": "a", "score": 0.9},
+        {"encounter_id": "e2", "text": "b", "score": 0.8},
+        {"encounter_id": "e3", "text": "c", "score": 0.7},
+    ]
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            assert "vector.similarity.cosine" in query
+            assert kwargs["threshold"] == 0.95
+            return [{"duplicate_ids": ["e2"]}]
+
+    kept, filtered, mode = mce._suppress_near_duplicates_with_neo4j(
+        _FakeClient(), ranked, 0.95
+    )
+    assert mode == "neo4j_vector"
+    assert filtered == 1
+    assert [i["encounter_id"] for i in kept] == ["e1", "e3"]
+
+
+def test_apply_relevance_filters_drops_weak_semantic_rows():
+    ranked = [
+        {
+            "encounter_id": "e1",
+            "score": 0.45,
+            "vector_score": 0.81,
+            "match_type": "semantic",
+            "rank_features": {"term_hits": 0},
+        },
+        {
+            "encounter_id": "e2",
+            "score": 0.28,
+            "vector_score": 0.72,
+            "match_type": "hybrid",
+            "rank_features": {"term_hits": 1},
+        },
+        {
+            "encounter_id": "e3",
+            "score": 0.12,
+            "vector_score": 0.66,
+            "match_type": "semantic",
+            "rank_features": {"term_hits": 1},
+        },
+    ]
+    kept, filtered = mce._apply_relevance_filters(
+        ranked,
+        min_combined_score=0.2,
+        min_vector_score=0.7,
+        require_keyword_anchor=True,
+    )
+    assert filtered == 2
+    assert [row["encounter_id"] for row in kept] == ["e2"]

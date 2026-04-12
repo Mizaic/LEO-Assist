@@ -214,10 +214,10 @@ for selected encounters with trigger_analysis defaulting to false.
 |----------|----|--------|-------------|
 | User Need | UN-LEO-AI-058 | draft | Mission Control review workflow for audit users |
 | User Need | UN-LEO-AI-056 | approved | Safe remediation tooling for admins and operations |
-| Design Input | DI-LEO-AI-099 | draft | Encounter-first hybrid retrieval with optional near-duplicate suppression and batch reset+recode workflow including queue-all-results |
-| Design Output | DO-LEO-AI-097 | draft | Analytics APIs, batch endpoint, encounters UI, route migration, and all-results batch orchestration |
+| Design Input | DI-LEO-AI-099 | draft | Encounter-first hybrid retrieval with optional near-duplicate suppression, relevance-floor controls, and batch reset+recode workflow including queue-all-results |
+| Design Output | DO-LEO-AI-097 | draft | Analytics APIs, batch endpoint, encounters UI, route migration, relevance-floor filtering, and all-results batch orchestration |
 | Risk | R-LEO-AI-063; R-LEO-AI-065 | analyzed | Remediation mutation risk and auditor decision-quality risk |
-| Verification Test | VT-LEO-AI-099 | draft | API/UI verification for hybrid search, near-duplicate suppression, all-results batch queueing, and progress UX |
+| Verification Test | VT-LEO-AI-099 | draft | API/UI verification for hybrid search, near-duplicate suppression, relevance-floor filtering, all-results batch queueing, and progress UX |
 
 ---
 

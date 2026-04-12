@@ -8,9 +8,11 @@
     The system SHALL provide an encounter-centric Mission Control workflow at
     /care/encounters that supports org-scoped hybrid search (fulltext plus
     vector), optional near-duplicate suppression for high-similarity encounter
-    text, ephemeral shortlist selection, and a dedicated batch reset+recode API
-    that queues extract_encounter jobs with trigger_analysis disabled by default
-    and optional override for analytics rerun. The workflow SHALL support queueing
+    text, configurable relevance floors (minimum combined score, optional
+    minimum vector score, and semantic keyword-anchor requirement), ephemeral
+    shortlist selection, and a dedicated batch reset+recode API that queues
+    extract_encounter jobs with trigger_analysis disabled by default and
+    optional override for analytics rerun. The workflow SHALL support queueing
     all matching search results (not only the currently visible page), with
     request chunking to preserve the 500-item batch safety bound.
   rationale: >
@@ -26,6 +28,8 @@
         spec: "GET /analytics/mission-control/encounters returns org-scoped, paged encounter rows and supports q-based hybrid ranking"
       - type: "functional"
         spec: "GET /analytics/mission-control/encounters accepts near_duplicate_threshold and suppresses highly similar encounter text rows while preserving ranking scores"
+      - type: "functional"
+        spec: "GET /analytics/mission-control/encounters accepts min_combined_score, optional min_vector_score, and require_keyword_anchor to reduce low-relevance semantic rows"
       - type: "functional"
         spec: "Hybrid keyword leg uses db.index.fulltext.queryNodes('encounter_text_index', ...)"
       - type: "functional"

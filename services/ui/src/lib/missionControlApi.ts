@@ -15,6 +15,34 @@ function resolveBase(): string {
 
 const PROXY = `${resolveBase()}/api/proxy/analytics`;
 
+function detailToString(detail: unknown): string | null {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const rendered = detail
+      .map((entry) => {
+        if (typeof entry === "string") return entry;
+        if (entry && typeof entry === "object") {
+          const obj = entry as { msg?: unknown; loc?: unknown; type?: unknown };
+          const msg = typeof obj.msg === "string" ? obj.msg : JSON.stringify(entry);
+          const loc = Array.isArray(obj.loc) ? obj.loc.join(".") : "";
+          return loc ? `${loc}: ${msg}` : msg;
+        }
+        return String(entry);
+      })
+      .filter(Boolean)
+      .join("; ");
+    return rendered || null;
+  }
+  if (detail && typeof detail === "object") {
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      return String(detail);
+    }
+  }
+  return null;
+}
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
@@ -27,8 +55,9 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    const detail = detailToString((err as { detail?: unknown }).detail);
     throw new Error(
-      (err as { detail?: string }).detail ?? `Request failed (${res.status})`
+      detail ?? `Request failed (${res.status})`
     );
   }
   return res.json() as Promise<T>;
@@ -363,6 +392,9 @@ export interface EncounterListParams {
   page?: number;
   pageSize?: number;
   maxResults?: number;
+  minCombinedScore?: number;
+  minVectorScore?: number;
+  requireKeywordAnchor?: boolean;
   nearDuplicateThreshold?: number;
   sortBy?: "encounter_date" | "patient_id" | "coded_count";
   sortDir?: "ASC" | "DESC";
@@ -406,6 +438,13 @@ export interface EncounterListResponse {
     expanded_terms: string[];
     fulltext_query: string;
     reasoning?: string | null;
+    near_duplicate_threshold?: number | null;
+    near_duplicate_filtered_count?: number;
+    near_duplicate_mode?: string;
+    min_combined_score?: number | null;
+    min_vector_score?: number | null;
+    require_keyword_anchor?: boolean;
+    relevance_filtered_count?: number;
   };
 }
 
@@ -428,6 +467,15 @@ export async function fetchEncounterList(
   p.set("page", String(params.page ?? 1));
   p.set("page_size", String(params.pageSize ?? 25));
   p.set("max_results", String(params.maxResults ?? 2000));
+  if (typeof params.minCombinedScore === "number") {
+    p.set("min_combined_score", String(params.minCombinedScore));
+  }
+  if (typeof params.minVectorScore === "number") {
+    p.set("min_vector_score", String(params.minVectorScore));
+  }
+  if (typeof params.requireKeywordAnchor === "boolean") {
+    p.set("require_keyword_anchor", String(params.requireKeywordAnchor));
+  }
   if (typeof params.nearDuplicateThreshold === "number") {
     p.set("near_duplicate_threshold", String(params.nearDuplicateThreshold));
   }
@@ -463,6 +511,17 @@ export interface EncounterCodedLink {
   assertion?: string;
   confidence?: number | null;
   source?: string | null;
+  evidence?: string | null;
+  evidence_sentence?: string | null;
+  sentence_index?: number | null;
+  evidence_start?: number | null;
+  evidence_end?: number | null;
+  domain?: string | null;
+  model_name?: string | null;
+  model_version?: string | null;
+  contract_version?: string | null;
+  run_id?: string | null;
+  coded_at?: string | null;
 }
 
 export interface BatchResetResponse {
@@ -490,6 +549,23 @@ export async function batchResetAndRecodeEncounters(
       search_context: searchContext,
     }),
   });
+}
+
+export interface EncounterUniquenessItem {
+  encounter_id: string;
+  uniqueness_score: number; // 1 = completely unique, 0 = near-duplicate
+}
+
+export async function fetchEncounterUniqueness(
+  encounterIds: string[]
+): Promise<EncounterUniquenessItem[]> {
+  return fetchJson<EncounterUniquenessItem[]>(
+    `${PROXY}/mission-control/encounters/uniqueness`,
+    {
+      method: "POST",
+      body: JSON.stringify({ encounter_ids: encounterIds }),
+    }
+  );
 }
 
 export async function fetchEncounterCodedLinks(

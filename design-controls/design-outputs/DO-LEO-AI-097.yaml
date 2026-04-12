@@ -20,6 +20,7 @@
       - UI route /care/encounters replaces /care/pathways behavior.
       - Analytics API provides /mission-control/encounters and /kpis.
       - Search supports optional near-duplicate suppression for very similar encounter text.
+      - Search supports configurable relevance floors (combined score, vector score, keyword anchor).
       - Core API provides /patients/encounters/batch-reset-and-recode.
       - Queue payloads use pd-gp-encounter-coding with mode extract_encounter.
       - trigger_analysis defaults false, with explicit opt-in.
@@ -32,7 +33,7 @@
       - criterion: "Hybrid search endpoint"
         type: "functional"
         measurement: "Test"
-        target: "Merges fulltext and vector legs with fallback when one leg is unavailable, and applies optional near-duplicate suppression"
+        target: "Merges fulltext and vector legs with fallback when one leg is unavailable, applies optional near-duplicate suppression, and filters low-relevance rows via configurable thresholds"
       - criterion: "Batch queue payload"
         type: "safety"
         measurement: "Test"

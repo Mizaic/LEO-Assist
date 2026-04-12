@@ -13,7 +13,8 @@ import re
 import uuid
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
+from pydantic import BaseModel
 
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
@@ -168,6 +169,88 @@ def _suppress_near_duplicates(
     return kept, filtered
 
 
+def _suppress_near_duplicates_with_neo4j(
+    client: PatientGraphClient, ranked: list[dict[str, Any]], threshold: float | None
+) -> tuple[list[dict[str, Any]], int, str]:
+    if threshold is None or len(ranked) < 2:
+        return ranked, 0, "off"
+    rows = [
+        {
+            "encounter_id": str(item.get("encounter_id") or ""),
+            "score": float(item.get("score") or 0.0),
+        }
+        for item in ranked
+        if item.get("encounter_id")
+    ]
+    if len(rows) < 2:
+        return ranked, 0, "off"
+    try:
+        dedupe_rows = client.run(
+            "UNWIND $rows AS row "
+            "MATCH (e:Encounter {id: row.encounter_id}) "
+            "WHERE e.vector IS NOT NULL "
+            "WITH collect({encounter_id: row.encounter_id, score: row.score, vec: e.vector}) AS items "
+            "UNWIND items AS a "
+            "UNWIND items AS b "
+            "WITH a, b "
+            "WHERE a.encounter_id <> b.encounter_id "
+            "  AND (a.score > b.score OR (a.score = b.score AND a.encounter_id < b.encounter_id)) "
+            "  AND vector.similarity.cosine(a.vec, b.vec) >= $threshold "
+            "RETURN collect(DISTINCT b.encounter_id) AS duplicate_ids",
+            rows=rows,
+            threshold=float(threshold),
+        )
+        duplicate_ids = set()
+        if dedupe_rows:
+            duplicate_ids = {
+                str(i)
+                for i in (dedupe_rows[0].get("duplicate_ids") or [])
+                if str(i or "").strip()
+            }
+        if not duplicate_ids:
+            return ranked, 0, "neo4j_vector"
+        kept = [
+            item for item in ranked if str(item.get("encounter_id") or "") not in duplicate_ids
+        ]
+        return kept, len(duplicate_ids), "neo4j_vector"
+    except Exception:
+        logger.warning("Neo4j vector dedupe unavailable; falling back to text dedupe", exc_info=True)
+        kept, filtered = _suppress_near_duplicates(ranked, threshold)
+        return kept, filtered, "text_fallback"
+
+
+def _apply_relevance_filters(
+    ranked: list[dict[str, Any]],
+    *,
+    min_combined_score: float | None,
+    min_vector_score: float | None,
+    require_keyword_anchor: bool,
+) -> tuple[list[dict[str, Any]], int]:
+    kept: list[dict[str, Any]] = []
+    filtered = 0
+    for item in ranked:
+        score = float(item.get("score") or 0.0)
+        vec_score_raw = item.get("vector_score")
+        vec_score = float(vec_score_raw) if vec_score_raw is not None else None
+        match_type = str(item.get("match_type") or "")
+        term_hits = int((item.get("rank_features") or {}).get("term_hits") or 0)
+        if min_combined_score is not None and score < min_combined_score:
+            filtered += 1
+            continue
+        if (
+            min_vector_score is not None
+            and vec_score is not None
+            and vec_score < min_vector_score
+        ):
+            filtered += 1
+            continue
+        if require_keyword_anchor and match_type == "semantic" and term_hits <= 0:
+            filtered += 1
+            continue
+        kept.append(item)
+    return kept, filtered
+
+
 def _rank_with_features(
     merged: dict[str, dict[str, Any]], *, expanded_terms: list[str]
 ) -> list[dict[str, Any]]:
@@ -269,11 +352,20 @@ async def get_mission_control_encounters(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     max_results: int = Query(1200, ge=100, le=2000),
+    min_combined_score: Optional[float] = Query(0.2, ge=0.0, le=1.0),
+    min_vector_score: Optional[float] = Query(None, ge=0.0, le=1.0),
+    require_keyword_anchor: bool = Query(True),
     near_duplicate_threshold: Optional[float] = Query(None, ge=0.8, le=0.99),
     sort_by: str = Query("encounter_date"),
     sort_dir: str = Query("DESC"),
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
+    if not isinstance(min_combined_score, (int, float)):
+        min_combined_score = 0.2
+    if not isinstance(min_vector_score, (int, float)):
+        min_vector_score = None
+    if not isinstance(require_keyword_anchor, bool):
+        require_keyword_anchor = True
     pid = _normalise_patient_id(patient_id)
     base, params = _encounter_scope_prefix(org_id, scope)
     base, params = _append_filters(
@@ -472,8 +564,14 @@ async def get_mission_control_encounters(
                 }
 
         ranked = _rank_with_features(merged, expanded_terms=query_ctx.expanded_terms)
-        ranked, dedupe_filtered_count = _suppress_near_duplicates(
-            ranked, near_duplicate_threshold
+        ranked, relevance_filtered_count = _apply_relevance_filters(
+            ranked,
+            min_combined_score=min_combined_score,
+            min_vector_score=min_vector_score,
+            require_keyword_anchor=require_keyword_anchor,
+        )
+        ranked, dedupe_filtered_count, dedupe_mode = _suppress_near_duplicates_with_neo4j(
+            client, ranked, near_duplicate_threshold
         )
         total = len(ranked)
         start = (page - 1) * page_size
@@ -492,6 +590,11 @@ async def get_mission_control_encounters(
             "reasoning": query_ctx.reasoning,
             "near_duplicate_threshold": near_duplicate_threshold,
             "near_duplicate_filtered_count": dedupe_filtered_count,
+            "near_duplicate_mode": dedupe_mode,
+            "min_combined_score": min_combined_score,
+            "min_vector_score": min_vector_score,
+            "require_keyword_anchor": require_keyword_anchor,
+            "relevance_filtered_count": relevance_filtered_count,
         }
         try:
             _write_query_audit(
@@ -561,6 +664,52 @@ async def get_mission_control_encounter_kpis(
         "coded_encounters": int(row.get("coded_encounters") or 0),
         "median_codes_per_encounter": float(row.get("median_codes_per_encounter") or 0),
     }
+
+
+class UniquenessRequest(BaseModel):
+    encounter_ids: list[str]
+
+
+def _compute_uniqueness(
+    client: PatientGraphClient, ids: list[str]
+) -> list[dict[str, Any]]:
+    """Return per-encounter uniqueness score (1 - max cosine similarity to any other)."""
+    if len(ids) < 2:
+        return [{"encounter_id": ids[0], "uniqueness_score": 1.0}] if ids else []
+    rows = client.run(
+        "MATCH (e:Encounter) WHERE e.id IN $ids AND e.vector IS NOT NULL "
+        "WITH collect({id: e.id, vec: e.vector}) AS items "
+        "UNWIND items AS a UNWIND items AS b "
+        "WITH a, b WHERE a.id < b.id "
+        "WITH a.id AS aid, b.id AS bid, "
+        "     vector.similarity.cosine(a.vec, b.vec) AS sim "
+        "WITH [aid, bid] AS pair, sim UNWIND pair AS eid "
+        "WITH eid, max(sim) AS max_sim "
+        "RETURN eid AS encounter_id, round(1.0 - max_sim, 4) AS uniqueness_score",
+        ids=ids,
+    )
+    seen = {r["encounter_id"]: r["uniqueness_score"] for r in rows}
+    # encounters without vectors default to 1.0 (treated as unique)
+    return [
+        {"encounter_id": i, "uniqueness_score": float(seen.get(i, 1.0))}
+        for i in ids
+    ]
+
+
+@router.post("/mission-control/encounters/uniqueness")
+async def post_encounter_uniqueness(
+    body: UniquenessRequest = Body(...),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> list[dict[str, Any]]:
+    """Compute per-encounter uniqueness scores for the 3D score map."""
+    ids = [str(i).strip() for i in body.encounter_ids if str(i).strip()][:500]
+    if not ids:
+        return []
+    client = PatientGraphClient()
+    try:
+        return _compute_uniqueness(client, ids)
+    finally:
+        client.close()
 
 
 @router.get("/mission-control/encounters/quality-metrics")

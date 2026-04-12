@@ -869,6 +869,7 @@ def get_encounter_coded_links(
                     row["context"] = {}
             elif ctx is None:
                 row["context"] = {}
+            row["assertion"] = (row.get("context") or {}).get("assertion", "present")
             if isinstance(mod, str):
                 try:
                     row["modifiers"] = json.loads(mod) if mod else {}

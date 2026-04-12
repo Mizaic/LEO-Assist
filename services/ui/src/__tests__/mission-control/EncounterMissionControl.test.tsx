@@ -23,7 +23,6 @@ describe("EncounterMissionControl", () => {
   });
 
   beforeEach(() => {
-    jest.spyOn(window, "confirm").mockReturnValue(true);
     fetchEncounterList.mockResolvedValue({
       total: 1,
       page: 1,
@@ -66,7 +65,7 @@ describe("EncounterMissionControl", () => {
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await waitFor(() => expect(fetchEncounterList).toHaveBeenCalled());
     expect(await screen.findByText("p-1")).toBeInTheDocument();
-    expect(screen.getByText("hybrid")).toBeInTheDocument();
+    expect(screen.getByText("Hybrid")).toBeInTheDocument();
   });
 
   test("shortlist then batch submit uses selected encounters", async () => {
@@ -74,10 +73,9 @@ describe("EncounterMissionControl", () => {
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await screen.findByText("p-1");
 
-    const switches = screen.getAllByRole("switch");
-    fireEvent.click(switches[switches.length - 1]);
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
     fireEvent.click(
-      screen.getByRole("button", { name: /Reset \+ recode selected/ })
+      screen.getByRole("button", { name: /Recode selected/ })
     );
 
     await waitFor(() => expect(batchResetAndRecodeEncounters).toHaveBeenCalled());
@@ -146,7 +144,8 @@ describe("EncounterMissionControl", () => {
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await screen.findByText("p-1");
 
-    fireEvent.click(screen.getByRole("button", { name: /Reset \+ recode all results/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Recode all results/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Recode all 2/ }));
 
     await waitFor(() => expect(batchResetAndRecodeEncounters).toHaveBeenCalled());
     expect(batchResetAndRecodeEncounters).toHaveBeenCalledWith(
