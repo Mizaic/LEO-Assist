@@ -1683,15 +1683,17 @@ export default function GoldDatasetPanel() {
             </Tooltip>
           )}
           <Tooltip title="Export all verified gold labels as MedSpaCy training data">
-            <Button
-              variant="outlined"
-              startIcon={exporting ? <CircularProgress size={14} /> : <DownloadIcon />}
-              disabled={exporting || !goldStats || goldStats.total === 0}
-              onClick={handleExport}
-              size="small"
-            >
-              Export training data
-            </Button>
+            <span>
+              <Button
+                variant="outlined"
+                startIcon={exporting ? <CircularProgress size={14} /> : <DownloadIcon />}
+                disabled={exporting || !goldStats || goldStats.total === 0}
+                onClick={handleExport}
+                size="small"
+              >
+                Export training data
+              </Button>
+            </span>
           </Tooltip>
         </Stack>
       </Stack>

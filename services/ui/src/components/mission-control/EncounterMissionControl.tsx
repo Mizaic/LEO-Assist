@@ -31,8 +31,24 @@ import {
   type EncounterListItem,
   type EncounterListResponse,
 } from "@/lib/missionControlApi";
+import { ASSERTION_CHIP } from "@/lib/types";
 
 type JobState = "queued" | "running" | "completed" | "failed";
+
+type ChipColor = "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
+
+function chipPropsForAssertion(assertionRaw: string): {
+  color: ChipColor;
+  variant: "filled" | "outlined";
+} {
+  const key = assertionRaw.trim().toLowerCase();
+  const meta = ASSERTION_CHIP[key];
+  if (!meta) {
+    return { color: "default", variant: "outlined" };
+  }
+  const strong = meta.color === "error" || meta.color === "warning";
+  return { color: meta.color, variant: strong ? "filled" : "outlined" };
+}
 
 export default function EncounterMissionControl() {
   const currentYear = new Date().getFullYear();
@@ -413,8 +429,13 @@ export default function EncounterMissionControl() {
                   </Typography>
                   {!!row.match_rationale?.length && (
                     <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: "wrap" }}>
-                      {row.match_rationale.slice(0, 4).map((term) => (
-                        <Chip key={`${row.encounter_id}-${term}`} size="small" label={term} variant="outlined" />
+                      {row.match_rationale.slice(0, 4).map((term, idx) => (
+                        <Chip
+                          key={`${row.encounter_id}-mr-${idx}-${term}`}
+                          size="small"
+                          label={term}
+                          variant="outlined"
+                        />
                       ))}
                     </Stack>
                   )}
@@ -462,16 +483,18 @@ export default function EncounterMissionControl() {
               )}
               {!!previewCodedLinks.length && (
                 <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
-                  {previewCodedLinks.map((item) => {
+                  {previewCodedLinks.map((item, index) => {
                     const term = (item.term || item.concept_id || "unknown").trim();
                     const assertion = (item.assertion || "present").trim();
                     const label = `${term} (${assertion})`;
+                    const { color, variant } = chipPropsForAssertion(assertion);
                     return (
                       <Chip
-                        key={`${activePreview.encounter_id}-${item.concept_id}-${assertion}`}
+                        key={`${activePreview.encounter_id}-coded-${index}-${item.concept_id}`}
                         size="small"
                         label={label}
-                        variant="outlined"
+                        color={color}
+                        variant={variant}
                         title={`${term} | ${item.concept_id}`}
                       />
                     );
@@ -486,9 +509,9 @@ export default function EncounterMissionControl() {
               </Paper>
               {!!activePreview.match_rationale?.length && (
                 <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
-                  {activePreview.match_rationale.map((term) => (
+                  {activePreview.match_rationale.map((term, idx) => (
                     <Chip
-                      key={`preview-${activePreview.encounter_id}-${term}`}
+                      key={`preview-${activePreview.encounter_id}-mr-${idx}-${term}`}
                       size="small"
                       label={term}
                       variant="outlined"
