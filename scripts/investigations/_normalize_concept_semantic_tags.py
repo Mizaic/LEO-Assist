@@ -44,16 +44,12 @@ def main() -> None:
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
-            rows = list(
-                session.run(
-                    """
+            rows = list(session.run("""
                     MATCH (c:Concept)
                     WHERE c.semantic_tag IS NOT NULL
                       AND trim(c.semantic_tag) <> ''
                     RETURN c.id AS concept_id, c.semantic_tag AS semantic_tag
-                    """
-                )
-            )
+                    """))
 
             updates: list[dict[str, str]] = []
             for row in rows:
@@ -71,7 +67,9 @@ def main() -> None:
             print(f"Concept nodes checked: {len(rows)}")
             print(f"Tags needing update:  {len(updates)}")
             for sample in updates[:10]:
-                print(f"  {sample['concept_id']}: {sample['before']} -> {sample['after']}")
+                print(
+                    f"  {sample['concept_id']}: {sample['before']} -> {sample['after']}"
+                )
 
             if not args.apply:
                 print("\nDRY RUN only. Re-run with --apply to update.")

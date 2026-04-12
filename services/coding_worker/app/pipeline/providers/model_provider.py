@@ -25,7 +25,7 @@ class ModelExtractorProvider:
             "MODEL_INFERENCE_EXTRACT_URL",
             "http://localhost:8004/extract",
         )
-        self._enabled = os.getenv("CODING_MODEL_PROVIDER_ENABLED", "false").lower() in {
+        self._enabled = os.getenv("CODING_MODEL_PROVIDER_ENABLED", "true").lower() in {
             "true",
             "1",
             "yes",
@@ -82,14 +82,22 @@ class ModelExtractorProvider:
             model_version=self.model_version,
         )
 
+    @staticmethod
+    def _build_fallback_extractor():
+        from libs.pipeline_graph.subgraphs._extractor import build_extractor
+
+        return build_extractor()
+
     def extract_batch(
         self, encounter_text: str, sentences: list
     ) -> list[ExtractionItem]:
         if not self._enabled:
-            raise RuntimeError(
-                "model extractor backend is deprecated by default; "
-                "set CODING_MODEL_PROVIDER_ENABLED=true only for validated rollout"
+            logger.warning(
+                "Model extractor backend disabled; falling back to LLM extraction "
+                "for this run"
             )
+            fallback_extractor = self._build_fallback_extractor()
+            return fallback_extractor.extract_batch(encounter_text, sentences)
         payload = {
             "text": encounter_text,
             "sentences": [

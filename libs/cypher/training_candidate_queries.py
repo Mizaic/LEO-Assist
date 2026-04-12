@@ -108,3 +108,22 @@ RETURN
     gold_labels_deleted AS gold_labels_deleted,
     surface_form_tasks_deleted AS surface_form_tasks_deleted
 """
+
+MARK_TRAINING_CANDIDATE_DUPLICATES = """
+UNWIND $updates AS u
+MATCH (d:TrainingCandidate {candidate_id: u.duplicate_id})
+MATCH (c:TrainingCandidate {candidate_id: u.canonical_id})
+SET
+    d.dedupe_status = 'duplicate',
+    d.canonical_candidate_id = u.canonical_id,
+    d.dedupe_score = toFloat(u.score),
+    d.dedupe_method = u.method,
+    d.dedupe_run_id = $run_id,
+    d.dedupe_updated_at = datetime(),
+    d.updated_at = datetime(),
+    c.dedupe_status = coalesce(c.dedupe_status, 'canonical'),
+    c.dedupe_run_id = $run_id,
+    c.dedupe_updated_at = datetime(),
+    c.updated_at = datetime()
+RETURN count(d) AS duplicates_marked
+"""

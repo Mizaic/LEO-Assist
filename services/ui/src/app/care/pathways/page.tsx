@@ -1,2 +1,3 @@
-import OriginalPage from "@/app/pathways/page";
-export default OriginalPage;
+import EncounterPage from "@/app/care/encounters/page";
+
+export default EncounterPage;

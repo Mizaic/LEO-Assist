@@ -43,6 +43,9 @@ from services.analytics_api.app.routers.audit import (
 from services.analytics_api.app.routers.mission_control import (
     router as mission_control_router,
 )
+from services.analytics_api.app.routers.mission_control_encounters import (
+    router as mission_control_encounters_router,
+)
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -124,6 +127,9 @@ app.include_router(benchmark_router, prefix="/analytics", tags=["benchmarks"])
 app.include_router(audit_router, prefix="/analytics", tags=["audit"])
 app.include_router(
     mission_control_router, prefix="/analytics", tags=["mission-control"]
+)
+app.include_router(
+    mission_control_encounters_router, prefix="/analytics", tags=["mission-control"]
 )
 
 

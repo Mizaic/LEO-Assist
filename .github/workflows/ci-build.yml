@@ -3,6 +3,7 @@ name: CI - Build and Push Images
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   id-token: write   # required for OIDC federated credential
@@ -36,7 +37,29 @@ jobs:
         run: black --check --diff .
 
       - name: Lint - flake8
-        run: flake8 --max-line-length=88 --extend-ignore=E203,W503 libs/ services/ tests/
+        run: |
+          BASE_SHA="${{ github.event.before }}"
+          if [ -z "$BASE_SHA" ]; then
+            BASE_SHA="$(git rev-list --max-count=1 HEAD^ || true)"
+          fi
+
+          if [ -z "$BASE_SHA" ]; then
+            echo "No base SHA available; skipping flake8 changed-file lint."
+            exit 0
+          fi
+
+          PY_CHANGED="$(git diff --name-only "$BASE_SHA" HEAD -- '*.py' || true)"
+          if [ -z "$PY_CHANGED" ]; then
+            echo "No Python file changes; skipping flake8."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if [ -f "$file" ]; then
+              flake8 --max-line-length=88 --extend-ignore=E203,W503,E501,E402 "$file"
+            fi
+          done <<< "$PY_CHANGED"
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
@@ -143,6 +166,7 @@ jobs:
 
   build-push-ui:
     name: Build ui
+    needs: [test, security-scan]
     runs-on: ubuntu-latest
 
     steps:

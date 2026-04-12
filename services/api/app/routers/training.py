@@ -26,6 +26,8 @@ import subprocess
 import sys
 import threading
 import uuid
+from collections import defaultdict
+from difflib import SequenceMatcher
 from typing import Any, Optional
 
 import httpx
@@ -39,7 +41,6 @@ from libs.cypher.training_label_queries import (
     COUNT_EXPORTABLE_LABELS,
     COUNT_TRAINING_LABELS_PAGE,
     EXCLUDE_TRAINING_LABEL,
-    GET_ALL_INCLUDED_LABELS_FOR_EXPORT,
     GET_TRAINING_LABEL_BY_ID,
     GET_TRAINING_LABEL_STATS,
     GET_TRAINING_LABELS_PAGE,
@@ -81,6 +82,7 @@ from libs.cypher.training_candidate_queries import (
     GET_TRAINING_CANDIDATE_BY_ID,
     GET_TRAINING_CANDIDATE_STATS,
     GET_TRAINING_CANDIDATES_PAGE,
+    MARK_TRAINING_CANDIDATE_DUPLICATES,
     UPSERT_TRAINING_CANDIDATE,
     UPDATE_TRAINING_CANDIDATE_STATUS,
 )
@@ -327,6 +329,14 @@ class SyntheticQueueRequest(BaseModel):
     semantic_tags: list[str] | None = None
     valueset_ids: list[str] | None = None
     use_derived_forms: bool = False
+
+
+class CandidateDedupeRequest(BaseModel):
+    status: str | None = "completed"
+    source: str | None = None
+    search: str | None = None
+    max_candidates: int = Field(default=1200, ge=50, le=3000)
+    similarity_threshold: float = Field(default=0.9, ge=0.7, le=0.99)
 
 
 # ------------------------------------------------------------------
@@ -2877,7 +2887,10 @@ _INTERPRETATION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b(?:above|high|raised|elevated)\b", re.IGNORECASE), "above"),
     (re.compile(r"\b(?:below|low|reduced)\b", re.IGNORECASE), "below"),
     (
-        re.compile(r"\b(?:outside\s+reference\s+range|out\s+of\s+reference\s+range)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:outside\s+reference\s+range|out\s+of\s+reference\s+range)\b",
+            re.IGNORECASE,
+        ),
         "outside",
     ),
 ]
@@ -2947,10 +2960,7 @@ def _extract_concept_ids_from_valuesets(
     if not ids:
         return []
     with client.session() as session:
-        rows = [
-            dict(r)
-            for r in session.run(GET_VALUESET_RAW_JSON, valueset_ids=ids)
-        ]
+        rows = [dict(r) for r in session.run(GET_VALUESET_RAW_JSON, valueset_ids=ids)]
     seen: set[str] = set()
     concept_ids: list[str] = []
     for row in rows:
@@ -2979,10 +2989,7 @@ def _load_valueset_prompt_context(
     if not ids:
         return [], []
     with client.session() as session:
-        rows = [
-            dict(r)
-            for r in session.run(GET_VALUESET_RAW_JSON, valueset_ids=ids)
-        ]
+        rows = [dict(r) for r in session.run(GET_VALUESET_RAW_JSON, valueset_ids=ids)]
     titles_by_id: dict[str, str] = {}
     terms: set[str] = set()
     for row in rows:
@@ -3217,7 +3224,9 @@ def _extract_context_snippet(encounter_text: str, max_chars: int = 500) -> str |
     return snippet[:max_chars].strip()
 
 
-def _pick_diverse_context_examples(rows: list[dict[str, Any]], cap: int = 10) -> list[dict[str, Any]]:
+def _pick_diverse_context_examples(
+    rows: list[dict[str, Any]], cap: int = 10
+) -> list[dict[str, Any]]:
     selected: list[dict[str, Any]] = []
     seen_patients: set[str] = set()
     seen_months: set[str] = set()
@@ -3376,7 +3385,9 @@ def get_synthetic_gold_stats(
         stats_payload = dict(stats_row) if stats_row else {}
         return {
             "total_surface_forms": int(stats_payload.get("total_surface_forms") or 0),
-            "covered_surface_forms": int(stats_payload.get("covered_surface_forms") or 0),
+            "covered_surface_forms": int(
+                stats_payload.get("covered_surface_forms") or 0
+            ),
             "synthetic_gold_labels": int((labels_row or {}).get("total") or 0),
             "tag_breakdown": tag_rows,
             "tag_options": option_rows,
@@ -3396,13 +3407,11 @@ def get_synthetic_gold_valuesets(
     try:
         with client.session() as session:
             vs_rows = [dict(r) for r in session.run(GET_ALL_VALUESETS_RAW_JSON)]
-            sf_count_rows = session.run(
-                """
+            sf_count_rows = session.run("""
                 MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept)
                 WHERE coalesce(sf.status, 'active') = 'active'
                 RETURN toString(c.id) AS concept_id, count(sf) AS sf_count
-                """
-            )
+                """)
             sf_map: dict[str, int] = {
                 str(r["concept_id"]): int(r["sf_count"]) for r in sf_count_rows
             }
@@ -3526,8 +3535,8 @@ def generate_synthetic_candidates(
             valueset_concept_ids = _extract_concept_ids_from_valuesets(
                 client, body.valueset_ids
             )
-            valueset_scope_titles, domain_preferred_terms = _load_valueset_prompt_context(
-                client, body.valueset_ids
+            valueset_scope_titles, domain_preferred_terms = (
+                _load_valueset_prompt_context(client, body.valueset_ids)
             )
 
         with client.session() as session:
@@ -3583,7 +3592,9 @@ def generate_synthetic_candidates(
                     continue
                 preferred_term = str(row.get("preferred_term") or "")
                 concept_id = str(row.get("concept_id") or "")
-                semantic_tag = _normalise_semantic_tag(str(row.get("semantic_tag") or ""))
+                semantic_tag = _normalise_semantic_tag(
+                    str(row.get("semantic_tag") or "")
+                )
                 gold_output_examples = gold_examples_cache.get(semantic_tag)
                 if gold_output_examples is None:
                     semantic_tag_token = f'"semantic_tag": "{semantic_tag}"'.lower()
@@ -3595,7 +3606,9 @@ def generate_synthetic_candidates(
                             limit=120,
                         )
                     ]
-                    gold_output_examples = _extract_gold_output_examples(gold_rows, cap=5)
+                    gold_output_examples = _extract_gold_output_examples(
+                        gold_rows, cap=5
+                    )
                     gold_examples_cache[semantic_tag] = gold_output_examples
 
                 similarity_context = _pick_similarity_context_examples(
@@ -3658,7 +3671,9 @@ def generate_synthetic_candidates(
                         if not sentence:
                             counts["skipped_empty"] += 1
                             continue
-                        assertion = str(item.get("assertion") or "present").strip().lower()
+                        assertion = (
+                            str(item.get("assertion") or "present").strip().lower()
+                        )
                         if assertion not in _VALID_ASSERTIONS:
                             assertion = "present"
                         if _is_invalid_observable_assertion(semantic_tag, assertion):
@@ -3666,11 +3681,17 @@ def generate_synthetic_candidates(
                             continue
 
                         deid_sentence = deidentify_text(sentence, ner=True)
-                        if assertion == "absent" and not _has_absent_evidence(deid_sentence):
+                        if assertion == "absent" and not _has_absent_evidence(
+                            deid_sentence
+                        ):
                             assertion = "present"
-                        if assertion == "historical" and not _has_historical_evidence(deid_sentence):
+                        if assertion == "historical" and not _has_historical_evidence(
+                            deid_sentence
+                        ):
                             assertion = "present"
-                        if _is_mismatched_semantic_sentence(semantic_tag, deid_sentence):
+                        if _is_mismatched_semantic_sentence(
+                            semantic_tag, deid_sentence
+                        ):
                             counts["skipped_semantic_mismatch"] += 1
                             continue
                         if _is_synthetic_non_evidence_sentence(deid_sentence):
@@ -3679,12 +3700,9 @@ def generate_synthetic_candidates(
                         if _is_speculative_or_educational(deid_sentence):
                             counts["skipped_speculative"] += 1
                             continue
-                        if (
-                            semantic_tag == "observable_entity"
-                            and (
-                                not _has_observation_value(deid_sentence)
-                                or is_referral_procedure_phrase(deid_sentence)
-                            )
+                        if semantic_tag == "observable_entity" and (
+                            not _has_observation_value(deid_sentence)
+                            or is_referral_procedure_phrase(deid_sentence)
                         ):
                             counts["skipped_observable_no_value"] += 1
                             continue
@@ -3699,7 +3717,8 @@ def generate_synthetic_candidates(
                         if (
                             clean_preferred_term
                             and clean_preferred_term.lower() != form.lower()
-                            and _count_exact_phrase(deid_sentence, clean_preferred_term) > 0
+                            and _count_exact_phrase(deid_sentence, clean_preferred_term)
+                            > 0
                             and _count_exact_phrase(deid_sentence, form) > 0
                         ):
                             counts["skipped_both_forms"] += 1
@@ -3778,7 +3797,10 @@ def generate_synthetic_candidates(
                                 related = related_finding_cache.get(concept_id)
                                 if related is None:
                                     related_resp = terminology.get_related(concept_id)
-                                    related = list(related_resp.get("interpreted_by_findings") or [])
+                                    related = list(
+                                        related_resp.get("interpreted_by_findings")
+                                        or []
+                                    )
                                     related_finding_cache[concept_id] = related
                                 finding = _pick_related_finding(related, qualifier)
                                 if finding:
@@ -3790,11 +3812,15 @@ def generate_synthetic_candidates(
                                             "start": i_start,
                                             "end": i_end,
                                             "assertion": assertion,
-                                            "snomed_concept_id": str(finding.get("id") or ""),
+                                            "snomed_concept_id": str(
+                                                finding.get("id") or ""
+                                            ),
                                         }
                                     )
-                        elif semantic_tag in {"finding", "disorder"} and interpretation and _has_observation_value(
-                            deid_sentence
+                        elif (
+                            semantic_tag in {"finding", "disorder"}
+                            and interpretation
+                            and _has_observation_value(deid_sentence)
                         ):
                             # If LLM anchored on finding/disorder for a measurable lab
                             # statement, add an observable companion entity too.
@@ -3805,7 +3831,10 @@ def generate_synthetic_candidates(
                                 )
                             except Exception:
                                 resolved_obs = None
-                            if resolved_obs and str(resolved_obs.concept_id or "").strip():
+                            if (
+                                resolved_obs
+                                and str(resolved_obs.concept_id or "").strip()
+                            ):
                                 entities_payload.append(
                                     {
                                         "text": mention_text,
@@ -3814,7 +3843,9 @@ def generate_synthetic_candidates(
                                         "start": start,
                                         "end": end,
                                         "assertion": "present",
-                                        "snomed_concept_id": str(resolved_obs.concept_id),
+                                        "snomed_concept_id": str(
+                                            resolved_obs.concept_id
+                                        ),
                                     }
                                 )
 
@@ -3837,7 +3868,10 @@ def generate_synthetic_candidates(
                             {
                                 "text": deid_sentence,
                                 "entities": [
-                                    {"entity_id": str(i), "text": str(e.get("text") or "")}
+                                    {
+                                        "entity_id": str(i),
+                                        "text": str(e.get("text") or ""),
+                                    }
                                     for i, e in enumerate(entities_payload)
                                 ],
                                 "metadata": {},
@@ -4018,6 +4052,275 @@ async def queue_synthetic_candidates(
         "queued": True,
         "estimated_forms": len(rows),
         "queued_batches": len(batches),
+    }
+
+
+_DEDUPE_STOP_WORDS = {
+    "and",
+    "the",
+    "with",
+    "from",
+    "that",
+    "this",
+    "have",
+    "has",
+    "for",
+    "into",
+    "was",
+    "were",
+    "are",
+    "had",
+    "not",
+    "you",
+    "your",
+    "their",
+    "they",
+    "she",
+    "him",
+    "her",
+    "his",
+}
+
+
+def _normalise_candidate_text(text: str) -> str:
+    cleaned = re.sub(r"[^a-z0-9\s]", " ", str(text).lower())
+    return " ".join(cleaned.split())
+
+
+def _tokenise_candidate_text(text: str) -> set[str]:
+    tokens = _normalise_candidate_text(text).split()
+    return {t for t in tokens if len(t) > 2 and t not in _DEDUPE_STOP_WORDS}
+
+
+def _candidate_similarity(left: str, right: str) -> float:
+    left_norm = _normalise_candidate_text(left)
+    right_norm = _normalise_candidate_text(right)
+    if not left_norm or not right_norm:
+        return 0.0
+    if left_norm == right_norm:
+        return 1.0
+
+    left_tokens = _tokenise_candidate_text(left_norm)
+    right_tokens = _tokenise_candidate_text(right_norm)
+    intersection = len(left_tokens & right_tokens)
+    union = len(left_tokens | right_tokens)
+    jaccard = (intersection / union) if union else 0.0
+    sequence = SequenceMatcher(None, left_norm, right_norm).ratio()
+    containment = min(len(left_tokens), len(right_tokens)) / max(
+        1, max(len(left_tokens), len(right_tokens))
+    )
+    score = (0.55 * jaccard) + (0.35 * sequence) + (0.10 * containment)
+    return round(float(score), 6)
+
+
+def _candidate_payload(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "candidate_id": row.get("candidate_id"),
+        "status": row.get("status"),
+        "source": row.get("source"),
+        "updated_at": row.get("updated_at"),
+        "text_preview": str(row.get("text") or "")[:220],
+    }
+
+
+def _find_root(parent: dict[int, int], node: int) -> int:
+    while parent[node] != node:
+        parent[node] = parent[parent[node]]
+        node = parent[node]
+    return node
+
+
+def _union_roots(parent: dict[int, int], left: int, right: int) -> None:
+    root_left = _find_root(parent, left)
+    root_right = _find_root(parent, right)
+    if root_left != root_right:
+        parent[root_right] = root_left
+
+
+def _build_token_blocks(rows: list[dict[str, Any]]) -> dict[str, list[int]]:
+    token_blocks: dict[str, list[int]] = defaultdict(list)
+    for idx, row in enumerate(rows):
+        tokens = sorted(_tokenise_candidate_text(str(row.get("text") or "")))
+        block_key = "|".join(tokens[:6]) if tokens else f"__empty__{idx}"
+        token_blocks[block_key].append(idx)
+    return token_blocks
+
+
+def _cluster_candidates(
+    rows: list[dict[str, Any]], threshold: float
+) -> tuple[dict[int, list[int]], dict[tuple[int, int], float]]:
+    parent: dict[int, int] = {i: i for i in range(len(rows))}
+    edge_scores: dict[tuple[int, int], float] = {}
+    for indexes in _build_token_blocks(rows).values():
+        if len(indexes) < 2:
+            continue
+        for i in range(len(indexes)):
+            for j in range(i + 1, len(indexes)):
+                left_idx = indexes[i]
+                right_idx = indexes[j]
+                score = _candidate_similarity(
+                    str(rows[left_idx].get("text") or ""),
+                    str(rows[right_idx].get("text") or ""),
+                )
+                if score < threshold:
+                    continue
+                pair = tuple(sorted((left_idx, right_idx)))
+                edge_scores[pair] = max(score, edge_scores.get(pair, 0.0))
+                _union_roots(parent, left_idx, right_idx)
+    grouped: dict[int, list[int]] = defaultdict(list)
+    for idx in range(len(rows)):
+        grouped[_find_root(parent, idx)].append(idx)
+    return grouped, edge_scores
+
+
+def _build_candidate_similarity_groups(
+    rows: list[dict[str, Any]], threshold: float
+) -> list[dict[str, Any]]:
+    if len(rows) < 2:
+        return []
+    grouped, edge_scores = _cluster_candidates(rows, threshold)
+    groups: list[dict[str, Any]] = []
+    for members in grouped.values():
+        if len(members) < 2:
+            continue
+        sorted_members = sorted(
+            members,
+            key=lambda i: (
+                -len(str(rows[i].get("text") or "")),
+                str(rows[i].get("updated_at") or ""),
+                str(rows[i].get("candidate_id") or ""),
+            ),
+        )
+        canonical_idx = sorted_members[0]
+        duplicates: list[dict[str, Any]] = []
+        for member_idx in sorted_members[1:]:
+            pair = tuple(sorted((canonical_idx, member_idx)))
+            similarity = edge_scores.get(
+                pair,
+                _candidate_similarity(
+                    str(rows[canonical_idx].get("text") or ""),
+                    str(rows[member_idx].get("text") or ""),
+                ),
+            )
+            payload = _candidate_payload(rows[member_idx])
+            payload["similarity"] = round(float(similarity), 6)
+            duplicates.append(payload)
+        groups.append(
+            {"canonical": _candidate_payload(rows[canonical_idx]), "duplicates": duplicates}
+        )
+    groups.sort(key=lambda g: len(g.get("duplicates", [])), reverse=True)
+    return groups
+
+
+def _fetch_dedupe_candidates(
+    *,
+    status: str | None,
+    source: str | None,
+    search: str | None,
+    max_candidates: int,
+) -> list[dict[str, Any]]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                GET_TRAINING_CANDIDATES_PAGE,
+                skip=0,
+                limit=max_candidates,
+                status=status,
+                exclude_completed=False,
+                source=source,
+                search=search,
+            )
+            return [dict(r) for r in rows]
+    finally:
+        client.close()
+
+
+@router.post("/candidates/dedupe/preview")
+def preview_training_candidate_dedupe(
+    body: CandidateDedupeRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    rows = _fetch_dedupe_candidates(
+        status=body.status,
+        source=body.source,
+        search=body.search,
+        max_candidates=body.max_candidates,
+    )
+    groups = _build_candidate_similarity_groups(rows, body.similarity_threshold)
+    duplicate_count = sum(len(g.get("duplicates", [])) for g in groups)
+    return {
+        "candidate_pool_size": len(rows),
+        "group_count": len(groups),
+        "duplicate_count": duplicate_count,
+        "similarity_threshold": body.similarity_threshold,
+        "groups": groups,
+    }
+
+
+@router.post("/candidates/dedupe/apply")
+def apply_training_candidate_dedupe(
+    body: CandidateDedupeRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    rows = _fetch_dedupe_candidates(
+        status=body.status,
+        source=body.source,
+        search=body.search,
+        max_candidates=body.max_candidates,
+    )
+    groups = _build_candidate_similarity_groups(rows, body.similarity_threshold)
+    updates: list[dict[str, Any]] = []
+    for group in groups:
+        canonical_id = str(group["canonical"]["candidate_id"])
+        for duplicate in group.get("duplicates", []):
+            duplicate_id = str(duplicate.get("candidate_id") or "")
+            if not duplicate_id or duplicate_id == canonical_id:
+                continue
+            updates.append(
+                {
+                    "canonical_id": canonical_id,
+                    "duplicate_id": duplicate_id,
+                    "score": float(duplicate.get("similarity") or 0.0),
+                    "method": "token_jaccard+sequence",
+                }
+            )
+
+    if not updates:
+        return {
+            "candidate_pool_size": len(rows),
+            "duplicates_marked": 0,
+            "group_count": 0,
+            "run_id": None,
+            "message": "No duplicates met the similarity threshold.",
+        }
+
+    run_id = f"dedupe-{uuid.uuid4().hex}"
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            result_row = session.run(
+                MARK_TRAINING_CANDIDATE_DUPLICATES,
+                updates=updates,
+                run_id=run_id,
+            ).single()
+        duplicates_marked = int(result_row["duplicates_marked"] if result_row else 0)
+    finally:
+        client.close()
+
+    logger.info(
+        "TrainingCandidate dedupe apply run=%s groups=%s duplicates=%s actor=%s",
+        run_id,
+        len(groups),
+        duplicates_marked,
+        getattr(scope, "email", "unknown"),
+    )
+    return {
+        "candidate_pool_size": len(rows),
+        "duplicates_marked": duplicates_marked,
+        "group_count": len(groups),
+        "run_id": run_id,
+        "similarity_threshold": body.similarity_threshold,
     }
 
 
@@ -4562,7 +4865,7 @@ def get_corpus_stats(
     5,000 gold label minimum and flag imbalance or safety-critical gaps.
     """
     import json as _json
-    from collections import Counter, defaultdict
+    from collections import Counter
 
     client = PatientGraphClient()
     try:

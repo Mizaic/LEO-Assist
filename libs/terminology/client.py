@@ -105,7 +105,10 @@ _ALWAYS_IGNORE_PATTERNS: tuple[re.Pattern[str], ...] = (
     ),
     re.compile(r"\bnot\s+on\s+thyroid\s+tx\b", re.IGNORECASE),
     re.compile(r"\bno\s+abnormality\s+detected\b", re.IGNORECASE),
-    re.compile(r"\balt\s+level\s+may\s+be\s+raised\s+given\s+the\s+clinical\s+picture\b", re.IGNORECASE),
+    re.compile(
+        r"\balt\s+level\s+may\s+be\s+raised\s+given\s+the\s+clinical\s+picture\b",
+        re.IGNORECASE,
+    ),
     re.compile(
         r"\bif\s+symptoms\s+worsen\b.*\bamy\b.*\bmay\s+rise\s+above\b",
         re.IGNORECASE,
@@ -334,14 +337,17 @@ def _parse_dynamic_ignore_patterns(
     return tuple(compiled)
 
 
-def _load_dynamic_ignore_patterns(force_refresh: bool = False) -> tuple[re.Pattern[str], ...]:
+def _load_dynamic_ignore_patterns(
+    force_refresh: bool = False,
+) -> tuple[re.Pattern[str], ...]:
     global _ignore_pattern_cache_loaded_at, _ignore_pattern_cache_value
 
     now = time.monotonic()
     with _ignore_pattern_cache_lock:
         if (
             not force_refresh
-            and (now - _ignore_pattern_cache_loaded_at) < _SERVICE_CONFIG_CACHE_TTL_SECONDS
+            and (now - _ignore_pattern_cache_loaded_at)
+            < _SERVICE_CONFIG_CACHE_TTL_SECONDS
         ):
             return tuple(_ignore_pattern_cache_value)
 
@@ -532,9 +538,9 @@ class TerminologyClient:
         if expected_tags:
             norm_tags = {}
             for key, value in expected_tags.items():
-                if _normalise_tag(str(value or "")) == "observable_entity" and not _has_observation_value(
-                    key
-                ):
+                if _normalise_tag(
+                    str(value or "")
+                ) == "observable_entity" and not _has_observation_value(key):
                     continue
                 norm_tags[_normalise_for_resolve(key)] = value
 
@@ -769,9 +775,9 @@ class AsyncTerminologyClient:
         if expected_tags:
             norm_tags = {}
             for key, value in expected_tags.items():
-                if _normalise_tag(str(value or "")) == "observable_entity" and not _has_observation_value(
-                    key
-                ):
+                if _normalise_tag(
+                    str(value or "")
+                ) == "observable_entity" and not _has_observation_value(key):
                     continue
                 norm_tags[_normalise_for_resolve(key)] = value
 

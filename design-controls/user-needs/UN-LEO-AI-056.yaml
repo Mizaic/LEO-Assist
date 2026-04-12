@@ -29,6 +29,7 @@
   design_inputs:
     - "DI-LEO-AI-089"
     - "DI-LEO-AI-095"
+    - "DI-LEO-AI-099"
   metadata:
     identified_by: "Engineering team"
     identified_date: "2026-04-07"

@@ -73,6 +73,8 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-RS-003 | Remove Patient->semantic | 03-detail 5.3 | RESET_PATIENT_DIRECT_SEMANTIC query | test_reset_service.py | ST-RS-001 |
 | FR-RS-004 | Reset review queue | 03-detail 5.7 | reset_review_queue_service.py | test_reset_review_queue_service.py (2 tests) | ST-RS-002 |
 | FR-RS-005 | Bulk reset-and-reprocess with preview and explicit destructive confirmations | DI-LEO-AI-095, DO-LEO-AI-093 | services/api/app/routers/pipeline.py, services/ui/src/app/admin/operations/run/page.tsx | services/api/tests/test_pipeline_router_runtime.py | VT-LEO-AI-095 |
+| FR-RS-006 | Encounter-centric batch reset-and-recode with trigger_analysis default false and live run IDs | DI-LEO-AI-099, DO-LEO-AI-097 | services/api/app/routers/patients.py, services/ui/src/components/mission-control/EncounterMissionControl.tsx | services/api/tests/test_patients_batch_recode.py, services/ui/src/__tests__/mission-control/EncounterMissionControl.test.tsx | VT-LEO-AI-099 |
+| FR-RS-007 | Admin gold-dataset manual duplicate-candidate reduction with preview and similarity-threshold apply | DI-LEO-AI-055, DO-LEO-AI-055 | services/api/app/routers/training.py, libs/cypher/training_candidate_queries.py, services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx | services/api/tests/test_training_candidate_delete.py | VT-LEO-AI-096 |
 
 ### 2.6 MedSpaCy
 
@@ -123,6 +125,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-CW-007 | NER-first extraction route with deterministic non-evidence pre-filter and model-inference provider integration | DI-LEO-AI-096, DO-LEO-AI-094 | libs/nlp/sentence_splitter.py, libs/pipeline_graph/subgraphs/extraction.py, services/coding_worker/app/pipeline/providers/model_provider.py | tests/test_sentence_splitter.py, tests/test_model_provider.py, tests/test_extraction_subgraph_routing.py | VT-LEO-AI-096 |
 | FR-CW-008 | Pre-terminology extraction quality LLM check with constrained drop/correct/add operations, referral-procedure assertion guard, side-effect counselling suppression, provenance tagging, and gold-training write gating on extraction-check signal with sentence-level candidate entities_json persistence and unsafe terminology mapping blocklist | DI-LEO-AI-097, DO-LEO-AI-095 | libs/pipeline_graph/subgraphs/llm_check.py, libs/pipeline/post_processing.py, libs/ner/scope_guard.py, libs/nlp/sentence_splitter.py, libs/pipeline_graph/subgraphs/persist.py, libs/pipeline_graph/subgraphs/terminology.py, libs/cypher/training_candidate_queries.py, libs/prompts/extraction_check_v1.py, libs/pipeline_graph/registry.py, scripts/seed_prompt_configs.py | tests/test_llm_check_subgraph.py, tests/test_post_processing_pipeline.py, tests/test_scope_guard.py, tests/test_sentence_splitter.py, tests/test_persist_subgraph_gold.py, tests/test_training_candidate_queries.py, tests/test_terminology_subgraph.py, services/api/tests/test_training_candidate_delete.py | VT-LEO-AI-097 |
 | FR-CW-009 | Post-terminology coding quality LLM check with drop or force_review only, and dual persist target for training loop | DI-LEO-AI-098, DO-LEO-AI-096 | libs/pipeline_graph/subgraphs/llm_check.py, libs/prompts/coding_check_v1.py, scripts/seed_plan_definitions.py | tests/test_llm_check_subgraph.py, tests/test_seed_plan_definitions.py | VT-LEO-AI-098 |
+| FR-CW-010 | Service Bus consumer reconnect backoff and consumer health visibility for pipeline-worker | DI-LEO-AI-019, DO-LEO-AI-060 | libs/message_bus/azure_adapter.py, services/pipeline_worker/app/main.py | tests/test_servicebus_resilience.py, services/coding_worker/tests/test_job_handler_engine.py | VT-LEO-AI-094 |
 
 ### 2.11 Analysis Worker (New — from VRB + auditor_2)
 
@@ -604,6 +607,7 @@ Safety constraints enforced:
 |----------|----|------|-----|
 | DI-LEO-AI-091 | Mission Control backend API | R-LEO-AI-065 | VT-LEO-AI-091 |
 | DI-LEO-AI-092 | Mission Control frontend UI | R-LEO-AI-065 | VT-LEO-AI-092 |
+| DI-LEO-AI-099 | Encounter Mission Control batch recode workflow | R-LEO-AI-063; R-LEO-AI-065 | VT-LEO-AI-099 |
 
 ---
 
@@ -628,10 +632,10 @@ Safety constraints enforced:
 | Artefact | ID | Status | Description |
 |----------|----|--------|-------------|
 | User Need | UN-LEO-AI-027 | implemented | AI-augmented training data quality assurance with terminology verification |
-| Design Input | DI-LEO-AI-055 | draft | GDPR-isolated learning loop supports cascade delete of TrainingCandidate records |
-| Design Output | DO-LEO-AI-055 | draft | Candidate cascade delete query and API/UI integration for admin gold dataset |
+| Design Input | DI-LEO-AI-055 | draft | GDPR-isolated learning loop supports cascade delete and manual similarity-dedupe of TrainingCandidate records |
+| Design Output | DO-LEO-AI-055 | draft | Candidate cascade delete and dedupe preview/apply query and API/UI integration for admin gold dataset |
 | Risk | R-LEO-AI-039; R-LEO-AI-040; R-LEO-AI-041 | analyzed | Protect training data quality and prevent patient linkage or identity leakage |
-| Verification Test | VT-LEO-AI-096 | passed | DELETE /training/candidates returns deletion counts and 404 for unknown candidate |
+| Verification Test | VT-LEO-AI-096 | passed | Candidate delete and dedupe preview/apply endpoints return expected status and payloads |
 
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|

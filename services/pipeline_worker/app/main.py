@@ -78,6 +78,19 @@ _batch_trace_lock = threading.Lock()
 _BATCH_TRACE_TTL_SECONDS = max(300, int(os.getenv("BATCH_TRACE_TTL_SECONDS", "3600")))
 _BATCH_TRACE_MAX_RUNS = max(10, int(os.getenv("BATCH_TRACE_MAX_RUNS", "200")))
 _BATCH_TRACE_PASS_SAMPLE_RATE = float(os.getenv("BATCH_TRACE_PASS_SAMPLE_RATE", "0"))
+_consumer_state: dict[str, Any] = {
+    "queue": QUEUE_NAME,
+    "running": False,
+    "subscribed": False,
+    "started_at": None,
+    "last_heartbeat_at": None,
+    "last_message_at": None,
+    "last_error": None,
+}
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _cleanup_batch_traces(now: float | None = None) -> None:
@@ -231,6 +244,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     handler = ServiceBusEventHandler(engine)
 
     async def on_message(msg: Message) -> None:
+        _consumer_state["last_message_at"] = _utc_now_iso()
         try:
             await handler.handle_message(msg)
         except Exception:
@@ -274,13 +288,35 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 async def _run_consumer(bus, on_message) -> None:
-    await bus.subscribe(QUEUE_NAME, on_message)
-    logger.info("Pipeline Worker subscribed. Waiting for messages...")
+    _consumer_state["running"] = True
+    _consumer_state["started_at"] = _utc_now_iso()
+    _consumer_state["last_error"] = None
+    _consumer_state["subscribed"] = False
+    _consumer_state["last_heartbeat_at"] = _utc_now_iso()
     try:
+        await bus.subscribe(QUEUE_NAME, on_message)
+        _consumer_state["subscribed"] = True
+        logger.info("Pipeline Worker subscribed. Waiting for messages...")
         while True:
+            _consumer_state["last_heartbeat_at"] = _utc_now_iso()
             await asyncio.sleep(60)
     except asyncio.CancelledError:
-        pass
+        raise
+    except Exception as exc:
+        _consumer_state["last_error"] = str(exc)
+        logger.exception("Pipeline Worker consumer loop failed")
+        raise
+    finally:
+        _consumer_state["running"] = False
+
+
+def _consumer_health_payload() -> dict[str, Any]:
+    healthy = bool(
+        _consumer_state.get("running")
+        and _consumer_state.get("subscribed")
+        and not _consumer_state.get("last_error")
+    )
+    return {"healthy": healthy, **_consumer_state}
 
 
 app = FastAPI(title="Pipeline Worker", lifespan=lifespan)
@@ -728,7 +764,7 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
             yield msg
 
         yield (
-            f"event: batch_done\ndata: "
+            "event: batch_done\ndata: "
             + json.dumps(
                 {
                     "type": "batch_done",
@@ -946,6 +982,13 @@ async def guidance_generate_status(job_id: str) -> dict[str, Any]:
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "service": "pipeline-worker"}
+
+
+@app.get("/health/consumer")
+async def health_consumer() -> dict[str, Any]:
+    payload = _consumer_health_payload()
+    payload["service"] = "pipeline-worker"
+    return payload
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

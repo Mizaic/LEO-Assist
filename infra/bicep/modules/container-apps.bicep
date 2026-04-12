@@ -602,7 +602,7 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
         ]
       }]
       scale: {
-        minReplicas: 0
+        minReplicas: 1
         maxReplicas: 5
         rules: [{
           name: 'pipeline-jobs-keda'
@@ -614,7 +614,7 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
               messageCount: '5'
             }
             auth: [{
-              secretRef: 'service-auth-secret'
+              secretRef: 'azure-service-bus-connection-string'
               triggerParameter: 'connection'
             }]
           }

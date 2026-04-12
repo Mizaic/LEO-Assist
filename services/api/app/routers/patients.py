@@ -8,7 +8,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
@@ -70,6 +70,83 @@ class InferRequest(BaseModel):
 class ResetAndRecodeEncounterRequest(BaseModel):
     dry_run: bool = False
     rerun_episode_detector: bool = False
+
+
+class BatchResetEncounterItem(BaseModel):
+    patient_id: str
+    encounter_id: str
+
+
+class BatchResetAndRecodeRequest(BaseModel):
+    items: list[BatchResetEncounterItem] = Field(min_length=1, max_length=500)
+    dry_run: bool = False
+    trigger_analysis: bool = False
+    search_context: dict[str, Any] | None = None
+
+
+def _encounter_created_payload(
+    *,
+    patient_id: str,
+    encounter_id: str,
+    dry_run: bool,
+    trigger_analysis: bool,
+) -> dict[str, Any]:
+    return {
+        "event_type": "encounter-created",
+        "patient_id": patient_id,
+        "encounter_id": encounter_id,
+        "plan_definition_id": "pd-gp-encounter-coding",
+        "mode": "extract_encounter",
+        "dry_run": dry_run,
+        "trigger_analysis": trigger_analysis,
+        "context": {
+            "encounter_id": encounter_id,
+            "plan_definition_id": "pd-gp-encounter-coding",
+            "mode": "extract_encounter",
+            "dry_run": dry_run,
+            "trigger_analysis": trigger_analysis,
+        },
+    }
+
+
+def _record_case_finding_selection(
+    *,
+    client: PatientGraphClient,
+    selection_id: str,
+    patient_id: str,
+    encounter_id: str,
+    status: str,
+    run_id: str | None,
+    search_context: dict[str, Any] | None,
+) -> None:
+    audit_id = None
+    original_query = None
+    rewritten_query = None
+    if isinstance(search_context, dict):
+        audit_id = search_context.get("query_audit_id")
+        original_query = search_context.get("original_query")
+        rewritten_query = search_context.get("rewritten_query")
+    client.run(
+        "MERGE (s:CaseFindingSelection {id: $selection_id}) "
+        "SET s.patient_id = $patient_id, "
+        "    s.encounter_id = $encounter_id, "
+        "    s.status = $status, "
+        "    s.run_id = $run_id, "
+        "    s.original_query = $original_query, "
+        "    s.rewritten_query = $rewritten_query, "
+        "    s.updated_at = datetime() "
+        "WITH s "
+        "OPTIONAL MATCH (q:CaseFindingQueryAudit {id: $query_audit_id}) "
+        "FOREACH (_ IN CASE WHEN q IS NULL THEN [] ELSE [1] END | MERGE (s)-[:FROM_QUERY]->(q))",
+        selection_id=selection_id,
+        patient_id=patient_id,
+        encounter_id=encounter_id,
+        status=status,
+        run_id=run_id,
+        original_query=original_query,
+        rewritten_query=rewritten_query,
+        query_audit_id=audit_id,
+    )
 
 
 @router.get("")
@@ -503,22 +580,12 @@ async def reset_and_recode_encounter(
         await bus.send(
             queue_name,
             Message(
-                body={
-                    "event_type": "encounter-created",
-                    "patient_id": patient_id,
-                    "encounter_id": encounter_id,
-                    "plan_definition_id": "pd-gp-encounter-coding",
-                    "mode": "extract_encounter",
-                    "dry_run": dry_run,
-                    "trigger_analysis": rerun_episode_detector,
-                    "context": {
-                        "encounter_id": encounter_id,
-                        "plan_definition_id": "pd-gp-encounter-coding",
-                        "mode": "extract_encounter",
-                        "dry_run": dry_run,
-                        "trigger_analysis": rerun_episode_detector,
-                    },
-                },
+                body=_encounter_created_payload(
+                    patient_id=patient_id,
+                    encounter_id=encounter_id,
+                    dry_run=dry_run,
+                    trigger_analysis=rerun_episode_detector,
+                ),
                 correlation_id=run_id,
                 subject="encounter-created",
             ),
@@ -533,6 +600,176 @@ async def reset_and_recode_encounter(
         "mode": "extract_encounter",
         "dry_run": dry_run,
         "rerun_episode_detector": rerun_episode_detector,
+    }
+
+
+@router.post("/encounters/batch-reset-and-recode")
+async def batch_reset_and_recode_encounters(
+    body: BatchResetAndRecodeRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Reset and recode multiple encounters across patients in one request."""
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    queue_name = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
+    batch_id = str(uuid.uuid4())
+    dry_run = bool(body.dry_run)
+    trigger_analysis = bool(body.trigger_analysis)
+
+    client = PatientGraphClient()
+    bus = create_message_bus()
+    queued: list[dict[str, Any]] = []
+    failed: list[dict[str, Any]] = []
+    validated_patients: set[str] = set()
+    try:
+        for item in body.items:
+            patient_id = item.patient_id.strip()
+            encounter_id = item.encounter_id.strip()
+            if not patient_id or not encounter_id:
+                failed.append(
+                    {
+                        "patient_id": patient_id,
+                        "encounter_id": encounter_id,
+                        "error": "patient_id and encounter_id are required",
+                    }
+                )
+                continue
+
+            try:
+                if patient_id not in validated_patients:
+                    require_patient_in_scope(client, scope, patient_id)
+                    validated_patients.add(patient_id)
+                with client.session() as session:
+                    rows = [
+                        dict(r)
+                        for r in session.run(
+                            GET_ENCOUNTER,
+                            patient_id=patient_id,
+                            encounter_id=encounter_id,
+                        )
+                    ]
+                    if not rows:
+                        selection_id = str(uuid.uuid4())
+                        _record_case_finding_selection(
+                            client=client,
+                            selection_id=selection_id,
+                            patient_id=patient_id,
+                            encounter_id=encounter_id,
+                            status="failed_not_found",
+                            run_id=None,
+                            search_context=body.search_context,
+                        )
+                        failed.append(
+                            {
+                                "patient_id": patient_id,
+                                "encounter_id": encounter_id,
+                                "error": "Encounter not found",
+                            }
+                        )
+                        continue
+                    reset_result = reset_encounter(patient_id, encounter_id, session)
+                if reset_result.get("error") == "encounter_not_found":
+                    selection_id = str(uuid.uuid4())
+                    _record_case_finding_selection(
+                        client=client,
+                        selection_id=selection_id,
+                        patient_id=patient_id,
+                        encounter_id=encounter_id,
+                        status="failed_not_found",
+                        run_id=None,
+                        search_context=body.search_context,
+                    )
+                    failed.append(
+                        {
+                            "patient_id": patient_id,
+                            "encounter_id": encounter_id,
+                            "error": "Encounter not found",
+                        }
+                    )
+                    continue
+
+                run_id = str(uuid.uuid4())
+                await bus.send(
+                    queue_name,
+                    Message(
+                        body=_encounter_created_payload(
+                            patient_id=patient_id,
+                            encounter_id=encounter_id,
+                            dry_run=dry_run,
+                            trigger_analysis=trigger_analysis,
+                        ),
+                        correlation_id=run_id,
+                        subject="encounter-created",
+                    ),
+                )
+                queued.append(
+                    {
+                        "patient_id": patient_id,
+                        "encounter_id": encounter_id,
+                        "run_id": run_id,
+                        "stream_path": f"/api/pipeline/progress/{run_id}",
+                    }
+                )
+                selection_id = str(uuid.uuid4())
+                _record_case_finding_selection(
+                    client=client,
+                    selection_id=selection_id,
+                    patient_id=patient_id,
+                    encounter_id=encounter_id,
+                    status="queued",
+                    run_id=run_id,
+                    search_context=body.search_context,
+                )
+            except HTTPException as exc:
+                selection_id = str(uuid.uuid4())
+                _record_case_finding_selection(
+                    client=client,
+                    selection_id=selection_id,
+                    patient_id=patient_id,
+                    encounter_id=encounter_id,
+                    status="failed_scope",
+                    run_id=None,
+                    search_context=body.search_context,
+                )
+                failed.append(
+                    {
+                        "patient_id": patient_id,
+                        "encounter_id": encounter_id,
+                        "error": exc.detail,
+                    }
+                )
+            except Exception as exc:
+                selection_id = str(uuid.uuid4())
+                _record_case_finding_selection(
+                    client=client,
+                    selection_id=selection_id,
+                    patient_id=patient_id,
+                    encounter_id=encounter_id,
+                    status="failed_error",
+                    run_id=None,
+                    search_context=body.search_context,
+                )
+                failed.append(
+                    {
+                        "patient_id": patient_id,
+                        "encounter_id": encounter_id,
+                        "error": str(exc),
+                    }
+                )
+    finally:
+        client.close()
+        await bus.close()
+
+    return {
+        "batch_id": batch_id,
+        "requested": len(body.items),
+        "queued_count": len(queued),
+        "failed_count": len(failed),
+        "dry_run": dry_run,
+        "trigger_analysis": trigger_analysis,
+        "queued": queued,
+        "failed": failed,
     }
 
 

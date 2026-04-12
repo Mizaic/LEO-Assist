@@ -353,3 +353,145 @@ export async function resetAndRecodeEncounter(
     }),
   });
 }
+
+export interface EncounterListParams {
+  orgId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  patientId?: string;
+  query?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: "encounter_date" | "patient_id" | "coded_count";
+  sortDir?: "ASC" | "DESC";
+}
+
+export interface EncounterListItem {
+  encounter_id: string;
+  patient_id: string;
+  encounter_date: string | null;
+  text: string | null;
+  flags?: string[] | null;
+  coded_count: number;
+  match_type: "none" | "keyword" | "semantic" | "hybrid";
+  fulltext_score?: number | null;
+  vector_score?: number | null;
+  score?: number | null;
+  rank_features?: {
+    fulltext_norm: number;
+    vector_norm: number;
+    term_coverage: number;
+    term_hits: number;
+    recency: number;
+    coded_norm: number;
+  };
+  match_rationale?: string[];
+}
+
+export interface EncounterListResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  items: EncounterListItem[];
+  query_diagnostics?: {
+    query_audit_id: string;
+    original_query: string;
+    normalized_query: string;
+    rewritten_query: string;
+    rewrite_applied: boolean;
+    rewrite_source: string;
+    rewrite_confidence?: number | null;
+    expanded_terms: string[];
+    fulltext_query: string;
+    reasoning?: string | null;
+  };
+}
+
+export interface EncounterKPIs {
+  total_encounters: number;
+  total_patients: number;
+  coded_encounters: number;
+  median_codes_per_encounter: number;
+}
+
+export async function fetchEncounterList(
+  params: EncounterListParams
+): Promise<EncounterListResponse> {
+  const p = new URLSearchParams();
+  if (params.orgId) p.set("org_id", params.orgId);
+  if (params.dateFrom) p.set("date_from", params.dateFrom);
+  if (params.dateTo) p.set("date_to", params.dateTo);
+  if (params.patientId) p.set("patient_id", params.patientId);
+  if (params.query) p.set("q", params.query);
+  p.set("page", String(params.page ?? 1));
+  p.set("page_size", String(params.pageSize ?? 25));
+  p.set("sort_by", params.sortBy ?? "encounter_date");
+  p.set("sort_dir", params.sortDir ?? "DESC");
+  return fetchJson<EncounterListResponse>(
+    `${PROXY}/mission-control/encounters?${p.toString()}`
+  );
+}
+
+export async function fetchEncounterKPIs(
+  params: Omit<EncounterListParams, "page" | "pageSize" | "sortBy" | "sortDir" | "query">
+): Promise<EncounterKPIs> {
+  const p = new URLSearchParams();
+  if (params.orgId) p.set("org_id", params.orgId);
+  if (params.dateFrom) p.set("date_from", params.dateFrom);
+  if (params.dateTo) p.set("date_to", params.dateTo);
+  if (params.patientId) p.set("patient_id", params.patientId);
+  return fetchJson<EncounterKPIs>(
+    `${PROXY}/mission-control/encounters/kpis?${p.toString()}`
+  );
+}
+
+export interface BatchResetItem {
+  patient_id: string;
+  encounter_id: string;
+}
+
+export interface EncounterCodedLink {
+  concept_id: string;
+  term?: string;
+  semantic_tag?: string;
+  assertion?: string;
+  confidence?: number | null;
+  source?: string | null;
+}
+
+export interface BatchResetResponse {
+  batch_id: string;
+  requested: number;
+  queued_count: number;
+  failed_count: number;
+  dry_run: boolean;
+  trigger_analysis: boolean;
+  queued: Array<BatchResetItem & { run_id: string; stream_path: string }>;
+  failed: Array<BatchResetItem & { error: string }>;
+}
+
+export async function batchResetAndRecodeEncounters(
+  items: BatchResetItem[],
+  triggerAnalysis = false,
+  searchContext?: EncounterListResponse["query_diagnostics"]
+): Promise<BatchResetResponse> {
+  return fetchJson<BatchResetResponse>(`${resolveBase()}/api/patients/encounters/batch-reset-and-recode`, {
+    method: "POST",
+    body: JSON.stringify({
+      items,
+      trigger_analysis: triggerAnalysis,
+      dry_run: false,
+      search_context: searchContext,
+    }),
+  });
+}
+
+export async function fetchEncounterCodedLinks(
+  patientId: string,
+  encounterId: string
+): Promise<EncounterCodedLink[]> {
+  const url = `${resolveBase()}/api/patients/${encodeURIComponent(
+    patientId
+  )}/encounters/${encodeURIComponent(encounterId)}/coded-links`;
+  return fetchJson<EncounterCodedLink[]>(url);
+}

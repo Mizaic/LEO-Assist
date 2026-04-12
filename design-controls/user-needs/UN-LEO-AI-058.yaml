@@ -98,7 +98,7 @@
     created_date: "2026-04-09"
     status: "draft"
 
-  design_inputs: ["DI-LEO-AI-091", "DI-LEO-AI-092"]
+  design_inputs: ["DI-LEO-AI-091", "DI-LEO-AI-092", "DI-LEO-AI-099"]
   validation_tests: []
 
   tags: ["mission-control", "audit", "cancer-pathway", "case-management", "ui", "validation"]

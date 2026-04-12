@@ -7,7 +7,9 @@
     The system SHALL split training data into TrainingCandidate and GoldLabel
     nodes, enforce DI-ID validation before persistence, and prevent any patient,
     encounter, tenant, organisation, or user identifier fields in learning-loop
-    and knowledge-graph training artifacts.
+    and knowledge-graph training artifacts. The admin gold-dataset workflow
+    SHALL provide a manual duplicate-candidate reduction control based on
+    similarity thresholds, with explicit preview before apply.
   rationale: >
     Supports GDPR-safe model training while preserving terminology learning and
     review workflows through anonymised records and system-level provenance only.
@@ -21,6 +23,8 @@
         spec: "Operations UI presents card-based dashboard and dedicated reviews page"
       - type: "functional"
         spec: "Authorized users can permanently delete a TrainingCandidate and its linked GoldLabel and SurfaceFormTask records by candidate_id"
+      - type: "functional"
+        spec: "Admin gold-dataset UI provides manual dedupe preview and apply actions for highly similar TrainingCandidate records"
     dependencies:
       - "DI-LEO-AI-054"
   verification:

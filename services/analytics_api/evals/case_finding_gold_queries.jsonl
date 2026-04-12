@@ -1,0 +1,5 @@
+{"query_id":"Q-001","query_text":"encounters with breast lump and weight loss","priority":"critical","relevant_terms":["breast","lump","mass","weight loss"],"negative_terms":["admin","booking"],"notes":"Baseline symptomatic malignancy suspicion pattern"}
+{"query_id":"Q-002","query_text":"persistent cough and haemoptysis","priority":"critical","relevant_terms":["cough","haemoptysis","blood"],"negative_terms":["resolved"],"notes":"Respiratory red-flag pattern"}
+{"query_id":"Q-003","query_text":"rectal bleeding and change in bowel habit","priority":"critical","relevant_terms":["rectal bleeding","bowel habit"],"negative_terms":["family history only"],"notes":"Colorectal concern pattern"}
+{"query_id":"Q-004","query_text":"unintentional weight loss and fatigue","priority":"high","relevant_terms":["weight loss","fatigue","cachexia"],"negative_terms":["diet advice only"],"notes":"Constitutional symptom pattern"}
+{"query_id":"Q-005","query_text":"neck lump referred under two week wait","priority":"high","relevant_terms":["neck lump","2ww","two week wait","referral"],"negative_terms":["discharge admin"],"notes":"Referral pathway identification"}

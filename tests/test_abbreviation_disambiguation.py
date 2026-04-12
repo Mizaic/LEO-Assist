@@ -245,7 +245,9 @@ class TestObservableNeedsValue:
         assert len(filtered) == 1
         assert filtered[0].semantic_tag == "observable_entity"
 
-    def test_observable_reference_range_phrase_removed_without_blood_context(self) -> None:
+    def test_observable_reference_range_phrase_removed_without_blood_context(
+        self,
+    ) -> None:
         obs = ResolvedTerm(
             text="ABPI",
             concept_id="446841001",
@@ -259,7 +261,9 @@ class TestObservableNeedsValue:
         )
         assert len(filtered) == 0
 
-    def test_observable_reference_range_phrase_removed_even_with_blood_context(self) -> None:
+    def test_observable_reference_range_phrase_removed_even_with_blood_context(
+        self,
+    ) -> None:
         obs = ResolvedTerm(
             text="serum potassium",
             concept_id="446841001",

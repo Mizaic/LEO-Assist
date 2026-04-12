@@ -11,8 +11,10 @@ from services.coding_worker.app.pipeline.providers.model_provider import (
 
 def test_health_url_defaults_to_8004(monkeypatch):
     monkeypatch.delenv("MODEL_INFERENCE_HEALTH_URL", raising=False)
+    monkeypatch.delenv("CODING_MODEL_PROVIDER_ENABLED", raising=False)
     provider = ModelExtractorProvider()
     assert provider._health_url == "http://localhost:8004/health"
+    assert provider._enabled is True
 
 
 def test_extract_batch_maps_entities(monkeypatch):
@@ -74,8 +76,22 @@ def test_extract_batch_maps_entities(monkeypatch):
     assert items[0].model_version == "v1"
 
 
-def test_extract_batch_requires_enabled(monkeypatch):
+def test_extract_batch_falls_back_to_llm_when_disabled(monkeypatch):
     monkeypatch.setenv("CODING_MODEL_PROVIDER_ENABLED", "false")
+    called = {"value": False}
+
+    class _FallbackExtractor:
+        def extract_batch(self, encounter_text, sentences):
+            called["value"] = True
+            assert encounter_text == "text"
+            assert sentences == []
+            return []
+
+    monkeypatch.setattr(
+        ModelExtractorProvider,
+        "_build_fallback_extractor",
+        staticmethod(lambda: _FallbackExtractor()),
+    )
     provider = ModelExtractorProvider()
-    with pytest.raises(RuntimeError, match="deprecated by default"):
-        provider.extract_batch("text", [])
+    assert provider.extract_batch("text", []) == []
+    assert called["value"] is True

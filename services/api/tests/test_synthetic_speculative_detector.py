@@ -13,8 +13,14 @@ from app.routers.training import (
 @pytest.mark.parametrize(
     ("sentence", "expected"),
     [
-        ("If symptoms worsen, AMY may rise above 500 U/L warranting further review.", True),
-        ("AST could be elevated, possibly around 90 U/L, given the clinical picture.", True),
+        (
+            "If symptoms worsen, AMY may rise above 500 U/L warranting further review.",
+            True,
+        ),
+        (
+            "AST could be elevated, possibly around 90 U/L, given the clinical picture.",
+            True,
+        ),
         ("An abnormal ABPI could suggest significant arterial stenosis.", True),
         ("AMY was 145 U/L, trending down from peak of 780 U/L.", False),
         ("AST recorded at 27 U/L, which is within the reference range.", False),

@@ -55,7 +55,11 @@ def search_terms(
     try:
         if semantic_tag:
             normalised_tags = sorted(
-                {normalise_semantic_tag(tag) for tag in semantic_tag if str(tag).strip()}
+                {
+                    normalise_semantic_tag(tag)
+                    for tag in semantic_tag
+                    if str(tag).strip()
+                }
             )
             return client.run(
                 TERMINOLOGY_SEARCH_FILTERED, q=safe_q, limit=limit, tags=normalised_tags

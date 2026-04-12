@@ -135,6 +135,37 @@ interface DeleteTrainingCandidateResult {
   surface_form_tasks_deleted: number;
 }
 
+interface CandidateDedupeGroupEntry {
+  candidate_id: string;
+  status: string | null;
+  source: string | null;
+  updated_at: string | null;
+  text_preview: string;
+  similarity?: number;
+}
+
+interface CandidateDedupeGroup {
+  canonical: CandidateDedupeGroupEntry;
+  duplicates: CandidateDedupeGroupEntry[];
+}
+
+interface CandidateDedupePreview {
+  candidate_pool_size: number;
+  group_count: number;
+  duplicate_count: number;
+  similarity_threshold: number;
+  groups: CandidateDedupeGroup[];
+}
+
+interface CandidateDedupeApplyResult {
+  candidate_pool_size: number;
+  duplicates_marked: number;
+  group_count: number;
+  run_id: string | null;
+  similarity_threshold: number;
+  message?: string;
+}
+
 interface SyntheticGenerateResult {
   forms_processed?: number;
   forms_zero_written?: number;
@@ -1264,6 +1295,15 @@ export default function GoldDatasetPanel() {
   const [openingCandidateLabelId, setOpeningCandidateLabelId] = useState<string | null>(null);
   const [candidateGoldLabel, setCandidateGoldLabel] = useState<GoldLabel | null>(null);
   const [markingGoldCandidateId, setMarkingGoldCandidateId] = useState<string | null>(null);
+  const [dedupeDialogOpen, setDedupeDialogOpen] = useState(false);
+  const [dedupeStatus, setDedupeStatus] = useState("completed");
+  const [dedupeThreshold, setDedupeThreshold] = useState(0.9);
+  const [dedupeMaxCandidates, setDedupeMaxCandidates] = useState(1200);
+  const [dedupePreviewLoading, setDedupePreviewLoading] = useState(false);
+  const [dedupeApplyLoading, setDedupeApplyLoading] = useState(false);
+  const [dedupePreview, setDedupePreview] = useState<CandidateDedupePreview | null>(
+    null,
+  );
   const [syntheticDialogOpen, setSyntheticDialogOpen] = useState(false);
   const [generatingSynthetic, setGeneratingSynthetic] = useState(false);
   const [syntheticMode, setSyntheticMode] = useState<"inline" | "queue">("inline");
@@ -1550,6 +1590,69 @@ export default function GoldDatasetPanel() {
     }
   }
 
+  async function previewCandidateDedupe() {
+    if (dedupePreviewLoading) return;
+    setDedupePreviewLoading(true);
+    setListError(null);
+    setActionMsg(null);
+    try {
+      const payload = {
+        status: dedupeStatus || null,
+        max_candidates: dedupeMaxCandidates,
+        similarity_threshold: dedupeThreshold,
+      };
+      const result = await jsonFetch<CandidateDedupePreview>(
+        "/api/training/candidates/dedupe/preview",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      setDedupePreview(result);
+    } catch (e) {
+      setListError(
+        e instanceof Error ? e.message : "Could not preview duplicate candidates",
+      );
+      setDedupePreview(null);
+    } finally {
+      setDedupePreviewLoading(false);
+    }
+  }
+
+  async function applyCandidateDedupe() {
+    if (dedupeApplyLoading) return;
+    setDedupeApplyLoading(true);
+    setListError(null);
+    setActionMsg(null);
+    try {
+      const payload = {
+        status: dedupeStatus || null,
+        max_candidates: dedupeMaxCandidates,
+        similarity_threshold: dedupeThreshold,
+      };
+      const result = await jsonFetch<CandidateDedupeApplyResult>(
+        "/api/training/candidates/dedupe/apply",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      setActionMsg(
+        result.message ??
+          `Deduped ${result.duplicates_marked} candidates across ${result.group_count} groups.`,
+      );
+      setDedupeDialogOpen(false);
+      setDedupePreview(null);
+      await Promise.all([loadList(), loadStats()]);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Could not apply dedupe");
+    } finally {
+      setDedupeApplyLoading(false);
+    }
+  }
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -1563,17 +1666,34 @@ export default function GoldDatasetPanel() {
             Raw candidates processed by the pipeline, and the verified gold labels ready for training.
           </Typography>
         </Box>
-        <Tooltip title="Export all verified gold labels as MedSpaCy training data">
-          <Button
-            variant="outlined"
-            startIcon={exporting ? <CircularProgress size={14} /> : <DownloadIcon />}
-            disabled={exporting || !goldStats || goldStats.total === 0}
-            onClick={handleExport}
-            size="small"
-          >
-            Export training data
-          </Button>
-        </Tooltip>
+        <Stack direction="row" spacing={1}>
+          {tab === "candidates" && (
+            <Tooltip title="Preview and mark very similar candidates as duplicates">
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => {
+                  setDedupeDialogOpen(true);
+                  setDedupePreview(null);
+                }}
+                size="small"
+              >
+                Deduplicate similar
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip title="Export all verified gold labels as MedSpaCy training data">
+            <Button
+              variant="outlined"
+              startIcon={exporting ? <CircularProgress size={14} /> : <DownloadIcon />}
+              disabled={exporting || !goldStats || goldStats.total === 0}
+              onClick={handleExport}
+              size="small"
+            >
+              Export training data
+            </Button>
+          </Tooltip>
+        </Stack>
       </Stack>
 
       {/* Stats row */}
@@ -1864,6 +1984,122 @@ export default function GoldDatasetPanel() {
           }}
         />
       )}
+      <Dialog
+        open={dedupeDialogOpen}
+        onClose={() => !dedupeApplyLoading && setDedupeDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Deduplicate similar candidates</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              Preview duplicate groups first, then apply to mark non-canonical items as
+              duplicate.
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                select
+                label="Status scope"
+                value={dedupeStatus}
+                size="small"
+                sx={{ minWidth: 180 }}
+                onChange={(event) => setDedupeStatus(event.target.value)}
+              >
+                <MenuItem value="completed">completed</MenuItem>
+                <MenuItem value="pending">pending</MenuItem>
+                <MenuItem value="processing">processing</MenuItem>
+                <MenuItem value="failed">failed</MenuItem>
+                <MenuItem value="">all statuses</MenuItem>
+              </TextField>
+              <TextField
+                label="Max candidates"
+                type="number"
+                size="small"
+                value={dedupeMaxCandidates}
+                onChange={(event) =>
+                  setDedupeMaxCandidates(Number(event.target.value || 0))
+                }
+                inputProps={{ min: 50, max: 3000 }}
+                sx={{ minWidth: 180 }}
+              />
+              <TextField
+                label="Similarity threshold"
+                type="number"
+                size="small"
+                value={dedupeThreshold}
+                onChange={(event) =>
+                  setDedupeThreshold(Number(event.target.value || 0))
+                }
+                inputProps={{ min: 0.7, max: 0.99, step: 0.01 }}
+                sx={{ minWidth: 180 }}
+              />
+            </Stack>
+            {dedupePreview && (
+              <Alert severity="info">
+                Pool: {dedupePreview.candidate_pool_size.toLocaleString()} candidates.
+                Potential duplicates: {dedupePreview.duplicate_count.toLocaleString()} in{" "}
+                {dedupePreview.group_count.toLocaleString()} groups.
+              </Alert>
+            )}
+            {dedupePreview?.groups?.length ? (
+              <Box sx={{ maxHeight: 280, overflowY: "auto", pr: 0.5 }}>
+                <Stack spacing={1.25}>
+                  {dedupePreview.groups.slice(0, 20).map((group) => (
+                    <Card
+                      key={group.canonical.candidate_id}
+                      variant="outlined"
+                      sx={{ p: 1.25 }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        Canonical {group.canonical.candidate_id}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 0.75 }}>
+                        {group.canonical.text_preview}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {group.duplicates.length} duplicates
+                      </Typography>
+                    </Card>
+                  ))}
+                  {dedupePreview.groups.length > 20 && (
+                    <Typography variant="caption" color="text.secondary">
+                      Showing first 20 groups.
+                    </Typography>
+                  )}
+                </Stack>
+              </Box>
+            ) : dedupePreview ? (
+              <Alert severity="success">No duplicates met this threshold.</Alert>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDedupeDialogOpen(false)} disabled={dedupeApplyLoading}>
+            Close
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={previewCandidateDedupe}
+            disabled={dedupePreviewLoading || dedupeApplyLoading}
+          >
+            {dedupePreviewLoading ? "Previewing..." : "Preview duplicates"}
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={applyCandidateDedupe}
+            disabled={
+              dedupeApplyLoading ||
+              dedupePreviewLoading ||
+              !dedupePreview ||
+              dedupePreview.duplicate_count < 1
+            }
+          >
+            {dedupeApplyLoading ? "Applying..." : "Apply dedupe"}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={syntheticDialogOpen} onClose={() => !generatingSynthetic && setSyntheticDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Generate synthetic gold labels</DialogTitle>
         <DialogContent dividers sx={{ overflowY: "auto", maxHeight: "70vh" }}>

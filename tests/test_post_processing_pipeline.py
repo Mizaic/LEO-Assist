@@ -8,11 +8,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from libs.pipeline.post_processing import (
-    normalise_entity_types,
-    link_observable_value_units,
-    run_post_processing,
-)
+from libs.pipeline.post_processing import run_post_processing
 from libs.ner.post_processor_rules import PostProcessorRule
 
 # ── Layer ordering ──
@@ -283,7 +279,8 @@ def test_scope_guard_suppresses_safety_netting_when_assertion_absent() -> None:
             "text": "cauda equina syndrome",
             "label": "disorder",
             "start": encounter.lower().find("cauda equina"),
-            "end": encounter.lower().find("cauda equina") + len("cauda equina syndrome"),
+            "end": encounter.lower().find("cauda equina")
+            + len("cauda equina syndrome"),
             "assertion": "absent",
         },
     ]

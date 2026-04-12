@@ -181,7 +181,7 @@ from queue payloads by loading text at runtime using an encounter_loader step.
 | Design Input | DI-LEO-AI-094 | draft | Production coding jobs SHALL route through WorkflowEngine |
 | Design Output | DO-LEO-AI-092 | draft | Job handler cutover, encounter_loader, seed updates, payload hardening |
 | Risk | R-LEO-AI-015 | analyzed | Data loss during sync / orchestration transitions |
-| Verification Test | VT-LEO-AI-094 | draft | Integration verification for engine routing and progress events |
+| Verification Test | VT-LEO-AI-094 | passed | Integration verification for engine routing and progress events |
 
 ---
 
@@ -199,6 +199,25 @@ selected organization, with explicit destructive-operation guardrails.
 | Design Output | DO-LEO-AI-093 | draft | Backend endpoint, UI warnings, and runtime tests |
 | Risk | R-LEO-AI-063 | analyzed | Incorrect patient graph mutation via remediation operations |
 | Verification Test | VT-LEO-AI-095 | draft | Preview count, guard rejection, and queue-success verification |
+
+---
+
+## Encounter Mission Control Batch Recode — Design Control Summary
+
+Replaces the pathways care route with an encounter-centric mission control view,
+adds org-scoped hybrid encounter retrieval, and introduces batch reset+recode
+for selected encounters with trigger_analysis defaulting to false.
+
+### Traceability
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-058 | draft | Mission Control review workflow for audit users |
+| User Need | UN-LEO-AI-056 | approved | Safe remediation tooling for admins and operations |
+| Design Input | DI-LEO-AI-099 | draft | Encounter-first hybrid retrieval and batch reset+recode workflow |
+| Design Output | DO-LEO-AI-097 | draft | Analytics APIs, batch endpoint, encounters UI, and route migration |
+| Risk | R-LEO-AI-063; R-LEO-AI-065 | analyzed | Remediation mutation risk and auditor decision-quality risk |
+| Verification Test | VT-LEO-AI-099 | draft | API/UI verification for hybrid search, batch queueing, and progress UX |
 
 ---
 
@@ -590,15 +609,15 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 
 ---
 
-## GDPR-Isolated Candidate Cascade Delete (April 2026)
+## GDPR-Isolated Candidate Ops (April 2026)
 
 | Artefact | ID | Status | Notes |
 |----------|----|--------|-------|
 | User Need | UN-LEO-AI-027 | implemented | AI-augmented training data quality assurance with terminology verification |
-| Design Input | DI-LEO-AI-055 | draft | Extended with candidate cascade delete acceptance criterion |
-| Design Output | DO-LEO-AI-055 | draft | Includes candidate delete implementation in query, router, and admin UI |
+| Design Input | DI-LEO-AI-055 | draft | Extended with candidate cascade delete and manual similarity-dedupe controls |
+| Design Output | DO-LEO-AI-055 | draft | Includes candidate delete plus dedupe preview/apply in router and admin UI |
 | Risk | R-LEO-AI-039; R-LEO-AI-040; R-LEO-AI-041 | analyzed | Existing mitigations retained |
-| Verification Test | VT-LEO-AI-096 | passed | API delete returns cascade counts and 404 for missing candidate |
+| Verification Test | VT-LEO-AI-096 | passed | API delete and dedupe preview/apply controls verified for admin gold-dataset workflow |
 
 ---
 

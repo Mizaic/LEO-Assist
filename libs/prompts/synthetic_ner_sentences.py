@@ -15,6 +15,7 @@ def _strip_snomed_qualifier(fsn: str) -> str:
     """
     return _SNOMED_QUALIFIER_RE.sub("", (fsn or "")).strip()
 
+
 _REFERRAL_LIKE_RE = re.compile(
     r"\b(?:referral|referred|2ww|two\s*week|fast\s*track|urgent\s*suspected|"
     r"cancer\s*pathway|suspected\s*cancer|suspected\s*cancer\s*clinic)\b",
@@ -32,13 +33,13 @@ _TAG_GUIDANCE: dict[str, str] = {
         'Write a sentence where "{surface_form}" names a clinical action '
         "that has been performed, is being planned, was declined, or was requested. "
         'Use active verbs: "performed", "underwent", "arranged", "declined", "referred for". '
-        "Example: \"ECG was performed on admission.\""
+        'Example: "ECG was performed on admission."'
     ),
     "observable_entity": (
         'Write a sentence where "{surface_form}" names a measurable test or observation '
         "that has a recorded numeric result. "
         "State the result value and unit directly in the sentence. "
-        "Use assertion \"present\" for any measured result. "
+        'Use assertion "present" for any measured result. '
         'Example: "Serum albumin returned at 28 g/L on admission bloods."'
     ),
     "finding": (
@@ -173,10 +174,7 @@ def build_synthetic_sentence_prompts(
     )
     examples = [str(x).strip() for x in (context_examples or []) if str(x).strip()]
     if examples:
-        snippet_lines = "\n".join(
-            f"- {snippet}"
-            for snippet in examples[:10]
-        )
+        snippet_lines = "\n".join(f"- {snippet}" for snippet in examples[:10])
         user_prompt = (
             f"{user_prompt}\n\n"
             "Real de-identified note extracts (match this writing style):\n"
@@ -215,8 +213,7 @@ def build_synthetic_sentence_prompts(
                 "Domain vocabulary (preferred-term names of other concepts in these "
                 "domains; use ONLY as a short tumour site, stream, or speciality "
                 "modifier in the same phrase as the target term — not as a second "
-                "named diagnosis or procedure):\n"
-                + "; ".join(vterms)
+                "named diagnosis or procedure):\n" + "; ".join(vterms)
             )
         user_prompt = f"{user_prompt}\n\n" + "\n\n".join(domain_lines) + "\n"
 

@@ -508,7 +508,7 @@ export default function EncounterList({ patientId }: Props) {
       <Breadcrumbs sx={{ mb: 2 }}>
         {searchParams.get("from") === "pathways"
           ? [
-              <Link key="pathways" component="button" underline="hover" onClick={() => router.push("/care/pathways")} sx={{ fontSize: 14 }}>
+              <Link key="pathways" component="button" underline="hover" onClick={() => router.push("/care/encounters")} sx={{ fontSize: 14 }}>
                 Referral Pathways
               </Link>,
               <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,

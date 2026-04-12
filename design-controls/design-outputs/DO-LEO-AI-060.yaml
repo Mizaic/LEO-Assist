@@ -11,7 +11,7 @@
     design_inputs: ["DI-LEO-AI-018", "DI-LEO-AI-019", "DI-LEO-AI-060", "DI-LEO-AI-063"]
     user_needs: ["UN-LEO-AI-012"]
     risks_addressed: ["R-LEO-AI-015"]
-    verification_tests: ["VT-LEO-AI-018", "VT-LEO-AI-019", "VT-LEO-AI-063"]
+    verification_tests: ["VT-LEO-AI-018", "VT-LEO-AI-094", "VT-LEO-AI-063"]
     validation_tests: []
 
   specification:

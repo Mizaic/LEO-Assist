@@ -18,9 +18,16 @@ class _FakeAsyncDriver:
 
 
 class _FakeWorkflowEngine:
-    def __init__(self, neo4j_driver=None, message_bus=None):
+    def __init__(
+        self,
+        neo4j_driver=None,
+        message_bus=None,
+        audit_neo4j_driver=None,
+        **_kwargs,
+    ):
         self.neo4j_driver = neo4j_driver
         self.message_bus = message_bus
+        self.audit_neo4j_driver = audit_neo4j_driver
 
 
 class _FakeServiceBusEventHandler:

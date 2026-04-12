@@ -73,7 +73,10 @@ _NON_EVIDENCE_PATTERNS = [
     ),
     re.compile(r"^Not\s+on\s+Thyroid\s+Tx\b", re.IGNORECASE),
     re.compile(r"^No\s+abnormality\s+detected\b", re.IGNORECASE),
-    re.compile(r"^ALT\s+level\s+may\s+be\s+raised\s+given\s+the\s+clinical\s+picture\b", re.IGNORECASE),
+    re.compile(
+        r"^ALT\s+level\s+may\s+be\s+raised\s+given\s+the\s+clinical\s+picture\b",
+        re.IGNORECASE,
+    ),
     re.compile(
         r"^If\s+symptoms\s+worsen\b.*\bAMY\b.*\bmay\s+rise\s+above\b",
         re.IGNORECASE,

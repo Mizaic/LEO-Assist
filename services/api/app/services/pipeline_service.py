@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,17 @@ class PipelineService:
                 "Embedder pre-warm failed (non-fatal) — model will load on first pipeline run",
                 exc_info=True,
             )
+
+    @classmethod
+    def _try_load_embedder(cls):
+        """Return shared sentence embedder, or None on failure."""
+        try:
+            from libs.prompts.few_shot_selector import _get_shared_embedder
+
+            return _get_shared_embedder()
+        except Exception:
+            logger.warning("Embedder load failed (non-fatal)", exc_info=True)
+            return None
 
     def run(self, **kwargs: Any) -> tuple[str, PipelineStats]:
         raise NotImplementedError(_REMOVED_MSG)

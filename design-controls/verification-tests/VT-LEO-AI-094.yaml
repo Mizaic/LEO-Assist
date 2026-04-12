@@ -1,6 +1,6 @@
 - id: "VT-LEO-AI-094"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-094"]
@@ -77,4 +77,13 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - run_id: "VT-094-RUN-001"
+      date: "2026-04-12"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      notes: >
+        python3 -m pytest services/coding_worker/tests/test_job_handler_engine.py -q
+        completed with 3 passed tests covering WorkflowEngine routing, patient fan-out,
+        and extract_encounter guard behavior.

@@ -28,8 +28,9 @@ uvicorn services.api.app.main:app \
     --host 0.0.0.0 --port 8000 --reload
 ```
 
-The startup script `scripts/start_leo-ai-core.ps1` handles venv creation and
-all service orchestration for local development.
+Startup scripts `scripts/start_leo-ai-core.sh` (macOS/Linux) and
+`scripts/start_leo-ai-core.ps1` (Windows) handle venv creation and service
+orchestration for local development.
 
 ## Docker
 
@@ -151,3 +152,16 @@ This service is classified as a **Class IIa medical device** software component
 under UK MDR 2002. Changes must be traced to design controls in
 `design-controls/` and must not reduce precision/recall below the baselines
 recorded in `design-controls/DC-TM-002-traceability-matrix.csv`.
+
+## CI/CD and ACA deployment
+
+- Docker image: `leoaicr.azurecr.io/core-api`
+- Container App name: `core-api`
+- Dockerfile: `infra/dockerfiles/Dockerfile.core-api`
+
+GitHub Actions build this image in `CI - Build and Push Images` and deploy it in
+`CD - Deploy`.
+
+To trigger the full pipeline for this service, commit a small change in this
+folder (for example `services/api/README.md`) and push to `main`, or run the
+workflows with `workflow_dispatch`.

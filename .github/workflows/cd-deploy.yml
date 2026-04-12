@@ -30,6 +30,9 @@ jobs:
     name: Deploy to dev
     runs-on: ubuntu-latest
     environment: dev
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
     if: >
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev')
@@ -77,41 +80,62 @@ jobs:
               --output none
           done
 
-  deploy-dev-ui:
-    name: Deploy ui to dev
-    runs-on: ubuntu-latest
-    environment: dev
-    if: >
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'failure'
-
-    steps:
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Update UI image tag
+      - name: Post-deploy smoke checks
         run: |
-          TAG="sha-${{ github.event.workflow_run.head_sha }}"
-          az containerapp update \
+          CORE_FQDN=$(az containerapp show \
+            --name core-api \
+            --resource-group leo-ai-dev \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          UI_FQDN=$(az containerapp show \
             --name ui \
             --resource-group leo-ai-dev \
-            --image ${{ env.ACR_LOGIN_SERVER }}/ui:$TAG \
-            --output none
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${CORE_FQDN}/health"
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${UI_FQDN}/"
+
+      - name: Verify revision health (dev)
+        run: |
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          for APP in $APPS; do
+            echo "Checking revision states for ${APP}"
+            BAD=$(az containerapp revision list \
+              --name "$APP" \
+              --resource-group leo-ai-dev \
+              --query "[?properties.active==\`true\` && (properties.runningState=='Failed' || properties.runningState=='ActivationFailed')].name" \
+              --output tsv)
+            if [ -n "$BAD" ]; then
+              echo "Active failed revisions found for ${APP}: ${BAD}"
+              exit 1
+            fi
+          done
 
   deploy-val:
     name: Deploy to validation
     runs-on: ubuntu-latest
     environment: validation
-    needs: deploy-dev
+    concurrency:
+      group: deploy-val
+      cancel-in-progress: false
     if: github.event_name == 'workflow_dispatch' && inputs.environment == 'val'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate promotion image tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          if [ -z "$TAG" ]; then
+            echo "image_tag is required for validation promotion"
+            exit 1
+          fi
+          if [[ "$TAG" != sha-* ]]; then
+            echo "image_tag must be immutable (sha-*) for promotion"
+            exit 1
+          fi
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -122,7 +146,7 @@ jobs:
 
       - name: Deploy to validation
         run: |
-          TAG="${{ github.event.inputs.image_tag || format('sha-{0}', github.sha) }}"
+          TAG="${{ github.event.inputs.image_tag }}"
           az deployment group create \
             --resource-group leo-ai-val \
             --template-file infra/bicep/main.bicep \
@@ -130,16 +154,62 @@ jobs:
             --parameters imageTag=$TAG \
             --name "cd-val-${{ github.run_number }}"
 
+      - name: Post-deploy smoke checks
+        run: |
+          CORE_FQDN=$(az containerapp show \
+            --name core-api \
+            --resource-group leo-ai-val \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          UI_FQDN=$(az containerapp show \
+            --name ui \
+            --resource-group leo-ai-val \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${CORE_FQDN}/health"
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${UI_FQDN}/"
+
+      - name: Verify revision health (validation)
+        run: |
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          for APP in $APPS; do
+            echo "Checking revision states for ${APP}"
+            BAD=$(az containerapp revision list \
+              --name "$APP" \
+              --resource-group leo-ai-val \
+              --query "[?properties.active==\`true\` && (properties.runningState=='Failed' || properties.runningState=='ActivationFailed')].name" \
+              --output tsv)
+            if [ -n "$BAD" ]; then
+              echo "Active failed revisions found for ${APP}: ${BAD}"
+              exit 1
+            fi
+          done
+
   deploy-prod:
     name: Deploy to production
     runs-on: ubuntu-latest
     environment: production
-    needs: deploy-val
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
     if: github.event_name == 'workflow_dispatch' && inputs.environment == 'prod'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate promotion image tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          if [ -z "$TAG" ]; then
+            echo "image_tag is required for production promotion"
+            exit 1
+          fi
+          if [[ "$TAG" != sha-* ]]; then
+            echo "image_tag must be immutable (sha-*) for promotion"
+            exit 1
+          fi
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -150,10 +220,42 @@ jobs:
 
       - name: Deploy to production
         run: |
-          TAG="${{ github.event.inputs.image_tag || format('sha-{0}', github.sha) }}"
+          TAG="${{ github.event.inputs.image_tag }}"
           az deployment group create \
             --resource-group leo-ai-prod \
             --template-file infra/bicep/main.bicep \
             --parameters infra/bicep/parameters/prod.bicepparam \
             --parameters imageTag=$TAG \
             --name "cd-prod-${{ github.run_number }}"
+
+      - name: Post-deploy smoke checks
+        run: |
+          CORE_FQDN=$(az containerapp show \
+            --name core-api \
+            --resource-group leo-ai-prod \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          UI_FQDN=$(az containerapp show \
+            --name ui \
+            --resource-group leo-ai-prod \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${CORE_FQDN}/health"
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${UI_FQDN}/"
+
+      - name: Verify revision health (production)
+        run: |
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          for APP in $APPS; do
+            echo "Checking revision states for ${APP}"
+            BAD=$(az containerapp revision list \
+              --name "$APP" \
+              --resource-group leo-ai-prod \
+              --query "[?properties.active==\`true\` && (properties.runningState=='Failed' || properties.runningState=='ActivationFailed')].name" \
+              --output tsv)
+            if [ -n "$BAD" ]; then
+              echo "Active failed revisions found for ${APP}: ${BAD}"
+              exit 1
+            fi
+          done

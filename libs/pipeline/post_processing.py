@@ -945,9 +945,10 @@ def run_post_processing_with_trace(
     _run_layer(
         "layer_7c",
         "Observable Trend Split",
-        lambda current: (_split_observable_trend_results(encounter_text, current), current)[
-            1
-        ],
+        lambda current: (
+            _split_observable_trend_results(encounter_text, current),
+            current,
+        )[1],
     )
 
     # Layer 8: Situation Lookup Normalisation

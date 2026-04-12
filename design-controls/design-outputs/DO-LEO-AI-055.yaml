@@ -13,7 +13,9 @@
     description: >
       Adds a surface_form_validation subgraph after terminology resolution.
       High-confidence corrections are auto-applied; low-confidence mismatches
-      create SurfaceFormTask items for human approval.
+      create SurfaceFormTask items for human approval. Extends admin gold-dataset
+      operations with manual candidate dedupe preview/apply controls for
+      near-duplicate training examples.
     acceptance_criteria:
       - criterion: "Create review task for uncertain mismatch"
         type: "functional"
@@ -24,6 +26,9 @@
       - criterion: "Cascade delete for training candidate"
         type: "functional"
         target: "DELETE /training/candidates/{candidate_id} removes TrainingCandidate and linked GoldLabel and SurfaceFormTask records"
+      - criterion: "Manual dedupe workflow"
+        type: "functional"
+        target: "POST /training/candidates/dedupe/preview and /apply support threshold-based duplicate marking with reviewer-triggered execution"
   implementation:
     artifacts:
       - artifact_type: "source_code"
@@ -37,6 +42,9 @@
         storage_location: "git"
       - artifact_type: "source_code"
         location: "services/api/app/routers/training.py"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
         storage_location: "git"
   safety_characteristics:
     safety_class: "B"

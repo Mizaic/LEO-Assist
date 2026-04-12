@@ -16,6 +16,7 @@ RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /require
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir \
     torch --index-url https://download.pytorch.org/whl/cpu && \
     /venv/bin/pip install --disable-pip-version-check --no-cache-dir "sentence-transformers>=3.0,<4"
+RUN /venv/bin/python3 -c "import aiohttp, spacy, sentence_transformers"
 
 ARG BASE_IMAGE_RUNTIME
 FROM ${BASE_IMAGE_RUNTIME}

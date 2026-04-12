@@ -74,7 +74,7 @@ const CARE_NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/care/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Clinical Audit", path: "/care/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/care/audit", "/audit"] },
   { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon /> },
-  { label: "Referral Pathways", path: "/care/pathways", icon: <TimelineOutlinedIcon /> },
+  { label: "Encounters", path: "/care/encounters", icon: <TimelineOutlinedIcon />, activePrefix: ["/care/encounters", "/care/pathways", "/pathways"] },
   { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
   { label: "Reports", path: "/care/reports", icon: <DescriptionOutlinedIcon /> },
   { label: "Measures", path: "/care/measures", icon: <BarChartOutlinedIcon /> },

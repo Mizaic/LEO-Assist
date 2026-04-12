@@ -87,8 +87,8 @@
     title: "TrainingCandidate cascade delete removes linked KG artifacts"
     description: >
       Verifies that deleting a TrainingCandidate from the admin gold dataset API
-      removes linked GoldLabel and SurfaceFormTask artifacts and returns 404
-      for unknown candidate IDs.
+      removes linked GoldLabel and SurfaceFormTask artifacts, and that manual
+      duplicate-candidate controls support preview and apply operations.
     test_level: "unit"
     test_type: "functional"
     safety_class: "B"
@@ -125,6 +125,26 @@
       verification_method: "automated"
       acceptance_criteria:
         - "HTTP status is 404 for missing candidate"
+    - case_id: "VT-096-TC-003"
+      case_name: "Dedupe preview groups highly similar candidates"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call POST /training/candidates/dedupe/preview with completed status and threshold"
+          expected_result: "Returns candidate_pool_size, duplicate_count, and grouped canonical/duplicate candidate payloads"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "HTTP status is 200 and duplicate group count is non-zero for similar records"
+    - case_id: "VT-096-TC-004"
+      case_name: "Dedupe apply marks duplicates"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call POST /training/candidates/dedupe/apply with same criteria as preview"
+          expected_result: "Returns duplicates_marked > 0 and a dedupe run_id"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "HTTP status is 200 and response includes duplicates_marked and run_id"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -148,3 +168,13 @@
         Executed services/api/tests/test_training_candidate_delete.py. Both
         critical cases passed: delete success with cascade counts and 404 for
         unknown candidate ID.
+    - run_id: "VT-096-RUN-002"
+      date: "2026-04-12"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 4
+      failed_cases: 0
+      notes: >
+        Executed services/api/tests/test_training_candidate_delete.py including
+        dedupe preview and apply coverage for admin gold-dataset operations.

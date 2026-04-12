@@ -138,7 +138,9 @@ class TestNonEvidenceFilter:
         )
         assert is_non_evidence_line("Not on Thyroid Tx")
         assert is_non_evidence_line("No abnormality detected")
-        assert is_non_evidence_line("ALT level may be raised given the clinical picture.")
+        assert is_non_evidence_line(
+            "ALT level may be raised given the clinical picture."
+        )
         assert is_non_evidence_line(
             "If symptoms worsen, AMY may rise above 500 U/L warranting further review."
         )

@@ -44,6 +44,10 @@
         spec: "Failed jobs can be restarted without duplicate processing"
       - type: "test"
         spec: "Progress events published for each state transition"
+      - type: "test"
+        spec: "Transient Service Bus socket errors trigger reconnect retries without permanent consumer outage"
+      - type: "test"
+        spec: "Pipeline worker exposes consumer health status for operational monitoring"
 
     constraints:
       - type: "performance"
@@ -72,7 +76,7 @@
     method: "Test"
     phase: "OQ"
     acceptance: "Jobs consumed, dispatched, and tracked correctly; failed jobs can be restarted"
-    test_protocol: "VT-LEO-AI-019"
+    test_protocol: "VT-LEO-AI-094"
 
   safety_class: "B"
   risks: ["R-LEO-AI-015"]
