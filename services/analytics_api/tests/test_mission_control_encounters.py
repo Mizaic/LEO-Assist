@@ -79,6 +79,8 @@ async def test_encounter_list_without_search_returns_rows(monkeypatch):
         q=None,
         page=1,
         page_size=25,
+        max_results=2000,
+        near_duplicate_threshold=None,
         sort_by="encounter_date",
         sort_dir="DESC",
         scope=type(
@@ -116,6 +118,8 @@ async def test_hybrid_search_fallback_when_indexes_unavailable(monkeypatch):
         q="cough",
         page=1,
         page_size=25,
+        max_results=2000,
+        near_duplicate_threshold=None,
         sort_by="encounter_date",
         sort_dir="DESC",
         scope=type(
@@ -177,6 +181,8 @@ async def test_hybrid_search_returns_query_diagnostics(monkeypatch):
         q="breat lump weight loss",
         page=1,
         page_size=25,
+        max_results=2000,
+        near_duplicate_threshold=0.95,
         sort_by="encounter_date",
         sort_dir="DESC",
         scope=type(
@@ -193,3 +199,14 @@ async def test_hybrid_search_returns_query_diagnostics(monkeypatch):
     assert result["query_diagnostics"]["original_query"] == "breat lump weight loss"
     assert result["items"][0]["match_type"] == "hybrid"
     assert "rank_features" in result["items"][0]
+
+
+def test_suppress_near_duplicates_filters_similar_text():
+    ranked = [
+        {"encounter_id": "e1", "text": "breast lump and weight loss"},
+        {"encounter_id": "e2", "text": "breast lump with weight loss"},
+        {"encounter_id": "e3", "text": "skin lesion on forearm"},
+    ]
+    kept, filtered = mce._suppress_near_duplicates(ranked, 0.8)
+    assert len(kept) == 2
+    assert filtered == 1

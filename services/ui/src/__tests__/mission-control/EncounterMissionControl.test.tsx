@@ -18,7 +18,12 @@ jest.mock("@/lib/missionControlApi", () => ({
 }));
 
 describe("EncounterMissionControl", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
+    jest.spyOn(window, "confirm").mockReturnValue(true);
     fetchEncounterList.mockResolvedValue({
       total: 1,
       page: 1,
@@ -78,6 +83,77 @@ describe("EncounterMissionControl", () => {
     await waitFor(() => expect(batchResetAndRecodeEncounters).toHaveBeenCalled());
     expect(batchResetAndRecodeEncounters).toHaveBeenCalledWith(
       [{ patient_id: "p-1", encounter_id: "enc-1" }],
+      false,
+      undefined
+    );
+  });
+
+  test("submit all results queues across loaded search pages", async () => {
+    fetchEncounterList
+      .mockResolvedValueOnce({
+        total: 2,
+        page: 1,
+        page_size: 100,
+        items: [
+          {
+            encounter_id: "enc-1",
+            patient_id: "p-1",
+            encounter_date: "2025-01-01",
+            text: "Patient has cough",
+            coded_count: 1,
+            match_type: "hybrid",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        total: 2,
+        page: 1,
+        page_size: 100,
+        items: [
+          {
+            encounter_id: "enc-1",
+            patient_id: "p-1",
+            encounter_date: "2025-01-01",
+            text: "Patient has cough",
+            coded_count: 1,
+            match_type: "hybrid",
+          },
+          {
+            encounter_id: "enc-2",
+            patient_id: "p-2",
+            encounter_date: "2025-01-02",
+            text: "Patient has rash",
+            coded_count: 0,
+            match_type: "keyword",
+          },
+        ],
+      });
+    batchResetAndRecodeEncounters.mockResolvedValueOnce({
+      batch_id: "b-all",
+      requested: 2,
+      queued_count: 2,
+      failed_count: 0,
+      dry_run: false,
+      trigger_analysis: false,
+      queued: [
+        { patient_id: "p-1", encounter_id: "enc-1", run_id: "r-1", stream_path: "/api/pipeline/progress/r-1" },
+        { patient_id: "p-2", encounter_id: "enc-2", run_id: "r-2", stream_path: "/api/pipeline/progress/r-2" },
+      ],
+      failed: [],
+    });
+
+    render(<EncounterMissionControl />);
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await screen.findByText("p-1");
+
+    fireEvent.click(screen.getByRole("button", { name: /Reset \+ recode all results/ }));
+
+    await waitFor(() => expect(batchResetAndRecodeEncounters).toHaveBeenCalled());
+    expect(batchResetAndRecodeEncounters).toHaveBeenCalledWith(
+      [
+        { patient_id: "p-1", encounter_id: "enc-1" },
+        { patient_id: "p-2", encounter_id: "enc-2" },
+      ],
       false,
       undefined
     );

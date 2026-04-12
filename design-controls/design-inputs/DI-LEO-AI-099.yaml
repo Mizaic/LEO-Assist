@@ -7,9 +7,12 @@
   requirement: >
     The system SHALL provide an encounter-centric Mission Control workflow at
     /care/encounters that supports org-scoped hybrid search (fulltext plus
-    vector), ephemeral shortlist selection, and a dedicated batch reset+recode
-    API that queues extract_encounter jobs with trigger_analysis disabled by
-    default and optional override for analytics rerun.
+    vector), optional near-duplicate suppression for high-similarity encounter
+    text, ephemeral shortlist selection, and a dedicated batch reset+recode API
+    that queues extract_encounter jobs with trigger_analysis disabled by default
+    and optional override for analytics rerun. The workflow SHALL support queueing
+    all matching search results (not only the currently visible page), with
+    request chunking to preserve the 500-item batch safety bound.
   rationale: >
     Clinical audit users need a fast way to target encounter text directly and
     run controlled remediation in batches to evaluate extraction quality.
@@ -22,6 +25,8 @@
       - type: "functional"
         spec: "GET /analytics/mission-control/encounters returns org-scoped, paged encounter rows and supports q-based hybrid ranking"
       - type: "functional"
+        spec: "GET /analytics/mission-control/encounters accepts near_duplicate_threshold and suppresses highly similar encounter text rows while preserving ranking scores"
+      - type: "functional"
         spec: "Hybrid keyword leg uses db.index.fulltext.queryNodes('encounter_text_index', ...)"
       - type: "functional"
         spec: "Hybrid semantic leg uses db.index.vector.queryNodes('encounter_vector_index', ...), with graceful fallback if unavailable"
@@ -30,13 +35,15 @@
       - type: "safety"
         spec: "Batch endpoint trigger_analysis defaults false and is true only when explicitly set by caller"
       - type: "usability"
-        spec: "UI exposes shortlist selection and live per-encounter queued/running/completed/failed statuses"
+        spec: "UI exposes shortlist selection, queue-all-results action, and live per-encounter queued/running/completed/failed statuses"
 
   constraints:
     - type: "safety"
       spec: "Every batch item MUST pass patient scope enforcement before reset and queue"
     - type: "performance"
       spec: "Encounter list and search endpoints MUST cap page size at 100 and batch payload at 500 items"
+    - type: "safety"
+      spec: "Queue-all-results orchestration MUST split submissions into chunks of at most 500 encounters per batch API call"
 
   dependencies: ["DI-LEO-AI-001", "DI-LEO-AI-092", "DI-LEO-AI-095"]
   downstream_impacts:

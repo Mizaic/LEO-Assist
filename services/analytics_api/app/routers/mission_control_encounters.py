@@ -7,7 +7,9 @@ Provides org-scoped encounter listing, KPI summary, and hybrid search
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 import logging
+import re
 import uuid
 from typing import Any, Optional
 
@@ -119,6 +121,53 @@ def _try_embed_query(query: str) -> Optional[list[float]]:
     return [float(x) for x in vectors[0]]
 
 
+def _normalise_similarity_text(value: Any) -> str:
+    text = str(value or "").lower()
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _text_similarity(left: str, right: str) -> float:
+    if not left or not right:
+        return 0.0
+    if left == right:
+        return 1.0
+    left_tokens = set(left.split())
+    right_tokens = set(right.split())
+    if not left_tokens or not right_tokens:
+        jaccard = 0.0
+    else:
+        jaccard = len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+    seq = SequenceMatcher(None, left, right).ratio()
+    return max(jaccard, seq)
+
+
+def _suppress_near_duplicates(
+    ranked: list[dict[str, Any]], threshold: float | None
+) -> tuple[list[dict[str, Any]], int]:
+    if threshold is None:
+        return ranked, 0
+    kept: list[dict[str, Any]] = []
+    kept_text: list[str] = []
+    filtered = 0
+    for item in ranked:
+        normalised = _normalise_similarity_text(item.get("text"))
+        if not normalised:
+            kept.append(item)
+            kept_text.append("")
+            continue
+        is_duplicate = any(
+            existing and _text_similarity(normalised, existing) >= threshold
+            for existing in kept_text
+        )
+        if is_duplicate:
+            filtered += 1
+            continue
+        kept.append(item)
+        kept_text.append(normalised)
+    return kept, filtered
+
+
 def _rank_with_features(
     merged: dict[str, dict[str, Any]], *, expanded_terms: list[str]
 ) -> list[dict[str, Any]]:
@@ -219,6 +268,8 @@ async def get_mission_control_encounters(
     q: Optional[str] = Query(None, min_length=1),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
+    max_results: int = Query(2000, ge=100, le=5000),
+    near_duplicate_threshold: Optional[float] = Query(None, ge=0.8, le=0.99),
     sort_by: str = Query("encounter_date"),
     sort_dir: str = Query("DESC"),
     scope: CallerScope = Depends(get_caller_scope),
@@ -290,7 +341,7 @@ async def get_mission_control_encounters(
             )
             fulltext_params = {
                 "q_text": query_ctx.fulltext_query or text_q,
-                "limit": max(page_size * 4, 200),
+                "limit": min(max(max_results, page_size * 6), 5000),
             }
             where_chunks: list[str] = []
             if "org" in params:
@@ -342,9 +393,9 @@ async def get_mission_control_encounters(
                     "WHERE trim(coalesce(e.text, '')) <> '' "
                 )
                 vector_params = {
-                    "k": max(page_size * 6, 300),
+                    "k": min(max(max_results * 2, page_size * 8), 8000),
                     "query_vector": query_vector,
-                    "limit": max(page_size * 4, 200),
+                    "limit": min(max(max_results, page_size * 6), 5000),
                 }
                 where_chunks = []
                 if "org" in params:
@@ -421,6 +472,9 @@ async def get_mission_control_encounters(
                 }
 
         ranked = _rank_with_features(merged, expanded_terms=query_ctx.expanded_terms)
+        ranked, dedupe_filtered_count = _suppress_near_duplicates(
+            ranked, near_duplicate_threshold
+        )
         total = len(ranked)
         start = (page - 1) * page_size
         end = start + page_size
@@ -436,6 +490,8 @@ async def get_mission_control_encounters(
             "expanded_terms": query_ctx.expanded_terms,
             "fulltext_query": query_ctx.fulltext_query,
             "reasoning": query_ctx.reasoning,
+            "near_duplicate_threshold": near_duplicate_threshold,
+            "near_duplicate_filtered_count": dedupe_filtered_count,
         }
         try:
             _write_query_audit(

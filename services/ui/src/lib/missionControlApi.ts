@@ -362,6 +362,8 @@ export interface EncounterListParams {
   query?: string;
   page?: number;
   pageSize?: number;
+  maxResults?: number;
+  nearDuplicateThreshold?: number;
   sortBy?: "encounter_date" | "patient_id" | "coded_count";
   sortDir?: "ASC" | "DESC";
 }
@@ -425,6 +427,10 @@ export async function fetchEncounterList(
   if (params.query) p.set("q", params.query);
   p.set("page", String(params.page ?? 1));
   p.set("page_size", String(params.pageSize ?? 25));
+  p.set("max_results", String(params.maxResults ?? 2000));
+  if (typeof params.nearDuplicateThreshold === "number") {
+    p.set("near_duplicate_threshold", String(params.nearDuplicateThreshold));
+  }
   p.set("sort_by", params.sortBy ?? "encounter_date");
   p.set("sort_dir", params.sortDir ?? "DESC");
   return fetchJson<EncounterListResponse>(

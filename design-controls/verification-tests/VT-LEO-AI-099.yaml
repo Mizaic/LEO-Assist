@@ -11,7 +11,8 @@
     description: >
       Verifies encounter-centric mission control APIs and UI: org-scoped
       encounter list, hybrid search fallback behavior, batch reset+recode queue
-      payloads, and shortlist-to-progress rendering.
+      payloads, near-duplicate suppression control, queue-all-results behavior,
+      and shortlist-to-progress rendering.
     test_level: "integration"
     test_type: "functional"
     safety_class: "B"
@@ -71,6 +72,26 @@
       verification_method: "automated"
       acceptance_criteria:
         - "Selected rows are submitted; status summary is rendered"
+    - case_id: "VT-099-TC-005"
+      case_name: "Near-duplicate suppression reduces highly similar result rows"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call GET /analytics/mission-control/encounters with q and near_duplicate_threshold"
+          expected_result: "Highly similar encounter text rows are filtered and diagnostics include filtered count"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Response diagnostics include near_duplicate_threshold and near_duplicate_filtered_count"
+    - case_id: "VT-099-TC-006"
+      case_name: "Encounter UI queues all search results beyond visible rows"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Click Reset + recode all results after search returns more rows than visible table"
+          expected_result: "UI pages through all search results and submits one or more batch requests capped at 500 items each"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All matching encounter IDs are queued, not only currently rendered rows"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -106,3 +127,14 @@
         and npm test -- src/__tests__/mission-control/EncounterMissionControl.test.tsx --runInBand
         (2 passed). Playwright scenario remains blocked because (1) Chromium binaries are not installed
         (requires npx playwright install) and (2) local core-api backend was not running (ECONNREFUSED :8000).
+    - run_id: "VT-099-RUN-003"
+      date: "2026-04-12"
+      executor: "automated"
+      environment: "development"
+      result: "fail"
+      notes: >
+        Updated mission-control coverage for near-duplicate suppression and queue-all-results:
+        - .venv/bin/pytest services/analytics_api/tests/test_mission_control_encounters.py -q (6 passed)
+        - .venv/bin/pytest services/api/tests/test_patients_batch_recode.py -q (2 passed)
+        - npx jest src/__tests__/mission-control/EncounterMissionControl.test.tsx --no-coverage (3 passed)
+        Playwright remained out of scope in this run; VT status stays draft pending E2E execution.

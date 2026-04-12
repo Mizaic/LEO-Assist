@@ -73,6 +73,8 @@ export default function EncounterMissionControl() {
     median_codes_per_encounter: 0,
   });
   const [triggerAnalysis, setTriggerAnalysis] = useState(false);
+  const [excludeNearDuplicates, setExcludeNearDuplicates] = useState(false);
+  const [nearDuplicateThreshold, setNearDuplicateThreshold] = useState("0.95");
   const [statuses, setStatuses] = useState<Record<string, JobState>>({});
   const [queryDiagnostics, setQueryDiagnostics] =
     useState<EncounterListResponse["query_diagnostics"]>(undefined);
@@ -82,24 +84,41 @@ export default function EncounterMissionControl() {
   const [previewLinksError, setPreviewLinksError] = useState<string | null>(null);
 
   const selectedItems = useMemo(() => Object.values(selected), [selected]);
+  const nearDuplicateThresholdValue = useMemo(() => {
+    if (!excludeNearDuplicates) {
+      return undefined;
+    }
+    const parsed = Number(nearDuplicateThreshold);
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+    return Math.min(0.99, Math.max(0.8, parsed));
+  }, [excludeNearDuplicates, nearDuplicateThreshold]);
   const completedCount = Object.values(statuses).filter((s) => s === "completed").length;
   const failedCount = Object.values(statuses).filter((s) => s === "failed").length;
   const runningCount = Object.values(statuses).filter((s) => s === "running").length;
   const queuedCount = Object.values(statuses).filter((s) => s === "queued").length;
+
+  const buildSearchParams = useCallback(
+    (page = 1, pageSize = 100) => ({
+      orgId,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      query: query.trim() || undefined,
+      page,
+      pageSize,
+      maxResults: 5000,
+      nearDuplicateThreshold: nearDuplicateThresholdValue,
+    }),
+    [orgId, dateFrom, dateTo, query, nearDuplicateThresholdValue]
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     setMessage(null);
     try {
       const [encounters, nextKpis] = await Promise.all([
-        fetchEncounterList({
-          orgId,
-          dateFrom: dateFrom || undefined,
-          dateTo: dateTo || undefined,
-          query: query.trim() || undefined,
-          page: 1,
-          pageSize: 100,
-        }),
+        fetchEncounterList(buildSearchParams(1, 100)),
         fetchEncounterKPIs({
           orgId,
           dateFrom: dateFrom || undefined,
@@ -120,7 +139,7 @@ export default function EncounterMissionControl() {
     } finally {
       setLoading(false);
     }
-  }, [orgId, dateFrom, dateTo, query]);
+  }, [buildSearchParams, orgId, dateFrom, dateTo]);
 
   const toggleSelection = (item: EncounterListItem) => {
     setSelected((prev) => {
@@ -240,38 +259,103 @@ export default function EncounterMissionControl() {
     };
   };
 
-  const runBatch = async () => {
-    if (!selectedItems.length) {
-      setMessage("Select at least one encounter first.");
+  const runBatchForItems = async (
+    items: Array<Pick<EncounterListItem, "patient_id" | "encounter_id">>,
+    label: "selected" | "all"
+  ) => {
+    if (!items.length) {
+      setMessage(label === "all" ? "No encounters available for this search." : "Select at least one encounter first.");
       return;
     }
     setMessage(null);
-    const items = selectedItems.map((item) => ({
-      patient_id: item.patient_id,
-      encounter_id: item.encounter_id,
-    }));
+    const chunkSize = 500;
+    const chunks: typeof items[] = [];
+    for (let i = 0; i < items.length; i += chunkSize) {
+      chunks.push(items.slice(i, i + chunkSize));
+    }
+    const initial: Record<string, JobState> = {};
+    let queuedCount = 0;
+    let failedCount = 0;
     try {
-      const result = await batchResetAndRecodeEncounters(
-        items,
-        triggerAnalysis,
-        queryDiagnostics
-      );
-      const initial: Record<string, JobState> = {};
-      result.queued.forEach((job) => {
-        initial[job.encounter_id] = "queued";
-      });
-      result.failed.forEach((job) => {
-        initial[job.encounter_id] = "failed";
-      });
+      for (const chunk of chunks) {
+        const result = await batchResetAndRecodeEncounters(
+          chunk.map((item) => ({
+            patient_id: item.patient_id,
+            encounter_id: item.encounter_id,
+          })),
+          triggerAnalysis,
+          queryDiagnostics
+        );
+        queuedCount += result.queued_count;
+        failedCount += result.failed_count;
+        result.queued.forEach((job) => {
+          initial[job.encounter_id] = "queued";
+          subscribeToRun(job.run_id, job.encounter_id);
+        });
+        result.failed.forEach((job) => {
+          initial[job.encounter_id] = "failed";
+        });
+      }
       setStatuses(initial);
-      result.queued.forEach((job) => subscribeToRun(job.run_id, job.encounter_id));
       setMessage(
-        `Batch queued: ${result.queued_count} queued, ${result.failed_count} failed.`
+        `Batch queued (${label}): ${queuedCount} queued, ${failedCount} failed across ${chunks.length} batch request(s).`
       );
     } catch (err) {
       setMessage(
         err instanceof Error ? err.message : "Batch reset and recode failed."
       );
+    }
+  };
+
+  const runBatch = async () => {
+    await runBatchForItems(selectedItems, "selected");
+  };
+
+  const fetchAllSearchRows = useCallback(async (): Promise<EncounterListItem[]> => {
+    const pageSize = 100;
+    let page = 1;
+    let total = 0;
+    const all: EncounterListItem[] = [];
+    do {
+      const response = await fetchEncounterList(buildSearchParams(page, pageSize));
+      total = response.total;
+      all.push(...response.items);
+      if (!response.items.length) {
+        break;
+      }
+      page += 1;
+      if (page > 100) {
+        break;
+      }
+    } while (all.length < total);
+    return all;
+  }, [buildSearchParams]);
+
+  const runBatchAllResults = async () => {
+    if (!totalResults) {
+      setMessage("Search first to load encounter results.");
+      return;
+    }
+    const proceed = window.confirm(
+      `Queue reset + recode for all ${totalResults} matching encounters?`
+    );
+    if (!proceed) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const allRows = await fetchAllSearchRows();
+      await runBatchForItems(
+        allRows.map((item) => ({
+          patient_id: item.patient_id,
+          encounter_id: item.encounter_id,
+        })),
+        "all"
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not queue all results.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -312,6 +396,23 @@ export default function EncounterMissionControl() {
         <Button variant="contained" onClick={load} disabled={loading}>
           Search
         </Button>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="body2">Exclude near-duplicates</Typography>
+          <Switch
+            checked={excludeNearDuplicates}
+            onChange={(e) => setExcludeNearDuplicates(e.target.checked)}
+          />
+          <TextField
+            label="Similarity"
+            size="small"
+            type="number"
+            value={nearDuplicateThreshold}
+            onChange={(e) => setNearDuplicateThreshold(e.target.value)}
+            inputProps={{ min: 0.8, max: 0.99, step: 0.01 }}
+            sx={{ width: 110 }}
+            disabled={!excludeNearDuplicates}
+          />
+        </Stack>
       </Stack>
       <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
         <Typography variant="body2" sx={{ alignSelf: "center" }}>
@@ -360,8 +461,16 @@ export default function EncounterMissionControl() {
           <Button variant="contained" color="warning" onClick={runBatch}>
             Reset + recode selected ({selectedItems.length})
           </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={runBatchAllResults}
+            disabled={!totalResults || loading}
+          >
+            Reset + recode all results ({totalResults})
+          </Button>
           <Button variant="outlined" onClick={selectAllVisibleRows} disabled={!rows.length}>
-            Select all results
+            Select loaded results
           </Button>
           <Button variant="text" onClick={clearSelection} disabled={!selectedItems.length}>
             Clear selection
