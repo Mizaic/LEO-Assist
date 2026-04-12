@@ -107,7 +107,7 @@ export default function EncounterMissionControl() {
       query: query.trim() || undefined,
       page,
       pageSize,
-      maxResults: 5000,
+      maxResults: 1200,
       nearDuplicateThreshold: nearDuplicateThresholdValue,
     }),
     [orgId, dateFrom, dateTo, query, nearDuplicateThresholdValue]
@@ -496,6 +496,11 @@ export default function EncounterMissionControl() {
       <Typography variant="body2" sx={{ mb: 1 }}>
         Search results: {totalResults} (showing {rows.length})
       </Typography>
+      {totalResults >= 1200 && (
+        <Typography variant="caption" color="warning.main" sx={{ display: "block", mb: 1 }}>
+          Result cap reached (1200). Narrow the search or date range for full coverage.
+        </Typography>
+      )}
       <Paper>
         <Table size="small">
           <TableHead>

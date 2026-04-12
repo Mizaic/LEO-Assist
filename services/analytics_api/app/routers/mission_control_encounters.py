@@ -268,7 +268,7 @@ async def get_mission_control_encounters(
     q: Optional[str] = Query(None, min_length=1),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    max_results: int = Query(2000, ge=100, le=5000),
+    max_results: int = Query(1200, ge=100, le=2000),
     near_duplicate_threshold: Optional[float] = Query(None, ge=0.8, le=0.99),
     sort_by: str = Query("encounter_date"),
     sort_dir: str = Query("DESC"),
@@ -341,7 +341,7 @@ async def get_mission_control_encounters(
             )
             fulltext_params = {
                 "q_text": query_ctx.fulltext_query or text_q,
-                "limit": min(max(max_results, page_size * 6), 5000),
+                "limit": min(max(max_results, page_size * 3), 1500),
             }
             where_chunks: list[str] = []
             if "org" in params:
@@ -393,9 +393,9 @@ async def get_mission_control_encounters(
                     "WHERE trim(coalesce(e.text, '')) <> '' "
                 )
                 vector_params = {
-                    "k": min(max(max_results * 2, page_size * 8), 8000),
+                    "k": min(max(max_results, page_size * 4), 2500),
                     "query_vector": query_vector,
-                    "limit": min(max(max_results, page_size * 6), 5000),
+                    "limit": min(max(max_results, page_size * 3), 1500),
                 }
                 where_chunks = []
                 if "org" in params:
