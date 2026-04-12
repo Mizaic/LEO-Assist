@@ -7,6 +7,7 @@ All pipeline code should import from here — do NOT duplicate.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -187,6 +188,16 @@ _SERVICE_CONFIG_KEY = "terminology:resolve_runtime"
 _SERVICE_CONFIG_CACHE_TTL_SECONDS = float(
     os.getenv("SERVICE_CONFIG_CACHE_TTL_SECONDS", "15")
 )
+_TERMINOLOGY_CACHE_PREFIX = os.getenv(
+    "TERMINOLOGY_CACHE_PREFIX", "terminology:api:v1:"
+)
+_TERMINOLOGY_CACHE_TTL_SECONDS = int(
+    os.getenv("TERMINOLOGY_CACHE_TTL_SECONDS", "3600")
+)
+_TERMINOLOGY_CACHE_CONNECT_TIMEOUT = 2
+_TERMINOLOGY_CACHE_SOCKET_TIMEOUT = 2
+_terminology_cache_client: Any = None
+_terminology_cache_lock = threading.Lock()
 
 
 def _env_float(name: str, default: float) -> float:
@@ -386,6 +397,60 @@ def get_always_ignore_patterns(
     return _ALWAYS_IGNORE_PATTERNS + dynamic
 
 
+def _get_terminology_cache_client():
+    global _terminology_cache_client
+    if _terminology_cache_client is not None:
+        return _terminology_cache_client
+    url = os.getenv("REDIS_URL", "").strip()
+    if not url:
+        return None
+    with _terminology_cache_lock:
+        if _terminology_cache_client is not None:
+            return _terminology_cache_client
+        try:
+            import redis
+
+            _terminology_cache_client = redis.from_url(
+                url,
+                decode_responses=True,
+                socket_connect_timeout=_TERMINOLOGY_CACHE_CONNECT_TIMEOUT,
+                socket_timeout=_TERMINOLOGY_CACHE_SOCKET_TIMEOUT,
+            )
+            return _terminology_cache_client
+        except Exception:
+            _terminology_cache_client = None
+            return None
+
+
+def _build_cache_key(payload: dict[str, Any], suffix: str) -> str:
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return f"{_TERMINOLOGY_CACHE_PREFIX}{suffix}:{digest}"
+
+
+def _cache_get_json(key: str) -> Any:
+    cache = _get_terminology_cache_client()
+    if cache is None:
+        return None
+    try:
+        raw = cache.get(key)
+        if not raw:
+            return None
+        return json.loads(raw)
+    except Exception:
+        return None
+
+
+def _cache_set_json(key: str, payload: Any) -> None:
+    cache = _get_terminology_cache_client()
+    if cache is None:
+        return
+    try:
+        cache.setex(key, _TERMINOLOGY_CACHE_TTL_SECONDS, json.dumps(payload))
+    except Exception:
+        logger.debug("Terminology cache set failed for key=%s", key, exc_info=True)
+
+
 class _ConcurrencyGate:
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -445,6 +510,10 @@ class TerminologyClient:
             body["expected_tags"] = {
                 term: tag for term, tag in expected_tags.items() if term in terms
             }
+        cache_key = _build_cache_key(body, "resolve")
+        cached = _cache_get_json(cache_key)
+        if isinstance(cached, dict):
+            return _parse_results(cached.get("results", {}))
 
         total_initial_attempts = 1 + max_retries
         with _RESOLVE_GATE.slot(max_concurrent_requests):
@@ -457,6 +526,7 @@ class TerminologyClient:
                         )
                         resp.raise_for_status()
                         data = resp.json()
+                        _cache_set_json(cache_key, data)
                         return _parse_results(data.get("results", {}))
                 except Exception as exc:
                     if attempt < max_retries:
@@ -490,6 +560,7 @@ class TerminologyClient:
                                 )
                                 resp.raise_for_status()
                                 data = resp.json()
+                                _cache_set_json(cache_key, data)
                                 logger.info(
                                     "Terminology resolve recovered after cooldown on final attempt %d/%d for %d term(s).",
                                     final_attempt + 1,
@@ -581,6 +652,46 @@ class TerminologyClient:
         candidates = results.get(text, [])
         return candidates[0] if candidates else None
 
+    def search(
+        self,
+        query: str,
+        limit: int = 10,
+        semantic_tags: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Search terminology candidates by text query."""
+        import httpx
+
+        cleaned_query = str(query or "").strip()
+        if not cleaned_query:
+            return []
+
+        tags = sorted({str(t).strip() for t in (semantic_tags or []) if str(t).strip()})
+        payload = {"q": cleaned_query, "limit": int(limit), "semantic_tag": tags}
+        cache_key = _build_cache_key(payload, "search")
+        cached = _cache_get_json(cache_key)
+        if isinstance(cached, list):
+            return [row for row in cached if isinstance(row, dict)]
+
+        params: dict[str, Any] = {"q": cleaned_query, "limit": int(limit)}
+        if tags:
+            params["semantic_tag"] = tags
+
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                resp = client.get(
+                    f"{self._base_url}/terminology/search",
+                    params=params,
+                )
+                resp.raise_for_status()
+                data = resp.json() or []
+                if isinstance(data, list):
+                    _cache_set_json(cache_key, data)
+                    return [row for row in data if isinstance(row, dict)]
+                return []
+        except Exception:
+            logger.warning("search(%r) failed", cleaned_query, exc_info=True)
+            return []
+
     def get_related(self, concept_id: str) -> dict[str, Any]:
         """Retrieve SNOMED ontology family for a concept (INTERPRETS, HAS_COMPONENT,
         HAS_ASSOCIATED_FINDING relationships).
@@ -666,6 +777,10 @@ class AsyncTerminologyClient:
             body["expected_tags"] = {
                 term: tag for term, tag in expected_tags.items() if term in terms
             }
+        cache_key = _build_cache_key(body, "resolve")
+        cached = _cache_get_json(cache_key)
+        if isinstance(cached, dict):
+            return cached.get("results", {})
 
         total_initial_attempts = 1 + max_retries
         for attempt in range(total_initial_attempts):
@@ -677,6 +792,7 @@ class AsyncTerminologyClient:
                     )
                     resp.raise_for_status()
                     data = resp.json()
+                    _cache_set_json(cache_key, data)
                     return data.get("results", {})
             except Exception as exc:
                 if attempt < max_retries:
@@ -710,6 +826,7 @@ class AsyncTerminologyClient:
                             )
                             resp.raise_for_status()
                             data = resp.json()
+                            _cache_set_json(cache_key, data)
                             logger.info(
                                 "Async terminology resolve recovered after cooldown on final attempt %d/%d for %d term(s).",
                                 final_attempt + 1,

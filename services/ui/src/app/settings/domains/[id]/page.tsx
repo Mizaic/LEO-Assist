@@ -4,11 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import {
   fetchDomain,
   updateDomain,
   createSubdomain,
+  deleteSubdomain,
   fetchSubdomain,
   updateSubdomain,
   addConceptToSubdomain,
@@ -75,6 +82,9 @@ export default function DomainDetailPage() {
 
   const [allSemanticTags, setAllSemanticTags] = useState<string[]>([]);
 
+  const [deleteTarget, setDeleteTarget] = useState<SubdomainSummary | null>(null);
+  const [deletingSubdomain, setDeletingSubdomain] = useState<string | null>(null);
+
   useEffect(() => {
     fetchSemanticTags()
       .then(setAllSemanticTags)
@@ -136,6 +146,20 @@ export default function DomainDetailPage() {
       setError(e instanceof Error ? e.message : "Failed to create subdomain");
     } finally {
       setCreateSubmitting(false);
+    }
+  };
+
+  const handleDeleteSubdomain = async () => {
+    if (!deleteTarget) return;
+    setDeletingSubdomain(deleteTarget.name);
+    setDeleteTarget(null);
+    try {
+      await deleteSubdomain(domainId, deleteTarget.name);
+      loadDomain();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete subdomain");
+    } finally {
+      setDeletingSubdomain(null);
     }
   };
 
@@ -318,8 +342,10 @@ export default function DomainDetailPage() {
           subdomainCount={domain.subdomains.length}
           subdomains={domain.subdomains}
           canEditDomains={canEditDomains}
+          deletingSubdomain={deletingSubdomain}
           onCreateClick={() => setCreateOpen(true)}
           onConfigure={openConfig}
+          onDelete={setDeleteTarget}
         />
       ) : null}
 
@@ -333,6 +359,27 @@ export default function DomainDetailPage() {
         onCreateDescChange={setCreateDesc}
         onSubmit={handleCreateSubdomain}
       />
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete subdomain?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Permanently delete <strong>{deleteTarget?.name.replace(/_/g, " ")}</strong>
+            {" "}and all its SNOMED concepts. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={() => void handleDeleteSubdomain()}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ConfigureSubdomainDialog
         open={configOpen}

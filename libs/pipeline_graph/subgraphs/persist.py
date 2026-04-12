@@ -329,6 +329,13 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                     "semantic_tag": entity.get("semantic_tag")
                     or entity.get("label")
                     or "",
+                    "snomed_concept_id": str(entity.get("concept_id") or ""),
+                    "snomed_term": str(
+                        entity.get("term")
+                        or entity.get("preferred_term")
+                        or entity.get("text", "")
+                        or ""
+                    ),
                     "start": entity.get("start", 0),
                     "end": entity.get("end", 0),
                     "assertion": entity.get("assertion", "present"),

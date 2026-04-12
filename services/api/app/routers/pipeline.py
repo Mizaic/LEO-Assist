@@ -495,6 +495,26 @@ def stream_progress(run_id: str):
             import redis as _redis  # lazy import — redis may not be installed in all envs
 
             r = _redis.from_url(REDIS_URL)
+            last_key = f"pipeline:last:{run_id}"
+            last_raw = r.get(last_key)
+            if last_raw:
+                try:
+                    if isinstance(last_raw, bytes):
+                        last_raw = last_raw.decode("utf-8")
+                    last_event = json.loads(last_raw)
+                    if isinstance(last_event, dict):
+                        events.put(last_event)
+                        if last_event.get("type") in {
+                            "run_completed",
+                            "pipeline_error",
+                            "run_error",
+                            "extraction_done",
+                            "encounter_completed",
+                            "encounter_error",
+                        }:
+                            return
+                except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
+                    pass
             ps = r.pubsub(ignore_subscribe_messages=True)
             channel = f"pipeline:{run_id}"
             ps.subscribe(channel)
@@ -556,6 +576,56 @@ def stream_progress(run_id: str):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/progress-status/{run_id}")
+def get_progress_status(run_id: str) -> dict[str, object]:
+    """Return latest known run status snapshot for UI polling fallback."""
+    try:
+        import redis as _redis
+
+        r = _redis.from_url(REDIS_URL)
+        raw = r.get(f"pipeline:last:{run_id}")
+        if raw is None:
+            return {"run_id": run_id, "state": "queued", "event_type": None, "status": None}
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        payload = json.loads(raw)
+        if not isinstance(payload, dict):
+            return {"run_id": run_id, "state": "queued", "event_type": None, "status": None}
+        event_type = str(payload.get("type") or "")
+        status = str(payload.get("status") or "")
+        if event_type in {"pipeline_error", "run_error", "encounter_error"}:
+            state = "failed"
+        elif event_type in {
+            "run_completed",
+            "encounter_completed",
+            "pipeline_done",
+            "extraction_done",
+        }:
+            state = "completed"
+        elif event_type in {
+            "run_started",
+            "patient_started",
+            "encounter_started",
+            "step_completed",
+            "step_done",
+        }:
+            state = "running"
+        elif status == "error":
+            state = "failed"
+        elif status in {"completed", "empty_extraction", "needs_review"}:
+            state = "completed"
+        else:
+            state = "queued"
+        return {
+            "run_id": run_id,
+            "state": state,
+            "event_type": event_type or None,
+            "status": status or None,
+        }
+    except Exception:
+        return {"run_id": run_id, "state": "queued", "event_type": None, "status": None}
 
 
 @router.get("/stream")

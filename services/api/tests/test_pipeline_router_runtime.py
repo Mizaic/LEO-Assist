@@ -8,6 +8,7 @@ from app.routers.pipeline import (
     RunAllPatientsRequest,
     RunCohortRequest,
     RunPatientRequest,
+    get_progress_status,
     list_pipeline_subgraphs,
     run_all_patients,
     run_patient,
@@ -42,6 +43,26 @@ def test_legacy_run_endpoint_is_explicitly_retired():
             service=None,  # type: ignore[arg-type]
         )
     assert exc.value.status_code == 410
+
+
+def test_progress_status_maps_cached_terminal_event(monkeypatch):
+    class _RedisClient:
+        def get(self, key):
+            _ = key
+            return b'{"type":"run_completed","status":"completed"}'
+
+    class _RedisModule:
+        @staticmethod
+        def from_url(url):
+            _ = url
+            return _RedisClient()
+
+    import sys
+
+    monkeypatch.setitem(sys.modules, "redis", _RedisModule())
+    payload = get_progress_status("run-123")
+    assert payload["run_id"] == "run-123"
+    assert payload["state"] == "completed"
 
 
 @pytest.mark.asyncio

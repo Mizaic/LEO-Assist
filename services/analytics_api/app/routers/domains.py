@@ -53,11 +53,22 @@ def _valueset_id_to_subdomain(vs_id: str) -> str:
 
 
 def _ensure_default_domain() -> None:
-    """Create a default 'cancer_audit' AuditDomain linked to existing ncda-* ValueSets."""
+    """Create a default 'cancer_audit' AuditDomain linked to existing ncda-* ValueSets.
+
+    Also removes duplicate HAS_SUBDOMAIN relationships that can accumulate due to
+    concurrent MERGE calls (Neo4j has no uniqueness constraint on relationships).
+    """
     client = KnowledgeGraphClient()
     try:
         existing = client.run("MATCH (d:AuditDomain) RETURN count(d) AS cnt")
         if existing and existing[0].get("cnt", 0) > 0:
+            # Remove any duplicate HAS_SUBDOMAIN rels regardless of how domain was seeded.
+            client.run(
+                "MATCH (d:AuditDomain)-[r:HAS_SUBDOMAIN]->(v:ValueSet) "
+                "WITH d, v, collect(r) AS rels "
+                "WHERE size(rels) > 1 "
+                "FOREACH (dup IN tail(rels) | DELETE dup)"
+            )
             return
 
         vs_rows = client.run(
@@ -385,7 +396,7 @@ def list_domains(
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
                 "coalesce(d.episodeDetector, false) AS episode_detector, "
-                "count(v) AS subdomain_count "
+                "count(DISTINCT v) AS subdomain_count "
                 "ORDER BY d.name"
             )
             rows = client.run(cypher, source=source)
@@ -396,7 +407,7 @@ def list_domains(
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
                 "coalesce(d.episodeDetector, false) AS episode_detector, "
-                "count(v) AS subdomain_count "
+                "count(DISTINCT v) AS subdomain_count "
                 "ORDER BY d.name"
             )
         return [
@@ -412,6 +423,66 @@ def list_domains(
         ]
     finally:
         client.close()
+
+
+class SubdomainMembershipItem(BaseModel):
+    domain_id: str
+    domain_name: str
+    subdomain_name: str
+    subdomain_label: str
+    is_member: bool
+
+
+class ConceptMembershipsResponse(BaseModel):
+    concept_id: str
+    subdomains: List[SubdomainMembershipItem]
+
+
+@router.get("/concepts/{concept_id}/subdomain-memberships")
+def get_concept_subdomain_memberships(
+    concept_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> ConceptMembershipsResponse:
+    """Single-query endpoint: returns all subdomains with an is_member flag.
+
+    Replaces the previous N+M per-subdomain fetch pattern used by the
+    SNOMED lookup dialog in the operations UI.
+    """
+    _ensure_default_domain()
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (d:AuditDomain)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
+            "WITH DISTINCT d, v "
+            "RETURN d.id AS domain_id, coalesce(d.name, d.id) AS domain_name, "
+            "       coalesce(v.name, v.id) AS subdomain_name, "
+            "       v.rawJson AS raw_json "
+            "ORDER BY d.name, v.name"
+        )
+    finally:
+        client.close()
+
+    items: List[SubdomainMembershipItem] = []
+    seen: set = set()
+    for row in rows or []:
+        d_id = row["domain_id"]
+        sub_name = row["subdomain_name"]
+        key = f"{d_id}::{sub_name}"
+        if key in seen:
+            continue
+        seen.add(key)
+        concepts = _parse_concepts_from_raw(row.get("raw_json"))
+        is_member = any(str(c.get("concept_id")) == str(concept_id) for c in concepts)
+        items.append(
+            SubdomainMembershipItem(
+                domain_id=d_id,
+                domain_name=row["domain_name"],
+                subdomain_name=sub_name,
+                subdomain_label=sub_name.replace("_", " "),
+                is_member=is_member,
+            )
+        )
+    return ConceptMembershipsResponse(concept_id=concept_id, subdomains=items)
 
 
 @router.post("/domains", response_model=DomainSummary, status_code=201)
@@ -467,6 +538,7 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
 
         vs_rows = client.run(
             "MATCH (d:AuditDomain {id: $id})-[:HAS_SUBDOMAIN]->(v:ValueSet) "
+            "WITH DISTINCT v "
             "RETURN v.id AS vid, v.name AS name, v.description AS description, "
             "       v.milestoneType AS milestoneType, "
             "       v.timeWindowMonths AS timeWindowMonths, "
@@ -597,6 +669,29 @@ def delete_domain(domain_id: str, scope: CallerScope = Depends(_require_admin)):
         client.run("MATCH (d:AuditDomain {id: $id}) DETACH DELETE d", id=domain_id)
     finally:
         client.close()
+
+
+@router.delete("/domains/{domain_id}/subdomains/{subdomain_name}", status_code=204)
+def delete_subdomain(
+    domain_id: str,
+    subdomain_name: str,
+    scope: CallerScope = Depends(_require_admin),
+):
+    """Delete a subdomain (ValueSet) and remove its link from the domain.
+
+    The ValueSet node is detached and deleted. This cannot be undone.
+    """
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+    vs_id = _subdomain_to_valueset_id(subdomain_name)
+    client = KnowledgeGraphClient()
+    try:
+        client.run(
+            "MATCH (v:ValueSet {id: $id}) DETACH DELETE v",
+            id=vs_id,
+        )
+    finally:
+        client.close()
+    DomainRegistry.reset_instance()
 
 
 # ── Subdomain endpoints ──────────────────────────────────────────────────

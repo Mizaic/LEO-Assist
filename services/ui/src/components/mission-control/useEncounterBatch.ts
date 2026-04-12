@@ -10,6 +10,13 @@ import {
 
 type JobState = "queued" | "running" | "completed" | "failed";
 
+const JOB_STATE_RANK: Record<JobState, number> = {
+  queued: 1,
+  running: 2,
+  completed: 3,
+  failed: 3,
+};
+
 interface BuildParams {
   (page: number, pageSize: number): Parameters<typeof fetchEncounterList>[0];
 }
@@ -33,8 +40,52 @@ export function useEncounterBatch({
     const source = new EventSource(
       `${window.location.origin}/api/pipeline/progress/${encodeURIComponent(runId)}`
     );
+    let terminal = false;
     const mark = (state: JobState) =>
-      setStatuses((prev) => ({ ...prev, [encounterId]: state }));
+      setStatuses((prev) => {
+        const current = prev[encounterId];
+        if (current && JOB_STATE_RANK[current] > JOB_STATE_RANK[state]) {
+          return prev;
+        }
+        if (current && JOB_STATE_RANK[current] === JOB_STATE_RANK[state]) {
+          if (current === "completed" && state === "failed") {
+            return prev;
+          }
+          if (current === "failed" && state === "completed") {
+            return prev;
+          }
+        }
+        return { ...prev, [encounterId]: state };
+      });
+    const finish = (state: JobState) => {
+      terminal = true;
+      mark(state);
+      source.close();
+      window.clearInterval(pollTimer);
+    };
+    const pollLastStatus = async () => {
+      if (terminal) return;
+      try {
+        const response = await fetch(
+          `/api/pipeline/progress-status/${encodeURIComponent(runId)}`
+        );
+        if (!response.ok) return;
+        const payload = (await response.json()) as { state?: string };
+        const state = payload.state;
+        if (state === "running") {
+          mark("running");
+        } else if (state === "completed") {
+          finish("completed");
+        } else if (state === "failed") {
+          finish("failed");
+        }
+      } catch {
+        // Keep waiting for next poll/SSE event.
+      }
+    };
+    const pollTimer = window.setInterval(() => {
+      void pollLastStatus();
+    }, 2500);
     const onEvent = (ev: MessageEvent) => {
       try {
         const payload = JSON.parse(ev.data) as { type?: string };
@@ -58,12 +109,10 @@ export function useEncounterBatch({
             "extraction_done",
           ].includes(type)
         ) {
-          mark("completed");
-          source.close();
+          finish("completed");
         }
         if (["pipeline_error", "run_error", "encounter_error"].includes(type)) {
-          mark("failed");
-          source.close();
+          finish("failed");
         }
       } catch { /* Ignore malformed SSE events. */ }
     };
@@ -82,7 +131,12 @@ export function useEncounterBatch({
       "encounter_error",
     ]
       .forEach((ev) => source.addEventListener(ev, onEvent as EventListener));
-    source.onerror = () => { mark("failed"); source.close(); };
+    source.onerror = () => {
+      if (!terminal) {
+        void pollLastStatus();
+      }
+    };
+    void pollLastStatus();
   }, []);
 
   const runBatchForItems = useCallback(async (
@@ -94,7 +148,7 @@ export function useEncounterBatch({
       return;
     }
     setMessage(null);
-    const initial: Record<string, JobState> = {};
+    setStatuses({});
     let queued = 0;
     let failed = 0;
     try {
@@ -108,12 +162,19 @@ export function useEncounterBatch({
         queued += result.queued_count;
         failed += result.failed_count;
         result.queued.forEach((job) => {
-          initial[job.encounter_id] = "queued";
+          setStatuses((prev) => {
+            const current = prev[job.encounter_id];
+            if (current === "running" || current === "completed") {
+              return prev;
+            }
+            return { ...prev, [job.encounter_id]: "queued" };
+          });
           subscribeToRun(job.run_id, job.encounter_id);
         });
-        result.failed.forEach((job) => { initial[job.encounter_id] = "failed"; });
+        result.failed.forEach((job) => {
+          setStatuses((prev) => ({ ...prev, [job.encounter_id]: "failed" }));
+        });
       }
-      setStatuses(initial);
       setMessage(`Batch queued (${label}): ${queued} queued, ${failed} failed.`);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Batch reset and recode failed.");

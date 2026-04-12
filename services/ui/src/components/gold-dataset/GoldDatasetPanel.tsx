@@ -2,9 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
+import Checkbox from "@mui/material/Checkbox";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -30,20 +35,30 @@ import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
+import Popover from "@mui/material/Popover";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import LinkIcon from "@mui/icons-material/Link";
 import NotInterestedIcon from "@mui/icons-material/NotInterested";
 import SearchIcon from "@mui/icons-material/Search";
 import SyncIcon from "@mui/icons-material/Sync";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import { exportMedSpaCyTraining, fetchSurfaceForms, patchGoldLabelEntities, upsertSurfaceFormMapping } from "@/lib/api/legacy";
+import { createEncounterSuppressRule, createSuppressRule, exportMedSpaCyTraining, fetchSurfaceForms, patchGoldLabelEntities, searchTerms, upsertSurfaceFormMapping } from "@/lib/api/legacy";
+import {
+  addConceptToSubdomain,
+  fetchConceptSubdomainMemberships,
+  type SubdomainMembershipItem,
+} from "@/lib/analyticsApi";
 import type { TermSearchResult } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import TermSearch from "@/components/TermSearch";
@@ -96,6 +111,7 @@ interface ValuesetOption {
 interface Candidate {
   candidate_id: string;
   text: string;
+  entities_json?: string | null;
   source: string;
   status: string;
   created_at: string;
@@ -119,6 +135,7 @@ interface Entity {
   label?: string;
   semantic_tag?: string;
   snomed_concept_id?: string;
+  snomed_term?: string;
   assertion?: string;
 }
 
@@ -206,7 +223,32 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
       ...(init?.headers as Record<string, string> | undefined),
     },
   });
-  if (!res.ok) throw new Error(`${res.status}`);
+  if (!res.ok) {
+    let message = `${res.status}`;
+    try {
+      const payload = (await res.json()) as { detail?: unknown; message?: string };
+      if (typeof payload.message === "string" && payload.message.trim()) {
+        message = payload.message.trim();
+      } else if (typeof payload.detail === "string" && payload.detail.trim()) {
+        message = payload.detail.trim();
+      } else if (Array.isArray(payload.detail) && payload.detail.length) {
+        const first = payload.detail[0] as { msg?: string } | string;
+        if (typeof first === "string" && first.trim()) {
+          message = first.trim();
+        } else if (
+          typeof first === "object" &&
+          first !== null &&
+          typeof first.msg === "string" &&
+          first.msg.trim()
+        ) {
+          message = first.msg.trim();
+        }
+      }
+    } catch {
+      // Keep status-only message fallback.
+    }
+    throw new Error(message);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -214,7 +256,28 @@ function parseEntities(json: string | null): Entity[] {
   if (!json) return [];
   try {
     const parsed = JSON.parse(json);
-    if (Array.isArray(parsed)) return parsed as Entity[];
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+        .map((entry) => {
+          const coding = (entry.coding && typeof entry.coding === "object"
+            ? (entry.coding as Record<string, unknown>)
+            : {}) as Record<string, unknown>;
+          const snomedConceptId = String(
+            entry.snomed_concept_id ?? entry.concept_id ?? coding.snomed_concept_id ?? "",
+          ).trim();
+          const snomedTerm = String(
+            entry.snomed_term ?? entry.term ?? entry.preferred_term ?? coding.snomed_term ?? "",
+          ).trim();
+          const text = String(entry.text ?? "").trim();
+          return {
+            ...entry,
+            text,
+            snomed_concept_id: snomedConceptId || undefined,
+            snomed_term: snomedTerm || undefined,
+          } as Entity;
+        });
+    }
     return [];
   } catch {
     return [];
@@ -419,99 +482,6 @@ function DetailField({ label, children }: { label: string; children: React.React
   );
 }
 
-function CandidateDetailDialog({
-  item,
-  onClose,
-  onDelete,
-  deleting,
-  onEditTerms,
-  openingLabelEditor,
-  onMarkGold,
-  markingGold,
-}: {
-  item: Candidate;
-  onClose: () => void;
-  onDelete: (candidateId: string) => void;
-  deleting: boolean;
-  onEditTerms: (candidateId: string) => void;
-  openingLabelEditor: boolean;
-  onMarkGold: (candidateId: string) => void;
-  markingGold: boolean;
-}) {
-  return (
-    <Dialog open onClose={onClose} maxWidth="md" fullWidth scroll="paper">
-      <DialogTitle sx={{ pr: 6 }}>
-        Candidate
-        <Typography component="span" variant="body2" sx={{ fontFamily: "monospace", color: "text.secondary", ml: 1 }}>
-          {item.candidate_id}
-        </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ position: "absolute", top: 12, right: 12 }}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent dividers>
-        <DetailField label="Encounter text">
-          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-            {item.text || "—"}
-          </Typography>
-        </DetailField>
-        <Divider sx={{ my: 2 }} />
-        <Stack direction="row" flexWrap="wrap" spacing={3} useFlexGap>
-          <DetailField label="Status">
-            <Chip
-              icon={statusIcon(item.status)}
-              label={item.status}
-              color={statusColor(item.status)}
-              size="small"
-              sx={{ fontWeight: 600, textTransform: "capitalize" }}
-            />
-          </DetailField>
-          <DetailField label="Source">
-            <Typography variant="body2">{item.source || "—"}</Typography>
-          </DetailField>
-          <DetailField label="Created">
-            <Typography variant="body2">{formatDate(item.created_at)}</Typography>
-          </DetailField>
-          <DetailField label="Updated">
-            <Typography variant="body2">{formatDate(item.updated_at)}</Typography>
-          </DetailField>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button variant="text" onClick={onClose}>
-          Close
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={openingLabelEditor ? <CircularProgress size={14} /> : <SearchIcon fontSize="small" />}
-          disabled={deleting || openingLabelEditor || markingGold}
-          onClick={() => onEditTerms(item.candidate_id)}
-        >
-          Edit terms and assertions
-        </Button>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={markingGold ? <CircularProgress size={14} /> : <VerifiedIcon fontSize="small" />}
-          disabled={deleting || openingLabelEditor || markingGold}
-          onClick={() => onMarkGold(item.candidate_id)}
-        >
-          Mark as gold data
-        </Button>
-        <Button
-          variant="contained"
-          color="error"
-          startIcon={deleting ? <CircularProgress size={14} /> : <DeleteOutlineIcon fontSize="small" />}
-          disabled={deleting}
-          onClick={() => onDelete(item.candidate_id)}
-        >
-          Delete candidate
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
 // State for the row being looked up: index into entities array
 interface LookupTarget {
   entityIndex: number;
@@ -530,14 +500,85 @@ function normaliseLookupTag(raw: string): string | null {
   return tag;
 }
 
+// ---------------------------------------------------------------------------
+// Delete candidate dialog -- with optional entity suppression
+// ---------------------------------------------------------------------------
+
+function DeleteCandidateDialog({
+  target,
+  onCancel,
+  onConfirm,
+}: {
+  target: { id: string; text: string; entities: Entity[] };
+  onCancel: () => void;
+  onConfirm: (suppressEncounterText: boolean) => void;
+}) {
+  const [suppressChecked, setSuppressChecked] = useState(false);
+
+  return (
+    <Dialog open onClose={onCancel} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ color: "error.main" }}>Delete training candidate?</DialogTitle>
+      <DialogContent dividers>
+        <Typography variant="body2" sx={{ mb: 1.5 }}>
+          This will permanently delete this candidate, its linked gold labels, and related surface-form tasks from Neo4j.
+        </Typography>
+        {target.text && (
+          <Box sx={{ bgcolor: "action.hover", borderRadius: 1, px: 1.5, py: 1, mb: 2, borderLeft: "3px solid", borderColor: "divider" }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.25 }}>
+              Encounter text
+            </Typography>
+            <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+              {target.text}
+            </Typography>
+          </Box>
+        )}
+        <Divider sx={{ mb: 1.5 }} />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={suppressChecked}
+              onChange={(e) => setSuppressChecked(e.target.checked)}
+              size="small"
+              disabled={!target.text.trim()}
+            />
+          }
+          label={
+            <Typography variant="body2" fontWeight={600}>
+              Suppress this encounter text from future pipeline runs
+            </Typography>
+          }
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", ml: 3.5 }}>
+          Creates a context-pattern suppress rule. Any entities extracted from matching encounter text will be removed in the post-processing step.
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 2, pb: 2 }}>
+        <Button variant="outlined" size="small" onClick={onCancel}>Cancel</Button>
+        <Button
+          variant="contained"
+          color="error"
+          size="small"
+          onClick={() => onConfirm(suppressChecked)}
+        >
+          {suppressChecked ? "Delete and suppress encounter" : "Delete candidate"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 function GoldLabelDetailDialog({
   item,
   onClose,
   onEntitiesChanged,
+  onMarkGold,
+  markingGold,
 }: {
   item: GoldLabel;
   onClose: () => void;
   onEntitiesChanged?: () => void;
+  onMarkGold?: () => void;
+  markingGold?: boolean;
 }) {
   const [entities, setEntities] = useState<Entity[]>(() => parseEntities(item.entities_json));
   const [saving, setSaving] = useState(false);
@@ -548,6 +589,146 @@ function GoldLabelDetailDialog({
   const [newEntityAssertion, setNewEntityAssertion] = useState<(typeof ASSERTION_OPTIONS)[number]>("present");
   const [lookupTarget, setLookupTarget] = useState<LookupTarget | null>(null);
   const [termDrafts, setTermDrafts] = useState<Record<number, string>>({});
+  const [suppressingIndex, setSuppressingIndex] = useState<number | null>(null);
+  const [suggestions, setSuggestions] = useState<Record<number, TermSearchResult | null>>({});
+  const [searchingAll, setSearchingAll] = useState(false);
+
+  const pendingSuggestionCount = Object.values(suggestions).filter(Boolean).length;
+
+  async function handleAutoCodeAll() {
+    setSearchingAll(true);
+    setSaveError(null);
+    setSaveMsg(null);
+    const targets = entities
+      .map((e, i) => ({ i, e }))
+      .filter(({ e }) => !e.snomed_concept_id && e.text?.trim());
+    const results = await Promise.allSettled(
+      targets.map(async ({ i, e }) => {
+        const rows = await searchTerms(e.text, 1, e.label ? [e.label] : undefined);
+        return { i, result: rows[0] ?? null };
+      }),
+    );
+    const next: Record<number, TermSearchResult | null> = {};
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        next[r.value.i] = r.value.result as TermSearchResult | null;
+      }
+    }
+    setSuggestions(next);
+    setSearchingAll(false);
+  }
+
+  function handleDismissSuggestion(idx: number) {
+    setSuggestions((prev) => {
+      const next = { ...prev };
+      delete next[idx];
+      return next;
+    });
+  }
+
+  async function handleAcceptSuggestion(idx: number) {
+    const suggestion = suggestions[idx];
+    if (!suggestion) return;
+    const next = entities.map((e, i) =>
+      i === idx
+        ? { ...e, snomed_concept_id: suggestion.snomed_concept_id, snomed_term: suggestion.term, semantic_tag: suggestion.semantic_tag ?? e.semantic_tag }
+        : e,
+    );
+    const ok = await persistEntities(next, `Code applied: ${suggestion.snomed_concept_id} - ${suggestion.term}`);
+    if (ok) handleDismissSuggestion(idx);
+  }
+
+  async function handleAcceptAllSuggestions() {
+    const entries = Object.entries(suggestions).filter(([, v]) => v !== null) as [string, TermSearchResult][];
+    if (!entries.length) return;
+    const next = entities.map((e, i) => {
+      const suggestion = suggestions[i];
+      return suggestion ? { ...e, snomed_concept_id: suggestion.snomed_concept_id, snomed_term: suggestion.term, semantic_tag: suggestion.semantic_tag ?? e.semantic_tag } : e;
+    });
+    const ok = await persistEntities(next, `${entries.length} code(s) applied from auto-search.`);
+    if (ok) setSuggestions({});
+  }
+
+  async function handleSuppressEntity(idx: number) {
+    const entity = entities[idx];
+    if (!entity?.text || suppressingIndex !== null) return;
+    setSuppressingIndex(idx);
+    setSaveError(null);
+    setSaveMsg(null);
+    try {
+      await createSuppressRule(
+        entity.text,
+        entity.label ?? undefined,
+        `Suppressed from gold label editor (label: ${item.label_id})`,
+      );
+      setSaveMsg(`"${entity.text}" added to pipeline suppress list.`);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not create suppress rule");
+    } finally {
+      setSuppressingIndex(null);
+    }
+  }
+
+  // -- Subdomain membership popover ----------------------------------------
+
+  const [conceptSubdomainCounts, setConceptSubdomainCounts] = useState<Record<string, number>>({});
+  const [domainPopover, setDomainPopover] = useState<{
+    anchor: HTMLElement;
+    conceptId: string;
+    conceptTerm: string;
+  } | null>(null);
+  const [popoverItems, setPopoverItems] = useState<SubdomainMembershipItem[]>([]);
+  const [popoverLoading, setPopoverLoading] = useState(false);
+  const [savingSubdomain, setSavingSubdomain] = useState<string | null>(null);
+
+  useEffect(() => {
+    const coded = entities.filter((e) => e.snomed_concept_id);
+    const toLoad = coded.filter((e) => !(e.snomed_concept_id! in conceptSubdomainCounts));
+    if (!toLoad.length) return;
+    void Promise.all(
+      toLoad.map(async (e) => {
+        try {
+          const items = await fetchConceptSubdomainMemberships(e.snomed_concept_id!);
+          const count = items.filter((m) => m.is_member).length;
+          setConceptSubdomainCounts((prev) => ({ ...prev, [e.snomed_concept_id!]: count }));
+        } catch {
+          // non-blocking
+        }
+      }),
+    );
+  }, [entities]);
+
+  async function handleOpenDomainPopover(anchor: HTMLElement, conceptId: string, conceptTerm: string) {
+    setDomainPopover({ anchor, conceptId, conceptTerm });
+    setPopoverLoading(true);
+    setPopoverItems([]);
+    try {
+      const items = await fetchConceptSubdomainMemberships(conceptId);
+      setPopoverItems(items);
+      const count = items.filter((m) => m.is_member).length;
+      setConceptSubdomainCounts((prev) => ({ ...prev, [conceptId]: count }));
+    } catch {
+      setPopoverItems([]);
+    } finally {
+      setPopoverLoading(false);
+    }
+  }
+
+  async function handleAddToSubdomain(item_: SubdomainMembershipItem, conceptId: string, conceptTerm: string) {
+    const key = `${item_.domain_id}::${item_.subdomain_name}`;
+    setSavingSubdomain(key);
+    try {
+      await addConceptToSubdomain(item_.domain_id, item_.subdomain_name, Number(conceptId), conceptTerm);
+      setPopoverItems((prev) =>
+        prev.map((m) => (m.domain_id === item_.domain_id && m.subdomain_name === item_.subdomain_name ? { ...m, is_member: true } : m)),
+      );
+      setConceptSubdomainCounts((prev) => ({ ...prev, [conceptId]: (prev[conceptId] ?? 0) + 1 }));
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not add to subdomain");
+    } finally {
+      setSavingSubdomain(null);
+    }
+  }
 
   async function persistEntities(next: Entity[], successMsg: string): Promise<boolean> {
     setSaving(true);
@@ -561,6 +742,7 @@ function GoldLabelDetailDialog({
           label: e.label ?? "finding",
           assertion: e.assertion,
           snomed_concept_id: e.snomed_concept_id,
+          snomed_term: e.snomed_term,
           semantic_tag: e.semantic_tag,
         })),
       );
@@ -676,18 +858,28 @@ function GoldLabelDetailDialog({
     void persistEntities(next, `Added "${text}" to this label.`);
   }
 
-  async function handleSnomedSelected(result: TermSearchResult, alsoFixSurfaceForm: boolean) {
+  async function handleSnomedSelected(
+    result: TermSearchResult,
+    alsoFixSurfaceForm: boolean,
+    addToSubdomains: string[] = [],
+  ) {
     if (lookupTarget === null) return;
     const { entityIndex, entityText } = lookupTarget;
     setLookupTarget(null);
 
     const next = entities.map((e, i) =>
       i === entityIndex
-        ? { ...e, snomed_concept_id: result.snomed_concept_id, semantic_tag: result.semantic_tag ?? e.semantic_tag }
+        ? {
+            ...e,
+            snomed_concept_id: result.snomed_concept_id,
+            snomed_term: result.term ?? e.snomed_term,
+            semantic_tag: result.semantic_tag ?? e.semantic_tag,
+          }
         : e,
     );
 
     let surfaceFormNote = "";
+    let subdomainNote = "";
     if (alsoFixSurfaceForm) {
       try {
         const normalized = entityText.toLowerCase().trim();
@@ -712,9 +904,42 @@ function GoldLabelDetailDialog({
       }
     }
 
+    if (addToSubdomains.length > 0) {
+      let added = 0;
+      let skipped = 0;
+      let failed = 0;
+      const conceptId = Number(result.snomed_concept_id);
+      for (const key of addToSubdomains) {
+        const [domainId, subdomainName] = key.split("::");
+        if (!domainId || !subdomainName || !Number.isFinite(conceptId)) {
+          failed += 1;
+          continue;
+        }
+        try {
+          await addConceptToSubdomain(
+            domainId,
+            subdomainName,
+            conceptId,
+            result.term || entityText,
+          );
+          added += 1;
+        } catch (err) {
+          const message = err instanceof Error ? err.message.toLowerCase() : "";
+          if (message.includes("already")) {
+            skipped += 1;
+          } else {
+            failed += 1;
+          }
+        }
+      }
+      if (added > 0 || skipped > 0 || failed > 0) {
+        subdomainNote = ` Domain updates - added ${added}, already present ${skipped}, failed ${failed}.`;
+      }
+    }
+
     void persistEntities(
       next,
-      `Updated SNOMED code to ${result.snomed_concept_id} - ${result.term}.${surfaceFormNote}`,
+      `Updated SNOMED code to ${result.snomed_concept_id} - ${result.term}.${surfaceFormNote}${subdomainNote}`,
     );
   }
 
@@ -722,7 +947,7 @@ function GoldLabelDetailDialog({
 
   return (
     <>
-      <Dialog open onClose={onClose} maxWidth="md" fullWidth scroll="paper">
+      <Dialog open onClose={onClose} maxWidth="xl" fullWidth scroll="paper">
         <DialogTitle sx={{ pr: 6 }}>
           Verified gold label
           <Typography component="span" variant="body2" sx={{ fontFamily: "monospace", color: "text.secondary", ml: 1 }}>
@@ -807,6 +1032,29 @@ function GoldLabelDetailDialog({
                     {summary}
                   </Typography>
                 )}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={searchingAll ? <CircularProgress size={12} color="inherit" /> : <SearchIcon sx={{ fontSize: 15 }} />}
+                    disabled={searchingAll || saving}
+                    onClick={() => void handleAutoCodeAll()}
+                  >
+                    Search all
+                  </Button>
+                  {pendingSuggestionCount > 0 && (
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      size="small"
+                      startIcon={saving ? <CircularProgress size={12} color="inherit" /> : <CheckCircleOutlineIcon sx={{ fontSize: 15 }} />}
+                      disabled={saving}
+                      onClick={() => void handleAcceptAllSuggestions()}
+                    >
+                      Accept all ({pendingSuggestionCount})
+                    </Button>
+                  )}
+                </Stack>
                 <Table size="small" sx={{ "& td, & th": { px: 1.25, py: 0.75 } }}>
                   <TableHead>
                     <TableRow sx={{ "& th": { fontWeight: 700, fontSize: "0.72rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "2px solid", borderColor: "divider" } }}>
@@ -910,9 +1158,49 @@ function GoldLabelDetailDialog({
                           </TableCell>
                           <TableCell>
                             {hasSnomed ? (
-                              <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
-                                {e.snomed_concept_id}
-                              </Typography>
+                              <Stack spacing={0.25}>
+                                {e.snomed_term && (
+                                  <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary", lineHeight: 1.3 }}>
+                                    {e.snomed_term}
+                                  </Typography>
+                                )}
+                                <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                                  {e.snomed_concept_id}
+                                </Typography>
+                              </Stack>
+                            ) : suggestions[i] !== undefined ? (
+                              suggestions[i] === null ? (
+                                <Typography variant="caption" color="text.disabled" sx={{ fontStyle: "italic" }}>
+                                  No match found
+                                </Typography>
+                              ) : (
+                                <Stack direction="row" spacing={0.5} alignItems="flex-start">
+                                  <Stack spacing={0.1}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: "warning.dark", lineHeight: 1.3 }}>
+                                      {suggestions[i]!.term}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                                      {suggestions[i]!.snomed_concept_id}
+                                    </Typography>
+                                  </Stack>
+                                  <Tooltip title="Accept this code">
+                                    <span>
+                                      <IconButton size="small" color="success" disabled={saving} onClick={() => void handleAcceptSuggestion(i)}>
+                                        <CheckCircleOutlineIcon sx={{ fontSize: 15 }} />
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                  <Tooltip title="Dismiss suggestion">
+                                    <span>
+                                      <IconButton size="small" onClick={() => handleDismissSuggestion(i)}>
+                                        <CloseIcon sx={{ fontSize: 15 }} />
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                </Stack>
+                              )
+                            ) : searchingAll ? (
+                              <CircularProgress size={12} />
                             ) : (
                               <Typography variant="caption" color="error.main" sx={{ fontStyle: "italic" }}>
                                 No code
@@ -920,13 +1208,31 @@ function GoldLabelDetailDialog({
                             )}
                           </TableCell>
                           <TableCell align="right">
-                            <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+                            <Stack direction="row" spacing={0.25} justifyContent="flex-end" alignItems="center">
+                              {hasSnomed && (() => {
+                                const count = conceptSubdomainCounts[e.snomed_concept_id!];
+                                const loaded = e.snomed_concept_id! in conceptSubdomainCounts;
+                                return (
+                                  <Tooltip title={loaded ? (count > 0 ? `In ${count} subdomain${count === 1 ? "" : "s"} -- click to manage` : "Not in any subdomain -- click to add") : "Check subdomains"}>
+                                    <span>
+                                      <IconButton
+                                        size="small"
+                                        color={loaded && count > 0 ? "success" : "default"}
+                                        disabled={saving}
+                                        onClick={(ev) => void handleOpenDomainPopover(ev.currentTarget, e.snomed_concept_id!, e.snomed_term ?? e.text)}
+                                      >
+                                        {loaded ? (count > 0 ? <BookmarkIcon sx={{ fontSize: 16 }} /> : <BookmarkBorderIcon sx={{ fontSize: 16, color: "warning.main" }} />) : <BookmarkBorderIcon sx={{ fontSize: 16 }} />}
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                );
+                              })()}
                               <Tooltip title={hasSnomed ? "Fix SNOMED code" : "Look up SNOMED code"}>
                                 <span>
                                   <IconButton
                                     size="small"
                                     color={hasSnomed ? "default" : "warning"}
-                                    disabled={saving}
+                                    disabled={saving || suppressingIndex !== null}
                                     onClick={() =>
                                       setLookupTarget({
                                         entityIndex: i,
@@ -943,12 +1249,28 @@ function GoldLabelDetailDialog({
                                   </IconButton>
                                 </span>
                               </Tooltip>
+                              <Tooltip title="Add to pipeline suppress list -- this text will be ignored in future runs">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="warning"
+                                    disabled={saving || suppressingIndex !== null}
+                                    onClick={() => void handleSuppressEntity(i)}
+                                  >
+                                    {suppressingIndex === i ? (
+                                      <CircularProgress size={14} />
+                                    ) : (
+                                      <NotInterestedIcon sx={{ fontSize: 16 }} />
+                                    )}
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
                               <Tooltip title="Remove this entity from the label">
                                 <span>
                                   <IconButton
                                     size="small"
                                     color="error"
-                                    disabled={saving}
+                                    disabled={saving || suppressingIndex !== null}
                                     onClick={() => handleRemoveEntity(i)}
                                   >
                                     <DeleteOutlineIcon sx={{ fontSize: 16 }} />
@@ -996,7 +1318,99 @@ function GoldLabelDetailDialog({
             </DetailField>
           </Stack>
         </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          {onMarkGold && (
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              startIcon={markingGold ? <CircularProgress size={14} color="inherit" /> : <VerifiedIcon />}
+              disabled={markingGold || saving}
+              onClick={onMarkGold}
+            >
+              Mark as gold
+            </Button>
+          )}
+          <Button variant="outlined" size="small" onClick={onClose} disabled={saving || markingGold}>
+            Close
+          </Button>
+        </DialogActions>
       </Dialog>
+
+      <Popover
+        open={Boolean(domainPopover)}
+        anchorEl={domainPopover?.anchor ?? null}
+        onClose={() => setDomainPopover(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        PaperProps={{ sx: { p: 2, minWidth: 320, maxWidth: 420, maxHeight: 480, overflowY: "auto" } }}
+      >
+        {domainPopover && (
+          <>
+            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+              Subdomain membership
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5, fontFamily: "monospace" }}>
+              {domainPopover.conceptId} — {domainPopover.conceptTerm}
+            </Typography>
+            {popoverLoading ? (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <CircularProgress size={14} />
+                <Typography variant="caption">Loading...</Typography>
+              </Stack>
+            ) : popoverItems.length === 0 ? (
+              <Typography variant="caption" color="text.secondary">No subdomains found.</Typography>
+            ) : (
+              (() => {
+                const domains = Array.from(new Map(popoverItems.map((m) => [m.domain_id, m.domain_name])).entries());
+                return (
+                  <Stack spacing={1.5}>
+                    {domains.map(([domainId, domainName]) => {
+                      const subs = popoverItems.filter((m) => m.domain_id === domainId);
+                      return (
+                        <Box key={domainId}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "text.secondary", display: "block", mb: 0.5 }}>
+                            {domainName}
+                          </Typography>
+                          <Stack spacing={0.5}>
+                            {subs.map((m) => {
+                              const key = `${m.domain_id}::${m.subdomain_name}`;
+                              const isSaving = savingSubdomain === key;
+                              return (
+                                <Stack key={key} direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                                  <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+                                    {m.subdomain_label}
+                                  </Typography>
+                                  {m.is_member ? (
+                                    <Chip label="In" color="success" size="small" sx={{ height: 20, fontSize: "0.7rem" }} />
+                                  ) : (
+                                    <Tooltip title={`Add to ${m.subdomain_label}`}>
+                                      <span>
+                                        <IconButton
+                                          size="small"
+                                          color="primary"
+                                          disabled={isSaving || !!savingSubdomain}
+                                          onClick={() => void handleAddToSubdomain(m, domainPopover.conceptId, domainPopover.conceptTerm)}
+                                        >
+                                          {isSaving ? <CircularProgress size={14} /> : <AddCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                                        </IconButton>
+                                      </span>
+                                    </Tooltip>
+                                  )}
+                                </Stack>
+                              );
+                            })}
+                          </Stack>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                );
+              })()
+            )}
+          </>
+        )}
+      </Popover>
 
       {lookupTarget && (
         <SnomedLookupDialog
@@ -1025,15 +1439,75 @@ function SnomedLookupDialog({
   entityText: string;
   entityLabel: string;
   hasExistingCode: boolean;
-  onSelect: (result: TermSearchResult, alsoFixSurfaceForm: boolean) => void;
+  onSelect: (
+    result: TermSearchResult,
+    alsoFixSurfaceForm: boolean,
+    addToSubdomains?: string[],
+  ) => void;
   onClose: () => void;
 }) {
+  interface SubdomainOption {
+    key: string;
+    domainId: string;
+    domainName: string;
+    subdomainName: string;
+    subdomainLabel: string;
+  }
+
   const [pendingResult, setPendingResult] = useState<TermSearchResult | null>(null);
+  const [membershipLoading, setMembershipLoading] = useState(false);
+  const [membershipError, setMembershipError] = useState("");
+  const [subdomainOptions, setSubdomainOptions] = useState<SubdomainOption[]>([]);
+  const [existingMembership, setExistingMembership] = useState<string[]>([]);
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
+  const [selectedDomainId, setSelectedDomainId] = useState<string>("");
+  const [applying, setApplying] = useState<"surface" | "code" | null>(null);
   const hintTag = normaliseLookupTag(entityLabel);
 
+  useEffect(() => {
+    if (!pendingResult) return;
+    const conceptId = String(pendingResult.snomed_concept_id || "").trim();
+    if (!conceptId) return;
+
+    let cancelled = false;
+    async function loadMemberships() {
+      setMembershipLoading(true);
+      setMembershipError("");
+      setSelectedTargets([]);
+      setSelectedDomainId("");
+      try {
+        const memberships = await fetchConceptSubdomainMemberships(conceptId);
+        if (cancelled) return;
+        const options: SubdomainOption[] = memberships.map((m) => ({
+          key: `${m.domain_id}::${m.subdomain_name}`,
+          domainId: m.domain_id,
+          domainName: m.domain_name,
+          subdomainName: m.subdomain_name,
+          subdomainLabel: m.subdomain_label,
+        }));
+        setSubdomainOptions(options);
+        setExistingMembership(
+          memberships.filter((m) => m.is_member).map((m) => `${m.domain_id}::${m.subdomain_name}`),
+        );
+      } catch {
+        if (cancelled) return;
+        setMembershipError("Could not load domain/subdomain memberships.");
+      } finally {
+        if (!cancelled) setMembershipLoading(false);
+      }
+    }
+    void loadMemberships();
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingResult]);
+
   if (pendingResult) {
+    const existingOptions = subdomainOptions.filter((opt) =>
+      existingMembership.includes(opt.key),
+    );
     return (
-      <Dialog open onClose={() => setPendingResult(null)} maxWidth="xs" fullWidth>
+      <Dialog open onClose={() => setPendingResult(null)} maxWidth="md" fullWidth>
         <DialogTitle>Apply SNOMED code</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 1 }}>
@@ -1051,23 +1525,165 @@ function SnomedLookupDialog({
             Would you also like to fix the surface form mapping in the terminology server? This helps the
             pipeline recognise &ldquo;{entityText}&rdquo; as this concept in future runs.
           </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {membershipLoading ? (
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+              <CircularProgress size={14} />
+              <Typography variant="caption" color="text.secondary">
+                Checking where this code is already used...
+              </Typography>
+            </Stack>
+          ) : (
+            <Stack spacing={1.25} sx={{ mb: 2 }}>
+              {existingOptions.length > 0 && (
+                <Tooltip
+                  arrow
+                  placement="top-start"
+                  title={
+                    <Box sx={{ py: 0.5 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                        Already in domain/subdomain
+                      </Typography>
+                      <Stack spacing={0.5}>
+                        {existingOptions.slice(0, 8).map((opt) => (
+                          <Typography key={opt.key} variant="caption">
+                            {opt.domainName} - {opt.subdomainLabel}
+                          </Typography>
+                        ))}
+                        {existingOptions.length > 8 && (
+                          <Typography variant="caption">
+                            +{existingOptions.length - 8} more
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  }
+                >
+                  <Chip
+                    color="success"
+                    variant="outlined"
+                    label={`Already in ${existingOptions.length} subdomain${existingOptions.length === 1 ? "" : "s"}`}
+                    sx={{ width: "fit-content" }}
+                  />
+                </Tooltip>
+              )}
+              <TextField
+                select
+                size="small"
+                label="Step 1: choose domain"
+                value={selectedDomainId}
+                onChange={(e) => {
+                  setSelectedDomainId(e.target.value);
+                  setSelectedTargets([]);
+                }}
+                fullWidth
+              >
+                <MenuItem value="">-- select a domain --</MenuItem>
+                {Array.from(
+                  new Map(
+                    subdomainOptions.map((o) => [o.domainId, o.domainName]),
+                  ).entries(),
+                ).map(([id, name]) => (
+                  <MenuItem key={id} value={id}>{name}</MenuItem>
+                ))}
+              </TextField>
+              {selectedDomainId && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                    Step 2: choose subdomains
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                      gap: 0,
+                    }}
+                  >
+                    {subdomainOptions
+                      .filter((o) => o.domainId === selectedDomainId)
+                      .sort((a, b) => a.subdomainLabel.localeCompare(b.subdomainLabel))
+                      .map((opt) => {
+                        const alreadyIn = existingMembership.includes(opt.key);
+                        const checked = selectedTargets.includes(opt.key);
+                        return (
+                          <FormControlLabel
+                            key={opt.key}
+                            disabled={alreadyIn}
+                            sx={{ mr: 0, pr: 1 }}
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={checked || alreadyIn}
+                                onChange={(e) => {
+                                  setSelectedTargets((prev) =>
+                                    e.target.checked
+                                      ? [...prev, opt.key]
+                                      : prev.filter((k) => k !== opt.key),
+                                  );
+                                }}
+                              />
+                            }
+                            label={
+                              <Typography variant="body2">
+                                {opt.subdomainLabel}
+                                {alreadyIn && (
+                                  <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                                    ✓
+                                  </Typography>
+                                )}
+                              </Typography>
+                            }
+                          />
+                        );
+                      })}
+                  </Box>
+                </Box>
+              )}
+              {membershipError && (
+                <Alert severity="warning" sx={{ py: 0.25 }}>
+                  <Typography variant="caption">{membershipError}</Typography>
+                </Alert>
+              )}
+            </Stack>
+          )}
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
             <Button
               variant="contained"
               size="small"
-              startIcon={<LinkIcon />}
-              onClick={() => onSelect(pendingResult, true)}
+              startIcon={applying === "surface" ? <CircularProgress size={14} color="inherit" /> : <LinkIcon />}
+              disabled={applying !== null}
+              onClick={async () => {
+                setApplying("surface");
+                try {
+                  await onSelect(pendingResult, true, selectedTargets);
+                } finally {
+                  setApplying(null);
+                }
+              }}
             >
               Apply and fix surface form
             </Button>
             <Button
               variant="outlined"
               size="small"
-              onClick={() => onSelect(pendingResult, false)}
+              disabled={applying !== null}
+              startIcon={applying === "code" ? <CircularProgress size={14} color="inherit" /> : undefined}
+              onClick={async () => {
+                setApplying("code");
+                try {
+                  await onSelect(pendingResult, false, selectedTargets);
+                } finally {
+                  setApplying(null);
+                }
+              }}
             >
               Apply code only
             </Button>
-            <Button variant="text" size="small" onClick={() => setPendingResult(null)}>
+            <Button
+              variant="text"
+              size="small"
+              disabled={applying !== null}
+              onClick={() => setPendingResult(null)}
+            >
               Back
             </Button>
           </Stack>
@@ -1098,7 +1714,26 @@ function SnomedLookupDialog({
 // Candidate row
 // ---------------------------------------------------------------------------
 
-function CandidateRow({ item, onClick }: { item: Candidate; onClick: () => void }) {
+function CandidateRow({
+  item,
+  onClick,
+  onMarkGold,
+  onDelete,
+  openingLabelEditor,
+  markingGold,
+  deleting,
+}: {
+  item: Candidate;
+  onClick: () => void;
+  onMarkGold: (candidateId: string) => void;
+  onDelete: (candidateId: string) => void;
+  openingLabelEditor: boolean;
+  markingGold: boolean;
+  deleting: boolean;
+}) {
+  const codedEntities = parseEntities(item.entities_json ?? null).filter(
+    (entity) => !!entity.snomed_concept_id,
+  );
   return (
     <Card
       variant="outlined"
@@ -1114,6 +1749,46 @@ function CandidateRow({ item, onClick }: { item: Candidate; onClick: () => void 
             <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
               {truncate(item.text)}
             </Typography>
+            {codedEntities.length > 0 ? (
+              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                {codedEntities.slice(0, 2).map((entity, index) => (
+                  <Tooltip
+                    key={`${entity.snomed_concept_id}-${index}`}
+                    title={`${entity.snomed_term || entity.text || "Preferred term not available"} (${entity.snomed_concept_id})`}
+                  >
+                    <Chip
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      label={`${entity.snomed_term || entity.text || "Term"} - ${entity.snomed_concept_id}`}
+                      sx={{ maxWidth: 460, "& .MuiChip-label": { overflow: "hidden", textOverflow: "ellipsis" } }}
+                    />
+                  </Tooltip>
+                ))}
+                {codedEntities.length > 2 && (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`+${codedEntities.length - 2} more`}
+                  />
+                )}
+              </Stack>
+            ) : (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                No assigned code yet.
+              </Typography>
+            )}
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+              Click row to edit terms and codes.
+            </Typography>
+            {openingLabelEditor && (
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                <CircularProgress size={12} />
+                <Typography variant="caption" color="text.secondary">
+                  Opening editor...
+                </Typography>
+              </Stack>
+            )}
           </Box>
           <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
             <Chip
@@ -1127,6 +1802,40 @@ function CandidateRow({ item, onClick }: { item: Candidate; onClick: () => void 
               <Chip label={item.source} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
             )}
             <Typography variant="caption" color="text.disabled">{formatDate(item.updated_at)}</Typography>
+            <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMarkGold(item.candidate_id);
+                }}
+                disabled={openingLabelEditor || markingGold || deleting}
+                startIcon={
+                  markingGold ? <CircularProgress size={12} color="inherit" /> : undefined
+                }
+                sx={{ minWidth: 98 }}
+              >
+                Mark gold
+              </Button>
+              <IconButton
+                size="small"
+                color="error"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete(item.candidate_id);
+                }}
+                disabled={openingLabelEditor || markingGold || deleting}
+                sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.25 }}
+              >
+                {deleting ? (
+                  <CircularProgress size={12} />
+                ) : (
+                  <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                )}
+              </IconButton>
+            </Stack>
           </Stack>
         </Stack>
       </CardContent>
@@ -1137,6 +1846,72 @@ function CandidateRow({ item, onClick }: { item: Candidate; onClick: () => void 
 // ---------------------------------------------------------------------------
 // Gold label row
 // ---------------------------------------------------------------------------
+
+function EntityPill({ entity }: { entity: Entity }) {
+  const nonPresent = isNonPresent(entity.assertion);
+  const color = assertionColor(entity.assertion);
+  const tipParts = [entity.label ?? entity.semantic_tag];
+  if (nonPresent) tipParts.push(formatAssertion(entity.assertion));
+  if (entity.snomed_term) tipParts.push(`SNOMED: ${entity.snomed_term}`);
+
+  return (
+    <Tooltip title={tipParts.filter(Boolean).join(" · ")}>
+      <Box
+        sx={{
+          display: "inline-flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          bgcolor: nonPresent ? `${color}.50` : "primary.50",
+          border: "1px solid",
+          borderColor: nonPresent ? `${color}.200` : "primary.100",
+          borderRadius: 1.5,
+          px: 1,
+          py: 0.5,
+          cursor: "default",
+          minWidth: 80,
+          maxWidth: 180,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            color: nonPresent ? `${color}.dark` : "primary.dark",
+            lineHeight: 1.3,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            maxWidth: "100%",
+          }}
+        >
+          {entity.text}
+        </Typography>
+        {entity.snomed_concept_id ? (
+          <Typography
+            sx={{
+              fontSize: "0.62rem",
+              color: "text.secondary",
+              lineHeight: 1.3,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "100%",
+            }}
+          >
+            {entity.snomed_term || entity.text}
+            <Box component="span" sx={{ fontFamily: "monospace", color: "text.disabled", ml: 0.5 }}>
+              {entity.snomed_concept_id}
+            </Box>
+          </Typography>
+        ) : (
+          <Typography sx={{ fontSize: "0.62rem", color: "warning.main", fontStyle: "italic", lineHeight: 1.3 }}>
+            no code
+          </Typography>
+        )}
+      </Box>
+    </Tooltip>
+  );
+}
 
 function GoldLabelRow({
   item,
@@ -1150,97 +1925,103 @@ function GoldLabelRow({
   resetting: boolean;
 }) {
   const entities = parseEntities(item.entities_json);
-  const shortId = item.label_id ? `${item.label_id.slice(0, 12)}…` : "—";
+  const shortId = item.label_id ? item.label_id.slice(0, 15) : "—";
+  const summary = assertionSummary(entities);
 
   return (
     <Card
       variant="outlined"
       onClick={onClick}
-      sx={{ mb: 1.5, cursor: "pointer", transition: "box-shadow 0.15s", "&:hover": { boxShadow: 3 } }}
+      sx={{
+        mb: 1.5,
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+        borderLeft: "3px solid",
+        borderLeftColor: "success.main",
+        "&:hover": { boxShadow: 4, borderLeftColor: "success.dark" },
+      }}
     >
-      <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+      <CardContent sx={{ py: 1.75, px: 2, "&:last-child": { pb: 1.75 } }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
+          {/* Left: text content + entity pills */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem", color: "text.secondary", mb: 0.5 }}>
-              {shortId}
-            </Typography>
-            <Typography variant="body2" sx={{ wordBreak: "break-word", mb: 1 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+              <Typography
+                sx={{ fontFamily: "monospace", fontSize: "0.7rem", color: "text.disabled", letterSpacing: "0.01em" }}
+              >
+                {shortId}
+              </Typography>
+              {summary && (
+                <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", fontStyle: "italic" }}>
+                  {summary}
+                </Typography>
+              )}
+            </Stack>
+
+            <Typography
+              variant="body2"
+              sx={{ wordBreak: "break-word", mb: entities.length > 0 ? 1.25 : 0, lineHeight: 1.55, color: "text.primary" }}
+            >
               {truncate(item.text)}
             </Typography>
+
             {entities.length > 0 && (
               <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                {entities.slice(0, 6).map((e, i) => {
-                  const nonPresent = isNonPresent(e.assertion);
-                  const tipParts = [e.label ?? e.semantic_tag];
-                  if (nonPresent) tipParts.push(formatAssertion(e.assertion));
-                  return (
-                    <Tooltip key={i} title={tipParts.filter(Boolean).join(" · ")}>
-                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", mb: 0.5 }}>
-                        <Chip
-                          label={e.text}
-                          size="small"
-                          sx={{
-                            fontSize: "0.72rem",
-                            bgcolor: nonPresent ? `${assertionColor(e.assertion)}.50` : "primary.50",
-                            borderColor: nonPresent ? `${assertionColor(e.assertion)}.300` : "primary.200",
-                            color: nonPresent ? `${assertionColor(e.assertion)}.dark` : undefined,
-                            fontWeight: 500,
-                            cursor: "default",
-                          }}
-                          variant="outlined"
-                        />
-                        {e.snomed_concept_id ? (
-                          <Typography
-                            variant="caption"
-                            sx={{ fontFamily: "monospace", fontSize: "0.65rem", color: "text.disabled", mt: 0.25, lineHeight: 1.2 }}
-                          >
-                            {e.snomed_concept_id}
-                          </Typography>
-                        ) : (
-                          <Typography
-                            variant="caption"
-                            sx={{ fontSize: "0.65rem", color: "warning.main", fontStyle: "italic", mt: 0.25, lineHeight: 1.2 }}
-                          >
-                            no code
-                          </Typography>
-                        )}
-                      </Box>
-                    </Tooltip>
-                  );
-                })}
+                {entities.slice(0, 6).map((e, i) => (
+                  <EntityPill key={i} entity={e} />
+                ))}
                 {entities.length > 6 && (
-                  <Chip label={`+${entities.length - 6} more`} size="small" variant="outlined" sx={{ fontSize: "0.72rem", mb: 0.5 }} />
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      px: 1,
+                      py: 0.5,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1.5,
+                      bgcolor: "action.hover",
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", fontWeight: 500 }}>
+                      +{entities.length - 6} more
+                    </Typography>
+                  </Box>
                 )}
               </Stack>
             )}
           </Box>
-          <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
+
+          {/* Right: actions + meta */}
+          <Stack alignItems="flex-end" spacing={0.75} sx={{ flexShrink: 0, minWidth: 112 }}>
             <Tooltip title="Delete this gold label and reset candidate to pending">
               <span>
                 <IconButton
                   size="small"
                   color="error"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onReset();
-                  }}
+                  onClick={(event) => { event.stopPropagation(); onReset(); }}
                   disabled={resetting}
+                  sx={{ mb: 0.25 }}
                 >
-                  {resetting ? <CircularProgress size={14} /> : <DeleteOutlineIcon fontSize="small" />}
+                  {resetting ? <CircularProgress size={14} /> : <DeleteOutlineIcon sx={{ fontSize: 17 }} />}
                 </IconButton>
               </span>
             </Tooltip>
             <Chip
-              icon={<VerifiedIcon sx={{ fontSize: 14 }} />}
+              icon={<VerifiedIcon sx={{ fontSize: 13 }} />}
               label={item.quality_score !== null ? `${Math.round(item.quality_score * 100)}%` : "verified"}
               color={qualityColor(item.quality_score)}
               size="small"
-              sx={{ fontWeight: 700 }}
+              sx={{ fontWeight: 700, fontSize: "0.72rem" }}
             />
-            {item.source && (
-              <Chip label={item.source} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
+            {item.verified_by && (
+              <Typography sx={{ fontSize: "0.68rem", color: "text.secondary", textAlign: "right", lineHeight: 1.3 }}>
+                {item.verified_by}
+              </Typography>
             )}
-            <Typography variant="caption" color="text.disabled">{formatDate(item.verified_at ?? item.updated_at)}</Typography>
+            <Typography sx={{ fontSize: "0.65rem", color: "text.disabled", textAlign: "right", lineHeight: 1.3 }}>
+              {formatDate(item.verified_at ?? item.updated_at)}
+            </Typography>
           </Stack>
         </Stack>
       </CardContent>
@@ -1267,6 +2048,20 @@ function SkeletonList() {
 // ---------------------------------------------------------------------------
 
 const PAGE_SIZE = 20;
+const DEDUPE_MIN_THRESHOLD = 0.5;
+const DEDUPE_MAX_THRESHOLD = 0.99;
+const DEDUPE_MIN_CANDIDATES = 50;
+const DEDUPE_MAX_CANDIDATES = 3000;
+
+function clampNumber(
+  value: number,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
 
 export default function GoldDatasetPanel() {
   const [tab, setTab] = useState<"candidates" | "gold" | "synthetic">("candidates");
@@ -1291,7 +2086,11 @@ export default function GoldDatasetPanel() {
   const [resettingLabelId, setResettingLabelId] = useState<string | null>(null);
   const [deletingCandidateId, setDeletingCandidateId] = useState<string | null>(null);
   const [confirmGoldLabel, setConfirmGoldLabel] = useState<GoldLabel | null>(null);
-  const [confirmCandidateId, setConfirmCandidateId] = useState<string | null>(null);
+  const [deleteCandidateTarget, setDeleteCandidateTarget] = useState<{
+    id: string;
+    text: string;
+    entities: Entity[];
+  } | null>(null);
   const [openingCandidateLabelId, setOpeningCandidateLabelId] = useState<string | null>(null);
   const [candidateGoldLabel, setCandidateGoldLabel] = useState<GoldLabel | null>(null);
   const [markingGoldCandidateId, setMarkingGoldCandidateId] = useState<string | null>(null);
@@ -1304,6 +2103,7 @@ export default function GoldDatasetPanel() {
   const [dedupePreview, setDedupePreview] = useState<CandidateDedupePreview | null>(
     null,
   );
+  const [expandedDedupeGroup, setExpandedDedupeGroup] = useState<string | false>(false);
   const [syntheticDialogOpen, setSyntheticDialogOpen] = useState(false);
   const [generatingSynthetic, setGeneratingSynthetic] = useState(false);
   const [syntheticMode, setSyntheticMode] = useState<"inline" | "queue">("inline");
@@ -1519,26 +2319,47 @@ export default function GoldDatasetPanel() {
 
   function requestDeleteCandidate(candidateId: string) {
     if (!candidateId || deletingCandidateId) return;
-    setConfirmCandidateId(candidateId);
+    const candidate = (items as Candidate[]).find((c) => c.candidate_id === candidateId);
+    setDeleteCandidateTarget({
+      id: candidateId,
+      text: candidate?.text ?? "",
+      entities: parseEntities(candidate?.entities_json ?? null),
+    });
   }
 
-  async function handleDeleteCandidate(candidateId: string) {
+  async function handleDeleteCandidate(
+    candidateId: string,
+    encounterText = "",
+    suppressEncounterText = false,
+  ) {
     if (!candidateId || deletingCandidateId) return;
     setDeletingCandidateId(candidateId);
     setExportMsg(null);
     setActionMsg(null);
     setListError(null);
     try {
-      const result = await jsonFetch<DeleteTrainingCandidateResult>(
-        `/api/training/candidates/${encodeURIComponent(candidateId)}`,
-        { method: "DELETE" },
-      );
-      setActionMsg(
-        `Candidate deleted. Removed ${result.gold_labels_deleted} gold labels and ${result.surface_form_tasks_deleted} surface-form tasks.`,
-      );
-      if (selectedItem && "candidate_id" in selectedItem && selectedItem.candidate_id === candidateId) {
-        setSelectedItem(null);
+      const tasks: Promise<unknown>[] = [
+        jsonFetch<DeleteTrainingCandidateResult>(
+          `/api/training/candidates/${encodeURIComponent(candidateId)}`,
+          { method: "DELETE" },
+        ),
+      ];
+      if (suppressEncounterText && encounterText.trim()) {
+        tasks.push(
+          createEncounterSuppressRule(
+            encounterText,
+            `Encounter suppressed on candidate delete (candidate: ${candidateId})`,
+          ).catch(() => null),
+        );
       }
+      const [result] = await Promise.all(tasks);
+      const suppressNote = suppressEncounterText
+        ? " Encounter text added to pipeline suppression list."
+        : "";
+      const del = result as DeleteTrainingCandidateResult;
+      setActionMsg(
+        `Candidate deleted. Removed ${del.gold_labels_deleted} gold labels and ${del.surface_form_tasks_deleted} surface-form tasks.${suppressNote}`,
+      );
       await Promise.all([loadList(), loadStats()]);
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Failed to delete candidate");
@@ -1579,9 +2400,6 @@ export default function GoldDatasetPanel() {
         { method: "POST" },
       );
       setActionMsg("Saved as gold data. Candidate status updated to completed.");
-      if (selectedItem && "candidate_id" in selectedItem && selectedItem.candidate_id === candidateId) {
-        setSelectedItem({ ...(selectedItem as Candidate), status: result.status });
-      }
       await Promise.all([loadList(), loadStats()]);
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Could not mark candidate as gold data");
@@ -1596,11 +2414,27 @@ export default function GoldDatasetPanel() {
     setListError(null);
     setActionMsg(null);
     try {
+      const normalizedThreshold = clampNumber(
+        dedupeThreshold,
+        DEDUPE_MIN_THRESHOLD,
+        DEDUPE_MAX_THRESHOLD,
+        0.85,
+      );
+      const normalizedMaxCandidates = Math.round(
+        clampNumber(
+          dedupeMaxCandidates,
+          DEDUPE_MIN_CANDIDATES,
+          DEDUPE_MAX_CANDIDATES,
+          1200,
+        ),
+      );
       const payload = {
         status: dedupeStatus || null,
-        max_candidates: dedupeMaxCandidates,
-        similarity_threshold: dedupeThreshold,
+        max_candidates: normalizedMaxCandidates,
+        similarity_threshold: normalizedThreshold,
       };
+      setDedupeThreshold(normalizedThreshold);
+      setDedupeMaxCandidates(normalizedMaxCandidates);
       const result = await jsonFetch<CandidateDedupePreview>(
         "/api/training/candidates/dedupe/preview",
         {
@@ -1610,6 +2444,7 @@ export default function GoldDatasetPanel() {
         },
       );
       setDedupePreview(result);
+      setExpandedDedupeGroup(result.groups?.[0]?.canonical?.candidate_id ?? false);
     } catch (e) {
       setListError(
         e instanceof Error ? e.message : "Could not preview duplicate candidates",
@@ -1626,11 +2461,27 @@ export default function GoldDatasetPanel() {
     setListError(null);
     setActionMsg(null);
     try {
+      const normalizedThreshold = clampNumber(
+        dedupeThreshold,
+        DEDUPE_MIN_THRESHOLD,
+        DEDUPE_MAX_THRESHOLD,
+        0.85,
+      );
+      const normalizedMaxCandidates = Math.round(
+        clampNumber(
+          dedupeMaxCandidates,
+          DEDUPE_MIN_CANDIDATES,
+          DEDUPE_MAX_CANDIDATES,
+          1200,
+        ),
+      );
       const payload = {
         status: dedupeStatus || null,
-        max_candidates: dedupeMaxCandidates,
-        similarity_threshold: dedupeThreshold,
+        max_candidates: normalizedMaxCandidates,
+        similarity_threshold: normalizedThreshold,
       };
+      setDedupeThreshold(normalizedThreshold);
+      setDedupeMaxCandidates(normalizedMaxCandidates);
       const result = await jsonFetch<CandidateDedupeApplyResult>(
         "/api/training/candidates/dedupe/apply",
         {
@@ -1675,6 +2526,7 @@ export default function GoldDatasetPanel() {
                 onClick={() => {
                   setDedupeDialogOpen(true);
                   setDedupePreview(null);
+                  setExpandedDedupeGroup(false);
                 }}
                 size="small"
               >
@@ -1835,22 +2687,35 @@ export default function GoldDatasetPanel() {
         size="small"
         placeholder={
           tab === "candidates"
-            ? "Search candidate text…"
+            ? "Search candidate text..."
             : tab === "synthetic"
-              ? "Search synthetic gold text…"
-              : "Search gold label text…"
+              ? "Search synthetic gold text..."
+              : "Search gold label text..."
         }
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         fullWidth
-        sx={{ mb: 2 }}
+        sx={{
+          mb: 2,
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 2,
+            bgcolor: "background.paper",
+          },
+        }}
         slotProps={{
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
+                <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
               </InputAdornment>
             ),
+            endAdornment: search ? (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearch("")} edge="end">
+                  <CloseIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </InputAdornment>
+            ) : undefined,
           },
         }}
       />
@@ -1882,7 +2747,16 @@ export default function GoldDatasetPanel() {
         <>
           {tab === "candidates"
             ? (items as Candidate[]).map((item, i) => (
-                <CandidateRow key={item.candidate_id ?? `c-${i}`} item={item} onClick={() => setSelectedItem(item)} />
+                <CandidateRow
+                  key={item.candidate_id ?? `c-${i}`}
+                  item={item}
+                  onClick={() => void openCandidateLabelEditor(item.candidate_id)}
+                  onMarkGold={markCandidateAsGold}
+                  onDelete={requestDeleteCandidate}
+                  openingLabelEditor={openingCandidateLabelId === item.candidate_id}
+                  markingGold={markingGoldCandidateId === item.candidate_id}
+                  deleting={deletingCandidateId === item.candidate_id}
+                />
               ))
             : (items as GoldLabel[]).filter((item) => item.label_id).map((item, i) => (
                 <GoldLabelRow
@@ -1912,18 +2786,6 @@ export default function GoldDatasetPanel() {
       )}
 
       {/* Detail dialog */}
-      {selectedItem && tab === "candidates" && (
-        <CandidateDetailDialog
-          item={selectedItem as Candidate}
-          onClose={() => setSelectedItem(null)}
-          onDelete={requestDeleteCandidate}
-          deleting={deletingCandidateId === (selectedItem as Candidate).candidate_id}
-          onEditTerms={openCandidateLabelEditor}
-          openingLabelEditor={openingCandidateLabelId === (selectedItem as Candidate).candidate_id}
-          onMarkGold={markCandidateAsGold}
-          markingGold={markingGoldCandidateId === (selectedItem as Candidate).candidate_id}
-        />
-      )}
       {selectedItem && tab === "gold" && (
         <GoldLabelDetailDialog
           item={selectedItem as GoldLabel}
@@ -1954,19 +2816,14 @@ export default function GoldDatasetPanel() {
           }}
         />
       )}
-      {confirmCandidateId && (
-        <ConfirmDialog
-          title="Delete training candidate?"
-          body="This will permanently delete this candidate, its linked gold labels, and related surface-form tasks from Neo4j."
-          confirmLabel="Delete candidate"
-          variant="danger"
-          onCancel={() => setConfirmCandidateId(null)}
-          onConfirm={() => {
-            const candidateId = confirmCandidateId;
-            setConfirmCandidateId(null);
-            if (candidateId) {
-              void handleDeleteCandidate(candidateId);
-            }
+      {deleteCandidateTarget && (
+        <DeleteCandidateDialog
+          target={deleteCandidateTarget}
+          onCancel={() => setDeleteCandidateTarget(null)}
+          onConfirm={(suppressEncounterText) => {
+            const target = deleteCandidateTarget;
+            setDeleteCandidateTarget(null);
+            void handleDeleteCandidate(target.id, target.text, suppressEncounterText);
           }}
         />
       )}
@@ -1976,14 +2833,12 @@ export default function GoldDatasetPanel() {
           onClose={() => setCandidateGoldLabel(null)}
           onEntitiesChanged={async () => {
             await Promise.all([loadList(), loadStats()]);
-            const cid =
-              selectedItem && "candidate_id" in selectedItem
-                ? selectedItem.candidate_id
-                : null;
-            if (cid) {
-              void openCandidateLabelEditor(cid);
-            }
           }}
+          onMarkGold={() => {
+            setCandidateGoldLabel(null);
+            void markCandidateAsGold(candidateGoldLabel.candidate_id ?? "");
+          }}
+          markingGold={markingGoldCandidateId === candidateGoldLabel.candidate_id}
         />
       )}
       <Dialog
@@ -2019,10 +2874,21 @@ export default function GoldDatasetPanel() {
                 type="number"
                 size="small"
                 value={dedupeMaxCandidates}
-                onChange={(event) =>
-                  setDedupeMaxCandidates(Number(event.target.value || 0))
-                }
-                inputProps={{ min: 50, max: 3000 }}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setDedupeMaxCandidates(
+                    clampNumber(
+                      next,
+                      DEDUPE_MIN_CANDIDATES,
+                      DEDUPE_MAX_CANDIDATES,
+                      1200,
+                    ),
+                  );
+                }}
+                inputProps={{
+                  min: DEDUPE_MIN_CANDIDATES,
+                  max: DEDUPE_MAX_CANDIDATES,
+                }}
                 sx={{ minWidth: 180 }}
               />
               <TextField
@@ -2030,10 +2896,22 @@ export default function GoldDatasetPanel() {
                 type="number"
                 size="small"
                 value={dedupeThreshold}
-                onChange={(event) =>
-                  setDedupeThreshold(Number(event.target.value || 0))
-                }
-                inputProps={{ min: 0.7, max: 0.99, step: 0.01 }}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setDedupeThreshold(
+                    clampNumber(
+                      next,
+                      DEDUPE_MIN_THRESHOLD,
+                      DEDUPE_MAX_THRESHOLD,
+                      0.85,
+                    ),
+                  );
+                }}
+                inputProps={{
+                  min: DEDUPE_MIN_THRESHOLD,
+                  max: DEDUPE_MAX_THRESHOLD,
+                  step: 0.01,
+                }}
                 sx={{ minWidth: 180 }}
               />
             </Stack>
@@ -2048,21 +2926,117 @@ export default function GoldDatasetPanel() {
               <Box sx={{ maxHeight: 280, overflowY: "auto", pr: 0.5 }}>
                 <Stack spacing={1.25}>
                   {dedupePreview.groups.slice(0, 20).map((group) => (
-                    <Card
+                    <Accordion
                       key={group.canonical.candidate_id}
-                      variant="outlined"
-                      sx={{ p: 1.25 }}
+                      disableGutters
+                      expanded={expandedDedupeGroup === group.canonical.candidate_id}
+                      onChange={(_, expanded) =>
+                        setExpandedDedupeGroup(
+                          expanded ? group.canonical.candidate_id : false,
+                        )
+                      }
+                      sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 2,
+                        boxShadow: "none",
+                        "&:before": { display: "none" },
+                        overflow: "hidden",
+                      }}
                     >
-                      <Typography variant="caption" color="text.secondary">
-                        Canonical {group.canonical.candidate_id}
-                      </Typography>
-                      <Typography variant="body2" sx={{ mb: 0.75 }}>
-                        {group.canonical.text_preview}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {group.duplicates.length} duplicates
-                      </Typography>
-                    </Card>
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          px: 1.25,
+                          py: 0.5,
+                          minHeight: 56,
+                          "& .MuiAccordionSummary-content": {
+                            margin: "6px 0",
+                          },
+                        }}
+                      >
+                        <Box sx={{ width: "100%", minWidth: 0 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Canonical {group.canonical.candidate_id}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 0.25 }}>
+                            {group.canonical.text_preview}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {group.duplicates.length} duplicate
+                            {group.duplicates.length === 1 ? "" : "s"}
+                          </Typography>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ px: 1.25, pt: 0, pb: 1.25 }}>
+                        <Stack spacing={1}>
+                          {group.duplicates.map((duplicate) => (
+                            <Card
+                              key={duplicate.candidate_id}
+                              variant="outlined"
+                              sx={{ p: 1, borderRadius: 1.5 }}
+                            >
+                              <Stack
+                                direction={{ xs: "column", sm: "row" }}
+                                spacing={1}
+                                justifyContent="space-between"
+                                alignItems={{ xs: "flex-start", sm: "center" }}
+                              >
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                                  >
+                                    {duplicate.candidate_id}
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ mt: 0.25 }}>
+                                    {duplicate.text_preview}
+                                  </Typography>
+                                  <Stack
+                                    direction="row"
+                                    spacing={0.75}
+                                    alignItems="center"
+                                    sx={{ mt: 0.5 }}
+                                  >
+                                    <Chip
+                                      size="small"
+                                      label={duplicate.status || "unknown"}
+                                      color={statusColor(duplicate.status || "default")}
+                                      sx={{
+                                        height: 20,
+                                        fontSize: "0.7rem",
+                                        textTransform: "capitalize",
+                                      }}
+                                    />
+                                    {typeof duplicate.similarity === "number" && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        Similarity {Math.round(duplicate.similarity * 100)}%
+                                      </Typography>
+                                    )}
+                                  </Stack>
+                                </Box>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  variant="outlined"
+                                  startIcon={
+                                    deletingCandidateId === duplicate.candidate_id ? (
+                                      <CircularProgress size={14} />
+                                    ) : (
+                                      <DeleteOutlineIcon fontSize="small" />
+                                    )
+                                  }
+                                  disabled={deletingCandidateId === duplicate.candidate_id}
+                                  onClick={() => requestDeleteCandidate(duplicate.candidate_id)}
+                                >
+                                  Delete duplicate
+                                </Button>
+                              </Stack>
+                            </Card>
+                          ))}
+                        </Stack>
+                      </AccordionDetails>
+                    </Accordion>
                   ))}
                   {dedupePreview.groups.length > 20 && (
                     <Typography variant="caption" color="text.secondary">

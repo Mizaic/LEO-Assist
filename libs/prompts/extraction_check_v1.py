@@ -14,6 +14,7 @@ Rules:
 4) Add only clinically meaningful missed mentions explicitly present in text.
 5) Do not infer diagnosis from exclusion or screening language.
 6) Do not invent entities that are not in the encounter text.
+7) Referral workflow text is not a confirmed diagnosis. Example: "seen in fast track suspected colorectal cancer clinic" should not create a disorder diagnosis entity.
 
 Output JSON:
 {

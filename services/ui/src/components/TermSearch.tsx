@@ -306,6 +306,8 @@ function AskLeoPanel({
   entityLabel,
   encounterText,
   initialCandidates,
+  semanticTags,
+  onApplyLeoSearch,
   onUseSuggestion,
 }: {
   entityText: string;
@@ -313,6 +315,10 @@ function AskLeoPanel({
   encounterText: string;
   /** Current search results fed directly to LEO -- no blind FSN guessing. */
   initialCandidates: TermSearchResult[];
+  /** Active semantic-tag filter from the current search panel state. */
+  semanticTags: string[];
+  /** Applies a LEO-generated search refinement back into the search panel. */
+  onApplyLeoSearch: (query: string, nextSemanticTags: string[]) => Promise<void>;
   /** Called with the verified SNOMED result -- applies code and closes dialog. */
   onUseSuggestion: (result: TermSearchResult) => void;
 }) {
@@ -329,14 +335,17 @@ function AskLeoPanel({
   const [tier, setTier] = useState<Tier>("small");
   const [smartResult, setSmartResult] = useState<AskLeoSmartResult | null>(null);
   const [error, setError] = useState("");
+  const [searchFeedback, setSearchFeedback] = useState("");
 
   async function handleAsk(askTier: Tier) {
     setStep("analysing");
     setError("");
+    setSearchFeedback("");
     setSmartResult(null);
     setTier(askTier);
     try {
-      const tags = entityLabel ? [entityLabel] : [];
+      // Small tier keeps current tag constraints. Harder tiers broaden search.
+      const tags = askTier === "small" ? semanticTags : [];
       const res = await askLeoSmart(
         entityText,
         encounterText,
@@ -344,8 +353,17 @@ function AskLeoPanel({
         tags,
         askTier,
       );
-      if (res.alternative_query_used && !res.matched_candidate) setStep("searching");
-      else if (res.matched_candidate) setStep("verifying");
+      if (res.alternative_query_used) {
+        setStep("searching");
+        await onApplyLeoSearch(res.alternative_query_used, tags);
+        setSearchFeedback(
+          tags.length > 0
+            ? `LEO updated the search to "${res.alternative_query_used}" using current filters.`
+            : `LEO broadened the search to "${res.alternative_query_used}".`,
+        );
+      } else if (res.matched_candidate) {
+        setStep("verifying");
+      }
       setSmartResult(res);
     } catch {
       setError("Ask LEO is not available right now.");
@@ -381,6 +399,11 @@ function AskLeoPanel({
       )}
 
       {error && <Alert severity="error" sx={{ mb: 0.5, py: 0 }}>{error}</Alert>}
+      {searchFeedback && !busy && (
+        <Alert severity="info" sx={{ mb: 0.75, py: 0.25 }}>
+          <Typography variant="caption">{searchFeedback}</Typography>
+        </Alert>
+      )}
 
       {smartResult && !busy && (
         <Box sx={{ mb: 1 }}>
@@ -477,6 +500,9 @@ interface Props {
 
 // -- Main component ----------------------------------------------------------
 
+const SEARCH_LIMIT = 15;
+const LEO_SEARCH_LIMIT = 25;
+
 export default function TermSearch({
   onSelect,
   onClose,
@@ -522,6 +548,31 @@ export default function TermSearch({
     return results.filter((r) => selectedTags.has(parseSemanticTag(r.term, r.semantic_tag ?? null)));
   }, [results, selectedTags]);
 
+  async function runSearch(
+    nextQuery: string,
+    tagsSet: Set<string>,
+    limit = SEARCH_LIMIT,
+  ): Promise<void> {
+    if (!nextQuery || nextQuery.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    const tagArr = tagsSet.size > 0 ? [...tagsSet] : undefined;
+    try {
+      const nextResults = await searchTerms(
+        buildServerQuery(nextQuery, tagsSet),
+        limit,
+        tagArr,
+      );
+      setResults(nextResults);
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function toggleTag(tag: string) {
     setSelectedTags((prev) => {
       const next = new Set(prev);
@@ -535,23 +586,12 @@ export default function TermSearch({
     if (!initialQuery || initialQuery.length < 2) return;
     setQuery(initialQuery);
     queryRef.current = initialQuery;
-    setLoading(true);
-    const tagArr = hintTags && hintTags.length > 0 ? hintTags : undefined;
-    searchTerms(buildServerQuery(initialQuery, new Set(hintTags ?? [])), 15, tagArr)
-      .then(setResults)
-      .catch(() => setResults([]))
-      .finally(() => setLoading(false));
+    void runSearch(initialQuery, new Set(hintTags ?? []));
   }, [initialQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const q = queryRef.current;
-    if (!q || q.trim().length < 2) return;
-    setLoading(true);
-    const tagArr = selectedTags.size > 0 ? [...selectedTags] : undefined;
-    searchTerms(buildServerQuery(q, selectedTags), 15, tagArr)
-      .then(setResults)
-      .catch(() => setResults([]))
-      .finally(() => setLoading(false));
+    void runSearch(q, selectedTags);
   }, [selectedTags]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -580,16 +620,22 @@ export default function TermSearch({
       return;
     }
     debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      const tagArr = selectedTags.size > 0 ? [...selectedTags] : undefined;
-      try {
-        setResults(await searchTerms(buildServerQuery(val, selectedTags), 15, tagArr));
-      } catch {
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
+      await runSearch(val, selectedTags);
     }, 300);
+  }
+
+  async function applyLeoSearch(
+    nextQuery: string,
+    nextSemanticTags: string[],
+  ): Promise<void> {
+    const trimmed = nextQuery.trim();
+    if (!trimmed) return;
+    const nextTagSet = new Set(nextSemanticTags);
+    setQuery(trimmed);
+    queryRef.current = trimmed;
+    setSelectedResult(null);
+    setSelectedTags(nextTagSet);
+    await runSearch(trimmed, nextTagSet, LEO_SEARCH_LIMIT);
   }
 
   function handleResultClick(r: TermSearchResult) {
@@ -859,9 +905,22 @@ export default function TermSearch({
                         variant="outlined"
                       />
                     </Stack>
-                    <Tooltip title={`${strength}% match strength`}>
-                      <Chip label={label} size="small" color={color} variant="filled" />
-                    </Tooltip>
+                    <Stack direction="row" gap={0.5} alignItems="center">
+                      {r.from_surface_form && (
+                        <Tooltip title="This text is already a known surface form alias for this concept -- the pipeline will map it automatically">
+                          <Chip
+                            label="Known alias"
+                            size="small"
+                            color="success"
+                            variant="outlined"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </Tooltip>
+                      )}
+                      <Tooltip title={`${strength}% match strength`}>
+                        <Chip label={label} size="small" color={color} variant="filled" />
+                      </Tooltip>
+                    </Stack>
                   </Stack>
                 </ListItemButton>
               );
@@ -877,6 +936,8 @@ export default function TermSearch({
               entityLabel={entityLabel}
               encounterText={initialEvidence ?? ""}
               initialCandidates={filteredResults}
+              semanticTags={[...selectedTags]}
+              onApplyLeoSearch={applyLeoSearch}
               onUseSuggestion={handleResultClick}
             />
           </>

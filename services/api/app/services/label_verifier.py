@@ -26,7 +26,6 @@ import threading
 import time
 from typing import Any
 
-import httpx
 from libs.cypher.coding_review_queries import (
     GET_CODING_IGNORE_RULES,
     UPSERT_CODING_REVIEW,
@@ -53,6 +52,7 @@ from libs.ner.post_processor_rules import (
 )
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.prompts.registry import get_prompt, get_prompt_config
+from libs.terminology.client import TerminologyClient
 
 logger = logging.getLogger(__name__)
 
@@ -62,14 +62,12 @@ _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 # Each worker runs AWS+Azure in parallel, so in-flight LLM requests are roughly 2x this value.
 # For large backfills (e.g., 12k labels), tune LABEL_VERIFY_WORKERS via env for your infra limits.
 _MAX_WORKERS = int(os.getenv("LABEL_VERIFY_WORKERS", "50"))
-_TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip(
-    "/"
-)
 _AUTO_TRIAGE_TERM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_TERM_THRESHOLD", "0.85"))
 _AUTO_TRIAGE_LLM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_LLM_THRESHOLD", "0.80"))
 _LLM_RETRIES = int(os.getenv("LABEL_VERIFY_LLM_RETRIES", "4"))
 _LLM_BACKOFF_BASE_S = float(os.getenv("LABEL_VERIFY_LLM_BACKOFF_BASE_S", "0.6"))
 _CODING_MODE = os.getenv("CODING_MODE", "hitl").strip().lower()
+_terminology_client: TerminologyClient | None = None
 
 _AUTO_CODE_BLOCKED: frozenset[str] = frozenset(
     {
@@ -772,25 +770,10 @@ def _auto_triage_disagreement(
     target_labels = {model_a_label, model_b_label}
 
     # 1) Terminology resolution path (with expected_tags for better ranking).
-    resolve_body: dict[str, Any] = {"terms": [entity_text]}
     snomed_tag = LABEL_TO_SNOMED_TAG.get(current_label)
-    if snomed_tag:
-        resolve_body["expected_tags"] = {entity_text: snomed_tag}
-    try:
-        with httpx.Client(timeout=8) as client:
-            response = client.post(
-                f"{_TERMINOLOGY_API_URL}/terminology/resolve",
-                json=resolve_body,
-            )
-            response.raise_for_status()
-            payload = response.json() if response.content else {}
-    except Exception:
-        logger.debug(
-            "Auto-triage terminology lookup failed for %r", entity_text, exc_info=True
-        )
-        payload = {}
-
-    candidates = ((payload or {}).get("results") or {}).get(entity_text) or []
+    expected = {entity_text: snomed_tag} if snomed_tag else None
+    results = _resolve_terms_via_api([entity_text], expected_tags=expected)
+    candidates = results.get(entity_text) or []
     if candidates and isinstance(candidates, list):
         top = candidates[0] if isinstance(candidates[0], dict) else {}
         top_score = _safe_float(top.get("score"))
@@ -919,19 +902,49 @@ def _resolve_terms_via_api(
     terms: list[str],
     expected_tags: dict[str, str] | None = None,
 ) -> dict[str, list]:
-    """POST a batch of terms to the terminology resolve endpoint."""
-    body: dict[str, Any] = {"terms": terms}
-    if expected_tags:
-        body["expected_tags"] = expected_tags
+    """Resolve a batch of terms via shared terminology client."""
+    if not terms:
+        return {}
+
+    global _terminology_client
+    if _terminology_client is None:
+        _terminology_client = TerminologyClient(timeout=10, max_retries=1)
+
     try:
-        with httpx.Client(timeout=10) as client:
-            resp = client.post(
-                f"{_TERMINOLOGY_API_URL}/terminology/resolve",
-                json=body,
-            )
-            resp.raise_for_status()
-            payload = resp.json() if resp.content else {}
-            return (payload or {}).get("results") or {}
+        raw_results = _terminology_client.resolve_raw(
+            terms=terms,
+            expected_tags=expected_tags,
+        )
+        normalised: dict[str, list[dict[str, Any]]] = {}
+        for term, candidates in raw_results.items():
+            term_candidates: list[dict[str, Any]] = []
+            for candidate in candidates or []:
+                if not isinstance(candidate, dict):
+                    continue
+                term_candidates.append(
+                    {
+                        "snomed_concept_id": (
+                            candidate.get("snomed_concept_id")
+                            or candidate.get("concept_id")
+                            or candidate.get("conceptId")
+                            or ""
+                        ),
+                        "snomed_term": (
+                            candidate.get("snomed_term")
+                            or candidate.get("term")
+                            or candidate.get("preferredTerm")
+                            or ""
+                        ),
+                        "semantic_tag": (
+                            candidate.get("semantic_tag")
+                            or candidate.get("semanticTag")
+                            or ""
+                        ),
+                        "score": _safe_float(candidate.get("score")),
+                    }
+                )
+            normalised[str(term)] = term_candidates
+        return normalised
     except Exception:
         logger.debug("Coding check: terminology API call failed", exc_info=True)
         return {}

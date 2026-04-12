@@ -125,3 +125,42 @@ def test_extraction_check_suppresses_medication_instruction_indication(monkeypat
     )
     assert any(e["text"] == "Fluoxetine 20mg capsules" for e in out["entities"])
     assert all(e["text"] != "low mood" for e in out["entities"])
+
+
+def test_extraction_check_drops_referral_suspicion_disorder_inference(monkeypatch):
+    payload = '{"drop":[],"correct_assertion":[],"correct_label":[],"add":[]}'
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(payload),
+    )
+    graph = build_extraction_check_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": "Seen in fast track suspected colorectal cancer clinic (XaPyb).",
+            "entities": [
+                {
+                    "text": "Seen in fast track suspected colorectal cancer clinic",
+                    "label": "finding",
+                    "assertion": "present",
+                    "start": 0,
+                    "end": 53,
+                },
+                {
+                    "text": "suspected colorectal cancer",
+                    "label": "disorder",
+                    "assertion": "possible",
+                    "start": 19,
+                    "end": 47,
+                },
+            ],
+        }
+    )
+    assert any(e["label"] == "finding" for e in out["entities"])
+    assert all(
+        not (e["label"] == "disorder" and e.get("assertion") == "possible")
+        for e in out["entities"]
+    )
+    assert any(
+        c.get("reason") == "referral_suspicion_disorder_inference"
+        for c in out.get("llm_check_changes", [])
+    )

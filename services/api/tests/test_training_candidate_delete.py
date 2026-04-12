@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from app.deps import require_admin
 from app.routers.training import (
+    COUNT_TRAINING_CANDIDATES_PAGE,
     GET_GOLD_LABEL_BY_CANDIDATE_ID,
     GET_TRAINING_CANDIDATE_BY_ID,
     GET_TRAINING_CANDIDATES_PAGE,
@@ -219,8 +220,8 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
                         "text": "example encounter text",
                         "entities_json": '[{"text":"example","label":"finding","semantic_tag":"finding"}]',
                         "quality_score": None,
-                        "source": "manual_gold_editor",
-                        "verified_by": "admin@example.com",
+                        "source": "manual_gold_draft",
+                        "verified_by": "",
                         "verified_at": None,
                         "candidate_id": "cand-123",
                         "schema_version": "v4",
@@ -238,7 +239,7 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
     assert r.status_code == 200
     payload = r.json()
     assert payload["candidate_id"] == "cand-123"
-    assert payload["source"] == "manual_gold_editor"
+    assert payload["source"] == "manual_gold_draft"
 
 
 def test_mark_candidate_completed_returns_200_when_gold_exists(client):
@@ -386,3 +387,133 @@ def test_candidate_dedupe_apply_marks_duplicates(client):
     assert payload["duplicates_marked"] == 1
     assert payload["group_count"] == 1
     assert isinstance(payload["run_id"], str)
+
+
+def test_candidate_dedupe_preview_detects_prefix_variant_duplicate(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+
+        def run_side_effect(query, **kwargs):
+            if query == GET_TRAINING_CANDIDATES_PAGE:
+                return [
+                    {
+                        "candidate_id": "cand-a",
+                        "text": "Seen in fast track suspected breast cancer clinic",
+                        "status": "completed",
+                        "source": "pipeline_gold",
+                        "updated_at": "2026-04-12T09:00:00Z",
+                    },
+                    {
+                        "candidate_id": "cand-b",
+                        "text": (
+                            "Seen in 2WW Clinic?: Seen in fast track suspected "
+                            "breast cancer clinic [DATE]"
+                        ),
+                        "status": "completed",
+                        "source": "pipeline_gold",
+                        "updated_at": "2026-04-12T09:01:00Z",
+                    },
+                ]
+            return MagicMock(single=MagicMock(return_value=None))
+
+        inner.run.side_effect = run_side_effect
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.post(
+            "/training/candidates/dedupe/preview",
+            json={"status": "completed", "max_candidates": 100, "similarity_threshold": 0.85},
+        )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["group_count"] == 1
+    assert payload["duplicate_count"] == 1
+
+
+def test_candidate_dedupe_preview_accepts_lower_threshold(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+
+        def run_side_effect(query, **kwargs):
+            if query == GET_TRAINING_CANDIDATES_PAGE:
+                return [
+                    {
+                        "candidate_id": "cand-a",
+                        "text": "suspected lung cancer clinic review",
+                        "status": "completed",
+                        "source": "pipeline_gold",
+                        "updated_at": "2026-04-12T09:00:00Z",
+                    },
+                    {
+                        "candidate_id": "cand-b",
+                        "text": "suspected cancer clinic review",
+                        "status": "completed",
+                        "source": "pipeline_gold",
+                        "updated_at": "2026-04-12T09:01:00Z",
+                    },
+                ]
+            return MagicMock(single=MagicMock(return_value=None))
+
+        inner.run.side_effect = run_side_effect
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.post(
+            "/training/candidates/dedupe/preview",
+            json={"status": "completed", "max_candidates": 100, "similarity_threshold": 0.5},
+        )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["similarity_threshold"] == 0.5
+
+
+def test_list_training_candidates_hydrates_missing_snomed_term(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("libs.terminology.preferred_terms._get_cache_client", return_value=None),
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+
+        def run_side_effect(query, **kwargs):
+            if query == GET_TRAINING_CANDIDATES_PAGE:
+                return [
+                    {
+                        "candidate_id": "cand-1",
+                        "text": "example sentence",
+                        "entities_json": '[{"text":"eschar","label":"finding","snomed_concept_id":"68640004"}]',
+                        "source": "pipeline_gold",
+                        "status": "pending",
+                        "schema_version": "v4",
+                        "created_at": "2026-04-12T10:00:00Z",
+                        "updated_at": "2026-04-12T10:00:00Z",
+                    }
+                ]
+            if query == COUNT_TRAINING_CANDIDATES_PAGE:
+                return MagicMock(single=MagicMock(return_value={"total": 1}))
+            if "UNWIND $ids AS cid" in query:
+                return [{"concept_id": "68640004", "term": "Eschar (finding)"}]
+            return MagicMock(single=MagicMock(return_value=None))
+
+        inner.run.side_effect = run_side_effect
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.get("/training/candidates?page=1&page_size=20")
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["total"] == 1
+    entities = payload["items"][0]["entities_json"]
+    assert "Eschar" in entities

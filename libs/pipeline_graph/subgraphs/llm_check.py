@@ -20,6 +20,19 @@ logger = logging.getLogger(__name__)
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", re.IGNORECASE)
 _JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
 _SENTENCE_BOUNDARY_RE = re.compile(r"(?:\.(?:\s|$)|\n)")
+_REFERRAL_CLINIC_RE = re.compile(
+    r"\b(fast\s*track|2ww|two\s*week\s*wait)\b.{0,48}\b(referral|clinic)\b",
+    re.IGNORECASE,
+)
+_SUSPECTED_LANGUAGE_RE = re.compile(
+    r"\b(suspected|possible|probable|query|\br\/o\b|rule\s*out)\b",
+    re.IGNORECASE,
+)
+_CONFIRMED_DIAGNOSIS_RE = re.compile(
+    r"\b(confirmed|diagnosed|diagnosis|histology|biopsy\s+(confirmed|showed)|"
+    r"proven|evidence\s+of)\b",
+    re.IGNORECASE,
+)
 
 
 class LLMCheckState(TypedDict, total=False):
@@ -180,6 +193,50 @@ def _apply_scope_guard_after_extraction_check(
     return [ent for i, ent in enumerate(entities) if i not in set(to_remove)]
 
 
+def _is_referral_suspicion_context(sentence_text: str) -> bool:
+    lowered = sentence_text.strip()
+    if not lowered:
+        return False
+    has_referral_context = bool(
+        _REFERRAL_CLINIC_RE.search(lowered) or is_referral_procedure_phrase(lowered)
+    )
+    if not has_referral_context:
+        return False
+    if not _SUSPECTED_LANGUAGE_RE.search(lowered):
+        return False
+    return not _CONFIRMED_DIAGNOSIS_RE.search(lowered)
+
+
+def _apply_referral_inference_guard(
+    encounter_text: str,
+    entities: list[dict[str, Any]],
+    changes: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    to_remove: list[int] = []
+    for idx, ent in enumerate(entities):
+        label = str(ent.get("label") or "").strip().lower()
+        assertion = str(ent.get("assertion") or "present").strip().lower()
+        if label != "disorder" or assertion not in {"possible", "hypothetical"}:
+            continue
+        start = int(ent.get("start", 0) or 0)
+        end = int(ent.get("end", 0) or 0)
+        sentence_text = _extract_sentence_window(encounter_text, start, end)
+        if not _is_referral_suspicion_context(sentence_text):
+            continue
+        to_remove.append(idx)
+        changes.append(
+            {
+                "type": "drop",
+                "index": idx,
+                "reason": "referral_suspicion_disorder_inference",
+            }
+        )
+    if not to_remove:
+        return entities
+    drop_set = set(to_remove)
+    return [ent for i, ent in enumerate(entities) if i not in drop_set]
+
+
 def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
     encounter_text = str(state.get("encounter_text") or "")
     entities = list(state.get("entities") or [])
@@ -270,6 +327,11 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
         label = str(row.get("label") or "").strip()
         if not text or not label:
             continue
+        if text.lower() not in encounter_text.lower():
+            changes.append(
+                {"type": "drop_add", "text": text, "reason": "not_verbatim_in_text"}
+            )
+            continue
         start, end = _resolve_span(encounter_text, text)
         assertion = str(row.get("assertion") or "present")
         final_assertion = _normalise_referral_procedure_assertion(
@@ -294,6 +356,7 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
         entities.append(new_entity)
         changes.append({"type": "added", "text": text, "label": label})
 
+    entities = _apply_referral_inference_guard(encounter_text, entities, changes)
     entities = _apply_scope_guard_after_extraction_check(
         encounter_text, entities, changes
     )

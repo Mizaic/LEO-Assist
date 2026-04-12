@@ -13,6 +13,7 @@ the pipeline halts and the run is marked ``needs_review``.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -28,6 +29,9 @@ logger = logging.getLogger(__name__)
 _ENTITY_KEY_ALIASES = {"processed_entities", "resolved_entities"}
 
 HALT_SUBGRAPHS = frozenset()
+_ANALYSIS_SUBGRAPHS = frozenset(
+    {"anchor_detect", "episode_build", "safety_net", "quality_check"}
+)
 _PIPELINE_PASSTHROUGH_SENTINEL = "__pipeline_passthrough__"
 _ARRAY_PATH_RE = re.compile(r"^(?P<top>[A-Za-z0-9_]+)\[\]\.(?P<sub>[A-Za-z0-9_]+)$")
 
@@ -125,6 +129,9 @@ class WorkflowEngine:
         action_by_id = {a.action_id: a for a in all_actions}
         outgoing = self._build_outgoing_edges(all_actions)
         has_graph_edges = any(outgoing.values())
+        has_extraction_check = any(
+            a.subgraph_id == "extraction_check" for a in all_actions
+        )
         trigger_ids = [
             a.action_id
             for a in all_actions
@@ -162,6 +169,14 @@ class WorkflowEngine:
                     duration_ms=0,
                     output={"condition_port": selected_port},
                 )
+            elif self._should_skip_action(action, pipeline_state):
+                step_result = StepResult(
+                    action_id=action.action_id,
+                    subgraph_id=action.subgraph_id or "action",
+                    status="completed",
+                    duration_ms=0,
+                    output={},
+                )
             else:
                 step_state = self._build_step_state(action, pipeline_state)
                 step_result = await self._execute_step(action, step_state)
@@ -197,9 +212,14 @@ class WorkflowEngine:
 
             entities = pipeline_state.get("entities") or []
             if action.subgraph_id == "extraction" and not entities:
-                final_status = "empty_extraction"
-                logger.warning("Extraction returned 0 entities — aborting pipeline")
-                break
+                if has_extraction_check:
+                    logger.info(
+                        "Extraction returned 0 entities - continuing to extraction_check"
+                    )
+                else:
+                    final_status = "empty_extraction"
+                    logger.warning("Extraction returned 0 entities - aborting pipeline")
+                    break
 
             if action.subgraph_id == "verification":
                 is_verified = pipeline_state.get("is_verified", True)
@@ -319,6 +339,17 @@ class WorkflowEngine:
                 ],
             },
         }
+
+    @staticmethod
+    def _should_skip_action(
+        action: ActionDefinition, pipeline_state: dict[str, Any]
+    ) -> bool:
+        mode = str(pipeline_state.get("mode") or "").strip().lower()
+        if mode != "extract_encounter":
+            return False
+        if action.subgraph_id not in _ANALYSIS_SUBGRAPHS:
+            return False
+        return not bool(pipeline_state.get("trigger_analysis", False))
 
     @staticmethod
     def _build_outgoing_edges(
@@ -1141,133 +1172,124 @@ class WorkflowEngine:
         """Write a PipelineRun AuditEvent to the patient graph."""
         if not self._audit_driver:
             return
-        try:
-            total_ms = sum(s.duration_ms for s in steps)
-            entity_count = len(pipeline_state.get("entities") or [])
-            errors = pipeline_state.get("errors") or []
-            total_input = sum(s.llm_input_tokens for s in steps)
-            total_output = sum(s.llm_output_tokens for s in steps)
-            total_cached = sum(s.llm_cached_tokens for s in steps)
-            total_cost = round(sum(s.llm_cost_usd for s in steps), 6)
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+                total_ms = sum(s.duration_ms for s in steps)
+                entity_count = len(pipeline_state.get("entities") or [])
+                errors = pipeline_state.get("errors") or []
+                total_input = sum(s.llm_input_tokens for s in steps)
+                total_output = sum(s.llm_output_tokens for s in steps)
+                total_cached = sum(s.llm_cached_tokens for s in steps)
+                total_cost = round(sum(s.llm_cost_usd for s in steps), 6)
 
-            # Identify the extraction step for flat analytics fields.
-            # Prefer the step whose subgraph_id is "extraction"; fall back to
-            # the first step that has a prompt name set.
-            extraction_step = next(
-                (s for s in steps if s.subgraph_id == "extraction"),
-                next((s for s in steps if s.llm_prompt_name), None),
-            )
-
-            first_error: str | None = None
-            for s in steps:
-                if s.error:
-                    first_error = str(s.error)[:400]
-                    break
-            if not first_error and errors:
-                first_error = str(errors[0])[:400]
-
-            audit = {
-                # ----------------------------------------------------------------
-                # Identity
-                # ----------------------------------------------------------------
-                "id": f"audit-{event.run_id}",
-                "type": "PipelineRun",
-                "plan_definition_id": event.plan_definition_id or "",
-                "patient_id": event.patient_id,
-                "encounter_id": event.encounter_id or "",
-                "run_id": event.run_id,
-                "event_type": event.event_type,
-                # ----------------------------------------------------------------
-                # Run-level outcome (flat -- usable in Cypher WHERE / aggregation)
-                # ----------------------------------------------------------------
-                "status": status,
-                "step_count": len(steps),
-                "total_duration_ms": total_ms,
-                "entity_count": entity_count,
-                "error_count": len(errors),
-                "first_error": first_error,
-                # ----------------------------------------------------------------
-                # LLM spend totals (flat -- used by ORG_SPEND_SUMMARY et al.)
-                # ----------------------------------------------------------------
-                "llm_input_tokens": total_input,
-                "llm_output_tokens": total_output,
-                "llm_cached_tokens": total_cached,
-                "llm_cost_usd": total_cost,
-                # ----------------------------------------------------------------
-                # Primary extraction step dimensions (flat -- index + query on)
-                # Enables: "empty_extraction rate by prompt version",
-                #          "cost per entity by provider", regression gates.
-                # ----------------------------------------------------------------
-                "extraction_prompt_name": (
-                    extraction_step.llm_prompt_name if extraction_step else ""
-                ),
-                "extraction_prompt_version": (
-                    extraction_step.llm_prompt_version if extraction_step else 0
-                ),
-                "extraction_prompt_hash": (
-                    extraction_step.llm_prompt_hash if extraction_step else ""
-                ),
-                "extraction_provider": (
-                    extraction_step.llm_provider if extraction_step else ""
-                ),
-                "extraction_model_tier": (
-                    extraction_step.llm_model_tier if extraction_step else ""
-                ),
-                # ----------------------------------------------------------------
-                # Detail blobs (JSON strings -- for display / export, NOT analytics)
-                # steps: full per-step trace for audit trail UI
-                # errors: up to 50 error messages for diagnosis
-                # llm_prompt_hashes: sorted deduplicated set, for exact prompt audit
-                # ----------------------------------------------------------------
-                "steps": json.dumps(
-                    [
-                        {
-                            "action_id": s.action_id,
-                            "subgraph_id": s.subgraph_id,
-                            "status": s.status,
-                            "duration_ms": s.duration_ms,
-                            "entity_count": s.entity_count,
-                            "is_verified": s.is_verified,
-                            "error": s.error,
-                            "llm_input_tokens": s.llm_input_tokens,
-                            "llm_output_tokens": s.llm_output_tokens,
-                            "llm_cached_tokens": s.llm_cached_tokens,
-                            "llm_cost_usd": round(s.llm_cost_usd, 6),
-                            "llm_prompt_name": s.llm_prompt_name,
-                            "llm_prompt_version": s.llm_prompt_version,
-                            "llm_prompt_hash": s.llm_prompt_hash,
-                            "llm_provider": s.llm_provider,
-                            "llm_model_tier": s.llm_model_tier,
-                            "llm_few_shot_example_ids": s.llm_few_shot_example_ids,
-                        }
-                        for s in steps
-                    ]
-                ),
-                "errors": json.dumps(errors[:50]),
-                "llm_prompt_hashes": json.dumps(
-                    sorted({s.llm_prompt_hash for s in steps if s.llm_prompt_hash})
-                ),
-            }
-            query = """
-            MERGE (ae:AuditEvent {id: $id})
-            SET ae += $props,
-                ae.created_at = datetime()
-            WITH ae
-            OPTIONAL MATCH (p:Patient {id: $patient_id})
-            FOREACH (_ IN CASE WHEN p IS NOT NULL THEN [1] ELSE [] END |
-                MERGE (ae)-[:AUDIT_FOR]->(p)
-            )
-            """
-            async with self._audit_driver.session() as session:
-                await session.run(
-                    query, id=audit["id"], props=audit, patient_id=event.patient_id
+                extraction_step = next(
+                    (s for s in steps if s.subgraph_id == "extraction"),
+                    next((s for s in steps if s.llm_prompt_name), None),
                 )
-            logger.info(
-                "AuditEvent %s written: status=%s entities=%d duration=%dms",
-                audit["id"],
-                status,
-                entity_count,
-                total_ms,
-            )
-        except Exception as exc:
-            logger.warning("Failed to write AuditEvent: %s", exc)
+
+                first_error: str | None = None
+                for s in steps:
+                    if s.error:
+                        first_error = str(s.error)[:400]
+                        break
+                if not first_error and errors:
+                    first_error = str(errors[0])[:400]
+
+                audit = {
+                    "id": f"audit-{event.run_id}",
+                    "type": "PipelineRun",
+                    "plan_definition_id": event.plan_definition_id or "",
+                    "patient_id": event.patient_id,
+                    "encounter_id": event.encounter_id or "",
+                    "run_id": event.run_id,
+                    "event_type": event.event_type,
+                    "status": status,
+                    "step_count": len(steps),
+                    "total_duration_ms": total_ms,
+                    "entity_count": entity_count,
+                    "error_count": len(errors),
+                    "first_error": first_error,
+                    "llm_input_tokens": total_input,
+                    "llm_output_tokens": total_output,
+                    "llm_cached_tokens": total_cached,
+                    "llm_cost_usd": total_cost,
+                    "extraction_prompt_name": (
+                        extraction_step.llm_prompt_name if extraction_step else ""
+                    ),
+                    "extraction_prompt_version": (
+                        extraction_step.llm_prompt_version if extraction_step else 0
+                    ),
+                    "extraction_prompt_hash": (
+                        extraction_step.llm_prompt_hash if extraction_step else ""
+                    ),
+                    "extraction_provider": (
+                        extraction_step.llm_provider if extraction_step else ""
+                    ),
+                    "extraction_model_tier": (
+                        extraction_step.llm_model_tier if extraction_step else ""
+                    ),
+                    "steps": json.dumps(
+                        [
+                            {
+                                "action_id": s.action_id,
+                                "subgraph_id": s.subgraph_id,
+                                "status": s.status,
+                                "duration_ms": s.duration_ms,
+                                "entity_count": s.entity_count,
+                                "is_verified": s.is_verified,
+                                "error": s.error,
+                                "llm_input_tokens": s.llm_input_tokens,
+                                "llm_output_tokens": s.llm_output_tokens,
+                                "llm_cached_tokens": s.llm_cached_tokens,
+                                "llm_cost_usd": round(s.llm_cost_usd, 6),
+                                "llm_prompt_name": s.llm_prompt_name,
+                                "llm_prompt_version": s.llm_prompt_version,
+                                "llm_prompt_hash": s.llm_prompt_hash,
+                                "llm_provider": s.llm_provider,
+                                "llm_model_tier": s.llm_model_tier,
+                                "llm_few_shot_example_ids": s.llm_few_shot_example_ids,
+                            }
+                            for s in steps
+                        ]
+                    ),
+                    "errors": json.dumps(errors[:50]),
+                    "llm_prompt_hashes": json.dumps(
+                        sorted({s.llm_prompt_hash for s in steps if s.llm_prompt_hash})
+                    ),
+                }
+                query = """
+                MERGE (ae:AuditEvent {id: $id})
+                SET ae += $props,
+                    ae.created_at = datetime()
+                WITH ae
+                OPTIONAL MATCH (p:Patient {id: $patient_id})
+                FOREACH (_ IN CASE WHEN p IS NOT NULL THEN [1] ELSE [] END |
+                    MERGE (ae)-[:AUDIT_FOR]->(p)
+                )
+                """
+                async with self._audit_driver.session() as session:
+                    await session.run(
+                        query, id=audit["id"], props=audit, patient_id=event.patient_id
+                    )
+                logger.info(
+                    "AuditEvent %s written: status=%s entities=%d duration=%dms",
+                    audit["id"],
+                    status,
+                    entity_count,
+                    total_ms,
+                )
+                return
+            except Exception as exc:
+                if attempt < max_attempts:
+                    delay_s = 0.25 * (2 ** (attempt - 1))
+                    logger.warning(
+                        "AuditEvent write attempt %d/%d failed, retrying in %.2fs: %s",
+                        attempt,
+                        max_attempts,
+                        delay_s,
+                        exc,
+                    )
+                    await asyncio.sleep(delay_s)
+                    continue
+                logger.warning("Failed to write AuditEvent: %s", exc)

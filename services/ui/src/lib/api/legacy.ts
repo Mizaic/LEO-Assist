@@ -363,6 +363,7 @@ export async function searchTerms(
       semantic_tag?: string;
       module_id?: string;
       score?: number;
+      from_surface_form?: boolean;
     }>
   >(`${API_BASE}/api/terminology/search?${params}`);
 }
@@ -628,6 +629,62 @@ export async function askLeoSmart(
         semantic_tags: semanticTags,
         tier,
         assertion,
+      }),
+    },
+  );
+}
+
+export async function createSuppressRule(
+  matchText: string,
+  matchLabel?: string,
+  notes?: string,
+): Promise<{ rule_id: string }> {
+  return fetchJson<{ rule_id: string }>(
+    `${API_BASE}/api/training/post-processor-rules`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "suppress",
+        match_text: matchText,
+        match_label: matchLabel ?? null,
+        notes: notes ?? `Suppressed from gold label editor`,
+        created_by: "operations_ui",
+      }),
+    },
+  );
+}
+
+/** Escape a plain string for use as a literal regex pattern. */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Create a suppress rule that matches ALL entities extracted from any encounter
+ * whose text contains a distinctive substring of the given encounter text.
+ * Uses context_regex (no match_text) so every entity in a matching encounter
+ * is suppressed in the post-processing step.
+ */
+export async function createEncounterSuppressRule(
+  encounterText: string,
+  notes?: string,
+): Promise<{ rule_id: string }> {
+  const snippet = encounterText.trim().slice(0, 80);
+  const contextRegex = escapeRegex(snippet);
+  return fetchJson<{ rule_id: string }>(
+    `${API_BASE}/api/training/post-processor-rules`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "suppress",
+        match_text: null,
+        match_label: null,
+        context_regex: contextRegex,
+        window_chars: 500,
+        notes: notes ?? `Encounter text suppressed from pipeline`,
+        created_by: "operations_ui",
       }),
     },
   );

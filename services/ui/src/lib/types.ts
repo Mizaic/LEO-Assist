@@ -62,6 +62,7 @@ export interface TermSearchResult {
   module_id?: string;
   score?: number;
   icd10?: string;
+  from_surface_form?: boolean;
 }
 
 export interface Correction {

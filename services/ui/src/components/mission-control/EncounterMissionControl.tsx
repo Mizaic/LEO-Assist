@@ -276,10 +276,15 @@ export default function EncounterMissionControl() {
   }, []);
 
   const handleAdvisorApply = useCallback((config: AppliedConfig) => {
+    // Apply a broad baseline first, then let users narrow with sliders.
+    // This avoids hidden strict filters collapsing results to 1-2 rows.
+    const broadMinCombined = Math.max(0.05, Math.min(config.minCombinedScore, 0.2));
     setSearch((prev) => ({
       ...prev,
-      minCombinedScore: config.minCombinedScore.toFixed(2),
-      excludeNearDuplicates: config.enableDedup,
+      minCombinedScore: broadMinCombined.toFixed(2),
+      minVectorScore: "",
+      requireKeywordAnchor: false,
+      excludeNearDuplicates: false,
       nearDuplicateThreshold: config.dedupThreshold.toFixed(2),
     }));
     setAutoSearch(true);

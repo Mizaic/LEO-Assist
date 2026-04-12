@@ -128,6 +128,12 @@ UPDATE_GOLD_LABEL_ENTITIES = """
 MATCH (g:GoldLabel {label_id: $label_id})
 SET g.entities_json = $entities_json,
     g.updated_at    = datetime()
+WITH g
+OPTIONAL MATCH (c:TrainingCandidate {candidate_id: g.candidate_id})
+FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
+    SET c.entities_json = $entities_json,
+        c.updated_at    = datetime()
+)
 RETURN g.label_id AS label_id, g.entities_json AS entities_json
 """
 

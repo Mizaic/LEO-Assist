@@ -10,6 +10,7 @@ import Chip from "@mui/material/Chip";
 import List from "@mui/material/List";
 import Tooltip from "@mui/material/Tooltip";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SettingsIcon from "@mui/icons-material/Settings";
 import type { SubdomainSummary } from "@/lib/analyticsApi";
 
@@ -17,16 +18,20 @@ export interface DomainSubdomainCardsProps {
   subdomainCount: number;
   subdomains: SubdomainSummary[];
   canEditDomains: boolean;
+  deletingSubdomain: string | null;
   onCreateClick: () => void;
   onConfigure: (sub: SubdomainSummary) => void;
+  onDelete: (sub: SubdomainSummary) => void;
 }
 
 export default function DomainSubdomainCards({
   subdomainCount,
   subdomains,
   canEditDomains,
+  deletingSubdomain,
   onCreateClick,
   onConfigure,
+  onDelete,
 }: DomainSubdomainCardsProps) {
   return (
     <>
@@ -124,13 +129,30 @@ export default function DomainSubdomainCards({
                     ))}
                   </Box>
                 </Box>
-                <IconButton
-                  onClick={() => onConfigure(sub)}
-                  aria-label={`Configure ${sub.name}`}
-                  size="small"
-                >
-                  <SettingsIcon />
-                </IconButton>
+                <Box sx={{ display: "flex", gap: 0.5 }}>
+                  <IconButton
+                    onClick={() => onConfigure(sub)}
+                    aria-label={`Configure ${sub.name}`}
+                    size="small"
+                  >
+                    <SettingsIcon />
+                  </IconButton>
+                  {canEditDomains && (
+                    <Tooltip title="Delete subdomain">
+                      <span>
+                        <IconButton
+                          onClick={() => onDelete(sub)}
+                          aria-label={`Delete ${sub.name}`}
+                          size="small"
+                          color="error"
+                          disabled={deletingSubdomain === sub.name}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  )}
+                </Box>
               </CardContent>
             </Card>
           ))}

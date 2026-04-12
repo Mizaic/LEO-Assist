@@ -19,6 +19,8 @@
     automation_framework: "pytest"
     test_file_paths:
       - "services/coding_worker/tests/test_job_handler_engine.py"
+      - "tests/test_workflow_engine_empty_extraction.py"
+      - "tests/test_workflow_engine_trigger_analysis.py"
 
   test_environment:
     environment_type: "development"
@@ -87,3 +89,15 @@
         python3 -m pytest services/coding_worker/tests/test_job_handler_engine.py -q
         completed with 3 passed tests covering WorkflowEngine routing, patient fan-out,
         and extract_encounter guard behavior.
+    - run_id: "VT-094-RUN-002"
+      date: "2026-04-12"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      notes: >
+        .venv/bin/pytest tests/test_workflow_engine_empty_extraction.py
+        tests/test_workflow_engine_trigger_analysis.py
+        services/coding_worker/tests/test_job_handler_engine.py -q
+        completed with 7 passed tests covering empty-extraction continuation,
+        trigger_analysis-driven subgraph skipping for extract_encounter, and
+        worker context propagation.

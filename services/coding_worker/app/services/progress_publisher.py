@@ -14,6 +14,9 @@ def _get_redis():
 def publish_progress(run_id: str, event: dict) -> None:
     try:
         client = _get_redis()
-        client.publish(f"pipeline:{run_id}", json.dumps(event))
+        payload = json.dumps(event)
+        client.publish(f"pipeline:{run_id}", payload)
+        # Keep the most recent event for late SSE subscribers.
+        client.setex(f"pipeline:last:{run_id}", 3600, payload)
     except Exception:
         return

@@ -102,6 +102,7 @@ async def _dispatch_engine_for_encounter(
     encounter_id: str,
     run_id: str,
     dry_run: bool,
+    trigger_analysis: bool,
 ) -> None:
     body = {
         "event_type": str(base_body.get("event_type") or "encounter-created"),
@@ -114,6 +115,7 @@ async def _dispatch_engine_for_encounter(
             "dry_run": dry_run,
             "mode": "extract_encounter",
             "encounter_id": encounter_id,
+            "trigger_analysis": trigger_analysis,
         },
     }
     await handler.handle_message(
@@ -165,6 +167,7 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 encounter_id=job.encounter_id,
                 run_id=run_id,
                 dry_run=job.dry_run,
+                trigger_analysis=job.trigger_analysis,
             )
             return
 
@@ -201,6 +204,7 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 encounter_id=encounter_id,
                 run_id=run_id,
                 dry_run=job.dry_run,
+                trigger_analysis=job.trigger_analysis,
             )
         from services.coding_worker.app.services.progress_publisher import (
             publish_progress,

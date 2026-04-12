@@ -7,17 +7,15 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Any
 
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
+from libs.terminology.client import TerminologyClient
 
 logger = logging.getLogger(__name__)
-
-_TERMINOLOGY_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
 
 
 class AskLeoRequest(BaseModel):
@@ -74,20 +72,13 @@ def _terminology_search(
     limit: int,
     semantic_tags: list[str],
 ) -> list[dict[str, Any]]:
-    """Call the Terminology API search endpoint and return candidates."""
-    import httpx
-
-    params: dict[str, Any] = {"q": query, "limit": limit}
-    if semantic_tags:
-        params["semantic_tag"] = semantic_tags
+    """Search terminology candidates using shared cached client."""
     try:
-        with httpx.Client(timeout=10) as http:
-            resp = http.get(
-                f"{_TERMINOLOGY_URL}/terminology/search",
-                params=params,
-            )
-            resp.raise_for_status()
-            return resp.json() or []
+        return TerminologyClient(timeout=10).search(
+            query=query,
+            limit=limit,
+            semantic_tags=semantic_tags,
+        )
     except Exception:
         logger.warning("_terminology_search failed for %r", query, exc_info=True)
         return []

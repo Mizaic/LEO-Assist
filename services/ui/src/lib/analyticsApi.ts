@@ -416,6 +416,23 @@ export interface SubdomainExport {
   concepts: SubdomainExportConcept[];
 }
 
+export interface SubdomainMembershipItem {
+  domain_id: string;
+  domain_name: string;
+  subdomain_name: string;
+  subdomain_label: string;
+  is_member: boolean;
+}
+
+export async function fetchConceptSubdomainMemberships(
+  conceptId: string,
+): Promise<SubdomainMembershipItem[]> {
+  const data = await fetchJson<{ concept_id: string; subdomains: SubdomainMembershipItem[] }>(
+    `${ANALYTICS_BASE}/analytics/concepts/${encodeURIComponent(conceptId)}/subdomain-memberships`,
+  );
+  return data.subdomains;
+}
+
 export async function fetchDomains(source?: "nice" | "platform" | "tenant"): Promise<DomainSummary[]> {
   const url = source
     ? `${ANALYTICS_BASE}/analytics/domains?source=${source}`
@@ -509,6 +526,26 @@ export async function fetchSubdomain(
   return fetchJson<SubdomainDetail>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}`,
   );
+}
+
+export async function deleteSubdomain(
+  domainId: string,
+  subdomainName: string,
+): Promise<void> {
+  const res = await fetch(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { detail?: string }).detail || `Request failed (${res.status})`,
+    );
+  }
 }
 
 export async function updateSubdomain(

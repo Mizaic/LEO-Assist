@@ -106,6 +106,7 @@ async def test_extract_encounter_routes_through_workflow_engine(monkeypatch):
     assert call["event_type"] == "encounter-created"
     assert call["encounter_id"] == "e1"
     assert "encounter_text" not in (call.get("context") or {})
+    assert call["context"]["trigger_analysis"] is False
     event_types = {e.get("type") for e in published}
     assert "step_completed" in event_types
     assert "run_completed" in event_types
@@ -164,6 +165,7 @@ async def test_extract_patient_fans_out_per_encounter(monkeypatch):
 
     encounter_ids = [c.get("encounter_id") for c in _FakeServiceBusEventHandler.calls]
     assert encounter_ids == ["e1", "e2"]
+    assert all(c["context"]["trigger_analysis"] is False for c in _FakeServiceBusEventHandler.calls)
     assert any(e.get("type") == "encounter_completed" for e in published)
     assert any(e.get("type") == "run_completed" for e in published)
     assert fake_driver.closed is True

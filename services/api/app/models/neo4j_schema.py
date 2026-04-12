@@ -164,24 +164,25 @@ CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
     MATCH (node)-[:DESCRIBES]->(c:Concept)
     WHERE c.active = true
-    RETURN c, score AS weighted_score
+    RETURN c, score AS weighted_score, false AS sf_match
     UNION
     CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
     MATCH (node)-[:MAPS_TO]->(c:Concept)
     WHERE c.active = true
-    RETURN c, score * 1.2 AS weighted_score
+    RETURN c, score * 1.2 AS weighted_score, true AS sf_match
     UNION
     MATCH (c:Concept {id: $q})
     WHERE c.active = true
-    RETURN c, 2.0 AS weighted_score
+    RETURN c, 2.0 AS weighted_score, false AS sf_match
     UNION
     MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
     WHERE c.active = true
-    RETURN c, 2.0 AS weighted_score
+    RETURN c, 2.0 AS weighted_score, false AS sf_match
 }
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
 WITH c, max(weighted_score) AS best_score,
+     collect(DISTINCT sf_match) AS sf_set,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10
 RETURN c.id AS snomed_concept_id,
@@ -190,7 +191,8 @@ RETURN c.id AS snomed_concept_id,
        c.module_id AS module_id,
        icd10,
        read_code,
-       best_score AS score
+       best_score AS score,
+       true IN sf_set AS from_surface_form
 ORDER BY best_score DESC
 LIMIT $limit
 """
@@ -200,24 +202,25 @@ CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
     MATCH (node)-[:DESCRIBES]->(c:Concept)
     WHERE c.active = true AND c.semantic_tag IN $tags
-    RETURN c, score AS weighted_score
+    RETURN c, score AS weighted_score, false AS sf_match
     UNION
     CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
     MATCH (node)-[:MAPS_TO]->(c:Concept)
     WHERE c.active = true AND c.semantic_tag IN $tags
-    RETURN c, score * 1.2 AS weighted_score
+    RETURN c, score * 1.2 AS weighted_score, true AS sf_match
     UNION
     MATCH (c:Concept {id: $q})
     WHERE c.active = true AND c.semantic_tag IN $tags
-    RETURN c, 2.0 AS weighted_score
+    RETURN c, 2.0 AS weighted_score, false AS sf_match
     UNION
     MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
     WHERE c.active = true AND c.semantic_tag IN $tags
-    RETURN c, 2.0 AS weighted_score
+    RETURN c, 2.0 AS weighted_score, false AS sf_match
 }
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
 WITH c, max(weighted_score) AS best_score,
+     collect(DISTINCT sf_match) AS sf_set,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10
 RETURN c.id AS snomed_concept_id,
@@ -226,7 +229,8 @@ RETURN c.id AS snomed_concept_id,
        c.module_id AS module_id,
        icd10,
        read_code,
-       best_score AS score
+       best_score AS score,
+       true IN sf_set AS from_surface_form
 ORDER BY best_score DESC
 LIMIT $limit
 """

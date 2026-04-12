@@ -154,6 +154,9 @@ from libs.prompts.synthetic_ner_sentences import (
     _strip_snomed_qualifier,
 )
 from libs.terminology.client import TerminologyClient, get_always_ignore_patterns
+from libs.terminology.preferred_terms import (
+    hydrate_entities_json_items_with_pt_cache,
+)
 from libs.pipeline.post_processing import run_post_processing
 from libs.ner.deid_validator import DeIdValidator
 from libs.utils.deidentify import deidentify_text
@@ -169,6 +172,13 @@ PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006")
 from app.routers._training_askleo import register_askleo_routes
 
 register_askleo_routes(router)
+
+
+def _enrich_items_entities_with_pt_cache(
+    session: Any,
+    items: list[dict[str, Any]],
+) -> None:
+    hydrate_entities_json_items_with_pt_cache(session=session, items=items)
 
 
 async def _proxy_pipeline_worker_json(
@@ -336,7 +346,7 @@ class CandidateDedupeRequest(BaseModel):
     source: str | None = None
     search: str | None = None
     max_candidates: int = Field(default=1200, ge=50, le=3000)
-    similarity_threshold: float = Field(default=0.9, ge=0.7, le=0.99)
+    similarity_threshold: float = Field(default=0.85, ge=0.5, le=0.99)
 
 
 # ------------------------------------------------------------------
@@ -1858,9 +1868,6 @@ _RECHECK_THRESHOLD = float(
     __import__("os").getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70")
 )
 _RECHECK_ALT_LOW = float(__import__("os").getenv("CODING_ALT_THRESHOLD_LOW", "0.3"))
-_TERMINOLOGY_URL = (
-    __import__("os").getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
-)
 
 # ---------------------------------------------------------------------------
 # Recheck job state (module-level, updated by background thread)
@@ -1883,19 +1890,48 @@ def _call_terminology_chunk(
     terms: list[str],
     expected_tags: dict[str, str] | None = None,
 ) -> dict[str, list]:
-    """POST a single chunk of terms; return results map or empty dict on failure."""
-    import httpx
-
-    body: dict[str, Any] = {"terms": terms}
+    """Resolve a chunk of terms via cached shared terminology client."""
+    chunk_tags = None
     if expected_tags:
-        chunk_tags = {t: expected_tags[t] for t in terms if t in expected_tags}
-        if chunk_tags:
-            body["expected_tags"] = chunk_tags
+        subset = {t: expected_tags[t] for t in terms if t in expected_tags}
+        if subset:
+            chunk_tags = subset
+
     try:
-        with httpx.Client(timeout=60) as http:
-            resp = http.post(f"{_TERMINOLOGY_URL}/terminology/resolve", json=body)
-            resp.raise_for_status()
-            return (resp.json() or {}).get("results") or {}
+        raw = TerminologyClient(timeout=60, max_retries=1).resolve_raw(
+            terms=terms,
+            expected_tags=chunk_tags,
+        )
+        normalised: dict[str, list[dict[str, Any]]] = {}
+        for term, candidates in raw.items():
+            term_candidates: list[dict[str, Any]] = []
+            for candidate in candidates or []:
+                if not isinstance(candidate, dict):
+                    continue
+                term_candidates.append(
+                    {
+                        "snomed_concept_id": (
+                            candidate.get("snomed_concept_id")
+                            or candidate.get("concept_id")
+                            or candidate.get("conceptId")
+                            or ""
+                        ),
+                        "snomed_term": (
+                            candidate.get("snomed_term")
+                            or candidate.get("term")
+                            or candidate.get("preferredTerm")
+                            or ""
+                        ),
+                        "semantic_tag": (
+                            candidate.get("semantic_tag")
+                            or candidate.get("semanticTag")
+                            or ""
+                        ),
+                        "score": candidate.get("score"),
+                    }
+                )
+            normalised[str(term)] = term_candidates
+        return normalised
     except Exception:
         logger.warning(
             "Terminology chunk call failed (%d terms)", len(terms), exc_info=True
@@ -4109,7 +4145,18 @@ def _candidate_similarity(left: str, right: str) -> float:
     containment = min(len(left_tokens), len(right_tokens)) / max(
         1, max(len(left_tokens), len(right_tokens))
     )
-    score = (0.55 * jaccard) + (0.35 * sequence) + (0.10 * containment)
+    overlap = intersection / max(1, min(len(left_tokens), len(right_tokens)))
+    substring_bonus = 0.0
+    if left_norm in right_norm or right_norm in left_norm:
+        substring_bonus = 0.10
+    score = (
+        (0.40 * jaccard)
+        + (0.25 * sequence)
+        + (0.20 * containment)
+        + (0.15 * overlap)
+        + substring_bonus
+    )
+    score = min(1.0, score)
     return round(float(score), 6)
 
 
@@ -4137,13 +4184,42 @@ def _union_roots(parent: dict[int, int], left: int, right: int) -> None:
         parent[root_right] = root_left
 
 
-def _build_token_blocks(rows: list[dict[str, Any]]) -> dict[str, list[int]]:
-    token_blocks: dict[str, list[int]] = defaultdict(list)
+def _build_candidate_pairs(rows: list[dict[str, Any]]) -> set[tuple[int, int]]:
+    """Build likely duplicate pairs using token-overlap canopies.
+
+    Previous fixed-prefix blocking missed obvious near-duplicates when one row had
+    an extra prefix fragment (for example "Seen in 2WW clinic: ...").
+    """
+    token_index: dict[str, set[int]] = defaultdict(set)
+    token_sets: list[set[str]] = []
+
     for idx, row in enumerate(rows):
-        tokens = sorted(_tokenise_candidate_text(str(row.get("text") or "")))
-        block_key = "|".join(tokens[:6]) if tokens else f"__empty__{idx}"
-        token_blocks[block_key].append(idx)
-    return token_blocks
+        tokens = _tokenise_candidate_text(str(row.get("text") or ""))
+        token_sets.append(tokens)
+        for token in tokens:
+            token_index[token].add(idx)
+
+    pairs: set[tuple[int, int]] = set()
+    for left_idx, left_tokens in enumerate(token_sets):
+        if not left_tokens:
+            continue
+        neighbour_overlap: dict[int, int] = defaultdict(int)
+        for token in left_tokens:
+            for right_idx in token_index[token]:
+                if right_idx <= left_idx:
+                    continue
+                neighbour_overlap[right_idx] += 1
+        min_overlap = 1 if len(left_tokens) < 4 else 2
+        for right_idx, overlap in neighbour_overlap.items():
+            if overlap >= min_overlap:
+                pairs.add((left_idx, right_idx))
+
+    # Small candidate pools can afford exhaustive comparison.
+    if len(rows) <= 250:
+        for left_idx in range(len(rows)):
+            for right_idx in range(left_idx + 1, len(rows)):
+                pairs.add((left_idx, right_idx))
+    return pairs
 
 
 def _cluster_candidates(
@@ -4151,22 +4227,16 @@ def _cluster_candidates(
 ) -> tuple[dict[int, list[int]], dict[tuple[int, int], float]]:
     parent: dict[int, int] = {i: i for i in range(len(rows))}
     edge_scores: dict[tuple[int, int], float] = {}
-    for indexes in _build_token_blocks(rows).values():
-        if len(indexes) < 2:
+    for left_idx, right_idx in _build_candidate_pairs(rows):
+        score = _candidate_similarity(
+            str(rows[left_idx].get("text") or ""),
+            str(rows[right_idx].get("text") or ""),
+        )
+        if score < threshold:
             continue
-        for i in range(len(indexes)):
-            for j in range(i + 1, len(indexes)):
-                left_idx = indexes[i]
-                right_idx = indexes[j]
-                score = _candidate_similarity(
-                    str(rows[left_idx].get("text") or ""),
-                    str(rows[right_idx].get("text") or ""),
-                )
-                if score < threshold:
-                    continue
-                pair = tuple(sorted((left_idx, right_idx)))
-                edge_scores[pair] = max(score, edge_scores.get(pair, 0.0))
-                _union_roots(parent, left_idx, right_idx)
+        pair = tuple(sorted((left_idx, right_idx)))
+        edge_scores[pair] = max(score, edge_scores.get(pair, 0.0))
+        _union_roots(parent, left_idx, right_idx)
     grouped: dict[int, list[int]] = defaultdict(list)
     for idx in range(len(rows)):
         grouped[_find_root(parent, idx)].append(idx)
@@ -4371,6 +4441,7 @@ def list_training_candidates(
                 search=search,
             )
             items = [dict(r) for r in rows]
+            _enrich_items_entities_with_pt_cache(session, items)
             count_row = session.run(
                 COUNT_TRAINING_CANDIDATES_PAGE,
                 status=status,
@@ -4460,6 +4531,21 @@ def mark_training_candidate_completed(
                     detail="Cannot mark completed until a linked gold label exists.",
                 )
 
+            session.run(
+                UPSERT_GOLD_LABEL,
+                label_id=gold_row.get("label_id") or f"manual-{uuid.uuid4().hex}",
+                text=gold_row.get("text", "") or candidate_row.get("text", ""),
+                entities_json=gold_row.get("entities_json")
+                or candidate_row.get("entities_json")
+                or "[]",
+                quality_score=gold_row.get("quality_score"),
+                source="manual_gold_editor",
+                verified_by=getattr(scope, "email", "operations_ui"),
+                candidate_id=candidate_id,
+                schema_version=gold_row.get("schema_version")
+                or candidate_row.get("schema_version")
+                or "v4",
+            )
             update_row = session.run(
                 UPDATE_TRAINING_CANDIDATE_STATUS,
                 candidate_id=candidate_id,
@@ -4522,6 +4608,7 @@ def list_gold_labels(
                 search=search,
             )
             items = [dict(r) for r in rows]
+            _enrich_items_entities_with_pt_cache(session, items)
             count_row = session.run(
                 COUNT_GOLD_LABELS_PAGE,
                 source=source,
@@ -4605,8 +4692,8 @@ def ensure_gold_label_for_candidate(
                 text=candidate_row.get("text", ""),
                 entities_json=candidate_row.get("entities_json") or "[]",
                 quality_score=None,
-                source="manual_gold_editor",
-                verified_by=getattr(scope, "email", "operations_ui"),
+                source="manual_gold_draft",
+                verified_by="",
                 candidate_id=candidate_id,
                 schema_version=candidate_row.get("schema_version") or "v4",
             )
@@ -4685,6 +4772,11 @@ def update_gold_label_entities(
                 **(
                     {"semantic_tag": ent["semantic_tag"]}
                     if "semantic_tag" in ent
+                    else {}
+                ),
+                **(
+                    {"snomed_term": ent["snomed_term"]}
+                    if "snomed_term" in ent
                     else {}
                 ),
             }
