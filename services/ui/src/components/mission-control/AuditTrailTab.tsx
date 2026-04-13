@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -14,6 +14,7 @@ import {
   type PipelineAuditEvent,
 } from "@/lib/missionControlApi";
 import { getStatusLabel } from "@/lib/pathwayLabels";
+import { sortByIsoDateDesc } from "@/lib/dateSort";
 
 interface Props {
   patientId: string;
@@ -97,7 +98,14 @@ export default function AuditTrailTab({ patientId, episode, orgId }: Props) {
   const hasReview = Boolean(episode?.reviewed_by);
   const hasHumanAudit =
     hasReview || Boolean(episode?.audit_notes) || Boolean(episode?.audit_flag);
-  const hasPipelineRows = (pipelineEvents?.length ?? 0) > 0;
+  const pipelineEventsSorted = useMemo(
+    () =>
+      pipelineEvents
+        ? sortByIsoDateDesc(pipelineEvents, (ev) => ev.created_at)
+        : null,
+    [pipelineEvents],
+  );
+  const hasPipelineRows = (pipelineEventsSorted?.length ?? 0) > 0;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -127,7 +135,7 @@ export default function AuditTrailTab({ patientId, episode, orgId }: Props) {
         {          !pipelineLoading &&
           !pipelineError &&
           hasPipelineRows &&
-          pipelineEvents!.map((ev) => (
+          pipelineEventsSorted!.map((ev) => (
             <Box
               key={ev.id ?? ev.run_id ?? String(ev.created_at)}
               sx={{

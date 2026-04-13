@@ -60,7 +60,7 @@ export default function WorklistFilters({
           sx={{ minWidth: 160 }}
         >
           <MenuItem value="all">All Cancer Sites</MenuItem>
-          {cancerSites.map((site) => (
+          {[...cancerSites].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })).map((site) => (
             <MenuItem key={site} value={site}>
               {site}
             </MenuItem>
@@ -75,7 +75,7 @@ export default function WorklistFilters({
           sx={{ minWidth: 150 }}
         >
           <MenuItem value="all">All Stages</MenuItem>
-          {stages.map((stage) => (
+          {[...stages].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })).map((stage) => (
             <MenuItem key={stage} value={stage}>
               {stage}
             </MenuItem>
@@ -93,9 +93,9 @@ export default function WorklistFilters({
           size="small"
         >
           <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="breached">Overdue</ToggleButton>
           <ToggleButton value="at-risk">At Risk</ToggleButton>
           <ToggleButton value="on-track">On Track</ToggleButton>
+          <ToggleButton value="breached">Overdue</ToggleButton>
         </ToggleButtonGroup>
         <ToggleButtonGroup
           value={filters.actioned}
@@ -107,8 +107,8 @@ export default function WorklistFilters({
           size="small"
         >
           <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="outstanding">Outstanding</ToggleButton>
           <ToggleButton value="actioned">Actioned</ToggleButton>
+          <ToggleButton value="outstanding">Outstanding</ToggleButton>
         </ToggleButtonGroup>
       </Box>
     </Box>

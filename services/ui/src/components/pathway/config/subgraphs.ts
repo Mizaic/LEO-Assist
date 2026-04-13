@@ -1,6 +1,6 @@
 import type { FieldMappingRow, PortDefinition } from "./types";
 
-export const SUBGRAPH_OPTIONS = [
+const SUBGRAPH_OPTIONS_RAW = [
   { id: "encounter_loader",  label: "Load Encounter Text",     color: "#607D8B", category: "Data",            description: "Load encounter clinical text from Neo4j using encounter_id." },
   { id: "extraction",        label: "Find Clinical Facts",    color: "#4CAF50", category: "Clinical AI",     description: "Read patient notes and pull out clinical facts — symptoms, conditions, procedures, test results." },
   { id: "post_processing",   label: "Clean Up Results",       color: "#2196F3", category: "Clinical AI",     description: "Tidy the found facts — remove duplicates, expand abbreviations, and apply context rules." },
@@ -21,7 +21,12 @@ export const SUBGRAPH_OPTIONS = [
   { id: "rest_connector",    label: "Call REST API",          color: "#607D8B", category: "Integration",     description: "Send runtime state to an external REST API and map the response back into the pipeline." },
   { id: "queue_publish",     label: "Publish Queue Message",  color: "#455A64", category: "Integration",     description: "Publish a message to the configured queue or topic for asynchronous downstream work." },
   { id: "guidance_rule_extraction", label: "Extract Guidance Rule", color: "#6A1B9A", category: "Clinical AI", description: "Turn a guideline recommendation into a structured logic tree and a coded action." },
-];
+] as const;
+
+/** Step types shown alphabetically by label in the pathway builder. */
+export const SUBGRAPH_OPTIONS = [...SUBGRAPH_OPTIONS_RAW].sort((a, b) =>
+  a.label.localeCompare(b.label, "en", { sensitivity: "base" }),
+);
 
 export const SUBGRAPH_IO: Record<string, {
   reads: string[];

@@ -1,11 +1,11 @@
-"""Export TrainingLabel nodes from Neo4j into spaCy DocBin format.
+"""Export GoldLabel nodes from Neo4j into spaCy DocBin format.
 
 Called by the training job runner as Phase 1 of the training pipeline.
 Produces train.spacy and dev.spacy files in a temporary directory.
 
 De-id guarantee
 ---------------
-patient_id_hash is stored in Neo4j (already hashed by the writer).
+GoldLabel text is de-identified before persistence in the knowledge graph.
 This module never reads or writes raw patient identifiers.
 """
 
@@ -95,7 +95,7 @@ def export_labels(
     seed: int = 42,
     log_fn=None,
 ) -> dict[str, Any]:
-    """Fetch all included TrainingLabel nodes and write train/dev DocBins.
+    """Fetch all exportable GoldLabel nodes and write train/dev DocBins.
 
     Args:
         output_dir: Directory to write train.spacy, dev.spacy, meta.json.
@@ -113,9 +113,9 @@ def export_labels(
     import spacy
     from spacy.tokens import DocBin
 
-    from libs.neo4j_client.client import PatientGraphClient
+    from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
+    from libs.cypher.gold_label_queries import GET_ALL_GOLD_LABELS_FOR_EXPORT
     from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
-    from libs.cypher.training_label_queries import GET_ALL_INCLUDED_LABELS_FOR_EXPORT
     from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules
 
     min_count = int(os.getenv("TRAINING_MIN_LABEL_COUNT", "50"))
@@ -125,16 +125,22 @@ def export_labels(
         if log_fn:
             log_fn(msg)
 
-    _log("Phase 1/5 — Fetching labels from Neo4j…")
-    client = PatientGraphClient()
+    _log("Phase 1/5 — Fetching GoldLabel records from Neo4j…")
+    kg_client = KnowledgeGraphClient()
     records = []
     try:
-        with client.session() as session:
-            rule_rows = [dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)]
-            rules = parse_rules(rule_rows)
-            if rules:
-                _log(f"Loaded {len(rules)} active post-processor rules.")
-            rows = session.run(GET_ALL_INCLUDED_LABELS_FOR_EXPORT)
+        patient_client = PatientGraphClient()
+        try:
+            with patient_client.session() as session:
+                rule_rows = [dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)]
+                rules = parse_rules(rule_rows)
+                if rules:
+                    _log(f"Loaded {len(rules)} active post-processor rules.")
+        finally:
+            patient_client.close()
+
+        with kg_client.session() as session:
+            rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
             for row in rows:
                 entities = json.loads(row["entities_json"] or "[]")
                 if rules:
@@ -151,14 +157,14 @@ def export_labels(
                     }
                 )
     finally:
-        client.close()
+        kg_client.close()
 
     _log(f"Fetched {len(records)} labelled records.")
 
     if len(records) < min_count:
         raise ValueError(
-            f"Only {len(records)} included labels — minimum is {min_count}. "
-            "Add more approved labels before training."
+            f"Only {len(records)} GoldLabel records — minimum is {min_count}. "
+            "Add more verified gold labels before training."
         )
 
     # Deterministic split

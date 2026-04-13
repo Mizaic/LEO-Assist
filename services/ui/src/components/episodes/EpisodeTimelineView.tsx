@@ -60,15 +60,15 @@ const MILESTONE_LABELS: Record<string, string> = {
 };
 
 const MILESTONE_OPTIONS = [
+  { value: "diagnosis_confirmed", label: "Diagnosis" },
+  { value: "first_clinic_visit", label: "First Clinic Visit" },
+  { value: "treatment_started", label: "First Treatment" },
+  { value: "investigation", label: "Investigation" },
   { value: "first_presentation", label: "Presentation" },
   { value: "referral", label: "Referral" },
-  { value: "specialist_visit", label: "Specialist Visit" },
-  { value: "first_clinic_visit", label: "First Clinic Visit" },
-  { value: "investigation", label: "Investigation" },
-  { value: "diagnosis_confirmed", label: "Diagnosis" },
-  { value: "treatment_decision", label: "Treatment Decision" },
-  { value: "treatment_started", label: "First Treatment" },
   { value: "related", label: "Related" },
+  { value: "specialist_visit", label: "Specialist Visit" },
+  { value: "treatment_decision", label: "Treatment Decision" },
 ];
 
 function toApiMilestoneType(canonical: string): string {

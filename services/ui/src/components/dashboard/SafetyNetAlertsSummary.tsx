@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Link from "next/link";
 import type { SafetyNetAlert } from "@/lib/analyticsApi";
 import SafetyAlertModal from "@/components/dashboard/SafetyAlertModal";
+import { sortByIsoDateDesc } from "@/lib/dateSort";
 
 const SEVERITY_COLOR: Record<string, "error" | "warning" | "info" | "default"> = {
   critical: "error",
@@ -41,8 +42,12 @@ interface Props {
 
 export default function SafetyNetAlertsSummary({ alerts, onAction }: Props) {
   const [selectedAlert, setSelectedAlert] = useState<SafetyNetAlert | null>(null);
+  const alertsSorted = useMemo(
+    () => sortByIsoDateDesc(alerts, (a) => a.created_at),
+    [alerts],
+  );
 
-  if (!alerts.length) {
+  if (!alertsSorted.length) {
     return (
       <Typography variant="body2" color="text.secondary">
         No safety alerts at the moment. All referral pathways are within expected guidelines.
@@ -53,7 +58,7 @@ export default function SafetyNetAlertsSummary({ alerts, onAction }: Props) {
   return (
     <>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }} role="list" aria-label="Recent safety alerts">
-        {alerts.map((a, i) => {
+        {alertsSorted.map((a, i) => {
           const severityLabel = SEVERITY_LABEL[a.severity] ?? humaniseType(a.severity);
           const alertTitle = a.description || humaniseType(a.rule_name) || humaniseType(a.type);
           const cancerType = humaniseCancerType(a.condition_type);

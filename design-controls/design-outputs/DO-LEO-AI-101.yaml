@@ -1,0 +1,85 @@
+# -- DO-LEO-AI-101 -- Assertion-Free LLM Extraction Output
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-101"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-103"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-003"]
+    verification_tests: ["VT-LEO-AI-103"]
+
+  specification:
+    title: "Assertion-free LLM extraction output with post-processing as sole assertion authority"
+    description: |
+      The LLM extractor output schema no longer includes an assertion field.
+      Both extraction code paths (_extractor.py build path and
+      llm_extractor.py LLMExtractor) always initialise assertion to "present"
+      after parsing LLM JSON, discarding any assertion value the LLM may have
+      included. The extraction_v1.py system prompt and the _OUTPUT_FORMAT
+      fallback schema do not instruct the LLM to output assertion.
+
+      All non-present assertions are assigned downstream by the shared
+      post-processing pipeline (libs/pipeline/post_processing.py):
+        - Layer 3: scope guard (reclassifies present -> hypothetical/possible)
+        - Layer 7: ConText MedSpaCy detection (absent, historical, family,
+          planned, possible, declined, cancelled, hypothetical)
+        - Layer 7b: referral procedure guard (reverts possible -> present)
+        - Layer 7d: double-negation situation guard (reverts absent -> present)
+        - Layer 9: disorder gate (sets historical/refuted/possible for disorders)
+
+      This eliminates the one-way error trap where an LLM-assigned non-present
+      assertion could not be corrected by ConText.
+    acceptance_criteria:
+      - criterion: "Parser always returns present"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Both parse paths return assertion='present' for any LLM JSON input,
+          including inputs that contain assertion fields with other values.
+      - criterion: "ConText corrects assertion after extraction"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          After run_post_processing(), entities with negation cues in
+          surrounding text receive the correct non-present assertion.
+      - criterion: "Prompt schema has no assertion field"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          extraction_v1.py OUTPUT FORMAT schema and llm_extractor.py
+          _OUTPUT_FORMAT schema do not contain an assertion key.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/_extractor.py"
+        description: "assertion='present' hardcoded in ExtractionItem construction"
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/llm_extractor.py"
+        description: "assertion always set to 'present' in _parse_terms; removed from _OUTPUT_FORMAT"
+      - artifact_type: "source_code"
+        location: "libs/prompts/extraction_v1.py"
+        description: "ASSERTION VALUES section and assertion output field removed from system prompt"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 10
+      key_functions:
+        - "_extractor.py ExtractionItem construction"
+        - "LLMExtractor._parse_terms"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Ensuring assertion is always determined by deterministic rule-based post-processing, not LLM"
+    risk_control_measures:
+      - "LLM output assertion field is ignored; hardcoded 'present' prevents LLM assertion errors from propagating"
+      - "ConText and scope guard are the sole authoritative sources for assertion classification"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

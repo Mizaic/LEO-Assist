@@ -27,21 +27,21 @@ import { LibraryPicker } from './LibraryPicker';
 import { QueryBuilder } from './QueryBuilder';
 
 const STATUS_OPTIONS = [
-  { value: 'draft', label: 'Draft' },
   { value: 'active', label: 'Active' },
+  { value: 'draft', label: 'Draft' },
   { value: 'retired', label: 'Retired' },
 ];
 
 const CATEGORY_OPTIONS = [
-  { value: 'demographics', label: 'Demographics' },
-  { value: 'cancer-type', label: 'Cancer Type' },
-  { value: 'place-of-presentation', label: 'Place of Presentation' },
-  { value: 'consultations', label: 'Consultations' },
-  { value: 'investigations', label: 'Investigations' },
-  { value: 'referrals', label: 'Referrals' },
-  { value: 'intervals', label: 'Intervals' },
-  { value: 'safety-netting', label: 'Safety Netting' },
   { value: 'avoidable-delays', label: 'Avoidable Delays' },
+  { value: 'cancer-type', label: 'Cancer Type' },
+  { value: 'consultations', label: 'Consultations' },
+  { value: 'demographics', label: 'Demographics' },
+  { value: 'investigations', label: 'Investigations' },
+  { value: 'intervals', label: 'Intervals' },
+  { value: 'place-of-presentation', label: 'Place of Presentation' },
+  { value: 'referrals', label: 'Referrals' },
+  { value: 'safety-netting', label: 'Safety Netting' },
 ];
 
 interface MeasureEditorProps {

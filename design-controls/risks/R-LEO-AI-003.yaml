@@ -28,6 +28,17 @@
       implemented_by: ["DI-LEO-AI-005"]
       verified_by: ["VT-LEO-AI-002"]
       effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        LLM extraction step does not assign assertion; all entities are
+        initialised to 'present' and final assertion is determined solely by
+        the deterministic post-processing pipeline (scope guard, ConText,
+        double-negation guard, referral procedure guard, disorder gate).
+        This eliminates the one-way error trap where an incorrect LLM assertion
+        could not be overridden by ConText.
+      implemented_by: ["DI-LEO-AI-103"]
+      verified_by: ["VT-LEO-AI-103"]
+      effectiveness: "effective"
     - control_type: "information_for_safety"
       description: "Reviewer training on context flag interpretation"
       implemented_by: ["DI-LEO-AI-005"]

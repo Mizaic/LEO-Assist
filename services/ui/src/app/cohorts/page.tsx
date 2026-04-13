@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -30,6 +30,7 @@ import {
   resolveCohort,
   deleteCohort,
 } from "@/lib/analyticsApi";
+import { sortByIsoDateDesc } from "@/lib/dateSort";
 
 const EPISODE_STATUS_OPTIONS = [
   "building",
@@ -57,6 +58,11 @@ export default function CohortsPage() {
 
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const cohortsSorted = useMemo(
+    () => sortByIsoDateDesc(cohorts, (c) => c.created_at),
+    [cohorts],
+  );
 
   const loadCohorts = useCallback(async () => {
     setLoading(true);
@@ -186,7 +192,7 @@ export default function CohortsPage() {
         </Card>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {cohorts.map((c) => (
+          {cohortsSorted.map((c) => (
             <Card key={c.cohort_id}>
               <CardContent>
                 <Box

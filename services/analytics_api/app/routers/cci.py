@@ -6,7 +6,7 @@ in the Patient Graph. Used for risk stratification and NCDA analysis.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Query
 
@@ -19,6 +19,10 @@ from libs.auth.org_scope import (
 from libs.neo4j_client.client import PatientGraphClient
 
 router = APIRouter()
+
+# Assertions that confirm a condition counts toward a score.
+# 'historical' is included because CCI is a lifetime comorbidity index.
+_CONFIRMED_ASSERTIONS: frozenset[str] = frozenset({"present", "historical"})
 
 CCI_WEIGHTS: Dict[str, int] = {
     "myocardial infarction": 1,
@@ -58,11 +62,13 @@ def calculate_cci(
     try:
         require_patient_in_scope(client, scope, patient_id)
         rows = client.run(
-            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(c) "
+            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->(c) "
             "WHERE toString(p.id) = $pid "
+            "  AND coalesce(r.assertion, 'present') IN $assertions "
             "RETURN DISTINCT c.name AS concept_name, c.conceptId AS concept_id, "
             "       c.semanticTag AS semantic_tag",
             pid=patient_id,
+            assertions=list(_CONFIRMED_ASSERTIONS),
         )
 
         matched: list[dict[str, Any]] = []

@@ -36,9 +36,11 @@ import type { Measure } from '@/lib/types/fhir';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
-  { value: 'active', label: 'Active' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'retired', label: 'Retired' },
+  ...[
+    { value: 'active', label: 'Active' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'retired', label: 'Retired' },
+  ].sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' })),
 ];
 
 export function MeasureList() {

@@ -61,6 +61,7 @@ import {
 import dagre from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
 import { api } from "@/lib/api";
+import { compareIsoDateTimeDesc } from "@/lib/dateSort";
 import { nodeTypes as pathwayNodeTypes } from "@/components/pathway/nodes/nodeTypes";
 import { PortEdge } from "@/components/pathway/edges/PortEdge";
 import {
@@ -1434,9 +1435,9 @@ function TransformConfigPanel({
                 onChange={(e) => updateOp(o.id, { op: e.target.value as TransformOp })}
                 sx={{ fontSize: "0.78rem", minWidth: 110 }}
               >
-                <MenuItem value="rename">Rename field</MenuItem>
-                <MenuItem value="filter">Filter rows</MenuItem>
                 <MenuItem value="compute">Compute value</MenuItem>
+                <MenuItem value="filter">Filter rows</MenuItem>
+                <MenuItem value="rename">Rename field</MenuItem>
               </Select>
               <Box sx={{ flex: 1 }} />
               <IconButton size="small" onClick={() => removeOp(o.id)}
@@ -1477,7 +1478,7 @@ function TransformConfigPanel({
         ))}
       </Stack>
       <Stack direction="row" spacing={1}>
-        {(["rename", "filter", "compute"] as TransformOp[]).map((op) => (
+        {(["compute", "filter", "rename"] as TransformOp[]).map((op) => (
           <Button key={op} size="small" variant="outlined" onClick={() => addOp(op)}
             sx={{ fontSize: "0.72rem", textTransform: "none" }}>
             + {op === "rename" ? "Rename" : op === "filter" ? "Filter" : "Compute"}
@@ -4774,15 +4775,19 @@ export default function PathwayBuilderPage() {
       `/fhir/PlanDefinition/${planId}/_history`,
     )
       .then((data) => {
-        setVersions(
-          (data.entry || []).map((e) => ({
-            versionId: Number(e.resource.meta.versionId),
-            publishedAt: e.resource.meta.lastUpdated,
-            versionNotes: e.resource.meta.versionNotes,
-            status: e.resource.status,
-            name: e.resource.name,
-          })),
-        );
+        const mapped = (data.entry || []).map((e) => ({
+          versionId: Number(e.resource.meta.versionId),
+          publishedAt: e.resource.meta.lastUpdated,
+          versionNotes: e.resource.meta.versionNotes,
+          status: e.resource.status,
+          name: e.resource.name,
+        }));
+        mapped.sort((a, b) => {
+          const byDate = compareIsoDateTimeDesc(a.publishedAt, b.publishedAt);
+          if (byDate !== 0) return byDate;
+          return b.versionId - a.versionId;
+        });
+        setVersions(mapped);
       })
       .catch(() => setVersions([]))
       .finally(() => setHistoryLoading(false));

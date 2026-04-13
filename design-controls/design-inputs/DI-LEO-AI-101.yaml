@@ -1,0 +1,78 @@
+# -- DI-LEO-AI-101 -- Double-Negation Guard for Pre-Negated SNOMED Situation Concepts
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-101"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: >
+    The system SHALL detect and correct double negation that arises when
+    ConText assigns assertion=absent to a SNOMED situation concept whose
+    preferred term (PT) already encodes a negative (e.g. "No suicidal
+    thoughts (situation)" 134420004, "No thoughts of deliberate self harm
+    (situation)" 401228008). In this case the entity assertion SHALL be
+    restored to "present" and the correction SHALL be logged with guard
+    reason "double_negated_situation". The guard SHALL fire only after
+    SNOMED terminology resolution has populated the preferred term, and
+    SHALL be applied identically to both the runtime coding pipeline and
+    the training label-verification path.
+  rationale: >
+    ConText operates on the raw text span before SNOMED lookup. When the
+    extracted span contains or is preceded by a negation cue (e.g. "No"),
+    ConText correctly sets assertion=absent for positive concepts. However,
+    for SNOMED situation concepts whose PT begins with "No ", "Absence of ",
+    or "Not ", the negative is already encoded in the concept identity. A
+    second negation layer produces a clinical inversion: absent on "No
+    suicidal thoughts" is semantically equivalent to "suicidal thoughts are
+    present". This is a patient safety error. The guard closes the gap by
+    comparing the SNOMED PT against a prefix pattern after terminology
+    resolution, when both assertion and PT are available simultaneously.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: >
+          Given assertion=absent and semantic_tag=situation and PT matching
+          /^(No |Absence of |Unable to |Not |Never )/i, assertion SHALL be
+          corrected to present and _assertion_guard SHALL equal
+          double_negated_situation.
+      - type: "functional"
+        spec: >
+          Guard SHALL be idempotent: applying it twice to the same entity
+          list produces the same result as applying it once.
+      - type: "functional"
+        spec: >
+          Guard SHALL NOT fire on finding or disorder entities regardless of
+          PT content.
+      - type: "functional"
+        spec: >
+          Guard SHALL NOT fire when assertion is not absent (e.g. present,
+          historical, declined).
+    constraints:
+      - type: "safety"
+        spec: "Guard MUST NOT alter any assertion other than absent on situation entities"
+      - type: "performance"
+        spec: "Guard processes each entity in O(1) time; no external calls"
+    dependencies: ["DI-LEO-AI-005"]
+    downstream_impacts:
+      - "libs/pipeline/post_processing.py -- Layer 7d fires on training-path entities with pre-populated term"
+      - "libs/pipeline_graph/subgraphs/terminology.py -- fires after SNOMED resolution for runtime-path entities"
+    technical_details:
+      language: "Python"
+      framework: "None"
+      file_structure:
+        - "libs/pipeline/post_processing.py"
+        - "libs/pipeline_graph/subgraphs/terminology.py"
+      estimated_loc: 30
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      100% of test cases pass: double-negation on situation PT corrected to
+      present; non-situation and non-absent entities unaffected; idempotency
+      verified; suicidal-ideation and self-harm situation concepts corrected.
+    test_protocol: "VT-LEO-AI-101"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-069"]
+  tags: ["assertion", "double-negation", "safety-guard", "context", "situation"]

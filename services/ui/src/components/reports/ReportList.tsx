@@ -37,9 +37,11 @@ import type { MeasureReport } from '@/lib/types/fhir';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
-  { value: 'complete', label: 'Complete' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'error', label: 'Error' },
+  ...[
+    { value: 'complete', label: 'Complete' },
+    { value: 'error', label: 'Error' },
+    { value: 'pending', label: 'Pending' },
+  ].sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' })),
 ];
 
 export function ReportList() {

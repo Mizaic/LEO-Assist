@@ -83,6 +83,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-MT-001 | Export gold to JSONL | 03-detail 3.7 | export_service.py | -- | ST-MT-001 |
 | FR-MT-002 | Training script | 06-plan 2.3 | scripts/train_medspacy.py | -- | ST-MT-001 |
 | FR-MT-003 | Configurable training | 06-plan 2.3 | argparse in train_medspacy.py | -- | -- |
+| FR-MT-004 | GoldLabel single source for training export and operations workflow alignment | DI-LEO-AI-100, DO-LEO-AI-098 | scripts/migrate_training_labels_to_gold.py, services/training_worker/app/label_exporter.py, services/ui/src/components/operations/OperationsWorkspace.tsx, services/ui/src/components/operations/TrainSection.tsx | tests/test_training_worker_label_exporter.py, services/ui/src/components/operations/__tests__/TrainSection.test.tsx, services/ui/src/components/operations/__tests__/OperationsWorkspace.test.tsx | VT-LEO-AI-100 |
 | FR-MI-001 | Run inference | 03-detail 3.6 | inference_service.py | -- | ST-MI-002 |
 | FR-MI-002 | Graceful no-model | 03-detail 3.6 | inference_service._load_model() | -- | ST-MI-001 |
 | FR-MI-003 | dry_run mode | 06-plan 3.1 | inference_service.infer_encounter() | -- | ST-MI-002 |
@@ -640,6 +641,48 @@ Safety constraints enforced:
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
 | DI-LEO-AI-055 | GDPR-isolated learning loop and operations UX | R-LEO-AI-039; R-LEO-AI-040; R-LEO-AI-041 | VT-LEO-AI-055; VT-LEO-AI-096 |
+
+---
+
+### 3.xx GoldLabel Single Source for Training (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-050; UN-LEO-AI-027 | draft/implemented | Consolidated model training data source and aligned operations workflow |
+| Design Input | DI-LEO-AI-100 | draft | GoldLabel is the single source for training export; legacy include=true TrainingLabel migrated |
+| Design Output | DO-LEO-AI-098 | draft | Migration utility, GoldLabel exporter path, and operations training UX redesign |
+| Risk | R-LEO-AI-052; R-LEO-AI-053; R-LEO-AI-039 | analyzed | PII, contamination, and quality risks controlled while consolidating sources |
+| Verification Test | VT-LEO-AI-100 | passed | Exporter and operations workflow verification for consolidated path |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-100 | GoldLabel single source for training | R-LEO-AI-052; R-LEO-AI-053; R-LEO-AI-039 | VT-LEO-AI-100 |
+
+---
+
+### 3.xx Double-Negation Guard for Pre-Negated SNOMED Situation Concepts (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-002 | implemented | SNOMED CT coding with negation detection |
+| Design Input | DI-LEO-AI-101 | draft | Guard detects and corrects double negation when ConText sets absent on a situation concept whose PT already encodes a negative |
+| Design Output | DO-LEO-AI-099 | draft | fix_double_negated_situations() in post_processing.py + terminology._resolve_terms wiring |
+| Risk | R-LEO-AI-069 | analyzed | Clinical assertion inversion on pre-negated SNOMED situation concepts (e.g. suicidal ideation, self-harm) |
+| Verification Test | VT-LEO-AI-101 | passed | 15 automated tests covering correction, non-interference, idempotency, and runtime path |
+| Design Input | DI-LEO-AI-102 | draft | Analytics assertion filter - exclude absent/hypothetical codes from CCI and cohort queries |
+| Design Output | DO-LEO-AI-100 | draft | _CONFIRMED_ASSERTIONS guard in cci.py and cohorts.py |
+| Risk | R-LEO-AI-070 | mitigated | Absent-coded condition included in CCI score or cohort selection |
+| Verification Test | VT-LEO-AI-102 | passed | 12 automated tests covering query structure and assertion-aware scoring |
+
+| Design Input | DI-LEO-AI-103 | draft | Assertion determined solely by post-processing pipeline - LLM extraction SHALL NOT assign assertion |
+| Design Output | DO-LEO-AI-101 | draft | Assertion-free LLM extraction output; parser hardcodes present; ConText is sole assertion authority |
+| Verification Test | VT-LEO-AI-103 | passed | 8 automated source-inspection and prompt-schema tests |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-101 | Double-negation guard for pre-negated SNOMED situations | R-LEO-AI-069 | VT-LEO-AI-101 |
+| DI-LEO-AI-102 | Analytics assertion filter for CCI and cohort queries | R-LEO-AI-070 | VT-LEO-AI-102 |
+| DI-LEO-AI-103 | Assertion determined solely by post-processing pipeline | R-LEO-AI-003 | VT-LEO-AI-103 |
 
 ---
 

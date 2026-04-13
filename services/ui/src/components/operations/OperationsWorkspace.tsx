@@ -10,14 +10,12 @@ import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ModelTrainingOutlinedIcon from "@mui/icons-material/ModelTrainingOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import RocketLaunchOutlinedIcon from "@mui/icons-material/RocketLaunchOutlined";
 import TrackChangesOutlinedIcon from "@mui/icons-material/TrackChangesOutlined";
 import StatusDot from "./StatusDot";
-import ReviewSection from "./ReviewSection";
 import RunSection from "./RunSection";
 import TrainSection from "./TrainSection";
 import DeploySection from "./DeploySection";
@@ -26,14 +24,13 @@ import QualitySection from "./QualitySection";
 // -- Types -------------------------------------------------------------------
 
 interface QuickStats {
-  pendingReview: number;
   resolvedToday: number;
   modelVersion: string;
   modelHealth: "ok" | "warn" | "error" | "neutral";
   unacknowledgedAlerts: number;
 }
 
-type SectionKey = "fix" | "teach" | "quality" | "deploy" | "process";
+type SectionKey = "train" | "quality" | "deploy" | "process";
 
 type StatusVariant = "ok" | "warn" | "error" | "neutral";
 
@@ -61,11 +58,9 @@ async function loadQuickStats(): Promise<QuickStats> {
     fetchJson<{ unacknowledged: number }>("/api/operations/quality/alerts/count"),
   ]);
 
-  let pending = 0;
   let resolved = 0;
   if (metrics.status === "fulfilled") {
     for (const stage of Object.values(metrics.value.metrics_by_stage)) {
-      pending += stage.pending ?? 0;
       resolved += (stage.resolved ?? 0) + (stage.dismissed ?? 0);
     }
   }
@@ -82,7 +77,6 @@ async function loadQuickStats(): Promise<QuickStats> {
     alertCount.status === "fulfilled" ? alertCount.value.unacknowledged : 0;
 
   return {
-    pendingReview: pending,
     resolvedToday: resolved,
     modelVersion: version,
     modelHealth: health,
@@ -99,19 +93,11 @@ interface ContextMessage {
 }
 
 function resolveContextMessage(stats: QuickStats): ContextMessage {
-  if (stats.pendingReview > 0) {
-    const n = stats.pendingReview;
-    return {
-      text: `You have ${n} thing${n === 1 ? "" : "s"} to fix. Sort these out before teaching the AI.`,
-      severity: "warning",
-      action: { label: "Fix them now", section: "fix" },
-    };
-  }
   if (stats.modelHealth === "neutral") {
     return {
-      text: "The AI is not live yet. Teach it some examples, then make it live.",
+      text: "The AI is not live yet. Check the gold dataset and start a training run.",
       severity: "info",
-      action: { label: "Teach the AI", section: "teach" },
+      action: { label: "Open training data", section: "train" },
     };
   }
   if (stats.unacknowledgedAlerts > 0) {
@@ -131,8 +117,7 @@ function resolveContextMessage(stats: QuickStats): ContextMessage {
 // -- Auto-open logic ---------------------------------------------------------
 
 function resolveDefaultSection(stats: QuickStats): SectionKey {
-  if (stats.pendingReview > 0) return "fix";
-  if (stats.modelHealth === "neutral") return "teach";
+  if (stats.modelHealth === "neutral") return "train";
   if (stats.unacknowledgedAlerts > 0) return "quality";
   return "deploy";
 }
@@ -140,10 +125,10 @@ function resolveDefaultSection(stats: QuickStats): SectionKey {
 // -- Tab-to-section map for backward compatibility ---------------------------
 
 const TAB_TO_SECTION: Record<string, SectionKey> = {
-  review: "fix",
-  fix: "fix",
-  train: "teach",
-  teach: "teach",
+  review: "train",
+  fix: "train",
+  train: "train",
+  teach: "train",
   quality: "quality",
   deploy: "deploy",
   run: "process",
@@ -263,16 +248,6 @@ function SectionRow({
 
 // -- Status helpers ----------------------------------------------------------
 
-function fixStatus(stats: QuickStats | null): SectionStatus {
-  if (!stats) return { label: "Loading...", variant: "neutral" };
-  if (stats.pendingReview === 0) return { label: "All done", variant: "ok" };
-  const n = stats.pendingReview;
-  return {
-    label: `${n} thing${n === 1 ? "" : "s"} need${n === 1 ? "s" : ""} fixing`,
-    variant: "warn",
-  };
-}
-
 function qualityStatus(stats: QuickStats | null): SectionStatus {
   if (!stats) return { label: "Loading...", variant: "neutral" };
   if (stats.unacknowledgedAlerts > 0) {
@@ -300,7 +275,6 @@ export default function OperationsWorkspace({ initialTab }: Props) {
   const [statsState, setStatsState] = useState<QuickStats | null>(null);
   const [statsError, setStatsError] = useState(false);
   const [openSection, setOpenSection] = useState<SectionKey | null>(null);
-  const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
   const statsFailCount = useRef(0);
   const hasAutoOpened = useRef(false);
 
@@ -348,7 +322,6 @@ export default function OperationsWorkspace({ initialTab }: Props) {
   }, []);
 
   const ctx = statsState ? resolveContextMessage(statsState) : null;
-  const fs = fixStatus(statsState);
   const qs = qualityStatus(statsState);
   const ds = deployStatus(statsState);
 
@@ -407,39 +380,20 @@ export default function OperationsWorkspace({ initialTab }: Props) {
             <Skeleton variant="rounded" height={52} />
           )}
 
-          {/* 1 -- Fix mistakes */}
+          {/* 1 -- Training data */}
           <SectionRow
-            sectionKey="fix"
-            icon={<BuildOutlinedIcon />}
-            label="Fix mistakes"
-            statusLabel={fs.label}
-            statusVariant={fs.variant}
-            open={openSection === "fix"}
-            onToggle={toggle}
-          >
-            <ReviewSection
-              onStatsChange={() => {
-                refresh();
-                setReviewRefreshKey((k) => k + 1);
-              }}
-              refreshKey={reviewRefreshKey}
-            />
-          </SectionRow>
-
-          {/* 2 -- Teach the AI */}
-          <SectionRow
-            sectionKey="teach"
+            sectionKey="train"
             icon={<ModelTrainingOutlinedIcon />}
-            label="Teach the AI"
-            statusLabel="Build training examples and run a training job"
+            label="Training data"
+            statusLabel="Manage gold labels and run training"
             statusVariant="neutral"
-            open={openSection === "teach"}
+            open={openSection === "train"}
             onToggle={toggle}
           >
             <TrainSection />
           </SectionRow>
 
-          {/* 3 -- How is it doing? */}
+          {/* 2 -- How is it doing? */}
           <SectionRow
             sectionKey="quality"
             icon={<TrackChangesOutlinedIcon />}
@@ -452,7 +406,7 @@ export default function OperationsWorkspace({ initialTab }: Props) {
             <QualitySection />
           </SectionRow>
 
-          {/* 4 -- Make it live */}
+          {/* 3 -- Make it live */}
           <SectionRow
             sectionKey="deploy"
             icon={<RocketLaunchOutlinedIcon />}
@@ -465,7 +419,7 @@ export default function OperationsWorkspace({ initialTab }: Props) {
             <DeploySection />
           </SectionRow>
 
-          {/* 5 -- Process patients (utility action, not a workflow step) */}
+          {/* 4 -- Process patients (utility action, not a workflow step) */}
           <SectionRow
             sectionKey="process"
             icon={<PlayArrowOutlinedIcon />}

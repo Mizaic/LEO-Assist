@@ -21,6 +21,11 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import {
+  coerceEntitySemanticLabel,
+  normaliseEntitySemanticRows,
+  VALID_ENTITY_SEMANTIC_LABELS as VALID_ENTITY_LABELS,
+} from "@/lib/entitySemanticLabels";
 
 interface LabelVerificationReview {
   review_id: string;
@@ -77,36 +82,6 @@ interface LabelEntity {
   end?: number;
   [k: string]: unknown;
 }
-
-const VALID_ENTITY_LABELS = [
-  "disorder",
-  "finding",
-  "procedure",
-  "observable_entity",
-  "qualifier_value",
-  "substance",
-  "medicinal_product",
-  "clinical_drug",
-  "situation",
-  "event",
-  "body_structure",
-  "tumor_staging",
-  "assessment_scale",
-  "staging_scale",
-  "regime_therapy",
-  "record_artifact",
-  "physical_object",
-  "organism",
-  "morphologic_abnormality",
-  "occupation",
-  "attribute",
-  "environment",
-  "product",
-  "X_TEMPORAL",
-  "X_DOSAGE",
-  "X_FREQUENCY",
-  "X_ROUTE",
-] as const;
 
 const ENTITY_LABEL_DISPLAY: Record<string, string> = {
   disorder: "Health condition",
@@ -272,15 +247,18 @@ export default function LabelVerificationPanel() {
       const nextNewSpanText: Record<string, string> = {};
       const nextNewSpanLabel: Record<string, string> = {};
       for (const review of data.reviews) {
-        const parsed = parseEntities(review.entities_json);
+        const parsedRaw = parseEntities(review.entities_json);
+        const labelMatch = (e: LabelEntity) =>
+          e.text === review.entity_text &&
+          coerceEntitySemanticLabel(e.label) === coerceEntitySemanticLabel(review.current_label);
+        const idx = Math.max(0, parsedRaw.findIndex(labelMatch));
+        const parsed = normaliseEntitySemanticRows(parsedRaw);
         nextDraftEntities[review.review_id] = parsed;
-        const idx = Math.max(
-          0,
-          parsed.findIndex((e) => e.text === review.entity_text && e.label === review.current_label)
-        );
         nextSelectedIdx[review.review_id] = idx;
         const target = parsed[idx];
-        nextSelected[review.review_id] = target?.label || review.model_a_label || review.current_label || "finding";
+        nextSelected[review.review_id] = coerceEntitySemanticLabel(
+          target?.label || review.model_a_label || review.current_label || "finding",
+        );
         nextSpans[review.review_id] = target?.text || review.entity_text || "";
         nextContext[review.review_id] = "";
         nextNewSpanText[review.review_id] = "";
@@ -309,7 +287,9 @@ export default function LabelVerificationPanel() {
   }, [viewMode]);
 
   const handleResolve = async (review: LabelVerificationReview) => {
-    const resolvedLabel = selectedLabels[review.review_id] || review.current_label;
+    const resolvedLabel = coerceEntitySemanticLabel(
+      selectedLabels[review.review_id] || review.current_label,
+    );
     const resolvedText = (selectedSpans[review.review_id] ?? review.entity_text ?? "").trim();
     if (!resolvedText) {
       setError("The word or phrase cannot be empty.");
@@ -493,7 +473,7 @@ export default function LabelVerificationPanel() {
   };
 
   const handleSubmit = async (review: LabelVerificationReview) => {
-    const entities = draftEntitiesByReview[review.review_id] ?? [];
+    const entities = normaliseEntitySemanticRows(draftEntitiesByReview[review.review_id] ?? []);
     setSubmittingReviewId(review.review_id);
     try {
       await jsonFetch(`/api/training/labels/${review.label_id}/entities`, {
@@ -503,7 +483,9 @@ export default function LabelVerificationPanel() {
       await jsonFetch(`/api/training/labels/verification-queue/${review.review_id}/resolve`, {
         method: "POST",
         body: JSON.stringify({
-          resolved_label: selectedLabels[review.review_id] ?? review.current_label,
+          resolved_label: coerceEntitySemanticLabel(
+            selectedLabels[review.review_id] ?? review.current_label,
+          ),
           resolved_text: selectedSpans[review.review_id] ?? review.entity_text,
           resolve_only: true,
           reviewer: "operations_ui",
@@ -810,7 +792,9 @@ export default function LabelVerificationPanel() {
               />
               <FormControl size="small" sx={{ minWidth: 210 }}>
                 <Select
-                  value={selectedLabels[review.review_id] ?? review.current_label}
+                  value={coerceEntitySemanticLabel(
+                    selectedLabels[review.review_id] ?? review.current_label,
+                  )}
                   onChange={(e) =>
                     setSelectedLabels((prev) => ({ ...prev, [review.review_id]: e.target.value }))
                   }

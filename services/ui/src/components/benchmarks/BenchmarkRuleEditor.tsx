@@ -68,9 +68,9 @@ const TEMPLATES = [
 ];
 
 const SCOPE_OPTIONS = [
-  { value: 'practice', label: 'This practice' },
-  { value: 'alliance', label: 'This alliance' },
   { value: 'all', label: 'All data (England)' },
+  { value: 'alliance', label: 'This alliance' },
+  { value: 'practice', label: 'This practice' },
 ];
 
 interface BenchmarkRuleEditorProps {

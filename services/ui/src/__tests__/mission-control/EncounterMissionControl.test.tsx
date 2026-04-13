@@ -157,4 +157,81 @@ describe("EncounterMissionControl", () => {
       undefined
     );
   });
+
+  test("large batch uses shared poll fetch instead of per-encounter SSE", async () => {
+    // Build 7 encounters (> SSE_CONNECTION_LIMIT of 6) so the hook switches to shared polling.
+    const makeEncounter = (n: number) => ({
+      encounter_id: `enc-${n}`,
+      patient_id: `p-${n}`,
+      encounter_date: "2025-01-01",
+      text: `Note ${n}`,
+      coded_count: 0,
+      match_type: "keyword",
+    });
+    const encounters = Array.from({ length: 7 }, (_, i) => makeEncounter(i + 1));
+
+    fetchEncounterList.mockResolvedValue({
+      total: 7,
+      page: 1,
+      page_size: 100,
+      items: encounters,
+    });
+    batchResetAndRecodeEncounters.mockResolvedValueOnce({
+      batch_id: "b-large",
+      requested: 7,
+      queued_count: 7,
+      failed_count: 0,
+      dry_run: false,
+      trigger_analysis: false,
+      queued: encounters.map((e) => ({
+        patient_id: e.patient_id,
+        encounter_id: e.encounter_id,
+        run_id: `r-${e.encounter_id}`,
+        stream_path: `/api/pipeline/progress/r-${e.encounter_id}`,
+      })),
+      failed: [],
+    });
+
+    const sseSpy = jest.fn();
+    (global as unknown as { EventSource: unknown }).EventSource = class {
+      constructor() { sseSpy(); }
+      addEventListener() {}
+      close() {}
+    };
+    const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => encounters.map((e) => ({
+        run_id: `r-${e.encounter_id}`,
+        state: "completed",
+      })),
+    } as Response);
+
+    render(<EncounterMissionControl />);
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await screen.findByText("p-1");
+
+    fireEvent.click(screen.getByRole("button", { name: /Recode all results/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Recode all 7/ }));
+
+    await waitFor(() => expect(batchResetAndRecodeEncounters).toHaveBeenCalled());
+
+    // SSE must NOT have been opened for any encounter.
+    expect(sseSpy).not.toHaveBeenCalled();
+    // The batch-status endpoint must have been called via fetch.
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringContaining("/api/pipeline/progress-status/batch"),
+        expect.objectContaining({ method: "POST" })
+      )
+    );
+
+    fetchSpy.mockRestore();
+  });
+
+  test("Show 3D map chip appears after results load", async () => {
+    render(<EncounterMissionControl />);
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() => expect(fetchEncounterList).toHaveBeenCalled());
+    expect(await screen.findByText("Show 3D map")).toBeInTheDocument();
+  });
 });

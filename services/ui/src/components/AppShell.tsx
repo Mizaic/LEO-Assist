@@ -319,11 +319,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   All Organisations
                 </MenuItem>
               )}
-              {organizations.map((org) => (
-                <MenuItem key={org.id} value={org.id} sx={{ fontSize: "0.8rem" }}>
-                  {org.shortName || org.name}
-                </MenuItem>
-              ))}
+              {[...organizations]
+                .sort((a, b) =>
+                  (a.shortName || a.name).localeCompare(b.shortName || b.name, "en", {
+                    sensitivity: "base",
+                  }),
+                )
+                .map((org) => (
+                  <MenuItem key={org.id} value={org.id} sx={{ fontSize: "0.8rem" }}>
+                    {org.shortName || org.name}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
         </Box>

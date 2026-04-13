@@ -578,6 +578,51 @@ def stream_progress(run_id: str):
     )
 
 
+_FAILED_EVENTS = frozenset({"pipeline_error", "run_error", "encounter_error"})
+_COMPLETED_EVENTS = frozenset(
+    {"run_completed", "encounter_completed", "pipeline_done", "extraction_done"}
+)
+_RUNNING_EVENTS = frozenset(
+    {"run_started", "patient_started", "encounter_started", "step_completed", "step_done"}
+)
+_COMPLETED_STATUSES = frozenset({"completed", "empty_extraction", "needs_review"})
+
+_MAX_BATCH_STATUS_IDS = 500
+
+
+def _resolve_run_state(payload: dict) -> str:
+    event_type = str(payload.get("type") or "")
+    status = str(payload.get("status") or "")
+    if event_type in _FAILED_EVENTS or status == "error":
+        return "failed"
+    if event_type in _COMPLETED_EVENTS or status in _COMPLETED_STATUSES:
+        return "completed"
+    if event_type in _RUNNING_EVENTS:
+        return "running"
+    return "queued"
+
+
+def _run_status_snapshot(run_id: str, raw: object) -> dict[str, object]:
+    if raw is None:
+        return {"run_id": run_id, "state": "queued", "event_type": None, "status": None}
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8")
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    event_type = str(payload.get("type") or "")
+    status = str(payload.get("status") or "")
+    return {
+        "run_id": run_id,
+        "state": _resolve_run_state(payload),
+        "event_type": event_type or None,
+        "status": status or None,
+    }
+
+
 @router.get("/progress-status/{run_id}")
 def get_progress_status(run_id: str) -> dict[str, object]:
     """Return latest known run status snapshot for UI polling fallback."""
@@ -586,46 +631,39 @@ def get_progress_status(run_id: str) -> dict[str, object]:
 
         r = _redis.from_url(REDIS_URL)
         raw = r.get(f"pipeline:last:{run_id}")
-        if raw is None:
-            return {"run_id": run_id, "state": "queued", "event_type": None, "status": None}
-        if isinstance(raw, bytes):
-            raw = raw.decode("utf-8")
-        payload = json.loads(raw)
-        if not isinstance(payload, dict):
-            return {"run_id": run_id, "state": "queued", "event_type": None, "status": None}
-        event_type = str(payload.get("type") or "")
-        status = str(payload.get("status") or "")
-        if event_type in {"pipeline_error", "run_error", "encounter_error"}:
-            state = "failed"
-        elif event_type in {
-            "run_completed",
-            "encounter_completed",
-            "pipeline_done",
-            "extraction_done",
-        }:
-            state = "completed"
-        elif event_type in {
-            "run_started",
-            "patient_started",
-            "encounter_started",
-            "step_completed",
-            "step_done",
-        }:
-            state = "running"
-        elif status == "error":
-            state = "failed"
-        elif status in {"completed", "empty_extraction", "needs_review"}:
-            state = "completed"
-        else:
-            state = "queued"
-        return {
-            "run_id": run_id,
-            "state": state,
-            "event_type": event_type or None,
-            "status": status or None,
-        }
+        return _run_status_snapshot(run_id, raw)
     except Exception:
         return {"run_id": run_id, "state": "queued", "event_type": None, "status": None}
+
+
+class BatchStatusRequest(BaseModel):
+    run_ids: list[str]
+
+
+@router.post("/progress-status/batch")
+def get_progress_status_batch(
+    body: BatchStatusRequest,
+) -> list[dict[str, object]]:
+    """Return status snapshots for up to 500 run IDs in a single request.
+
+    Used by the UI batch-recode path to avoid opening one SSE connection per
+    encounter (which saturates the browser connection pool).
+    """
+    run_ids = [r for r in body.run_ids if r][:_MAX_BATCH_STATUS_IDS]
+    if not run_ids:
+        return []
+    try:
+        import redis as _redis
+
+        r = _redis.from_url(REDIS_URL)
+        keys = [f"pipeline:last:{rid}" for rid in run_ids]
+        raws = r.mget(keys)
+        return [_run_status_snapshot(rid, raw) for rid, raw in zip(run_ids, raws)]
+    except Exception:
+        return [
+            {"run_id": rid, "state": "queued", "event_type": None, "status": None}
+            for rid in run_ids
+        ]
 
 
 @router.get("/stream")

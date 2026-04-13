@@ -1,0 +1,84 @@
+# -- DO-LEO-AI-099 -- Double-Negation Guard for Pre-Negated SNOMED Situation Concepts
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-099"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-101"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-069"]
+    verification_tests: ["VT-LEO-AI-101"]
+
+  specification:
+    title: "Post-SNOMED double-negation assertion correction"
+    description: |
+      Adds fix_double_negated_situations() to the post-processing stack.
+      The function inspects each entity after SNOMED preferred term (PT) is
+      available and corrects assertion=absent on situation concepts whose PT
+      begins with a negative prefix (No, Absence of, Not, Unable to, Never).
+
+      Two wiring points ensure both pipeline paths are covered:
+      - Layer 7d in run_post_processing_with_trace (training path, where
+        entities already carry PT from the training data store).
+      - End of _resolve_terms in terminology.py (runtime path, where PT
+        is first populated by terminology resolution).
+    acceptance_criteria:
+      - criterion: "Double-negation corrected"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          assertion=absent on situation entity with negative-prefix PT is
+          corrected to assertion=present with _assertion_guard set
+      - criterion: "Non-situation entities unaffected"
+        type: "functional"
+        measurement: "Test"
+        target: "finding and disorder entities with absent assertion are not changed"
+      - criterion: "Idempotency"
+        type: "functional"
+        measurement: "Test"
+        target: "Applying guard twice produces identical result to applying once"
+      - criterion: "Runtime and training path coverage"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Guard fires for entities with pre-populated PT (training) and
+          for entities after terminology resolution (runtime)
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/pipeline/post_processing.py"
+        description: "fix_double_negated_situations() + Layer 7d wiring"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/terminology.py"
+        description: "_resolve_terms calls fix_double_negated_situations after merge"
+      - artifact_type: "source_code"
+        location: "tests/test_double_negation_guard.py"
+        description: "Automated tests for all acceptance criteria"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 50
+      key_functions:
+        - "fix_double_negated_situations"
+        - "_resolve_terms"
+        - "run_post_processing_with_trace"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - >
+        Prevents clinical inversion of mental health risk screen documentation
+        (suicidal ideation, self-harm) from assertion=absent on a pre-negated
+        SNOMED situation concept
+    risk_control_measures:
+      - "Deterministic regex prefix check against SNOMED preferred term"
+      - "Guard applied after terminology resolution, before persist"
+      - "Audit tag _assertion_guard=double_negated_situation for monitoring"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

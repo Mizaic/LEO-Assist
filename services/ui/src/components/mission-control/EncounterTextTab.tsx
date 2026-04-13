@@ -26,6 +26,7 @@ import Link from "next/link";
 import { fetchEncounterCodedLinks } from "@/lib/api";
 import type { CodedLink } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { compareIsoDateTimeAsc, sortByIsoDateAsc } from "@/lib/dateSort";
 
 // -- Semantic tag colour palette (SNOMED CT parenthetical suffixes) ----
 interface TagStyle {
@@ -617,9 +618,9 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
       return true;
     });
 
-  const linkedVisible = applyCommonFilters(linked);
-  const windowVisible = applyCommonFilters(windowOnly);
-  const otherVisible = applyCommonFilters(other);
+  const linkedVisible = sortByIsoDateAsc(applyCommonFilters(linked), (e) => e.date ?? null);
+  const windowVisible = sortByIsoDateAsc(applyCommonFilters(windowOnly), (e) => e.date ?? null);
+  const otherVisible = sortByIsoDateAsc(applyCommonFilters(other), (e) => e.date ?? null);
   const hasExplicitLinks = linkedEncounterIds.size > 0;
 
   const milestoneJumps = useMemo<MilestoneJump[]>(() => {
@@ -631,12 +632,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         label: MILESTONE_LABELS[m.milestone_type] ?? m.milestone_type.replaceAll("_", " "),
         date: m.date ?? null,
       }));
-    rows.sort((a, b) => {
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return a.date.localeCompare(b.date);
-    });
+    rows.sort((a, b) => compareIsoDateTimeAsc(a.date, b.date));
     return rows;
   }, [episode.milestones]);
 

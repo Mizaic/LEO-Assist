@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from libs.pipeline.post_processing import fix_double_negated_situations
 from libs.terminology.client import TerminologyClient
 
 logger = logging.getLogger(__name__)
@@ -132,6 +133,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
                     for u in unresolved
                 )
             )
+        fix_double_negated_situations(resolved)
         return {"entities": resolved, "resolved_entities": resolved, "errors": errors}
     except Exception as exc:
         logger.exception("Terminology resolution failed")

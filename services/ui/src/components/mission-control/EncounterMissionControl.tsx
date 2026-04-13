@@ -21,8 +21,7 @@ import EncounterKpiStrip from "./EncounterKpiStrip";
 import EncounterBatchBar from "./EncounterBatchBar";
 import EncounterResultsTable from "./EncounterResultsTable";
 import EncounterPreviewDialog from "./EncounterPreviewDialog";
-import Score3DMap from "./Score3DMap";
-import TrainingSetAdvisor, { type AppliedConfig } from "./TrainingSetAdvisor";
+import Score3DMap, { type ApplyParams } from "./Score3DMap";
 import { useEncounterBatch } from "./useEncounterBatch";
 
 const DEFAULT_KPI: EncounterKPIs = {
@@ -263,31 +262,24 @@ export default function EncounterMissionControl() {
     void loadAll(false);
   }, [allBatchTerminal, anyBatchCompleted, batchStatusKey, loadAll]);
 
-  const handleThresholdDrag = useCallback((combined: number, vector?: number) => {
-    setSearch((prev) => ({
-      ...prev,
-      minCombinedScore: combined.toFixed(2),
-      minVectorScore: typeof vector === "number"
-        ? vector.toFixed(2)
-        : prev.minVectorScore === ""
-          ? ""
-          : prev.minVectorScore,
-    }));
+  const handleMinScoreChange = useCallback((v: string) => {
+    setSearch((prev) => ({ ...prev, minCombinedScore: v }));
   }, []);
 
-  const handleAdvisorApply = useCallback((config: AppliedConfig) => {
-    // Apply a broad baseline first, then let users narrow with sliders.
-    // This avoids hidden strict filters collapsing results to 1-2 rows.
-    const broadMinCombined = Math.max(0.05, Math.min(config.minCombinedScore, 0.2));
-    setSearch((prev) => ({
-      ...prev,
-      minCombinedScore: broadMinCombined.toFixed(2),
-      minVectorScore: "",
-      requireKeywordAnchor: false,
-      excludeNearDuplicates: false,
-      nearDuplicateThreshold: config.dedupThreshold.toFixed(2),
-    }));
-    setAutoSearch(true);
+  const handleMinVectorScoreChange = useCallback((v: string) => {
+    setSearch((prev) => ({ ...prev, minVectorScore: v }));
+  }, []);
+
+  const handleRequireKeywordAnchorChange = useCallback((v: boolean) => {
+    setSearch((prev) => ({ ...prev, requireKeywordAnchor: v }));
+  }, []);
+
+  const handleExcludeNearDuplicatesChange = useCallback((v: boolean) => {
+    setSearch((prev) => ({ ...prev, excludeNearDuplicates: v }));
+  }, []);
+
+  const handleNearDuplicateThresholdChange = useCallback((v: string) => {
+    setSearch((prev) => ({ ...prev, nearDuplicateThreshold: v }));
   }, []);
 
   return (
@@ -302,14 +294,22 @@ export default function EncounterMissionControl() {
       >
         <EncounterSearchPanel
           state={search}
+          rows={rows}
           yearOptions={yearOptions}
           queryDiagnostics={queryDiagnostics}
           loading={isLoading}
+          hasRows={rows.length > 0}
           onQueryChange={(v) => setSearch((s) => ({ ...s, query: v }))}
           onDateFromChange={(v) => setSearch((s) => ({ ...s, dateFrom: v, selectedYears: [] }))}
           onDateToChange={(v) => setSearch((s) => ({ ...s, dateTo: v, selectedYears: [] }))}
           onToggleYear={toggleYear}
+          onMinScoreChange={handleMinScoreChange}
+          onMinVectorScoreChange={handleMinVectorScoreChange}
+          onRequireKeywordAnchorChange={handleRequireKeywordAnchorChange}
+          onExcludeNearDuplicatesChange={handleExcludeNearDuplicatesChange}
+          onNearDuplicateThresholdChange={handleNearDuplicateThresholdChange}
           onSearch={load}
+          onShow3D={() => setShow3D(true)}
         />
       </Paper>
 
@@ -337,27 +337,33 @@ export default function EncounterMissionControl() {
       </Box>
 
       {rows.length > 0 && (
-        <>
-          <TrainingSetAdvisor
-            rows={rows}
-            currentMinScore={scoreValues.minCombinedScore ?? 0.2}
-            onApply={handleAdvisorApply}
-            onThresholdChange={handleThresholdDrag}
-            onShow3D={() => setShow3D(true)}
-          />
-          <Score3DMap
-            open={show3D}
-            onClose={() => setShow3D(false)}
-            rows={rows}
-            minCombinedScore={scoreValues.minCombinedScore ?? 0.2}
-            minVectorScore={scoreValues.minVectorScore}
-            onEncounterSelect={(id) => {
-              setShow3D(false);
-              const item = rows.find((r) => r.encounter_id === id);
-              if (item) setActivePreview(item);
-            }}
-          />
-        </>
+        <Score3DMap
+          open={show3D}
+          onClose={() => setShow3D(false)}
+          rows={rows}
+          minCombinedScore={scoreValues.minCombinedScore ?? 0}
+          minVectorScore={scoreValues.minVectorScore ?? 0}
+          requireKeywordAnchor={search.requireKeywordAnchor}
+          excludeNearDuplicates={search.excludeNearDuplicates}
+          nearDuplicateThreshold={Number(search.nearDuplicateThreshold) || 0.95}
+          searching={show3D && isLoading}
+          onApplyFilters={(p: ApplyParams) => {
+            setSearch((prev) => ({
+              ...prev,
+              minCombinedScore: p.minCombinedScore > 0 ? p.minCombinedScore.toFixed(2) : "0",
+              minVectorScore: p.minVectorScore > 0 ? p.minVectorScore.toFixed(2) : "",
+              requireKeywordAnchor: p.requireKeywordAnchor,
+              excludeNearDuplicates: p.excludeNearDuplicates,
+              nearDuplicateThreshold: p.nearDuplicateThreshold.toFixed(3),
+            }));
+            setAutoSearch(true);
+          }}
+          onEncounterSelect={(id) => {
+            setShow3D(false);
+            const item = rows.find((r) => r.encounter_id === id);
+            if (item) setActivePreview(item);
+          }}
+        />
       )}
 
       {isLoading && <LinearProgress sx={{ mt: 2.5, mb: 1 }} />}

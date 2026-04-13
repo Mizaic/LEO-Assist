@@ -30,22 +30,31 @@ import { ASSERTION_CHIP } from "@/lib/types";
 import { getTerminologyConfidenceLabel } from "@/lib/terminologyConfidence";
 
 const ASSERTION_OPTIONS = [
-  "present", "absent", "refuted", "possible", "historical", "planned", "hypothetical", "family", "declined", "cancelled",
+  "absent",
+  "cancelled",
+  "declined",
+  "family",
+  "historical",
+  "hypothetical",
+  "planned",
+  "possible",
+  "present",
+  "refuted",
 ] as const;
 
 // Common NER entity types a reviewer might need to correct to.
 const ENTITY_LABEL_OPTIONS = [
-  "finding",
+  "body_structure",
+  "clinical_drug",
   "disorder",
-  "procedure",
+  "event",
+  "finding",
+  "medicinal_product",
   "observable_entity",
+  "procedure",
   "qualifier_value",
   "situation",
   "substance",
-  "medicinal_product",
-  "clinical_drug",
-  "event",
-  "body_structure",
 ];
 
 const safetyPulse = keyframes`

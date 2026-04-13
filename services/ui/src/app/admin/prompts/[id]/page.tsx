@@ -64,9 +64,8 @@ interface PromptConfigData {
   maxFewShot?: number;
 }
 
-// ── Category taxonomy for example library ────────────────────────────────────
-const CATEGORY_OPTIONS = [
-  { value: "", label: "All categories" },
+// ── Category taxonomy for example library (All first; rest A-Z by label) ───────
+const CATEGORY_OPTIONS_REST = [
   { value: "assertion:absent", label: "Absent / negated" },
   { value: "assertion:possible", label: "Possible / uncertain" },
   { value: "assertion:historical", label: "Historical / resolved" },
@@ -87,10 +86,17 @@ const CATEGORY_OPTIONS = [
   { value: "situation:smoking", label: "Smoking status" },
 ];
 
+const CATEGORY_OPTIONS = [
+  { value: "", label: "All categories" },
+  ...[...CATEGORY_OPTIONS_REST].sort((a, b) =>
+    a.label.localeCompare(b.label, "en", { sensitivity: "base" }),
+  ),
+];
+
 const SCOPE_OPTIONS = [
-  { value: "any",   label: "Both providers (AWS + Azure)" },
-  { value: "aws",   label: "AWS only (Claude / Bedrock)" },
+  { value: "aws", label: "AWS only (Claude / Bedrock)" },
   { value: "azure", label: "Azure only (OpenAI / GPT)" },
+  { value: "any", label: "Both providers (AWS + Azure)" },
 ];
 
 function categoryLabel(cat: string) {

@@ -361,7 +361,9 @@ class LLMExtractorAdapter:
                     span_start=span_start,
                     span_end=span_end,
                     semantic_tag=t.get("semantic_tag", "finding"),
-                    assertion=t.get("assertion", "present"),
+                    # Assertion is always initialised to "present"; final
+                    # assertion is set by post-processing (ConText + scope guard).
+                    assertion="present",
                     confidence=1.0,
                     normalized=t.get("lookup_term", text_val),
                     numeric_value=t.get("value") or "",

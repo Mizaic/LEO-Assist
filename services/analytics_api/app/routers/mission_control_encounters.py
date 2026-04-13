@@ -146,6 +146,7 @@ def _text_similarity(left: str, right: str) -> float:
 def _suppress_near_duplicates(
     ranked: list[dict[str, Any]], threshold: float | None
 ) -> tuple[list[dict[str, Any]], int]:
+    """Text-similarity dedup across all encounters — keeps one example per unique note shape."""
     if threshold is None:
         return ranked, 0
     kept: list[dict[str, Any]] = []
@@ -172,6 +173,7 @@ def _suppress_near_duplicates(
 def _suppress_near_duplicates_with_neo4j(
     client: PatientGraphClient, ranked: list[dict[str, Any]], threshold: float | None
 ) -> tuple[list[dict[str, Any]], int, str]:
+    """Vector-similarity dedup across all encounters — keeps one example per unique note shape."""
     if threshold is None or len(ranked) < 2:
         return ranked, 0, "off"
     rows = [
@@ -355,7 +357,7 @@ async def get_mission_control_encounters(
     min_combined_score: Optional[float] = Query(0.2, ge=0.0, le=1.0),
     min_vector_score: Optional[float] = Query(None, ge=0.0, le=1.0),
     require_keyword_anchor: bool = Query(True),
-    near_duplicate_threshold: Optional[float] = Query(None, ge=0.8, le=0.99),
+    near_duplicate_threshold: Optional[float] = Query(None, ge=0.8, le=0.999),
     sort_by: str = Query("encounter_date"),
     sort_dir: str = Query("DESC"),
     scope: CallerScope = Depends(get_caller_scope),
@@ -570,9 +572,15 @@ async def get_mission_control_encounters(
             min_vector_score=min_vector_score,
             require_keyword_anchor=require_keyword_anchor,
         )
-        ranked, dedupe_filtered_count, dedupe_mode = _suppress_near_duplicates_with_neo4j(
-            client, ranked, near_duplicate_threshold
+        # Text-based dedup is the primary path: lexical similarity correctly
+        # preserves distinct note shapes (e.g. 12 clinic variants that share a
+        # secretary template but differ in cancer type / SNOMED code).
+        # Vector dedup collapses semantically-similar notes even when the text
+        # differs, making it unsuitable for NER training set curation.
+        ranked, dedupe_filtered_count = _suppress_near_duplicates(
+            ranked, near_duplicate_threshold
         )
+        dedupe_mode = "text" if near_duplicate_threshold is not None else "off"
         total = len(ranked)
         start = (page - 1) * page_size
         end = start + page_size

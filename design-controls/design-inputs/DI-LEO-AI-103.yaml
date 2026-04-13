@@ -1,0 +1,87 @@
+# -- DI-LEO-AI-103 -- Assertion Determined Solely by Post-Processing Pipeline
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-103"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: >
+    The LLM extraction step SHALL NOT assign assertion values to extracted
+    entities. All entities produced by the LLM extractor SHALL have
+    assertion initialised to "present". The authoritative source for all
+    non-present assertions (absent, historical, family, planned, possible,
+    hypothetical, declined, cancelled, refuted) SHALL be the post-processing
+    pipeline exclusively: scope guard (layer 3), ConText assertion detection
+    (layer 7), referral procedure guard (layer 7b), double-negation situation
+    guard (layer 7d), and disorder gate (layer 9).
+  rationale: >
+    Relying on the LLM to assign assertion creates a non-deterministic and
+    non-auditable assertion path. When the LLM incorrectly assigns a
+    non-present assertion (e.g. absent for a genuinely present finding),
+    ConText cannot correct it because ConText only processes entities still
+    at present. Removing LLM assertion output and defaulting all entities
+    to present ensures that ConText and scope guard are the sole, rule-based,
+    auditable authority for assertion classification, eliminating this
+    one-way error trap.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          LLM extractor parser always sets assertion='present' regardless
+          of any assertion value in the LLM JSON response.
+      - type: "functional"
+        spec: >
+          _extractor.py build path always sets assertion='present';
+          t.get('assertion') is never used.
+      - type: "safety"
+        spec: >
+          extraction_v1.py system prompt output schema does not contain
+          an assertion field; LLM is not instructed to output assertion.
+      - type: "safety"
+        spec: >
+          _OUTPUT_FORMAT fallback schema in llm_extractor.py does not
+          contain an assertion field.
+      - type: "functional"
+        spec: >
+          After post-processing, a negated entity (e.g. "No chest pain")
+          receives assertion=absent via ConText NEGATED_EXISTENCE rules.
+      - type: "functional"
+        spec: >
+          After post-processing, a family history entity (e.g. "FHx of
+          diabetes") receives assertion=family via ConText FAMILY rules.
+    constraints:
+      - type: "safety"
+        spec: >
+          The LLM output field 'assertion' MUST be ignored during parsing;
+          callers MUST NOT read assertion from raw LLM JSON.
+    dependencies: ["DI-LEO-AI-005"]
+    downstream_impacts:
+      - "libs/pipeline_graph/subgraphs/_extractor.py"
+      - "services/coding_worker/app/pipeline/llm_extractor.py"
+      - "libs/prompts/extraction_v1.py"
+    technical_details:
+      language: "Python"
+      framework: "N/A"
+      file_structure:
+        - "libs/pipeline_graph/subgraphs/_extractor.py"
+        - "services/coding_worker/app/pipeline/llm_extractor.py"
+        - "libs/prompts/extraction_v1.py"
+      estimated_loc: 10
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in VT-LEO-AI-103 pass: parser always returns present,
+      ConText correctly sets non-present assertions after post-processing,
+      prompt schema does not contain assertion field.
+    test_protocol: "VT-LEO-AI-103"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-003"]
+  tags:
+    - "assertion"
+    - "context-detection"
+    - "llm-extraction"
+    - "safety-gate"
+    - "post-processing"

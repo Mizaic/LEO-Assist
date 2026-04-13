@@ -1,0 +1,171 @@
+- id: "VT-LEO-AI-101"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-101"]
+    risks: ["R-LEO-AI-069"]
+
+  metadata:
+    title: "Double-negation guard for pre-negated SNOMED situation concepts"
+    description: >
+      Verifies that fix_double_negated_situations() correctly detects and
+      corrects assertion inversion when ConText has set assertion=absent on
+      a SNOMED situation concept whose preferred term already encodes a
+      negative (e.g. "No suicidal thoughts", "No thoughts of deliberate
+      self harm"). Covers both correction and non-interference cases, and
+      verifies both pipeline wiring points (post_processing Layer 7d and
+      terminology._resolve_terms).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_double_negation_guard.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-101-TC-001"
+      case_name: "Absent on No-suicidal-thoughts situation corrected to present"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Pass entity with assertion=absent, semantic_tag=situation,
+            term="No suicidal thoughts (situation)" to
+            fix_double_negated_situations
+          expected_result: >
+            Entity assertion is present and _assertion_guard is
+            double_negated_situation
+      verification_method: "automated"
+      acceptance_criteria:
+        - "assertion == 'present'"
+        - "_assertion_guard == 'double_negated_situation'"
+
+    - case_id: "VT-101-TC-002"
+      case_name: "Absent on No-self-harm-thoughts situation corrected to present"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Pass entity with assertion=absent, semantic_tag=situation,
+            term="No thoughts of deliberate self harm (situation)" to
+            fix_double_negated_situations
+          expected_result: "Assertion restored to present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "assertion == 'present'"
+
+    - case_id: "VT-101-TC-003"
+      case_name: "Absent on finding entity NOT corrected"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Pass entity with assertion=absent, semantic_tag=finding,
+            term="No suicidal thoughts" to fix_double_negated_situations
+          expected_result: "assertion remains absent -- finding entities are not in scope"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "assertion == 'absent'"
+
+    - case_id: "VT-101-TC-004"
+      case_name: "Present assertion on situation entity NOT changed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Pass entity with assertion=present, semantic_tag=situation,
+            term="No suicidal thoughts (situation)"
+          expected_result: "assertion remains present -- guard only fires on absent"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "assertion == 'present'"
+        - "_assertion_guard key not set"
+
+    - case_id: "VT-101-TC-005"
+      case_name: "Situation with positive PT and absent assertion NOT changed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Pass entity with assertion=absent, semantic_tag=situation,
+            term="Suicidal thoughts (finding)"
+          expected_result: "assertion remains absent -- PT does not start with negative prefix"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "assertion == 'absent'"
+
+    - case_id: "VT-101-TC-006"
+      case_name: "Idempotency -- applying guard twice produces same result"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Apply fix_double_negated_situations to entity list, then apply
+            again to the same list
+          expected_result: "Assertion and _assertion_guard are identical after both applications"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Entity state after second call equals state after first call"
+
+    - case_id: "VT-101-TC-007"
+      case_name: "Absence-of prefix pattern corrected"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Pass entity with assertion=absent, semantic_tag=situation,
+            term="Absence of signs and symptoms (situation)"
+          expected_result: "assertion restored to present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "assertion == 'present'"
+
+    - case_id: "VT-101-TC-008"
+      case_name: "Guard fires in terminology._resolve_terms (runtime path)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Mock TerminologyClient.resolve to return term="No suicidal
+            thoughts (situation)" for a situation entity that has
+            assertion=absent. Call _resolve_terms.
+          expected_result: "Resolved entity has assertion=present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "resolved entity assertion == 'present'"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-101/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-101-RUN-001"
+      date: "2026-04-13"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      passed_cases: 15
+      failed_cases: 0
+      notes: >
+        Executed .venv/bin/pytest tests/test_double_negation_guard.py -v
+        (15 passed in 1.96s). All 8 VT test cases plus 7 additional edge
+        cases passed. Covers: suicidal thoughts correction (TC-001),
+        self-harm thoughts correction (TC-002), finding entity unchanged
+        (TC-003), present assertion unchanged (TC-004), positive PT unchanged
+        (TC-005), idempotency (TC-006), Absence-of prefix (TC-007), and
+        runtime terminology path integration (TC-008).

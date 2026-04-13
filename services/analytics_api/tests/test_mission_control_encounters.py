@@ -233,6 +233,39 @@ def test_suppress_near_duplicates_uses_neo4j_vector_ids():
     assert [i["encounter_id"] for i in kept] == ["e1", "e3"]
 
 
+def test_suppress_near_duplicates_preserves_clinic_variations():
+    """12 fast-track clinic variants share a template but differ in cancer type.
+
+    Text similarity between variants is ~0.85 (well below 0.999), so all should
+    survive even at the most lenient threshold. This is the core NER training
+    use-case: keep every distinct note shape, remove only true copy-paste repeats.
+    """
+    template = "00:00 surgery jones emma medical secretary seen in fast track suspected {clinic} xap{code}"
+    variants = [
+        ("skin cancer clinic", "yd"),
+        ("upper gi cancer clinic", "yj"),
+        ("head and neck cancer clinic", "ya"),
+        ("lung cancer clinic", "yb"),
+        ("colorectal cancer clinic", "yc"),
+    ]
+    ranked = [
+        {"encounter_id": f"e{i}", "text": template.format(clinic=c, code=k)}
+        for i, (c, k) in enumerate(variants)
+    ]
+    kept, filtered = mce._suppress_near_duplicates(ranked, 0.999)
+    assert len(kept) == 5, f"All 5 clinic variants should survive, got {len(kept)}"
+    assert filtered == 0
+
+
+def test_suppress_near_duplicates_removes_true_copies():
+    """Identical copy-paste notes should collapse to one at any threshold."""
+    note = "00:00 surgery jones emma seen in fast track suspected skin cancer clinic xapyd"
+    ranked = [{"encounter_id": f"e{i}", "text": note} for i in range(5)]
+    kept, filtered = mce._suppress_near_duplicates(ranked, 0.999)
+    assert len(kept) == 1
+    assert filtered == 4
+
+
 def test_apply_relevance_filters_drops_weak_semantic_rows():
     ranked = [
         {

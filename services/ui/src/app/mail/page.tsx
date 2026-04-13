@@ -37,6 +37,7 @@ import {
   type MailMessage,
   type MailMessageDetail,
 } from "@/lib/api/mail";
+import { sortByIsoDateDesc } from "@/lib/dateSort";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -127,15 +128,18 @@ export default function MailPage() {
 
   const baseVisible = folder === "bounces" ? bounceMessages : inboxMessages;
   const visible = useMemo(() => {
-    if (!search.trim()) return baseVisible;
-    const q = search.toLowerCase();
-    return baseVisible.filter(
-      (m) =>
-        m.subject.toLowerCase().includes(q) ||
-        (m.from_name || "").toLowerCase().includes(q) ||
-        m.from_address.toLowerCase().includes(q) ||
-        m.preview.toLowerCase().includes(q),
-    );
+    const filtered = !search.trim()
+      ? baseVisible
+      : baseVisible.filter((m) => {
+          const q = search.toLowerCase();
+          return (
+            m.subject.toLowerCase().includes(q) ||
+            (m.from_name || "").toLowerCase().includes(q) ||
+            m.from_address.toLowerCase().includes(q) ||
+            m.preview.toLowerCase().includes(q)
+          );
+        });
+    return sortByIsoDateDesc(filtered, (m) => m.received_at);
   }, [baseVisible, search]);
 
   const handleSelect = async (msg: MailMessage) => {

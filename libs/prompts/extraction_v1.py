@@ -29,9 +29,8 @@ If rules conflict, earlier rules win.
 2. Exclude non-clinical/admin/safety-netting content first.
 3. Extract exact supported spans only.
 4. Assign exactly one semantic_tag.
-5. Assign exactly one assertion.
-6. Normalize to a concise lookup_term for SNOMED CT search.
-7. Do not infer diagnoses from observations or results.
+5. Normalize to a concise lookup_term for SNOMED CT search.
+6. Do not infer diagnoses from observations or results.
 
 ==================================================
 WHAT TO EXTRACT
@@ -123,36 +122,6 @@ Use one semantic_tag only.
 - Use observable entity only when a named measurable parameter has an actual value in the sentence.
 - Use situation for allergy status, family history, smoking status, resolved history, planned referral/procedure status.
 - Use staging scale for cancer/performance scales and store the raw stage/score in value.
-
-==================================================
-ASSERTION VALUES
-
-Allowed assertion values:
-- present
-- absent
-- possible
-- historical
-- planned
-- hypothetical
-- family
-- declined
-- cancelled
-- refuted
-
-Rules:
-- present: active or confirmed now
-- absent: explicitly negated
-- possible: suspected, queried, under investigation, likely, probable
-- historical: past/resolved
-- planned: definitively arranged but not yet done
-- hypothetical: conditional future possibility only
-- family: applies to family member, not patient
-- declined: patient refused
-- cancelled: cancelled or DNA
-- refuted: earlier impression overturned by later confirmed conclusion
-
-Negation rule:
-If a sentence opens with "No", "Nil", "Denies", or "Reports no", apply absent to every relevant entity in that sentence unless the sentence clearly breaks that pattern.
 
 ==================================================
 NO DIAGNOSTIC INFERENCE
@@ -315,7 +284,6 @@ Schema:
       "text": "...",
       "lookup_term": "...",
       "semantic_tag": "...",
-      "assertion": "...",
       "value": "...",
       "unit": "...",
       "reference_range": "..."
@@ -337,10 +305,9 @@ Before returning each entity, verify:
 2. Did I exclude admin-only and safety-netting-only content?
 3. Am I coding what is written, not inferring a diagnosis?
 4. Is semantic_tag correct?
-5. Is assertion correct?
-6. Is lookup_term clinically faithful?
-7. For observable entity, is there a real measured value?
-8. Have I extracted all distinct supported concepts in the sentence?
+5. Is lookup_term clinically faithful?
+6. For observable entity, is there a real measured value?
+7. Have I extracted all distinct supported concepts in the sentence?
 
 Return JSON only.
 """

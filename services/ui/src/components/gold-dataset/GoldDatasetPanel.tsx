@@ -60,6 +60,12 @@ import {
   type SubdomainMembershipItem,
 } from "@/lib/analyticsApi";
 import type { TermSearchResult } from "@/lib/types";
+import {
+  coerceEntitySemanticLabel,
+  normaliseEntitySemanticRows,
+  VALID_ENTITY_SEMANTIC_LABELS as ENTITY_LABEL_OPTIONS,
+  type EntitySemanticLabel,
+} from "@/lib/entitySemanticLabels";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import TermSearch from "@/components/TermSearch";
 
@@ -257,7 +263,7 @@ function parseEntities(json: string | null): Entity[] {
   try {
     const parsed = JSON.parse(json);
     if (Array.isArray(parsed)) {
-      return parsed
+      const rows = parsed
         .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
         .map((entry) => {
           const coding = (entry.coding && typeof entry.coding === "object"
@@ -277,6 +283,7 @@ function parseEntities(json: string | null): Entity[] {
             snomed_term: snomedTerm || undefined,
           } as Entity;
         });
+      return normaliseEntitySemanticRows(rows);
     }
     return [];
   } catch {
@@ -295,48 +302,18 @@ const ASSERTION_LABEL: Record<string, string> = {
   hypothetical: "Hypothetical",
 };
 
-const ENTITY_LABEL_OPTIONS = [
-  "finding",
-  "disorder",
-  "procedure",
-  "observable_entity",
-  "situation",
-  "event",
-  "body_structure",
-  "substance",
-  "medicinal_product",
-  "clinical_drug",
-  "qualifier_value",
-  "tumor_staging",
-  "assessment_scale",
-  "staging_scale",
-  "regime_therapy",
-  "record_artifact",
-  "physical_object",
-  "organism",
-  "morphologic_abnormality",
-  "occupation",
-  "attribute",
-  "environment",
-  "product",
-  "X_TEMPORAL",
-  "X_DOSAGE",
-  "X_FREQUENCY",
-  "X_ROUTE",
-] as const;
-
 const ASSERTION_OPTIONS = [
-  "present",
-  "possible",
-  "uncertain",
-  "historical",
-  "family",
   "absent",
-  "refuted",
+  "cancelled",
+  "declined",
+  "family",
+  "historical",
   "hypothetical",
   "planned",
-  "declined",
-  "cancelled",
+  "possible",
+  "present",
+  "refuted",
+  "uncertain",
 ] as const;
 
 function formatAssertion(assertion: string | undefined): string {
@@ -585,7 +562,7 @@ function GoldLabelDetailDialog({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [newEntityText, setNewEntityText] = useState("");
-  const [newEntityLabel, setNewEntityLabel] = useState<(typeof ENTITY_LABEL_OPTIONS)[number]>("finding");
+  const [newEntityLabel, setNewEntityLabel] = useState<EntitySemanticLabel>("finding");
   const [newEntityAssertion, setNewEntityAssertion] = useState<(typeof ASSERTION_OPTIONS)[number]>("present");
   const [lookupTarget, setLookupTarget] = useState<LookupTarget | null>(null);
   const [termDrafts, setTermDrafts] = useState<Record<number, string>>({});
@@ -992,7 +969,7 @@ function GoldLabelDetailDialog({
                 label="Type"
                 size="small"
                 value={newEntityLabel}
-                onChange={(event) => setNewEntityLabel(event.target.value as (typeof ENTITY_LABEL_OPTIONS)[number])}
+                onChange={(event) => setNewEntityLabel(event.target.value as EntitySemanticLabel)}
                 disabled={saving}
                 sx={{ minWidth: 170 }}
               >
@@ -1111,7 +1088,7 @@ function GoldLabelDetailDialog({
                             <TextField
                               select
                               size="small"
-                              value={e.label ?? "finding"}
+                              value={coerceEntitySemanticLabel(e.label)}
                               onChange={(event) => handleUpdateEntityType(i, event.target.value)}
                               disabled={saving}
                               sx={{
@@ -2327,6 +2304,29 @@ export default function GoldDatasetPanel() {
     });
   }
 
+  function removeCandidateFromDedupePreview(candidateId: string) {
+    setDedupePreview((prev) => {
+      if (!prev) return prev;
+      const updatedGroups = prev.groups
+        .map((group) => ({
+          ...group,
+          duplicates: group.duplicates.filter((d) => d.candidate_id !== candidateId),
+        }))
+        .filter((group) => group.duplicates.length > 0);
+      const newDuplicateCount = updatedGroups.reduce(
+        (sum, g) => sum + g.duplicates.length,
+        0,
+      );
+      return {
+        ...prev,
+        groups: updatedGroups,
+        group_count: updatedGroups.length,
+        duplicate_count: newDuplicateCount,
+        candidate_pool_size: Math.max(0, prev.candidate_pool_size - 1),
+      };
+    });
+  }
+
   async function handleDeleteCandidate(
     candidateId: string,
     encounterText = "",
@@ -2360,6 +2360,7 @@ export default function GoldDatasetPanel() {
       setActionMsg(
         `Candidate deleted. Removed ${del.gold_labels_deleted} gold labels and ${del.surface_form_tasks_deleted} surface-form tasks.${suppressNote}`,
       );
+      removeCandidateFromDedupePreview(candidateId);
       await Promise.all([loadList(), loadStats()]);
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Failed to delete candidate");
@@ -3021,7 +3022,7 @@ export default function GoldDatasetPanel() {
                                   variant="outlined"
                                   startIcon={
                                     deletingCandidateId === duplicate.candidate_id ? (
-                                      <CircularProgress size={14} />
+                                      <CircularProgress size={14} aria-label="Deleting" />
                                     ) : (
                                       <DeleteOutlineIcon fontSize="small" />
                                     )
@@ -3029,7 +3030,9 @@ export default function GoldDatasetPanel() {
                                   disabled={deletingCandidateId === duplicate.candidate_id}
                                   onClick={() => requestDeleteCandidate(duplicate.candidate_id)}
                                 >
-                                  Delete duplicate
+                                  {deletingCandidateId === duplicate.candidate_id
+                                    ? "Deleting..."
+                                    : "Delete duplicate"}
                                 </Button>
                               </Stack>
                             </Card>

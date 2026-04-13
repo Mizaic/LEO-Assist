@@ -621,6 +621,34 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 
 ---
 
+## Double-Negation Guard for Pre-Negated SNOMED Situations (April 2026)
+
+| Artefact | ID | Status | Notes |
+|----------|----|--------|-------|
+| User Need | UN-LEO-AI-002 | implemented | SNOMED CT coding with negation detection |
+| Design Input | DI-LEO-AI-101 | draft | Post-SNOMED guard corrects assertion inversion when ConText sets absent on a PT that starts with "No" / "Absence of" / "Not" |
+| Design Output | DO-LEO-AI-099 | draft | fix_double_negated_situations() in post_processing.py + terminology._resolve_terms wiring |
+| Risk | R-LEO-AI-069 | analyzed | Clinical inversion of mental health risk screen documentation (suicidal ideation, self-harm) |
+| Verification Test | VT-LEO-AI-101 | passed | 15 automated tests: correction, non-interference, idempotency, runtime path |
+| Design Input | DI-LEO-AI-102 | draft | Analytics assertion filter - CCI and cohort queries exclude absent/hypothetical codes |
+| Design Output | DO-LEO-AI-100 | draft | _CONFIRMED_ASSERTIONS guard in cci.py and cohorts.py with coalesce fallback |
+| Risk | R-LEO-AI-070 | mitigated | Absent-coded condition inflates CCI score or incorrectly matches cohort filter |
+| Verification Test | VT-LEO-AI-102 | passed | 12 automated tests: query structure, present/historical scoring, absent exclusion |
+
+---
+
+## GoldLabel Training Source Consolidation (April 2026)
+
+| Artefact | ID | Status | Notes |
+|----------|----|--------|-------|
+| User Need | UN-LEO-AI-050; UN-LEO-AI-027 | draft/implemented | Consolidates training to a single verified gold source and aligns operations UX |
+| Design Input | DI-LEO-AI-100 | draft | GoldLabel single source of truth for training, migration of include=true TrainingLabel, and operations redesign |
+| Design Output | DO-LEO-AI-098 | draft | Migration script, GoldLabel exporter path, and simplified operations training workflow |
+| Risk | R-LEO-AI-052; R-LEO-AI-053; R-LEO-AI-039 | analyzed | PII leak, holdout contamination, and data quality controls preserved |
+| Verification Test | VT-LEO-AI-100 | passed | Exporter query path, minimum gate, and operations UI workflow verification |
+
+---
+
 ## NER + Dual LLM Quality Gates (April 2026)
 
 | Artefact | ID | Status | Description |

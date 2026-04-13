@@ -44,6 +44,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import SettingsIcon from "@mui/icons-material/Settings";
 import StorageIcon from "@mui/icons-material/Storage";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import { compareStringsNatural } from "@/lib/sortNatural";
 
 // =============================================================================
 // Types
@@ -150,12 +151,20 @@ function fmtDate(iso: string | null | undefined): string {
   catch { return iso; }
 }
 
-const PERIOD_OPTIONS = [
-  { value: "today", label: "Today" },
-  { value: "7d",    label: "Last 7 days" },
-  { value: "30d",   label: "Last 30 days" },
-  { value: "90d",   label: "Last 90 days" },
-] as const;
+/** Today first; rolling windows sorted by label with numeric-aware order (7 before 30). */
+const PERIOD_OPTIONS = (() => {
+  const rows = [
+    { value: "today", label: "Today" },
+    { value: "7d", label: "Last 7 days" },
+    { value: "30d", label: "Last 30 days" },
+    { value: "90d", label: "Last 90 days" },
+  ] as const;
+  const today = rows.find((r) => r.value === "today");
+  const rolling = [...rows]
+    .filter((r) => r.value !== "today")
+    .sort((a, b) => compareStringsNatural(a.label, b.label));
+  return [...(today ? [today] : []), ...rolling] as typeof rows;
+})();
 
 function periodDates(p: string): { from: string; to: string } {
   const now = new Date();

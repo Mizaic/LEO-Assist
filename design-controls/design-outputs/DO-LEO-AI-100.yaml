@@ -1,0 +1,77 @@
+# -- DO-LEO-AI-100 -- Analytics Assertion Filter Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-100"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-102"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-070"]
+    verification_tests: ["VT-LEO-AI-102"]
+
+  specification:
+    title: "Assertion-aware analytics queries for CCI and cohort filters"
+    description: |
+      Adds a _CONFIRMED_ASSERTIONS constant (frozenset{"present","historical"})
+      to both cci.py and cohorts.py. Every Cypher query that traverses a
+      [:DOCUMENTS] relationship now aliases it as [r:DOCUMENTS] and includes:
+
+        AND coalesce(r.assertion, 'present') IN $assertions  (CCI)
+        AND coalesce(r.assertion, 'present') IN $confirmed_assertions  (cohorts)
+
+      The coalesce guard preserves backwards compatibility: encounters created
+      before assertion tracking was introduced carry no assertion property and
+      are treated as 'present'.
+
+      'historical' is included in confirmed assertions because CCI is a lifetime
+      comorbidity index (e.g. a previous stroke still counts). Cohort filtering
+      also includes 'historical' so ex-smoker SNOMED codes correctly match the
+      ever_smoker filter.
+    acceptance_criteria:
+      - criterion: "CCI query uses aliased relationship and assertion guard"
+        type: "functional"
+        measurement: "Test"
+        target: "[r:DOCUMENTS] and coalesce(r.assertion,'present') IN $assertions present in query"
+      - criterion: "Cohort condition_codes and smoking clauses guarded"
+        type: "functional"
+        measurement: "Test"
+        target: "confirmed_assertions param present in params when filter active"
+      - criterion: "Absent conditions excluded"
+        type: "safety"
+        measurement: "Test"
+        target: "Empty DB result from assertion-filtered query produces CCI=0 and no cohort match"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/cci.py"
+        description: "_CONFIRMED_ASSERTIONS constant; aliased [r:DOCUMENTS]; $assertions param"
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/cohorts.py"
+        description: "_CONFIRMED_ASSERTIONS constant; updated condition_codes and smoking clauses"
+      - artifact_type: "test_code"
+        location: "services/analytics_api/tests/test_analytics_assertion_filter.py"
+        description: "12 pytest cases verifying query structure and scoring logic"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 30
+      key_functions:
+        - "calculate_cci"
+        - "_build_where_clauses"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Charlson Comorbidity Index scoring used for patient risk stratification"
+      - "Cohort condition filter used to identify patients for clinical programmes"
+    risk_control_measures:
+      - "Assertion guard prevents absent/hypothetical codes inflating CCI or matching cohorts"
+      - "Coalesce ensures null assertion defaults to present for backwards compatibility"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

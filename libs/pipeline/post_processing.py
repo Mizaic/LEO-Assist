@@ -604,6 +604,45 @@ def _apply_scope_guard_to_dicts(
         entities.pop(i)
 
 
+# ── Layer 7d: Double-Negation Guard ──
+
+_PT_NEGATED_PREFIX_RE = re.compile(
+    r"^(No |Absence of |Unable to |Not |Never )", re.IGNORECASE
+)
+
+
+def fix_double_negated_situations(entities: list[dict[str, Any]]) -> None:
+    """Correct double negation on pre-negated SNOMED situation concepts.
+
+    ConText fires before SNOMED lookup and may set assertion=absent when it
+    sees a negation cue (e.g. "No") preceding the span.  For situation
+    concepts whose preferred term already encodes the negative -- such as
+    134420004 "No suicidal thoughts (situation)" -- absent+absent is a
+    clinical inversion.  This guard restores assertion=present and records
+    the correction reason for audit.
+
+    Safe to call when term is absent: the PT check short-circuits and the
+    entity is left unchanged.  Idempotent -- can be applied more than once.
+    Only fires on situation semantic tag with assertion=absent.
+    """
+    for ent in entities:
+        if ent.get("assertion") != "absent":
+            continue
+        tag = str(ent.get("semantic_tag") or ent.get("label", "")).lower()
+        if tag != "situation":
+            continue
+        term = str(ent.get("term") or "")
+        if not term or not _PT_NEGATED_PREFIX_RE.match(term):
+            continue
+        ent["assertion"] = "present"
+        ent["_assertion_guard"] = "double_negated_situation"
+        logger.info(
+            "double_neg_guard: assertion restored to present | term=%r concept=%s",
+            term,
+            ent.get("concept_id"),
+        )
+
+
 # ── Layer 8: Situation Lookup Normalisation ──
 
 
@@ -949,6 +988,16 @@ def run_post_processing_with_trace(
             _split_observable_trend_results(encounter_text, current),
             current,
         )[1],
+    )
+
+    # Layer 7d: Double-Negation Situation Guard
+    # Fires only for entities that already carry a resolved SNOMED preferred
+    # term (training path).  Runtime entities have no term yet at this point;
+    # they are handled by terminology._resolve_terms after SNOMED resolution.
+    _run_layer(
+        "layer_7d",
+        "Double-Negation Situation Guard",
+        lambda current: (fix_double_negated_situations(current), current)[1],
     )
 
     # Layer 8: Situation Lookup Normalisation

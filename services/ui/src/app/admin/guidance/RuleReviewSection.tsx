@@ -25,6 +25,7 @@ import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { compareIsoDateTimeAsc } from "@/lib/dateSort";
 
 interface Criterion {
   predicate: string;
@@ -230,7 +231,9 @@ function DiffPanel({ ruleId }: { ruleId: string }) {
                       Previous decisions on this recommendation
                     </Typography>
                     <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                      {data.predecessor!.decisions.map((d, i) => (
+                      {[...data.predecessor!.decisions]
+                        .sort((a, b) => compareIsoDateTimeAsc(a.timestamp, b.timestamp))
+                        .map((d, i) => (
                         <Box key={i} sx={{ fontSize: "0.78rem" }}>
                           <Chip
                             label={d.action}

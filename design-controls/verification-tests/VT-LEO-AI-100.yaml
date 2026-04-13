@@ -1,0 +1,98 @@
+- id: "VT-LEO-AI-100"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-100"]
+    risks: ["R-LEO-AI-052", "R-LEO-AI-053", "R-LEO-AI-039"]
+
+  metadata:
+    title: "GoldLabel single-source training flow verification"
+    description: >
+      Verifies that training_worker export reads completed GoldLabel records,
+      enforces minimum-count safety gates, and that operations training UX reads
+      gold-label metrics with direct admin-gold-dataset navigation.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "tests/test_training_worker_label_exporter.py"
+      - "services/ui/src/components/operations/__tests__/TrainSection.test.tsx"
+      - "services/ui/src/components/operations/__tests__/OperationsWorkspace.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-100-TC-001"
+      case_name: "Exporter reads completed GoldLabel rows"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock KnowledgeGraphClient session and run export_labels"
+          expected_result: "Exporter calls GET_ALL_GOLD_LABELS_FOR_EXPORT and builds training records"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "GoldLabel query result rows populate train/dev DocBins"
+    - case_id: "VT-100-TC-002"
+      case_name: "Exporter enforces minimum-count gate"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Set TRAINING_MIN_LABEL_COUNT above mocked row count"
+          expected_result: "export_labels raises ValueError and blocks training"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Error includes available row count and minimum requirement"
+    - case_id: "VT-100-TC-003"
+      case_name: "Operations workspace removes legacy fix section"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render OperationsWorkspace and inspect section headers"
+          expected_result: "Fix mistakes is absent and Training data is present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "No legacy fix-review section is rendered"
+    - case_id: "VT-100-TC-004"
+      case_name: "Train section shows gold-label metrics and management link"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock /api/training/gold-labels/stats and render TrainSection"
+          expected_result: "Card shows totals and includes link to /admin/gold-dataset"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Training data management CTA routes to /admin/gold-dataset"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-100/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-100-RUN-001"
+      date: "2026-04-12"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      passed_cases: 20
+      failed_cases: 0
+      notes: >
+        Executed .venv/bin/pytest tests/test_training_worker_label_exporter.py -q
+        (2 passed), npx jest src/components/operations/__tests__/TrainSection.test.tsx
+        --no-coverage (4 passed), and npx jest
+        src/components/operations/__tests__/OperationsWorkspace.test.tsx
+        --no-coverage (14 passed). Verified GoldLabel export path, minimum-count
+        gate, and operations workflow updates.

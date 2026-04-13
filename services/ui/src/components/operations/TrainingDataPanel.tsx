@@ -53,6 +53,11 @@ import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDi
 import AssertionChip from "@/components/AssertionChip";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import RecordMindMap from "@/components/operations/RecordMindMap";
+import {
+  coerceEntitySemanticLabel,
+  normaliseEntitySemanticRows,
+  VALID_ENTITY_SEMANTIC_LABELS as VALID_ENTITY_LABELS,
+} from "@/lib/entitySemanticLabels";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 // ---------------------------------------------------------------------------
@@ -190,36 +195,6 @@ interface ResolvedCandidate {
   source: string;
 }
 
-const VALID_ENTITY_LABELS = [
-  "disorder",
-  "finding",
-  "procedure",
-  "observable_entity",
-  "qualifier_value",
-  "substance",
-  "medicinal_product",
-  "clinical_drug",
-  "situation",
-  "event",
-  "body_structure",
-  "tumor_staging",
-  "assessment_scale",
-  "staging_scale",
-  "regime_therapy",
-  "record_artifact",
-  "physical_object",
-  "organism",
-  "morphologic_abnormality",
-  "occupation",
-  "attribute",
-  "environment",
-  "product",
-  "X_TEMPORAL",
-  "X_DOSAGE",
-  "X_FREQUENCY",
-  "X_ROUTE",
-] as const;
-
 const ENTITY_LABEL_DISPLAY: Record<string, string> = {
   disorder: "Health condition",
   finding: "Finding or symptom",
@@ -313,10 +288,11 @@ function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; 
   return (
     <Stack direction="row" flexWrap="wrap" gap={0.4} useFlexGap>
       {visible.map((e, i) => {
-        const colors = ENTITY_LABEL_COLORS[e.label] ?? DEFAULT_ENTITY_COLOR;
+        const sem = coerceEntitySemanticLabel(e.label);
+        const colors = ENTITY_LABEL_COLORS[sem] ?? DEFAULT_ENTITY_COLOR;
         return (
           <Stack key={i} direction="row" spacing={0.3} alignItems="center">
-            <Tooltip title={ENTITY_LABEL_DISPLAY[e.label] ?? e.label} arrow>
+            <Tooltip title={ENTITY_LABEL_DISPLAY[sem] ?? sem} arrow>
               <Chip
                 label={e.text}
                 size="small"
@@ -362,7 +338,8 @@ function EntityDetailList({
         </Stack>
       )}
       {entities.map((ent, i) => {
-        const colors = ENTITY_LABEL_COLORS[ent.label] ?? DEFAULT_ENTITY_COLOR;
+        const sem = coerceEntitySemanticLabel(ent.label);
+        const colors = ENTITY_LABEL_COLORS[sem] ?? DEFAULT_ENTITY_COLOR;
         const candidates = resolvedData[ent.text?.trim() ?? ""];
         const top = candidates?.[0];
         const hasQualifiers =
@@ -396,7 +373,7 @@ function EntityDetailList({
                   variant="outlined"
                 />
                 <Chip
-                  label={ENTITY_LABEL_DISPLAY[ent.label] ?? ent.label}
+                  label={ENTITY_LABEL_DISPLAY[sem] ?? sem}
                   size="small"
                   sx={{
                     height: 18,
@@ -610,7 +587,8 @@ export default function TrainingDataPanel() {
   const fetchJobs = useCallback(async () => {
     try {
       const data = await jsonFetch<{ jobs: TrainingJob[] }>("/api/training-worker/jobs");
-      setJobs(data.jobs);
+      const list = [...(data.jobs ?? [])].sort((a, b) => b.created_at - a.created_at);
+      setJobs(list);
     } catch { /* training worker may be offline */ }
   }, []);
 
@@ -748,11 +726,12 @@ export default function TrainingDataPanel() {
     if (!selectedLabel) return;
     setSavingEntities(true);
     try {
+      const entitiesPayload = normaliseEntitySemanticRows(draftEntities);
       await jsonFetch(`/api/training/labels/${selectedLabel.label_id}/entities`, {
         method: "PATCH",
-        body: JSON.stringify({ entities: draftEntities }),
+        body: JSON.stringify({ entities: entitiesPayload }),
       });
-      const updatedEntitiesJson = JSON.stringify(draftEntities);
+      const updatedEntitiesJson = JSON.stringify(entitiesPayload);
       setSelectedLabel({ ...selectedLabel, entities_json: updatedEntitiesJson });
       setLabels((prev) =>
         prev.map((l) =>
@@ -1604,7 +1583,7 @@ export default function TrainingDataPanel() {
                         onClick={() => {
                           let parsed: LabelEntity[] = [];
                           try { parsed = JSON.parse(selectedLabel.entities_json); } catch { /* ignore */ }
-                          setDraftEntities(parsed);
+                          setDraftEntities(normaliseEntitySemanticRows(parsed));
                           setEditingEntities(true);
                         }}
                       >
@@ -1665,7 +1644,7 @@ export default function TrainingDataPanel() {
                         />
                         <FormControl size="small" sx={{ minWidth: 160 }}>
                           <Select
-                            value={ent.label}
+                            value={coerceEntitySemanticLabel(ent.label)}
                             onChange={(e) =>
                               setDraftEntities((prev) => {
                                 const next = [...prev];

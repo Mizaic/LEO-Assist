@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { sortByIsoDateDesc } from "@/lib/dateSort";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -237,12 +238,13 @@ export default function PromptsPage() {
   }, [prompts]);
 
   const filtered = useMemo(() => {
-    return prompts.filter((p) => {
+    const f = prompts.filter((p) => {
       const matchCat = activeCategory === CATEGORY_ALL || categorise(p.name).label === activeCategory;
       const q = search.trim().toLowerCase();
       const matchSearch = !q || humanName(p.name).toLowerCase().includes(q) || p.description?.toLowerCase().includes(q);
       return matchCat && matchSearch;
     });
+    return sortByIsoDateDesc(f, (p) => p.updatedAt);
   }, [prompts, activeCategory, search]);
 
   const grouped = useMemo(() => {

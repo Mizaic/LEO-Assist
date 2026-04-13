@@ -83,13 +83,13 @@ const STATUS_CHIP_COLORS: Record<
   escalated: "secondary",
 };
 
-// DR-6: Fixed status order — always shown with zero counts
+// DR-6: All statuses shown with zero counts; filter chips ordered A-Z by label
 const ALL_STATUSES = [
+  "approved",
+  "escalated",
   "not_processed",
   "pending",
-  "approved",
   "rejected",
-  "escalated",
 ] as const;
 
 function getStatusLabel(status: string): string {
@@ -766,8 +766,8 @@ export default function EncounterList({ patientId }: Props) {
           >
             <MenuItem value="date-desc">Date (newest first)</MenuItem>
             <MenuItem value="date-asc">Date (oldest first)</MenuItem>
-            <MenuItem value="status">Status</MenuItem>
             <MenuItem value="id">Encounter ID</MenuItem>
+            <MenuItem value="status">Status</MenuItem>
           </TextField>
         </Stack>
       )}

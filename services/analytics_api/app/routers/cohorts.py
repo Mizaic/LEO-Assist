@@ -27,6 +27,10 @@ from libs.neo4j_client.client import PatientGraphClient
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Assertions that confirm a condition is present for cohort eligibility.
+# 'historical' is included so ex-diagnosis codes are matched (e.g. ex-smoker).
+_CONFIRMED_ASSERTIONS: frozenset[str] = frozenset({"present", "historical"})
+
 # ── NHS screening cohort presets — loaded from JSON, not hardcoded ────────
 # Edit services/analytics_api/app/data/nhs_screening_cohorts.json to add or
 # update programmes. The loader below makes them available at import time so
@@ -273,7 +277,8 @@ def delete_cohort(
         if rows[0].get("source") == "nhs_preset":
             raise HTTPException(
                 status_code=403,
-                detail="NHS system cohorts cannot be deleted. Use POST /cohorts to create a copy.",
+                detail="NHS system cohorts cannot be deleted. "
+                "Use POST /cohorts to create a copy.",
             )
         owner_org = rows[0].get("created_by_org_id")
         if not scope.is_admin and owner_org and owner_org not in scope.org_ids:
@@ -370,7 +375,7 @@ def _build_where_clauses(f: CohortFilter) -> tuple[str, Dict[str, Any]]:
     params: Dict[str, Any] = {}
 
     if f.org_id:
-        # Traverse GP → ICB → CancerAlliance hierarchy so filtering works at any scope level
+        # Traverse GP -> ICB -> CancerAlliance hierarchy so filtering works at any level
         clauses.append(
             "EXISTS { "
             "MATCH (_scope:Organization {id: $org_id}) "
@@ -397,10 +402,12 @@ def _build_where_clauses(f: CohortFilter) -> tuple[str, Dict[str, Any]]:
 
     if f.condition_codes:
         clauses.append(
-            "EXISTS { MATCH (p)-[:HAS_ENCOUNTER]->()-[:DOCUMENTS]->(c) "
-            "WHERE toString(c.conceptId) IN $codes }"
+            "EXISTS { MATCH (p)-[:HAS_ENCOUNTER]->()-[r:DOCUMENTS]->(c) "
+            "WHERE toString(c.conceptId) IN $codes "
+            "  AND coalesce(r.assertion, 'present') IN $confirmed_assertions }"
         )
         params["codes"] = f.condition_codes
+        params["confirmed_assertions"] = list(_CONFIRMED_ASSERTIONS)
 
     if f.episode_status:
         clauses.append(
@@ -424,15 +431,19 @@ def _build_where_clauses(f: CohortFilter) -> tuple[str, Dict[str, Any]]:
     if f.smoking_status == "ever_smoker":
         # SNOMED: 160625004 Ex-smoker, 77176002 Smoker, 449868002 Smokes tobacco daily
         clauses.append(
-            "EXISTS { MATCH (p)-[:HAS_ENCOUNTER]->()-[:DOCUMENTS]->(c) "
-            "WHERE c.conceptId IN [160625004, 77176002, 449868002, 230059006] }"
+            "EXISTS { MATCH (p)-[:HAS_ENCOUNTER]->()-[r:DOCUMENTS]->(c) "
+            "WHERE c.conceptId IN [160625004, 77176002, 449868002, 230059006] "
+            "  AND coalesce(r.assertion, 'present') IN $confirmed_assertions }"
         )
+        params.setdefault("confirmed_assertions", list(_CONFIRMED_ASSERTIONS))
     elif f.smoking_status == "current_smoker":
-        # SNOMED: 77176002 Smoker, 449868002 Smokes tobacco daily, 230059006 Cigarette smoker
+        # SNOMED: 77176002 Smoker, 449868002 Smokes tobacco daily
         clauses.append(
-            "EXISTS { MATCH (p)-[:HAS_ENCOUNTER]->()-[:DOCUMENTS]->(c) "
-            "WHERE c.conceptId IN [77176002, 449868002, 230059006] }"
+            "EXISTS { MATCH (p)-[:HAS_ENCOUNTER]->()-[r:DOCUMENTS]->(c) "
+            "WHERE c.conceptId IN [77176002, 449868002, 230059006] "
+            "  AND coalesce(r.assertion, 'present') IN $confirmed_assertions }"
         )
+        params.setdefault("confirmed_assertions", list(_CONFIRMED_ASSERTIONS))
 
     return " AND ".join(clauses) if clauses else "true", params
 

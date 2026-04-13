@@ -1,0 +1,81 @@
+# -- DO-LEO-AI-098 -- GoldLabel Training Pipeline Consolidation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-098"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-100"]
+    user_needs: ["UN-LEO-AI-050", "UN-LEO-AI-027"]
+    risks_addressed: ["R-LEO-AI-052", "R-LEO-AI-053", "R-LEO-AI-039"]
+    verification_tests: ["VT-LEO-AI-100"]
+
+  specification:
+    title: "Single-source GoldLabel training data and simplified operations workflow"
+    description: |
+      Consolidates model-training data flow onto Knowledge Graph GoldLabel.
+      - Adds a migration utility from legacy TrainingLabel to GoldLabel.
+      - Updates training worker export to read completed GoldLabel records.
+      - Simplifies operations workspace to focus on gold-data metrics and model
+        training actions, with direct routing to /admin/gold-dataset for data
+        correction workflows.
+    acceptance_criteria:
+      - criterion: "Legacy data migration"
+        type: "functional"
+        measurement: "Test"
+        target: "Script upserts TrainingCandidate and GoldLabel for each include=true TrainingLabel"
+      - criterion: "GoldLabel export path"
+        type: "safety"
+        measurement: "Test"
+        target: "label_exporter uses KnowledgeGraphClient and GET_ALL_GOLD_LABELS_FOR_EXPORT"
+      - criterion: "Training gate"
+        type: "safety"
+        measurement: "Test"
+        target: "Export fails with clear error when available GoldLabel records are below minimum threshold"
+      - criterion: "Operations UX alignment"
+        type: "usability"
+        measurement: "Test"
+        target: "Operations page shows training-data metrics from /api/training/gold-labels/stats and no longer renders fix/check-label subflow"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/migrate_training_labels_to_gold.py"
+        description: "Patient TrainingLabel to KG TrainingCandidate/GoldLabel migration tool"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/label_exporter.py"
+        description: "Training export switched to GoldLabel source"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/OperationsWorkspace.tsx"
+        description: "Operations section structure updated for gold-data workflow"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/TrainSection.tsx"
+        description: "Training data and training run controls rewritten around GoldLabel metrics"
+      - artifact_type: "source_code"
+        location: "tests/test_training_worker_label_exporter.py"
+        description: "Verification tests for GoldLabel exporter query path and minimum-count gate"
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 260
+      key_functions:
+        - "export_labels"
+        - "migrate_training_labels_to_gold"
+        - "TrainSection"
+        - "OperationsWorkspace"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Selection of verified GoldLabel records for model training"
+      - "Exclusion of patient-linkable identifiers from Knowledge Graph training artefacts"
+    risk_control_measures:
+      - "completed-only GoldLabel export query"
+      - "minimum training-count hard gate"
+      - "migration source tag and deterministic candidate IDs for audit traceability"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

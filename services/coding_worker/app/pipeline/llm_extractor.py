@@ -166,7 +166,6 @@ Full schema when entities exist:
       "text": "<exact span as written in the sentence>",
       "lookup_term": "<standard clinical term for SNOMED lookup>",
       "semantic_tag": "<disorder|finding|procedure|substance|product|observable entity|situation|regime/therapy|staging scale>",
-      "assertion": "<present|absent|refuted|possible|historical|planned|hypothetical|family|declined|cancelled>",
       "numeric_value": "<numeric value if observable entity, else empty string>",
       "unit": "<unit if observable entity, else empty string>",
       "reference_range": "<range if present, else empty string>",
@@ -370,9 +369,10 @@ class LLMExtractor:
             text = str(term.get("text") or "").strip()
             if not text:
                 continue
-            assertion = str(term.get("assertion") or "present").lower()
-            if assertion not in _VALID_ASSERTIONS:
-                assertion = "present"
+            # Assertion is always initialised to "present"; the post-processing
+            # pipeline (scope guard, ConText, double-negation guard) is the
+            # sole authoritative source for all non-present assertions.
+            assertion = "present"
             dedup_key = (text.lower(), str(term.get("semantic_tag") or ""), assertion)
             if dedup_key in seen:
                 continue
