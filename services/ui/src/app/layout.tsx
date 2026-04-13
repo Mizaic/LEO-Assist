@@ -8,8 +8,8 @@ import AppShell from "@/components/AppShell";
 import AuthProviderWrapper from "@/components/AuthProviderWrapper";
 
 export const metadata: Metadata = {
-  title: "LEO for Primary Care",
-  description: "Referral quality review, safety netting, early diagnosis and screening — powered by Mizaic",
+  title: "LEO by Mizaic",
+  description: "Clinical AI -- coding, reasoning, and pathway intelligence for the NHS",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

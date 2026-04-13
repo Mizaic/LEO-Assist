@@ -1,0 +1,83 @@
+# -- DI-LEO-AI-104 -- Benign/Normal Qualifier Episode Closure
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-104"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-052"]
+  requirement: >
+    For open referral-only cancer pathway episodes, the episode builder SHALL
+    close the episode when a site-related finding/condition is coded on the same
+    encounter as a benign or normal qualifier-value concept within 90 days after
+    referral, provided no confirmed cancer diagnosis is coded within the same
+    90-day window. The closure SHALL set status='closed_benign_qualifier',
+    end_date to the qualifying encounter date, and hitl_flag=true.
+  rationale: >
+    Clinical pathways are frequently documented as condition + qualifier pairs
+    (for example, "breast lump" + "benign", or "biopsy" + "normal") rather than
+    explicit "no evidence of cancer" discharge concepts. Without this rule, these
+    pathways remain in_progress until stale auto-close, overstating unresolved
+    cancer investigations. Site compatibility and diagnosis suppression are safety
+    controls to prevent unrelated benign qualifiers from closing an active cancer
+    pathway.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Given a breast referral on D and an encounter on D+25 containing a
+          breast finding plus benign/normal qualifier concept, the episode is
+          closed with status='closed_benign_qualifier' and end_date=D+25.
+      - type: "functional"
+        spec: >
+          Given a breast referral on D and a prostate finding plus benign
+          qualifier on D+25, the episode remains in_progress.
+      - type: "functional"
+        spec: >
+          Given a referral on D, benign-qualifier pair on D+20, and confirmed
+          cancer diagnosis on D+30, benign qualifier closure is suppressed and
+          the referral episode does not close via this rule.
+      - type: "safety"
+        spec: >
+          closed_benign_qualifier episodes MUST always set hitl_flag=true with
+          an explanatory hitl_reason.
+    constraints:
+      - type: "safety"
+        spec: >
+          Benign qualifier closure applies only when referral site key is known
+          and finding site key is compatible.
+      - type: "safety"
+        spec: >
+          Qualifier concepts are restricted to a configured concept-id allowlist
+          and enforced by Cypher co-occurrence query on the same encounter.
+    dependencies: ["DI-LEO-AI-085", "DI-LEO-AI-084"]
+    downstream_impacts:
+      - "Episode lifecycle status distribution"
+      - "Cancer pathway dashboards"
+      - "Human review queue (HITL) workload"
+
+  technical_details:
+    language: "Python"
+    framework: "neo4j"
+    file_structure:
+      - "services/analysis_worker/app/analyzers/episode_builder/_config.py"
+      - "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+      - "services/analysis_worker/app/analyzers/episode_builder/_persistence.py"
+      - "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+      - "services/analysis_worker/app/analyzers/episode_builder/_status.py"
+    estimated_loc: 90
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-104 test cases pass, proving site-match closure, site-mismatch
+      rejection, diagnosis suppression, and mandatory HITL on benign qualifier
+      closure.
+    test_protocol: "VT-LEO-AI-104"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-071"]
+  tags:
+    - "episode-detector"
+    - "benign-closure"
+    - "qualifier-value"

@@ -349,6 +349,12 @@ class CandidateDedupeRequest(BaseModel):
     similarity_threshold: float = Field(default=0.85, ge=0.5, le=0.99)
 
 
+class SimilarCandidatesByEntityRequest(BaseModel):
+    candidate_id: str
+    limit: int = Field(default=20, ge=1, le=100)
+    similarity_threshold: float = Field(default=0.65, ge=0.3, le=0.99)
+
+
 # ------------------------------------------------------------------
 # GET /training/labels/stats
 # ------------------------------------------------------------------
@@ -4282,6 +4288,41 @@ def _build_candidate_similarity_groups(
     return groups
 
 
+def _extract_candidate_entity_terms(entities_json: Any) -> set[str]:
+    if not entities_json:
+        return set()
+    try:
+        parsed = json.loads(entities_json)
+    except Exception:
+        return set()
+    if not isinstance(parsed, list):
+        return set()
+    terms: set[str] = set()
+    for row in parsed:
+        if not isinstance(row, dict):
+            continue
+        text = str(row.get("text") or "").strip()
+        if not text:
+            continue
+        normalised = _normalise_candidate_text(text)
+        if normalised:
+            terms.add(normalised)
+    return terms
+
+
+def _entity_similarity(left_terms: set[str], right_terms: set[str]) -> float:
+    if not left_terms or not right_terms:
+        return 0.0
+    exact = len(left_terms & right_terms)
+    if exact:
+        return min(1.0, 0.7 + (exact / max(1, len(left_terms))))
+    best = 0.0
+    for left in left_terms:
+        for right in right_terms:
+            best = max(best, _candidate_similarity(left, right))
+    return round(float(best), 6)
+
+
 def _fetch_dedupe_candidates(
     *,
     status: str | None,
@@ -4391,6 +4432,58 @@ def apply_training_candidate_dedupe(
         "group_count": len(groups),
         "run_id": run_id,
         "similarity_threshold": body.similarity_threshold,
+    }
+
+
+@router.post("/candidates/find-similar-by-entity")
+def find_similar_candidates_by_entity(
+    body: SimilarCandidatesByEntityRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    rows = _fetch_dedupe_candidates(
+        status="pending",
+        source=None,
+        search=None,
+        max_candidates=3000,
+    )
+    source_row = next(
+        (row for row in rows if str(row.get("candidate_id") or "") == body.candidate_id),
+        None,
+    )
+    if not source_row:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    source_terms = _extract_candidate_entity_terms(source_row.get("entities_json"))
+    if not source_terms:
+        return {"source_candidate_id": body.candidate_id, "count": 0, "items": []}
+
+    matches: list[dict[str, Any]] = []
+    for row in rows:
+        candidate_id = str(row.get("candidate_id") or "")
+        if not candidate_id or candidate_id == body.candidate_id:
+            continue
+        if str(row.get("status") or "") == "completed":
+            continue
+        terms = _extract_candidate_entity_terms(row.get("entities_json"))
+        similarity = _entity_similarity(source_terms, terms)
+        if similarity < body.similarity_threshold:
+            continue
+        matches.append(
+            {
+                "candidate_id": candidate_id,
+                "text": str(row.get("text") or ""),
+                "source": row.get("source"),
+                "status": row.get("status"),
+                "updated_at": row.get("updated_at"),
+                "entities_json": row.get("entities_json"),
+                "similarity": similarity,
+            }
+        )
+    matches.sort(key=lambda row: row.get("similarity", 0.0), reverse=True)
+    limited = matches[: body.limit]
+    return {
+        "source_candidate_id": body.candidate_id,
+        "count": len(limited),
+        "items": limited,
     }
 
 

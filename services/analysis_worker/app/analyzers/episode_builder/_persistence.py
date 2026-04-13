@@ -11,12 +11,15 @@ from services.analysis_worker.app.analyzers.anchor_detector import AnchorResult
 
 from . import _config as cfg
 from . import _cypher as cypher
+from ._site_resolution import _extract_condition_key_from_anchor, _site_keys_compatible
 from ._types import EpisodeBuildResult, WriteEpisodeParams, _parse_date
 
 logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 2
 _RETRY_DELAY_S = 0.3
+_CONFIRMED_ASSERTIONS = ("present", "historical")
+_FINDING_TAGS = ("finding", "clinical finding", "disorder", "situation")
 
 
 def _run_with_retry(client: Any, query: str, label: str, **kwargs: Any) -> list:
@@ -163,3 +166,51 @@ def _benign_closure_for_episode(
             ref_date,
         )
         return None
+
+
+def _benign_qualifier_closure_for_episode(
+    patient_id: str,
+    site_key: str,
+    ref_date: date,
+    patient_client: Any,
+) -> date | None:
+    """Return earliest site-compatible benign/normal qualifier date, or None."""
+    if site_key in ("unknown", "non_site_specific"):
+        return None
+    if not cfg.BENIGN_QUALIFIER_CONCEPT_IDS:
+        return None
+
+    after_date = ref_date.isoformat()
+    before_date = (
+        ref_date + timedelta(days=cfg.BENIGN_QUALIFIER_WINDOW_DAYS)
+    ).isoformat()
+
+    try:
+        rows = patient_client.run(
+            cypher.BENIGN_QUALIFIER_CLOSURE_QUERY,
+            patient_id=patient_id,
+            after_date=after_date,
+            before_date=before_date,
+            qualifier_ids=[str(i) for i in cfg.BENIGN_QUALIFIER_CONCEPT_IDS],
+            assertions=list(_CONFIRMED_ASSERTIONS),
+            finding_tags=list(_FINDING_TAGS),
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "Benign qualifier closure query failed for patient %s ref_date %s",
+            patient_id,
+            ref_date,
+        )
+        return None
+
+    valid_dates: list[date] = []
+    for row in rows or []:
+        finding_key = _extract_condition_key_from_anchor(row)
+        if finding_key in ("unknown", "non_site_specific"):
+            continue
+        if not _site_keys_compatible(site_key, finding_key):
+            continue
+        d = _parse_date(row.get("encounter_date"))
+        if d:
+            valid_dates.append(d)
+    return min(valid_dates) if valid_dates else None

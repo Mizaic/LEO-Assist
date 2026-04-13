@@ -677,12 +677,17 @@ Safety constraints enforced:
 | Design Input | DI-LEO-AI-103 | draft | Assertion determined solely by post-processing pipeline - LLM extraction SHALL NOT assign assertion |
 | Design Output | DO-LEO-AI-101 | draft | Assertion-free LLM extraction output; parser hardcodes present; ConText is sole assertion authority |
 | Verification Test | VT-LEO-AI-103 | passed | 8 automated source-inspection and prompt-schema tests |
+| Design Input | DI-LEO-AI-104 | draft | Referral episode closure from same-encounter benign/normal qualifier plus site-related finding within 90 days, suppressed by competing diagnosis |
+| Design Output | DO-LEO-AI-102 | draft | BENIGN_QUALIFIER_CLOSURE_QUERY and closed_benign_qualifier episode lifecycle wiring |
+| Risk | R-LEO-AI-071 | mitigated | Unrelated benign qualifier causes erroneous cancer pathway closure |
+| Verification Test | VT-LEO-AI-104 | passed | 11 automated tests including site-match, mismatch rejection, diagnosis suppression, and HITL enforcement |
 
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
 | DI-LEO-AI-101 | Double-negation guard for pre-negated SNOMED situations | R-LEO-AI-069 | VT-LEO-AI-101 |
 | DI-LEO-AI-102 | Analytics assertion filter for CCI and cohort queries | R-LEO-AI-070 | VT-LEO-AI-102 |
 | DI-LEO-AI-103 | Assertion determined solely by post-processing pipeline | R-LEO-AI-003 | VT-LEO-AI-103 |
+| DI-LEO-AI-104 | Benign/normal qualifier-based episode closure with site compatibility | R-LEO-AI-071 | VT-LEO-AI-104 |
 
 ---
 

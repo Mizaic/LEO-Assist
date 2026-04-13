@@ -517,3 +517,76 @@ def test_list_training_candidates_hydrates_missing_snomed_term(client):
     assert payload["total"] == 1
     entities = payload["items"][0]["entities_json"]
     assert "Eschar" in entities
+
+
+def test_find_similar_candidates_by_entity_returns_ranked_matches(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+
+        def run_side_effect(query, **kwargs):
+            if query == GET_TRAINING_CANDIDATES_PAGE:
+                return [
+                    {
+                        "candidate_id": "cand-source",
+                        "text": "Urge incontinence discussed today",
+                        "entities_json": '[{"text":"urge incontinence","label":"finding"}]',
+                        "source": "pipeline_gold",
+                        "status": "pending",
+                        "updated_at": "2026-04-13T10:00:00Z",
+                    },
+                    {
+                        "candidate_id": "cand-similar",
+                        "text": "Patient reports urge incontinence symptoms",
+                        "entities_json": '[{"text":"urge incontinence","label":"finding"}]',
+                        "source": "pipeline_gold",
+                        "status": "pending",
+                        "updated_at": "2026-04-13T10:01:00Z",
+                    },
+                    {
+                        "candidate_id": "cand-different",
+                        "text": "Patient reports rash",
+                        "entities_json": '[{"text":"rash","label":"finding"}]',
+                        "source": "pipeline_gold",
+                        "status": "pending",
+                        "updated_at": "2026-04-13T10:02:00Z",
+                    },
+                ]
+            return MagicMock(single=MagicMock(return_value=None))
+
+        inner.run.side_effect = run_side_effect
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.post(
+            "/training/candidates/find-similar-by-entity",
+            json={"candidate_id": "cand-source", "limit": 10, "similarity_threshold": 0.5},
+        )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["source_candidate_id"] == "cand-source"
+    assert payload["count"] == 1
+    assert payload["items"][0]["candidate_id"] == "cand-similar"
+
+
+def test_find_similar_candidates_by_entity_returns_404_for_missing_source(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+        inner.run.return_value = []
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.post(
+            "/training/candidates/find-similar-by-entity",
+            json={"candidate_id": "missing-candidate"},
+        )
+
+    assert r.status_code == 404

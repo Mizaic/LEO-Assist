@@ -634,6 +634,10 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | Design Output | DO-LEO-AI-100 | draft | _CONFIRMED_ASSERTIONS guard in cci.py and cohorts.py with coalesce fallback |
 | Risk | R-LEO-AI-070 | mitigated | Absent-coded condition inflates CCI score or incorrectly matches cohort filter |
 | Verification Test | VT-LEO-AI-102 | passed | 12 automated tests: query structure, present/historical scoring, absent exclusion |
+| Design Input | DI-LEO-AI-104 | draft | Episode closure from benign/normal qualifier plus site-related finding within 90 days |
+| Design Output | DO-LEO-AI-102 | draft | BENIGN_QUALIFIER_CLOSURE_QUERY and closed_benign_qualifier status with HITL |
+| Risk | R-LEO-AI-071 | mitigated | Unrelated benign qualifier closes active cancer pathway episode |
+| Verification Test | VT-LEO-AI-104 | passed | 11 automated tests including site mismatch rejection and diagnosis suppression |
 
 ---
 

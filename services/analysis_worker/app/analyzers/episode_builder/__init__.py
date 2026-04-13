@@ -14,6 +14,8 @@ _TODAY_OVERRIDE: date | None = None
 
 # -- Config constants (re-exported for tests that reference them) -----------
 from ._config import (  # noqa: E402
+    BENIGN_QUALIFIER_CONCEPT_IDS as _BENIGN_QUALIFIER_CONCEPT_IDS,
+    BENIGN_QUALIFIER_WINDOW_DAYS as _BENIGN_QUALIFIER_WINDOW_DAYS,
     DIAG_LOOKBACK_DAYS as _DIAG_LOOKBACK_DAYS,
     FALLBACK_REASON_WINDOW_DAYS_AFTER as _FALLBACK_REASON_WINDOW_DAYS_AFTER,
     FALLBACK_REASON_WINDOW_DAYS_BEFORE as _FALLBACK_REASON_WINDOW_DAYS_BEFORE,
@@ -69,6 +71,7 @@ from ._grouping import (  # noqa: E402
 
 # -- Cypher queries (re-exported with underscore prefix for compat) ---------
 from ._cypher import (  # noqa: E402
+    BENIGN_QUALIFIER_CLOSURE_QUERY as _BENIGN_QUALIFIER_CLOSURE_QUERY,
     BENIGN_CLOSURE_QUERY as _BENIGN_CLOSURE_QUERY,
     FETCH_EPISODES_FOR_MERGE_Q as _FETCH_EPISODES_FOR_MERGE_Q,
     INFERENCE_ENC_Q as _INFERENCE_ENC_Q,
@@ -85,6 +88,7 @@ from ._cypher import (  # noqa: E402
 # -- Persistence ------------------------------------------------------------
 from ._persistence import (  # noqa: E402
     _benign_closure_for_episode,
+    _benign_qualifier_closure_for_episode,
     _link_encounters_to_episode,
     _write_episode,
 )

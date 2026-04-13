@@ -1,0 +1,88 @@
+# -- R-LEO-AI-071 -- Unrelated Benign Qualifier Closes Active Cancer Pathway
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-071"
+  title: "Benign/normal qualifier on unrelated finding causes erroneous episode closure"
+
+  hazard:
+    description: >
+      A generic qualifier-value concept (for example, benign or normal) is
+      interpreted as cancer-pathway closure evidence without confirming that the
+      related finding is on the same pathway site as the referral episode.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A patient has a breast 2WW referral and later receives a benign qualifier on
+    a different condition (for example, benign prostatic hyperplasia). If site
+    relatedness and diagnosis suppression are not enforced, the breast episode
+    may be auto-closed as benign despite ongoing malignancy workup.
+
+  harm:
+    description: >
+      False pathway closure can delay escalation and follow-up, distort cancer
+      pathway KPIs, and reduce visibility of patients still requiring clinical
+      review.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 2
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Restrict benign qualifier closure to same-encounter co-occurrence of
+        finding/disorder plus configured benign/normal qualifier concept IDs.
+      implemented_by: ["DI-LEO-AI-104"]
+      verified_by: ["VT-LEO-AI-104"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Require site compatibility between referral site and finding site and
+        suppress closure when any confirmed diagnosis exists in the 90-day
+        window after referral.
+      implemented_by: ["DI-LEO-AI-104"]
+      verified_by: ["VT-LEO-AI-104"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Always set hitl_flag=true with a review reason for
+        closed_benign_qualifier episodes.
+      implemented_by: ["DI-LEO-AI-104"]
+      verified_by: ["VT-LEO-AI-104"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The closure rule now requires both temporal and site-related evidence,
+      blocks when competing diagnosis evidence exists, and always routes through
+      human review. Remaining risk is primarily coding quality variance and is
+      detectable through HITL review and episode audit dashboards.
+
+  monitoring:
+    monitoring_plan: >
+      Review closed_benign_qualifier episodes monthly. Sample at least 20 cases
+      per domain and verify that closure site matches referral site and that no
+      competing diagnosis was present in the closure window.
+    metrics:
+      - "Rate of manual reopen from closed_benign_qualifier to completed"
+      - "Percent of closed_benign_qualifier episodes with reviewer disagreement"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Episode detector safety review"
+    identified_date: "2026-04-13"
+    status: "mitigated"
+    tags:
+      - "episode-detector"
+      - "benign-closure"
+      - "qualifier-value"

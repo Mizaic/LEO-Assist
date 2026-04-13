@@ -1,0 +1,104 @@
+- id: "VT-LEO-AI-104"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-104"]
+    risks: ["R-LEO-AI-071"]
+
+  metadata:
+    title: "Benign/normal qualifier episode closure safety checks"
+    description: >
+      Verifies that open referral episodes can be closed from same-encounter
+      benign/normal qualifier + finding evidence only when site-related and when
+      no competing cancer diagnosis exists in the 90-day window.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_episode_builder_benign_qualifier_closure.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python venv with pytest installed"
+      - "Mocked Neo4j client responses for deterministic episode-builder tests"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-104-TC-001"
+      case_name: "Site-matched benign qualifier closes episode"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build referral-only breast episode and mock qualifier query with breast finding"
+          expected_result: "Episode status becomes closed_benign_qualifier with end_date set"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "status == 'closed_benign_qualifier'"
+        - "end_date equals qualifier encounter date"
+
+    - case_id: "VT-104-TC-002"
+      case_name: "Site mismatch does not close episode"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build breast referral episode with prostate benign finding qualifier row"
+          expected_result: "Episode remains in_progress"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "status == 'in_progress'"
+        - "end_date is null"
+
+    - case_id: "VT-104-TC-003"
+      case_name: "Competing diagnosis suppresses benign qualifier closure"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Add confirmed diagnosis in 90-day window and run benign qualifier scenario"
+          expected_result: "Referral episode does not close via qualifier rule"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "status == 'in_progress'"
+
+    - case_id: "VT-104-TC-004"
+      case_name: "HITL is mandatory for qualifier closure"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run site-matched closure scenario"
+          expected_result: "hitl_flag=true and hitl_reason includes benign/normal qualifier context"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "hitl_flag is true"
+        - "hitl_reason is non-empty"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-104/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-104-EXEC-001"
+      executed_by: "automated CI"
+      executed_date: "2026-04-13"
+      environment: "development"
+      pytest_command: >
+        pytest tests/test_episode_builder_benign_qualifier_closure.py
+        tests/test_episode_builder_benign_closure.py -v
+      result: "pass"
+      cases_run: 11
+      cases_passed: 11
+      cases_failed: 0
+      notes: >
+        New benign qualifier closure tests passed and existing benign closure
+        regression tests remained green.

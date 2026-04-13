@@ -10,36 +10,35 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Grid from "@mui/material/Grid";
 import CircularProgress from "@mui/material/CircularProgress";
-import Divider from "@mui/material/Divider";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import HealthAndSafetyOutlinedIcon from "@mui/icons-material/HealthAndSafetyOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import CodeOutlinedIcon from "@mui/icons-material/CodeOutlined";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
+import AutoModeOutlinedIcon from "@mui/icons-material/AutoModeOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 
 const FEATURES = [
   {
-    title: "Referral Quality Review",
+    title: "Clinical NLP & Coding",
     description:
-      "Review and benchmark cancer referral quality against NICE Guideline NG12 to support consistent, high-quality referral practice.",
-    icon: <SearchOutlinedIcon sx={{ fontSize: 32, color: "primary.main" }} />,
+      "Reads encounter records and applies SNOMED CT coding with entity extraction, negation detection, and context awareness — no manual rules.",
+    icon: <CodeOutlinedIcon sx={{ fontSize: 32, color: "primary.main" }} />,
   },
   {
-    title: "Electronic Safety Netting",
+    title: "Pathway Reasoning",
     description:
-      "Standardised, electronic safety netting to ensure no patient is lost to follow-up across the referral pathway.",
-    icon: <HealthAndSafetyOutlinedIcon sx={{ fontSize: 32, color: "secondary.main" }} />,
+      "LLM-assisted clinical reasoning disambiguates complex presentations, escalates uncertainty, and explains every coding decision.",
+    icon: <PsychologyOutlinedIcon sx={{ fontSize: 32, color: "secondary.main" }} />,
   },
   {
-    title: "Screening Programme Monitoring",
+    title: "Agentic Intelligence",
     description:
-      "Proactively identify eligible patients and support engagement with cancer and non-cancer screening programmes.",
-    icon: <GroupsOutlinedIcon sx={{ fontSize: 32, color: "warning.main" }} />,
+      "Autonomous pipeline execution across configurable clinical programmes — with human review gates built in at every critical step.",
+    icon: <AutoModeOutlinedIcon sx={{ fontSize: 32, color: "warning.main" }} />,
   },
   {
-    title: "Early Diagnosis Tracking",
+    title: "Population Analytics",
     description:
-      "Track key milestones from presentation through referral to diagnosis and treatment, benchmarked against national targets.",
-    icon: <TimelineOutlinedIcon sx={{ fontSize: 32, color: "info.main" }} />,
+      "Programme-agnostic metrics, milestone tracking, and population-level insights — configured to any pathway, not hard-coded to one.",
+    icon: <BarChartOutlinedIcon sx={{ fontSize: 32, color: "info.main" }} />,
   },
 ];
 
@@ -85,7 +84,7 @@ export default function Home() {
           sx={{ width: 80, height: 80, mb: 3 }}
         />
         <Typography variant="h3" sx={{ fontWeight: 700, letterSpacing: "-0.02em", mb: 0.5 }}>
-          LEO for Primary Care
+          LEO
         </Typography>
         <Typography variant="body1" sx={{ color: "text.secondary", mb: 3, fontSize: "1.05rem" }}>
           by Mizaic
@@ -101,8 +100,10 @@ export default function Home() {
             mb: 4,
           }}
         >
-          Supporting Primary Care Networks to deliver consistent, high-quality
-          cancer referral practice, safety netting, and screening engagement.
+          Clinical intelligence for the NHS. LEO reads encounter records,
+          applies SNOMED coding, reasons across pathways, and surfaces the
+          patients and patterns that matter — with clinicians in control at
+          every step.
         </Typography>
         <Button
           variant="contained"
@@ -135,7 +136,7 @@ export default function Home() {
         </Grid>
       </Box>
 
-      {/* DES alignment */}
+      {/* Safety and trust */}
       <Box
         sx={{
           bgcolor: "grey.50",
@@ -145,16 +146,15 @@ export default function Home() {
         }}
       >
         <Typography variant="h5" sx={{ mb: 2 }}>
-          Aligned with Network Contract DES Requirements
+          Built for clinical safety and regulatory trust
         </Typography>
         <Typography
           variant="body1"
           sx={{ color: "text.secondary", maxWidth: 640, mx: "auto", lineHeight: 1.7 }}
         >
-          LEO supports Primary Care Networks in meeting their DES obligations
-          for improving cancer referral practice, strengthening electronic
-          safety netting, promoting early diagnosis, and increasing screening
-          uptake across their registered populations.
+          Every AI output is a proposal. LEO never acts without human review.
+          Designed and built to IEC 62304 and ISO 14971 with a full design
+          control and risk management framework.
         </Typography>
       </Box>
 
@@ -169,9 +169,8 @@ export default function Home() {
           borderColor: "divider",
         }}
       >
-        <Divider sx={{ display: "none" }} />
         <Typography variant="caption" color="text.secondary">
-          Powered by Mizaic
+          by Mizaic
         </Typography>
       </Box>
     </Box>

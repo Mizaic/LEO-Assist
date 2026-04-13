@@ -21,6 +21,7 @@ from ._grouping import (
 )
 from ._persistence import (
     _benign_closure_for_episode,
+    _benign_qualifier_closure_for_episode,
     _link_encounters_to_episode,
     _write_episode,
 )
@@ -112,6 +113,27 @@ def _treatment_started_link_anchors(
         if str(anchor.get("encounter_id") or ""):
             return [anchor]
     return []
+
+
+def _has_competing_confirmed_diagnosis(
+    ref_date: date | None,
+    diagnosis_anchors: list[dict[str, Any]],
+) -> bool:
+    """True when any confirmed cancer diagnosis exists in the 90-day window."""
+    if not ref_date:
+        return False
+    window_end = ref_date + timedelta(days=cfg.BENIGN_QUALIFIER_WINDOW_DAYS)
+    for anchor in diagnosis_anchors:
+        if anchor.get("is_pathway_completion"):
+            continue
+        assertion = str(anchor.get("assertion", "present") or "present")
+        if assertion not in ("present", ""):
+            continue
+        d = _parse_date(anchor.get("encounter_date"))
+        if not d or d < ref_date or d > window_end:
+            continue
+        return True
+    return False
 
 
 def _closed_episode_spec(
@@ -232,14 +254,15 @@ def _build_closed_episode(
     )
     is_phantom = site_key in ctx.phantom_sites
     status, hitl_flag, hitl_reason = _determine_episode_status(
-        has_diag, diag_anchors, None, episode_treatments, ref_date, is_phantom
+        has_diag, diag_anchors, None, None, episode_treatments, ref_date, is_phantom
     )
 
     if status == "completed" and site_key == "unknown" and not hitl_flag:
         hitl_flag = True
         hitl_reason = (
             "Completed: cancer type could not be determined from diagnosis coding. "
-            "SNOMED concept name is unresolved in the graph. Confirm cancer site from records."
+            "SNOMED concept name is unresolved in the graph. "
+            "Confirm cancer site from records."
         )
 
     end_date = max(all_dates_str) if all_dates_str else None
@@ -326,10 +349,19 @@ def _build_open_episode(
     )
     is_phantom = site_key in ctx.phantom_sites
     benign_date: date | None = None
+    benign_qualifier_date: date | None = None
     if not is_phantom and ref_date:
         benign_date = _benign_closure_for_episode(
             ctx.patient_id, ref_date, ctx.patient_client, ctx.anchors
         )
+        has_competing_diag = _has_competing_confirmed_diagnosis(
+            ref_date,
+            ctx.anchors.diagnosis_anchors if ctx.anchors else [],
+        )
+        if not has_competing_diag:
+            benign_qualifier_date = _benign_qualifier_closure_for_episode(
+                ctx.patient_id, site_key, ref_date, ctx.patient_client
+            )
 
     letter_end, letter_reason = _infer_completed_from_specialist_letter(
         claim,
@@ -344,10 +376,18 @@ def _build_open_episode(
         letter_inferred_benign = True
     else:
         status, hitl_flag, hitl_reason = _determine_episode_status(
-            False, [], benign_date, episode_treatments, ref_date, is_phantom
+            False,
+            [],
+            benign_date,
+            benign_qualifier_date,
+            episode_treatments,
+            ref_date,
+            is_phantom,
         )
         if benign_date:
             end_date = benign_date.isoformat()
+        elif benign_qualifier_date:
+            end_date = benign_qualifier_date.isoformat()
         elif status == "closed_phantom":
             end_date = earliest_str
         else:

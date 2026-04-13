@@ -96,6 +96,7 @@ def _determine_episode_status(
     has_diagnosis: bool,
     diag_anchors: list[dict[str, Any]],
     benign_date: date | None,
+    benign_qualifier_date: date | None,
     treatment_anchors: list[dict[str, Any]],
     ref_date: date | None,
     is_phantom: bool,
@@ -123,5 +124,13 @@ def _determine_episode_status(
 
     if benign_date:
         return ("closed_benign", False, None)
+
+    if benign_qualifier_date:
+        return (
+            "closed_benign_qualifier",
+            True,
+            "Auto-closed: benign/normal qualifier on site-related finding within "
+            "90 days and no coded cancer diagnosis. Verify from clinical records.",
+        )
 
     return ("in_progress", False, None)

@@ -6,6 +6,19 @@ import os
 import sys
 from datetime import date
 
+
+def _parse_int_set(raw: str, default: frozenset[int]) -> frozenset[int]:
+    values: set[int] = set()
+    for token in (part.strip() for part in raw.split(",")):
+        if not token:
+            continue
+        try:
+            values.add(int(token))
+        except ValueError:
+            continue
+    return frozenset(values) if values else default
+
+
 # -- Episode time windows --------------------------------------------------
 SAME_EPISODE_DAYS = int(os.getenv("EPISODE_SAME_EPISODE_DAYS", "180"))
 DIAG_LOOKBACK_DAYS = int(os.getenv("EPISODE_DIAG_LOOKBACK_DAYS", "180"))
@@ -34,6 +47,14 @@ FALLBACK_REASON_WINDOW_DAYS_AFTER = 3
 
 MAX_BENIGN_CLOSURE_DAYS = 365
 NO_CANCER_CONCEPT_ID = 395100000
+BENIGN_QUALIFIER_WINDOW_DAYS = int(os.getenv("EPISODE_BENIGN_QUALIFIER_DAYS", "90"))
+_DEFAULT_BENIGN_QUALIFIER_CONCEPT_IDS = frozenset(
+    {30807003, 17621005, 263654008, 280413001, 2667000}
+)
+BENIGN_QUALIFIER_CONCEPT_IDS = _parse_int_set(
+    os.getenv("EPISODE_BENIGN_QUALIFIER_CONCEPT_IDS", ""),
+    _DEFAULT_BENIGN_QUALIFIER_CONCEPT_IDS,
+)
 
 
 def _today_for_episode_rules() -> date:

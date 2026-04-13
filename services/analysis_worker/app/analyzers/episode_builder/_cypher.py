@@ -16,6 +16,26 @@ BENIGN_CLOSURE_QUERY = (
     "ORDER BY encounter_date"
 )
 
+BENIGN_QUALIFIER_CLOSURE_QUERY = (
+    "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[rf:DOCUMENTS]->(c_f) "
+    "WHERE toString(p.id) = $patient_id "
+    "  AND toString(e.date) >= $after_date "
+    "  AND toString(e.date) <= $before_date "
+    "  AND toLower(coalesce(c_f.semanticTag, '')) IN $finding_tags "
+    "  AND coalesce(rf.assertion, 'present') IN $assertions "
+    "  AND EXISTS { "
+    "      MATCH (e)-[rq:DOCUMENTS]->(c_q) "
+    "      WHERE toString(c_q.conceptId) IN $qualifier_ids "
+    "        AND coalesce(rq.assertion, 'present') IN $assertions "
+    "  } "
+    "RETURN "
+    "    toString(e.id)   AS encounter_id, "
+    "    toString(e.date) AS encounter_date, "
+    "    c_f.conceptId    AS concept_id, "
+    "    c_f.name         AS concept_name "
+    "ORDER BY encounter_date"
+)
+
 MERGE_EPISODE = (
     "MATCH (p:Patient) WHERE toString(p.id) = $patient_id "
     "MERGE (ep:EpisodeOfCare {episode_id: $episode_id}) "

@@ -1,0 +1,91 @@
+# -- DO-LEO-AI-102 -- Benign/Normal Qualifier Closure Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-102"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-104"]
+    user_needs: ["UN-LEO-AI-052"]
+    risks_addressed: ["R-LEO-AI-071"]
+    verification_tests: ["VT-LEO-AI-104"]
+
+  specification:
+    title: "Episode closure from benign/normal qualifier co-occurrence"
+    description: |
+      Adds a conservative closure path for referral-only episodes:
+
+      1) Query encounters within 90 days of referral where a finding/disorder
+      concept and a benign/normal qualifier-value concept co-occur on the same
+      encounter.
+      2) Require site compatibility between referral site and finding concept.
+      3) Suppress closure if any confirmed cancer diagnosis exists in the same
+      90-day window.
+      4) Set status to closed_benign_qualifier with hitl_flag=true and explicit
+      hitl_reason.
+
+      Existing no_cancer_discharge closure and diagnosis precedence remain
+      unchanged.
+    acceptance_criteria:
+      - criterion: "Site-matched qualifier closure fires"
+        type: "functional"
+        measurement: "Test"
+        target: "Breast referral + breast finding + benign qualifier closes as closed_benign_qualifier"
+      - criterion: "Site mismatch is rejected"
+        type: "safety"
+        measurement: "Test"
+        target: "Breast referral + prostate benign finding remains in_progress"
+      - criterion: "Competing diagnosis suppresses closure"
+        type: "safety"
+        measurement: "Test"
+        target: "Referral episode does not close via qualifier rule when confirmed diagnosis exists in window"
+      - criterion: "HITL is mandatory"
+        type: "safety"
+        measurement: "Test"
+        target: "closed_benign_qualifier sets hitl_flag=true and non-empty hitl_reason"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_config.py"
+        description: "BENIGN_QUALIFIER_WINDOW_DAYS and BENIGN_QUALIFIER_CONCEPT_IDS"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+        description: "BENIGN_QUALIFIER_CLOSURE_QUERY for same-encounter co-occurrence"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_persistence.py"
+        description: "_benign_qualifier_closure_for_episode() with site compatibility checks"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+        description: "Open-episode wiring and competing-diagnosis suppression"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_status.py"
+        description: "closed_benign_qualifier status with HITL reason"
+      - artifact_type: "test_code"
+        location: "tests/test_episode_builder_benign_qualifier_closure.py"
+        description: "Automated tests for closure, mismatch, suppression, and HITL"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 120
+      key_functions:
+        - "_benign_qualifier_closure_for_episode"
+        - "_build_open_episode"
+        - "_determine_episode_status"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Cancer pathway episode status assignment"
+      - "Automatic pathway closure for benign outcomes"
+    risk_control_measures:
+      - "Same-encounter co-occurrence requirement for qualifier and finding"
+      - "Referral-site and finding-site compatibility check"
+      - "Competing confirmed diagnosis suppression"
+      - "Mandatory HITL on qualifier-based closure"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true
