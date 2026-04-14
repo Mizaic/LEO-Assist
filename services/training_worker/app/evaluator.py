@@ -27,6 +27,28 @@ _MIN_RECALL = float(os.getenv("MODEL_MIN_RECALL", "0.75"))
 _MIN_GOLDEN_F1 = float(os.getenv("MODEL_MIN_GOLDEN_F1", "0.70"))
 
 
+def _as_float(value: object, default: float = 0.0) -> float:
+    """Convert score values to float, treating None/invalid values as default."""
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _first_numeric(scores: dict, keys: tuple[str, ...], default: float = 0.0) -> float:
+    """Return first non-None numeric value from score keys."""
+    for key in keys:
+        if key not in scores:
+            continue
+        value = scores.get(key)
+        if value is None:
+            continue
+        return _as_float(value, default=default)
+    return default
+
+
 def _register_training_architectures() -> None:
     """Register custom spaCy architectures used by training configs."""
     try:
@@ -54,9 +76,9 @@ def _build_per_label(scores: dict) -> dict[str, dict]:
     per_type = scores.get("spans_sc_per_type") or scores.get("ents_per_type") or {}
     for label, ls in per_type.items():
         per_label[label] = {
-            "precision": round(float(ls.get("p", 0.0)), 4),
-            "recall": round(float(ls.get("r", 0.0)), 4),
-            "f1": round(float(ls.get("f", 0.0)), 4),
+            "precision": round(_as_float(ls.get("p", 0.0)), 4),
+            "recall": round(_as_float(ls.get("r", 0.0)), 4),
+            "f1": round(_as_float(ls.get("f", 0.0)), 4),
         }
     return per_label
 
@@ -149,9 +171,9 @@ def evaluate_model(
     _log(f"Evaluating on {len(gold_docs)} dev documents…")
     scores = _score_examples(nlp, gold_docs)
 
-    spans_p = round(float(scores.get("spans_sc_p", scores.get("ents_p", 0.0))), 4)
-    spans_r = round(float(scores.get("spans_sc_r", scores.get("ents_r", 0.0))), 4)
-    spans_f = round(float(scores.get("spans_sc_f", scores.get("ents_f", 0.0))), 4)
+    spans_p = round(_first_numeric(scores, ("spans_sc_p", "ents_p")), 4)
+    spans_r = round(_first_numeric(scores, ("spans_sc_r", "ents_r")), 4)
+    spans_f = round(_first_numeric(scores, ("spans_sc_f", "ents_f")), 4)
     per_label = _build_per_label(scores)
 
     passed = spans_p >= _MIN_PRECISION and spans_r >= _MIN_RECALL
@@ -185,9 +207,9 @@ def evaluate_model(
     if golden_docs:
         _log(f"Evaluating golden set ({len(golden_docs)} documents)…")
         gs = _score_examples(nlp, golden_docs)
-        g_p = round(float(gs.get("spans_sc_p", gs.get("ents_p", 0.0))), 4)
-        g_r = round(float(gs.get("spans_sc_r", gs.get("ents_r", 0.0))), 4)
-        g_f = round(float(gs.get("spans_sc_f", gs.get("ents_f", 0.0))), 4)
+        g_p = round(_first_numeric(gs, ("spans_sc_p", "ents_p")), 4)
+        g_r = round(_first_numeric(gs, ("spans_sc_r", "ents_r")), 4)
+        g_f = round(_first_numeric(gs, ("spans_sc_f", "ents_f")), 4)
         g_passed = g_f >= _MIN_GOLDEN_F1
         _log(
             f"Golden set: P={g_p:.3f}  R={g_r:.3f}  F1={g_f:.3f}  "

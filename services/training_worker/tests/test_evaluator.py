@@ -138,3 +138,35 @@ class TestGoldenGate(unittest.TestCase):
             evaluator.evaluate_model(Path("/tmp/model-best"), Path("/tmp/dev.spacy"))
 
         self.assertEqual(call_order, ["register", "load"])
+
+    def test_none_span_scores_fall_back_to_entity_scores(self):
+        from app import evaluator
+
+        dev_docs = [_make_mock_doc() for _ in range(2)]
+        dev_scores = {
+            "spans_sc_p": None,
+            "spans_sc_r": None,
+            "spans_sc_f": None,
+            "ents_p": 0.81,
+            "ents_r": 0.79,
+            "ents_f": 0.80,
+            "ents_per_type": {"problem": {"p": None, "r": 0.5, "f": 0.6}},
+        }
+
+        with (
+            patch("spacy.load", return_value=MagicMock()),
+            patch("spacy.tokens.DocBin") as mock_docbin_cls,
+            patch.object(evaluator, "_score_examples", return_value=dev_scores),
+            patch.object(evaluator, "_fetch_golden_set_docs", return_value=[]),
+        ):
+            instance = MagicMock()
+            instance.get_docs.return_value = iter(dev_docs)
+            mock_docbin_cls.return_value = instance
+            instance.from_disk.return_value = instance
+
+            result = evaluator.evaluate_model(Path("/tmp/model-best"), Path("/tmp/dev.spacy"))
+
+        self.assertEqual(result["precision"], 0.81)
+        self.assertEqual(result["recall"], 0.79)
+        self.assertEqual(result["f1"], 0.8)
+        self.assertEqual(result["per_label"]["problem"]["precision"], 0.0)

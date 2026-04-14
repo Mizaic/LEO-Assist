@@ -17,6 +17,8 @@ RUN python -m venv /venv && /venv/bin/pip install --upgrade pip setuptools wheel
 
 FROM build AS build-venv
 COPY services/training_worker/requirements.txt /requirements.txt
+# Prefer CPU PyTorch wheels in Linux containers to avoid pulling CUDA stacks.
+ENV PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 
 # -- Runtime: slim with only libgomp, no build tools, non-root user --------

@@ -12,6 +12,13 @@ import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import TableBody from "@mui/material/TableBody";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   LineChart,
   Line,
@@ -119,13 +126,11 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
       {/* Epoch training chart */}
       {epochData.length > 1 && (
         <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle, mb: 0.5 }}>
-            Training curve
-          </Typography>
-          <Box sx={{ display: "flex", gap: 3, mb: 1.5 }}>
-            <MetricBlurb color="#1565c0" label="F1" description="Overall accuracy — balances finding codes and avoiding wrong ones." />
-            <MetricBlurb color="#e65100" label="Loss NER" description="Training error — lower is better. Should fall as training progresses." />
-            <MetricBlurb color="#2e7d32" label="Precision" description="How often a suggested code is correct. Higher means fewer false positives." />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}>
+            <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle }}>
+              Training curve
+            </Typography>
+            <TrainingCurveInfoButton />
           </Box>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={epochData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
@@ -155,36 +160,167 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
   );
 }
 
-// -- Metric blurb -------------------------------------------------------------
+// -- Training curve info button + dialog -------------------------------------
 
-function MetricBlurb({
-  color,
-  label,
-  description,
+function TrainingCurveInfoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Tooltip title="What do these lines mean?">
+        <IconButton
+          size="small"
+          aria-label="Training curve help"
+          onClick={() => setOpen(true)}
+          sx={{ color: "text.secondary" }}
+        >
+          <InfoOutlinedIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Tooltip>
+      <TrainingCurveInfoDialog open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+const GOOD_DATA = Array.from({ length: 20 }, (_, i) => ({
+  step: i * 100,
+  loss: Math.max(0.05, 2.8 * Math.exp(-i * 0.28)),
+  f1: Math.min(0.95, 0.05 + 0.9 * (1 - Math.exp(-i * 0.25))),
+  precision: Math.min(0.97, 0.05 + 0.92 * (1 - Math.exp(-i * 0.22))),
+}));
+
+const BAD_DATA = Array.from({ length: 20 }, (_, i) => ({
+  step: i * 100,
+  loss: i < 8 ? 2.8 * Math.exp(-i * 0.3) : 0.3 + 0.4 * Math.sin(i * 0.9),
+  f1: i < 8 ? 0.05 + 0.5 * (1 - Math.exp(-i * 0.3)) : 0.35 + 0.2 * Math.sin(i * 0.8),
+  precision: i < 8 ? 0.1 + 0.4 * (1 - Math.exp(-i * 0.25)) : 0.3 + 0.25 * Math.sin(i),
+}));
+
+const METRICS = [
+  { key: "loss", color: "#e65100", label: "Loss NER" },
+  { key: "f1", color: "#1565c0", label: "F1" },
+  { key: "precision", color: "#2e7d32", label: "Precision" },
+];
+
+const METRIC_DESCRIPTIONS: Record<string, { what: string; good: string; bad: string }> = {
+  "Loss NER": {
+    what: "How wrong the model is during training. Measured on each batch of text.",
+    good: "Falls steadily and levels off near zero. Smooth descent with no big spikes.",
+    bad: "Stops falling early, bounces up and down, or never gets below ~0.3.",
+  },
+  F1: {
+    what: "Overall coding accuracy. Balances finding codes (recall) and avoiding wrong ones (precision).",
+    good: "Climbs steadily toward 1.0 and plateaus near the top of the chart.",
+    bad: "Stalls below 0.5, or rises then drops sharply (the model has overfit).",
+  },
+  Precision: {
+    what: "Of every code LEO suggests, how many are actually correct.",
+    good: "Stays above 0.8 and tracks closely with F1.",
+    bad: "Diverges far below F1 -- the model is guessing too many codes.",
+  },
+};
+
+function ExampleChart({
+  data,
+  title,
+  borderColor,
 }: {
-  color: string;
-  label: string;
-  description: string;
+  data: typeof GOOD_DATA;
+  title: string;
+  borderColor: string;
 }) {
   return (
-    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, maxWidth: 220 }}>
-      <Box
-        sx={{
-          mt: "3px",
-          width: 12,
-          height: 12,
-          borderRadius: "50%",
-          bgcolor: color,
-          flexShrink: 0,
-        }}
-      />
-      <Typography sx={{ fontSize: 11, color: "text.secondary", lineHeight: 1.4 }}>
-        <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
-          {label}
-        </Box>{" "}
-        — {description}
+    <Box
+      sx={{
+        flex: 1,
+        border: `2px solid ${borderColor}`,
+        borderRadius: 1,
+        p: 1,
+        minWidth: 0,
+      }}
+    >
+      <Typography sx={{ fontSize: 11, fontWeight: 600, mb: 0.5, color: borderColor }}>
+        {title}
       </Typography>
+      <ResponsiveContainer width="100%" height={120}>
+        <LineChart data={data} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
+          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+          <XAxis dataKey="step" tick={{ fontSize: 9 }} />
+          <YAxis tick={{ fontSize: 9 }} domain={[0, 3]} />
+          {METRICS.map((m) => (
+            <Line
+              key={m.key}
+              type="monotone"
+              dataKey={m.key}
+              stroke={m.color}
+              dot={false}
+              strokeWidth={1.5}
+              name={m.label}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
     </Box>
+  );
+}
+
+function TrainingCurveInfoDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontSize: FONT_SIZES.subtitle, fontWeight: 700 }}>
+        How to read the training curve
+      </DialogTitle>
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+        <Box sx={{ display: "flex", gap: 1.5 }}>
+          <ExampleChart data={GOOD_DATA} title="Healthy training" borderColor="#2e7d32" />
+          <ExampleChart data={BAD_DATA} title="Problem training" borderColor="#c62828" />
+        </Box>
+
+        <Typography sx={{ fontSize: FONT_SIZES.body, color: "text.secondary" }}>
+          A healthy run has a steadily falling loss and rising F1 and Precision lines that
+          level off near the top. Problems to watch for are shown in the right chart above.
+        </Typography>
+
+        {Object.entries(METRIC_DESCRIPTIONS).map(([label, info]) => {
+          const metric = METRICS.find((m) => m.label === label);
+          return (
+            <Box key={label}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.5 }}>
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    bgcolor: metric?.color ?? "#999",
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography sx={{ fontWeight: 700, fontSize: FONT_SIZES.body }}>
+                  {label}
+                </Typography>
+              </Box>
+              <Typography sx={{ fontSize: FONT_SIZES.body, mb: 0.25 }}>{info.what}</Typography>
+              <Typography sx={{ fontSize: 12, color: "success.dark" }}>
+                <strong>Healthy:</strong> {info.good}
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: "error.dark" }}>
+                <strong>Problem:</strong> {info.bad}
+              </Typography>
+            </Box>
+          );
+        })}
+      </DialogContent>
+      <DialogActions>
+        <Button variant="text" onClick={onClose}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
