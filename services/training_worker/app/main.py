@@ -31,6 +31,7 @@ import os
 import queue
 import threading
 import time
+import uvicorn
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
@@ -304,3 +305,14 @@ def health() -> dict[str, Any]:
 def _fmt_sse(event_type: str, payload: dict) -> str:
     data = json.dumps(payload, default=str)
     return f"event: {event_type}\ndata: {data}\n\n"
+
+
+# -- Entry point ---------------------------------------------------------------
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "services.training_worker.app.main:app",
+        host="0.0.0.0",
+        port=8005,
+        log_level="info",
+    )
