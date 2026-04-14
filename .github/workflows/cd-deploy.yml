@@ -112,6 +112,29 @@ jobs:
             fi
           done
 
+      - name: Report deployed images (dev)
+        run: |
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          {
+            echo "## Deployed ACA images - dev"
+            echo ""
+            echo "| App | Active image | Latest revision |"
+            echo "| --- | --- | --- |"
+            for APP in $APPS; do
+              IMAGE=$(az containerapp show \
+                --name "$APP" \
+                --resource-group leo-ai-dev \
+                --query "properties.template.containers[0].image" \
+                --output tsv)
+              REVISION=$(az containerapp show \
+                --name "$APP" \
+                --resource-group leo-ai-dev \
+                --query "properties.latestRevisionName" \
+                --output tsv)
+              echo "| $APP | $IMAGE | $REVISION |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy-val:
     name: Deploy to validation
     runs-on: ubuntu-latest
@@ -186,6 +209,29 @@ jobs:
             fi
           done
 
+      - name: Report deployed images (validation)
+        run: |
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          {
+            echo "## Deployed ACA images - validation"
+            echo ""
+            echo "| App | Active image | Latest revision |"
+            echo "| --- | --- | --- |"
+            for APP in $APPS; do
+              IMAGE=$(az containerapp show \
+                --name "$APP" \
+                --resource-group leo-ai-val \
+                --query "properties.template.containers[0].image" \
+                --output tsv)
+              REVISION=$(az containerapp show \
+                --name "$APP" \
+                --resource-group leo-ai-val \
+                --query "properties.latestRevisionName" \
+                --output tsv)
+              echo "| $APP | $IMAGE | $REVISION |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy-prod:
     name: Deploy to production
     runs-on: ubuntu-latest
@@ -259,3 +305,26 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Report deployed images (production)
+        run: |
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          {
+            echo "## Deployed ACA images - production"
+            echo ""
+            echo "| App | Active image | Latest revision |"
+            echo "| --- | --- | --- |"
+            for APP in $APPS; do
+              IMAGE=$(az containerapp show \
+                --name "$APP" \
+                --resource-group leo-ai-prod \
+                --query "properties.template.containers[0].image" \
+                --output tsv)
+              REVISION=$(az containerapp show \
+                --name "$APP" \
+                --resource-group leo-ai-prod \
+                --query "properties.latestRevisionName" \
+                --output tsv)
+              echo "| $APP | $IMAGE | $REVISION |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

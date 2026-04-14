@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
     useradd --no-create-home --shell /sbin/nologin appuser
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
+COPY scripts/ /app/scripts/
 COPY services/api/ /app/services/api/
 COPY services/coding_worker/ /app/services/coding_worker/
 # Shared with terminology API: queries + writeback helpers (routers import these)
