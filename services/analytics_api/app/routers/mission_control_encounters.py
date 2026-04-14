@@ -381,7 +381,8 @@ async def get_mission_control_encounters(
     client = PatientGraphClient()
     try:
         if not q:
-            count_q = f"{base} RETURN count(DISTINCT e) AS total"
+            # One row per (p,e) in this pattern; count(e) avoids DISTINCT aggregation cost.
+            count_q = f"{base} RETURN count(e) AS total"
             total_rows = client.run(count_q, **params)
             total = int(total_rows[0]["total"]) if total_rows else 0
 

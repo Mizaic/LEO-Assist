@@ -12,11 +12,13 @@ import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { fetchSurfaceForms } from "@/lib/api/legacy";
 import { fetchConceptSubdomainMemberships } from "@/lib/analyticsApi";
-import type { Candidate } from "./goldDatasetTypes";
-import { parseEntities, truncate } from "./goldDatasetUtils";
+import type { Candidate, Entity } from "./goldDatasetTypes";
+import { entityLabelColour, parseEntities, truncate } from "./goldDatasetUtils";
+import RelationRow, { buildRelTriplets, hasMissingLinks } from "./RelationRow";
 
 interface Props {
   item: Candidate;
@@ -34,17 +36,21 @@ function EntityChip({
   snomedId,
   hasSurface,
   domainCount,
+  entityLabel,
 }: {
   text: string;
   snomedTerm: string | null;
   snomedId: string | null;
   hasSurface: boolean;
   domainCount: number;
+  entityLabel: string;
 }) {
+  const labelColour = entityLabelColour(entityLabel);
   const displayLabel = snomedTerm || text || "Unknown term";
+  const labelName = entityLabel ? entityLabel.replace(/_/g, " ") : "";
   const tip = snomedId
-    ? `${displayLabel} (${snomedId})${hasSurface ? " - matched surface form" : " - no surface form yet"}${domainCount > 0 ? ` - in ${domainCount} domain(s)` : ""}`
-    : `${text} - needs a code`;
+    ? `${displayLabel} (${snomedId})${labelName ? ` [${labelName}]` : ""}${hasSurface ? " - matched surface form" : " - no surface form yet"}${domainCount > 0 ? ` - in ${domainCount} domain(s)` : ""}`
+    : `${text}${labelName ? ` [${labelName}]` : ""} - needs a code`;
   return (
     <Tooltip title={tip}>
       <Chip
@@ -67,6 +73,7 @@ function EntityChip({
           maxWidth: 200,
           height: 22,
           fontSize: "0.72rem",
+          borderLeft: `3px solid ${labelColour}`,
           "& .MuiChip-label": {
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -142,6 +149,8 @@ export default function CandidateCard({
 
   const uncodedCount = entities.filter((entity) => !entity.snomed_concept_id).length;
   const isDone = item.status === "completed";
+  const relTriplets = useMemo(() => buildRelTriplets(entities), [entities]);
+  const missingLinks = useMemo(() => hasMissingLinks(entities), [entities]);
 
   return (
     <Box
@@ -185,6 +194,7 @@ export default function CandidateCard({
                     snomedId={entity.snomed_concept_id || null}
                     hasSurface={surfaceMap[key] ?? false}
                     domainCount={domainMap[key] ?? 0}
+                    entityLabel={entity.label || entity.semantic_tag || ""}
                   />
                 );
               })}
@@ -210,6 +220,37 @@ export default function CandidateCard({
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
               No terms found yet.
             </Typography>
+          )}
+
+          <RelationRow triplets={relTriplets} missing={missingLinks} />
+
+          {item.rare_labels && item.rare_labels.length > 0 && (
+            <Tooltip
+              title={`Prioritised: these entity types have few gold examples — reviewing this record helps fill the gap (${item.rare_labels.join(", ")})`}
+            >
+              <Stack
+                direction="row"
+                spacing={0.5}
+                flexWrap="wrap"
+                useFlexGap
+                sx={{ mt: 0.5 }}
+              >
+                <Chip
+                  size="small"
+                  icon={<TrendingUpIcon sx={{ fontSize: "13px !important" }} />}
+                  label={`Rare: ${item.rare_labels.join(", ")}`}
+                  sx={{
+                    height: 20,
+                    fontSize: "0.68rem",
+                    bgcolor: "#f3e5f5",
+                    color: "#6a1b9a",
+                    border: "1px solid #ce93d8",
+                    "& .MuiChip-icon": { color: "#6a1b9a" },
+                    "& .MuiChip-label": { px: 0.75 },
+                  }}
+                />
+              </Stack>
+            </Tooltip>
           )}
         </Box>
 

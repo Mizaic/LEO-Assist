@@ -56,6 +56,7 @@ def test_extraction_check_applies_drop_and_corrections(monkeypatch):
     assert out["entities"][0]["assertion"] == "historical"
     assert out["entities"][0]["label"] == "finding"
     assert out["entities"][1]["_llm_check_source"] == "llm_added"
+    assert out["has_extraction_changes"] is True
 
 
 def test_coding_check_applies_drop_and_force_review(monkeypatch):
@@ -79,6 +80,7 @@ def test_coding_check_applies_drop_and_force_review(monkeypatch):
     assert (
         out["entities"][0]["_tier_override_reason"] == "llm_coding_check_force_review"
     )
+    assert out["has_coding_issues"] is True
 
 
 def test_extraction_check_keeps_referral_procedure_as_present(monkeypatch):
@@ -164,3 +166,31 @@ def test_extraction_check_drops_referral_suspicion_disorder_inference(monkeypatc
         c.get("reason") == "referral_suspicion_disorder_inference"
         for c in out.get("llm_check_changes", [])
     )
+
+
+def test_extraction_check_applies_relation_updates(monkeypatch):
+    payload = (
+        '{"drop":[],"correct_assertion":[],"correct_label":[],"add":[],'
+        '"correct_relation":[{"index":0,"relations":[{"type":"finding_site","target_idx":1,"target_text":"arm","confidence":0.9}]}],'
+        '"add_relation":[{"index":0,"type":"qualifies","target_idx":2,"target_text":"severe","confidence":0.8}]}'
+    )
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(payload),
+    )
+    graph = build_extraction_check_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": "severe numbness in arm",
+            "entities": [
+                {"text": "numbness", "label": "finding", "assertion": "present"},
+                {"text": "arm", "label": "body structure", "assertion": "present"},
+                {"text": "severe", "label": "qualifier value", "assertion": "present"},
+            ],
+        }
+    )
+    relations = out["entities"][0].get("__relations") or []
+    assert len(relations) == 2
+    assert any(r["type"] == "finding_site" for r in relations)
+    assert any(r["type"] == "qualifies" for r in relations)
+    assert out["relation_changes"]

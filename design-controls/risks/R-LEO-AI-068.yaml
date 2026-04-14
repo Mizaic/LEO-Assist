@@ -13,7 +13,9 @@
   hazardous_situation: >
     After terminology resolution, coding_check marks a valid coded entity for
     drop or applies force_review too broadly. Persisted coding output is reduced
-    or delayed, and operational queues increase.
+    or delayed, and operational queues increase. If tier override is ignored or
+    routing is bypassed, flagged coding errors may still be written as
+    auto-coded patient graph links.
 
   harm:
     description: >
@@ -41,6 +43,14 @@
       description: >
         Apply force_review as tier override metadata rather than direct code
         mutation, preserving deterministic terminology output and auditability.
+      implemented_by: ["DI-LEO-AI-098"]
+      verified_by: ["VT-LEO-AI-098"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Condition routing branches has_coding_issues=true encounters to
+        hitl_coding_queue and patient graph persistence enforces
+        held_pending_review for coding mismatch or force_review outcomes.
       implemented_by: ["DI-LEO-AI-098"]
       verified_by: ["VT-LEO-AI-098"]
       effectiveness: "effective"

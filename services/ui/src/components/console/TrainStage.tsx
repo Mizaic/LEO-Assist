@@ -35,6 +35,7 @@ import {
 import { PhaseProgress } from "@/components/ui/PhaseProgress";
 import { TrainingJob } from "./useConsoleState";
 import { FONT_SIZES } from "@/theme/tokens";
+import { entityLabelColour } from "@/components/gold-dataset/goldDatasetUtils";
 
 // -- Epoch line parser -------------------------------------------------------
 
@@ -342,41 +343,97 @@ function TrainingCurveInfoDialog({
   );
 }
 
-// -- Per-label F1 chart ------------------------------------------------------
+// -- Per-label accuracy chart ------------------------------------------------
 
-function PerLabelChart({ perLabel }: { perLabel: Record<string, { f1: number }> }) {
+type PerLabelEntry = { precision: number; recall: number; f1: number };
+
+function pct(v: unknown): string {
+  return `${((typeof v === "number" ? v : 0) * 100).toFixed(1)}%`;
+}
+
+function PerLabelChart({
+  perLabel,
+}: {
+  perLabel: Record<string, PerLabelEntry>;
+}) {
   const data = Object.entries(perLabel)
-    .map(([label, s]) => ({ label, f1: s.f1 }))
+    .map(([label, s]) => ({
+      label,
+      precision: s.precision ?? 0,
+      recall: s.recall ?? 0,
+      f1: s.f1 ?? 0,
+    }))
     .sort((a, b) => b.f1 - a.f1);
+
+  const rowHeight = 22;
+  const barsPerLabel = 3;
+  const chartHeight = Math.max(120, data.length * rowHeight * barsPerLabel);
 
   return (
     <Box>
-      <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle, mb: 1 }}>
-        Per-entity F1
+      <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle, mb: 0.5 }}>
+        Accuracy by entity type
       </Typography>
-      <ResponsiveContainer width="100%" height={Math.max(120, data.length * 28)}>
-        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.4} />
+      <Typography sx={{ fontSize: 10, color: "text.secondary", mb: 1 }}>
+        Precision, Recall and F1 per label on the dev split.
+      </Typography>
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ left: 8, right: 40, top: 4, bottom: 4 }}
+          barCategoryGap="20%"
+          barGap={2}
+        >
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
           <XAxis
             type="number"
             domain={[0, 1]}
-            tick={{ fontSize: 11 }}
-            tickFormatter={(v) =>
-              `${((typeof v === "number" ? v : 0) * 100).toFixed(0)}%`
-            }
+            tick={{ fontSize: 10 }}
+            tickFormatter={(v) => `${Math.round((v as number) * 100)}%`}
           />
-          <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={120} />
+          <YAxis
+            type="category"
+            dataKey="label"
+            tick={{ fontSize: 10 }}
+            width={130}
+          />
           <RTooltip
+            formatter={(v, name) => {
+              const label =
+                name === "precision"
+                  ? "Precision"
+                  : name === "recall"
+                  ? "Recall"
+                  : "F1";
+              return [pct(v), label];
+            }}
+            contentStyle={{ fontSize: 11 }}
+          />
+          <Legend
+            iconSize={10}
+            iconType="circle"
+            wrapperStyle={{ fontSize: 11 }}
             formatter={(v) =>
-              `${((typeof v === "number" ? v : 0) * 100).toFixed(1)}%`
+              v === "precision" ? "Precision" : v === "recall" ? "Recall" : "F1"
             }
           />
-          <Bar dataKey="f1" maxBarSize={18} radius={[0, 3, 3, 0]}>
+          {/* Precision -- light tint of the entity colour */}
+          <Bar dataKey="precision" maxBarSize={rowHeight - 4} radius={[0, 2, 2, 0]}>
             {data.map((d) => (
-              <Cell
-                key={d.label}
-                fill={d.f1 >= 0.8 ? "#2e7d32" : d.f1 >= 0.6 ? "#ed6c02" : "#d32f2f"}
-              />
+              <Cell key={d.label} fill={entityLabelColour(d.label)} opacity={0.4} />
+            ))}
+          </Bar>
+          {/* Recall -- medium tint */}
+          <Bar dataKey="recall" maxBarSize={rowHeight - 4} radius={[0, 2, 2, 0]}>
+            {data.map((d) => (
+              <Cell key={d.label} fill={entityLabelColour(d.label)} opacity={0.65} />
+            ))}
+          </Bar>
+          {/* F1 -- full entity colour */}
+          <Bar dataKey="f1" maxBarSize={rowHeight - 4} radius={[0, 2, 2, 0]}>
+            {data.map((d) => (
+              <Cell key={d.label} fill={entityLabelColour(d.label)} opacity={1} />
             ))}
           </Bar>
         </BarChart>

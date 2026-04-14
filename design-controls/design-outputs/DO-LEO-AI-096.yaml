@@ -15,8 +15,9 @@
       Adds a single-turn coding quality check after terminology resolution and
       before persistence. The check can drop unsupported coded entities and mark
       ambiguous entities for human review by applying tier override metadata.
-      The GP coding plan persists to both patient graph and knowledge-graph
-      training candidates to close the learning loop.
+      The GP coding plan uses a condition node to route coding issues to HITL
+      queue and only persists clean paths to patient graph plus knowledge-graph
+      training candidates.
     acceptance_criteria:
       - criterion: "Coding check contract"
         type: "functional"
@@ -26,6 +27,18 @@
         type: "safety"
         measurement: "Test"
         target: "force_review sets _tier_override=2 and override reason"
+      - criterion: "Tier override enforcement"
+        type: "safety"
+        measurement: "Test"
+        target: "tier_classify consumes _tier_override before classify_tier decision"
+      - criterion: "Coding issue routing"
+        type: "functional"
+        measurement: "Test"
+        target: "act-coding-route branches issues to hitl_coding_queue and clean path to tier_classify"
+      - criterion: "Patient graph hold"
+        type: "safety"
+        measurement: "Test"
+        target: "write_patient_graph returns held_pending_review when coding_check flags force_review or coding_mismatch"
       - criterion: "Persist target"
         type: "functional"
         measurement: "Test"
@@ -42,8 +55,24 @@
         description: "Coding check prompt and example library"
         storage_location: "git"
       - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/tier_classify.py"
+        description: "Tier classifier reads _tier_override metadata"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/persist.py"
+        description: "Patient graph write hold when coding issues require review"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/hitl_coding_queue.py"
+        description: "Queues coding issues as TrainingCandidate records with HITL guidance"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/workflow/engine.py"
+        description: "Condition routing executes graph branches without fallback queue replay"
+        storage_location: "git"
+      - artifact_type: "source_code"
         location: "libs/pipeline_graph/registry.py"
-        description: "Registers coding_check subgraph"
+        description: "Registers coding_check and hitl_coding_queue subgraphs"
         storage_location: "git"
       - artifact_type: "source_code"
         location: "scripts/seed_prompt_configs.py"
@@ -51,7 +80,7 @@
         storage_location: "git"
       - artifact_type: "source_code"
         location: "scripts/seed_plan_definitions.py"
-        description: "Adds ad-coding-check, act-coding-check, and ad-persist-both routing"
+        description: "Adds coding condition routing and hitl_coding_queue branch in pd-gp-encounter-coding"
         storage_location: "git"
     technical_details:
       language: "Python"
@@ -59,6 +88,7 @@
       key_functions:
         - "coding_check"
         - "_apply_coding_check"
+        - "queue_hitl_coding"
         - "build_coding_check_subgraph"
 
   safety_characteristics:
@@ -66,6 +96,7 @@
     safety_critical_functions:
       - "Prevent unsupported SNOMED coding write-back"
       - "Escalate ambiguous codings to human review"
+      - "Block patient-graph write-back when coding issues require review"
     risk_control_measures:
       - "No concept ID mutation after terminology"
       - "Tier override enforcement for force_review cases"

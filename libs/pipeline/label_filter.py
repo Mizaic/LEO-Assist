@@ -13,9 +13,17 @@ import json
 import os
 from typing import Any
 
-DEFAULT_EXCLUDED_ASSERTIONS: frozenset[str] = frozenset(
-    {"negated", "hypothetical", "family_history", "possible"}
-)
+# Empty by default.
+#
+# The spancat model is trained on span boundaries + entity label only
+# (start, end, label).  Assertions (negated / hypothetical / etc.) are NOT
+# part of the training signal -- they are applied by the ConText engine
+# post-extraction.  Filtering by assertion therefore removes training
+# examples without any benefit to the model, reducing recall.
+#
+# Set the TRAINING_EXCLUDE_ASSERTIONS env var (comma-separated) if you
+# explicitly want to hold out specific assertion values.
+DEFAULT_EXCLUDED_ASSERTIONS: frozenset[str] = frozenset()
 
 
 def get_excluded_assertions() -> set[str]:
@@ -76,12 +84,8 @@ def filter_and_realign(
             if diagnostics is not None:
                 diagnostics.append(
                     _drop_entry(
-                        label_id,
-                        source,
-                        ent,
-                        assertion,
-                        "assertion_filtered",
-                        sentence=None,
+                        label_id, source, ent, assertion, "assertion_filtered",
+                        text=text,
                     )
                 )
             continue
@@ -92,12 +96,8 @@ def filter_and_realign(
             if diagnostics is not None:
                 diagnostics.append(
                     _drop_entry(
-                        label_id,
-                        source,
-                        ent,
-                        assertion,
-                        "span_misaligned",
-                        sentence=text,
+                        label_id, source, ent, assertion, "span_misaligned",
+                        text=text,
                     )
                 )
             continue
@@ -114,19 +114,17 @@ def _drop_entry(
     assertion: str,
     reason: str,
     *,
-    sentence: str | None,
+    text: str,
 ) -> dict[str, Any]:
-    entry: dict[str, Any] = {
+    return {
         "label_id": label_id,
         "source": source,
+        "text": text,
         "entity_text": ent.get("text", ""),
-        "entity_label": ent.get("label", ""),
+        "label": ent.get("label") or ent.get("semantic_tag") or "",
         "assertion": assertion,
         "reason": reason,
     }
-    if sentence is not None:
-        entry["sentence"] = sentence
-    return entry
 
 
 def compute_export_diagnostics() -> dict[str, Any]:

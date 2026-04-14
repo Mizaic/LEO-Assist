@@ -459,6 +459,97 @@ class TestRemoveConcept:
         mock_upsert.assert_called_once()
 
 
+# ── Construct management ──────────────────────────────────────────────────
+
+
+class TestConstructs:
+
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
+    def test_lists_constructs(self, MockKG, mock_guard):
+        from services.analytics_api.app.routers.domains import list_constructs
+
+        MockKG.return_value.run.return_value = [
+            {
+                "constructs": [
+                    {
+                        "id": "cg_1",
+                        "display_name": "Pruritus with bleeding",
+                        "logic": "ALL",
+                        "roles": [
+                            {"role": "condition", "concept_ids": [111], "required": True}
+                        ],
+                    }
+                ]
+            }
+        ]
+
+        result = list_constructs("cancer_audit", "symptoms")
+        assert len(result) == 1
+        assert result[0]["id"] == "cg_1"
+        assert result[0]["display_name"] == "Pruritus with bleeding"
+
+    @patch("services.analytics_api.app.routers.domains.DomainRegistry")
+    @patch("services.analytics_api.app.routers.domains._upsert_valueset_flat")
+    @patch("services.analytics_api.app.routers.domains._get_valueset_raw")
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
+    def test_replaces_constructs(
+        self, MockKG, mock_guard, mock_get_raw, mock_upsert, mock_reg
+    ):
+        from services.analytics_api.app.routers.domains import (
+            replace_constructs,
+            ConstructDefinitionRequest,
+            ConstructRoleRequest,
+        )
+
+        mock_get_raw.return_value = json.dumps(
+            {"resourceType": "ValueSet", "id": "ncda-symptoms", "compose": {"include": []}}
+        )
+        MockKG.return_value.run.return_value = [
+            {
+                "name": "symptoms",
+                "description": "Symptoms",
+                "milestoneType": None,
+                "timeWindowMonths": None,
+                "semanticTags": ["Clinical_finding"],
+                "assertionFilter": [],
+                "constructs": [
+                    {
+                        "id": "cg_1",
+                        "display_name": "Pruritus with bleeding",
+                        "logic": "ALL",
+                        "roles": [
+                            {"role": "condition", "concept_ids": [111], "required": True}
+                        ],
+                    }
+                ],
+                "rawJson": json.dumps({"compose": {"include": []}}),
+            }
+        ]
+
+        result = replace_constructs(
+            "cancer_audit",
+            "symptoms",
+            [
+                ConstructDefinitionRequest(
+                    id="cg_1",
+                    display_name="Pruritus with bleeding",
+                    logic="ALL",
+                    roles=[
+                        ConstructRoleRequest(
+                            role="condition", concept_ids=[111], required=True
+                        )
+                    ],
+                )
+            ],
+        )
+
+        assert result.construct_count == 1
+        assert result.constructs[0]["id"] == "cg_1"
+        mock_upsert.assert_called_once()
+
+
 # ── Ensure default domain ────────────────────────────────────────────────
 
 

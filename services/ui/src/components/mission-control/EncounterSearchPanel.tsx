@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -16,6 +16,7 @@ import ScatterPlotIcon from "@mui/icons-material/ScatterPlot";
 import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from "@mui/icons-material/Tune";
 import type { EncounterListItem, EncounterListResponse } from "@/lib/missionControlApi";
+import ScoreHistogram, { type BucketFilter } from "./ScoreHistogram";
 
 // Dedup similarity levels (index 0 = keep most variation, last = remove most aggressively)
 // Covers sub-1% differences (0.999) down to ~20% differences (0.80)
@@ -59,6 +60,7 @@ interface Props {
   onNearDuplicateThresholdChange: (v: string) => void;
   onSearch: () => void;
   onShow3D: () => void;
+  onBucketFilter?: (filter: BucketFilter | null) => void;
 }
 
 function dedupIndexFromThreshold(threshold: string): number {
@@ -66,13 +68,6 @@ function dedupIndexFromThreshold(threshold: string): number {
   const idx = DEDUP_LEVELS.findIndex((v) => v === n);
   return idx >= 0 ? idx : 2;
 }
-
-const TYPE_COLOR: Record<string, string> = {
-  keyword: "#4F46E5",
-  hybrid: "#7C3AED",
-  semantic: "#0891B2",
-  none: "#94A3B8",
-};
 
 // -- SliderRow ---------------------------------------------------------------
 
@@ -175,166 +170,6 @@ function ToggleCard({ title, description, checked, onChange, ariaLabel, children
   );
 }
 
-// -- ThresholdMap2D ----------------------------------------------------------
-
-interface ThresholdMap2DProps {
-  xPercent: number;
-  yPercent: number;
-  rows: EncounterListItem[];
-  onChange: (nextX: number, nextY: number) => void;
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
-}
-
-const MAP_H = 180;
-
-// LONG FUNCTION: complex interactive SVG component with drag, resize, and data rendering
-function ThresholdMap2D({ xPercent, yPercent, rows, onChange }: ThresholdMap2DProps) {
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [svgW, setSvgW] = useState(600);
-
-  useEffect(() => {
-    const el = mapRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => setSvgW(el.getBoundingClientRect().width));
-    ro.observe(el);
-    setSvgW(el.getBoundingClientRect().width);
-    return () => ro.disconnect();
-  }, []);
-
-  const updateFromPointer = useCallback((clientX: number, clientY: number) => {
-    const rect = mapRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const nextX = clamp(((clientX - rect.left) / rect.width) * 100, 0, 100);
-    const nextY = clamp(100 - ((clientY - rect.top) / rect.height) * 100, 0, 100);
-    onChange(Math.round(nextX / 5) * 5, Math.round(nextY / 5) * 5);
-  }, [onChange]);
-
-  useEffect(() => {
-    if (!dragging) return;
-    const onMove = (e: MouseEvent) => updateFromPointer(e.clientX, e.clientY);
-    const onUp = () => setDragging(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [dragging, updateFromPointer]);
-
-  const threshX = (xPercent / 100) * svgW;
-  const threshY = (1 - yPercent / 100) * MAP_H;
-
-  const { dots, keptCount } = useMemo(() => {
-    const cap = rows.slice(0, 500);
-    let kept = 0;
-    const d = cap.map((r) => {
-      const rx = r.rank_features?.fulltext_norm ?? r.score ?? 0;
-      const ry = r.rank_features?.vector_norm ?? r.vector_score ?? 0;
-      const isKept = rx >= xPercent / 100 && (yPercent === 0 || ry >= yPercent / 100);
-      if (isKept) kept++;
-      return {
-        x: rx * svgW,
-        y: (1 - ry) * MAP_H,
-        fill: isKept ? (TYPE_COLOR[r.match_type ?? "none"] ?? "#94A3B8") : "#CBD5E1",
-      };
-    });
-    return { dots: d, keptCount: kept };
-  }, [rows, svgW, xPercent, yPercent]);
-
-  return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-        <Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary" }}>
-          Score map
-        </Typography>
-        <Stack direction="row" spacing={0.75} alignItems="center">
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-            {keptCount} of {Math.min(rows.length, 500)} kept
-          </Typography>
-          <Chip size="small" label="2D view" variant="outlined" sx={{ fontSize: "0.63rem", height: 18 }} />
-        </Stack>
-      </Stack>
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75, fontSize: "0.72rem" }}>
-        Drag the intersection point to set thresholds. Coloured dots stay; grey dots are removed.
-      </Typography>
-
-      {/* Map with Y-axis label column */}
-      <Stack direction="row" spacing={0.5} alignItems="stretch">
-        <Box sx={{ width: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Typography
-            variant="caption"
-            color="text.disabled"
-            sx={{ fontSize: "0.58rem", transform: "rotate(-90deg)", whiteSpace: "nowrap", letterSpacing: "0.06em" }}
-          >
-            MEANING
-          </Typography>
-        </Box>
-        <Box
-          ref={mapRef}
-          sx={{
-            flex: 1, position: "relative", borderRadius: 1.5,
-            border: "1px solid", borderColor: "divider",
-            overflow: "hidden", bgcolor: "#F8FAFC",
-            cursor: dragging ? "grabbing" : "crosshair",
-            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.04)",
-          }}
-          onMouseDown={(e) => { setDragging(true); updateFromPointer(e.clientX, e.clientY); }}
-          role="slider"
-          aria-label="Score threshold map"
-        >
-          <svg width="100%" height={MAP_H} style={{ display: "block" }}>
-            <rect x={0} y={0} width={threshX} height={MAP_H} fill="rgba(239,68,68,0.06)" />
-            <rect x={threshX} y={threshY} width={Math.max(0, svgW - threshX)} height={Math.max(0, MAP_H - threshY)} fill="rgba(34,197,94,0.09)" />
-            {[0.25, 0.5, 0.75].map((f) => (
-              <g key={f}>
-                <line x1={f * svgW} y1={0} x2={f * svgW} y2={MAP_H} stroke="#E2E8F0" strokeWidth={1} />
-                <line x1={0} y1={f * MAP_H} x2={svgW} y2={f * MAP_H} stroke="#E2E8F0" strokeWidth={1} />
-              </g>
-            ))}
-            {dots.map((d, i) => (
-              <circle key={i} cx={d.x} cy={d.y} r={3.5} fill={d.fill} fillOpacity={0.82} />
-            ))}
-            <line x1={threshX} y1={0} x2={threshX} y2={MAP_H} stroke="#1F3A8A" strokeWidth={1.5} strokeDasharray="4 3" />
-            <line x1={0} y1={threshY} x2={svgW} y2={threshY} stroke="#1F3A8A" strokeWidth={1.5} strokeDasharray="4 3" />
-            <circle cx={threshX} cy={threshY} r={9} fill="#1F3A8A" stroke="#fff" strokeWidth={2.5}
-              style={{ cursor: dragging ? "grabbing" : "grab", filter: "drop-shadow(0 1px 3px rgba(31,58,138,0.4))" }} />
-            <circle cx={threshX} cy={threshY} r={3} fill="#fff" />
-            <text x={4} y={MAP_H - 4} fontSize={9} fill="#CBD5E1">0%</text>
-            <text x={svgW - 30} y={MAP_H - 4} fontSize={9} fill="#CBD5E1">100%</text>
-          </svg>
-        </Box>
-      </Stack>
-
-      {/* X-axis label */}
-      <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.4, pl: "22px" }}>
-        <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.62rem" }}>Loose</Typography>
-        <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.62rem" }}>Keyword match --&gt;</Typography>
-        <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.62rem" }}>Strict</Typography>
-      </Stack>
-
-      {/* Dot legend */}
-      <Stack direction="row" spacing={1.25} sx={{ mt: 0.75, pl: "22px", flexWrap: "wrap" }} useFlexGap>
-        {(["keyword", "hybrid", "semantic"] as const).map((type) => (
-          <Stack key={type} direction="row" spacing={0.4} alignItems="center">
-            <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: TYPE_COLOR[type], flexShrink: 0 }} />
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.62rem", textTransform: "capitalize" }}>
-              {type}
-            </Typography>
-          </Stack>
-        ))}
-        <Stack direction="row" spacing={0.4} alignItems="center">
-          <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "#CBD5E1", flexShrink: 0 }} />
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.62rem" }}>Below threshold</Typography>
-        </Stack>
-      </Stack>
-    </Box>
-  );
-}
-
 export default function EncounterSearchPanel({
   state,
   rows,
@@ -353,17 +188,14 @@ export default function EncounterSearchPanel({
   onNearDuplicateThresholdChange,
   onSearch,
   onShow3D,
+  onBucketFilter,
 }: Props) {
   const minScore = Math.round(Number(state.minCombinedScore) * 100) || 0;
   const minVectorScore = Math.round(Number(state.minVectorScore) * 100) || 0;
 
-  // Stable callback for ThresholdMap2D — must not change identity on every
-  // render, otherwise updateFromPointer re-memoizes, the dragging effect
-  // re-registers onMove mid-drag, and a setState loop ensues.
-  const handleMapChange = useCallback((nextX: number, nextY: number) => {
-    onMinScoreChange((nextX / 100).toFixed(2));
-    onMinVectorScoreChange(nextY > 0 ? (nextY / 100).toFixed(2) : "");
-  }, [onMinScoreChange, onMinVectorScoreChange]);
+  const handleThresholdChange = useCallback((score: number) => {
+    onMinScoreChange(score.toFixed(2));
+  }, [onMinScoreChange]);
   const dedupIdx = dedupIndexFromThreshold(state.nearDuplicateThreshold);
   const dedupLabel = DEDUP_LABELS[dedupIdx] ?? "Balanced";
 
@@ -478,13 +310,14 @@ export default function EncounterSearchPanel({
           />
         </Box>
 
-        {/* Score map */}
+        {/* Score histogram */}
         <Box sx={{ px: 1.5, pb: 1.25 }}>
-          <ThresholdMap2D
-            xPercent={minScore}
-            yPercent={minVectorScore}
+          <ScoreHistogram
             rows={rows}
-            onChange={handleMapChange}
+            minCombinedScore={minScore / 100}
+            onThresholdChange={handleThresholdChange}
+            onBucketFilter={onBucketFilter}
+            onShow3D={hasRows ? onShow3D : undefined}
           />
         </Box>
 

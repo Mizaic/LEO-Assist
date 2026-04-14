@@ -5,7 +5,9 @@
     The coding pipeline SHALL run a lightweight coding quality LLM check after
     terminology resolution and before persistence. The check SHALL only support
     two actions: drop clearly unsupported coded entities and force ambiguous
-    coded entities to human review by applying a tier override marker.
+    coded entities to human review by applying a tier override marker. Pipeline
+    routing SHALL branch has_coding_issues=true cases to HITL coding queue and
+    SHALL gate patient-graph write-back until manual review is complete.
   rationale: >
     Terminology resolution can still produce context-mismatched or ambiguous
     coded entities. A constrained late-stage check reduces false write-back
@@ -21,9 +23,15 @@
       - type: "functional"
         spec: "force_review applies _tier_override=2 and override reason metadata on entity"
       - type: "functional"
-        spec: "PlanDefinition pd-gp-encounter-coding executes coding_check between terminology and tier_classify"
+        spec: "tier_classify subgraph respects entity _tier_override when present"
       - type: "functional"
-        spec: "Persist step for pd-gp-encounter-coding writes to output_target both"
+        spec: "PlanDefinition pd-gp-encounter-coding executes coding_check then condition routing before tier_classify"
+      - type: "functional"
+        spec: "Condition node routes has_coding_issues=true to hitl_coding_queue and clean path to tier_classify"
+      - type: "safety"
+        spec: "write_patient_graph returns held_pending_review when coding quality check requests force_review or coding_mismatch drop"
+      - type: "functional"
+        spec: "Persist step for clean path writes to output_target both"
     constraints:
       - type: "safety"
         spec: "Coding check must be single-turn with no terminology tool loop"
@@ -32,6 +40,10 @@
     dependencies: ["DI-LEO-AI-097", "DI-LEO-AI-094"]
     downstream_impacts:
       - "libs/pipeline_graph/subgraphs/llm_check.py"
+      - "libs/pipeline_graph/subgraphs/tier_classify.py"
+      - "libs/pipeline_graph/subgraphs/persist.py"
+      - "libs/pipeline_graph/subgraphs/hitl_coding_queue.py"
+      - "libs/workflow/engine.py"
       - "libs/pipeline_graph/registry.py"
       - "libs/prompts/coding_check_v1.py"
       - "scripts/seed_prompt_configs.py"
@@ -41,18 +53,22 @@
       framework: "LangGraph / LLM client"
       file_structure:
         - "libs/pipeline_graph/subgraphs/llm_check.py"
+        - "libs/pipeline_graph/subgraphs/tier_classify.py"
+        - "libs/pipeline_graph/subgraphs/persist.py"
+        - "libs/pipeline_graph/subgraphs/hitl_coding_queue.py"
+        - "libs/workflow/engine.py"
         - "libs/prompts/coding_check_v1.py"
         - "libs/pipeline_graph/registry.py"
         - "scripts/seed_prompt_configs.py"
         - "scripts/seed_plan_definitions.py"
-      estimated_loc: 200
+      estimated_loc: 300
 
   verification:
     method: "Test"
     phase: "OQ"
     acceptance: >
       VT-LEO-AI-098 passes all critical checks for coding-check parse/apply
-      behavior and tier override routing.
+      behavior, tier override enforcement, and conditional HITL routing.
     test_protocol: "VT-LEO-AI-098"
 
   safety_class: "B"
@@ -62,3 +78,4 @@
     - "llm-check"
     - "coding-quality"
     - "tier-override"
+    - "hitl-routing"

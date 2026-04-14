@@ -1,0 +1,76 @@
+# -- DI-LEO-AI-108 -- Ontology-grounded relation modeling and reviewer workflow
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-108"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-062"]
+  requirement: >
+    The system SHALL implement ontology-grounded relation modeling for gold-label
+    review and runtime linking: (1) persist canonical relation tuples on each
+    entity; (2) support multi-site finding_site links; (3) validate relations by
+    semantic-tag policy; (4) export relation train/dev datasets; (5) train and
+    evaluate a relation model with per-type metrics; (6) run model-first relation
+    linking with LLM fallback when confidence is below threshold.
+
+  rationale: >
+    Single body-site fields are insufficient for clinically accurate relation
+    semantics and training feedback. Canonical relation tuples and policy-backed
+    validation are required to ensure safe, auditable relation behavior across
+    UI, API, training, and runtime inference paths.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "PATCH /training/gold-labels/{id}/entities accepts and persists relations[] with dedup on (type,target_idx)"
+      - type: "functional"
+        spec: "Gold reviewer UI supports linking one source entity to multiple body_structure entities"
+      - type: "functional"
+        spec: "UI recommendation panel ranks ontology-valid relation suggestions and supports accept/reject/undo"
+      - type: "functional"
+        spec: "relation_exporter writes relation_train.jsonl and relation_dev.jsonl from GoldLabel entities+relations"
+      - type: "functional"
+        spec: "relation_trainer writes relation_model.json with label-pair priors; relation_evaluator returns per-type precision/recall/F1"
+      - type: "functional"
+        spec: "relation_linking subgraph runs model-first predictions and LLM fallback only when model confidence is below threshold"
+      - type: "safety"
+        spec: "API rejects relation tuples that violate policy compatibility or target index bounds"
+    constraints:
+      - type: "safety"
+        spec: "Unknown relation types are ignored or rejected; they MUST NOT be persisted to GoldLabel"
+      - type: "safety"
+        spec: "Runtime relation predictions failing policy checks MUST be dropped or routed to review"
+
+  dependencies: ["DI-LEO-AI-097", "DI-LEO-AI-098"]
+  downstream_impacts:
+    - "Gold dataset quality and relation supervision"
+    - "Runtime relation precision and HITL queue quality"
+    - "SNOMED-backed relation traceability"
+
+  technical_details:
+    language: "Python/TypeScript"
+    framework: "FastAPI / React / LangGraph"
+    file_structure:
+      - "services/api/app/routers/training.py"
+      - "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+      - "libs/pipeline_graph/subgraphs/relation_linking.py"
+      - "libs/pipeline_graph/subgraphs/llm_check.py"
+      - "libs/pipeline_graph/subgraphs/persist.py"
+      - "services/training_worker/app/relation_exporter.py"
+      - "services/training_worker/app/relation_trainer.py"
+      - "services/training_worker/app/relation_evaluator.py"
+      - "services/training_worker/app/job_runner.py"
+      - "libs/relations/policy.py"
+    estimated_loc: 420
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-108 test cases pass, including relation schema validation,
+      multi-site persistence, recommendation behavior, relation export/train/eval,
+      and model-first runtime linking with fallback.
+    test_protocol: "VT-LEO-AI-108"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-074"]
+  tags: ["relations", "snomed-policy", "gold-review", "training", "runtime"]

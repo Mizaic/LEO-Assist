@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -33,6 +34,13 @@ type SubdomainUpdatePayload = {
   time_window_months?: number;
   semantic_tags?: string[];
   assertion_filter?: string[];
+  constructs?: Array<{
+    id: string;
+    display_name: string;
+    description?: string;
+    logic: "ALL" | "ANY";
+    roles: Array<{ role: string; concept_ids: number[]; required: boolean }>;
+  }>;
 };
 
 export interface ConfigureSubdomainDialogProps {
@@ -68,6 +76,32 @@ export default function ConfigureSubdomainDialog({
   onExport,
   searchPanelProps,
 }: ConfigureSubdomainDialogProps) {
+  const conceptOptions = useMemo(
+    () =>
+      (configSub?.concepts ?? []).map((concept) => ({
+        label: `${concept.term} (${concept.concept_id})`,
+        conceptId: concept.concept_id,
+      })),
+    [configSub],
+  );
+
+  const updateConstructs = (
+    next: Array<{
+      id: string;
+      display_name: string;
+      description?: string;
+      logic: "ALL" | "ANY";
+      roles: Array<{ role: string; concept_ids: number[]; required: boolean }>;
+    }>,
+  ) => {
+    setConfigSub((prev) =>
+      prev ? { ...prev, constructs: next, construct_count: next.length } : null,
+    );
+    void onUpdateSubdomain({ constructs: next });
+  };
+
+  const constructs = configSub?.constructs ?? [];
+
   return (
     <Dialog
       open={open}
@@ -314,6 +348,303 @@ export default function ConfigureSubdomainDialog({
                     </ListItem>
                   ))}
                 </List>
+              )}
+            </Box>
+
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 1,
+                }}
+              >
+                <Typography variant="subtitle2">
+                  Code groups ({constructs.length})
+                </Typography>
+                {canEditDomains && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      const nextId = `cg_${constructs.length + 1}`;
+                      updateConstructs([
+                        ...constructs,
+                        {
+                          id: nextId,
+                          display_name: "New code group",
+                          description: "",
+                          logic: "ALL",
+                          roles: [],
+                        },
+                      ]);
+                    }}
+                  >
+                    Add code group
+                  </Button>
+                )}
+              </Box>
+              {constructs.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Code groups let you match multi-code clinical constructs.
+                </Typography>
+              ) : (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {constructs.map((construct, constructIdx) => (
+                    <Box
+                      key={`${construct.id}-${constructIdx}`}
+                      sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        p: 1.25,
+                        bgcolor: "background.paper",
+                      }}
+                    >
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+                        <TextField
+                          size="small"
+                          label="Group name"
+                          value={construct.display_name}
+                          onChange={(event) => {
+                            const next = constructs.map((item, idx) =>
+                              idx === constructIdx
+                                ? { ...item, display_name: event.target.value }
+                                : item,
+                            );
+                            updateConstructs(next);
+                          }}
+                          sx={{ minWidth: 220, flex: 1 }}
+                          disabled={!canEditDomains}
+                        />
+                        <TextField
+                          size="small"
+                          label="Group ID"
+                          value={construct.id}
+                          onChange={(event) => {
+                            const next = constructs.map((item, idx) =>
+                              idx === constructIdx
+                                ? { ...item, id: event.target.value }
+                                : item,
+                            );
+                            updateConstructs(next);
+                          }}
+                          sx={{ minWidth: 170 }}
+                          disabled={!canEditDomains}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <InputLabel id={`construct-logic-${constructIdx}`}>
+                            Match rule
+                          </InputLabel>
+                          <Select
+                            labelId={`construct-logic-${constructIdx}`}
+                            label="Match rule"
+                            value={construct.logic ?? "ALL"}
+                            onChange={(event) => {
+                              const value =
+                                String(event.target.value).toUpperCase() === "ANY"
+                                  ? "ANY"
+                                  : "ALL";
+                              const next = constructs.map((item, idx) =>
+                                idx === constructIdx
+                                  ? { ...item, logic: value as "ALL" | "ANY" }
+                                  : item,
+                              );
+                              updateConstructs(next);
+                            }}
+                            disabled={!canEditDomains}
+                          >
+                            <MenuItem value="ALL">All roles</MenuItem>
+                            <MenuItem value="ANY">Any role</MenuItem>
+                          </Select>
+                        </FormControl>
+                        {canEditDomains && (
+                          <Tooltip title="Delete this code group">
+                            <span>
+                              <IconButton
+                                color="error"
+                                size="small"
+                                onClick={() => {
+                                  const next = constructs.filter(
+                                    (_, idx) => idx !== constructIdx,
+                                  );
+                                  updateConstructs(next);
+                                }}
+                              >
+                                <DeleteOutlineIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                      </Box>
+                      <TextField
+                        size="small"
+                        label="Description"
+                        value={construct.description ?? ""}
+                        onChange={(event) => {
+                          const next = constructs.map((item, idx) =>
+                            idx === constructIdx
+                              ? { ...item, description: event.target.value }
+                              : item,
+                          );
+                          updateConstructs(next);
+                        }}
+                        fullWidth
+                        disabled={!canEditDomains}
+                      />
+                      <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                        {construct.roles.map((role, roleIdx) => (
+                          <Box
+                            key={`${role.role}-${roleIdx}`}
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                            }}
+                          >
+                            <TextField
+                              size="small"
+                              label="Role"
+                              value={role.role}
+                              onChange={(event) => {
+                                const next = constructs.map((item, idx) =>
+                                  idx !== constructIdx
+                                    ? item
+                                    : {
+                                        ...item,
+                                        roles: item.roles.map((r, i) =>
+                                          i === roleIdx
+                                            ? { ...r, role: event.target.value }
+                                            : r,
+                                        ),
+                                      },
+                                );
+                                updateConstructs(next);
+                              }}
+                              sx={{ minWidth: 150 }}
+                              disabled={!canEditDomains}
+                            />
+                            <Autocomplete
+                              multiple
+                              size="small"
+                              options={conceptOptions}
+                              getOptionLabel={(option) => option.label}
+                              value={conceptOptions.filter((option) =>
+                                role.concept_ids.includes(option.conceptId),
+                              )}
+                              onChange={(_, values) => {
+                                const next = constructs.map((item, idx) =>
+                                  idx !== constructIdx
+                                    ? item
+                                    : {
+                                        ...item,
+                                        roles: item.roles.map((r, i) =>
+                                          i === roleIdx
+                                            ? {
+                                                ...r,
+                                                concept_ids: values.map(
+                                                  (value) => value.conceptId,
+                                                ),
+                                              }
+                                            : r,
+                                        ),
+                                      },
+                                );
+                                updateConstructs(next);
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Concepts in role"
+                                  placeholder="Select concepts"
+                                />
+                              )}
+                              sx={{ minWidth: 280, flex: 1 }}
+                              disabled={!canEditDomains}
+                            />
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
+                              <InputLabel id={`required-${constructIdx}-${roleIdx}`}>
+                                Required
+                              </InputLabel>
+                              <Select
+                                labelId={`required-${constructIdx}-${roleIdx}`}
+                                label="Required"
+                                value={role.required ? "yes" : "no"}
+                                onChange={(event) => {
+                                  const required = event.target.value === "yes";
+                                  const next = constructs.map((item, idx) =>
+                                    idx !== constructIdx
+                                      ? item
+                                      : {
+                                          ...item,
+                                          roles: item.roles.map((r, i) =>
+                                            i === roleIdx ? { ...r, required } : r,
+                                          ),
+                                        },
+                                  );
+                                  updateConstructs(next);
+                                }}
+                                disabled={!canEditDomains}
+                              >
+                                <MenuItem value="yes">Yes</MenuItem>
+                                <MenuItem value="no">No</MenuItem>
+                              </Select>
+                            </FormControl>
+                            {canEditDomains && (
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => {
+                                  const next = constructs.map((item, idx) =>
+                                    idx !== constructIdx
+                                      ? item
+                                      : {
+                                          ...item,
+                                          roles: item.roles.filter(
+                                            (_, i) => i !== roleIdx,
+                                          ),
+                                        },
+                                  );
+                                  updateConstructs(next);
+                                }}
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                          </Box>
+                        ))}
+                        {canEditDomains && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => {
+                              const next = constructs.map((item, idx) =>
+                                idx !== constructIdx
+                                  ? item
+                                  : {
+                                      ...item,
+                                      roles: [
+                                        ...item.roles,
+                                        {
+                                          role: "condition",
+                                          concept_ids: [],
+                                          required: true,
+                                        },
+                                      ],
+                                    },
+                              );
+                              updateConstructs(next);
+                            }}
+                          >
+                            Add role
+                          </Button>
+                        )}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
               )}
             </Box>
           </Box>

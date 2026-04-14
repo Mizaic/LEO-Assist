@@ -1,0 +1,109 @@
+- id: "VT-LEO-AI-108"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-108"]
+    risks: ["R-LEO-AI-074"]
+
+  metadata:
+    title: "Ontology-grounded relation schema, policy, training, and runtime fallback verification"
+    description: >
+      Verifies canonical relation persistence, API policy enforcement, multi-site
+      relation behavior, relation export/train/eval pipeline, and model-first
+      runtime relation linking fallback behavior.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_training_candidate_delete.py"
+      - "tests/test_relation_linking_subgraph.py"
+      - "services/training_worker/tests/test_relation_pipeline.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+"
+      - "pytest and project dependencies installed"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-108-TC-001"
+      case_name: "API persists canonical relations and mirrors finding_site to legacy body-site fields"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "PATCH gold-label entities with finding_site relation to body_structure entity"
+          expected_result: "Response includes relations and mirrored body_site fields"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "relations array persisted in entities_json"
+        - "body_site_concept_id/body_site_term mirrored from first finding_site target"
+
+    - case_id: "VT-108-TC-002"
+      case_name: "API rejects invalid source-target relation pairs"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "PATCH gold-label entities with unsupported source label relation"
+          expected_result: "HTTP 422 with relation policy violation detail"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Unsupported relation tuples are blocked before persistence"
+
+    - case_id: "VT-108-TC-003"
+      case_name: "Runtime relation linking uses model-first and fallback threshold behavior"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Invoke relation_linking subgraph with high fallback threshold"
+          expected_result: "LLM fallback path can apply suppress + relation updates"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Invoke relation_linking subgraph with low fallback threshold"
+          expected_result: "Model-first relation prediction produces finding_site relation"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Model-first relation output exists"
+        - "Fallback path remains available for low-confidence coverage"
+
+    - case_id: "VT-108-TC-004"
+      case_name: "Relation export, train, and evaluate round-trip"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Export relation train/dev JSONL from mocked GoldLabel rows"
+          expected_result: "relation_train.jsonl and relation_dev.jsonl generated"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Train and evaluate relation model on synthetic relation dataset"
+          expected_result: "per-type metrics emitted with high F1 on deterministic sample"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "relation_model.json generated"
+        - "F1 metric present and gate-evaluable"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-108/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-108-EXEC-001"
+      executed_by: "Local pytest run"
+      executed_date: "2026-04-14"
+      result: "pass"
+      notes: >
+        Ran targeted suites:
+        1) python3 -m pytest services/api/tests/test_training_candidate_delete.py tests/test_relation_linking_subgraph.py -q
+        2) cd services/training_worker && python3 -m pytest tests/test_relation_pipeline.py -q
+        Result: 20 passed, 1 skipped, 0 failed.

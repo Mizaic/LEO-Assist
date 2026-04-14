@@ -33,6 +33,7 @@ class PersistState(TypedDict, total=False):
     is_verified: bool
     verification_result: dict
     llm_check_changes: list[dict[str, Any]]
+    relation_changes: list[dict[str, Any]]
     documents_written: int
     training_labels_written: int
     errors: list[str]
@@ -135,6 +136,57 @@ def _pick_best_line_for_entity(entity: dict[str, Any], sentence_text: str) -> st
     return best_line
 
 
+def _has_coding_qc_hold(changes: list[dict[str, Any]]) -> bool:
+    for change in changes:
+        if not isinstance(change, dict):
+            continue
+        if str(change.get("type") or "") == "force_review":
+            return True
+        if str(change.get("reason") or "") == "coding_mismatch":
+            return True
+    return False
+
+
+def _extract_body_site_fields(
+    entity: dict[str, Any], entities: list[dict[str, Any]]
+) -> tuple[str | None, str | None, str | None]:
+    for relation in list(entity.get("__relations") or []):
+        if not isinstance(relation, dict):
+            continue
+        rel_type = str(relation.get("type") or "").strip().lower()
+        if rel_type != "finding_site":
+            continue
+        site_text = str(relation.get("target_text") or "").strip() or None
+        target_idx = relation.get("target_idx")
+        if (
+            isinstance(target_idx, int)
+            and 0 <= target_idx < len(entities)
+            and isinstance(entities[target_idx], dict)
+        ):
+            target = entities[target_idx]
+            concept_id = str(target.get("concept_id") or "").strip() or None
+            term = (
+                str(target.get("term") or target.get("text") or "").strip() or site_text
+            )
+            return site_text, concept_id, term
+        return site_text, None, site_text
+    return None, None, None
+
+
+def _canonical_entity_relations(
+    entity: dict[str, Any], entities: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    from libs.relations.policy import canonicalise_relations
+
+    raw = list(entity.get("__relations") or entity.get("relations") or [])
+    rows = canonicalise_relations(raw, len(entities))
+    for row in rows:
+        idx = int(row.get("target_idx", -1))
+        if 0 <= idx < len(entities):
+            row["target_text"] = str(entities[idx].get("text") or row.get("target_text") or "")
+    return rows
+
+
 def write_patient_graph(state: PersistState) -> dict[str, Any]:
     if state.get("dry_run"):
         logger.info("dry_run=True - skipping patient graph write")
@@ -147,10 +199,18 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
     patient_id = state.get("patient_id") or ""
     run_id = state.get("run_id") or ""
     tier_decisions = state.get("tier_decisions") or []
+    llm_check_changes = state.get("llm_check_changes") or []
     errors = list(state.get("errors") or [])
 
     if not entities:
         return {"documents_written": 0, "errors": errors}
+    if _has_coding_qc_hold(llm_check_changes):
+        logger.info("Skipping patient graph write due to coding QC hold")
+        return {
+            "documents_written": 0,
+            "errors": errors,
+            "status": "held_pending_review",
+        }
 
     try:
         from libs.cypher.coding_decision_queries import UPSERT_CODING_DECISION
@@ -170,10 +230,15 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                 terms_by_sentence: dict[str, list[dict[str, Any]]] = {}
                 fallback_sentence_id = "s-fallback"
                 for idx, e in enumerate(entities):
+                    if bool(e.get("_relation_suppressed")):
+                        continue
                     concept_id = e.get("concept_id")
                     if not concept_id or e.get("terminology_unresolved"):
                         continue
                     sentence_id = e.get("__sentence_id") or fallback_sentence_id
+                    body_site, body_site_concept_id, body_site_term = (
+                        _extract_body_site_fields(e, entities)
+                    )
                     terms_by_sentence.setdefault(sentence_id, []).append(
                         {
                             "text": e.get("text", ""),
@@ -182,6 +247,10 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                             or "other",
                             "assertion": e.get("assertion", "present"),
                             "modifiers": e.get("modifiers") or {},
+                            "body_site": body_site,
+                            "body_site_concept_id": body_site_concept_id,
+                            "body_site_term": body_site_term,
+                            "relations": _canonical_entity_relations(e, entities),
                             "numeric_value": e.get("value"),
                             "unit": e.get("unit"),
                             "reference_range": e.get("reference_range"),
@@ -230,6 +299,8 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                 )
 
                 for e in entities:
+                    if bool(e.get("_relation_suppressed")):
+                        continue
                     text = e.get("text", "")
                     decision_id = hashlib.sha256(
                         f"{encounter_id}|{text}|{e.get('label', '')}".encode()
@@ -276,12 +347,19 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
     encounter_text = state.get("encounter_text") or ""
     raw_sentences = state.get("sentences") or []
     verification = state.get("verification_result") or {}
+    relation_changes = state.get("relation_changes") or []
     errors = list(state.get("errors") or [])
 
     if not entities:
         return {"training_labels_written": 0, "errors": errors}
 
-    llm_feedback_sources = {"llm_added", "assertion_corrected", "label_corrected"}
+    llm_feedback_sources = {
+        "llm_added",
+        "assertion_corrected",
+        "label_corrected",
+        "relation_corrected",
+        "relation_missed",
+    }
     has_training_signal = any(
         str(entity.get("_llm_check_source") or "").strip().lower()
         in llm_feedback_sources
@@ -386,14 +464,18 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                                 str(group.get("sentence_text") or ""),
                                 ner=True,
                             )
+                            group_entities = group.get("entities") or []
                             candidate_id = _candidate_id(deid_sentence_text)
                             session.run(
                                 UPSERT_TRAINING_CANDIDATE,
                                 candidate_id=candidate_id,
                                 text=deid_sentence_text,
-                                entities_json=json.dumps(canonical_entities),
+                                entities_json=json.dumps(group_entities),
+                                relation_changes=json.dumps(relation_changes),
                                 source="pipeline_gold",
                                 status="failed",
+                                hitl_reason="deid_failed",
+                                hitl_guidance="Review de-identification failure before training.",
                                 schema_version="v4",
                             )
                             session.run(
@@ -433,8 +515,11 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                         candidate_id=candidate_id,
                         text=deid_sentence_text,
                         entities_json=json.dumps(group.get("entities") or []),
+                        relation_changes=json.dumps(relation_changes),
                         source="pipeline_gold",
                         status="pending",
+                        hitl_reason="pipeline_feedback",
+                        hitl_guidance="Review extraction or relation corrections for training.",
                         schema_version="v4",
                     )
                     written += 1

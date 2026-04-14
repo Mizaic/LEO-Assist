@@ -1,0 +1,87 @@
+# -- R-LEO-AI-074 -- Invalid or missing clinical relations distort coding interpretation
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-074"
+  title: "Invalid or missing entity relations cause incorrect clinical interpretation and coding suggestions"
+
+  hazard:
+    description: >
+      Clinical entities can be stored without explicit relation semantics, or
+      with invalid source-target relation types. This can apply negation and
+      context to the wrong concept and lead to unsafe coding interpretation.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A reviewer links a finding to an unsupported target type, or relation
+    tuples are not persisted for a multi-site finding. Runtime inference then
+    interprets disconnected entities as independent facts and suggests an
+    incorrect SNOMED coding path.
+
+  harm:
+    description: >
+      Incorrect coded summaries can affect pathway classification, prevalence
+      reporting, and reviewer decisions, potentially delaying the identification
+      of significant clinical conditions.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Canonical relation schema with deduplication and index-bounds checks is
+        enforced before GoldLabel persistence.
+      implemented_by: ["DI-LEO-AI-108"]
+      verified_by: ["VT-LEO-AI-108"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Ontology policy matrix validates source-target semantic compatibility for
+        each relation type in API and runtime paths.
+      implemented_by: ["DI-LEO-AI-108"]
+      verified_by: ["VT-LEO-AI-108"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Runtime relation linking applies model-first confidence thresholds and
+        low-confidence fallback behavior to avoid persisting weak predictions.
+      implemented_by: ["DI-LEO-AI-108"]
+      verified_by: ["VT-LEO-AI-108"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Policy validation, canonical tuple checks, and runtime confidence fallback
+      substantially reduce the probability of invalid relation persistence and
+      downstream miscoding.
+
+  monitoring:
+    monitoring_plan: >
+      Monitor relation policy rejection counts, relation-model F1 trend, and
+      reviewer reject rates for suggested relations.
+    metrics:
+      - "relation_policy_reject_count per week"
+      - "relation_model_f1 per training run"
+      - "relation_suggestion_reject_rate in gold review UI"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Design review - ontology relation modeling rollout 2026-04-14"
+    identified_date: "2026-04-14"
+    status: "analyzed"
+    tags:
+      - "relations"
+      - "snomed"
+      - "gold-review"
+      - "runtime"

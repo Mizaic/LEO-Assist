@@ -54,10 +54,16 @@ interface Recommendation {
   gapAt?: number;
 }
 
+export interface BucketFilter {
+  lo: number;
+  hi: number;
+}
+
 interface Props {
   rows: EncounterListItem[];
   minCombinedScore: number;
   onThresholdChange: (score: number) => void;
+  onBucketFilter?: (filter: BucketFilter | null) => void;
   onShow3D?: () => void;
 }
 
@@ -173,11 +179,22 @@ export default function ScoreHistogram({
   rows,
   minCombinedScore,
   onThresholdChange,
+  onBucketFilter,
   onShow3D,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [svgW, setSvgW] = useState(600);
   const [dragging, setDragging] = useState(false);
+  const [activeBucket, setActiveBucket] = useState<BucketFilter | null>(null);
+
+  const handleBarClick = useCallback(
+    (lo: number, hi: number) => {
+      const next = activeBucket?.lo === lo ? null : { lo, hi };
+      setActiveBucket(next);
+      onBucketFilter?.(next);
+    },
+    [activeBucket, onBucketFilter],
+  );
 
   useEffect(() => {
     const el = svgRef.current?.parentElement;
@@ -325,29 +342,56 @@ export default function ScoreHistogram({
           ))}
 
           {/* Bars */}
-          {barSegments.map((bar, i) => (
-            <g key={i}>
-              {bar.segments.map((seg, j) => (
-                <Tooltip
-                  key={j}
-                  title={`${bar.total} result${bar.total !== 1 ? "s" : ""} scoring ${pct(bar.lo)}-${pct(bar.hi)} (${TYPE_LABEL[seg.type] ?? seg.type})`}
-                  placement="top"
-                  arrow
-                >
+          {barSegments.map((bar, i) => {
+            const isActive = activeBucket?.lo === bar.lo;
+            const isDimmed = activeBucket !== null && !isActive;
+            const barH = bar.segments.reduce((sum, s) => sum + s.h, 0);
+            const barTopY = bar.segments.length > 0
+              ? Math.min(...bar.segments.map((s) => s.y))
+              : TOP_PAD + CHART_H;
+            return (
+              <g
+                key={i}
+                onClick={() => bar.total > 0 && handleBarClick(bar.lo, bar.hi)}
+                style={{ cursor: bar.total > 0 ? "pointer" : "default" }}
+                opacity={isDimmed ? 0.35 : 1}
+              >
+                {bar.segments.map((seg, j) => (
+                  <Tooltip
+                    key={j}
+                    title={`${bar.total} result${bar.total !== 1 ? "s" : ""} scoring ${pct(bar.lo)}-${pct(bar.hi)} (${TYPE_LABEL[seg.type] ?? seg.type})${bar.total > 0 ? " — click to filter" : ""}`}
+                    placement="top"
+                    arrow
+                  >
+                    <rect
+                      x={bar.x}
+                      y={seg.y}
+                      width={bar.w}
+                      height={seg.h}
+                      fill={bar.below ? "url(#grad-grey)" : `url(#grad-${seg.type})`}
+                      rx={j === bar.segments.length - 1 ? 3 : 0}
+                      ry={j === bar.segments.length - 1 ? 3 : 0}
+                    />
+                  </Tooltip>
+                ))}
+                {/* Selection ring on active bucket */}
+                {isActive && barH > 0 && (
                   <rect
-                    x={bar.x}
-                    y={seg.y}
-                    width={bar.w}
-                    height={seg.h}
-                    fill={bar.below ? "url(#grad-grey)" : `url(#grad-${seg.type})`}
-                    rx={j === bar.segments.length - 1 ? 3 : 0}
-                    ry={j === bar.segments.length - 1 ? 3 : 0}
-                    style={{ cursor: "default" }}
+                    x={bar.x - 1}
+                    y={barTopY - 1}
+                    width={bar.w + 2}
+                    height={barH + 2}
+                    fill="none"
+                    stroke="#3B5FD9"
+                    strokeWidth={2}
+                    rx={3}
+                    ry={3}
+                    style={{ pointerEvents: "none" }}
                   />
-                </Tooltip>
-              ))}
-            </g>
-          ))}
+                )}
+              </g>
+            );
+          })}
 
           {/* Baseline */}
           <line
@@ -440,6 +484,23 @@ export default function ScoreHistogram({
           ))}
         </svg>
       </Box>
+
+      {/* Active bucket filter pill */}
+      {activeBucket && (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
+          <Chip
+            size="small"
+            label={`Filtered: ${pct(activeBucket.lo)} – ${pct(activeBucket.hi)}`}
+            onDelete={() => { setActiveBucket(null); onBucketFilter?.(null); }}
+            color="primary"
+            variant="outlined"
+            sx={{ fontSize: "0.72rem", height: 22 }}
+          />
+          <Typography variant="caption" color="text.secondary">
+            Click the bar again or the x to clear
+          </Typography>
+        </Stack>
+      )}
 
       {/* Legend */}
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>

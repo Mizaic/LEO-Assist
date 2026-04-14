@@ -79,8 +79,9 @@ def _add(
 # ── Extraction — structured output schema + example library ─────────────────
 from libs.prompts.extraction_output_schema import EXTRACTION_OUTPUT_SCHEMA
 from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
-from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_EXAMPLES_V1
+from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_EXAMPLES_V2
 from libs.prompts.coding_check_v1 import CODING_CHECK_EXAMPLES_V1
+from libs.prompts.relation_linking_v1 import RELATION_LINKING_EXAMPLES_V1
 
 _add(
     "extraction",
@@ -151,11 +152,68 @@ _EXTRACTION_CHECK_OUTPUT_SCHEMA = {
     "required": ["drop", "correct_assertion", "correct_label", "add"],
 }
 
+_EXTRACTION_CHECK_OUTPUT_SCHEMA_V2 = {
+    "type": "object",
+    "properties": {
+        "drop": {"type": "array", "items": {"type": "integer"}},
+        "correct_assertion": _EXTRACTION_CHECK_OUTPUT_SCHEMA["properties"][
+            "correct_assertion"
+        ],
+        "correct_label": _EXTRACTION_CHECK_OUTPUT_SCHEMA["properties"]["correct_label"],
+        "add": _EXTRACTION_CHECK_OUTPUT_SCHEMA["properties"]["add"],
+        "correct_relation": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "index": {"type": "integer"},
+                    "relations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {"type": "string"},
+                                "target_idx": {"type": "integer"},
+                                "target_text": {"type": "string"},
+                                "confidence": {"type": "number"},
+                            },
+                            "required": ["type", "target_idx"],
+                        },
+                    },
+                },
+                "required": ["index", "relations"],
+            },
+        },
+        "add_relation": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "index": {"type": "integer"},
+                    "type": {"type": "string"},
+                    "target_idx": {"type": "integer"},
+                    "target_text": {"type": "string"},
+                    "confidence": {"type": "number"},
+                },
+                "required": ["index", "type", "target_idx"],
+            },
+        },
+    },
+    "required": [
+        "drop",
+        "correct_assertion",
+        "correct_label",
+        "add",
+        "correct_relation",
+        "add_relation",
+    ],
+}
+
 _add(
     "extraction_check",
-    1,
-    "libs.prompts.extraction_check_v1.EXTRACTION_CHECK_SYSTEM_V1",
-    output_schema=json.dumps(_EXTRACTION_CHECK_OUTPUT_SCHEMA),
+    2,
+    "libs.prompts.extraction_check_v1.EXTRACTION_CHECK_SYSTEM_V2",
+    output_schema=json.dumps(_EXTRACTION_CHECK_OUTPUT_SCHEMA_V2),
     few_shot_examples=[
         {
             "id": f"seed_excheck_{i:03d}",
@@ -167,10 +225,53 @@ _add(
             "description": ex.get("description", ""),
             "core": bool(ex.get("core", False)),
         }
-        for i, ex in enumerate(EXTRACTION_CHECK_EXAMPLES_V1)
+        for i, ex in enumerate(EXTRACTION_CHECK_EXAMPLES_V2)
     ],
     max_few_shot=12,
-    description="Single-turn quality check that drops noise, fixes assertion/label, and adds missed extraction mentions.",
+    description="Single-turn extraction quality check for entity and relation corrections.",
+)
+
+_RELATION_LINKING_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "relations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "head_idx": {"type": "integer"},
+                    "tail_idx": {"type": "integer"},
+                    "type": {"type": "string"},
+                    "confidence": {"type": "number"},
+                },
+                "required": ["head_idx", "tail_idx", "type"],
+            },
+        },
+        "suppress": {"type": "array", "items": {"type": "integer"}},
+    },
+    "required": ["relations", "suppress"],
+}
+
+_add(
+    "relation_linking",
+    1,
+    "libs.prompts.relation_linking_v1.RELATION_LINKING_SYSTEM_V1",
+    output_schema=json.dumps(_RELATION_LINKING_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_rellink_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
+        }
+        for i, ex in enumerate(RELATION_LINKING_EXAMPLES_V1)
+    ],
+    max_few_shot=8,
+    description="Links extracted entities with typed relations such as finding_site.",
 )
 
 _CODING_CHECK_OUTPUT_SCHEMA = {

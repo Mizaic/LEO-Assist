@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-CONTRACT_VERSION = "1.2"
+CONTRACT_VERSION = "1.3"
 
 
 @dataclass(frozen=True)
@@ -36,6 +36,13 @@ class ExtractionItem:
     confidence: float
     normalized: str  # lookup term or normalised surface form
     source_meta: dict[str, Any] = field(default_factory=dict)
+    # Each relation dict follows:
+    # {
+    #   "type": str,          # e.g. finding_site, qualifies, route_of
+    #   "target_text": str,   # related entity surface text
+    #   "target_idx": int,    # sibling entity index in pipeline state
+    #   "confidence": float,  # relation confidence 0.0-1.0
+    # }
     relations: list[dict[str, Any]] = field(default_factory=list)
 
     # Structured measurement fields — populated for observable entities

@@ -511,6 +511,40 @@ export async function patchGoldLabelEntities(
   );
 }
 
+export interface GoldLabelRecord {
+  label_id: string;
+  text: string;
+  entities_json: string | null;
+  quality_score: number | null;
+  source: string;
+  verified_by: string | null;
+  verified_at: string | null;
+  candidate_id: string | null;
+  updated_at: string;
+}
+
+export async function fetchGoldLabel(labelId: string): Promise<GoldLabelRecord> {
+  return fetchJson<GoldLabelRecord>(
+    `${API_BASE}/api/training/gold-labels/${encodeURIComponent(labelId)}`,
+  );
+}
+
+export interface RepairSpansResult {
+  label_id: string;
+  repaired: number;
+  dropped: number;
+  remaining: number;
+}
+
+export async function repairGoldLabelSpans(
+  labelId: string,
+): Promise<RepairSpansResult> {
+  return fetchJson<RepairSpansResult>(
+    `${API_BASE}/api/training/gold-labels/${encodeURIComponent(labelId)}/repair-spans`,
+    { method: "POST" },
+  );
+}
+
 export interface GroupedSurfaceForm {
   normalized: string;
   form: string;
@@ -709,4 +743,50 @@ export async function askLeo(
       encounter_text: encounterText,
     }),
   });
+}
+
+export interface LabelDistributionRow {
+  label: string;
+  count: number;
+}
+
+export interface LabelDistribution {
+  total_records: number;
+  total_entities: number;
+  distribution: LabelDistributionRow[];
+}
+
+export async function fetchLabelDistribution(): Promise<LabelDistribution> {
+  return fetchJson<LabelDistribution>(
+    `${API_BASE}/api/training/gold-labels/label-distribution`,
+  );
+}
+
+export interface ExportDiagnosticItem {
+  label_id: string;
+  source: string;
+  /** Full sentence text of the parent GoldLabel record. */
+  text: string;
+  /** Surface text of the entity that was dropped. */
+  entity_text: string;
+  /** Semantic label type e.g. DISORDER, FINDING. */
+  label: string;
+  /** Assertion value on the entity e.g. negated, hypothetical. */
+  assertion?: string;
+  reason: "assertion_filtered" | "span_misaligned";
+}
+
+export interface ExportDiagnostics {
+  total_records: number;
+  total_entities: number;
+  excluded_assertions: string[];
+  assertion_filtered: ExportDiagnosticItem[];
+  span_misaligned: ExportDiagnosticItem[];
+  summary: { assertion_filtered_count: number; span_misaligned_count: number };
+}
+
+export async function fetchExportDiagnostics(): Promise<ExportDiagnostics> {
+  return fetchJson<ExportDiagnostics>(
+    `${API_BASE}/api/training/gold-labels/export-diagnostics`,
+  );
 }

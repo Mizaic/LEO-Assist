@@ -188,6 +188,88 @@ def _build_buckets(
     return buckets, frozenset(pathway_completion_ids)
 
 
+def _build_construct_anchor_map(
+    rows: list[dict[str, Any]],
+    registry: DomainRegistry,
+) -> dict[str, list[dict[str, Any]]]:
+    """Build milestone anchors from role-based construct definitions."""
+    by_encounter: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        encounter_id = str(row.get("encounter_id") or "")
+        if not encounter_id:
+            continue
+        by_encounter.setdefault(encounter_id, []).append(row)
+
+    anchors_by_milestone: dict[str, list[dict[str, Any]]] = {}
+    for domain_name, cfg in registry.get_milestone_domains().items():
+        if not cfg.milestone_type or not cfg.constructs:
+            continue
+        for encounter_rows in by_encounter.values():
+            concept_ids = set()
+            for row in encounter_rows:
+                try:
+                    concept_ids.add(int(row.get("concept_id")))
+                except (TypeError, ValueError):
+                    continue
+            if not concept_ids:
+                continue
+            for construct in cfg.constructs:
+                role_matches: list[tuple[str, list[int]]] = []
+                for role in construct.roles:
+                    matched_ids = [
+                        cid for cid in role.concept_ids if int(cid) in concept_ids
+                    ]
+                    if matched_ids:
+                        role_matches.append((role.role, matched_ids))
+                if construct.logic == "ANY":
+                    matched = bool(role_matches)
+                else:
+                    matched = all(
+                        (not role.required)
+                        or any(int(cid) in concept_ids for cid in role.concept_ids)
+                        for role in construct.roles
+                    )
+                if not matched:
+                    continue
+                seed_id = 0
+                for _role, ids in role_matches:
+                    if ids:
+                        seed_id = int(ids[0])
+                        break
+                base_row = encounter_rows[0]
+                anchors_by_milestone.setdefault(cfg.milestone_type, []).append(
+                    {
+                        "encounter_id": base_row.get("encounter_id"),
+                        "encounter_date": base_row.get("encounter_date"),
+                        "concept_id": seed_id,
+                        "concept_name": f"Construct: {construct.display_name}",
+                        "semantic_tag": "Situation",
+                        "source": "construct_match",
+                        "confidence": 0.8,
+                        "evidence": base_row.get("evidence"),
+                        "assertion": "present",
+                        "construct_id": construct.construct_id,
+                    }
+                )
+    return anchors_by_milestone
+
+
+def _merge_anchor_lists(
+    base_rows: list[dict[str, Any]],
+    construct_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge anchors preferring construct-derived rows per encounter."""
+    seen: set[str] = set()
+    merged: list[dict[str, Any]] = []
+    for row in construct_rows + base_rows:
+        encounter_id = str(row.get("encounter_id") or "")
+        if not encounter_id or encounter_id in seen:
+            continue
+        seen.add(encounter_id)
+        merged.append(row)
+    return merged
+
+
 def _classify_anchor_rows(
     rows: list[dict[str, Any]],
     buckets: dict[str, MilestoneBucket],
@@ -509,6 +591,24 @@ def detect_anchors(
         specialist_letters,
         first_presentations,
     ) = _classify_anchor_rows(coded_rows, buckets, pathway_completion_ids)
+    construct_map = _build_construct_anchor_map(coded_rows, registry)
+    referrals = _merge_anchor_lists(referrals, construct_map.get("referral", []))
+    diagnoses = _merge_anchor_lists(diagnoses, construct_map.get("diagnosis", []))
+    treatments = _merge_anchor_lists(
+        treatments, construct_map.get("treatment_start", [])
+    )
+    specialists = _merge_anchor_lists(
+        specialists, construct_map.get("specialist_visit", [])
+    )
+    benign_closures = _merge_anchor_lists(
+        benign_closures, construct_map.get("benign_closure", [])
+    )
+    specialist_letters = _merge_anchor_lists(
+        specialist_letters, construct_map.get("specialist_outcome_letter", [])
+    )
+    first_presentations = _merge_anchor_lists(
+        first_presentations, construct_map.get("first_presentation", [])
+    )
 
     # -- Layer 2: encounter text (uncoded + all encounters) --
     if use_text_search:

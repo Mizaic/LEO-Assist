@@ -12,9 +12,10 @@
 
   hazardous_situation: >
     A valid disorder or finding mention is dropped by extraction_check, or an
-    unsupported mention is added. The modified entity set proceeds to
-    terminology and persistence, resulting in under-coding or incorrect coded
-    evidence in patient and training stores.
+    unsupported mention is added. Relation linking may also attach the wrong
+    body-site link. The modified entity set proceeds to terminology and
+    persistence, resulting in under-coding or incorrect coded evidence in
+    patient and training stores.
 
   harm:
     description: >
@@ -51,6 +52,14 @@
         Apply deterministic referral-procedure assertion guard so wording like
         "referral for suspected X" is kept as a planned procedure and not
         treated as an uncertain diagnosis assertion.
+      implemented_by: ["DI-LEO-AI-097"]
+      verified_by: ["VT-LEO-AI-097"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Route has_extraction_changes=true encounters to hitl_ner_queue via
+        condition edge before terminology auto-coding, so corrected extraction
+        payloads are reviewed before patient-graph persistence.
       implemented_by: ["DI-LEO-AI-097"]
       verified_by: ["VT-LEO-AI-097"]
       effectiveness: "effective"

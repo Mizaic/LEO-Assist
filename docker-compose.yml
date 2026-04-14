@@ -96,6 +96,8 @@ services:
       KNOWLEDGE_GRAPH_NEO4J_USERNAME: neo4j
       KNOWLEDGE_GRAPH_NEO4J_PASSWORD: knowledge-dev
       REDIS_URL: redis://redis:6379
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
     depends_on:
       neo4j-knowledge:
         condition: service_healthy

@@ -17,6 +17,7 @@ import {
   type EncounterListResponse,
 } from "@/lib/missionControlApi";
 import EncounterSearchPanel, { type EncounterSearchState } from "./EncounterSearchPanel";
+import type { BucketFilter } from "./ScoreHistogram";
 import EncounterKpiStrip from "./EncounterKpiStrip";
 import EncounterBatchBar from "./EncounterBatchBar";
 import EncounterResultsTable from "./EncounterResultsTable";
@@ -31,7 +32,8 @@ const DEFAULT_KPI: EncounterKPIs = {
   median_codes_per_encounter: 0,
 };
 const RESULT_CAP = 1200;
-const FETCH_PAGE_SIZE = 100;
+/** Larger pages reduce round trips through the API proxy (each has its own timeout). */
+const FETCH_PAGE_SIZE = 200;
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -64,6 +66,7 @@ export default function EncounterMissionControl() {
   const [totalResults, setTotalResults] = useState(0);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [bucketFilter, setBucketFilter] = useState<BucketFilter | null>(null);
   const [selected, setSelected] = useState<Record<string, EncounterListItem>>({});
   const [loading, setLoading] = useState(false);
   const [kpis, setKpis] = useState<EncounterKPIs>(DEFAULT_KPI);
@@ -150,15 +153,20 @@ export default function EncounterMissionControl() {
     setLoading(true);
     if (resetKpis) setKpisLoading(true);
     try {
-      const encountersFetch = fetchAllEncounterRows();
-      const kpisFetch = resetKpis
-        ? fetchEncounterKPIs({ orgId, dateFrom: search.dateFrom || undefined, dateTo: search.dateTo || undefined })
-        : Promise.resolve(null);
-      const [encounters, nextKpis] = await Promise.all([encountersFetch, kpisFetch]);
+      // Run KPI fetch after encounters so Neo4j is not hit with two full org scans at once.
+      const encounters = await fetchAllEncounterRows();
       setRows(encounters.items);
       setTotalResults(encounters.total);
       setQueryDiagnostics(encounters.query_diagnostics);
-      if (nextKpis) setKpis(nextKpis);
+      if (resetKpis) {
+        setKpis(
+          await fetchEncounterKPIs({
+            orgId,
+            dateFrom: search.dateFrom || undefined,
+            dateTo: search.dateTo || undefined,
+          })
+        );
+      }
       setSelected({});
     } catch (err) {
       setRows([]);
@@ -228,10 +236,23 @@ export default function EncounterMissionControl() {
     });
   };
 
+  const handleBucketFilter = useCallback((filter: BucketFilter | null) => {
+    setBucketFilter(filter);
+    setPage(1);
+  }, []);
+
   const isLoading = loading || batchLoading;
+  const filteredRows = useMemo(() => {
+    if (!bucketFilter) return rows;
+    return rows.filter((r) => {
+      const s = typeof r.score === "number" ? r.score : null;
+      if (s === null) return false;
+      return s >= bucketFilter.lo && s < bucketFilter.hi;
+    });
+  }, [rows, bucketFilter]);
   const displayRows = useMemo(
-    () => rows.slice((page - 1) * rowsPerPage, page * rowsPerPage),
-    [rows, page, rowsPerPage]
+    () => filteredRows.slice((page - 1) * rowsPerPage, page * rowsPerPage),
+    [filteredRows, page, rowsPerPage]
   );
   const statusEntries = useMemo(() => Object.entries(statuses), [statuses]);
   const allBatchTerminal = useMemo(
@@ -310,6 +331,7 @@ export default function EncounterMissionControl() {
           onNearDuplicateThresholdChange={handleNearDuplicateThresholdChange}
           onSearch={load}
           onShow3D={() => setShow3D(true)}
+          onBucketFilter={handleBucketFilter}
         />
       </Paper>
 
@@ -382,7 +404,7 @@ export default function EncounterMissionControl() {
         rows={displayRows}
         selected={selected}
         statuses={statuses}
-        totalResults={rows.length}
+        totalResults={filteredRows.length}
         page={page}
         rowsPerPage={rowsPerPage}
         liveMinScore={scoreValues.minCombinedScore ?? 0.2}

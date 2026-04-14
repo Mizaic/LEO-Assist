@@ -16,8 +16,15 @@ export interface Candidate {
   candidate_id: string;
   text: string;
   entities_json?: string | null;
+  relation_changes?: string | null;
   source: string;
   status: string;
+  uncertainty_score?: number | null;
+  rarity_score?: number | null;
+  priority_score?: number | null;
+  rare_labels?: string[] | null;
+  hitl_reason?: string | null;
+  hitl_guidance?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +41,14 @@ export interface GoldLabel {
   updated_at: string;
 }
 
+export interface RejectedRelation {
+  /** Relation type e.g. "finding_site", "interprets". */
+  type: string;
+  /** Stable text-based identifier for the target entity. */
+  target_text: string;
+  reason: string;
+}
+
 export interface Entity {
   text: string;
   label?: string;
@@ -41,6 +56,19 @@ export interface Entity {
   snomed_concept_id?: string;
   snomed_term?: string;
   assertion?: string;
+  body_site_concept_id?: string;
+  body_site_term?: string;
+  relations?: EntityRelation[];
+  /** Relation suggestions the reviewer has explicitly dismissed. Persisted
+   *  alongside entities so they do not reappear on reload. */
+  rejected_relations?: RejectedRelation[];
+}
+
+export interface EntityRelation {
+  type: string;
+  target_idx: number;
+  target_text?: string;
+  confidence?: number;
 }
 
 export interface SimilarCandidateItem {

@@ -43,6 +43,8 @@ async def _proxy_request(
     base: str,
     token: str,
     request: Request,
+    *,
+    timeout_seconds: float = 60.0,
 ) -> httpx.Response:
     """Forward request to upstream with Bearer token and session header.
 
@@ -73,7 +75,7 @@ async def _proxy_request(
         )
         raise
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=timeout_seconds) as client:
             return await client.request(method, url, headers=headers, content=body)
     except httpx.TimeoutException as exc:
         logger.warning("Proxy upstream timeout: %s %s", method, url)
@@ -162,9 +164,19 @@ async def proxy_analytics(
     full_path = f"/analytics/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
+    # Mission Control and other analytics routes run heavy Neo4j aggregations;
+    # default 60s often trips before the graph finishes on large orgs.
+    analytics_timeout = float(
+        os.getenv("PROXY_ANALYTICS_TIMEOUT_S", "180") or "180"
+    )
     try:
         resp = await _proxy_request(
-            request.method, full_path, ANALYTICS_BASE, token, request
+            request.method,
+            full_path,
+            ANALYTICS_BASE,
+            token,
+            request,
+            timeout_seconds=max(60.0, analytics_timeout),
         )
     except ClientDisconnect:
         return _client_disconnect_response()

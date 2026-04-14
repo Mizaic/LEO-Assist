@@ -119,6 +119,8 @@ export interface AnnotatedSpan {
   end: number;
   /** One entry per concept at this span position */
   chips: TagTheme[];
+  /** Optional DOM identifier used by overlay visualisations. */
+  domId?: string;
   isSelected?: boolean;
   onClick?: (e: React.MouseEvent<HTMLSpanElement>) => void;
   title?: string;
@@ -172,6 +174,7 @@ export function renderNerSpans(text: string, spans: AnnotatedSpan[]): React.Reac
     parts.push(
       <span
         key={`ner-${span.start}-${span.end}`}
+        data-ner-id={span.domId}
         onClick={span.onClick}
         title={span.title ?? (multi ? span.chips.map((c) => c.entityText ?? c.label).join(" | ") : undefined)}
         style={{

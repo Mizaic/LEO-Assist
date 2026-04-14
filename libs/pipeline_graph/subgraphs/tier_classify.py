@@ -24,6 +24,17 @@ def _classify_tiers(state: TierClassifyState) -> dict[str, Any]:
     coding_mode = state.get("coding_mode") or "autonomous"
     decisions: list[dict[str, Any]] = []
     for i, e in enumerate(entities):
+        override = e.get("_tier_override")
+        if isinstance(override, int):
+            decisions.append(
+                {
+                    "entity_index": i,
+                    "tier": override,
+                    "decision": "route_to_review" if override > 1 else "auto_code",
+                    "reason": str(e.get("_tier_override_reason") or "tier_override"),
+                }
+            )
+            continue
         assertion = e.get("assertion", "present")
         context_failed = bool(e.get("context_failed", False))
         terminology_score = float(e.get("score") or e.get("terminology_score", 0.0))

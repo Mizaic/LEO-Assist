@@ -8,7 +8,8 @@ import Typography from "@mui/material/Typography";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import type { Entity, GoldLabel } from "./goldDatasetTypes";
-import { assertionColor, assertionSummary, formatDate, isNonPresent, parseEntities, truncate } from "./goldDatasetUtils";
+import { assertionColor, assertionSummary, entityLabelColour, formatDate, isNonPresent, parseEntities, truncate } from "./goldDatasetUtils";
+import RelationRow, { buildRelTriplets, hasMissingLinks } from "./RelationRow";
 
 function qualityColor(score: number | null): "success" | "warning" | "error" | "default" {
   if (score === null) return "default";
@@ -19,10 +20,20 @@ function qualityColor(score: number | null): "success" | "warning" | "error" | "
 
 function EntityPill({ entity }: { entity: Entity }) {
   const nonPresent = isNonPresent(entity.assertion);
-  const color = assertionColor(entity.assertion);
+  const assertColor = assertionColor(entity.assertion);
+  const typeColour = entityLabelColour(entity.label ?? entity.semantic_tag);
+  const labelName = (entity.label ?? entity.semantic_tag ?? "").replace(/_/g, " ");
+
   const tipParts = [entity.label ?? entity.semantic_tag];
   if (nonPresent) tipParts.push(entity.assertion ?? "");
+  if (entity.body_site_term) tipParts.push(`Site: ${entity.body_site_term}`);
   if (entity.snomed_term) tipParts.push(`SNOMED: ${entity.snomed_term}`);
+
+  // For non-present entities keep assertion coloring; for present ones use
+  // a very light tint derived from the entity label colour.
+  const bgStyle = nonPresent
+    ? { bgcolor: `${assertColor}.50`, borderColor: `${assertColor}.200` }
+    : { bgcolor: `${typeColour}18`, borderColor: `${typeColour}40` };
 
   return (
     <Tooltip title={tipParts.filter(Boolean).join(" - ")}>
@@ -31,9 +42,9 @@ function EntityPill({ entity }: { entity: Entity }) {
           display: "inline-flex",
           flexDirection: "column",
           alignItems: "flex-start",
-          bgcolor: nonPresent ? `${color}.50` : "primary.50",
+          ...bgStyle,
           border: "1px solid",
-          borderColor: nonPresent ? `${color}.200` : "primary.100",
+          borderLeft: `3px solid ${typeColour}`,
           borderRadius: 1.5,
           px: 1,
           py: 0.5,
@@ -42,11 +53,30 @@ function EntityPill({ entity }: { entity: Entity }) {
           maxWidth: 180,
         }}
       >
+        {labelName && (
+          <Typography
+            sx={{
+              fontSize: "0.58rem",
+              fontWeight: 700,
+              color: typeColour,
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+              lineHeight: 1.2,
+              mb: 0.15,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "100%",
+            }}
+          >
+            {labelName}
+          </Typography>
+        )}
         <Typography
           sx={{
             fontSize: "0.75rem",
             fontWeight: 600,
-            color: nonPresent ? `${color}.dark` : "primary.dark",
+            color: nonPresent ? `${assertColor}.dark` : "text.primary",
             lineHeight: 1.3,
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -93,6 +123,8 @@ interface Props {
 export default function GoldLabelRow({ item, onClick, onReset, resetting }: Props) {
   const entities = parseEntities(item.entities_json);
   const summary = assertionSummary(entities);
+  const relTriplets = buildRelTriplets(entities);
+  const missingLinks = hasMissingLinks(entities);
 
   return (
     <Box
@@ -132,6 +164,7 @@ export default function GoldLabelRow({ item, onClick, onReset, resetting }: Prop
                 {entities.slice(0, 6).map((entity, index) => (
                   <EntityPill key={`${entity.text}-${index}`} entity={entity} />
                 ))}
+                <RelationRow triplets={relTriplets} missing={missingLinks} />
                 {entities.length > 6 && (
                   <Box
                     sx={{

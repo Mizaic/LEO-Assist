@@ -229,6 +229,13 @@ export default function DomainDetailPage() {
     time_window_months?: number;
     semantic_tags?: string[];
     assertion_filter?: string[];
+    constructs?: Array<{
+      id: string;
+      display_name: string;
+      description?: string;
+      logic: "ALL" | "ANY";
+      roles: Array<{ role: string; concept_ids: number[]; required: boolean }>;
+    }>;
   }) => {
     if (!configSub) return;
     setConfigSubmitting(true);

@@ -76,6 +76,11 @@ MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
 WHERE c.status = 'completed'
   AND ($source IS NULL OR g.source = $source)
   AND ($search IS NULL OR toLower(g.text) CONTAINS toLower($search))
+  AND (
+    $entity_label IS NULL
+    OR toLower(g.entities_json) CONTAINS ('"label": "' + toLower($entity_label) + '"')
+    OR toLower(g.entities_json) CONTAINS ('"semantic_tag": "' + toLower($entity_label) + '"')
+  )
 RETURN
     g.label_id AS label_id,
     g.text AS text,
@@ -98,6 +103,11 @@ MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
 WHERE c.status = 'completed'
   AND ($source IS NULL OR g.source = $source)
   AND ($search IS NULL OR toLower(g.text) CONTAINS toLower($search))
+  AND (
+    $entity_label IS NULL
+    OR toLower(g.entities_json) CONTAINS ('"label": "' + toLower($entity_label) + '"')
+    OR toLower(g.entities_json) CONTAINS ('"semantic_tag": "' + toLower($entity_label) + '"')
+  )
 RETURN count(g) AS total
 """
 

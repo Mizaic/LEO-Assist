@@ -421,3 +421,47 @@ class TestDetectAnchors:
             "P1", "2024-01-01", "2024-12-31", mock_client, mock_registry
         )
         assert result.diagnosis_anchors == []
+
+    def test_construct_match_creates_referral_anchor(self, mock_registry):
+        from libs.domain_config.registry import NCDAConstruct, NCDAConstructRole
+        from services.analysis_worker.app.analyzers.anchor_detector import (
+            detect_anchors,
+        )
+
+        mock_registry.get_milestone_domains.return_value = {
+            "fast_track_referrals": MagicMock(
+                milestone_type="referral",
+                assertion_filter=[],
+                constructs=[
+                    NCDAConstruct(
+                        construct_id="cg_pruritus_bleed",
+                        display_name="Pruritus with bleeding referral signal",
+                        logic="ALL",
+                        roles=[
+                            NCDAConstructRole(role="condition", concept_ids=[111], required=True),
+                            NCDAConstructRole(role="qualifier", concept_ids=[222], required=True),
+                        ],
+                    )
+                ],
+            )
+        }
+        mock_registry.get_concept_ids.side_effect = lambda name: []
+
+        mock_client = MagicMock()
+        mock_client.run.side_effect = [
+            [
+                _make_row("E10", "2024-05-11", 111, "Pruritus of penis"),
+                _make_row("E10", "2024-05-11", 222, "Mild bleeding"),
+            ],
+            [],
+        ]
+
+        result = detect_anchors(
+            "P1", "2024-01-01", "2024-12-31", mock_client, mock_registry
+        )
+        assert len(result.referral_anchors) == 1
+        assert result.referral_anchors[0].get("source") == "construct_match"
+        assert (
+            result.referral_anchors[0].get("construct_id")
+            == "cg_pruritus_bleed"
+        )

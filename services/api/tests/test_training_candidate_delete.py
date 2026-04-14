@@ -19,6 +19,7 @@ from app.routers.training import (
     GET_GOLD_LABEL_BY_CANDIDATE_ID,
     GET_TRAINING_CANDIDATE_BY_ID,
     GET_TRAINING_CANDIDATES_PAGE,
+    UPDATE_GOLD_LABEL_ENTITIES,
     router as training_router,
 )
 from libs.cypher.training_candidate_queries import (
@@ -240,6 +241,141 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
     payload = r.json()
     assert payload["candidate_id"] == "cand-123"
     assert payload["source"] == "manual_gold_draft"
+
+
+def test_patch_gold_label_entities_persists_body_site_fields(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+        inner.run.return_value = MagicMock(single=MagicMock(return_value={"label_id": "label-1"}))
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.patch(
+            "/training/gold-labels/label-1/entities",
+            json={
+                "entities": [
+                    {
+                        "text": "burning sensation on micturition",
+                        "label": "finding",
+                        "assertion": "present",
+                        "body_site": "bladder",
+                        "body_site_concept_id": "89837001",
+                        "body_site_term": "Urinary bladder structure",
+                    }
+                ]
+            },
+        )
+
+    assert r.status_code == 200
+    payload = r.json()
+    saved_entity = payload["entities"][0]
+    assert saved_entity["body_site"] == "bladder"
+    assert saved_entity["body_site_concept_id"] == "89837001"
+    assert saved_entity["body_site_term"] == "Urinary bladder structure"
+
+    assert inner.run.call_count == 1
+    query_arg = inner.run.call_args.args[0]
+    params = inner.run.call_args.kwargs
+    assert query_arg == UPDATE_GOLD_LABEL_ENTITIES
+    assert '"body_site_concept_id": "89837001"' in params["entities_json"]
+    assert '"body_site_term": "Urinary bladder structure"' in params["entities_json"]
+
+
+def test_patch_gold_label_entities_persists_relations_and_mirrors_site(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+        inner.run.return_value = MagicMock(single=MagicMock(return_value={"label_id": "label-1"}))
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.patch(
+            "/training/gold-labels/label-1/entities",
+            json={
+                "entities": [
+                    {
+                        "text": "lump",
+                        "label": "finding",
+                        "assertion": "present",
+                        "relations": [{"type": "finding_site", "target_idx": 1}],
+                    },
+                    {
+                        "text": "right breast",
+                        "label": "body_structure",
+                        "snomed_concept_id": "76752008",
+                        "snomed_term": "Right breast structure",
+                    },
+                ]
+            },
+        )
+
+    assert r.status_code == 200
+    entity = r.json()["entities"][0]
+    assert entity["body_site"] == "right breast"
+    assert entity["body_site_concept_id"] == "76752008"
+    assert entity["body_site_term"] == "Right breast structure"
+    assert entity["relations"][0]["type"] == "finding_site"
+    assert entity["relations"][0]["target_idx"] == 1
+    params = inner.run.call_args.kwargs
+    assert '"relations"' in params["entities_json"]
+    assert '"finding_site"' in params["entities_json"]
+
+
+def test_patch_gold_label_entities_rejects_invalid_relation_policy(client):
+    with admin_scope_override(client.app):
+        r = client.patch(
+            "/training/gold-labels/label-1/entities",
+            json={
+                "entities": [
+                    {
+                        "text": "metformin",
+                        "label": "substance",
+                        "relations": [{"type": "finding_site", "target_idx": 1}],
+                    },
+                    {"text": "left arm", "label": "body_structure"},
+                ]
+            },
+        )
+    assert r.status_code == 422
+    assert "not allowed by relation policy" in r.json()["detail"].lower()
+
+
+def test_patch_gold_label_entities_allows_finding_to_finding_qualifies(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+        inner.run.return_value = MagicMock(single=MagicMock(return_value={"label_id": "label-1"}))
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.patch(
+            "/training/gold-labels/label-1/entities",
+            json={
+                "entities": [
+                    {
+                        "text": "increased in size",
+                        "label": "finding",
+                        "relations": [{"type": "qualifies", "target_idx": 1}],
+                    },
+                    {"text": "multiple lumps", "label": "finding"},
+                ]
+            },
+        )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["entities"][0]["relations"][0]["type"] == "qualifies"
+    assert payload["entities"][0]["relations"][0]["target_idx"] == 1
 
 
 def test_mark_candidate_completed_returns_200_when_gold_exists(client):

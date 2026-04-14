@@ -14,12 +14,16 @@ Each entity's start/end is re-derived from its surface text using find_span
 before building the DocBin. This corrects stale offsets caused by edits to
 sentence text or entity text after original span computation.
 
-Assertion filtering
--------------------
-Entities with non-present assertions (negated, hypothetical, family_history,
-possible) are excluded from training by default. Teaching the NER to detect
-spans the patient does NOT have would degrade clinical precision. Configure
-via TRAINING_EXCLUDE_ASSERTIONS (comma-separated assertion values to drop).
+Assertion handling
+------------------
+By default ALL entities are included regardless of assertion value.
+The spancat model is trained on (start, end, label) only -- assertion is not
+part of the training signal.  ConText detects assertion post-extraction.
+Excluding negated spans reduces recall with no benefit to the detector.
+
+Set TRAINING_EXCLUDE_ASSERTIONS (comma-separated) to opt-in to filtering
+specific assertion values if needed (e.g. "family_history" for a use-case
+where you never want to detect family-history spans).
 """
 
 from __future__ import annotations

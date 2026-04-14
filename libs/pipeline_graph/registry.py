@@ -136,6 +136,19 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'post_processing': %s", exc)
 
     try:
+        from libs.pipeline_graph.subgraphs.relation_linking import (
+            build_relation_linking_subgraph,
+        )
+
+        registry.register(
+            "relation_linking",
+            build_relation_linking_subgraph,
+            description="Link related extracted entities with typed relations",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'relation_linking': %s", exc)
+
+    try:
         from libs.pipeline_graph.subgraphs.terminology import build_terminology_subgraph
 
         registry.register(
@@ -343,6 +356,32 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         )
     except Exception as exc:
         logger.error("Failed to register subgraph 'human_review_gate': %s", exc)
+
+    try:
+        from libs.pipeline_graph.subgraphs.hitl_ner_queue import (
+            build_hitl_ner_queue_subgraph,
+        )
+
+        registry.register(
+            "hitl_ner_queue",
+            build_hitl_ner_queue_subgraph,
+            description="Queue extraction quality changes for human review",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'hitl_ner_queue': %s", exc)
+
+    try:
+        from libs.pipeline_graph.subgraphs.hitl_coding_queue import (
+            build_hitl_coding_queue_subgraph,
+        )
+
+        registry.register(
+            "hitl_coding_queue",
+            build_hitl_coding_queue_subgraph,
+            description="Queue coding quality changes for human review",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'hitl_coding_queue': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.encounter_coding_agent import (

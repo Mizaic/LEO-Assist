@@ -66,11 +66,13 @@ class TerminologyTextEmbedder:
                     decision.resolved,
                     decision.fallback_reason,
                 )
-            offline = os.getenv("HF_HUB_OFFLINE", "0") == "1"
+            # Default to local-only; set HF_HUB_ONLINE=1 only if you
+            # intentionally want the library to reach out to huggingface.co.
+            online = os.getenv("HF_HUB_ONLINE", "0") == "1"
             self._model = SentenceTransformer(
                 self.model_name,
                 device=device,
-                local_files_only=offline,
+                local_files_only=not online,
             )
             logger.info(
                 "Terminology embedder loaded: model=%s device=%s",

@@ -85,6 +85,55 @@ ACTIVITY_DEFINITIONS = [
         "_subgraphId": "post_processing",
     },
     {
+        "id": "ad-relation-linking",
+        "resourceType": "ActivityDefinition",
+        "name": "Relation Linking",
+        "status": "active",
+        "description": "Single-turn LLM relation linking for body site and qualifier relations",
+        "_subgraphId": "relation_linking",
+        "dynamicValue": [
+            {"path": "model_tier", "expression": {"expression": "small"}},
+            {"path": "prompt_config_id", "expression": {"expression": ""}},
+            {
+                "path": "prompt_config_name",
+                "expression": {"expression": "relation_linking"},
+            },
+            {"path": "prompt_config_version", "expression": {"expression": "1"}},
+        ],
+    },
+    {
+        "id": "ad-condition-extraction-route",
+        "resourceType": "ActivityDefinition",
+        "name": "Route After Extraction Check",
+        "status": "active",
+        "description": "Condition node that routes extraction changes to HITL queue",
+        "_subgraphId": "condition",
+        "dynamicValue": [
+            {
+                "path": "rules",
+                "expression": {
+                    "expression": [
+                        {
+                            "field": "has_extraction_changes",
+                            "operator": "==",
+                            "value": True,
+                            "outputPort": "changed",
+                        }
+                    ]
+                },
+            },
+            {"path": "defaultPort", "expression": {"expression": "pass_through"}},
+        ],
+    },
+    {
+        "id": "ad-hitl-ner-queue",
+        "resourceType": "ActivityDefinition",
+        "name": "Queue NER HITL Review",
+        "status": "active",
+        "description": "Writes extraction-change training candidates with HITL guidance",
+        "_subgraphId": "hitl_ner_queue",
+    },
+    {
         "id": "ad-terminology",
         "resourceType": "ActivityDefinition",
         "name": "Terminology Resolution",
@@ -127,7 +176,7 @@ ACTIVITY_DEFINITIONS = [
                 "path": "prompt_config_name",
                 "expression": {"expression": "extraction_check"},
             },
-            {"path": "prompt_config_version", "expression": {"expression": "1"}},
+            {"path": "prompt_config_version", "expression": {"expression": "2"}},
         ],
     },
     {
@@ -146,6 +195,38 @@ ACTIVITY_DEFINITIONS = [
             },
             {"path": "prompt_config_version", "expression": {"expression": "1"}},
         ],
+    },
+    {
+        "id": "ad-condition-coding-route",
+        "resourceType": "ActivityDefinition",
+        "name": "Route After Coding Check",
+        "status": "active",
+        "description": "Condition node that routes coding issues to HITL queue",
+        "_subgraphId": "condition",
+        "dynamicValue": [
+            {
+                "path": "rules",
+                "expression": {
+                    "expression": [
+                        {
+                            "field": "has_coding_issues",
+                            "operator": "==",
+                            "value": True,
+                            "outputPort": "issues",
+                        }
+                    ]
+                },
+            },
+            {"path": "defaultPort", "expression": {"expression": "clean"}},
+        ],
+    },
+    {
+        "id": "ad-hitl-coding-queue",
+        "resourceType": "ActivityDefinition",
+        "name": "Queue Coding HITL Review",
+        "status": "active",
+        "description": "Writes coding-change training candidates with HITL guidance",
+        "_subgraphId": "hitl_coding_queue",
     },
     {
         "id": "ad-persist-patient",
@@ -290,29 +371,69 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-extraction-check",
-                "title": "Extraction Quality Check",
+                "id": "act-relation-link",
+                "title": "Link Entity Relations",
                 "_sequence": 3,
-                "_subgraphId": "extraction_check",
-                "definitionCanonical": "ActivityDefinition/ad-extraction-check",
+                "_subgraphId": "relation_linking",
+                "definitionCanonical": "ActivityDefinition/ad-relation-linking",
                 "relatedAction": [
                     {"actionId": "act-post-process", "relationship": "after-end"}
                 ],
             },
             {
-                "id": "act-terminology",
-                "title": "Resolve Terminology",
+                "id": "act-extraction-check",
+                "title": "Extraction Quality Check",
                 "_sequence": 4,
-                "_subgraphId": "terminology",
-                "definitionCanonical": "ActivityDefinition/ad-terminology",
+                "_subgraphId": "extraction_check",
+                "definitionCanonical": "ActivityDefinition/ad-extraction-check",
+                "relatedAction": [
+                    {"actionId": "act-relation-link", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-extraction-route",
+                "title": "Route Extraction Outcome",
+                "_sequence": 5,
+                "_subgraphId": "condition",
+                "_nodeType": "condition",
+                "definitionCanonical": "ActivityDefinition/ad-condition-extraction-route",
                 "relatedAction": [
                     {"actionId": "act-extraction-check", "relationship": "after-end"}
                 ],
             },
             {
+                "id": "act-hitl-ner-queue",
+                "title": "Queue NER HITL",
+                "_sequence": 6,
+                "_subgraphId": "hitl_ner_queue",
+                "definitionCanonical": "ActivityDefinition/ad-hitl-ner-queue",
+                "relatedAction": [
+                    {"actionId": "act-extraction-route", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {"actionId": "act-extraction-route", "sourceHandle": "changed"}
+                ],
+            },
+            {
+                "id": "act-terminology",
+                "title": "Resolve Terminology",
+                "_sequence": 7,
+                "_subgraphId": "terminology",
+                "definitionCanonical": "ActivityDefinition/ad-terminology",
+                "relatedAction": [
+                    {"actionId": "act-extraction-route", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-extraction-route",
+                        "sourceHandle": "pass_through",
+                    }
+                ],
+            },
+            {
                 "id": "act-coding-check",
                 "title": "Coding Quality Check",
-                "_sequence": 5,
+                "_sequence": 8,
                 "_subgraphId": "coding_check",
                 "definitionCanonical": "ActivityDefinition/ad-coding-check",
                 "relatedAction": [
@@ -320,19 +441,46 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-tier-classify",
-                "title": "Classify Tiers",
-                "_sequence": 6,
-                "_subgraphId": "tier_classify",
-                "definitionCanonical": "ActivityDefinition/ad-tier-classify",
+                "id": "act-coding-route",
+                "title": "Route Coding Outcome",
+                "_sequence": 9,
+                "_subgraphId": "condition",
+                "_nodeType": "condition",
+                "definitionCanonical": "ActivityDefinition/ad-condition-coding-route",
                 "relatedAction": [
                     {"actionId": "act-coding-check", "relationship": "after-end"}
                 ],
             },
             {
+                "id": "act-hitl-coding-queue",
+                "title": "Queue Coding HITL",
+                "_sequence": 10,
+                "_subgraphId": "hitl_coding_queue",
+                "definitionCanonical": "ActivityDefinition/ad-hitl-coding-queue",
+                "relatedAction": [
+                    {"actionId": "act-coding-route", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {"actionId": "act-coding-route", "sourceHandle": "issues"}
+                ],
+            },
+            {
+                "id": "act-tier-classify",
+                "title": "Classify Tiers",
+                "_sequence": 11,
+                "_subgraphId": "tier_classify",
+                "definitionCanonical": "ActivityDefinition/ad-tier-classify",
+                "relatedAction": [
+                    {"actionId": "act-coding-route", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {"actionId": "act-coding-route", "sourceHandle": "clean"}
+                ],
+            },
+            {
                 "id": "act-persist",
                 "title": "Persist to Patient Graph and Gold Training",
-                "_sequence": 7,
+                "_sequence": 12,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-both",
                 "relatedAction": [
@@ -342,7 +490,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-anchor",
                 "title": "Detect Anchors",
-                "_sequence": 8,
+                "_sequence": 13,
                 "_subgraphId": "anchor_detect",
                 "definitionCanonical": "ActivityDefinition/ad-anchor-detect",
                 "relatedAction": [
@@ -352,7 +500,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-episode",
                 "title": "Build Episodes",
-                "_sequence": 9,
+                "_sequence": 14,
                 "_subgraphId": "episode_build",
                 "definitionCanonical": "ActivityDefinition/ad-episode-build",
                 "relatedAction": [
@@ -362,7 +510,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-safety-net",
                 "title": "Safety Netting",
-                "_sequence": 10,
+                "_sequence": 15,
                 "_subgraphId": "safety_net",
                 "definitionCanonical": "ActivityDefinition/ad-safety-net",
                 "relatedAction": [
@@ -372,7 +520,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-quality",
                 "title": "Quality Check",
-                "_sequence": 11,
+                "_sequence": 16,
                 "_subgraphId": "quality_check",
                 "definitionCanonical": "ActivityDefinition/ad-quality-check",
                 "relatedAction": [
@@ -484,19 +632,42 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-gold-verify",
-                "title": "Big-Model Verification",
+                "id": "act-gold-relation-link",
+                "title": "Link Entity Relations",
                 "_sequence": 2,
-                "_subgraphId": "verification",
-                "definitionCanonical": "ActivityDefinition/ad-verification",
+                "_subgraphId": "relation_linking",
+                "definitionCanonical": "ActivityDefinition/ad-relation-linking",
                 "relatedAction": [
                     {"actionId": "act-gold-post-process", "relationship": "after-end"}
                 ],
             },
             {
+                "id": "act-gold-extraction-check",
+                "title": "Extraction Quality Check",
+                "_sequence": 3,
+                "_subgraphId": "extraction_check",
+                "definitionCanonical": "ActivityDefinition/ad-extraction-check",
+                "relatedAction": [
+                    {"actionId": "act-gold-relation-link", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-gold-verify",
+                "title": "Big-Model Verification",
+                "_sequence": 4,
+                "_subgraphId": "verification",
+                "definitionCanonical": "ActivityDefinition/ad-verification",
+                "relatedAction": [
+                    {
+                        "actionId": "act-gold-extraction-check",
+                        "relationship": "after-end",
+                    }
+                ],
+            },
+            {
                 "id": "act-gold-terminology",
                 "title": "Resolve Terminology",
-                "_sequence": 3,
+                "_sequence": 5,
                 "_subgraphId": "terminology",
                 "definitionCanonical": "ActivityDefinition/ad-terminology",
                 "relatedAction": [
@@ -506,7 +677,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-gold-persist",
                 "title": "Persist Gold Labels",
-                "_sequence": 5,
+                "_sequence": 7,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-training",
                 "relatedAction": [
@@ -519,7 +690,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-gold-surface-form-validation",
                 "title": "Surface Form Validation",
-                "_sequence": 4,
+                "_sequence": 6,
                 "_subgraphId": "surface_form_validation",
                 "definitionCanonical": "ActivityDefinition/ad-surface-form-validation",
                 "relatedAction": [
@@ -587,6 +758,7 @@ def _to_ui_format(pd_def: dict) -> dict:
                 "id": act["id"],
                 "subgraphId": act.get("_subgraphId", ""),
                 "label": act.get("title", act.get("_subgraphId", "")),
+                "nodeType": act.get("_nodeType", "action"),
                 "position": {"x": 250, "y": 80 + i * 160},
                 "config": config,
             }
@@ -596,6 +768,17 @@ def _to_ui_format(pd_def: dict) -> dict:
             source_id = rel.get("actionId", "")
             if source_id:
                 ui_edges.append({"source": source_id, "target": act["id"]})
+        for rel in act.get("relatedActionEdges", []):
+            source_id = rel.get("actionId", "")
+            if source_id:
+                ui_edges.append(
+                    {
+                        "source": source_id,
+                        "target": act["id"],
+                        "sourceHandle": rel.get("sourceHandle"),
+                        "targetHandle": rel.get("targetHandle"),
+                    }
+                )
 
     trigger_action_id = ""
     for act in fhir_actions:
@@ -661,12 +844,15 @@ CREATE_ACTION = """
 MATCH (pd:PlanDefinition {id: $plan_id})
 CREATE (pd)-[:HAS_ACTION]->(a:Action {
   id: $action_id,
+  canvas_id: $action_id,
+  nodeType: $node_type,
   trigger_type: $trigger_type,
   trigger_name: $trigger_name,
   condition: $condition,
   sequence: $sequence,
   subgraphId: $subgraph_id,
-  relatedActions: $related_actions
+  relatedActions: $related_actions,
+  relatedActionEdges: $related_action_edges
 })
 """
 
@@ -779,16 +965,19 @@ def seed_with_client(client, *, force: bool = False) -> None:
                 related_ids = [
                     r.get("actionId", "") for r in (action.get("relatedAction") or [])
                 ]
+                related_edges = action.get("relatedActionEdges") or []
                 client.run(
                     CREATE_ACTION,
                     plan_id=pd["id"],
                     action_id=action["id"],
+                    node_type=action.get("_nodeType", "action"),
                     trigger_type=trigger.get("type", ""),
                     trigger_name=trigger.get("name", ""),
                     condition=None,
                     sequence=action.get("_sequence", 0),
                     subgraph_id=action.get("_subgraphId", ""),
                     related_actions=related_ids,
+                    related_action_edges=json.dumps(related_edges),
                 )
                 if definition_ref:
                     activity_id = definition_ref.split("/")[-1]
@@ -904,18 +1093,21 @@ def main() -> None:
             related_ids = [
                 r.get("actionId", "") for r in (action.get("relatedAction") or [])
             ]
+            related_edges = action.get("relatedActionEdges") or []
 
             with driver.session() as session:
                 session.run(
                     CREATE_ACTION,
                     plan_id=pd["id"],
                     action_id=action["id"],
+                    node_type=action.get("_nodeType", "action"),
                     trigger_type=trigger_type,
                     trigger_name=trigger_name,
                     condition=None,
                     sequence=action.get("_sequence", 0),
                     subgraph_id=action.get("_subgraphId", ""),
                     related_actions=related_ids,
+                    related_action_edges=json.dumps(related_edges),
                 )
                 if definition_ref:
                     activity_id = definition_ref.split("/")[-1]

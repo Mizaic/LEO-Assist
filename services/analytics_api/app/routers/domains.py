@@ -181,6 +181,7 @@ _VALUESET_READ_QUERY = (
     "       v.timeWindowMonths AS timeWindowMonths, "
     "       v.semanticTags AS semanticTags, "
     "       coalesce(v.assertionFilter, []) AS assertionFilter, "
+    "       coalesce(v.constructs, []) AS constructs, "
     "       v.rawJson AS rawJson"
 )
 
@@ -195,6 +196,21 @@ def _parse_list_prop(val) -> List[str]:
         except (json.JSONDecodeError, TypeError):
             return []
     return list(val) if isinstance(val, (list, tuple)) else []
+
+
+def _parse_constructs_prop(val: Any) -> List[Dict[str, Any]]:
+    """Coerce a Neo4j property (list or JSON string) to construct rows."""
+    if not val:
+        return []
+    parsed = val
+    if isinstance(parsed, str):
+        try:
+            parsed = json.loads(parsed)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    if not isinstance(parsed, list):
+        return []
+    return [row for row in parsed if isinstance(row, dict)]
 
 
 def _batch_child_counts(concept_ids: List[str], depth: int = 3) -> Dict[str, int]:
@@ -232,6 +248,7 @@ def _valueset_row_to_subdomain_detail(
 ) -> SubdomainDetail:
     concepts = _parse_concepts_from_raw(vr.get("rawJson"))
     _enrich_with_child_counts(concepts)
+    constructs = _parse_constructs_prop(vr.get("constructs"))
     return SubdomainDetail(
         name=vr.get("name") or subdomain_name,
         description=vr.get("description") or "",
@@ -239,6 +256,8 @@ def _valueset_row_to_subdomain_detail(
         time_window_months=vr.get("timeWindowMonths"),
         semantic_tags=_parse_list_prop(vr.get("semanticTags")),
         assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
+        constructs=constructs,
+        construct_count=len(constructs),
         concepts=concepts,
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
     )
@@ -255,6 +274,7 @@ def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
     time_window_months = vs_dict.get("timeWindowMonths")
     semantic_tags = vs_dict.get("semanticTags", [])
     assertion_filter = vs_dict.get("assertionFilter", [])
+    constructs = vs_dict.get("constructs", [])
 
     if milestone_type is None or time_window_months is None or not semantic_tags:
         for ext in vs_dict.get("extension") or []:
@@ -285,6 +305,7 @@ def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
             "    v.timeWindowMonths = $twm, "
             "    v.semanticTags = $tags, "
             "    v.assertionFilter = $af, "
+            "    v.constructs = $constructs, "
             "    v.rawJson = $raw",
             id=vs_id,
             name=name,
@@ -295,6 +316,7 @@ def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
             twm=time_window_months,
             tags=semantic_tags,
             af=assertion_filter,
+            constructs=constructs,
             raw=raw_json,
         )
     finally:
@@ -311,6 +333,8 @@ class SubdomainSummary(BaseModel):
     time_window_months: Optional[int] = None
     semantic_tags: List[str] = []
     assertion_filter: List[str] = []
+    constructs: List[Dict[str, Any]] = []
+    construct_count: int = 0
     concept_count: int = 0
     descendant_count: int = 0
 
@@ -351,6 +375,7 @@ class SubdomainCreateRequest(BaseModel):
     time_window_months: Optional[int] = None
     semantic_tags: List[str] = []
     assertion_filter: List[str] = []
+    constructs: List[Dict[str, Any]] = []
 
 
 class SubdomainUpdateRequest(BaseModel):
@@ -359,6 +384,7 @@ class SubdomainUpdateRequest(BaseModel):
     time_window_months: Optional[int] = None
     semantic_tags: Optional[List[str]] = None
     assertion_filter: Optional[List[str]] = None
+    constructs: Optional[List[Dict[str, Any]]] = None
 
 
 class AddConceptRequest(BaseModel):
@@ -366,6 +392,20 @@ class AddConceptRequest(BaseModel):
     term: str = Field(..., min_length=1)
     synonyms: List[str] = []
     benchmark_key: Optional[str] = None
+
+
+class ConstructRoleRequest(BaseModel):
+    role: str = Field(..., min_length=1)
+    concept_ids: List[int] = []
+    required: bool = True
+
+
+class ConstructDefinitionRequest(BaseModel):
+    id: str = Field(..., min_length=1)
+    display_name: str = Field(..., min_length=1)
+    description: str = ""
+    logic: str = "ALL"
+    roles: List[ConstructRoleRequest] = []
 
 
 # ── Domain endpoints ─────────────────────────────────────────────────────
@@ -544,6 +584,7 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
             "       v.timeWindowMonths AS timeWindowMonths, "
             "       v.semanticTags AS semanticTags, "
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
+            "       coalesce(v.constructs, []) AS constructs, "
             "       v.rawJson AS rawJson "
             "ORDER BY v.name",
             id=domain_id,
@@ -565,6 +606,7 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
         subdomains: List[SubdomainSummary] = []
         for vr, subdomain_name, concept_ids in parsed:
             desc_count = sum(child_counts.get(cid, 0) for cid in concept_ids)
+            constructs = _parse_constructs_prop(vr.get("constructs"))
             subdomains.append(
                 SubdomainSummary(
                     name=subdomain_name,
@@ -573,6 +615,8 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
                     time_window_months=vr.get("timeWindowMonths"),
                     semantic_tags=_parse_list_prop(vr.get("semanticTags")),
                     assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
+                    constructs=constructs,
+                    construct_count=len(constructs),
                     concept_count=len(concept_ids),
                     descendant_count=desc_count,
                 )
@@ -740,6 +784,7 @@ def create_subdomain(
         "timeWindowMonths": body.time_window_months,
         "semanticTags": body.semantic_tags,
         "assertionFilter": body.assertion_filter,
+        "constructs": body.constructs,
         "compose": {"include": [{"system": SNOMED_SYSTEM, "concept": []}]},
     }
     _upsert_valueset_flat(vs_id, resource)
@@ -764,6 +809,8 @@ def create_subdomain(
         time_window_months=body.time_window_months,
         semantic_tags=body.semantic_tags,
         assertion_filter=body.assertion_filter,
+        constructs=body.constructs,
+        construct_count=len(body.constructs),
         concept_count=0,
     )
 
@@ -788,6 +835,7 @@ def get_subdomain(
             "       v.timeWindowMonths AS timeWindowMonths, "
             "       v.semanticTags AS semanticTags, "
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
+            "       coalesce(v.constructs, []) AS constructs, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )
@@ -832,6 +880,9 @@ def update_subdomain(
     if body.assertion_filter is not None:
         sets.append("v.assertionFilter = $af")
         params["af"] = body.assertion_filter
+    if body.constructs is not None:
+        sets.append("v.constructs = $constructs")
+        params["constructs"] = body.constructs
 
     client = KnowledgeGraphClient()
     try:
@@ -847,6 +898,7 @@ def update_subdomain(
             "       v.timeWindowMonths AS timeWindowMonths, "
             "       v.semanticTags AS semanticTags, "
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
+            "       coalesce(v.constructs, []) AS constructs, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )
@@ -878,11 +930,114 @@ def update_subdomain(
         time_window_months=vr.get("timeWindowMonths"),
         semantic_tags=tags,
         assertion_filter=af,
+        constructs=_parse_constructs_prop(vr.get("constructs")),
+        construct_count=len(_parse_constructs_prop(vr.get("constructs"))),
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
     )
 
 
+def _normalise_construct_rows(
+    constructs: List[ConstructDefinitionRequest],
+) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for construct in constructs:
+        roles: List[Dict[str, Any]] = []
+        for role in construct.roles:
+            role_name = role.role.strip()
+            concept_ids = [int(cid) for cid in role.concept_ids if int(cid) > 0]
+            if not role_name or not concept_ids:
+                continue
+            roles.append(
+                {
+                    "role": role_name,
+                    "concept_ids": concept_ids,
+                    "required": bool(role.required),
+                }
+            )
+        if not roles:
+            continue
+        rows.append(
+            {
+                "id": construct.id.strip(),
+                "display_name": construct.display_name.strip(),
+                "description": construct.description.strip(),
+                "logic": construct.logic.strip().upper() or "ALL",
+                "roles": roles,
+            }
+        )
+    return rows
+
+
 # ── Concept endpoints (within a subdomain) ───────────────────────────────
+
+
+@router.get(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/constructs",
+    response_model=List[Dict[str, Any]],
+)
+def list_constructs(
+    domain_id: str,
+    subdomain_name: str,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+    vs_id = _subdomain_to_valueset_id(subdomain_name)
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (v:ValueSet {id: $id}) "
+            "RETURN coalesce(v.constructs, []) AS constructs",
+            id=vs_id,
+        )
+        if not rows:
+            raise HTTPException(404, f"Subdomain '{subdomain_name}' not found")
+        return _parse_constructs_prop(rows[0].get("constructs"))
+    finally:
+        client.close()
+
+
+@router.put(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/constructs",
+    response_model=SubdomainSummary,
+)
+def replace_constructs(
+    domain_id: str,
+    subdomain_name: str,
+    body: List[ConstructDefinitionRequest],
+    scope: CallerScope = Depends(_require_admin),
+):
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+    vs_id = _subdomain_to_valueset_id(subdomain_name)
+    raw = _get_valueset_raw(vs_id)
+    if raw is None:
+        raise HTTPException(404, f"Subdomain '{subdomain_name}' not found")
+    try:
+        vs = json.loads(raw) if isinstance(raw, str) else raw
+    except (json.JSONDecodeError, TypeError):
+        vs = {}
+    vs["constructs"] = _normalise_construct_rows(body)
+    _upsert_valueset_flat(vs_id, vs)
+    DomainRegistry.reset_instance()
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(_VALUESET_READ_QUERY, id=vs_id)
+        if not rows:
+            raise HTTPException(404, f"Subdomain '{subdomain_name}' not found")
+    finally:
+        client.close()
+    vr = rows[0]
+    constructs = _parse_constructs_prop(vr.get("constructs"))
+    return SubdomainSummary(
+        name=vr.get("name") or subdomain_name,
+        description=vr.get("description") or "",
+        milestone_type=vr.get("milestoneType"),
+        time_window_months=vr.get("timeWindowMonths"),
+        semantic_tags=_parse_list_prop(vr.get("semanticTags")),
+        assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
+        constructs=constructs,
+        construct_count=len(constructs),
+        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+    )
 
 
 @router.post(

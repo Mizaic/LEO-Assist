@@ -15,19 +15,25 @@ MERGE (c:TrainingCandidate {candidate_id: $candidate_id})
 ON CREATE SET
     c.text = $text,
     c.entities_json = $entities_json,
+    c.relation_changes = $relation_changes,
     c.source = $source,
     c.status = $status,
+    c.hitl_reason = $hitl_reason,
+    c.hitl_guidance = $hitl_guidance,
     c.schema_version = $schema_version,
     c.created_at = datetime(),
     c.updated_at = datetime()
 ON MATCH SET
     c.text = $text,
     c.entities_json = $entities_json,
+    c.relation_changes = $relation_changes,
     c.source = $source,
     c.status = CASE
         WHEN c.status = 'completed' AND $status = 'pending' THEN c.status
         ELSE $status
     END,
+    c.hitl_reason = $hitl_reason,
+    c.hitl_guidance = $hitl_guidance,
     c.schema_version = $schema_version,
     c.updated_at = datetime()
 RETURN c.candidate_id AS candidate_id, c.status AS status
@@ -46,8 +52,11 @@ RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
     c.entities_json AS entities_json,
+    c.relation_changes AS relation_changes,
     c.source AS source,
     c.status AS status,
+    c.hitl_reason AS hitl_reason,
+    c.hitl_guidance AS hitl_guidance,
     c.schema_version AS schema_version,
     toString(c.created_at) AS created_at,
     toString(c.updated_at) AS updated_at
@@ -63,8 +72,11 @@ RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
     c.entities_json AS entities_json,
+    c.relation_changes AS relation_changes,
     c.source AS source,
     c.status AS status,
+    c.hitl_reason AS hitl_reason,
+    c.hitl_guidance AS hitl_guidance,
     c.schema_version AS schema_version,
     toString(c.created_at) AS created_at,
     toString(c.updated_at) AS updated_at
@@ -116,8 +128,11 @@ RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
     c.entities_json AS entities_json,
+    c.relation_changes AS relation_changes,
     c.source AS source,
     c.uncertainty_score AS uncertainty_score,
+    c.hitl_reason AS hitl_reason,
+    c.hitl_guidance AS hitl_guidance,
     toString(c.created_at) AS created_at,
     toString(c.updated_at) AS updated_at
 ORDER BY
@@ -125,6 +140,27 @@ ORDER BY
     c.created_at ASC
 SKIP $skip
 LIMIT $limit
+"""
+
+# Fetches all pending candidates for Python-side rarity re-ranking.
+# Capped at 2000 to keep response time acceptable; new arrivals rotate in
+# as earlier items are reviewed and move out of the pending pool.
+GET_ALL_PENDING_FOR_RANKING = """
+MATCH (c:TrainingCandidate)
+WHERE c.status = 'pending'
+RETURN
+    c.candidate_id AS candidate_id,
+    c.text AS text,
+    c.entities_json AS entities_json,
+    c.relation_changes AS relation_changes,
+    c.source AS source,
+    c.uncertainty_score AS uncertainty_score,
+    c.hitl_reason AS hitl_reason,
+    c.hitl_guidance AS hitl_guidance,
+    toString(c.created_at) AS created_at,
+    toString(c.updated_at) AS updated_at
+ORDER BY c.created_at ASC
+LIMIT 2000
 """
 
 COUNT_ACTIVE_LEARNING_QUEUE = """

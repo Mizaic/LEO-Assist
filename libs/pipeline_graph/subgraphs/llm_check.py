@@ -12,6 +12,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from libs.llm_client.prompt_safety import sanitise_for_prompt
+from libs.relations.policy import allowed_relation_types
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
@@ -34,6 +35,8 @@ _CONFIRMED_DIAGNOSIS_RE = re.compile(
     re.IGNORECASE,
 )
 
+_ALLOWED_RELATION_TYPES = allowed_relation_types()
+
 
 class LLMCheckState(TypedDict, total=False):
     encounter_text: str
@@ -43,6 +46,9 @@ class LLMCheckState(TypedDict, total=False):
     llm_check_mode: str
     llm_check_result: dict[str, Any]
     llm_check_changes: list[dict[str, Any]]
+    relation_changes: list[dict[str, Any]]
+    has_extraction_changes: bool
+    has_coding_issues: bool
     errors: list[str]
 
 
@@ -107,15 +113,15 @@ def _resolve_prompt(mode: str, state: LLMCheckState) -> str:
 
         if mode == "coding":
             return get_prompt("coding_check", version=1)
-        return get_prompt("extraction_check", version=1)
+        return get_prompt("extraction_check", version=2)
     except Exception:
         if mode == "coding":
             from libs.prompts.coding_check_v1 import CODING_CHECK_SYSTEM_V1
 
             return CODING_CHECK_SYSTEM_V1
-        from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_SYSTEM_V1
+        from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_SYSTEM_V2
 
-        return EXTRACTION_CHECK_SYSTEM_V1
+        return EXTRACTION_CHECK_SYSTEM_V2
 
 
 def _resolve_span(encounter_text: str, needle: str) -> tuple[int, int]:
@@ -237,6 +243,73 @@ def _apply_referral_inference_guard(
     return [ent for i, ent in enumerate(entities) if i not in drop_set]
 
 
+def _parse_relation_rows(rows: Any, entities_count: int) -> list[dict[str, Any]]:
+    parsed: list[dict[str, Any]] = []
+    if not isinstance(rows, list):
+        return parsed
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        relation_type = str(row.get("type") or "").strip().lower()
+        target_idx = row.get("target_idx")
+        if not (
+            relation_type in _ALLOWED_RELATION_TYPES
+            and isinstance(target_idx, int)
+            and 0 <= target_idx < entities_count
+        ):
+            continue
+        parsed.append(
+            {
+                "type": relation_type,
+                "target_idx": target_idx,
+                "target_text": str(row.get("target_text") or "").strip(),
+                "confidence": float(row.get("confidence") or 0.6),
+            }
+        )
+    return parsed
+
+
+def _apply_relation_updates(
+    entities: list[dict[str, Any]],
+    result: dict[str, Any],
+    relation_changes: list[dict[str, Any]],
+) -> None:
+    for row in result.get("correct_relation", []):
+        if not isinstance(row, dict):
+            continue
+        idx = row.get("index")
+        if not (isinstance(idx, int) and 0 <= idx < len(entities)):
+            continue
+        parsed = _parse_relation_rows(row.get("relations"), len(entities))
+        if not parsed:
+            continue
+        entities[idx]["__relations"] = parsed
+        entities[idx]["_llm_check_source"] = "relation_corrected"
+        relation_changes.append(
+            {"type": "relation_corrected", "index": idx, "relations": parsed}
+        )
+
+    for row in result.get("add_relation", []):
+        if not isinstance(row, dict):
+            continue
+        idx = row.get("index")
+        if not (isinstance(idx, int) and 0 <= idx < len(entities)):
+            continue
+        parsed = _parse_relation_rows([row], len(entities))
+        if not parsed:
+            continue
+        current = list(entities[idx].get("__relations") or [])
+        rel = parsed[0]
+        if rel in current:
+            continue
+        current.append(rel)
+        entities[idx]["__relations"] = current
+        entities[idx]["_llm_check_source"] = "relation_missed"
+        relation_changes.append(
+            {"type": "relation_missed", "index": idx, "relation": rel}
+        )
+
+
 def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
     encounter_text = str(state.get("encounter_text") or "")
     entities = list(state.get("entities") or [])
@@ -271,6 +344,7 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
     entities = deepcopy(state.get("entities") or [])
     result = state.get("llm_check_result") or {}
     changes: list[dict[str, Any]] = []
+    relation_changes: list[dict[str, Any]] = []
 
     drop_indices = set()
     for idx in result.get("drop", []):
@@ -360,8 +434,14 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
     entities = _apply_scope_guard_after_extraction_check(
         encounter_text, entities, changes
     )
+    _apply_relation_updates(entities, result, relation_changes)
 
-    return {"entities": entities, "llm_check_changes": changes}
+    return {
+        "entities": entities,
+        "llm_check_changes": changes,
+        "relation_changes": relation_changes,
+        "has_extraction_changes": bool(changes or relation_changes),
+    }
 
 
 def _apply_coding_check(state: LLMCheckState) -> dict[str, Any]:
@@ -392,7 +472,11 @@ def _apply_coding_check(state: LLMCheckState) -> dict[str, Any]:
             entity for i, entity in enumerate(entities) if i not in drop_indices
         ]
 
-    return {"entities": entities, "llm_check_changes": changes}
+    return {
+        "entities": entities,
+        "llm_check_changes": changes,
+        "has_coding_issues": bool(changes),
+    }
 
 
 def extraction_check(state: LLMCheckState) -> dict[str, Any]:

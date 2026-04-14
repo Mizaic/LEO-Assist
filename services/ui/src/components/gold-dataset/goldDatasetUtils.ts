@@ -42,7 +42,7 @@ export function parseEntities(json: string | null): Entity[] {
         (entry): entry is Record<string, unknown> =>
           Boolean(entry) && typeof entry === "object",
       )
-      .map((entry) => {
+      .map((entry, index, all) => {
         const coding =
           entry.coding && typeof entry.coding === "object"
             ? (entry.coding as Record<string, unknown>)
@@ -61,11 +61,54 @@ export function parseEntities(json: string | null): Entity[] {
             "",
         ).trim();
         const text = String(entry.text ?? "").trim();
+        const bodySiteConceptId = String(entry.body_site_concept_id ?? "").trim();
+        const bodySiteTerm = String(entry.body_site_term ?? "").trim();
+        const rawRelations = Array.isArray(entry.relations)
+          ? (entry.relations as Array<Record<string, unknown>>)
+          : Array.isArray(entry.__relations)
+            ? (entry.__relations as Array<Record<string, unknown>>)
+            : [];
+        const relations = rawRelations
+          .map((row) => {
+            const type = String(row.type ?? "").trim().toLowerCase();
+            const targetIdx = Number(row.target_idx);
+            if (!type || Number.isNaN(targetIdx)) return null;
+            return {
+              type,
+              target_idx: targetIdx,
+              target_text: String(row.target_text ?? "").trim() || undefined,
+              confidence: typeof row.confidence === "number" ? Number(row.confidence) : undefined,
+            };
+          })
+          .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+        if (!relations.some((row) => row.type === "finding_site")) {
+          const legacySite = bodySiteTerm || String(entry.body_site ?? "").trim();
+          if (legacySite) {
+            const targetIdx = all.findIndex((target, idx) => {
+              if (idx === index || !target || typeof target !== "object") return false;
+              const text = String(target.text ?? "").trim().toLowerCase();
+              const term = String(target.snomed_term ?? target.term ?? "").trim().toLowerCase();
+              return legacySite.toLowerCase() === text || legacySite.toLowerCase() === term;
+            });
+            if (targetIdx >= 0) {
+              relations.push({
+                type: "finding_site",
+                target_idx: targetIdx,
+                target_text: String((all[targetIdx] as Record<string, unknown>).text ?? "").trim() || undefined,
+                confidence: 1,
+              });
+            }
+          }
+        }
         return {
           ...entry,
           text,
           snomed_concept_id: snomedConceptId || undefined,
           snomed_term: snomedTerm || undefined,
+          body_site_concept_id: bodySiteConceptId || undefined,
+          body_site_term: bodySiteTerm || undefined,
+          relations,
         } as Entity;
       });
     return normaliseEntitySemanticRows(rows);
@@ -143,4 +186,51 @@ export function formatDate(iso: string | null): string {
 
 export function coerceEntityLabel(label: string | undefined): EntitySemanticLabel {
   return (label ?? "finding") as EntitySemanticLabel;
+}
+
+// -- Entity label colour palette (shared across chart, chips and pills) ------
+//
+// Keys are lowercase canonical labels.  Use entityLabelColour() for lookup --
+// it lowercases the input so it works with both "DISORDER" and "disorder".
+
+export const ENTITY_LABEL_COLOURS: Record<string, string> = {
+  disorder: "#1565c0",
+  finding: "#2e7d32",
+  procedure: "#6a1b9a",
+  observable_entity: "#00838f",
+  qualifier_value: "#e65100",
+  substance: "#4e342e",
+  medicinal_product: "#ad1457",
+  clinical_drug: "#c62828",
+  situation: "#558b2f",
+  event: "#f57f17",
+  body_structure: "#37474f",
+  x_temporal: "#0277bd",
+  x_dosage: "#4527a0",
+  x_frequency: "#283593",
+  x_route: "#00695c",
+  assessment_scale: "#5d4037",
+  attribute: "#827717",
+  environment: "#004d40",
+  morphologic_abnormality: "#880e4f",
+  occupation: "#795548",
+  organism: "#1b5e20",
+  physical_object: "#263238",
+  product: "#b71c1c",
+  record_artifact: "#3e2723",
+  regime_therapy: "#4a148c",
+  staging_scale: "#006064",
+  tumor_staging: "#bf360c",
+};
+
+/** Fallback colour for unknown / unlabelled entities. */
+export const ENTITY_COLOUR_FALLBACK = "#78909c";
+
+/**
+ * Return a hex colour for a given entity label.
+ * Case-insensitive: works with both "DISORDER" (server/chart) and "disorder" (UI objects).
+ */
+export function entityLabelColour(label: string | undefined | null): string {
+  const key = String(label ?? "").toLowerCase();
+  return ENTITY_LABEL_COLOURS[key] ?? ENTITY_COLOUR_FALLBACK;
 }

@@ -51,7 +51,7 @@ def test_append_filters_adds_patient_and_date():
 async def test_encounter_list_without_search_returns_rows(monkeypatch):
     class _FakeClient:
         def run(self, query, **kwargs):
-            if "count(DISTINCT e) AS total" in query:
+            if "count(e) AS total" in query:
                 return [{"total": 1}]
             if "RETURN toString(e.id) AS encounter_id" in query:
                 return [

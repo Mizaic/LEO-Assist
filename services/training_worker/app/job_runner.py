@@ -33,8 +33,11 @@ _MAX_CONCURRENT = int(os.getenv("TRAINING_MAX_CONCURRENT_JOBS", "1"))
 _semaphore = threading.Semaphore(_MAX_CONCURRENT)
 
 _export_labels_fn: Optional[Callable] = None
+_export_relations_fn: Optional[Callable] = None
 _run_training_fn: Optional[Callable] = None
+_run_relation_training_fn: Optional[Callable] = None
 _evaluate_model_fn: Optional[Callable] = None
+_evaluate_relation_model_fn: Optional[Callable] = None
 _model_store_cls = None
 _model_registry_cls = None
 
@@ -71,6 +74,8 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             store.append_log(job, "Phase 0/5 — Preparing training pipeline…")
             _phase_export(job, store, work_dir)
             export_meta = job.metrics.get("export", {})
+            _phase_export_relations(job, store, work_dir)
+            relation_export_meta = job.metrics.get("relation_export", {})
             store.append_log(
                 job, f"Phase export complete in {time.perf_counter() - started_t:.1f}s"
             )
@@ -79,19 +84,37 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
 
             train_t = time.perf_counter()
             model_dir = _phase_train(job, store, work_dir, train_path, dev_path)
+            relation_model_path = _phase_train_relations(job, store, work_dir)
             store.append_log(
                 job, f"Phase train complete in {time.perf_counter() - train_t:.1f}s"
             )
             eval_t = time.perf_counter()
             metrics = _phase_evaluate(job, store, model_dir, dev_path)
+            relation_metrics = _phase_evaluate_relations(
+                job, store, relation_model_path, work_dir
+            )
+            metrics = {
+                **metrics,
+                "relation_model": relation_metrics,
+                "relation_export": relation_export_meta,
+            }
             store.append_log(
                 job, f"Phase evaluate complete in {time.perf_counter() - eval_t:.1f}s"
             )
 
-            if not metrics["passed_gates"]:
+            relation_gate_passed = bool(
+                metrics.get("relation_model", {}).get("passed_gates", True)
+            )
+            if (not metrics["passed_gates"]) or (not relation_gate_passed):
                 g_f = metrics.get("golden_f1")
                 min_g = metrics.get("min_golden_f1")
-                if g_f is not None and g_f < (min_g or 0):
+                if not relation_gate_passed:
+                    rel = metrics.get("relation_model", {})
+                    err = (
+                        f"Relation model gate failed: F1={float(rel.get('f1') or 0.0):.3f} "
+                        f"(min={float(rel.get('min_f1') or 0.6):.3f})."
+                    )
+                elif g_f is not None and g_f < (min_g or 0):
                     err = (
                         f"Golden set F1={g_f:.3f} below threshold {min_g}. "
                         "Model regressed on frozen benchmark."
@@ -228,6 +251,38 @@ def _phase_train(
     return model_dir
 
 
+def _phase_export_relations(job: TrainingJob, store: TrainingJobStore, work_dir: Path) -> None:
+    store.append_log(job, "Phase 1/5 — Exporting relation train/dev dataset…")
+    export_relations = _get_export_relations()
+    result = export_relations(
+        work_dir,
+        log_fn=lambda line: store.append_log(job, line),
+    )
+    store.update(
+        job,
+        metrics={
+            **job.metrics,
+            "relation_export": result,
+        },
+    )
+
+
+def _phase_train_relations(
+    job: TrainingJob, store: TrainingJobStore, work_dir: Path
+) -> Path:
+    store.append_log(job, "Phase 2/5 — Training relation model…")
+    train_relations = _get_run_relation_training()
+    relation_train = work_dir / "relation_train.jsonl"
+    relation_model = work_dir / "relation_model.json"
+    summary = train_relations(
+        relation_train,
+        relation_model,
+        log_fn=lambda line: store.append_log(job, line),
+    )
+    store.update(job, metrics={**job.metrics, "relation_train": summary})
+    return relation_model
+
+
 def _phase_evaluate(
     job: TrainingJob,
     store: TrainingJobStore,
@@ -249,6 +304,31 @@ def _phase_evaluate(
         log_fn=lambda line: store.append_log(job, line),
     )
     store.update(job, metrics={**job.metrics, "ner": metrics})
+    return metrics
+
+
+def _phase_evaluate_relations(
+    job: TrainingJob,
+    store: TrainingJobStore,
+    relation_model_path: Path,
+    work_dir: Path,
+) -> dict:
+    store.append_log(job, "Phase 3/5 — Evaluating relation model…")
+    eval_relations = _get_evaluate_relation_model()
+    relation_dev = work_dir / "relation_dev.jsonl"
+    metrics = eval_relations(
+        relation_model_path,
+        relation_dev,
+        log_fn=lambda line: store.append_log(job, line),
+    )
+    if not metrics.get("passed_gates", False):
+        store.append_log(
+            job,
+            (
+                f"Relation model gate failed: F1={metrics.get('f1', 0.0):.3f} "
+                f"(min={metrics.get('min_f1', 0.6):.3f})"
+            ),
+        )
     return metrics
 
 
@@ -348,6 +428,11 @@ def _phase_register(
                 "gate_min_precision": metrics.get("min_precision"),
                 "gate_min_recall": metrics.get("min_recall"),
                 "gate_passed": metrics.get("passed_gates"),
+                "relation_export_total": metrics.get("relation_export", {}).get("total", 0),
+                "relation_f1": metrics.get("relation_model", {}).get("f1"),
+                "relation_precision": metrics.get("relation_model", {}).get("precision"),
+                "relation_recall": metrics.get("relation_model", {}).get("recall"),
+                "relation_gate_passed": metrics.get("relation_model", {}).get("passed_gates"),
                 # User notes
                 "user_notes": job.notes,
             }
@@ -378,8 +463,11 @@ def preload_training_modules(log_fn: Optional[Callable[[str], None]] = None) -> 
     """Eagerly import heavy training modules to reduce first-job latency."""
     t0 = time.perf_counter()
     _get_export_labels()
+    _get_export_relations()
     _get_run_training()
+    _get_run_relation_training()
     _get_evaluate_model()
+    _get_evaluate_relation_model()
     _get_model_store_cls()
     _get_model_registry_cls()
     msg = f"Training module preload complete in {time.perf_counter() - t0:.2f}s"
@@ -406,6 +494,24 @@ def _get_run_training():
     return _run_training_fn
 
 
+def _get_export_relations():
+    global _export_relations_fn
+    if _export_relations_fn is None:
+        from app.relation_exporter import export_relation_dataset
+
+        _export_relations_fn = export_relation_dataset
+    return _export_relations_fn
+
+
+def _get_run_relation_training():
+    global _run_relation_training_fn
+    if _run_relation_training_fn is None:
+        from app.relation_trainer import train_relation_model
+
+        _run_relation_training_fn = train_relation_model
+    return _run_relation_training_fn
+
+
 def _get_evaluate_model():
     global _evaluate_model_fn
     if _evaluate_model_fn is None:
@@ -413,6 +519,15 @@ def _get_evaluate_model():
 
         _evaluate_model_fn = evaluate_model
     return _evaluate_model_fn
+
+
+def _get_evaluate_relation_model():
+    global _evaluate_relation_model_fn
+    if _evaluate_relation_model_fn is None:
+        from app.relation_evaluator import evaluate_relation_model
+
+        _evaluate_relation_model_fn = evaluate_relation_model
+    return _evaluate_relation_model_fn
 
 
 def _get_model_store_cls():

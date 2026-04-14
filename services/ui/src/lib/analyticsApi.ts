@@ -376,6 +376,8 @@ export interface SubdomainSummary {
   time_window_months?: number;
   semantic_tags: string[];
   assertion_filter?: string[];
+  constructs?: SubdomainConstruct[];
+  construct_count?: number;
   concept_count: number;
   /** Total IS_A descendants across all stored concepts. 0 means all concepts are leaf nodes. */
   descendant_count?: number;
@@ -396,6 +398,20 @@ export interface SubdomainConcept {
   child_count?: number;
   /** Key linking to ncda_2018_benchmarks.json (e.g. comorbidity_hypertension_pct) */
   benchmark_key?: string;
+}
+
+export interface SubdomainConstructRole {
+  role: string;
+  concept_ids: number[];
+  required: boolean;
+}
+
+export interface SubdomainConstruct {
+  id: string;
+  display_name: string;
+  description?: string;
+  logic: "ALL" | "ANY";
+  roles: SubdomainConstructRole[];
 }
 
 export interface SubdomainDetail extends SubdomainSummary {
@@ -537,6 +553,7 @@ export async function updateSubdomain(
     time_window_months?: number;
     semantic_tags?: string[];
     assertion_filter?: string[];
+    constructs?: SubdomainConstruct[];
   },
 ): Promise<SubdomainSummary> {
   return fetchJson<SubdomainSummary>(
@@ -545,6 +562,30 @@ export async function updateSubdomain(
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(update),
+    },
+  );
+}
+
+export async function fetchSubdomainConstructs(
+  domainId: string,
+  subdomainName: string,
+): Promise<SubdomainConstruct[]> {
+  return fetchJson<SubdomainConstruct[]>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/constructs`,
+  );
+}
+
+export async function replaceSubdomainConstructs(
+  domainId: string,
+  subdomainName: string,
+  constructs: SubdomainConstruct[],
+): Promise<SubdomainSummary> {
+  return fetchJson<SubdomainSummary>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/constructs`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(constructs),
     },
   );
 }

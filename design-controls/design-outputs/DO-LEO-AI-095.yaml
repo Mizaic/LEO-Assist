@@ -12,12 +12,14 @@
   specification:
     title: "Extraction quality LLM check before terminology"
     description: |
-      Adds a single-turn extraction quality check stage that can drop noisy
-      entities, correct assertion and semantic tag fields, and add missed
-      clinically explicit mentions before terminology resolution. The check uses
-      a constrained JSON contract and attaches provenance markers for retraining.
-      Referral procedure phrases are protected from uncertain assertion
-      downgrades by a deterministic guard.
+      Adds a relation-linking stage and a single-turn extraction quality check
+      before terminology resolution. The quality check can drop noisy entities,
+      correct assertion and semantic tag fields, add missed clinically explicit
+      mentions, and correct/add relation links for body-site and qualifier
+      context. The check uses a constrained JSON contract and attaches
+      provenance markers for retraining. Referral procedure phrases are
+      protected from uncertain assertion downgrades by a deterministic guard.
+      Conditional routing sends changed extraction payloads to HITL queue.
     acceptance_criteria:
       - criterion: "Single-turn check"
         type: "functional"
@@ -27,6 +29,14 @@
         type: "safety"
         measurement: "Test"
         target: "Only drop/correct_assertion/correct_label/add operations are applied"
+      - criterion: "Relation linking"
+        type: "functional"
+        measurement: "Test"
+        target: "relation_linking subgraph adds __relations and relation-suppressed markers"
+      - criterion: "Relation correction scope"
+        type: "safety"
+        measurement: "Test"
+        target: "Extraction check relation updates are limited to correct_relation/add_relation operations"
       - criterion: "Provenance tags"
         type: "functional"
         measurement: "Test"
@@ -47,6 +57,10 @@
         type: "safety"
         measurement: "Test"
         target: "Configured unsafe term-to-concept pairs are blocked and returned as terminology_unresolved"
+      - criterion: "Conditional routing"
+        type: "functional"
+        measurement: "Test"
+        target: "has_extraction_changes=true branches to hitl_ner_queue, pass-through branches to terminology"
       - criterion: "Side-effect counselling suppression"
         type: "safety"
         measurement: "Test"
@@ -54,6 +68,10 @@
 
   implementation:
     artifacts:
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/relation_linking.py"
+        description: "Relation linking execution and finding-site lookup-term synthesis"
+        storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/pipeline_graph/subgraphs/llm_check.py"
         description: "Extraction check execution and patch application"
@@ -72,15 +90,23 @@
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/prompts/extraction_check_v1.py"
-        description: "Extraction check prompt and example library"
+        description: "Extraction check v2 prompt and example library with relation corrections"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/relation_linking_v1.py"
+        description: "Relation linking prompt and example library"
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/pipeline_graph/registry.py"
-        description: "Registers extraction_check subgraph"
+        description: "Registers relation_linking and extraction_check subgraphs"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/workflow/engine.py"
+        description: "Condition edge execution without sequence fallback when graph edges exist"
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/pipeline_graph/subgraphs/persist.py"
-        description: "Gates gold-training writes on extraction-check provenance signal and persists candidate entities_json"
+        description: "Gates gold-training writes on extraction-check provenance and persists relation-aware candidate metadata"
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/cypher/training_candidate_queries.py"
@@ -92,19 +118,21 @@
         storage_location: "git"
       - artifact_type: "source_code"
         location: "scripts/seed_prompt_configs.py"
-        description: "Seeds extraction_check PromptConfig"
+        description: "Seeds extraction_check v2 and relation_linking PromptConfig"
         storage_location: "git"
       - artifact_type: "source_code"
         location: "scripts/seed_plan_definitions.py"
-        description: "Adds ad-extraction-check and act-extraction-check in pd-gp-encounter-coding"
+        description: "Adds relation_linking and extraction condition-route actions in pd-gp-encounter-coding"
         storage_location: "git"
     technical_details:
       language: "Python"
       loc: 260
       key_functions:
+        - "relation_linking"
         - "extraction_check"
         - "_run_check"
         - "_apply_extraction_check"
+        - "_apply_relation_updates"
         - "build_extraction_check_subgraph"
 
   safety_characteristics:
@@ -112,6 +140,7 @@
     safety_critical_functions:
       - "Prevent persistence of non-evidence and template-derived entities"
       - "Recover missed clinically explicit mentions with provenance"
+      - "Route extraction changes to HITL queue before autonomous coding"
     risk_control_measures:
       - "Strict JSON output contract"
       - "Constrained correction operations"

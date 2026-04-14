@@ -18,10 +18,12 @@
     automation_framework: "pytest"
     test_file_paths:
       - "tests/test_llm_check_subgraph.py"
+      - "tests/test_relation_linking_subgraph.py"
       - "tests/test_post_processing_pipeline.py"
       - "tests/test_scope_guard.py"
       - "tests/test_sentence_splitter.py"
       - "tests/test_persist_subgraph_gold.py"
+      - "tests/test_seed_plan_definitions.py"
 
   test_environment:
     environment_type: "development"
@@ -118,6 +120,28 @@
       acceptance_criteria:
         - "spinal surgery does not auto-code to unilateral biportal endoscopic operation on spine"
         - "not sleeping well does not auto-code to malaise"
+    - case_id: "VT-097-TC-009"
+      case_name: "Relation linking sets finding_site and suppresses independent anatomy term"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run relation_linking subgraph on phrase with finding and body structure entities"
+          expected_result: "Head entity receives __relations with finding_site and tail anatomy entity is marked _relation_suppressed"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "lookup_term is updated to include body site text"
+        - "relation_changes contains relation_added entry"
+    - case_id: "VT-097-TC-010"
+      case_name: "Extraction route condition sends changed payloads to hitl_ner_queue"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Validate seeded pd-gp-encounter-coding action graph for act-extraction-route sourceHandle branches"
+          expected_result: "changed branch targets hitl_ner_queue and pass_through branch targets terminology"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "act-hitl-ner-queue relatedActionEdges sourceHandle is changed"
+        - "act-terminology relatedActionEdges sourceHandle is pass_through"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -186,3 +210,15 @@
         Added terminology merge blocklist coverage for unsafe generic-to-specific
         mappings. Executed tests/test_terminology_subgraph.py and encounter trace
         regression for df8bb218-c0de-4679-b85f-7b18e4ff3c80.
+    - run_id: "VT-097-RUN-006"
+      date: "2026-04-14"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 10
+      failed_cases: 0
+      notes: >
+        Added relation-linking and extraction-route condition coverage. Executed
+        .venv/bin/python -m pytest tests/test_llm_check_subgraph.py
+        tests/test_relation_linking_subgraph.py tests/test_seed_plan_definitions.py
+        tests/test_persist_subgraph_gold.py -q.

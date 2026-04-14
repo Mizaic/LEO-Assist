@@ -47,6 +47,23 @@ class TerminologyState(TypedDict, total=False):
     errors: list[str]
 
 
+def _resolve_lookup_term(entity: dict[str, Any]) -> str:
+    lookup = str(entity.get("lookup_term") or "").strip()
+    if lookup:
+        return lookup
+    text = str(entity.get("text") or "").strip()
+    relations = list(entity.get("__relations") or [])
+    for rel in relations:
+        if not isinstance(rel, dict):
+            continue
+        if str(rel.get("type") or "").strip().lower() != "finding_site":
+            continue
+        tail = str(rel.get("target_text") or "").strip()
+        if tail and text:
+            return f"{tail} {text}".strip()
+    return text
+
+
 def _merge_resolution(
     e: dict[str, Any],
     candidates: list,
@@ -111,21 +128,25 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
     try:
         terms = []
         tag_map: dict[str, str] = dict(expected_tags)
+        lookup_by_index: dict[int, str] = {}
         for e in entities:
-            text = (e.get("text") or "").strip()
-            if text:
-                terms.append(text)
-                if text not in tag_map and (
+            idx = len(lookup_by_index)
+            lookup = _resolve_lookup_term(e)
+            lookup_by_index[idx] = lookup
+            if lookup:
+                terms.append(lookup)
+                if lookup not in tag_map and (
                     label := e.get("semantic_tag") or e.get("label")
                 ):
-                    tag_map[text] = str(label)
+                    tag_map[lookup] = str(label)
         results = TerminologyClient().resolve(terms, expected_tags=tag_map or None)
-        resolved = [
-            _merge_resolution(
-                e, results.get((e.get("text") or "").strip(), []), min_score
-            )
-            for e in entities
-        ]
+        resolved = []
+        for idx, entity in enumerate(entities):
+            lookup = lookup_by_index.get(idx) or ""
+            merged = _merge_resolution(entity, results.get(lookup, []), min_score)
+            if lookup:
+                merged["lookup_term"] = lookup
+            resolved.append(merged)
         unresolved = [r for r in resolved if r.get("terminology_unresolved")]
         if unresolved:
             errors.append(

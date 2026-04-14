@@ -96,6 +96,26 @@ class NCDAConcept:
 
 
 @dataclass
+class NCDAConstructRole:
+    """Role specification inside a construct definition."""
+
+    role: str
+    concept_ids: List[int] = field(default_factory=list)
+    required: bool = True
+
+
+@dataclass
+class NCDAConstruct:
+    """Code-group construct made from multiple role-based concept sets."""
+
+    construct_id: str
+    display_name: str
+    description: str = ""
+    logic: str = "ALL"
+    roles: List[NCDAConstructRole] = field(default_factory=list)
+
+
+@dataclass
 class NCDADomain:
     """Configuration for a single NCDA domain."""
 
@@ -107,6 +127,7 @@ class NCDADomain:
     semantic_tags: List[str] = field(default_factory=list)
     milestone_type: Optional[str] = None
     assertion_filter: List[str] = field(default_factory=list)
+    constructs: List[NCDAConstruct] = field(default_factory=list)
 
 
 # ── Predefined domain configs (fallback) ─────────────────────────────────
@@ -416,6 +437,7 @@ class DomainRegistry:
                 semantic_tags = [tags]
 
         assertion_filter = list(vs.get("assertionFilter") or [])
+        constructs = DomainRegistry._parse_constructs(vs.get("constructs"))
 
         return NCDADomain(
             name=domain_name,
@@ -425,7 +447,55 @@ class DomainRegistry:
             time_window_months=time_window_months,
             semantic_tags=semantic_tags,
             assertion_filter=assertion_filter,
+            constructs=constructs,
         )
+
+    @staticmethod
+    def _parse_constructs(raw_constructs: Any) -> List[NCDAConstruct]:
+        if not isinstance(raw_constructs, list):
+            return []
+        constructs: List[NCDAConstruct] = []
+        for raw in raw_constructs:
+            if not isinstance(raw, dict):
+                continue
+            construct_id = str(raw.get("id") or "").strip()
+            display_name = str(raw.get("display_name") or raw.get("name") or "").strip()
+            if not construct_id or not display_name:
+                continue
+            roles: List[NCDAConstructRole] = []
+            for raw_role in raw.get("roles") or []:
+                if not isinstance(raw_role, dict):
+                    continue
+                role_name = str(raw_role.get("role") or "").strip()
+                if not role_name:
+                    continue
+                concept_ids: List[int] = []
+                for cid in raw_role.get("concept_ids") or []:
+                    try:
+                        concept_ids.append(int(cid))
+                    except (TypeError, ValueError):
+                        continue
+                if not concept_ids:
+                    continue
+                roles.append(
+                    NCDAConstructRole(
+                        role=role_name,
+                        concept_ids=concept_ids,
+                        required=bool(raw_role.get("required", True)),
+                    )
+                )
+            if not roles:
+                continue
+            constructs.append(
+                NCDAConstruct(
+                    construct_id=construct_id,
+                    display_name=display_name,
+                    description=str(raw.get("description") or "").strip(),
+                    logic=str(raw.get("logic") or "ALL").strip().upper(),
+                    roles=roles,
+                )
+            )
+        return constructs
 
     # ── Accessors ─────────────────────────────────────────────────
 
@@ -459,6 +529,12 @@ class DomainRegistry:
             for name, cfg in self._domain_configs.items()
             if cfg.milestone_type
         }
+
+    def get_domain_constructs(self, domain: str) -> List[NCDAConstruct]:
+        cfg = self.get_domain_config(domain)
+        if cfg is None:
+            return []
+        return list(cfg.constructs)
 
     def get_concept_id_groups(
         self,

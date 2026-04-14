@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -44,12 +44,13 @@ import DownloadIcon from "@mui/icons-material/Download";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import LinkIcon from "@mui/icons-material/Link";
 import NotInterestedIcon from "@mui/icons-material/NotInterested";
 import SearchIcon from "@mui/icons-material/Search";
 import SyncIcon from "@mui/icons-material/Sync";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import { createEncounterSuppressRule, createSuppressRule, exportMedSpaCyTraining, fetchSurfaceForms, patchGoldLabelEntities, searchTerms, upsertSurfaceFormMapping } from "@/lib/api/legacy";
+import { createEncounterSuppressRule, createSuppressRule, exportMedSpaCyTraining, fetchGoldLabel, fetchSurfaceForms, patchGoldLabelEntities, searchTerms, upsertSurfaceFormMapping } from "@/lib/api/legacy";
 import {
   addConceptToSubdomain,
   fetchConceptSubdomainMemberships,
@@ -65,11 +66,13 @@ import {
 import { renderNerSpans, themeForAssertion, type AnnotatedSpan } from "@/lib/nerAnnotation";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import CandidateCard from "@/components/gold-dataset/CandidateCard";
+import DatasetHealthPanel from "@/components/gold-dataset/DatasetHealthPanel";
 import GoldLabelRow from "@/components/gold-dataset/GoldLabelRow";
 import SimilarCandidatesBatch from "@/components/gold-dataset/SimilarCandidatesBatch";
 import SnomedInlineSearch from "@/components/gold-dataset/SnomedInlineSearch";
 import useKeyboardShortcuts from "@/components/gold-dataset/useKeyboardShortcuts";
 import type { SimilarCandidateItem } from "@/components/gold-dataset/goldDatasetTypes";
+import { entityLabelColour } from "@/components/gold-dataset/goldDatasetUtils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -120,8 +123,15 @@ interface Candidate {
   candidate_id: string;
   text: string;
   entities_json?: string | null;
+  relation_changes?: string | null;
   source: string;
   status: string;
+  uncertainty_score?: number | null;
+  rarity_score?: number | null;
+  priority_score?: number | null;
+  rare_labels?: string[] | null;
+  hitl_reason?: string | null;
+  hitl_guidance?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -145,6 +155,16 @@ interface Entity {
   snomed_concept_id?: string;
   snomed_term?: string;
   assertion?: string;
+  body_site_concept_id?: string;
+  body_site_term?: string;
+  relations?: EntityRelation[];
+}
+
+interface EntityRelation {
+  type: string;
+  target_idx: number;
+  target_text?: string;
+  confidence?: number;
 }
 
 interface DeleteGoldLabelResult {
@@ -273,7 +293,7 @@ function parseEntities(json: string | null): Entity[] {
     if (Array.isArray(parsed)) {
       const rows = parsed
         .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
-        .map((entry) => {
+        .map((entry, index, all) => {
           const coding = (entry.coding && typeof entry.coding === "object"
             ? (entry.coding as Record<string, unknown>)
             : {}) as Record<string, unknown>;
@@ -283,12 +303,57 @@ function parseEntities(json: string | null): Entity[] {
           const snomedTerm = String(
             entry.snomed_term ?? entry.term ?? entry.preferred_term ?? coding.snomed_term ?? "",
           ).trim();
+          const bodySiteConceptId = String(entry.body_site_concept_id ?? "").trim();
+          const bodySiteTerm = String(entry.body_site_term ?? "").trim();
           const text = String(entry.text ?? "").trim();
+          const rawRelations = Array.isArray(entry.relations)
+            ? (entry.relations as Array<Record<string, unknown>>)
+            : Array.isArray(entry.__relations)
+              ? (entry.__relations as Array<Record<string, unknown>>)
+              : [];
+          const relations = rawRelations
+            .map((relation) => {
+              const type = String(relation.type ?? "").trim().toLowerCase();
+              const targetIdx = Number(relation.target_idx);
+              if (!type || !Number.isInteger(targetIdx) || targetIdx < 0) return null;
+              return {
+                type,
+                target_idx: targetIdx,
+                target_text: String(relation.target_text ?? "").trim() || undefined,
+                confidence:
+                  typeof relation.confidence === "number"
+                    ? Number(relation.confidence)
+                    : undefined,
+              } as EntityRelation;
+            })
+            .filter((relation): relation is EntityRelation => Boolean(relation));
+          if (!relations.some((relation) => relation.type === "finding_site")) {
+            const legacySite = bodySiteTerm || String(entry.body_site ?? "").trim();
+            if (legacySite) {
+              const targetIdx = all.findIndex((target, idx) => {
+                if (idx === index || !target || typeof target !== "object") return false;
+                const targetText = String(target.text ?? "").trim().toLowerCase();
+                const targetTerm = String(target.snomed_term ?? target.term ?? "").trim().toLowerCase();
+                return legacySite.toLowerCase() === targetText || legacySite.toLowerCase() === targetTerm;
+              });
+              if (targetIdx >= 0) {
+                relations.push({
+                  type: "finding_site",
+                  target_idx: targetIdx,
+                  target_text: String((all[targetIdx] as Record<string, unknown>).text ?? ""),
+                  confidence: 1,
+                });
+              }
+            }
+          }
           return {
             ...entry,
             text,
             snomed_concept_id: snomedConceptId || undefined,
             snomed_term: snomedTerm || undefined,
+            body_site_concept_id: bodySiteConceptId || undefined,
+            body_site_term: bodySiteTerm || undefined,
+            relations,
           } as Entity;
         });
       return normaliseEntitySemanticRows(rows);
@@ -363,6 +428,122 @@ function assertionSummary(entities: Entity[]): string | null {
     .map(([k, v]) => `${v} ${k.toLowerCase()}`);
   if (parts.length <= 1 && counts["Present"] === entities.length) return null;
   return parts.join(" · ");
+}
+
+function isBodySiteEntity(entity: Entity): boolean {
+  const label = (entity.label ?? entity.semantic_tag ?? "").toLowerCase();
+  return label.includes("body_structure") || label.includes("body structure");
+}
+
+interface RelationSuggestion {
+  sourceIdx: number;
+  targetIdx: number;
+  type: string;
+  confidence: number;
+  reason: string;
+}
+
+const RELATION_POLICY_UI: Array<{
+  sourceLabels: string[];
+  targetLabels: string[];
+  type: string;
+  reason: string;
+}> = [
+  {
+    sourceLabels: ["finding", "disorder", "situation", "procedure"],
+    targetLabels: ["body_structure"],
+    type: "finding_site",
+    reason: "Use this when a finding or procedure is linked to a body site.",
+  },
+  {
+    sourceLabels: ["finding"],
+    targetLabels: ["observable_entity"],
+    type: "interprets",
+    reason: "Use this when the finding describes what the observation means.",
+  },
+  {
+    sourceLabels: ["qualifier_value", "finding"],
+    targetLabels: ["finding", "disorder", "procedure"],
+    type: "qualifies",
+    reason: "Use this when one term qualifies or describes another (e.g. severity, progression).",
+  },
+  {
+    sourceLabels: ["finding"],
+    targetLabels: ["disorder", "finding"],
+    type: "associated_finding",
+    reason: "Use this when the finding supports a linked disorder or another finding.",
+  },
+  {
+    sourceLabels: ["observable_entity"],
+    targetLabels: ["procedure"],
+    type: "component_of",
+    reason: "Use this when an observable (e.g. gamma GT) is a component of a procedure (e.g. LFTs).",
+  },
+];
+
+function normaliseLabel(label: string | undefined): string {
+  return String(label ?? "").trim().toLowerCase().replace(/ /g, "_");
+}
+
+/** All linkable relation types defined in RELATION_POLICY_UI. */
+const LINKABLE_RELATION_TYPES = new Set(RELATION_POLICY_UI.map((r) => r.type));
+
+function canHaveBodySite(entity: Entity): boolean {
+  if (isBodySiteEntity(entity)) return false;
+  const src = normaliseLabel(entity.label ?? entity.semantic_tag);
+  return RELATION_POLICY_UI.some((rule) => rule.sourceLabels.includes(src));
+}
+
+/** Returns all relation-target indices for any linkable relation type. */
+function findingSiteTargetIndices(entity: Entity, entityCount: number): number[] {
+  const relationTargets = (entity.relations ?? [])
+    .filter((relation) => LINKABLE_RELATION_TYPES.has(relation.type))
+    .map((relation) => relation.target_idx)
+    .filter((targetIdx) => Number.isInteger(targetIdx) && targetIdx >= 0 && targetIdx < entityCount);
+  return Array.from(new Set(relationTargets));
+}
+
+/** Derives the correct relation type for a given source/target label pair. */
+function relationTypeForPair(sourceLabel: string, targetLabel: string): string {
+  const src = normaliseLabel(sourceLabel);
+  const tgt = normaliseLabel(targetLabel);
+  const rule = RELATION_POLICY_UI.find(
+    (r) => r.sourceLabels.includes(src) && r.targetLabels.includes(tgt),
+  );
+  return rule?.type ?? "finding_site";
+}
+
+function relationAllowedForLabels(
+  sourceLabel: string,
+  targetLabel: string,
+  sourceText?: string,
+): RelationSuggestion | null {
+  const src = normaliseLabel(sourceLabel);
+  const tgt = normaliseLabel(targetLabel);
+  const sourceTextNorm = String(sourceText ?? "").toLowerCase();
+  const qualifierHint =
+    /\b(increased|decreased|worse|worsened|improved|severe|mild|moderate|larger|smaller|size)\b/.test(
+      sourceTextNorm,
+    );
+  for (const rule of RELATION_POLICY_UI) {
+    if (!rule.sourceLabels.includes(src) || !rule.targetLabels.includes(tgt)) {
+      continue;
+    }
+    // Skip the text-hint guard if the source is already labelled qualifier_value
+    // — its entity type is a sufficient signal without needing keyword clues.
+    const srcIsQualifier = src === "qualifier_value";
+    if (rule.type === "qualifies" && !qualifierHint && !srcIsQualifier) {
+      continue;
+    }
+    return {
+      sourceIdx: -1,
+      targetIdx: -1,
+      type: rule.type,
+      confidence: rule.type === "qualifies" ? 0.86 : 0.81,
+      reason: rule.reason,
+    };
+  }
+  return null;
 }
 
 function truncate(text: string, max = 140) {
@@ -564,6 +745,21 @@ function GoldLabelDetailDialog({
   const [termDrafts, setTermDrafts] = useState<Record<number, string>>({});
   const [suppressingIndex, setSuppressingIndex] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<Record<number, TermSearchResult | null>>({});
+  const [rejectedRelationKeys, setRejectedRelationKeys] = useState<Record<string, string>>(() => {
+    // Rehydrate from persisted rejected_relations on each entity (text-keyed ->
+    // index-keyed for in-memory lookup).
+    const parsed = parseEntities(item.entities_json);
+    const initial: Record<string, string> = {};
+    for (const [srcIdx, entity] of parsed.entries()) {
+      for (const rej of entity.rejected_relations ?? []) {
+        const targetIdx = parsed.findIndex((e) => e.text === rej.target_text);
+        if (targetIdx >= 0) {
+          initial[`${srcIdx}:${rej.type}:${targetIdx}`] = rej.reason;
+        }
+      }
+    }
+    return initial;
+  });
   const [searchingAll, setSearchingAll] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -578,6 +774,9 @@ function GoldLabelDetailDialog({
   const [sfMsg, setSfMsg] = useState<Record<number, string>>({});
   const sentenceBoxRef = useRef<HTMLDivElement>(null);
   const addTermInputRef = useRef<HTMLInputElement>(null);
+  const [sentenceRelationPaths, setSentenceRelationPaths] = useState<
+    Array<{ path: string; relType: string; midX: number; midY: number }>
+  >([]);
 
   function copyToClipboard(text: string, key: string) {
     void navigator.clipboard.writeText(text).then(() => {
@@ -627,15 +826,102 @@ function GoldLabelDetailDialog({
 
   const pendingSuggestionCount = Object.values(suggestions).filter(Boolean).length;
   const uncodedCount = entities.filter((entity) => !entity.snomed_concept_id).length;
+  const relationSuggestions = useMemo(() => {
+    const rows: RelationSuggestion[] = [];
+    for (let sourceIdx = 0; sourceIdx < entities.length; sourceIdx += 1) {
+      const source = entities[sourceIdx];
+      const existing = new Set(
+        (source.relations ?? []).map((relation) => `${relation.type}:${relation.target_idx}`),
+      );
+      for (let targetIdx = 0; targetIdx < entities.length; targetIdx += 1) {
+        if (sourceIdx === targetIdx) continue;
+        const target = entities[targetIdx];
+        const suggestion = relationAllowedForLabels(
+          source.label ?? source.semantic_tag ?? "",
+          target.label ?? target.semantic_tag ?? "",
+          source.text,
+        );
+        if (!suggestion) continue;
+        const dedupKey = `${suggestion.type}:${targetIdx}`;
+        const suggestionKey = `${sourceIdx}:${suggestion.type}:${targetIdx}`;
+        if (rejectedRelationKeys[suggestionKey]) continue;
+        if (existing.has(dedupKey)) continue;
+        rows.push({
+          ...suggestion,
+          sourceIdx,
+          targetIdx,
+          confidence: suggestion.type === "finding_site" ? 0.88 : suggestion.confidence,
+        });
+      }
+    }
+    return rows.sort((a, b) => b.confidence - a.confidence).slice(0, 8);
+  }, [entities, rejectedRelationKeys]);
+  const bodySiteOptionsByIndex = useMemo(() => {
+    return entities.map((source, idx) => {
+      const srcLabel = normaliseLabel(source.label ?? source.semantic_tag);
+      return entities
+        .map((candidate, candidateIdx) => {
+          if (candidateIdx === idx) return null;
+          const tgtLabel = normaliseLabel(candidate.label ?? candidate.semantic_tag);
+          const rule = RELATION_POLICY_UI.find(
+            (r) => r.sourceLabels.includes(srcLabel) && r.targetLabels.includes(tgtLabel),
+          );
+          if (!rule) return null;
+          return { candidate, candidateIdx, relationType: rule.type };
+        })
+        .filter(
+          (x): x is { candidate: Entity; candidateIdx: number; relationType: string } =>
+            x !== null,
+        );
+    });
+  }, [entities]);
   const canAcceptAllAndMark = Boolean(onMarkGold) && uncodedCount > 0 && pendingSuggestionCount >= uncodedCount;
-  const encounterAnnotated = useMemo(() => {
+  const linkedBodySitePairs = useMemo(() => {
+    const pairs: Array<{
+      sourceText: string;
+      sourceType: string;
+      relationType: string;
+      siteText: string;
+      siteType: string;
+    }> = [];
+    for (const [sourceIdx, entity] of entities.entries()) {
+      if (!canHaveBodySite(entity)) continue;
+      const sourceText = String(entity.text || "").trim();
+      for (const rel of entity.relations ?? []) {
+        const siteIdx = rel.target_idx;
+        if (siteIdx === sourceIdx || siteIdx < 0 || siteIdx >= entities.length) continue;
+        const siteEntity = entities[siteIdx];
+        const siteText = String(siteEntity?.snomed_term ?? siteEntity?.text ?? "").trim();
+        if (!sourceText || !siteText) continue;
+        pairs.push({
+          sourceText,
+          sourceType: String(entity.label ?? entity.semantic_tag ?? "").trim(),
+          relationType: rel.type,
+          siteText,
+          siteType: String(siteEntity?.label ?? siteEntity?.semantic_tag ?? "").trim(),
+        });
+      }
+    }
+    return pairs;
+  }, [entities]);
+  const sentenceRender = useMemo(() => {
     const text = String(item.text || "");
-    if (!text.trim() || entities.length === 0) return text || "-";
+    if (!text.trim() || entities.length === 0) {
+      return {
+        content: text || "-",
+        spanDomIdByEntityIndex: {} as Record<number, string>,
+      };
+    }
 
     // Step 1: find each entity's first occurrence in the sentence.
     // Include entity surface text in the chip so merged spans are readable.
     const lowerText = text.toLowerCase();
-    type RawSpan = { start: number; end: number; chip: ReturnType<typeof themeForAssertion> };
+    type RawSpan = {
+      start: number;
+      end: number;
+      chip: ReturnType<typeof themeForAssertion>;
+      entityIndex: number;
+    };
     const raw: RawSpan[] = [];
     for (const [idx, entity] of entities.entries()) {
       const needle = String((termDrafts[idx] ?? entity.text) || "").trim();
@@ -643,32 +929,128 @@ function GoldLabelDetailDialog({
       const start = lowerText.indexOf(needle.toLowerCase());
       if (start < 0) continue;
       const chip = themeForAssertion(entity.assertion, entity.label ?? entity.semantic_tag);
-      raw.push({ start, end: start + needle.length, chip: { ...chip, entityText: needle } });
+      raw.push({
+        start,
+        end: start + needle.length,
+        chip: { ...chip, entityText: needle },
+        entityIndex: idx,
+      });
     }
-    if (!raw.length) return text;
+    if (!raw.length) {
+      return {
+        content: text,
+        spanDomIdByEntityIndex: {} as Record<number, string>,
+      };
+    }
 
     // Step 2: greedy interval merge so overlapping entities become a single
     // AnnotatedSpan with multiple chips (one per entity). This ensures ALL
     // entities are visible — even when their surface text overlaps.
     raw.sort((a, b) => a.start - b.start);
     const merged: AnnotatedSpan[] = [];
+    const spanDomIdByEntityIndex: Record<number, string> = {};
     let i = 0;
+    let spanCounter = 0;
     while (i < raw.length) {
       let uStart = raw[i].start;
       let uEnd = raw[i].end;
       const chips = [raw[i].chip];
+      const entityIndices = [raw[i].entityIndex];
       let j = i + 1;
       while (j < raw.length && raw[j].start < uEnd) {
         uEnd = Math.max(uEnd, raw[j].end);
         chips.push(raw[j].chip);
+        entityIndices.push(raw[j].entityIndex);
         j++;
       }
-      merged.push({ start: uStart, end: uEnd, chips });
+      const domId = `ner-span-${spanCounter}`;
+      spanCounter += 1;
+      for (const entityIndex of entityIndices) {
+        spanDomIdByEntityIndex[entityIndex] = domId;
+      }
+      merged.push({ start: uStart, end: uEnd, chips, domId });
       i = j;
     }
 
-    return renderNerSpans(text, merged);
+    return {
+      content: renderNerSpans(text, merged),
+      spanDomIdByEntityIndex,
+    };
   }, [entities, item.text, termDrafts]);
+  const encounterAnnotated = sentenceRender.content;
+
+  useLayoutEffect(() => {
+    const container = sentenceBoxRef.current;
+    if (!container) {
+      setSentenceRelationPaths([]);
+      return;
+    }
+    const boxRect = container.getBoundingClientRect();
+    if (boxRect.width <= 0 || boxRect.height <= 0) {
+      setSentenceRelationPaths([]);
+      return;
+    }
+
+    const nextPaths: Array<{
+      path: string;
+      relType: string;
+      midX: number;
+      midY: number;
+    }> = [];
+
+    // Track how many arcs each source entity has drawn so far, so we can
+    // stagger them vertically and prevent label/line overlap.
+    const arcCountBySource: Record<number, number> = {};
+
+    for (let idx = 0; idx < entities.length; idx += 1) {
+      const source = entities[idx];
+      if (!canHaveBodySite(source)) continue;
+      for (const rel of source.relations ?? []) {
+        const targetIdx = rel.target_idx;
+        if (targetIdx < 0) continue;
+        const sourceDomId = sentenceRender.spanDomIdByEntityIndex[idx];
+        const targetDomId = sentenceRender.spanDomIdByEntityIndex[targetIdx];
+        if (!sourceDomId || !targetDomId || sourceDomId === targetDomId) continue;
+
+        const sourceEl = container.querySelector(
+          `[data-ner-id="${sourceDomId}"]`,
+        ) as HTMLElement | null;
+        const targetEl = container.querySelector(
+          `[data-ner-id="${targetDomId}"]`,
+        ) as HTMLElement | null;
+        if (!sourceEl || !targetEl) continue;
+
+        const sourceRect = sourceEl.getBoundingClientRect();
+        const targetRect = targetEl.getBoundingClientRect();
+        const x1 = sourceRect.left - boxRect.left + sourceRect.width / 2;
+        const x2 = targetRect.left - boxRect.left + targetRect.width / 2;
+
+        // Anchor each arc just above the top of its chips, then bow upward.
+        const arcN = arcCountBySource[idx] ?? 0;
+        arcCountBySource[idx] = arcN + 1;
+
+        // Stagger: each additional arc from the same source rises 14px higher.
+        const baseY = Math.max(
+          10,
+          Math.min(sourceRect.top - boxRect.top, targetRect.top - boxRect.top) - 6,
+        );
+        const stagger = arcN * 14;
+        const span = Math.abs(x2 - x1);
+        // Minimum bow of 22px, scaled by span, plus per-arc stagger.
+        const bow = Math.min(48, Math.max(22, span * 0.18)) + stagger;
+        const y = baseY;
+        const controlY = Math.max(2, y - bow);
+        const path = `M ${x1} ${y} Q ${(x1 + x2) / 2} ${controlY} ${x2} ${y}`;
+        nextPaths.push({
+          path,
+          relType: rel.type,
+          midX: (x1 + x2) / 2,
+          midY: controlY - 3,
+        });
+      }
+    }
+    setSentenceRelationPaths(nextPaths);
+  }, [entities, sentenceRender.spanDomIdByEntityIndex]);
 
   async function flushTermDraftsAndMarkGold() {
     const dirtyIndices = Object.keys(termDrafts)
@@ -924,6 +1306,19 @@ function GoldLabelDetailDialog({
           snomed_concept_id: e.snomed_concept_id,
           snomed_term: e.snomed_term,
           semantic_tag: e.semantic_tag,
+          body_site_concept_id: e.body_site_concept_id,
+          body_site_term: e.body_site_term,
+          relations: (e.relations ?? []).map((relation) => ({
+            type: relation.type,
+            target_idx: relation.target_idx,
+            target_text: relation.target_text,
+            confidence: relation.confidence,
+          })),
+          rejected_relations: (e.rejected_relations ?? []).map((r) => ({
+            type: r.type,
+            target_text: r.target_text,
+            reason: r.reason,
+          })),
         })),
       );
       setEntities(next);
@@ -954,6 +1349,133 @@ function GoldLabelDetailDialog({
     );
   }
 
+  function handleUpdateEntityBodySite(
+    idx: number,
+    targetValue: string | string[],
+  ) {
+    const next = entities.map((entity, i) => {
+      if (i !== idx) return entity;
+      const values = (Array.isArray(targetValue) ? targetValue : [targetValue])
+        .map((value) => Number(value))
+        .filter(
+          (targetIdx) =>
+            Number.isInteger(targetIdx) &&
+            targetIdx >= 0 &&
+            targetIdx < entities.length &&
+            targetIdx !== idx,
+        );
+      const sourceLabel = entity.label ?? entity.semantic_tag ?? "";
+      const keepRelations = (entity.relations ?? []).filter(
+        (relation) => !LINKABLE_RELATION_TYPES.has(relation.type),
+      );
+      if (values.length === 0) {
+        return {
+          ...entity,
+          body_site_concept_id: undefined,
+          body_site_term: undefined,
+          relations: keepRelations,
+        };
+      }
+      const newRelations = values.map((targetIdx) => {
+        const target = entities[targetIdx];
+        const relType = relationTypeForPair(sourceLabel, target?.label ?? target?.semantic_tag ?? "");
+        return {
+          type: relType,
+          target_idx: targetIdx,
+          target_text: target?.text ?? "",
+          confidence: 1,
+        };
+      });
+      const findingSiteRel = newRelations.find((r) => r.type === "finding_site");
+      const bodySiteTarget = findingSiteRel ? entities[findingSiteRel.target_idx] : undefined;
+      return {
+        ...entity,
+        body_site_concept_id: bodySiteTarget?.snomed_concept_id ?? undefined,
+        body_site_term: bodySiteTarget ? (bodySiteTarget.snomed_term ?? bodySiteTarget.text) : undefined,
+        relations: [...keepRelations, ...newRelations],
+      };
+    });
+    void persistEntities(next, `Updated linked body sites for "${entities[idx].text}".`);
+  }
+
+  function handleAcceptRelationSuggestion(suggestion: RelationSuggestion) {
+    const next = entities.map((entity, index) => {
+      if (index !== suggestion.sourceIdx) return entity;
+      const existing = entity.relations ?? [];
+      const dedupKey = `${suggestion.type}:${suggestion.targetIdx}`;
+      if (existing.some((relation) => `${relation.type}:${relation.target_idx}` === dedupKey)) {
+        return entity;
+      }
+      const target = entities[suggestion.targetIdx];
+      const relations = [
+        ...existing,
+        {
+          type: suggestion.type,
+          target_idx: suggestion.targetIdx,
+          target_text: target?.text ?? "",
+          confidence: suggestion.confidence,
+        },
+      ];
+      const patch: Partial<Entity> = { relations };
+      if (suggestion.type === "finding_site" && target) {
+        patch.body_site_concept_id = target.snomed_concept_id;
+        patch.body_site_term = target.snomed_term ?? target.text;
+      }
+      return { ...entity, ...patch };
+    });
+    const source = entities[suggestion.sourceIdx];
+    const target = entities[suggestion.targetIdx];
+    void persistEntities(
+      next,
+      `Accepted link: ${source?.text ?? "term"} -> ${target?.text ?? "term"}.`,
+    );
+  }
+
+  function handleRejectRelationSuggestion(suggestion: RelationSuggestion, reason: string) {
+    const key = `${suggestion.sourceIdx}:${suggestion.type}:${suggestion.targetIdx}`;
+    setRejectedRelationKeys((prev) => ({ ...prev, [key]: reason }));
+    // Persist so the dismissal survives page reload.
+    const targetText = entities[suggestion.targetIdx]?.text ?? "";
+    const next = entities.map((entity, index) => {
+      if (index !== suggestion.sourceIdx) return entity;
+      const existing = entity.rejected_relations ?? [];
+      const alreadyStored = existing.some(
+        (r) => r.type === suggestion.type && r.target_text === targetText,
+      );
+      if (alreadyStored) return entity;
+      return {
+        ...entity,
+        rejected_relations: [
+          ...existing,
+          { type: suggestion.type, target_text: targetText, reason },
+        ],
+      };
+    });
+    void persistEntities(next, "Relation suggestion dismissed.");
+  }
+
+  function handleUndoRejectedRelation(suggestion: RelationSuggestion) {
+    const key = `${suggestion.sourceIdx}:${suggestion.type}:${suggestion.targetIdx}`;
+    setRejectedRelationKeys((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    // Remove from persisted storage so the suggestion can reappear.
+    const targetText = entities[suggestion.targetIdx]?.text ?? "";
+    const next = entities.map((entity, index) => {
+      if (index !== suggestion.sourceIdx) return entity;
+      return {
+        ...entity,
+        rejected_relations: (entity.rejected_relations ?? []).filter(
+          (r) => !(r.type === suggestion.type && r.target_text === targetText),
+        ),
+      };
+    });
+    void persistEntities(next, "Relation dismissal undone.");
+  }
+
   function isDuplicateEntity(candidate: Entity, idxToIgnore: number): boolean {
     return entities.some((entity, idx) => {
       if (idx === idxToIgnore) return false;
@@ -968,7 +1490,13 @@ function GoldLabelDetailDialog({
   function handleUpdateEntityType(idx: number, label: string) {
     const current = entities[idx];
     if (!current) return;
-    const nextEntity = { ...current, label };
+    const nextEntity = {
+      ...current,
+      label,
+      ...(isBodySiteEntity({ ...current, label })
+        ? { body_site_concept_id: undefined, body_site_term: undefined }
+        : {}),
+    };
     if (isDuplicateEntity(nextEntity, idx)) {
       setSaveError("This term already exists with the same type and assertion.");
       return;
@@ -1207,17 +1735,124 @@ function GoldLabelDetailDialog({
                 border: "1px solid",
                 borderColor: selectionAdded ? "success.main" : "primary.100",
                 borderRadius: 1.5,
-                px: 2,
-                py: 1.25,
+                px: 2.5,
+                py: 2,
                 cursor: "text",
                 userSelect: "text",
                 transition: "border-color 0.2s",
                 position: "relative",
               }}
             >
+              {sentenceRelationPaths.length > 0 && (
+                <Box
+                  component="svg"
+                  viewBox={`0 0 ${Math.max(1, sentenceBoxRef.current?.clientWidth ?? 1)} ${Math.max(1, sentenceBoxRef.current?.clientHeight ?? 1)}`}
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    pointerEvents: "none",
+                    zIndex: 1,
+                    overflow: "visible",
+                  }}
+                >
+                  <defs>
+                    {["#2563eb","#e65100","#00838f","#2e7d32","#6a1b9a"].map((c, i) => (
+                      <marker
+                        key={`ah-${i}`}
+                        id={`rel-arrow-${i}`}
+                        markerWidth="7" markerHeight="7"
+                        refX="6" refY="3.5" orient="auto"
+                      >
+                        <path d="M 0 0 L 7 3.5 L 0 7 z" fill={c} />
+                      </marker>
+                    ))}
+                  </defs>
+                  {sentenceRelationPaths.slice(0, 5).map((line, idx) => {
+                    const REL_ARC_COLOUR: Record<string, string> = {
+                      finding_site: "#2563eb",
+                      procedure_site: "#2563eb",
+                      qualifies: "#e65100",
+                      interprets: "#00838f",
+                      associated_finding: "#2e7d32",
+                      component_of: "#6a1b9a",
+                    };
+                    const REL_ARC_MARKER: Record<string, string> = {
+                      finding_site: "url(#rel-arrow-0)",
+                      procedure_site: "url(#rel-arrow-0)",
+                      qualifies: "url(#rel-arrow-1)",
+                      interprets: "url(#rel-arrow-2)",
+                      associated_finding: "url(#rel-arrow-3)",
+                      component_of: "url(#rel-arrow-4)",
+                    };
+                    const REL_DASH: Record<string, string> = {
+                      finding_site: "5 2",
+                      procedure_site: "5 2",
+                      qualifies: "3 2",
+                      interprets: "7 3",
+                      associated_finding: "5 2",
+                      component_of: "3 3",
+                    };
+                    const REL_SHORT: Record<string, string> = {
+                      finding_site: "site",
+                      procedure_site: "site",
+                      qualifies: "qualifies",
+                      interprets: "interprets",
+                      associated_finding: "associated",
+                      component_of: "component",
+                    };
+                    const colour = REL_ARC_COLOUR[line.relType] ?? "#64748b";
+                    const marker = REL_ARC_MARKER[line.relType] ?? "url(#rel-arrow-0)";
+                    const dash = REL_DASH[line.relType] ?? "4 2";
+                    const label = REL_SHORT[line.relType] ?? line.relType;
+                    return (
+                      <g key={`relation-group-${idx}`}>
+                        <path
+                          d={line.path}
+                          fill="none"
+                          stroke={colour}
+                          strokeWidth="1.8"
+                          strokeDasharray={dash}
+                          markerEnd={marker}
+                          opacity={0.75}
+                        />
+                        <rect
+                          x={line.midX - label.length * 3.1}
+                          y={line.midY - 9}
+                          width={label.length * 6.2}
+                          height={11}
+                          rx={3}
+                          fill="white"
+                          opacity={0.85}
+                        />
+                        <text
+                          x={line.midX}
+                          y={line.midY}
+                          textAnchor="middle"
+                          fontSize="8.5"
+                          fill={colour}
+                          fontFamily="system-ui,sans-serif"
+                          fontWeight="600"
+                        >
+                          {label}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </Box>
+              )}
               <Typography
                 variant="body1"
-                sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 3.2, fontSize: "1rem", fontWeight: 400 }}
+                sx={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  lineHeight: 3.8,
+                  fontSize: "1rem",
+                  fontWeight: 400,
+                  position: "relative",
+                  zIndex: 2,
+                }}
               >
                 {encounterAnnotated}
               </Typography>
@@ -1237,6 +1872,115 @@ function GoldLabelDetailDialog({
                 {selectionAdded ? "Added to term field below" : "Highlight text to add a term"}
               </Typography>
             </Box>
+            {linkedBodySitePairs.length > 0 && (
+              <Box
+                sx={{
+                  mt: 1.25,
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 1.25,
+                  border: "1px dashed",
+                  borderColor: "info.light",
+                  bgcolor: "info.50",
+                }}
+              >
+                <Typography
+                  variant="overline"
+                  sx={{
+                    display: "block",
+                    color: "text.secondary",
+                    fontSize: "0.62rem",
+                    lineHeight: 1,
+                    mb: 0.75,
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Linked terms
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {linkedBodySitePairs.map((pair, idx) => {
+                    const REL_LINK_COLOUR: Record<string, string> = {
+                      finding_site: "#2563eb",
+                      procedure_site: "#2563eb",
+                      qualifies: "#e65100",
+                      interprets: "#00838f",
+                      associated_finding: "#2e7d32",
+                      component_of: "#6a1b9a",
+                    };
+                    const REL_LINK_LABEL: Record<string, string> = {
+                      finding_site: "site",
+                      procedure_site: "site",
+                      qualifies: "qualifies",
+                      interprets: "interprets",
+                      associated_finding: "associated",
+                      component_of: "component of",
+                    };
+                    const colour = REL_LINK_COLOUR[pair.relationType] ?? "#64748b";
+                    const relLabel = REL_LINK_LABEL[pair.relationType] ?? pair.relationType.replace(/_/g, " ");
+                    return (
+                      <Box
+                        key={`${pair.sourceText}-${pair.relationType}-${idx}`}
+                        sx={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          border: "1px solid",
+                          borderColor: colour,
+                          borderRadius: 1.25,
+                          px: 0.75,
+                          py: 0.4,
+                          bgcolor: "background.paper",
+                          fontSize: "0.72rem",
+                        }}
+                      >
+                        <Box
+                          component="span"
+                          sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            bgcolor: entityLabelColour(pair.sourceType),
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+                          {pair.sourceText}
+                        </Box>
+                        <Box
+                          component="span"
+                          sx={{
+                            px: 0.5,
+                            py: "1px",
+                            borderRadius: 0.5,
+                            bgcolor: colour,
+                            color: "white",
+                            fontSize: "0.62rem",
+                            fontWeight: 700,
+                            letterSpacing: "0.03em",
+                            mx: 0.25,
+                          }}
+                        >
+                          {relLabel}
+                        </Box>
+                        <Box
+                          component="span"
+                          sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            bgcolor: entityLabelColour(pair.siteType),
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box component="span" sx={{ color: "text.primary" }}>
+                          {pair.siteText}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Box>
+            )}
           </Box>
 
           {/* Terms */}
@@ -1280,10 +2024,98 @@ function GoldLabelDetailDialog({
               </Stack>
             </Stack>
 
+            {relationSuggestions.length > 0 && (
+              <Box
+                sx={{
+                  mb: 0.9,
+                  p: 1,
+                  border: "1px solid",
+                  borderColor: "info.light",
+                  borderRadius: 1.25,
+                  bgcolor: "info.50",
+                }}
+              >
+                <Typography variant="caption" sx={{ color: "info.dark", fontWeight: 700 }}>
+                  Recommended links
+                </Typography>
+                <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                  {relationSuggestions.slice(0, 5).map((suggestion) => {
+                    const source = entities[suggestion.sourceIdx];
+                    const target = entities[suggestion.targetIdx];
+                    const key = `${suggestion.sourceIdx}:${suggestion.type}:${suggestion.targetIdx}`;
+                    const rejectedReason = rejectedRelationKeys[key];
+                    return (
+                      <Stack
+                        key={key}
+                        direction="row"
+                        spacing={0.75}
+                        alignItems="center"
+                        sx={{ flexWrap: "wrap" }}
+                      >
+                        <Chip
+                          size="small"
+                          color="info"
+                          label={`Recommended ${(suggestion.confidence * 100).toFixed(0)}%`}
+                          sx={{ height: 20, fontSize: "0.66rem", fontWeight: 700 }}
+                        />
+                        <Typography variant="caption" sx={{ color: "text.primary" }}>
+                          {(source?.text ?? "Source")} {"->"} {(target?.text ?? "Target")}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                          ({suggestion.type})
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                          {suggestion.reason}
+                        </Typography>
+                        {!rejectedReason ? (
+                          <>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              sx={{ minHeight: 22, fontSize: "0.66rem", px: 1 }}
+                              onClick={() => handleAcceptRelationSuggestion(suggestion)}
+                              disabled={saving}
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="inherit"
+                              sx={{ minHeight: 22, fontSize: "0.66rem", px: 1 }}
+                              onClick={() => handleRejectRelationSuggestion(suggestion, "not relevant")}
+                              disabled={saving}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="small"
+                            variant="text"
+                            color="inherit"
+                            sx={{ minHeight: 22, fontSize: "0.66rem", px: 1 }}
+                            onClick={() => handleUndoRejectedRelation(suggestion)}
+                            disabled={saving}
+                          >
+                            Undo reject
+                          </Button>
+                        )}
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+              </Box>
+            )}
+
             {entities.map((e, i) => {
               const nonPresent = isNonPresent(e.assertion);
               const aColor = assertionColor(e.assertion);
               const hasSnomed = !!e.snomed_concept_id;
+              const allowBodySite = canHaveBodySite(e);
+              const siteOptions = bodySiteOptionsByIndex[i] ?? [];
+              const selectedSiteValues = findingSiteTargetIndices(e, entities.length)
+                .map((targetIdx) => String(targetIdx));
               const suggestion = suggestions[i];
               const domainCount = conceptSubdomainCounts[e.snomed_concept_id ?? ""] ?? 0;
               const domainLoaded = e.snomed_concept_id ? e.snomed_concept_id in conceptSubdomainCounts : false;
@@ -1352,6 +2184,51 @@ function GoldLabelDetailDialog({
                         <MenuItem key={option} value={option}>{formatAssertion(option)}</MenuItem>
                       ))}
                     </TextField>
+                    {allowBodySite && (
+                      <TextField
+                        select
+                        size="small"
+                        SelectProps={{ multiple: true }}
+                        value={selectedSiteValues}
+                        onChange={(event) =>
+                          handleUpdateEntityBodySite(
+                            i,
+                            event.target.value as unknown as string | string[],
+                          )
+                        }
+                        disabled={saving}
+                        placeholder="Body sites"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <LinkIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          minWidth: 150,
+                          "& .MuiInputBase-input": { py: 0.4, fontSize: "0.73rem" },
+                        }}
+                      >
+                        <MenuItem value="" disabled>
+                          <em>No linked site</em>
+                        </MenuItem>
+                        {siteOptions.map(({ candidate, candidateIdx, relationType }) => (
+                          <MenuItem key={`${relationType}-${candidateIdx}`} value={String(candidateIdx)}>
+                            {candidate.text}
+                            {relationType !== "finding_site" && (
+                              <Typography
+                                component="span"
+                                variant="caption"
+                                sx={{ ml: 0.75, color: "text.secondary" }}
+                              >
+                                ({relationType.replace(/_/g, "\u00a0")})
+                              </Typography>
+                            )}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
                     <Stack direction="row" spacing={0.125}>
                       {hasSnomed && (
                         <Tooltip title={domainLoaded ? (domainCount > 0 ? `In ${domainCount} domain${domainCount === 1 ? "" : "s"} - click to manage` : "Not in any domain yet - click to add") : "Check domains"}>
@@ -1409,6 +2286,32 @@ function GoldLabelDetailDialog({
                       </Tooltip>
                     </Stack>
                   </Stack>
+                  {!!selectedSiteValues.length && canHaveBodySite(e) && (
+                    <Stack
+                      direction="column"
+                      alignItems="center"
+                      spacing={0.5}
+                      sx={{ mt: 0.5, pl: 0.5, alignItems: "flex-start" }}
+                    >
+                      {selectedSiteValues.map((value) => {
+                        const siteIdx = Number(value);
+                        const site = entities[siteIdx];
+                        if (!site) return null;
+                        return (
+                          <Stack key={`${i}-${siteIdx}`} direction="row" alignItems="center" spacing={0.5}>
+                            <LinkIcon sx={{ fontSize: 14, color: "info.main" }} />
+                            <Typography variant="caption" sx={{ color: "info.dark", fontWeight: 600 }}>
+                              Linked site
+                            </Typography>
+                            <ArrowRightAltIcon sx={{ fontSize: 15, color: "info.main" }} />
+                            <Typography variant="caption" sx={{ color: "text.primary" }}>
+                              {site.snomed_term ?? site.text}
+                            </Typography>
+                          </Stack>
+                        );
+                      })}
+                    </Stack>
+                  )}
 
                   {/* Row 2: SNOMED status + surface form synonym */}
                   <Box sx={{ mt: 0.5, pl: 0.5 }}>
@@ -1925,6 +2828,7 @@ export default function GoldDatasetPanel() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [entityLabelFilter, setEntityLabelFilter] = useState<string | null>(null);
 
   const [candidateStats, setCandidateStats] = useState<CandidateStats | null>(null);
   const [goldStats, setGoldStats] = useState<GoldStats | null>(null);
@@ -1976,6 +2880,7 @@ export default function GoldDatasetPanel() {
   const [purgingSynthetic, setPurgingSynthetic] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<Candidate | GoldLabel | null>(null);
+  const [healthRefreshKey, setHealthRefreshKey] = useState(0);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2032,7 +2937,8 @@ export default function GoldDatasetPanel() {
         setItems(data.items);
         setTotal(data.total);
       } else if (tab === "gold") {
-        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const labelParam = entityLabelFilter ? `&entity_label=${encodeURIComponent(entityLabelFilter)}` : "";
+        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}${labelParam}`;
         const data = await jsonFetch<{ items: GoldLabel[]; total: number }>(url);
         setItems(data.items);
         setTotal(data.total);
@@ -2047,7 +2953,7 @@ export default function GoldDatasetPanel() {
     } finally {
       setListLoading(false);
     }
-  }, [tab, page, debouncedSearch]);
+  }, [tab, page, debouncedSearch, entityLabelFilter]);
 
   // Background refresh — same fetch as loadList but never sets listLoading so the
   // list behind an open dialog does not flash skeleton state on every entity edit.
@@ -2059,7 +2965,8 @@ export default function GoldDatasetPanel() {
         setItems(data.items);
         setTotal(data.total);
       } else if (tab === "gold") {
-        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const labelParam = entityLabelFilter ? `&entity_label=${encodeURIComponent(entityLabelFilter)}` : "";
+        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}${labelParam}`;
         const data = await jsonFetch<{ items: GoldLabel[]; total: number }>(url);
         setItems(data.items);
         setTotal(data.total);
@@ -2072,7 +2979,9 @@ export default function GoldDatasetPanel() {
     } catch {
       // silent — list stays stale rather than showing an error banner mid-edit
     }
-  }, [tab, page, debouncedSearch]);
+    // Nudge the health panel to re-check span mismatches after any edit.
+    setHealthRefreshKey((k) => k + 1);
+  }, [tab, page, debouncedSearch, entityLabelFilter]);
 
   useEffect(() => {
     loadList();
@@ -2085,6 +2994,7 @@ export default function GoldDatasetPanel() {
     setTab(val);
     setPage(1);
     setSearch("");
+    if (val !== "gold") setEntityLabelFilter(null);
   };
 
   async function handleExport() {
@@ -2535,7 +3445,7 @@ export default function GoldDatasetPanel() {
             <StatTile label="Received" value={candidateStats?.total ?? 0} />
             <StatTile
               label="Ready for training"
-              value={candidateStats?.completed ?? 0}
+              value={goldStats?.total ?? 0}
               color="success.main"
             />
             <StatTile
@@ -2644,6 +3554,31 @@ export default function GoldDatasetPanel() {
           }
         />
       </Tabs>
+
+      {tab === "gold" && (
+        <DatasetHealthPanel
+          refreshKey={healthRefreshKey}
+          activeLabel={entityLabelFilter}
+          onLabelFilter={(label) => {
+            setEntityLabelFilter(label);
+            setPage(1);
+          }}
+          onOpenLabel={(labelId) => {
+            // Try the in-memory list first; fall back to a direct API fetch
+            // so records on other pages (or not yet loaded) still open.
+            const inMemory = items.find(
+              (it): it is GoldLabel => "label_id" in it && it.label_id === labelId,
+            );
+            if (inMemory) {
+              setSelectedItem(inMemory);
+              return;
+            }
+            fetchGoldLabel(labelId)
+              .then((rec) => setSelectedItem(rec as unknown as GoldLabel))
+              .catch(() => {/* silently ignore -- label may have been deleted */});
+          }}
+        />
+      )}
 
       {tab === "synthetic" && syntheticStats && (
         <Card variant="outlined" sx={{ mb: 2 }}>

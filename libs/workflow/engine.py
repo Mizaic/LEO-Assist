@@ -255,7 +255,7 @@ class WorkflowEngine:
             if (
                 not queue
                 and not fallback_enqueued
-                and (not has_graph_edges or len(executed) < len(all_actions))
+                and not has_graph_edges
             ):
                 remainder = sorted(
                     (a.action_id for a in all_actions if a.action_id not in executed),
@@ -1129,7 +1129,7 @@ class WorkflowEngine:
             if (
                 not queue
                 and not fallback_enqueued
-                and (not has_graph_edges or len(executed) < len(actions))
+                and not has_graph_edges
             ):
                 remainder = sorted(
                     (a.action_id for a in actions if a.action_id not in executed),

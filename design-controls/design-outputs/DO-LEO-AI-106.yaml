@@ -1,0 +1,118 @@
+# -- DO-LEO-AI-106 -- Ontology-grounded relation modeling implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-106"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-108"]
+    user_needs: ["UN-LEO-AI-062"]
+    risks_addressed: ["R-LEO-AI-074"]
+    verification_tests: ["VT-LEO-AI-108"]
+
+  specification:
+    title: "Canonical relation schema, policy validation, relation train/eval, and model-first runtime linking"
+    description: |
+      This output implements a first-class relation path across API, UI, training,
+      and runtime:
+
+      1. Canonical relation persistence:
+         - Gold label entity payloads persist relations[] rows with
+           type/target_idx/target_text/confidence.
+         - Legacy body-site fields are mirrored for backward compatibility.
+
+      2. Ontology policy:
+         - Shared relation policy matrix defines allowed source/target semantic
+           label pairs and relation families.
+         - API and runtime use the same policy checks.
+
+      3. Gold review UX:
+         - Multi-site relation picker supports one source term linked to multiple
+           body-structure targets.
+         - Recommendation panel ranks ontology-valid links and supports accept,
+           reject, and undo actions.
+
+      4. Relation model training path:
+         - relation_exporter emits relation_train.jsonl and relation_dev.jsonl.
+         - relation_trainer learns label-pair priors and writes relation_model.json.
+         - relation_evaluator reports precision/recall/F1 and per-type metrics.
+         - job_runner integrates relation export/train/eval into the training job.
+
+      5. Runtime relation linking:
+         - relation_linking subgraph predicts relations model-first and calls LLM
+           fallback only for low-confidence coverage.
+         - persisted relation rows are canonicalized and deduplicated.
+
+    acceptance_criteria:
+      - criterion: "Canonical relation write path"
+        type: "functional"
+        measurement: "Test"
+        target: "API stores relations[] and mirrors first finding_site to legacy body-site fields"
+      - criterion: "Policy enforcement"
+        type: "safety"
+        measurement: "Test"
+        target: "Invalid source-target relation combinations are rejected at API boundary"
+      - criterion: "Multi-site UX"
+        type: "functional"
+        measurement: "Test"
+        target: "UI supports multiple finding_site links per entity and persists after save/reopen"
+      - criterion: "Relation model metrics"
+        type: "functional"
+        measurement: "Test"
+        target: "Training worker reports per-type metrics and relation F1 gate result"
+      - criterion: "Runtime fallback policy"
+        type: "safety"
+        measurement: "Test"
+        target: "relation_linking runs model-first; LLM fallback used only when below confidence threshold"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/relations/policy.py"
+        description: "Shared relation policy matrix and canonicalization helpers"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "GoldLabel relation validation and canonical relation persistence"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+        description: "Multi-site linking and recommendation accept/reject/undo UX"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/relation_linking.py"
+        description: "Model-first runtime relation prediction and low-confidence fallback"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/relation_exporter.py"
+        description: "Relation train/dev export from GoldLabel"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/relation_trainer.py"
+        description: "Relation model training"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/relation_evaluator.py"
+        description: "Relation model evaluation and per-type metrics"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/job_runner.py"
+        description: "Training job integration for relation export/train/eval"
+    storage_location: "git"
+    technical_details:
+      language: "Python/TypeScript"
+      loc: 420
+      key_functions:
+        - "update_gold_label_entities"
+        - "relation_linking"
+        - "export_relation_dataset"
+        - "train_relation_model"
+        - "evaluate_relation_model"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Policy-based relation validation prevents invalid semantic links from persisting"
+      - "Runtime low-confidence fallback avoids blind auto-linking when model confidence is weak"
+    risk_control_measures:
+      - "Canonical relation dedup with index bounds and policy checks"
+      - "Relation evaluation gate blocks weak relation models from progressing"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

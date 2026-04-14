@@ -2,16 +2,19 @@
   type: "Safety"
   derived_from: ["UN-LEO-AI-049", "UN-LEO-AI-050"]
   requirement: >
-    The coding pipeline SHALL run a lightweight extraction quality LLM check
-    after post-processing and before terminology resolution. The check SHALL
-    support drop, assertion correction, label correction, and additive
-    recovery of missed surface forms. Corrections SHALL be tagged with
-    provenance metadata so they can be used for targeted NER retraining. For
-    referral procedure phrases, assertion correction SHALL NOT downgrade the
-    procedure to uncertain disease context. Medication side-effect counselling
-    lists (for example "advised at increased risk of side effects such as ...")
-    SHALL be treated as advice context and SHALL NOT persist listed side effects
-    as current patient findings.
+    The coding pipeline SHALL run a relation-linking stage and a lightweight
+    extraction quality LLM check after post-processing and before terminology
+    resolution. The extraction quality check SHALL support drop, assertion
+    correction, label correction, additive recovery of missed surface forms,
+    and relation correction/addition for body-site and qualifier links.
+    Corrections SHALL be tagged with provenance metadata so they can be used for
+    targeted NER retraining. For referral procedure phrases, assertion correction
+    SHALL NOT downgrade the procedure to uncertain disease context. Medication
+    side-effect counselling lists (for example "advised at increased risk of
+    side effects such as ...") SHALL be treated as advice context and SHALL NOT
+    persist listed side effects as current patient findings. When extraction
+    changes are detected, pipeline routing SHALL branch to HITL review queue
+    instead of proceeding directly to autonomous terminology coding.
   rationale: >
     NER-first extraction improves cost and determinism but still misses surface
     forms and can misclassify semantic labels. A narrow single-turn quality
@@ -29,11 +32,17 @@
       - type: "functional"
         spec: "Corrected entities include _llm_check_source for assertion_corrected or label_corrected"
       - type: "functional"
-        spec: "PromptConfig name extraction_check v1 is seedable and loadable from Neo4j"
+        spec: "relation_linking subgraph populates __relations and marks relation-suppressed body structure entities"
+      - type: "safety"
+        spec: "Extraction check supports relation correction/addition and writes relation provenance markers"
+      - type: "functional"
+        spec: "PromptConfig name extraction_check v2 and relation_linking v1 are seedable and loadable from Neo4j"
       - type: "safety"
         spec: "Referral procedure phrases corrected to possible are normalised to present assertion (the referral was performed)"
       - type: "functional"
         spec: "Gold-training persistence runs only when entities include extraction-check provenance markers (llm_added, assertion_corrected, or label_corrected)"
+      - type: "functional"
+        spec: "Condition node routes has_extraction_changes=true paths to hitl_ner_queue and routes pass-through paths to terminology"
       - type: "functional"
         spec: "Sentence-level TrainingCandidate records persist entities_json with mention text, assertion, and semantic_tag for reviewer handoff to GoldLabel"
       - type: "safety"
@@ -45,14 +54,19 @@
         spec: "Extraction check must not call terminology tools or mutate SNOMED concept IDs directly"
       - type: "safety"
         spec: "Screening/exclusion text shall not trigger inferred disease additions"
+      - type: "safety"
+        spec: "Relation links shall only reference existing entity indices in current extraction payload"
     dependencies: ["DI-LEO-AI-096", "DI-LEO-AI-050", "DI-LEO-AI-077"]
     downstream_impacts:
       - "libs/pipeline_graph/subgraphs/llm_check.py"
+      - "libs/pipeline_graph/subgraphs/relation_linking.py"
       - "libs/pipeline/post_processing.py"
       - "libs/nlp/sentence_splitter.py"
       - "libs/pipeline_graph/registry.py"
+      - "libs/workflow/engine.py"
       - "libs/pipeline_graph/subgraphs/persist.py"
       - "libs/prompts/extraction_check_v1.py"
+      - "libs/prompts/relation_linking_v1.py"
       - "scripts/seed_prompt_configs.py"
       - "scripts/seed_plan_definitions.py"
     technical_details:
@@ -60,19 +74,23 @@
       framework: "LangGraph / LLM client"
       file_structure:
         - "libs/pipeline_graph/subgraphs/llm_check.py"
+        - "libs/pipeline_graph/subgraphs/relation_linking.py"
         - "libs/pipeline_graph/subgraphs/persist.py"
+        - "libs/workflow/engine.py"
         - "libs/pipeline_graph/registry.py"
         - "libs/prompts/extraction_check_v1.py"
+        - "libs/prompts/relation_linking_v1.py"
         - "scripts/seed_prompt_configs.py"
         - "scripts/seed_plan_definitions.py"
-      estimated_loc: 260
+      estimated_loc: 420
 
   verification:
     method: "Test"
     phase: "OQ"
     acceptance: >
       VT-LEO-AI-097 passes all critical checks for extraction-check parsing,
-      entity correction application, and provenance tagging.
+      relation-linking output parsing, extraction correction application, and
+      provenance tagging.
     test_protocol: "VT-LEO-AI-097"
 
   safety_class: "B"
@@ -81,4 +99,5 @@
     - "pipeline"
     - "llm-check"
     - "extraction-quality"
+    - "relation-linking"
     - "training-feedback"

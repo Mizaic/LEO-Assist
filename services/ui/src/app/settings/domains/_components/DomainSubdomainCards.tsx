@@ -101,6 +101,12 @@ export default function DomainSubdomainCards({
                       label={`${sub.concept_count} concept${sub.concept_count !== 1 ? "s" : ""}`}
                       size="small"
                     />
+                    <Chip
+                      label={`${sub.construct_count ?? sub.constructs?.length ?? 0} code group${(sub.construct_count ?? sub.constructs?.length ?? 0) !== 1 ? "s" : ""}`}
+                      size="small"
+                      color="secondary"
+                      variant="outlined"
+                    />
                     {(sub.descendant_count ?? 0) > 0 && (
                       <Tooltip title="Additional codes matched automatically via IS_A hierarchy">
                         <Chip

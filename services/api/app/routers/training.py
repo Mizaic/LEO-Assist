@@ -169,6 +169,58 @@ from libs.utils.logging import logging_context
 
 logger = logging.getLogger(__name__)
 
+# -- Entity label normalisation maps -----------------------------------------
+# Stored labels are lowercase SNOMED semantic tags.  Display labels shown in
+# the distribution chart are uppercase abbreviations.  The reverse map lets the
+# list endpoint accept a display label and look up the stored form for filtering.
+
+_ENTITY_STORED_TO_DISPLAY: dict[str, str] = {
+    "disorder": "DISORDER",
+    "finding": "FINDING",
+    "procedure": "PROCEDURE",
+    "observable_entity": "OBSERVABLE",
+    "qualifier_value": "QUALIFIER",
+    "substance": "SUBSTANCE",
+    "medicinal_product": "MEDICINAL_PRODUCT",
+    "clinical_drug": "CLINICAL_DRUG",
+    "situation": "SITUATION",
+    "event": "EVENT",
+    "body_structure": "BODY_STRUCTURE",
+    "tumor_staging": "TUMOR_STAGING",
+    "assessment_scale": "ASSESSMENT_SCALE",
+    "staging_scale": "STAGING_SCALE",
+    "regime_therapy": "REGIME_THERAPY",
+    "record_artifact": "RECORD_ARTIFACT",
+    "physical_object": "PHYSICAL_OBJECT",
+    "organism": "ORGANISM",
+    "morphologic_abnormality": "MORPHOLOGIC_ABNORMALITY",
+    "occupation": "OCCUPATION",
+    "attribute": "ATTRIBUTE",
+    "environment": "ENVIRONMENT",
+    "product": "PRODUCT",
+    "x_temporal": "TEMPORAL",
+    "x_dosage": "DOSAGE",
+    "x_frequency": "FREQUENCY",
+    "x_route": "ROUTE",
+}
+
+# Reverse: display label -> stored label (lower-case for CONTAINS matching)
+_ENTITY_DISPLAY_TO_STORED: dict[str, str] = {
+    v.lower(): k for k, v in _ENTITY_STORED_TO_DISPLAY.items()
+}
+
+
+def _normalise_entity_label_param(display_label: str | None) -> str | None:
+    """Convert a chart display label to the stored lowercase form.
+
+    e.g. "FINDING" -> "finding", "OBSERVABLE" -> "observable_entity".
+    Falls back to lower-casing the input when no explicit mapping exists.
+    """
+    if display_label is None:
+        return None
+    return _ENTITY_DISPLAY_TO_STORED.get(display_label.lower(), display_label.lower())
+
+
 router = APIRouter(prefix="/training", tags=["training"])
 PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip(
     "/"
@@ -4669,32 +4721,55 @@ def active_learning_queue(
     page_size: int = Query(25, ge=1, le=200),
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    """Return pending TrainingCandidates sorted by uncertainty score (DESC).
+    """Return pending TrainingCandidates ranked by a blended priority score.
 
-    Candidates with the highest uncertainty are shown first -- these are the
-    examples that would teach the model the most if reviewed and verified.
-    The uncertainty_score is computed by the scoring job (POST /candidates/score)
-    and stored on each TrainingCandidate node.
+    priority_score = 0.6 * rarity_score + 0.4 * normalised_uncertainty
+
+    rarity_score is derived from the current gold label distribution: labels
+    with fewer gold examples produce a higher score so the reviewer is guided
+    toward filling dataset gaps.  This works even before the first model is
+    promoted because it reads entities_json directly from each candidate node.
 
     MUST be declared before /candidates/{candidate_id} so FastAPI does not
     treat the literal path segment as a candidate_id parameter.
     """
     from libs.cypher.training_candidate_queries import (
-        GET_ACTIVE_LEARNING_QUEUE,
+        GET_ALL_PENDING_FOR_RANKING,
         COUNT_ACTIVE_LEARNING_QUEUE,
     )
 
-    skip = (page - 1) * page_size
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
-            rows = session.run(GET_ACTIVE_LEARNING_QUEUE, skip=skip, limit=page_size)
-            items = [dict(r) for r in rows]
+            all_rows = [dict(r) for r in session.run(GET_ALL_PENDING_FOR_RANKING)]
             count_row = session.run(COUNT_ACTIVE_LEARNING_QUEUE).single()
         total = count_row["total"] if count_row else 0
-        return {"items": items, "page": page, "page_size": page_size, "total": total}
     finally:
         client.close()
+
+    label_counts = _fetch_label_counts_for_scoring()
+    _enrich_and_sort(all_rows, label_counts)
+
+    skip = (page - 1) * page_size
+    items = all_rows[skip : skip + page_size]
+    return {"items": items, "page": page, "page_size": page_size, "total": total}
+
+
+def _enrich_and_sort(
+    rows: list[dict],
+    label_counts: dict[str, int],
+) -> None:
+    """Mutate rows in-place: add rarity/priority fields and sort DESC."""
+    for row in rows:
+        r_score, r_labels = _rarity_for_candidate(
+            row.get("entities_json"), label_counts
+        )
+        u_raw = float(row.get("uncertainty_score") or 0.0)
+        norm_u = min(u_raw / 3.0, 1.0)
+        row["rarity_score"] = r_score
+        row["rare_labels"] = r_labels
+        row["priority_score"] = round(0.6 * r_score + 0.4 * norm_u, 4)
+    rows.sort(key=lambda r: r["priority_score"], reverse=True)
 
 
 @router.post("/candidates/score")
@@ -4852,15 +4927,60 @@ def get_gold_label_stats(
         client.close()
 
 
+@router.get("/gold-labels/label-distribution")
+def get_gold_label_distribution(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return entity-type label counts across all verified gold labels."""
+    import json as _json
+    from collections import Counter
+
+    client = KnowledgeGraphClient()
+    try:
+        counter: Counter = Counter()
+        total_records = 0
+        with client.session() as session:
+            rows = session.run(
+                """
+                MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+                WHERE c.status = 'completed'
+                  AND g.entities_json IS NOT NULL
+                RETURN g.entities_json AS entities_json
+                """
+            )
+            for row in rows:
+                total_records += 1
+                entities = _json.loads(row["entities_json"] or "[]")
+                for ent in entities:
+                    raw = str(
+                        ent.get("label") or ent.get("semantic_tag") or "UNKNOWN"
+                    ).lower()
+                    label = _ENTITY_STORED_TO_DISPLAY.get(raw, raw.upper())
+                    counter[label] += 1
+    finally:
+        client.close()
+
+    return {
+        "total_records": total_records,
+        "total_entities": sum(counter.values()),
+        "distribution": [
+            {"label": lbl, "count": cnt}
+            for lbl, cnt in counter.most_common()
+        ],
+    }
+
+
 @router.get("/gold-labels")
 def list_gold_labels(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     source: str | None = None,
     search: str | None = None,
+    entity_label: str | None = None,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     skip = (page - 1) * page_size
+    stored_label = _normalise_entity_label_param(entity_label)
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
@@ -4870,6 +4990,7 @@ def list_gold_labels(
                 limit=page_size,
                 source=source,
                 search=search,
+                entity_label=stored_label,
             )
             items = [dict(r) for r in rows]
             _enrich_items_entities_with_pt_cache(session, items)
@@ -4877,11 +4998,112 @@ def list_gold_labels(
                 COUNT_GOLD_LABELS_PAGE,
                 source=source,
                 search=search,
+                entity_label=stored_label,
             ).single()
         total = count_row["total"] if count_row else 0
         return {"items": items, "page": page, "page_size": page_size, "total": total}
     finally:
         client.close()
+
+
+@router.get("/gold-labels/export")
+def export_gold_labels(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
+            return {"items": [dict(r) for r in rows]}
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/export-diagnostics")
+def get_export_diagnostics(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Replay the export filter path and return per-entity drop diagnostics.
+
+    Runs the same assertion-filter + span-realignment logic as the training
+    export without writing DocBins. Returns two lists:
+    - assertion_filtered: entities removed because their assertion is excluded
+    - span_misaligned: entities whose surface text was not found in the sentence
+    """
+    from libs.pipeline.label_filter import compute_export_diagnostics
+
+    return compute_export_diagnostics()
+
+
+@router.post("/gold-labels/{label_id}/repair-spans")
+def repair_gold_label_spans(
+    label_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Re-align entity spans for a single GoldLabel using normalised matching.
+
+    For each entity whose stored start/end is stale (e.g. em-dash vs hyphen,
+    whitespace changes after editing), this re-derives the offsets from the
+    entity surface text using find_span's normalised matching pass.
+
+    Entities that genuinely cannot be found (e.g. template placeholders that
+    no longer match any substring) are dropped from the gold label.
+
+    Returns:
+        repaired  -- entities whose offsets were updated
+        dropped   -- entities removed because the surface text was not found
+        remaining -- entities kept (including already-valid ones)
+    """
+    import json as _json
+    from libs.ner.span_finder import find_span
+    from libs.cypher.gold_label_queries import GET_GOLD_LABEL_BY_ID, SET_GOLD_LABEL_ENTITIES
+
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+    finally:
+        client.close()
+
+    text = str(row.get("text") or "")
+    entities = _json.loads(row.get("entities_json") or "[]")
+
+    repaired, dropped, kept = _repair_entities(text, entities, find_span)
+
+    updated = _json.dumps(kept)
+    client2 = KnowledgeGraphClient()
+    try:
+        with client2.session() as session:
+            session.run(SET_GOLD_LABEL_ENTITIES, label_id=label_id, entities_json=updated)
+    finally:
+        client2.close()
+
+    return {"label_id": label_id, "repaired": repaired, "dropped": dropped, "remaining": len(kept)}
+
+
+def _repair_entities(
+    text: str,
+    entities: list[dict],
+    find_span_fn,
+) -> tuple[int, int, list[dict]]:
+    """Re-align entity spans; return (repaired_count, dropped_count, kept_list)."""
+    repaired = 0
+    dropped = 0
+    kept: list[dict] = []
+    for ent in entities:
+        surface = str(ent.get("text", "")).strip()
+        result = find_span_fn(text, surface)
+        if result is None:
+            dropped += 1
+            continue
+        start, end = result
+        if start != ent.get("start") or end != ent.get("end"):
+            ent = {**ent, "start": start, "end": end}
+            repaired += 1
+        kept.append(ent)
+    return repaired, dropped, kept
 
 
 @router.get("/gold-labels/{label_id}")
@@ -5005,6 +5227,8 @@ def update_gold_label_entities(
     """
     import json
 
+    from libs.relations.policy import canonicalise_relations, is_relation_allowed
+
     validated: list[dict[str, Any]] = []
     for i, ent in enumerate(body.entities):
         label_val = ent.get("label", "")
@@ -5020,27 +5244,107 @@ def update_gold_label_entities(
             raise HTTPException(
                 status_code=422, detail=f"Entity #{i}: text must be non-empty"
             )
-        validated.append(
-            {
-                "text": ent["text"].strip(),
-                "label": label_val,
-                **({"start": ent["start"]} if "start" in ent else {}),
-                **({"end": ent["end"]} if "end" in ent else {}),
-                **({"assertion": ent["assertion"]} if "assertion" in ent else {}),
-                **({"confidence": ent["confidence"]} if "confidence" in ent else {}),
-                **(
-                    {"snomed_concept_id": ent["snomed_concept_id"]}
-                    if "snomed_concept_id" in ent
-                    else {}
+        row: dict[str, Any] = {
+            "text": ent["text"].strip(),
+            "label": label_val,
+            **({"start": ent["start"]} if "start" in ent else {}),
+            **({"end": ent["end"]} if "end" in ent else {}),
+            **({"assertion": ent["assertion"]} if "assertion" in ent else {}),
+            **({"confidence": ent["confidence"]} if "confidence" in ent else {}),
+            **(
+                {"snomed_concept_id": ent["snomed_concept_id"]}
+                if "snomed_concept_id" in ent
+                else {}
+            ),
+            **(
+                {"semantic_tag": ent["semantic_tag"]}
+                if "semantic_tag" in ent
+                else {}
+            ),
+            **({"snomed_term": ent["snomed_term"]} if "snomed_term" in ent else {}),
+            **({"body_site": ent["body_site"]} if "body_site" in ent else {}),
+            **(
+                {"body_site_concept_id": ent["body_site_concept_id"]}
+                if "body_site_concept_id" in ent
+                else {}
+            ),
+            **(
+                {"body_site_term": ent["body_site_term"]}
+                if "body_site_term" in ent
+                else {}
+            ),
+        }
+        # Canonical relation list support.
+        if isinstance(ent.get("relations"), list):
+            row["relations"] = ent.get("relations")
+        validated.append(row)
+
+    # Post-parse relation validation needs full entity list for target_idx checks.
+    for idx, entity in enumerate(validated):
+        raw_relations = list(entity.get("relations") or [])
+        # Legacy single-site fields are mirrored to finding_site relation.
+        legacy_site_text = str(entity.get("body_site_term") or entity.get("body_site") or "").strip()
+        if legacy_site_text:
+            target_idx = None
+            for j, target in enumerate(validated):
+                if j == idx:
+                    continue
+                target_text = str(target.get("text") or "").strip().lower()
+                target_term = str(target.get("snomed_term") or "").strip().lower()
+                if legacy_site_text.lower() in {target_text, target_term}:
+                    target_idx = j
+                    break
+            if isinstance(target_idx, int):
+                raw_relations.append(
+                    {
+                        "type": "finding_site",
+                        "target_idx": target_idx,
+                        "target_text": str(validated[target_idx].get("text") or ""),
+                        "confidence": 1.0,
+                    }
+                )
+        canonical_relations = canonicalise_relations(raw_relations, len(validated))
+        for rel in canonical_relations:
+            target_idx = int(rel["target_idx"])
+            allowed, severity = is_relation_allowed(
+                source_label=str(entity.get("label") or entity.get("semantic_tag") or ""),
+                target_label=str(
+                    validated[target_idx].get("label")
+                    or validated[target_idx].get("semantic_tag")
+                    or ""
                 ),
-                **(
-                    {"semantic_tag": ent["semantic_tag"]}
-                    if "semantic_tag" in ent
-                    else {}
-                ),
-                **({"snomed_term": ent["snomed_term"]} if "snomed_term" in ent else {}),
-            }
-        )
+                relation_type=str(rel.get("type") or ""),
+            )
+            if not allowed and severity == "error":
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Entity #{idx}: relation {rel.get('type')!r} to entity "
+                        f"#{target_idx} is not allowed by relation policy"
+                    ),
+                )
+        if canonical_relations:
+            entity["relations"] = canonical_relations
+            if not entity.get("body_site_term"):
+                site_relation = next(
+                    (
+                        rel
+                        for rel in canonical_relations
+                        if str(rel.get("type") or "") == "finding_site"
+                    ),
+                    None,
+                )
+                if site_relation:
+                    site_idx = int(site_relation["target_idx"])
+                    site = validated[site_idx]
+                    entity["body_site"] = str(site.get("text") or "")
+                    entity["body_site_term"] = str(
+                        site.get("snomed_term") or site.get("text") or ""
+                    )
+                    if site.get("snomed_concept_id"):
+                        entity["body_site_concept_id"] = str(
+                            site.get("snomed_concept_id") or ""
+                        )
 
     entities_json = json.dumps(validated)
     client = KnowledgeGraphClient()
@@ -5061,35 +5365,6 @@ def update_gold_label_entities(
         return {"label_id": label_id, "entities": validated}
     finally:
         client.close()
-
-
-@router.get("/gold-labels/export")
-def export_gold_labels(
-    scope: CallerScope = Depends(get_caller_scope),
-) -> dict[str, Any]:
-    client = KnowledgeGraphClient()
-    try:
-        with client.session() as session:
-            rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
-            return {"items": [dict(r) for r in rows]}
-    finally:
-        client.close()
-
-
-@router.get("/gold-labels/export-diagnostics")
-def get_export_diagnostics(
-    scope: CallerScope = Depends(get_caller_scope),
-) -> dict[str, Any]:
-    """Replay the export filter path and return per-entity drop diagnostics.
-
-    Runs the same assertion-filter + span-realignment logic as the training
-    export without writing DocBins. Returns two lists:
-    - assertion_filtered: entities removed because their assertion is excluded
-    - span_misaligned: entities whose surface text was not found in the sentence
-    """
-    from libs.pipeline.label_filter import compute_export_diagnostics
-
-    return compute_export_diagnostics()
 
 
 # -- Golden set flag management --------------------------------------------
@@ -5227,6 +5502,62 @@ def _token_entropy(doc) -> float:
             count += 1
 
     return round(total / count, 6) if count else 0.0
+
+
+def _fetch_label_counts_for_scoring() -> dict[str, int]:
+    """Return {LABEL: count} from verified gold labels for rarity scoring."""
+    import json as _json
+    from collections import Counter
+
+    counter: Counter = Counter()
+    kg = KnowledgeGraphClient()
+    try:
+        with kg.session() as session:
+            rows = session.run(
+                """
+                MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+                WHERE c.status = 'completed' AND g.entities_json IS NOT NULL
+                RETURN g.entities_json AS entities_json
+                """
+            )
+            for row in rows:
+                for ent in _json.loads(row["entities_json"] or "[]"):
+                    raw = str(
+                        ent.get("label") or ent.get("semantic_tag") or ""
+                    ).upper()
+                    if raw:
+                        counter[raw] += 1
+    finally:
+        kg.close()
+    return dict(counter)
+
+
+def _rarity_for_candidate(
+    entities_json: str | None,
+    label_counts: dict[str, int],
+) -> tuple[float, list[str]]:
+    """Compute a [0,1] rarity score and list of rare labels for one candidate.
+
+    Rarity = 1 / (1 + gold_count) for each entity label.  Labels with fewer
+    gold examples produce a higher score.  A label never seen in gold gets
+    the maximum score of 1.0.
+    """
+    import json as _json
+
+    if not entities_json:
+        return 0.0, []
+    best = 0.0
+    rare: list[str] = []
+    for ent in _json.loads(entities_json or "[]"):
+        label = str(ent.get("label") or ent.get("semantic_tag") or "").upper()
+        if not label:
+            continue
+        count = label_counts.get(label, 0)
+        r = 1.0 / (1.0 + count)
+        if r > 0.1:
+            rare.append(label)
+        best = max(best, r)
+    return round(best, 4), sorted(set(rare))
 
 
 # -- Surface form review tasks (Knowledge Graph) ---------------------------

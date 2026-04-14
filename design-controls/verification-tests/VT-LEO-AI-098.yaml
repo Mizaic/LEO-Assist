@@ -1,6 +1,6 @@
 - id: "VT-LEO-AI-098"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-098"]
@@ -18,6 +18,9 @@
     automation_framework: "pytest"
     test_file_paths:
       - "tests/test_llm_check_subgraph.py"
+      - "tests/test_tier_classify_subgraph.py"
+      - "tests/test_persist_subgraph_gold.py"
+      - "tests/test_seed_plan_definitions.py"
 
   test_environment:
     environment_type: "development"
@@ -58,7 +61,27 @@
           expected_result: "pd-gp-encounter-coding includes coding_check after terminology and persist output_target both"
       verification_method: "automated"
       acceptance_criteria:
-        - "Action sequence is extraction -> post -> extraction_check -> terminology -> coding_check -> tier -> persist"
+        - "Action sequence is extraction -> post -> relation_linking -> extraction_check -> condition route -> terminology -> coding_check -> condition route -> tier -> persist"
+    - case_id: "VT-098-TC-004"
+      case_name: "Tier classify respects coding-check _tier_override"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Invoke tier_classify subgraph with _tier_override metadata set"
+          expected_result: "Tier decision uses override tier and route_to_review decision"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "_tier_override_reason is carried into tier decision reason"
+    - case_id: "VT-098-TC-005"
+      case_name: "Patient graph write is held when coding issue exists"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Invoke write_patient_graph with llm_check_changes including force_review or coding_mismatch"
+          expected_result: "write_patient_graph returns held_pending_review and writes zero document links"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "No patient graph DOCUMENTS writes occur when coding hold is active"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -70,4 +93,17 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - run_id: "VT-098-RUN-001"
+      date: "2026-04-14"
+      executor: "automated (pytest)"
+      environment: "development"
+      result: "pass"
+      passed_cases: 5
+      failed_cases: 0
+      notes: >
+        Executed .venv/bin/python -m pytest tests/test_llm_check_subgraph.py
+        tests/test_tier_classify_subgraph.py tests/test_persist_subgraph_gold.py
+        tests/test_seed_plan_definitions.py -q. Verified coding_check
+        drop/force_review, coding condition routing, tier override enforcement,
+        and patient graph hold gating.
