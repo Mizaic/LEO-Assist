@@ -5,7 +5,9 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-_LABEL_EXPORTER_PATH = ROOT / "services" / "training_worker" / "app" / "label_exporter.py"
+_LABEL_EXPORTER_PATH = (
+    ROOT / "services" / "training_worker" / "app" / "label_exporter.py"
+)
 
 
 def _load_label_exporter():
