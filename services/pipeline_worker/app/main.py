@@ -37,9 +37,11 @@ from datetime import datetime, timezone
 from typing import Any, AsyncGenerator
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
+from libs.auth.service_auth import verify_service_token
 
 from libs.message_bus.factory import create_message_bus
 from libs.message_bus.base import Message
@@ -416,7 +418,11 @@ def _build_actions(
     return actions, edges_by_target
 
 
-@app.post("/test-run", response_model=TestRunResponse)
+@app.post(
+    "/test-run",
+    response_model=TestRunResponse,
+    dependencies=[Depends(verify_service_token)],
+)
 async def test_run_pipeline(body: TestRunRequest) -> TestRunResponse:
     """Dry-run the draft pathway against a single provided input (non-streaming).
 
@@ -440,7 +446,7 @@ async def test_run_pipeline(body: TestRunRequest) -> TestRunResponse:
     )
 
 
-@app.post("/test-run/stream")
+@app.post("/test-run/stream", dependencies=[Depends(verify_service_token)])
 async def test_run_pipeline_stream(body: TestRunRequest) -> StreamingResponse:
     """SSE stream of a single-record pipeline dry-run — one event per step.
 
@@ -484,7 +490,7 @@ async def test_run_pipeline_stream(body: TestRunRequest) -> StreamingResponse:
 # ── Batch dry-run endpoint ────────────────────────────────────────────────────
 
 
-@app.post("/test-run/batch")
+@app.post("/test-run/batch", dependencies=[Depends(verify_service_token)])
 async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
     """Batch dry-run of the draft pathway against real TrainingCandidates.
 
@@ -790,7 +796,7 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
     )
 
 
-@app.get("/test-run/batch/trace")
+@app.get("/test-run/batch/trace", dependencies=[Depends(verify_service_token)])
 async def get_batch_candidate_trace(
     batch_run_id: str, candidate_id: str
 ) -> dict[str, Any]:
@@ -805,7 +811,7 @@ async def get_batch_candidate_trace(
     return payload
 
 
-@app.post("/label-verify/start")
+@app.post("/label-verify/start", dependencies=[Depends(verify_service_token)])
 async def label_verify_start(
     body: LabelVerifyStartRequest | None = None,
 ) -> dict[str, Any]:
@@ -857,7 +863,7 @@ async def label_verify_start(
     }
 
 
-@app.post("/label-verify/stop")
+@app.post("/label-verify/stop", dependencies=[Depends(verify_service_token)])
 async def label_verify_stop() -> dict[str, Any]:
     from services.pipeline_worker.app.services.label_verifier import request_stop_job
 
@@ -868,7 +874,7 @@ async def label_verify_stop() -> dict[str, Any]:
     return {"status": "stopping", "message": "Cancellation requested"}
 
 
-@app.get("/label-verify/status")
+@app.get("/label-verify/status", dependencies=[Depends(verify_service_token)])
 async def label_verify_status() -> dict[str, Any]:
     from libs.cypher.label_verification_queries import (
         COUNT_VERIFICATION_QUEUE_PENDING,
@@ -934,7 +940,11 @@ def _run_guidance_generation(job_id: str, guideline_id: str) -> None:
         )
 
 
-@app.post("/guidance/generate", status_code=202)
+@app.post(
+    "/guidance/generate",
+    status_code=202,
+    dependencies=[Depends(verify_service_token)],
+)
 async def guidance_generate(body: GuidanceGenerateRequest) -> dict[str, Any]:
     # Reject a second concurrent request for the same guideline to prevent
     # duplicate rule writes or conflicting Neo4j transactions.
@@ -967,7 +977,7 @@ async def guidance_generate(body: GuidanceGenerateRequest) -> dict[str, Any]:
     return {"job_id": job_id}
 
 
-@app.get("/guidance/generate/{job_id}")
+@app.get("/guidance/generate/{job_id}", dependencies=[Depends(verify_service_token)])
 async def guidance_generate_status(job_id: str) -> dict[str, Any]:
     """Poll the status of a rule generation job started by POST /guidance/generate."""
     job = _guidance_generate_jobs.get(job_id)

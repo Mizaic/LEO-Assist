@@ -1,13 +1,31 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "services" / "training_worker"))
+_LABEL_EXPORTER_PATH = ROOT / "services" / "training_worker" / "app" / "label_exporter.py"
 
-from app import label_exporter
+
+def _load_label_exporter():
+    """Load training worker label_exporter without importing the ambiguous `app` package.
+
+    Other tests put ``services/api`` on ``sys.path`` first, so ``import app`` resolves
+    to the FastAPI package and stays cached; ``training_worker`` must not rely on it.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "training_worker_label_exporter",
+        _LABEL_EXPORTER_PATH,
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load module from {_LABEL_EXPORTER_PATH}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+label_exporter = _load_label_exporter()
 
 
 class _FakeSession:
@@ -89,7 +107,9 @@ def test_export_labels_reads_gold_label_source(monkeypatch, tmp_path: Path):
         {
             "label_id": "a",
             "text": "Patient has chest pain",
-            "entities_json": '[{"start": 12, "end": 22, "label": "finding"}]',
+            "entities_json": (
+                '[{"start": 12, "end": 22, "label": "finding", "text": "chest pain"}]'
+            ),
             "source": "manual_gold_editor",
             "quality_score": 0.9,
             "verified_at": "2026-01-01T00:00:00",
@@ -97,7 +117,9 @@ def test_export_labels_reads_gold_label_source(monkeypatch, tmp_path: Path):
         {
             "label_id": "b",
             "text": "Biopsy planned tomorrow",
-            "entities_json": '[{"start": 0, "end": 6, "label": "procedure"}]',
+            "entities_json": (
+                '[{"start": 0, "end": 6, "label": "procedure", "text": "Biopsy"}]'
+            ),
             "source": "migrated_from_training_label",
             "quality_score": 0.95,
             "verified_at": "2026-01-01T00:00:00",
@@ -133,7 +155,9 @@ def test_export_labels_blocks_when_gold_count_below_min(monkeypatch, tmp_path: P
             {
                 "label_id": "a",
                 "text": "Only one record",
-                "entities_json": '[{"start": 0, "end": 4, "label": "finding"}]',
+                "entities_json": (
+                    '[{"start": 0, "end": 4, "label": "finding", "text": "Only"}]'
+                ),
                 "source": "manual_gold_editor",
                 "quality_score": 0.9,
                 "verified_at": "2026-01-01T00:00:00",

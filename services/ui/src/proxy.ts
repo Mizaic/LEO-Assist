@@ -58,6 +58,7 @@ const EXACT_ROUTES: Record<string, () => string> = {
 interface PrefixRule {
   prefix: string;
   rewrite: (rest: string) => string;
+  serviceAuth?: boolean;
 }
 
 const PREFIX_RULES: PrefixRule[] = [
@@ -65,10 +66,10 @@ const PREFIX_RULES: PrefixRule[] = [
   { prefix: "/api/mail/", rewrite: (r) => `${coreApi()}/mail/${r}` },
   { prefix: "/api/proxy/", rewrite: (r) => `${coreApi()}/api/proxy/${r}` },
   { prefix: "/api/patients/", rewrite: (r) => `${coreApi()}/patients/${r}` },
-  // ── Pipeline Worker routes (must come BEFORE the generic /api/pipeline/ rule) ──
+  // -- Pipeline Worker routes (must come BEFORE the generic /api/pipeline/ rule) --
   // All interactive dry-run endpoints run on the pipeline worker, not the Core API,
   // so that LLM/NLP work does not compete with live API request serving.
-  { prefix: "/api/pipeline/test-run", rewrite: (r) => `${pipelineWorker()}/test-run${r}` },
+  { prefix: "/api/pipeline/test-run", rewrite: (r) => `${pipelineWorker()}/test-run${r}`, serviceAuth: true },
   // ── Core API — all other pipeline endpoints (production runs, stats, etc.) ──
   { prefix: "/api/pipeline/", rewrite: (r) => `${coreApi()}/pipeline/${r}` },
   { prefix: "/api/review/", rewrite: (r) => `${coreApi()}/review/${r}` },
@@ -102,6 +103,7 @@ const PREFIX_RULES: PrefixRule[] = [
   {
     prefix: "/api/training-worker/",
     rewrite: (r) => `${trainWorker()}/train/${r}`,
+    serviceAuth: true,
   },
   { prefix: "/api/analytics/", rewrite: (r) => `${coreApi()}/analytics/${r}` },
   { prefix: "/api/pricing/", rewrite: (r) => `${coreApi()}/pricing/${r}` },
@@ -121,15 +123,18 @@ function proxyRewrite(request: NextRequest, dest: string): NextResponse {
   return NextResponse.rewrite(new URL(dest), { request: { headers } });
 }
 
-function termApiRewrite(request: NextRequest, dest: string): NextResponse {
+function serviceAuthRewrite(request: NextRequest, dest: string): NextResponse {
   // Forward X-Requested-With and inject the shared service secret so that
-  // write endpoints protected by verify_service_token accept the request.
+  // endpoints protected by verify_service_token accept the request.
   const headers = new Headers(request.headers);
   headers.set("X-Requested-With", "XMLHttpRequest");
   const secret = process.env.SERVICE_AUTH_SECRET;
   if (secret) headers.set("Authorization", `Bearer ${secret}`);
   return NextResponse.rewrite(new URL(dest), { request: { headers } });
 }
+
+// Alias kept for readability in PREFIX_RULES routing logic.
+const termApiRewrite = serviceAuthRewrite;
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -156,9 +161,9 @@ export function proxy(request: NextRequest) {
   for (const rule of PREFIX_RULES) {
     if (pathname.startsWith(rule.prefix)) {
       const rest = pathname.slice(rule.prefix.length);
-      const rewriteFn = rule.prefix === "/api/terminology/"
-        ? termApiRewrite
-        : proxyRewrite;
+      const needsServiceAuth =
+        rule.serviceAuth || rule.prefix === "/api/terminology/";
+      const rewriteFn = needsServiceAuth ? serviceAuthRewrite : proxyRewrite;
       return rewriteFn(request, rule.rewrite(rest) + search);
     }
   }

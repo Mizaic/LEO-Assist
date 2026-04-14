@@ -35,7 +35,8 @@ tests/
 e2e/
 design-controls/
 infra/
-scripts/
+# Heavy one-off investigations (~242MB). Keep scripts/*.py for images that COPY scripts/ (fhir-api).
+scripts/investigations/
 exports/
 training/
 *.md

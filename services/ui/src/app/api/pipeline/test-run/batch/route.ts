@@ -26,6 +26,17 @@ const PIPELINE_WORKER_BASE = (
   process.env.PIPELINE_WORKER_URL ?? "http://localhost:8006"
 ).replace(/\/+$/, "");
 
+function serviceHeaders(cookie: string, extra?: Record<string, string>): Record<string, string> {
+  const h: Record<string, string> = {
+    "X-Requested-With": "XMLHttpRequest",
+    Cookie: cookie,
+    ...extra,
+  };
+  const secret = process.env.SERVICE_AUTH_SECRET;
+  if (secret) h["Authorization"] = `Bearer ${secret}`;
+  return h;
+}
+
 export async function POST(request: NextRequest) {
   const cookie = request.headers.get("cookie") ?? "";
   const body = await request.text();
@@ -34,12 +45,10 @@ export async function POST(request: NextRequest) {
   try {
     upstream = await fetch(`${PIPELINE_WORKER_BASE}/test-run/batch`, {
       method: "POST",
-      headers: {
+      headers: serviceHeaders(cookie, {
         "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
         Accept: "text/event-stream",
-        Cookie: cookie,
-      },
+      }),
       body,
       // Keep this request simple and stream the upstream response body directly.
     });
@@ -89,11 +98,7 @@ export async function GET(request: NextRequest) {
     });
     upstream = await fetch(`${PIPELINE_WORKER_BASE}/test-run/batch/trace?${params.toString()}`, {
       method: "GET",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-        Accept: "application/json",
-        Cookie: cookie,
-      },
+      headers: serviceHeaders(cookie, { Accept: "application/json" }),
     });
   } catch (err) {
     return NextResponse.json(

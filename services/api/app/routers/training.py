@@ -39,6 +39,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
+from libs.auth.service_auth import get_service_auth_header
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 from app.deps import require_admin
 from libs.cypher.training_label_queries import (
@@ -195,8 +196,9 @@ async def _proxy_pipeline_worker_json(
     json_body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     url = f"{PIPELINE_WORKER_BASE}{path}"
+    headers = {**get_service_auth_header()}
     async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.request(method, url, json=json_body)
+        resp = await client.request(method, url, json=json_body, headers=headers)
 
     if resp.status_code >= 400:
         detail: Any
@@ -223,9 +225,10 @@ async def _proxy_training_worker(
 ) -> dict[str, Any]:
     """Forward a request to the training worker service."""
     url = f"{TRAINING_WORKER_BASE}{path}"
+    headers = {**get_service_auth_header()}
     try:
         async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.request(method, url, json=json_body)
+            resp = await client.request(method, url, json=json_body, headers=headers)
     except httpx.ConnectError as exc:
         raise HTTPException(
             status_code=503,
@@ -5450,6 +5453,7 @@ def get_sample_node(
     text_property: str = Query(
         "text", description="Property to highlight as the main text field"
     ),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """Return one sample node so users can verify field names in the source configurator.
 
@@ -5457,6 +5461,7 @@ def get_sample_node(
     300 characters, and Neo4j datetime objects are converted to ISO strings.
     The selected text_property is surfaced first in the response.
     """
+    _ = scope
     _REDACT = {
         "nhs_number",
         "date_of_birth",

@@ -352,8 +352,11 @@ async def get_operations_metrics(
 
 
 @router.get("/policy")
-async def get_operations_policy() -> dict[str, Any]:
+async def get_operations_policy(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Return current per-stage HITL policy configuration."""
+    _ = scope
     return {"policy": _POLICY}
 
 

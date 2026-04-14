@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from libs.auth.org_scope import CallerScope
+from libs.auth.org_scope import CallerScope, get_caller_scope
 from app.deps import require_admin
 
 try:
@@ -56,8 +56,9 @@ router = APIRouter(prefix="/terminology", tags=["terminology"])
 
 
 @router.get("/semantic-tags")
-def list_semantic_tags():
+def list_semantic_tags(scope: CallerScope = Depends(get_caller_scope)):
     """Return all distinct SNOMED CT semantic tags present in the knowledge graph."""
+    _ = scope
     client = CodingGraphClient()
     try:
         rows = client.run(SEMANTIC_TAGS_QUERY)
@@ -71,8 +72,10 @@ def search_terms(
     q: str = Query(min_length=1),
     limit: int = Query(default=15, ge=1, le=50),
     semantic_tag: list[str] | None = Query(default=None),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """Fulltext search across SNOMED terms, optionally filtered by semantic tags."""
+    _ = scope
     client = CodingGraphClient()
     try:
         if semantic_tag:
@@ -96,7 +99,10 @@ class WritebackResponse(BaseModel):
 
 
 @router.post("/writeback", response_model=WritebackResponse)
-def trigger_writeback(body: WritebackRequest | None = None):
+def trigger_writeback(
+    body: WritebackRequest | None = None,
+    _scope: CallerScope = Depends(require_admin),
+):
     """Write approved surface-form -> SNOMED mappings from patient graph into coding graph SurfaceForm nodes."""
     patient_client = PatientGraphClient()
     coding_client = CodingGraphClient()
@@ -124,8 +130,10 @@ def list_surface_forms(
     ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """List surface forms with their mapped SNOMED concepts."""
+    _ = scope
     client = CodingGraphClient()
     try:
         rows = client.run(
@@ -190,8 +198,10 @@ def list_grouped_surface_forms(
     ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """Return surface forms grouped by SNOMED concept."""
+    _ = scope
     client = CodingGraphClient()
     try:
         rows = client.run(GROUPED_SURFACE_FORMS, q=q, offset=offset, limit=limit)
@@ -248,8 +258,11 @@ def delete_surface_form(
 
 
 @router.get("/surface-forms/duplicates")
-def audit_surface_form_duplicates():
+def audit_surface_form_duplicates(
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Return surface forms that have more than one MAPS_TO relationship (same or different concepts)."""
+    _ = scope
     client = CodingGraphClient()
     try:
         return client.run(AUDIT_SURFACE_FORM_DUPLICATES)
@@ -277,8 +290,10 @@ def get_descendants(
     depth: int = Query(default=3, ge=1, le=5),
     limit: int = Query(default=300, ge=1, le=500),
     semantic_tag: Optional[str] = Query(default=None),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """Return active SNOMED descendants of a concept via IS_A relationships."""
+    _ = scope
     query = DESCENDANTS_TEMPLATE.format(depth=int(depth))
     client = CodingGraphClient()
     try:

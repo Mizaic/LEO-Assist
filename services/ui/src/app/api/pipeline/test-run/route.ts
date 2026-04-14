@@ -17,15 +17,19 @@ export async function POST(request: NextRequest) {
   const cookie = request.headers.get("cookie") ?? "";
   const body = await request.text();
 
+  const secret = process.env.SERVICE_AUTH_SECRET;
+  const outHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+    Cookie: cookie,
+  };
+  if (secret) outHeaders["Authorization"] = `Bearer ${secret}`;
+
   let upstream: Response;
   try {
     upstream = await fetch(`${PIPELINE_WORKER_BASE}/test-run`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-        Cookie: cookie,
-      },
+      headers: outHeaders,
       body,
     });
   } catch (err) {

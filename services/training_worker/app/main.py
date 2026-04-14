@@ -34,10 +34,12 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
+from libs.auth.service_auth import verify_service_token
 from libs.utils.logging import configure_logging
 
 from app.job_store import REDIS_URL, get_store
@@ -104,7 +106,7 @@ class StartJobRequest(BaseModel):
 # ------------------------------------------------------------------
 
 
-@app.post("/train/jobs")
+@app.post("/train/jobs", dependencies=[Depends(verify_service_token)])
 def start_training_job(body: StartJobRequest) -> dict[str, Any]:
     """Queue a new training run.
 
@@ -136,7 +138,7 @@ def start_training_job(body: StartJobRequest) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 
-@app.get("/train/jobs")
+@app.get("/train/jobs", dependencies=[Depends(verify_service_token)])
 def list_jobs() -> dict[str, Any]:
     """List all training jobs (most recent first)."""
     store = get_store()
@@ -148,7 +150,7 @@ def list_jobs() -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 
-@app.get("/train/jobs/{job_id}")
+@app.get("/train/jobs/{job_id}", dependencies=[Depends(verify_service_token)])
 def get_job(job_id: str) -> dict[str, Any]:
     """Return full job detail including log lines and metrics."""
     store = get_store()
@@ -163,7 +165,7 @@ def get_job(job_id: str) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 
-@app.delete("/train/jobs/{job_id}")
+@app.delete("/train/jobs/{job_id}", dependencies=[Depends(verify_service_token)])
 def cancel_job(job_id: str) -> dict[str, Any]:
     """Mark a queued job as cancelled.
 
@@ -188,7 +190,7 @@ def cancel_job(job_id: str) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 
-@app.get("/train/progress/{job_id}")
+@app.get("/train/progress/{job_id}", dependencies=[Depends(verify_service_token)])
 def stream_training_progress(job_id: str):
     """Subscribe to training job progress events via SSE.
 

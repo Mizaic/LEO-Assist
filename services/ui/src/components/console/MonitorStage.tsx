@@ -84,8 +84,18 @@ export function MonitorStage() {
             <LineChart data={data.trend} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis domain={[0, 1]} tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
-              <RTooltip formatter={(v: number) => `${(v * 100).toFixed(1)}%`} />
+              <YAxis
+                domain={[0, 1]}
+                tick={{ fontSize: 10 }}
+                tickFormatter={(v) =>
+                  `${((typeof v === "number" ? v : 0) * 100).toFixed(0)}%`
+                }
+              />
+              <RTooltip
+                formatter={(v) =>
+                  `${((typeof v === "number" ? v : 0) * 100).toFixed(1)}%`
+                }
+              />
               <Line type="monotone" dataKey="accuracy" stroke="#1565c0" dot={false} strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
@@ -101,9 +111,20 @@ export function MonitorStage() {
           <ResponsiveContainer width="100%" height={Math.max(80, entityData.length * 26)}>
             <BarChart data={entityData} layout="vertical" margin={{ left: 8, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
-              <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
+              <XAxis
+                type="number"
+                domain={[0, 1]}
+                tick={{ fontSize: 10 }}
+                tickFormatter={(v) =>
+                  `${((typeof v === "number" ? v : 0) * 100).toFixed(0)}%`
+                }
+              />
               <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={130} />
-              <RTooltip formatter={(v: number) => `${(v * 100).toFixed(1)}%`} />
+              <RTooltip
+                formatter={(v) =>
+                  `${((typeof v === "number" ? v : 0) * 100).toFixed(1)}%`
+                }
+              />
               <Bar dataKey="acc" maxBarSize={16} radius={[0, 3, 3, 0]}>
                 {entityData.map((d) => (
                   <Cell key={d.label} fill={d.acc >= 0.85 ? "#2e7d32" : d.acc >= 0.7 ? "#ed6c02" : "#d32f2f"} />

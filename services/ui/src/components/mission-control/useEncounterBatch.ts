@@ -154,7 +154,8 @@ export function useEncounterBatch({
 
   // Shared-poll bookkeeping: map of runId -> encounterId for pending jobs.
   const pendingRunsRef = useRef<Map<string, string>>(new Map());
-  const sharedPollTimerRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  // Browser timers are numeric IDs; avoid NodeJS.Timeout vs number mismatch under @types/node.
+  const sharedPollTimerRef = useRef<number | null>(null);
   // Cleanup callbacks for SSE subscriptions (small-batch path).
   const sseCleanupRef = useRef<Array<() => void>>([]);
 

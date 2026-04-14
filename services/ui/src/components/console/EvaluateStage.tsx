@@ -192,9 +192,16 @@ function PerLabelChart({ perLabel }: { perLabel: Record<string, { f1: number }> 
       <ResponsiveContainer width="100%" height={Math.max(100, data.length * 26)}>
         <BarChart data={data} layout="vertical" margin={{ left: 8, right: 8, top: 2, bottom: 2 }}>
           <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
-          <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
+          <XAxis
+            type="number"
+            domain={[0, 1]}
+            tick={{ fontSize: 11 }}
+            tickFormatter={(v) => `${((typeof v === "number" ? v : 0) * 100).toFixed(0)}%`}
+          />
           <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={130} />
-          <RTooltip formatter={(v: number) => `${(v * 100).toFixed(1)}%`} />
+          <RTooltip
+            formatter={(v) => `${((typeof v === "number" ? v : 0) * 100).toFixed(1)}%`}
+          />
           <Bar dataKey="f1" maxBarSize={16} radius={[0, 3, 3, 0]}>
             {data.map((d) => (
               <Cell key={d.label} fill={d.f1 >= 0.8 ? "#2e7d32" : d.f1 >= 0.6 ? "#ed6c02" : "#d32f2f"} />

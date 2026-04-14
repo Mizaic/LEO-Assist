@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
 from libs.auth.org_scope import CallerScope
+from libs.auth.service_auth import get_service_auth_header
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guidance", tags=["guidance-rules"])
@@ -50,8 +51,9 @@ async def _proxy_pipeline_worker_json(
     json_body: dict | None = None,
 ) -> dict:
     url = f"{PIPELINE_WORKER_BASE}{path}"
+    headers = {**get_service_auth_header()}
     async with httpx.AsyncClient(timeout=180) as client:
-        resp = await client.request(method, url, json=json_body)
+        resp = await client.request(method, url, json=json_body, headers=headers)
 
     if resp.status_code >= 400:
         try:

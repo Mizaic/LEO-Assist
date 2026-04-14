@@ -159,11 +159,13 @@ const PERIOD_OPTIONS = (() => {
     { value: "30d", label: "Last 30 days" },
     { value: "90d", label: "Last 90 days" },
   ] as const;
+  type PeriodOption = (typeof rows)[number];
   const today = rows.find((r) => r.value === "today");
   const rolling = [...rows]
     .filter((r) => r.value !== "today")
     .sort((a, b) => compareStringsNatural(a.label, b.label));
-  return [...(today ? [today] : []), ...rolling] as typeof rows;
+  const ordered: PeriodOption[] = [...(today ? [today] : []), ...rolling];
+  return ordered;
 })();
 
 function periodDates(p: string): { from: string; to: string } {

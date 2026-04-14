@@ -27,8 +27,9 @@ _IMD_UPLOAD_URL = "https://imd-by-postcode.opendatacommunities.org/imd/2019/ajax
 
 
 @router.get("/imd/{postcode}")
-async def get_imd_data(postcode: str):
+async def get_imd_data(postcode: str, scope: CallerScope = Depends(get_caller_scope)):
     """Retrieve IMD data for a UK postcode."""
+    _ = scope
     clean = postcode.strip().upper()
     if not _POSTCODE_RE.match(clean):
         raise HTTPException(400, f"Invalid UK postcode: {postcode}")
