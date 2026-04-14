@@ -164,7 +164,9 @@ class TestGoldenGate(unittest.TestCase):
             mock_docbin_cls.return_value = instance
             instance.from_disk.return_value = instance
 
-            result = evaluator.evaluate_model(Path("/tmp/model-best"), Path("/tmp/dev.spacy"))
+            result = evaluator.evaluate_model(
+                Path("/tmp/model-best"), Path("/tmp/dev.spacy")
+            )
 
         self.assertEqual(result["precision"], 0.81)
         self.assertEqual(result["recall"], 0.79)
