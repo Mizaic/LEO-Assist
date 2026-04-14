@@ -119,9 +119,14 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
       {/* Epoch training chart */}
       {epochData.length > 1 && (
         <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle, mb: 1 }}>
+          <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle, mb: 0.5 }}>
             Training curve
           </Typography>
+          <Box sx={{ display: "flex", gap: 3, mb: 1.5 }}>
+            <MetricBlurb color="#1565c0" label="F1" description="Overall accuracy — balances finding codes and avoiding wrong ones." />
+            <MetricBlurb color="#e65100" label="Loss NER" description="Training error — lower is better. Should fall as training progresses." />
+            <MetricBlurb color="#2e7d32" label="Precision" description="How often a suggested code is correct. Higher means fewer false positives." />
+          </Box>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={epochData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
@@ -146,6 +151,39 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
       {jobs.length > 0 && (
         <JobHistoryTable jobs={jobs} selectedJobId={selectedJobId ?? displayJob?.job_id ?? null} onSelect={setSelectedJobId} />
       )}
+    </Box>
+  );
+}
+
+// -- Metric blurb -------------------------------------------------------------
+
+function MetricBlurb({
+  color,
+  label,
+  description,
+}: {
+  color: string;
+  label: string;
+  description: string;
+}) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, maxWidth: 220 }}>
+      <Box
+        sx={{
+          mt: "3px",
+          width: 12,
+          height: 12,
+          borderRadius: "50%",
+          bgcolor: color,
+          flexShrink: 0,
+        }}
+      />
+      <Typography sx={{ fontSize: 11, color: "text.secondary", lineHeight: 1.4 }}>
+        <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+          {label}
+        </Box>{" "}
+        — {description}
+      </Typography>
     </Box>
   );
 }

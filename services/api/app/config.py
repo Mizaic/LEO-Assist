@@ -59,9 +59,7 @@ def get_settings() -> Settings:
         patient_neo4j_username=os.getenv("NEO4J_USER", "neo4j"),
         patient_neo4j_password=os.getenv("NEO4J_PASSWORD", ""),
         knowledge_neo4j_uri=os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", ""),
-        knowledge_neo4j_username=os.getenv(
-            "KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j"
-        ),
+        knowledge_neo4j_username=os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j"),
         knowledge_neo4j_password=os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", ""),
         pipeline_version=os.getenv("TRAINING_PIPELINE_VERSION", "v2.0.0-mvp"),
         extractor_version=os.getenv("TRAINING_EXTRACTOR_VERSION", "v2.surface_patch"),

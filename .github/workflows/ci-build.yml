@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: read
   id-token: write   # required for OIDC federated credential
   contents: read
 
