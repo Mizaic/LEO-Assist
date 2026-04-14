@@ -12,14 +12,28 @@ FROM build AS build-venv
 COPY services/terminology_api/requirements.txt /requirements.txt
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 
+# -- Download Bio_ClinicalBERT at build time so the runtime image needs no
+# outbound network.  HF_HOME matches ACA sharedEnv (HF_HOME=/var/model_cache/hf_cache).
+# Bio_ClinicalBERT is a fixed public model (~400 MB); baking it in avoids the
+# 20-60 s cold-start penalty and removes the HuggingFace connectivity requirement.
+FROM build-venv AS build-model
+ARG HF_MODEL=emilyalsentzer/Bio_ClinicalBERT
+ENV HF_HOME=/var/model_cache/hf_cache
+RUN mkdir -p /var/model_cache/hf_cache && \
+    /venv/bin/python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('$HF_MODEL')" && \
+    chmod -R a+rX /var/model_cache
+
 # -- Runtime: distroless (no shell, no package manager) --------------------
 ARG BASE_IMAGE_RUNTIME
 FROM ${BASE_IMAGE_RUNTIME}
 COPY --from=build-venv /venv /venv
+COPY --from=build-model /var/model_cache /var/model_cache
 COPY libs/ /app/libs/
 COPY services/terminology_api/ /app/services/terminology_api/
 WORKDIR /app
-ENV PYTHONPATH=/app:/app/services/terminology_api
+ENV PYTHONPATH=/app:/app/services/terminology_api \
+    HF_HOME=/var/model_cache/hf_cache \
+    HF_HUB_OFFLINE=1
 EXPOSE 8001
 ENTRYPOINT ["/venv/bin/python3", "-m", "uvicorn", "services.terminology_api.app.main:app", \
             "--host", "0.0.0.0", "--port", "8001"]

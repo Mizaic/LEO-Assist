@@ -100,10 +100,10 @@ export default function Home() {
             mb: 4,
           }}
         >
-          Clinical intelligence for the NHS. LEO reads encounter records,
-          applies SNOMED coding, reasons across pathways, and surfaces the
-          patients and patterns that matter — with clinicians in control at
-          every step.
+          Clinical audit intelligence by Mizaic. LEO analyses primary care
+          encounter records, applies SNOMED CT coding, and reconstructs
+          clinical pathways for national audit programmes — with human review
+          at every step.
         </Typography>
         <Button
           variant="contained"

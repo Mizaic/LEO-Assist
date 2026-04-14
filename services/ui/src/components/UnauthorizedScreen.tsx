@@ -61,8 +61,8 @@ export default function UnauthorizedScreen({ onSignIn }: UnauthorizedScreenProps
           variant="body1"
           sx={{ color: "text.secondary", textAlign: "center", lineHeight: 1.65 }}
         >
-          This page is only for authorised NHS staff. Please sign in with your
-          NHS account to continue.
+          This page is for authorised Mizaic staff only. Please sign in with
+          your Microsoft account to continue.
         </Typography>
 
         {/* Primary action */}
@@ -78,8 +78,8 @@ export default function UnauthorizedScreen({ onSignIn }: UnauthorizedScreenProps
         {/* "Need access?" help text */}
         <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center" }}>
           Not sure if you have an account?{" "}
-          <strong>Ask your PCN manager or system administrator</strong> to set
-          one up for you.
+          <strong>Ask your system administrator</strong> to set one up for
+          you.
         </Typography>
 
         <Divider sx={{ width: "100%", mt: 1 }} />
@@ -95,7 +95,7 @@ export default function UnauthorizedScreen({ onSignIn }: UnauthorizedScreenProps
             fontSize: "0.72rem",
           }}
         >
-          This system holds sensitive NHS patient data. All access attempts are
+          This system holds sensitive patient data. All access attempts are
           logged. Unauthorised access is a criminal offence under the Computer
           Misuse Act 1990 and may be reported to the Information
           Commissioner&apos;s Office.

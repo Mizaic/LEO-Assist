@@ -9,7 +9,7 @@ import AuthProviderWrapper from "@/components/AuthProviderWrapper";
 
 export const metadata: Metadata = {
   title: "LEO by Mizaic",
-  description: "Clinical AI -- coding, reasoning, and pathway intelligence for the NHS",
+  description: "Clinical pathway audit intelligence by Mizaic -- for authorised Mizaic staff only",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -356,7 +356,8 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
-// -- terminology-api (internal ingress) -----------------------------------
+// -- terminology-api (internal ingress) -- minReplicas: 1 keeps one warm instance so
+// the first terminology/SNOMED search does not block for 20-60s on embedder load.
 resource terminologyApi 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'terminology-api'
   location: location
@@ -397,12 +398,13 @@ resource terminologyApi 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ]
       }]
-      scale: { minReplicas: 0, maxReplicas: 3 }
+      scale: { minReplicas: 1, maxReplicas: 3 }
     }
   }
 }
 
-// -- fhir-api (internal ingress) ------------------------------------------
+// -- fhir-api (internal ingress) -- minReplicas: 1 keeps one warm instance so
+// benchmark and Measure requests do not block on cold start.
 resource fhirApi 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'fhir-api'
   location: location
@@ -444,7 +446,7 @@ resource fhirApi 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ]
       }]
-      scale: { minReplicas: 0, maxReplicas: 3 }
+      scale: { minReplicas: 1, maxReplicas: 3 }
     }
   }
 }
