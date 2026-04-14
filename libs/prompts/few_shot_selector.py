@@ -13,6 +13,21 @@ from libs.utils.device_resolver import resolve_accelerator
 
 logger = logging.getLogger(__name__)
 
+# Import sentence-transformers eagerly at module load time (main thread).
+# Deferring this import to a background thread races with spacy-transformers
+# loading transformers' lazy modules, which causes an EncoderDecoderConfig
+# ImportError due to a mid-initialization read of the lazy module registry.
+try:
+    from sentence_transformers import SentenceTransformer as _SentenceTransformer
+
+    _SENTENCE_TRANSFORMERS_AVAILABLE = True
+except Exception:
+    _SentenceTransformer = None  # type: ignore[assignment,misc]
+    _SENTENCE_TRANSFORMERS_AVAILABLE = False
+    logger.debug(
+        "sentence-transformers not available; vector few-shot selection disabled"
+    )
+
 
 class _LazySentenceEmbedder:
     """Lazy sentence-transformers wrapper with safe failure mode.
@@ -49,12 +64,9 @@ class _LazySentenceEmbedder:
             if self._load_failed:
                 return False
 
-            try:
-                from sentence_transformers import SentenceTransformer
-            except Exception:
+            if not _SENTENCE_TRANSFORMERS_AVAILABLE:
                 logger.warning(
-                    "VECTOR_MODEL is set but sentence-transformers is unavailable",
-                    exc_info=True,
+                    "VECTOR_MODEL is set but sentence-transformers is unavailable"
                 )
                 self._load_failed = True
                 return False
@@ -75,7 +87,7 @@ class _LazySentenceEmbedder:
                         decision.fallback_reason,
                     )
                 offline = os.getenv("HF_HUB_OFFLINE", "0") == "1"
-                self._model = SentenceTransformer(
+                self._model = _SentenceTransformer(
                     self.model_name,
                     device=device,
                     local_files_only=offline,

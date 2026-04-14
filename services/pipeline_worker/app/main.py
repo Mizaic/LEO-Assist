@@ -43,6 +43,12 @@ from pydantic import BaseModel
 
 from libs.auth.service_auth import verify_service_token
 
+# Pre-import few_shot_selector here (main thread) so the sentence-transformers
+# package is loaded before background warm-up threads start. Deferring into a
+# thread races with spacy-transformers initialising the transformers lazy module,
+# which intermittently causes an EncoderDecoderConfig ImportError.
+import libs.prompts.few_shot_selector  # noqa: F401
+
 from libs.message_bus.factory import create_message_bus
 from libs.message_bus.base import Message
 from libs.utils.logging import configure_logging
@@ -172,7 +178,7 @@ def _warm_up() -> None:
         try:
             from libs.prompts.few_shot_selector import warm_shared_embedder
 
-            warm_shared_embedder()
+            warm_shared_embedder()  # sentence_transformers already imported in main thread
         except Exception:
             logger.warning("Embedder warm-up failed (non-fatal)", exc_info=True)
 

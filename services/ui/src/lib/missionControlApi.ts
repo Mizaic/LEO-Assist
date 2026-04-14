@@ -7,6 +7,7 @@
 
 import type { MissionControlFilters } from "@/lib/missionControlFilters";
 import { toApiParams } from "@/lib/missionControlFilters";
+import { triggerReauth } from "@/lib/api/client";
 
 function resolveBase(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -54,6 +55,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
+    if (res.status === 401) await triggerReauth();
     const err = await res.json().catch(() => ({}));
     const detail = detailToString((err as { detail?: unknown }).detail);
     throw new Error(

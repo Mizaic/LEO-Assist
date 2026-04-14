@@ -1,3 +1,5 @@
+import { triggerReauth } from "./client";
+
 const API_BASE =
   typeof window !== "undefined"
     ? window.location.origin
@@ -24,6 +26,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
+    if (res.status === 401) await triggerReauth();
     const err = await res.json().catch(() => ({}));
     const detail = (err as { detail?: string }).detail;
     throw new Error(formatApiError(detail, res.status));

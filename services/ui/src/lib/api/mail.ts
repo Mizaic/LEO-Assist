@@ -2,6 +2,7 @@
  * TypeScript client for the /api/mail/* endpoints.
  * All endpoints are admin-only on the backend.
  */
+import { triggerReauth } from "./client";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -14,6 +15,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!res.ok) {
+    if (res.status === 401) await triggerReauth();
     const text = await res.text().catch(() => res.statusText);
     throw new Error(text || `Request failed (${res.status})`);
   }

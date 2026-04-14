@@ -11,7 +11,7 @@ const PROXY_BASE = `${API_BASE_URL}/api/proxy`;
 
 let reauthInProgress = false;
 
-async function triggerReauth(): Promise<void> {
+export async function triggerReauth(): Promise<void> {
   if (typeof window === 'undefined' || reauthInProgress) return;
   reauthInProgress = true;
   try {

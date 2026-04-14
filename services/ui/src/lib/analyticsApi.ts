@@ -3,6 +3,7 @@
  * Uses backend proxy (session cookie auth). Token stays server-side.
  */
 import type { TimelineEvent } from "@/lib/types";
+import { triggerReauth } from "@/lib/api/client";
 
 function resolveApiBase(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -25,6 +26,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
+    if (res.status === 401) await triggerReauth();
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { detail?: string }).detail || `Request failed (${res.status})`);
   }
@@ -473,22 +475,10 @@ export async function updateDomain(
 }
 
 export async function deleteDomain(domainId: string): Promise<void> {
-  const res = await fetch(
+  await fetchJson<void>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
-    {
-      method: "DELETE",
-      credentials: "include",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-      },
-    },
+    { method: "DELETE" },
   );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { detail?: string }).detail || `Request failed (${res.status})`,
-    );
-  }
 }
 
 // ── Subdomains ──
@@ -532,20 +522,10 @@ export async function deleteSubdomain(
   domainId: string,
   subdomainName: string,
 ): Promise<void> {
-  const res = await fetch(
+  await fetchJson<void>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}`,
-    {
-      method: "DELETE",
-      credentials: "include",
-      headers: { "X-Requested-With": "XMLHttpRequest" },
-    },
+    { method: "DELETE" },
   );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { detail?: string }).detail || `Request failed (${res.status})`,
-    );
-  }
 }
 
 export async function updateSubdomain(

@@ -43,6 +43,7 @@ interface EpochRow {
   loss_ner: number;
   ents_f: number;
   ents_p: number;
+  ents_r: number;
 }
 
 const EPOCH_RE = /^\s*\d+\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/;
@@ -56,6 +57,7 @@ function parseEpochLog(lines: string[]): EpochRow[] {
       loss_ner: parseFloat(m[3]),
       ents_f: parseFloat(m[4]),
       ents_p: parseFloat(m[5]),
+      ents_r: parseFloat(m[6]),
     });
     return acc;
   }, []);
@@ -142,6 +144,7 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
               <Line type="monotone" dataKey="loss_ner" stroke="#e65100" dot={false} strokeWidth={1.5} name="Loss NER" />
               <Line type="monotone" dataKey="ents_f" stroke="#1565c0" dot={false} strokeWidth={2} name="F1" />
               <Line type="monotone" dataKey="ents_p" stroke="#2e7d32" dot={false} strokeWidth={1.5} name="Precision" />
+              <Line type="monotone" dataKey="ents_r" stroke="#7b1fa2" dot={false} strokeWidth={1.5} name="Recall" />
             </LineChart>
           </ResponsiveContainer>
         </Box>
@@ -166,16 +169,23 @@ function TrainingCurveInfoButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Tooltip title="What do these lines mean?">
-        <IconButton
-          size="small"
-          aria-label="Training curve help"
-          onClick={() => setOpen(true)}
-          sx={{ color: "text.secondary" }}
-        >
-          <InfoOutlinedIcon sx={{ fontSize: 16 }} />
-        </IconButton>
-      </Tooltip>
+      <Button
+        size="small"
+        variant="text"
+        startIcon={<InfoOutlinedIcon sx={{ fontSize: 14 }} />}
+        onClick={() => setOpen(true)}
+        sx={{
+          fontSize: 11,
+          textTransform: "none",
+          color: "primary.main",
+          py: 0,
+          px: 0.75,
+          minWidth: 0,
+          lineHeight: 1.4,
+        }}
+      >
+        What do these lines mean?
+      </Button>
       <TrainingCurveInfoDialog open={open} onClose={() => setOpen(false)} />
     </>
   );
@@ -186,6 +196,7 @@ const GOOD_DATA = Array.from({ length: 20 }, (_, i) => ({
   loss: Math.max(0.05, 2.8 * Math.exp(-i * 0.28)),
   f1: Math.min(0.95, 0.05 + 0.9 * (1 - Math.exp(-i * 0.25))),
   precision: Math.min(0.97, 0.05 + 0.92 * (1 - Math.exp(-i * 0.22))),
+  recall: Math.min(0.93, 0.04 + 0.89 * (1 - Math.exp(-i * 0.23))),
 }));
 
 const BAD_DATA = Array.from({ length: 20 }, (_, i) => ({
@@ -193,12 +204,14 @@ const BAD_DATA = Array.from({ length: 20 }, (_, i) => ({
   loss: i < 8 ? 2.8 * Math.exp(-i * 0.3) : 0.3 + 0.4 * Math.sin(i * 0.9),
   f1: i < 8 ? 0.05 + 0.5 * (1 - Math.exp(-i * 0.3)) : 0.35 + 0.2 * Math.sin(i * 0.8),
   precision: i < 8 ? 0.1 + 0.4 * (1 - Math.exp(-i * 0.25)) : 0.3 + 0.25 * Math.sin(i),
+  recall: i < 8 ? 0.05 + 0.3 * (1 - Math.exp(-i * 0.2)) : 0.2 + 0.3 * Math.sin(i * 0.7),
 }));
 
 const METRICS = [
   { key: "loss", color: "#e65100", label: "Loss NER" },
   { key: "f1", color: "#1565c0", label: "F1" },
   { key: "precision", color: "#2e7d32", label: "Precision" },
+  { key: "recall", color: "#7b1fa2", label: "Recall" },
 ];
 
 const METRIC_DESCRIPTIONS: Record<string, { what: string; good: string; bad: string }> = {
@@ -216,6 +229,11 @@ const METRIC_DESCRIPTIONS: Record<string, { what: string; good: string; bad: str
     what: "Of every code LEO suggests, how many are actually correct.",
     good: "Stays above 0.8 and tracks closely with F1.",
     bad: "Diverges far below F1 -- the model is guessing too many codes.",
+  },
+  Recall: {
+    what: "Of all the codes that should be in the record, how many did LEO find.",
+    good: "Stays close to Precision. Both lines rise together toward F1.",
+    bad: "Drops well below Precision -- the model is missing codes it should find.",
   },
 };
 
