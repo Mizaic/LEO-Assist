@@ -212,11 +212,16 @@ def _suppress_near_duplicates_with_neo4j(
         if not duplicate_ids:
             return ranked, 0, "neo4j_vector"
         kept = [
-            item for item in ranked if str(item.get("encounter_id") or "") not in duplicate_ids
+            item
+            for item in ranked
+            if str(item.get("encounter_id") or "") not in duplicate_ids
         ]
         return kept, len(duplicate_ids), "neo4j_vector"
     except Exception:
-        logger.warning("Neo4j vector dedupe unavailable; falling back to text dedupe", exc_info=True)
+        logger.warning(
+            "Neo4j vector dedupe unavailable; falling back to text dedupe",
+            exc_info=True,
+        )
         kept, filtered = _suppress_near_duplicates(ranked, threshold)
         return kept, filtered, "text_fallback"
 
@@ -699,8 +704,7 @@ def _compute_uniqueness(
     seen = {r["encounter_id"]: r["uniqueness_score"] for r in rows}
     # encounters without vectors default to 1.0 (treated as unique)
     return [
-        {"encounter_id": i, "uniqueness_score": float(seen.get(i, 1.0))}
-        for i in ids
+        {"encounter_id": i, "uniqueness_score": float(seen.get(i, 1.0))} for i in ids
     ]
 
 

@@ -332,7 +332,11 @@ def test_candidate_dedupe_preview_returns_groups(client):
 
         r = client.post(
             "/training/candidates/dedupe/preview",
-            json={"status": "completed", "max_candidates": 100, "similarity_threshold": 0.8},
+            json={
+                "status": "completed",
+                "max_candidates": 100,
+                "similarity_threshold": 0.8,
+            },
         )
 
     assert r.status_code == 200
@@ -370,7 +374,9 @@ def test_candidate_dedupe_apply_marks_duplicates(client):
                     },
                 ]
             if query == MARK_TRAINING_CANDIDATE_DUPLICATES:
-                return MagicMock(single=MagicMock(return_value={"duplicates_marked": 1}))
+                return MagicMock(
+                    single=MagicMock(return_value={"duplicates_marked": 1})
+                )
             return MagicMock(single=MagicMock(return_value=None))
 
         inner.run.side_effect = run_side_effect
@@ -379,7 +385,11 @@ def test_candidate_dedupe_apply_marks_duplicates(client):
 
         r = client.post(
             "/training/candidates/dedupe/apply",
-            json={"status": "completed", "max_candidates": 100, "similarity_threshold": 0.8},
+            json={
+                "status": "completed",
+                "max_candidates": 100,
+                "similarity_threshold": 0.8,
+            },
         )
 
     assert r.status_code == 200
@@ -426,7 +436,11 @@ def test_candidate_dedupe_preview_detects_prefix_variant_duplicate(client):
 
         r = client.post(
             "/training/candidates/dedupe/preview",
-            json={"status": "completed", "max_candidates": 100, "similarity_threshold": 0.85},
+            json={
+                "status": "completed",
+                "max_candidates": 100,
+                "similarity_threshold": 0.85,
+            },
         )
 
     assert r.status_code == 200
@@ -469,7 +483,11 @@ def test_candidate_dedupe_preview_accepts_lower_threshold(client):
 
         r = client.post(
             "/training/candidates/dedupe/preview",
-            json={"status": "completed", "max_candidates": 100, "similarity_threshold": 0.5},
+            json={
+                "status": "completed",
+                "max_candidates": 100,
+                "similarity_threshold": 0.5,
+            },
         )
 
     assert r.status_code == 200
@@ -563,7 +581,11 @@ def test_find_similar_candidates_by_entity_returns_ranked_matches(client):
 
         r = client.post(
             "/training/candidates/find-similar-by-entity",
-            json={"candidate_id": "cand-source", "limit": 10, "similarity_threshold": 0.5},
+            json={
+                "candidate_id": "cand-source",
+                "limit": 10,
+                "similarity_threshold": 0.5,
+            },
         )
 
     assert r.status_code == 200

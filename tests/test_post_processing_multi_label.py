@@ -63,7 +63,9 @@ class TestNestingSuppressionRefined(unittest.TestCase):
             _ent("T2 N1 M0", "staging_scale", 0, 8, normalized="t2 n1"),
         ]
         normalise_entity_types(entities)
-        self.assertEqual(len(entities), 1, "Identical normalized: nested span suppressed")
+        self.assertEqual(
+            len(entities), 1, "Identical normalized: nested span suppressed"
+        )
         self.assertEqual(entities[0]["text"], "T2 N1 M0")
 
     def test_same_span_different_labels_both_preserved(self):

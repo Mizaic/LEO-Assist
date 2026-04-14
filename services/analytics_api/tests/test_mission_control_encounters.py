@@ -259,7 +259,9 @@ def test_suppress_near_duplicates_preserves_clinic_variations():
 
 def test_suppress_near_duplicates_removes_true_copies():
     """Identical copy-paste notes should collapse to one at any threshold."""
-    note = "00:00 surgery jones emma seen in fast track suspected skin cancer clinic xapyd"
+    note = (
+        "00:00 surgery jones emma seen in fast track suspected skin cancer clinic xapyd"
+    )
     ranked = [{"encounter_id": f"e{i}", "text": note} for i in range(5)]
     kept, filtered = mce._suppress_near_duplicates(ranked, 0.999)
     assert len(kept) == 1

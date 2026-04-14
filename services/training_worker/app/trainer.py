@@ -142,9 +142,7 @@ def _build_env() -> dict:
     return env
 
 
-def _fetch_warm_start_model(
-    version: str, log: Callable[[str], None]
-) -> Optional[Path]:
+def _fetch_warm_start_model(version: str, log: Callable[[str], None]) -> Optional[Path]:
     """Download a promoted model blob and return the local model directory.
 
     Only the NER head weights are used — the transformer is always cold-started

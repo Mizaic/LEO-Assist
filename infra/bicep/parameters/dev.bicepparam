@@ -47,3 +47,8 @@ param snomedTerminologyServer = ''
 // - Controls OAuth post-login redirects, the auth callback sent to Entra,
 //   and the sign-in link in invite emails.
 param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'
+
+// ACA Custom domains: hostname + environment certificate name (portal: Networking -> Custom domains).
+param uiCustomDomainHost = 'leo-ai-audit.healthcarecopilot.ai'
+param uiIngressCertificateName = 'healthcarecopilot-origin-cert'
+param uiIngressCertificateIsManaged = false

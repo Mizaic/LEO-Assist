@@ -24,6 +24,7 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _read(rel_path: str) -> str:
     """Return raw source text for a repo-relative file path."""
     with open(os.path.join(_REPO_ROOT, rel_path), encoding="utf-8") as fh:
@@ -49,9 +50,9 @@ class TestLLMExtractorParserAssertionAlwaysPresent:
     def test_parse_terms_hardcodes_assertion_present(self):
         """_parse_terms must contain the literal assignment assertion = 'present'."""
         src = _read("services/coding_worker/app/pipeline/llm_extractor.py")
-        assert 'assertion = "present"' in src, (
-            "_parse_terms must assign assertion = 'present' unconditionally"
-        )
+        assert (
+            'assertion = "present"' in src
+        ), "_parse_terms must assign assertion = 'present' unconditionally"
 
 
 # ---------------------------------------------------------------------------
@@ -71,9 +72,9 @@ class TestExtractorBuildPathAssertionAlwaysPresent:
 
     def test_extractor_hardcodes_assertion_present(self):
         src = _read("libs/pipeline_graph/subgraphs/_extractor.py")
-        assert 'assertion="present"' in src, (
-            "_extractor.py must hardcode assertion='present' in ExtractionItem"
-        )
+        assert (
+            'assertion="present"' in src
+        ), "_extractor.py must hardcode assertion='present' in ExtractionItem"
 
 
 # ---------------------------------------------------------------------------
@@ -88,9 +89,9 @@ class TestExtractionPromptSchemaNoAssertion:
         output_start = EXTRACTION_SYSTEM_V1.find("OUTPUT FORMAT")
         assert output_start != -1, "OUTPUT FORMAT section not found in prompt"
         output_section = EXTRACTION_SYSTEM_V1[output_start:]
-        assert '"assertion"' not in output_section, (
-            "assertion field must not appear in OUTPUT FORMAT schema"
-        )
+        assert (
+            '"assertion"' not in output_section
+        ), "assertion field must not appear in OUTPUT FORMAT schema"
 
     def test_priority_order_has_no_assertion_step(self):
         from libs.prompts.extraction_v1 import EXTRACTION_SYSTEM_V1
@@ -113,10 +114,10 @@ class TestLLMExtractorOutputFormatSchemaNoAssertion:
         src = _read("services/coding_worker/app/pipeline/llm_extractor.py")
         idx = src.find("_OUTPUT_FORMAT")
         assert idx != -1
-        block = src[idx: idx + 800]
-        assert '"assertion"' not in block, (
-            "assertion field must not appear in _OUTPUT_FORMAT schema"
-        )
+        block = src[idx : idx + 800]
+        assert (
+            '"assertion"' not in block
+        ), "assertion field must not appear in _OUTPUT_FORMAT schema"
 
 
 # ---------------------------------------------------------------------------

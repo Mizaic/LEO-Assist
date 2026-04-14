@@ -157,15 +157,15 @@ def test_terminology_subgraph_calls_polarity_guard():
     src = open(
         os.path.join(repo_root, "libs/pipeline_graph/subgraphs/terminology.py")
     ).read()
-    assert "fix_polarity_encoded_findings" in src, (
-        "terminology.py must import and call fix_polarity_encoded_findings"
-    )
+    assert (
+        "fix_polarity_encoded_findings" in src
+    ), "terminology.py must import and call fix_polarity_encoded_findings"
     # Verify it is called after fix_double_negated_situations
     idx_double = src.find("fix_double_negated_situations(resolved)")
     idx_polarity = src.find("fix_polarity_encoded_findings(resolved)")
-    assert idx_polarity > idx_double, (
-        "fix_polarity_encoded_findings must be called after fix_double_negated_situations"
-    )
+    assert (
+        idx_polarity > idx_double
+    ), "fix_polarity_encoded_findings must be called after fix_double_negated_situations"
 
 
 # ---------------------------------------------------------------------------
@@ -176,19 +176,24 @@ def test_both_guards_independent():
     each correct their own class of entity without affecting the other."""
     entities = [
         _ent("absent", "situation", "No suicidal thoughts (situation)", "134420004"),
-        _ent("absent", "finding", "Perineural invasion by tumor absent (finding)", "370051000"),
+        _ent(
+            "absent",
+            "finding",
+            "Perineural invasion by tumor absent (finding)",
+            "370051000",
+        ),
         _ent("absent", "finding", "Chest pain (finding)"),
         _ent("present", "finding", "Bacteria not detected (finding)"),
     ]
     fix_double_negated_situations(entities)
     fix_polarity_encoded_findings(entities)
 
-    assert entities[0]["assertion"] == "present"   # situation guard
+    assert entities[0]["assertion"] == "present"  # situation guard
     assert entities[0]["_assertion_guard"] == "double_negated_situation"
-    assert entities[1]["assertion"] == "present"   # polarity guard
+    assert entities[1]["assertion"] == "present"  # polarity guard
     assert entities[1]["_assertion_guard"] == "polarity_encoded_finding"
-    assert entities[2]["assertion"] == "absent"    # no suffix match
-    assert entities[3]["assertion"] == "present"   # was already present
+    assert entities[2]["assertion"] == "absent"  # no suffix match
+    assert entities[3]["assertion"] == "present"  # was already present
 
 
 # ---------------------------------------------------------------------------

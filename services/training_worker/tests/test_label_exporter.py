@@ -30,7 +30,13 @@ class TestRealignEntity(unittest.TestCase):
     """VT-106-TC-001: span realignment."""
 
     def _make_ent(self, text: str, label: str = "DISORDER") -> dict:
-        return {"text": text, "label": label, "start": 0, "end": 0, "assertion": "present"}
+        return {
+            "text": text,
+            "label": label,
+            "start": 0,
+            "end": 0,
+            "assertion": "present",
+        }
 
     def test_surface_not_found_returns_none(self):
         ent = self._make_ent("hypertension")
@@ -94,10 +100,14 @@ class TestFilterAndRealign(unittest.TestCase):
     def test_all_assertions_excluded_by_default(self):
         exclusions = _get_excluded_assertions()
         for expected in ("negated", "hypothetical", "family_history", "possible"):
-            self.assertIn(expected, exclusions, f"Expected {expected} in default exclusions")
+            self.assertIn(
+                expected, exclusions, f"Expected {expected} in default exclusions"
+            )
 
     def test_custom_exclusions_from_env(self):
-        with patch.dict(os.environ, {"TRAINING_EXCLUDE_ASSERTIONS": "negated,uncertain"}):
+        with patch.dict(
+            os.environ, {"TRAINING_EXCLUDE_ASSERTIONS": "negated,uncertain"}
+        ):
             exclusions = _get_excluded_assertions()
         self.assertIn("negated", exclusions)
         self.assertIn("uncertain", exclusions)
@@ -114,7 +124,15 @@ class TestFilterAndRealign(unittest.TestCase):
 
     def test_span_misalign_counted_when_surface_missing(self):
         text = "Patient has diabetes"
-        entities = [{"text": "xyzzy_missing", "label": "DISORDER", "start": 0, "end": 5, "assertion": "present"}]
+        entities = [
+            {
+                "text": "xyzzy_missing",
+                "label": "DISORDER",
+                "start": 0,
+                "end": 5,
+                "assertion": "present",
+            }
+        ]
         filtered, assertion_filtered, span_misaligned = _filter_and_realign(
             text, entities, _DEFAULT_EXCLUDED_ASSERTIONS
         )
@@ -129,7 +147,13 @@ class TestRecordToSpacyDocMultiLabel(unittest.TestCase):
         self.nlp = spacy.blank("en")
 
     def _make_ent(self, text: str, label: str, start: int, end: int) -> dict:
-        return {"text": text, "label": label, "start": start, "end": end, "assertion": "present"}
+        return {
+            "text": text,
+            "label": label,
+            "start": start,
+            "end": end,
+            "assertion": "present",
+        }
 
     def test_uses_spans_sc_not_ents(self):
         text = "Patient has diabetes"
@@ -249,7 +273,13 @@ class TestFilterAndRealignDiagnostics(unittest.TestCase):
         text = "Patient has diabetes"
         entities = [
             self._negated("hypertension"),
-            {"text": "xyzzy_missing", "label": "DISORDER", "start": 0, "end": 5, "assertion": "present"},
+            {
+                "text": "xyzzy_missing",
+                "label": "DISORDER",
+                "start": 0,
+                "end": 5,
+                "assertion": "present",
+            },
             self._present("diabetes"),
         ]
         diagnostics: list = []

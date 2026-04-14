@@ -124,7 +124,9 @@ async def test_extract_encounter_runs_analysis_when_trigger_enabled(
 
     async def _execute_step(action: ActionDefinition, _state: dict):
         executed_subgraphs.append(action.subgraph_id)
-        output = {"entities": [{"text": "x"}]} if action.subgraph_id == "extraction" else {}
+        output = (
+            {"entities": [{"text": "x"}]} if action.subgraph_id == "extraction" else {}
+        )
         return StepResult(
             action_id=action.action_id,
             subgraph_id=action.subgraph_id,

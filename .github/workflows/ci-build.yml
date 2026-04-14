@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   id-token: write   # required for OIDC federated credential
   contents: read
 
@@ -72,6 +73,7 @@ jobs:
     # Job permissions replace workflow defaults; include contents: read or checkout
     # fails with "repository not found" for private repos.
     permissions:
+      actions: read
       contents: read
       security-events: write
     steps:

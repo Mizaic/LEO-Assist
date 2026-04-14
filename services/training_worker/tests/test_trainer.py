@@ -23,10 +23,15 @@ class TestFetchWarmStartModel(unittest.TestCase):
         else:
             mock_store = MagicMock()
             from pathlib import Path
+
             mock_store.download.return_value = Path("/tmp/mock_model")
 
-        with patch.dict("sys.modules", {"libs.model_store": MagicMock(ModelStore=lambda: mock_store)}):
+        with patch.dict(
+            "sys.modules",
+            {"libs.model_store": MagicMock(ModelStore=lambda: mock_store)},
+        ):
             from app.trainer import _fetch_warm_start_model
+
             result = _fetch_warm_start_model(version, _log)
 
         return result, log_messages
@@ -38,10 +43,13 @@ class TestFetchWarmStartModel(unittest.TestCase):
     def test_fallback_logs_warning(self):
         result, logs = self._run_fetch("v1.0.0", raises=True)
         warning_logs = [m for m in logs if "warm-start" in m.lower() or "WARNING" in m]
-        self.assertTrue(len(warning_logs) > 0, "Expected warning log from failed warm-start")
+        self.assertTrue(
+            len(warning_logs) > 0, "Expected warning log from failed warm-start"
+        )
 
     def test_success_returns_path(self):
         from pathlib import Path
+
         result, logs = self._run_fetch("v1.0.0", raises=False)
         self.assertIsInstance(result, Path)
 

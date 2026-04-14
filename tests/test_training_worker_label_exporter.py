@@ -61,8 +61,13 @@ def _patch_clients(monkeypatch, *, patient_rows, kg_rows):
         def KnowledgeGraphClient():
             return kg_client
 
-    monkeypatch.setattr("libs.neo4j_client.client.PatientGraphClient", _ClientModule.PatientGraphClient)
-    monkeypatch.setattr("libs.neo4j_client.client.KnowledgeGraphClient", _ClientModule.KnowledgeGraphClient)
+    monkeypatch.setattr(
+        "libs.neo4j_client.client.PatientGraphClient", _ClientModule.PatientGraphClient
+    )
+    monkeypatch.setattr(
+        "libs.neo4j_client.client.KnowledgeGraphClient",
+        _ClientModule.KnowledgeGraphClient,
+    )
     monkeypatch.setattr("libs.ner.post_processor_rules.parse_rules", lambda rows: [])
     monkeypatch.setattr(
         "libs.ner.post_processor_rules.apply_rules_to_entities",
@@ -75,9 +80,9 @@ def test_export_labels_reads_gold_label_source(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(
         label_exporter.os,
         "getenv",
-        lambda key, default=None: "1"
-        if key == "TRAINING_MIN_LABEL_COUNT"
-        else os.environ.get(key, default),
+        lambda key, default=None: (
+            "1" if key == "TRAINING_MIN_LABEL_COUNT" else os.environ.get(key, default)
+        ),
     )
     patient_rows = []
     kg_rows = [
@@ -117,9 +122,9 @@ def test_export_labels_blocks_when_gold_count_below_min(monkeypatch, tmp_path: P
     monkeypatch.setattr(
         label_exporter.os,
         "getenv",
-        lambda key, default=None: "3"
-        if key == "TRAINING_MIN_LABEL_COUNT"
-        else os.environ.get(key, default),
+        lambda key, default=None: (
+            "3" if key == "TRAINING_MIN_LABEL_COUNT" else os.environ.get(key, default)
+        ),
     )
     _patch_clients(
         monkeypatch,

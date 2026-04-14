@@ -36,7 +36,6 @@ from services.analytics_api.app.routers.cohorts import (  # noqa: E402
     _CONFIRMED_ASSERTIONS,
 )
 
-
 # -- CCI query tests -------------------------------------------------
 
 
@@ -67,9 +66,7 @@ def _run_cci(monkeypatch, rows):
         is_admin = True
         org_ids = []
 
-    with mock.patch.object(
-        cci_mod, "_coerce_scope", return_value=_FakeScope()
-    ):
+    with mock.patch.object(cci_mod, "_coerce_scope", return_value=_FakeScope()):
         return cci_mod.calculate_cci("p-001")
 
 
@@ -159,8 +156,9 @@ def test_condition_codes_clause_includes_assertion_filter():
     """condition_codes filter must restrict to confirmed assertions."""
     f = CohortFilter(condition_codes=["12345678"])
     where, params = _build_where_clauses(f)
-    assert "coalesce(r.assertion" in where, \
-        "assertion guard missing from condition filter"
+    assert (
+        "coalesce(r.assertion" in where
+    ), "assertion guard missing from condition filter"
     assert "$confirmed_assertions" in where
     assert set(params["confirmed_assertions"]) == {"present", "historical"}
 

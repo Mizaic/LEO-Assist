@@ -201,7 +201,9 @@ def _load_rules() -> list:
     """Load active post-processor rules from the patient graph, or return []."""
     try:
         from libs.neo4j_client.client import PatientGraphClient
-        from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
+        from libs.cypher.post_processor_rule_queries import (
+            GET_ACTIVE_POST_PROCESSOR_RULES,
+        )
         from libs.ner.post_processor_rules import parse_rules
 
         client = PatientGraphClient()

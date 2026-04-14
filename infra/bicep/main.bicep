@@ -37,6 +37,11 @@ param snomedTerminologyServer string = ''
 // and the sign-in link in invite emails. Must match an Entra redirect URI.
 param frontendUrl string
 
+// UI custom domain on the `ui` Container App (DNS + cert must exist; cert on the ACA environment).
+param uiCustomDomainHost string = ''
+param uiIngressCertificateName string = ''
+param uiIngressCertificateIsManaged bool = false
+
 // Shared resources live in the leo-ai platform RG
 param acrResourceGroup string = 'leo-ai'
 param acrName string = 'leoaicr'
@@ -139,6 +144,9 @@ module containerApps 'modules/container-apps.bicep' = {
     sessionTtlHours: sessionTtlHours
     snomedTerminologyServer: snomedTerminologyServer
     frontendUrl: frontendUrl
+    uiCustomDomainHost: uiCustomDomainHost
+    uiIngressCertificateName: uiIngressCertificateName
+    uiIngressCertificateIsManaged: uiIngressCertificateIsManaged
   }
 }
 

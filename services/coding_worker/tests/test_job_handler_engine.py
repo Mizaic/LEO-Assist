@@ -165,7 +165,10 @@ async def test_extract_patient_fans_out_per_encounter(monkeypatch):
 
     encounter_ids = [c.get("encounter_id") for c in _FakeServiceBusEventHandler.calls]
     assert encounter_ids == ["e1", "e2"]
-    assert all(c["context"]["trigger_analysis"] is False for c in _FakeServiceBusEventHandler.calls)
+    assert all(
+        c["context"]["trigger_analysis"] is False
+        for c in _FakeServiceBusEventHandler.calls
+    )
     assert any(e.get("type") == "encounter_completed" for e in published)
     assert any(e.get("type") == "run_completed" for e in published)
     assert fake_driver.closed is True

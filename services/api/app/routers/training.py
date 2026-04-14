@@ -172,9 +172,9 @@ router = APIRouter(prefix="/training", tags=["training"])
 PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip(
     "/"
 )
-TRAINING_WORKER_BASE = os.getenv(
-    "TRAINING_WORKER_URL", "http://localhost:8005"
-).rstrip("/")
+TRAINING_WORKER_BASE = os.getenv("TRAINING_WORKER_URL", "http://localhost:8005").rstrip(
+    "/"
+)
 
 from app.routers._training_askleo import register_askleo_routes
 
@@ -4387,7 +4387,10 @@ def _build_candidate_similarity_groups(
             payload["similarity"] = round(float(similarity), 6)
             duplicates.append(payload)
         groups.append(
-            {"canonical": _candidate_payload(rows[canonical_idx]), "duplicates": duplicates}
+            {
+                "canonical": _candidate_payload(rows[canonical_idx]),
+                "duplicates": duplicates,
+            }
         )
     groups.sort(key=lambda g: len(g.get("duplicates", [])), reverse=True)
     return groups
@@ -4552,7 +4555,11 @@ def find_similar_candidates_by_entity(
         max_candidates=3000,
     )
     source_row = next(
-        (row for row in rows if str(row.get("candidate_id") or "") == body.candidate_id),
+        (
+            row
+            for row in rows
+            if str(row.get("candidate_id") or "") == body.candidate_id
+        ),
         None,
     )
     if not source_row:
@@ -4678,9 +4685,7 @@ def active_learning_queue(
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
-            rows = session.run(
-                GET_ACTIVE_LEARNING_QUEUE, skip=skip, limit=page_size
-            )
+            rows = session.run(GET_ACTIVE_LEARNING_QUEUE, skip=skip, limit=page_size)
             items = [dict(r) for r in rows]
             count_row = session.run(COUNT_ACTIVE_LEARNING_QUEUE).single()
         total = count_row["total"] if count_row else 0
@@ -5030,11 +5035,7 @@ def update_gold_label_entities(
                     if "semantic_tag" in ent
                     else {}
                 ),
-                **(
-                    {"snomed_term": ent["snomed_term"]}
-                    if "snomed_term" in ent
-                    else {}
-                ),
+                **({"snomed_term": ent["snomed_term"]} if "snomed_term" in ent else {}),
             }
         )
 

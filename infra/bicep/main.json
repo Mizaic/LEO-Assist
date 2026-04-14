@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.39.26.7824",
-      "templateHash": "13304568239905792598"
+      "version": "0.41.2.15936",
+      "templateHash": "2499602405276619561"
     }
   },
   "parameters": {
@@ -89,6 +89,18 @@
     "frontendUrl": {
       "type": "string"
     },
+    "uiCustomDomainHost": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "uiIngressCertificateName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "uiIngressCertificateIsManaged": {
+      "type": "bool",
+      "defaultValue": false
+    },
     "acrResourceGroup": {
       "type": "string",
       "defaultValue": "leo-ai"
@@ -140,8 +152,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "15096176258423123794"
+              "version": "0.41.2.15936",
+              "templateHash": "15664060497209336785"
             }
           },
           "parameters": {
@@ -159,7 +171,7 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.ContainerRegistry/registries/{0}', parameters('acrName'))]",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
               "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), parameters('principalId'), variables('acrPullRoleId'))]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('acrPullRoleId'))]",
@@ -198,8 +210,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "14427841177521147907"
+              "version": "0.41.2.15936",
+              "templateHash": "14338267088959207399"
             }
           },
           "parameters": {
@@ -217,7 +229,7 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
               "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('principalId'), variables('blobContribRoleId'))]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('blobContribRoleId'))]",
@@ -258,8 +270,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "13981057556253794209"
+              "version": "0.41.2.15936",
+              "templateHash": "16817853269027579248"
             }
           },
           "parameters": {
@@ -299,7 +311,7 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('kvName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]",
               "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('kvName')), parameters('managedIdentityPrincipalId'), variables('kvSecretsUserRoleId'))]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('kvSecretsUserRoleId'))]",
@@ -351,8 +363,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "9282969632385819827"
+              "version": "0.41.2.15936",
+              "templateHash": "18326089369737334896"
             }
           },
           "parameters": {
@@ -407,8 +419,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "10693523417238529008"
+              "version": "0.41.2.15936",
+              "templateHash": "12529755833039935742"
             }
           },
           "parameters": {
@@ -484,7 +496,7 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.ServiceBus/namespaces/{0}', variables('sbNamespaceName'))]",
+              "scope": "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]",
               "name": "[guid(resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName')), parameters('managedIdentityPrincipalId'), variables('sbDataOwnerRoleId'))]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('sbDataOwnerRoleId'))]",
@@ -611,6 +623,15 @@
           },
           "frontendUrl": {
             "value": "[parameters('frontendUrl')]"
+          },
+          "uiCustomDomainHost": {
+            "value": "[parameters('uiCustomDomainHost')]"
+          },
+          "uiIngressCertificateName": {
+            "value": "[parameters('uiIngressCertificateName')]"
+          },
+          "uiIngressCertificateIsManaged": {
+            "value": "[parameters('uiIngressCertificateIsManaged')]"
           }
         },
         "template": {
@@ -619,8 +640,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "15790543038743741238"
+              "version": "0.41.2.15936",
+              "templateHash": "10291517250165807428"
             }
           },
           "parameters": {
@@ -718,6 +739,18 @@
             "snomedTerminologyServer": {
               "type": "string",
               "defaultValue": ""
+            },
+            "uiCustomDomainHost": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "uiIngressCertificateName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "uiIngressCertificateIsManaged": {
+              "type": "bool",
+              "defaultValue": false
             }
           },
           "variables": {
@@ -732,6 +765,9 @@
             "analyticsApiUrl": "http://analytics-api",
             "modelInferenceUrl": "http://model-inference",
             "pipelineWorkerUrl": "http://pipeline-worker",
+            "hasUiTlsCustomDomain": "[and(not(empty(parameters('uiCustomDomainHost'))), not(empty(parameters('uiIngressCertificateName'))))]",
+            "uiIngressCertificateResourceId": "[if(variables('hasUiTlsCustomDomain'), if(parameters('uiIngressCertificateIsManaged'), resourceId('Microsoft.App/managedEnvironments/managedCertificates', variables('caeName'), parameters('uiIngressCertificateName')), resourceId('Microsoft.App/managedEnvironments/certificates', variables('caeName'), parameters('uiIngressCertificateName'))), '')]",
+            "uiIngressCustomDomains": "[if(variables('hasUiTlsCustomDomain'), createArray(createObject('name', parameters('uiCustomDomainHost'), 'bindingType', 'SniEnabled', 'certificateId', variables('uiIngressCertificateResourceId'))), createArray())]",
             "sharedEnv": [
               {
                 "name": "AZURE_KEYVAULT_URL",
@@ -1260,7 +1296,31 @@
                         "cpu": "[json('0.5')]",
                         "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'FHIR_API_BASE', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'ANALYTICS_API_BASE', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'PIPELINE_WORKER_URL', 'value', variables('pipelineWorkerUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'FHIR_API_BASE', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'ANALYTICS_API_BASE', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'PIPELINE_WORKER_URL', 'value', variables('pipelineWorkerUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8000,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8000,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
                     }
                   ],
                   "scale": {
@@ -1287,7 +1347,8 @@
                   "ingress": {
                     "external": true,
                     "targetPort": 3000,
-                    "transport": "http"
+                    "transport": "http",
+                    "customDomains": "[variables('uiIngressCustomDomains')]"
                   }
                 },
                 "template": {
@@ -1338,7 +1399,31 @@
                         "cpu": "[json('0.25')]",
                         "memory": "0.5Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser'))))]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8001,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8001,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
                     }
                   ],
                   "scale": {
@@ -1377,7 +1462,31 @@
                         "cpu": "[json('0.25')]",
                         "memory": "0.5Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser'))))]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8002,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8002,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
                     }
                   ],
                   "scale": {
@@ -1416,7 +1525,31 @@
                         "cpu": "[json('0.25')]",
                         "memory": "0.5Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser'))))]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8003,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8003,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
                     }
                   ],
                   "scale": {
@@ -1455,7 +1588,31 @@
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'MODEL_STORE_CACHE_DIR', 'value', '/var/model_cache')))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'MODEL_STORE_CACHE_DIR', 'value', '/var/model_cache')))]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8004,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 15,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8004,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
                     }
                   ],
                   "scale": {
@@ -1494,7 +1651,31 @@
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
                       },
-                      "env": "[variables('sharedEnv')]"
+                      "env": "[variables('sharedEnv')]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8005,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8005,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
                     }
                   ],
                   "scale": {
@@ -1533,11 +1714,35 @@
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'PIPELINE_WORKER_PORT', 'value', '8006'), createObject('name', 'PIPELINE_QUEUE_NAME', 'value', 'pipeline-jobs'), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'PIPELINE_WORKER_PORT', 'value', '8006'), createObject('name', 'PIPELINE_QUEUE_NAME', 'value', 'pipeline-jobs'), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8006,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8006,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
                     }
                   ],
                   "scale": {
-                    "minReplicas": 0,
+                    "minReplicas": 1,
                     "maxReplicas": 5,
                     "rules": [
                       {
@@ -1551,7 +1756,7 @@
                           },
                           "auth": [
                             {
-                              "secretRef": "service-auth-secret",
+                              "secretRef": "azure-service-bus-connection-string",
                               "triggerParameter": "connection"
                             }
                           ]

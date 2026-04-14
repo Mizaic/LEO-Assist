@@ -155,7 +155,9 @@ def export_labels(
         patient_client = PatientGraphClient()
         try:
             with patient_client.session() as session:
-                rule_rows = [dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)]
+                rule_rows = [
+                    dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)
+                ]
                 rules = parse_rules(rule_rows)
                 if rules:
                     _log(f"Loaded {len(rules)} active post-processor rules.")
@@ -277,9 +279,7 @@ def export_labels(
         "assertion_filtered": [
             d for d in diagnostics if d["reason"] == "assertion_filtered"
         ],
-        "span_misaligned": [
-            d for d in diagnostics if d["reason"] == "span_misaligned"
-        ],
+        "span_misaligned": [d for d in diagnostics if d["reason"] == "span_misaligned"],
     }
     (output_dir / "export_diagnostics.json").write_text(
         json.dumps(diag_payload, indent=2)

@@ -53,7 +53,9 @@ class TestGoldenGate(unittest.TestCase):
         mock_docbin = MagicMock()
         mock_docbin.get_docs.return_value = iter(dev_docs)
 
-        score_side_effects = [dev_scores, golden_scores] if golden_docs_count else [dev_scores]
+        score_side_effects = (
+            [dev_scores, golden_scores] if golden_docs_count else [dev_scores]
+        )
 
         with (
             patch.dict(os.environ, {"MODEL_MIN_GOLDEN_F1": str(min_golden_f1)}),
@@ -89,7 +91,13 @@ class TestGoldenGate(unittest.TestCase):
 
     def test_golden_metrics_in_result(self):
         result, _ = self._run_evaluate(golden_f1=0.80, min_golden_f1=0.70)
-        for key in ("golden_precision", "golden_recall", "golden_f1", "golden_passed", "golden_doc_count"):
+        for key in (
+            "golden_precision",
+            "golden_recall",
+            "golden_f1",
+            "golden_passed",
+            "golden_doc_count",
+        ):
             self.assertIn(key, result, f"Missing key: {key}")
 
     def test_no_golden_docs_skips_gate(self):
@@ -114,7 +122,9 @@ class TestGoldenGate(unittest.TestCase):
 
         with (
             patch.object(
-                evaluator, "_register_training_architectures", side_effect=_mark_registered
+                evaluator,
+                "_register_training_architectures",
+                side_effect=_mark_registered,
             ),
             patch("spacy.load", side_effect=_mock_load),
             patch("spacy.tokens.DocBin") as mock_docbin_cls,

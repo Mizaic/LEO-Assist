@@ -133,7 +133,9 @@ def resolve_preferred_terms_for_concepts(
                 pipe = cache.pipeline()
                 for concept_id, term in fresh_terms.items():
                     if term:
-                        pipe.setex(_cache_key(concept_id), SNOMED_PT_CACHE_TTL_SECONDS, term)
+                        pipe.setex(
+                            _cache_key(concept_id), SNOMED_PT_CACHE_TTL_SECONDS, term
+                        )
                 pipe.execute()
             except Exception:
                 logger.debug("Preferred-term cache write failed", exc_info=True)

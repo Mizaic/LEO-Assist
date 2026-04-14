@@ -38,6 +38,12 @@ param sessionTtlHours string
 param frontendUrl string
 param snomedTerminologyServer string = ''
 
+// Optional UI hostname + env-scoped certificate (see ACA Custom domains blade).
+// Certificate must already exist on the Container Apps environment (uploaded or managed).
+param uiCustomDomainHost string = ''
+param uiIngressCertificateName string = ''
+param uiIngressCertificateIsManaged bool = false
+
 var prefix = 'leoai-${environment}'
 var caeName = '${prefix}-cae'
 var logWorkspaceName = '${prefix}-logs'
@@ -80,6 +86,31 @@ var fhirApiUrl = 'http://fhir-api'
 var analyticsApiUrl = 'http://analytics-api'
 var modelInferenceUrl = 'http://model-inference'
 var pipelineWorkerUrl = 'http://pipeline-worker'
+
+var hasUiTlsCustomDomain = !empty(uiCustomDomainHost) && !empty(uiIngressCertificateName)
+// Inner ternary: managed free cert vs uploaded / imported cert on the environment.
+var uiIngressCertificateResourceId = hasUiTlsCustomDomain
+  ? uiIngressCertificateIsManaged
+      ? resourceId(
+          'Microsoft.App/managedEnvironments/managedCertificates',
+          caeName,
+          uiIngressCertificateName
+        )
+      : resourceId(
+          'Microsoft.App/managedEnvironments/certificates',
+          caeName,
+          uiIngressCertificateName
+        )
+  : ''
+var uiIngressCustomDomains = hasUiTlsCustomDomain
+  ? [
+      {
+        name: uiCustomDomainHost
+        bindingType: 'SniEnabled'
+        certificateId: uiIngressCertificateResourceId
+      }
+    ]
+  : []
 
 // -- Shared env vars injected into every app -------------------------------
 var sharedEnv = [
@@ -302,6 +333,7 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
         external: true
         targetPort: 3000
         transport: 'http'
+        customDomains: uiIngressCustomDomains
       }
     }
     template: {
