@@ -1,0 +1,61 @@
+# -- UN-LEO-AI-060 -- Active Learning and Training Quality
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-060"
+  title: "Model trainers need active learning prioritisation, per-entity F1 metrics, golden evaluation set, and warm-start capability to improve NER quality efficiently"
+  description: |
+    The current training pipeline lacks four quality-critical capabilities.
+    First, annotation candidates are shown in arbitrary order -- reviewers
+    spend time on easy cases rather than the most informative ones. Second,
+    evaluation reports only aggregate precision/recall, hiding which entity
+    types are underperforming. Third, there is no frozen benchmark to detect
+    regressions across training runs. Fourth, each training run cold-starts
+    from Bio_ClinicalBERT, discarding all previously learned NER weights.
+    Together these gaps mean the model improves slowly and regressions go
+    undetected until they affect clinical coding.
+
+  stakeholder:
+    type: "end_user"
+    role: "Platform Administrator / ML Engineer"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Clinical coding accuracy directly affects patient safety (missed diagnoses)
+    and NHS commissioning (incorrect QOF prevalence). Inefficient annotation,
+    hidden per-entity regressions, and discarding prior learning all slow the
+    model improvement cycle and increase the risk of accuracy degradation.
+
+  acceptance_criteria:
+    - "Pending candidates are sorted by uncertainty_score DESC (active learning order) by default"
+    - "GET /api/training/candidates/active-learning-queue endpoint returns candidates sorted by entropy"
+    - "POST /api/training/candidates/score starts background scoring and writes uncertainty_score to candidates"
+    - "GET /train/jobs/{id} returns per_label_f1 dict with precision/recall/F1 per entity type"
+    - "GoldLabel nodes have frozen_golden_set flag settable via PATCH /training/gold-labels/{id}/golden-set"
+    - "evaluate_model() runs a second pass against frozen golden set and reports golden_f1 separately"
+    - "Training fails with GOLDEN GATE FAILED if golden_f1 drops below MODEL_MIN_GOLDEN_F1 (default 0.70)"
+    - "TRAINING_BASE_MODEL_VERSION env var causes trainer to warm-start NER head from promoted blob"
+    - "Span realignment re-derives start/end from surface text before DocBin creation"
+    - "Assertion filtering excludes negated/hypothetical/family_history entities from training"
+
+  regulatory_impact: "medium"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-04-12"
+    status: "draft"
+
+  design_inputs: ["DI-LEO-AI-106"]
+  validation_tests: []
+
+  tags: ["active-learning", "training", "golden-set", "warm-start", "span-realign", "assertion-filter"]

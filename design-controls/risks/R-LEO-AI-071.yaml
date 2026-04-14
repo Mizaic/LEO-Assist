@@ -1,27 +1,37 @@
-# -- R-LEO-AI-071 -- Unrelated Benign Qualifier Closes Active Cancer Pathway
+# -- R-LEO-AI-071 -- Assertion Inversion on Polarity-Encoding SNOMED Finding Concepts
 # ISO 14971 / IEC 62304 Risk
 
 - id: "R-LEO-AI-071"
-  title: "Benign/normal qualifier on unrelated finding causes erroneous episode closure"
+  title: "ConText double-negation inverts assertion on polarity-encoding SNOMED finding concepts"
 
   hazard:
     description: >
-      A generic qualifier-value concept (for example, benign or normal) is
-      interpreted as cancer-pathway closure evidence without confirming that the
-      related finding is on the same pathway site as the referral episode.
+      ConText assigns a non-present assertion (typically absent) to a SNOMED
+      finding or observable entity concept whose preferred term already encodes
+      polarity via a suffix word (e.g. "Perineural invasion by tumor absent
+      (finding)" 370051000, "Tumour not completely excised (finding)"),
+      inverting the clinical meaning.
     category: "clinical_safety"
 
   hazardous_situation: >
-    A patient has a breast 2WW referral and later receives a benign qualifier on
-    a different condition (for example, benign prostatic hyperplasia). If site
-    relatedness and diagnosis suppression are not enforced, the breast episode
-    may be auto-closed as benign despite ongoing malignancy workup.
+    The encounter text contains a phrase such as "Perineural invasion: absent".
+    The LLM extractor outputs assertion=present (after DI-LEO-AI-103 change).
+    SNOMED terminology lookup resolves the entity to "Perineural invasion by
+    tumor absent (finding)" 370051000 because the polarity word "absent" appears
+    in the lookup text. ConText then sets assertion=absent because it detects
+    "absent" as a negation cue. The persisted coded record now carries
+    assertion=absent on a concept that already means absent -- semantically
+    equivalent to "perineural invasion is present". This inversion affects
+    the tier classifier (entity may be incorrectly presented as present when
+    it should be coded as the absent variant) and downstream coded output
+    consumers.
 
   harm:
     description: >
-      False pathway closure can delay escalation and follow-up, distort cancer
-      pathway KPIs, and reduce visibility of patients still requiring clinical
-      review.
+      Coded pathology record incorrectly implies positive perineural invasion
+      or other positive finding where the clinician documented its absence.
+      For cancer pathway coding, this could misclassify staging information or
+      affect MDT decisions based on coded audit data.
     severity: "serious"
 
   initial_risk_estimate:
@@ -34,55 +44,59 @@
   mitigation_measures:
     - control_type: "design_feature"
       description: >
-        Restrict benign qualifier closure to same-encounter co-occurrence of
-        finding/disorder plus configured benign/normal qualifier concept IDs.
+        Post-SNOMED polarity-encoded finding guard checks the resolved preferred
+        term for a polarity suffix word (absent, not detected, not found, not
+        present, negative) before the semantic tag parenthesis, and forces
+        assertion=present when detected. Applied in both the runtime terminology
+        step and the training-path Layer 7d.
       implemented_by: ["DI-LEO-AI-104"]
       verified_by: ["VT-LEO-AI-104"]
       effectiveness: "effective"
-    - control_type: "design_feature"
+    - control_type: "protective_measure"
       description: >
-        Require site compatibility between referral site and finding site and
-        suppress closure when any confirmed diagnosis exists in the 90-day
-        window after referral.
-      implemented_by: ["DI-LEO-AI-104"]
-      verified_by: ["VT-LEO-AI-104"]
-      effectiveness: "effective"
-    - control_type: "information_for_safety"
-      description: >
-        Always set hitl_flag=true with a review reason for
-        closed_benign_qualifier episodes.
-      implemented_by: ["DI-LEO-AI-104"]
-      verified_by: ["VT-LEO-AI-104"]
+        HITL review gate: all coded entities are presented to a human
+        reviewer before any coded output is used for clinical decisions.
+        Assertion is visible in the review UI, providing a last line of
+        defence for any assertion errors that pass automated guards.
+      implemented_by: ["DI-LEO-AI-005"]
+      verified_by: ["VT-LEO-AI-005"]
       effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 3
     probability: 1
-    detectability: 2
-    rpn: 6
+    detectability: 1
+    rpn: 3
     risk_level: "low"
     acceptability: "acceptable"
     justification: >
-      The closure rule now requires both temporal and site-related evidence,
-      blocks when competing diagnosis evidence exists, and always routes through
-      human review. Remaining risk is primarily coding quality variance and is
-      detectable through HITL review and episode audit dashboards.
+      The deterministic suffix guard eliminates the failure mode for any
+      finding concept whose PT ends with a polarity word, covering the known
+      pattern for SNOMED polarity-encoding findings. The HITL review gate
+      provides an additional catch for any edge cases not covered by the
+      regex. Residual probability is very low because the guard is applied
+      before persist and is covered by automated regression tests.
 
   monitoring:
     monitoring_plan: >
-      Review closed_benign_qualifier episodes monthly. Sample at least 20 cases
-      per domain and verify that closure site matches referral site and that no
-      competing diagnosis was present in the closure window.
+      Monitor the _assertion_guard="polarity_encoded_finding" audit tag in
+      production to track how frequently the guard fires. Quarterly review of
+      any new SNOMED finding concepts with polarity suffixes added to the UK
+      edition; extend the suffix pattern or a concept allowlist if new
+      patterns are identified outside the current regex.
     metrics:
-      - "Rate of manual reopen from closed_benign_qualifier to completed"
-      - "Percent of closed_benign_qualifier episodes with reviewer disagreement"
+      - "Count of polarity_encoded_finding corrections per month"
+      - "Reviewer assertion correction rate for polarity-encoded finding entities"
     review_frequency: "Quarterly"
 
   metadata:
-    identified_by: "Episode detector safety review"
+    identified_by: "Design review -- ConText pipeline analysis 2026-04-13"
     identified_date: "2026-04-13"
-    status: "mitigated"
+    status: "analyzed"
     tags:
-      - "episode-detector"
-      - "benign-closure"
-      - "qualifier-value"
+      - "assertion"
+      - "double-negation"
+      - "finding"
+      - "polarity"
+      - "snomed"
+      - "safety-guard"

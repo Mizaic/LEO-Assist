@@ -383,6 +383,8 @@ class Neo4jModelRegistry:
     def _signal_reload(self, version: str) -> None:
         import httpx
 
+        from libs.auth.service_auth import get_service_auth_header
+
         endpoint = os.getenv("CODING_MODEL_ENDPOINT", "http://localhost:8004")
         timeout = float(os.getenv("MODEL_RELOAD_TIMEOUT_S", "120"))
         try:
@@ -390,6 +392,7 @@ class Neo4jModelRegistry:
                 f"{endpoint}/reload",
                 json={"version": version},
                 timeout=timeout,
+                headers={**get_service_auth_header()},
             )
             resp.raise_for_status()
             data = resp.json()

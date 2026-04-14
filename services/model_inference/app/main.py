@@ -59,8 +59,9 @@ if _INFERENCE_ACCEL.resolved == "cpu":
 elif _INFERENCE_ACCEL.resolved == "mps":
     os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+from libs.auth.service_auth import verify_service_token
 from libs.utils.logging import configure_logging
 
 from app.model_loader import ModelLoader
@@ -197,7 +198,11 @@ def health() -> dict[str, Any]:
     }
 
 
-@app.post("/extract", response_model=ExtractResponse)
+@app.post(
+    "/extract",
+    response_model=ExtractResponse,
+    dependencies=[Depends(verify_service_token)],
+)
 def extract(req: ExtractRequest) -> ExtractResponse:
     """Run NER extraction on a batch of sentences.
 
@@ -221,7 +226,14 @@ def extract(req: ExtractRequest) -> ExtractResponse:
     for sent in req.sentences:
         deid = deidentify(sent.text)
         doc = nlp(deid.text)
-        for ent in doc.ents:
+        spans = doc.spans.get("sc")
+        if spans is None:
+            logger.warning(
+                "Model has no 'sc' spans (pre-spancat artifact) -- "
+                "falling back to doc.ents. Retrain with spancat config."
+            )
+            spans = doc.ents
+        for ent in spans:
             label = ent.label_
             confidence = float(getattr(ent, "kb_id_", 0.0) or 0.0)
             entities.append(
@@ -246,7 +258,7 @@ def extract(req: ExtractRequest) -> ExtractResponse:
     )
 
 
-@app.post("/reload")
+@app.post("/reload", dependencies=[Depends(verify_service_token)])
 async def reload_model(req: ReloadRequest) -> dict[str, Any]:
     """Hot-swap to a new model version from blob storage.
 
@@ -286,7 +298,7 @@ async def reload_model(req: ReloadRequest) -> dict[str, Any]:
     }
 
 
-@app.get("/versions")
+@app.get("/versions", dependencies=[Depends(verify_service_token)])
 async def list_versions() -> dict[str, Any]:
     """List available model versions in the blob store."""
     from libs.model_store import ModelStore

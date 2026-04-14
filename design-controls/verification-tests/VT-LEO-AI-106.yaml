@@ -1,0 +1,141 @@
+- id: "VT-LEO-AI-106"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-106"]
+    risks: ["R-LEO-AI-072"]
+
+  metadata:
+    title: "Training pipeline quality - span realign, assertion filter, golden gate, warm-start, active learning"
+    description: >
+      Verifies the six training quality controls: span realignment drops
+      misaligned entities without aborting; assertion filter excludes
+      negated/hypothetical/family_history/possible entities; per-label F1
+      appears in job dict; warm-start falls back safely on blob error;
+      golden gate fails the job below threshold; active learning queue
+      returns candidates sorted by uncertainty_score DESC.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/training_worker/tests/test_label_exporter.py"
+      - "services/training_worker/tests/test_trainer.py"
+      - "services/training_worker/tests/test_evaluator.py"
+      - "services/training_worker/tests/test_job_store.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+ with .venv-training activated"
+      - "pip install pytest pytest-asyncio spacy neo4j (from requirements)"
+      - "Neo4j not required - all DB calls are mocked"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-106-TC-001"
+      case_name: "Span realignment - misaligned entity dropped silently"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _realign_entity() with text='Patient has diabetes' and entity with label='DISORDER' whose surface_text='hypertension' (not in text)"
+          expected_result: "Returns None; no exception raised"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call _realign_entity() with text='Patient has diabetes' and entity with surface_text='diabetes'"
+          expected_result: "Returns entity with start=12, end=20"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "_realign_entity returns None when text not found"
+        - "_realign_entity returns corrected offsets when text found"
+
+    - case_id: "VT-106-TC-002"
+      case_name: "Assertion filter - negated entities excluded from DocBin"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _filter_and_realign() with two entities: one assertion=present, one assertion=negated"
+          expected_result: "Returns list containing only the present entity; assertion_filtered count = 1"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call _get_excluded_assertions() without TRAINING_EXCLUDE_ASSERTIONS set"
+          expected_result: "Returns frozenset containing 'negated', 'hypothetical', 'family_history', 'possible'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Non-present assertions excluded from returned entities"
+        - "Default exclusion set covers negated, hypothetical, family_history, possible"
+
+    - case_id: "VT-106-TC-003"
+      case_name: "Per-label F1 in job dict top level"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Create TrainingJob and set metrics including nested per_label_f1; call to_dict()"
+          expected_result: "per_label_f1 key present at top level of returned dict"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "to_dict() result contains per_label_f1, precision, recall, f1 at top level"
+
+    - case_id: "VT-106-TC-004"
+      case_name: "Warm-start fallback on ModelStore exception"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Set TRAINING_BASE_MODEL_VERSION=v1.0.0; mock ModelStore.download_model to raise Exception"
+          expected_result: "_fetch_warm_start_model() returns None; run_training() continues without init_tok2vec_path"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No exception propagated to caller when warm-start fails"
+        - "Warning logged with 'warm-start' in message"
+
+    - case_id: "VT-106-TC-005"
+      case_name: "Golden gate fails job below threshold"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock evaluate_model to return golden_f1=0.50; set MODEL_MIN_GOLDEN_F1=0.70; run job"
+          expected_result: "job.status='failed'; job.error contains 'GOLDEN GATE FAILED'"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Mock evaluate_model to return golden_f1=0.80; set MODEL_MIN_GOLDEN_F1=0.70; run job"
+          expected_result: "job status not set to failed by golden gate; pipeline continues"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Job fails when golden_f1 < threshold"
+        - "Job does not fail when golden_f1 >= threshold"
+
+    - case_id: "VT-106-TC-006"
+      case_name: "Active learning queue returns candidates sorted by uncertainty_score DESC"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Mock GET_ACTIVE_LEARNING_QUEUE returning 3 candidates with scores 0.9, 0.5, 0.1"
+          expected_result: "Endpoint returns candidates in order 0.9, 0.5, 0.1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Candidates returned in descending uncertainty_score order"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-106/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-106-EXEC-001"
+      executed_by: "CI - local run"
+      executed_date: "2026-04-12"
+      result: "pass"
+      notes: >
+        21 tests across 4 files: test_label_exporter.py (9), test_job_store.py (4),
+        test_trainer.py (4), test_evaluator.py (4). All passed.
+        pytest 9.0.3, Python 3.12.13, spaCy mocked for evaluator tests.
+        Run: cd services/training_worker && python -m pytest tests/ -v

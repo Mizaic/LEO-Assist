@@ -1,0 +1,111 @@
+# -- R-LEO-AI-073 -- Erroneous Multi-label Assignment Inflates False Positive Coding Rate
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-073"
+  title: "NER model assigns spurious additional semantic label to a span, producing an incorrect SNOMED coding in the patient record"
+
+  hazard:
+    description: >
+      A spancat NER model trained on multi-label gold data may learn to assign
+      additional semantic labels to spans where only a single label is
+      clinically correct. Unlike the single-label NER, the model can now emit
+      multiple labels per span without an architectural constraint preventing
+      it from doing so.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A GP consultation note is processed by the spancat NER model. The model
+    assigns two semantic labels to a span (e.g. "metformin 500mg" tagged as
+    both substance and procedure). The second label is incorrect. Both labels
+    flow through post-processing and SNOMED resolution, producing two
+    DOCUMENTS relationships on the encounter node: one correct, one spurious.
+    The spurious coding appears in QOF reports, disease prevalence dashboards,
+    or care-pathway episode detection, potentially triggering incorrect
+    clinical actions or distorted population health metrics.
+
+  harm:
+    description: >
+      Spurious SNOMED codings in patient records inflate disease prevalence
+      counts, trigger incorrect QOF coding, or activate care-pathway rules
+      for conditions the patient does not have. Clinical staff may act on
+      erroneous coded summaries, risking incorrect treatment decisions.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        LLM extraction prompt rule 4 retains the single-semantic-tag-per-entry
+        constraint for fresh LLM extraction. The LLM cannot independently
+        generate multi-label during its own extraction pass, limiting
+        multi-label output to NER model predictions which are grounded in
+        curated gold-label training data.
+      implemented_by: ["DI-LEO-AI-107"]
+      verified_by: ["VT-LEO-AI-107"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        All multi-label annotations in training data originate from human-
+        curated GoldLabel records reviewed and approved by clinical
+        informaticians before being marked as gold. The HITL review workflow
+        is the primary quality gate preventing spurious dual labels from
+        entering training data.
+      implemented_by: ["DI-LEO-AI-107"]
+      verified_by: ["VT-LEO-AI-107"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The golden evaluation gate (MODEL_MIN_GOLDEN_F1) detects regression
+        in span classification accuracy. A model that produces spurious
+        multi-label predictions will show elevated false positives in the
+        frozen golden set, failing the gate and blocking promotion.
+      implemented_by: ["DI-LEO-AI-106", "DI-LEO-AI-107"]
+      verified_by: ["VT-LEO-AI-106", "VT-LEO-AI-107"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      All training data multi-labels are human-curated via the gold-label
+      review workflow before reaching the model. The golden evaluation gate
+      provides a regression safety net that blocks models with elevated
+      false-positive rates from promotion. The LLM cannot independently
+      generate multi-labels. Residual probability is low because spurious
+      model output would need to survive three independent controls
+      (training data QA, golden gate, HITL review of coding results)
+      to reach the patient record.
+
+  monitoring:
+    monitoring_plan: >
+      Monitor per-entity F1 and false-positive rate in model evaluation
+      reports after each training run. Alert if spans_sc_precision drops
+      more than 5 percentage points below the previous promoted model.
+      Review DOCUMENTS relationship counts per encounter in production
+      quarterly to detect unexpected increases in multi-coded spans.
+    metrics:
+      - "spans_sc_precision per promoted model version"
+      - "spans_sc_false_positive_rate per entity type"
+      - "average DOCUMENTS edges per encounter per quarter"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Design review - multi-label NER architecture change 2026-04-13"
+    identified_date: "2026-04-13"
+    status: "analyzed"
+    tags:
+      - "multi-label"
+      - "ner"
+      - "spancat"
+      - "false-positive"
+      - "clinical-coding"

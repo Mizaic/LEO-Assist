@@ -252,9 +252,16 @@ async def require_xhr_for_mutations(request: Request, call_next):
     """
     safe_methods = {"GET", "HEAD", "OPTIONS"}
     skip_prefixes = ("/auth/", "/health")
+    path = request.url.path
+    skip_xhr_paths = (
+        "/api/events/lab-result",
+        "/api/events/referral-response",
+        "/api/events/timer",
+    )
     if (
         request.method not in safe_methods
-        and not any(request.url.path.startswith(p) for p in skip_prefixes)
+        and not any(path.startswith(p) for p in skip_prefixes)
+        and path not in skip_xhr_paths
         and request.headers.get("X-Requested-With", "").lower() != "xmlhttprequest"
     ):
         return Response(

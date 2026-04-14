@@ -5,6 +5,7 @@ import os
 
 import httpx
 
+from libs.auth.service_auth import get_service_auth_header
 from libs.ner.extractor_contract import ExtractionItem
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG, normalise_label
 
@@ -36,7 +37,9 @@ class ModelExtractorProvider:
         if not self._enabled:
             return False
         try:
-            httpx.get(self._health_url, timeout=2.0)
+            httpx.get(
+                self._health_url, timeout=2.0, headers={**get_service_auth_header()}
+            )
             return True
         except Exception:
             return False
@@ -111,8 +114,9 @@ class ModelExtractorProvider:
             ],
         }
         sentence_index = {str(s.sentence_id): str(s.sentence_id) for s in sentences}
+        hdrs = {**get_service_auth_header()}
         with httpx.Client(timeout=15.0) as client:
-            response = client.post(self._extract_url, json=payload)
+            response = client.post(self._extract_url, json=payload, headers=hdrs)
             response.raise_for_status()
             data = response.json()
 

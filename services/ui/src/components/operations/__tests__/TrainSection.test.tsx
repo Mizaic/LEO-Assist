@@ -68,7 +68,7 @@ describe("VT-036-TC-019: TrainSection plain-language stat cards", () => {
     });
     expect(screen.getByRole("link", { name: "Manage training data" })).toHaveAttribute(
       "href",
-      "/admin/gold-dataset",
+      "/admin/knowledge?tab=training-data",
     );
   });
 

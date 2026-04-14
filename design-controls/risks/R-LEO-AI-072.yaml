@@ -1,0 +1,101 @@
+# -- R-LEO-AI-072 -- Corrupt or Non-Present Training Data Degrades NER Model
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-072"
+  title: "Corrupt or non-present clinical entities in training data cause NER model to produce clinically incorrect outputs"
+
+  hazard:
+    description: >
+      NER training data may contain entities with stale span offsets (offset
+      drift after text edit) or non-present assertions (negated, hypothetical,
+      family_history, possible). If these reach DocBin creation uncorrected,
+      the trained model learns incorrect span boundaries or learns to identify
+      conditions the patient does not have.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical informatician curates GoldLabel records and edits the source
+    text, leaving entity start/end offsets pointing to wrong characters.
+    Separately, entities with assertion=negated are left in the dataset.
+    Both categories propagate to the next spaCy training run, producing a
+    model that misidentifies entity boundaries and codes present conditions
+    as absent or vice versa.
+
+  harm:
+    description: >
+      Downstream clinical coding suggestions surface incorrect SNOMED codes
+      or miss genuinely present diagnoses. This may result in incorrect
+      disease prevalence calculations, missed QOF coding, or inaccurate
+      clinical summaries visible to clinical staff.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Span realignment: _realign_entity() re-derives start/end from surface
+        text using find_span() before each DocBin is written. Entities where
+        the surface text is not found are dropped with a warning logged.
+      implemented_by: ["DI-LEO-AI-106"]
+      verified_by: ["VT-LEO-AI-106"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Assertion filter: _filter_and_realign() removes entities whose assertion
+        is in TRAINING_EXCLUDE_ASSERTIONS (default: negated, hypothetical,
+        family_history, possible) before DocBin creation. Count logged per job.
+      implemented_by: ["DI-LEO-AI-106"]
+      verified_by: ["VT-LEO-AI-106"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Golden evaluation gate: a frozen set of GoldLabel records with
+        frozen_golden_set=true is evaluated after each training run. If
+        golden_f1 falls below MODEL_MIN_GOLDEN_F1 the job is marked failed
+        and the model is not promoted, preventing degraded models reaching
+        production.
+      implemented_by: ["DI-LEO-AI-106"]
+      verified_by: ["VT-LEO-AI-106"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Span realignment and assertion filtering eliminate the two primary
+      pathways for corrupt data entering training. The golden evaluation gate
+      provides a regression safety net that blocks model promotion if accuracy
+      drops. Residual probability is low because all three controls must fail
+      simultaneously for harm to occur.
+
+  monitoring:
+    monitoring_plan: >
+      Monitor export_span_misaligned and export_assertion_filtered counts in
+      job logs per training run. Alert if misaligned > 5% of exported labels.
+      Review golden_f1 trend in EvaluateStage regression history table quarterly.
+    metrics:
+      - "export_span_misaligned count per training run"
+      - "export_assertion_filtered count per training run"
+      - "golden_f1 per promoted model version"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Design review - training pipeline quality assessment 2026-04-12"
+    identified_date: "2026-04-12"
+    status: "mitigated"
+    tags:
+      - "training"
+      - "span-realign"
+      - "assertion-filter"
+      - "golden-set"
+      - "ner-quality"

@@ -89,14 +89,23 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             )
 
             if not metrics["passed_gates"]:
+                g_f = metrics.get("golden_f1")
+                min_g = metrics.get("min_golden_f1")
+                if g_f is not None and g_f < (min_g or 0):
+                    err = (
+                        f"Golden set F1={g_f:.3f} below threshold {min_g}. "
+                        "Model regressed on frozen benchmark."
+                    )
+                else:
+                    err = (
+                        f"Precision/recall below thresholds: "
+                        f"P={metrics['precision']:.3f} R={metrics['recall']:.3f}"
+                    )
                 store.update(
                     job,
                     status="failed",
                     phase="evaluate",
-                    error=(
-                        f"Precision/recall below thresholds: "
-                        f"P={metrics['precision']:.3f} R={metrics['recall']:.3f}"
-                    ),
+                    error=err,
                     metrics=metrics,
                     finished_at=time.time(),
                 )

@@ -109,6 +109,44 @@ RETURN
     surface_form_tasks_deleted AS surface_form_tasks_deleted
 """
 
+GET_ACTIVE_LEARNING_QUEUE = """
+MATCH (c:TrainingCandidate)
+WHERE c.status = 'pending'
+RETURN
+    c.candidate_id AS candidate_id,
+    c.text AS text,
+    c.entities_json AS entities_json,
+    c.source AS source,
+    c.uncertainty_score AS uncertainty_score,
+    toString(c.created_at) AS created_at,
+    toString(c.updated_at) AS updated_at
+ORDER BY
+    CASE WHEN c.uncertainty_score IS NULL THEN 0 ELSE c.uncertainty_score END DESC,
+    c.created_at ASC
+SKIP $skip
+LIMIT $limit
+"""
+
+COUNT_ACTIVE_LEARNING_QUEUE = """
+MATCH (c:TrainingCandidate)
+WHERE c.status = 'pending'
+RETURN count(c) AS total
+"""
+
+GET_PENDING_CANDIDATES_FOR_SCORING = """
+MATCH (c:TrainingCandidate)
+WHERE c.status = 'pending'
+  AND c.text IS NOT NULL
+RETURN c.candidate_id AS candidate_id, c.text AS text
+ORDER BY c.created_at ASC
+LIMIT 5000
+"""
+
+SET_UNCERTAINTY_SCORE = """
+MATCH (c:TrainingCandidate {candidate_id: $candidate_id})
+SET c.uncertainty_score = $score, c.uncertainty_scored_at = datetime()
+"""
+
 MARK_TRAINING_CANDIDATE_DUPLICATES = """
 UNWIND $updates AS u
 MATCH (d:TrainingCandidate {candidate_id: u.duplicate_id})

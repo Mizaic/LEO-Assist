@@ -19,10 +19,12 @@ import logging
 import re
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.deps import require_admin
 from app.db.neo4j_client import CodingGraphClient
+from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.cypher.preset_queries import (
     DELETE_PRESET,
     GET_PRESET,
@@ -95,7 +97,8 @@ class PresetRequest(BaseModel):
 
 
 @router.get("")
-def list_presets() -> dict[str, Any]:
+def list_presets(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+    _ = scope
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -106,7 +109,10 @@ def list_presets() -> dict[str, Any]:
 
 
 @router.get("/{preset_id}")
-def get_preset(preset_id: str) -> dict[str, Any]:
+def get_preset(
+    preset_id: str, scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, Any]:
+    _ = scope
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -121,7 +127,9 @@ def get_preset(preset_id: str) -> dict[str, Any]:
 
 
 @router.post("")
-def upsert_preset(body: PresetRequest) -> dict[str, Any]:
+def upsert_preset(
+    body: PresetRequest, _scope: CallerScope = Depends(require_admin)
+) -> dict[str, Any]:
     if body.extractor not in _VALID_EXTRACTORS:
         raise HTTPException(
             status_code=400,
@@ -161,7 +169,9 @@ def upsert_preset(body: PresetRequest) -> dict[str, Any]:
 
 
 @router.put("/{preset_id}/default")
-def set_default(preset_id: str) -> dict[str, Any]:
+def set_default(
+    preset_id: str, _scope: CallerScope = Depends(require_admin)
+) -> dict[str, Any]:
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -178,7 +188,9 @@ def set_default(preset_id: str) -> dict[str, Any]:
 
 
 @router.delete("/{preset_id}")
-def delete_preset(preset_id: str) -> dict[str, Any]:
+def delete_preset(
+    preset_id: str, _scope: CallerScope = Depends(require_admin)
+) -> dict[str, Any]:
     client = CodingGraphClient()
     try:
         with client.session() as session:

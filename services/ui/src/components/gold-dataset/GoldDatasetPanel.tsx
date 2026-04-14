@@ -630,35 +630,44 @@ function GoldLabelDetailDialog({
   const canAcceptAllAndMark = Boolean(onMarkGold) && uncodedCount > 0 && pendingSuggestionCount >= uncodedCount;
   const encounterAnnotated = useMemo(() => {
     const text = String(item.text || "");
-    if (!text.trim() || entities.length === 0) {
-      return text || "-";
-    }
-    const spans: AnnotatedSpan[] = [];
-    const taken: Array<[number, number]> = [];
+    if (!text.trim() || entities.length === 0) return text || "-";
+
+    // Step 1: find each entity's first occurrence in the sentence.
+    // Include entity surface text in the chip so merged spans are readable.
+    const lowerText = text.toLowerCase();
+    type RawSpan = { start: number; end: number; chip: ReturnType<typeof themeForAssertion> };
+    const raw: RawSpan[] = [];
     for (const [idx, entity] of entities.entries()) {
-      // Use the in-progress draft so highlighting is live while editing
       const needle = String((termDrafts[idx] ?? entity.text) || "").trim();
       if (!needle) continue;
-      const lowerText = text.toLowerCase();
-      const lowerNeedle = needle.toLowerCase();
-      let start = lowerText.indexOf(lowerNeedle);
-      while (start >= 0) {
-        const end = start + needle.length;
-        const overlaps = taken.some(([s, e]) => !(end <= s || start >= e));
-        if (!overlaps) {
-          spans.push({
-            start,
-            end,
-            chips: [themeForAssertion(entity.assertion, entity.label ?? entity.semantic_tag)],
-          });
-          taken.push([start, end]);
-          break;
-        }
-        start = lowerText.indexOf(lowerNeedle, end);
-      }
+      const start = lowerText.indexOf(needle.toLowerCase());
+      if (start < 0) continue;
+      const chip = themeForAssertion(entity.assertion, entity.label ?? entity.semantic_tag);
+      raw.push({ start, end: start + needle.length, chip: { ...chip, entityText: needle } });
     }
-    if (!spans.length) return text;
-    return renderNerSpans(text, spans);
+    if (!raw.length) return text;
+
+    // Step 2: greedy interval merge so overlapping entities become a single
+    // AnnotatedSpan with multiple chips (one per entity). This ensures ALL
+    // entities are visible — even when their surface text overlaps.
+    raw.sort((a, b) => a.start - b.start);
+    const merged: AnnotatedSpan[] = [];
+    let i = 0;
+    while (i < raw.length) {
+      let uStart = raw[i].start;
+      let uEnd = raw[i].end;
+      const chips = [raw[i].chip];
+      let j = i + 1;
+      while (j < raw.length && raw[j].start < uEnd) {
+        uEnd = Math.max(uEnd, raw[j].end);
+        chips.push(raw[j].chip);
+        j++;
+      }
+      merged.push({ start: uStart, end: uEnd, chips });
+      i = j;
+    }
+
+    return renderNerSpans(text, merged);
   }, [entities, item.text, termDrafts]);
 
   async function flushTermDraftsAndMarkGold() {
@@ -1208,7 +1217,7 @@ function GoldLabelDetailDialog({
             >
               <Typography
                 variant="body1"
-                sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 2.4, fontSize: "1rem", fontWeight: 400 }}
+                sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 3.2, fontSize: "1rem", fontWeight: 400 }}
               >
                 {encounterAnnotated}
               </Typography>
@@ -2017,7 +2026,6 @@ export default function GoldDatasetPanel() {
     setListLoading(true);
     setListError(null);
     try {
-      const skip = (page - 1) * PAGE_SIZE;
       if (tab === "candidates") {
         const url = `/api/training/candidates?page=${page}&page_size=${PAGE_SIZE}&exclude_completed=true${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
         const data = await jsonFetch<{ items: Candidate[]; total: number }>(url);
@@ -2038,6 +2046,31 @@ export default function GoldDatasetPanel() {
       setListError(e instanceof Error ? e.message : "Could not load records");
     } finally {
       setListLoading(false);
+    }
+  }, [tab, page, debouncedSearch]);
+
+  // Background refresh — same fetch as loadList but never sets listLoading so the
+  // list behind an open dialog does not flash skeleton state on every entity edit.
+  const silentRefreshList = useCallback(async () => {
+    try {
+      if (tab === "candidates") {
+        const url = `/api/training/candidates?page=${page}&page_size=${PAGE_SIZE}&exclude_completed=true${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const data = await jsonFetch<{ items: Candidate[]; total: number }>(url);
+        setItems(data.items);
+        setTotal(data.total);
+      } else if (tab === "gold") {
+        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const data = await jsonFetch<{ items: GoldLabel[]; total: number }>(url);
+        setItems(data.items);
+        setTotal(data.total);
+      } else {
+        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}&source=synthetic_llm${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const data = await jsonFetch<{ items: GoldLabel[]; total: number }>(url);
+        setItems(data.items);
+        setTotal(data.total);
+      }
+    } catch {
+      // silent — list stays stale rather than showing an error banner mid-edit
     }
   }, [tab, page, debouncedSearch]);
 
@@ -2449,7 +2482,7 @@ export default function GoldDatasetPanel() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <Box sx={{ maxWidth: 1100, mx: "auto", py: 2, px: 2 }}>
+    <Box sx={{ py: 2, px: 2 }}>
 
       {/* Header */}
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" spacing={1.5}>
@@ -2763,14 +2796,14 @@ export default function GoldDatasetPanel() {
         <GoldLabelDetailDialog
           item={selectedItem as GoldLabel}
           onClose={() => setSelectedItem(null)}
-          onEntitiesChanged={() => void loadList()}
+          onEntitiesChanged={() => void silentRefreshList()}
         />
       )}
       {selectedItem && tab === "synthetic" && (
         <GoldLabelDetailDialog
           item={selectedItem as GoldLabel}
           onClose={() => setSelectedItem(null)}
-          onEntitiesChanged={() => void loadList()}
+          onEntitiesChanged={() => void silentRefreshList()}
         />
       )}
       {confirmGoldLabel && (
@@ -2804,9 +2837,7 @@ export default function GoldDatasetPanel() {
         <GoldLabelDetailDialog
           item={candidateGoldLabel}
           onClose={() => setCandidateGoldLabel(null)}
-          onEntitiesChanged={async () => {
-            await Promise.all([loadList(), loadStats()]);
-          }}
+          onEntitiesChanged={() => void silentRefreshList()}
           onMarkGold={() => {
             setCandidateGoldLabel(null);
             void markCandidateAsGold(candidateGoldLabel.candidate_id ?? "");

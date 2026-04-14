@@ -1,0 +1,67 @@
+# -- UN-LEO-AI-061 -- Multi-label NER Classification
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-061"
+  title: "Clinical informaticians need the NER model to classify the same text span under multiple SNOMED semantic types simultaneously"
+  description: |
+    A single surface form in GP consultation text can represent more than one
+    distinct SNOMED concept. For example, "Furosemide increased to 40mg BD"
+    is both a medicinal_product coding and a procedure coding (change of
+    prescription). "Breast lesion with mets" is simultaneously a disorder
+    (malignant neoplasm of breast) and a finding (clinical stage IV).
+
+    The current NER model uses a single-label transition-based parser that
+    enforces non-overlapping spans (doc.ents). This architecture cannot learn
+    to assign two labels to the same span, nor can it handle overlapping spans
+    where a shorter span ("breast lesion") is clinically distinct from a
+    longer containing span ("breast lesion with mets").
+
+    As gold-labelled training data accumulates multi-label examples, these
+    are silently dropped at export time, meaning the model never learns from
+    them. The LLM post-processing layer then collapses any surviving
+    multi-label output back to a single semantic tag, discarding clinically
+    valuable dual codings.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Informatician / Platform Administrator"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    SNOMED CT is a polyhierarchical terminology: the same clinical event
+    can legitimately be coded under multiple concept types. Restricting each
+    text span to one SNOMED semantic tag causes the system to miss valid
+    codings that affect disease prevalence, QOF register accuracy, and
+    care-pathway episode detection. Multi-label capability is required to
+    faithfully represent the clinical record.
+
+  acceptance_criteria:
+    - "GoldLabel records with multiple entities at the same character span are exported to DocBin without loss"
+    - "The trained NER model outputs doc.spans['sc'] with multiple span entries for the same token range when warranted"
+    - "The inference service returns one EntityOut per span-label pair, including duplicates at the same position"
+    - "Post-processing layer 5 preserves overlapping same-label spans when their normalized lookup terms differ"
+    - "The LLM extraction prompt does not add extra semantic tags not present in the NER output"
+    - "The label verification prompt preserves all multi-label annotations during gold-label review"
+
+  regulatory_impact: "medium"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-04-13"
+    status: "draft"
+
+  design_inputs: ["DI-LEO-AI-107"]
+  validation_tests: []
+
+  tags: ["multi-label", "ner", "spancat", "training", "post-processing"]

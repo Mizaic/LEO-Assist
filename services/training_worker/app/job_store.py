@@ -49,6 +49,8 @@ class TrainingJob:
         self.finished_at: Optional[float] = None
 
     def to_dict(self, *, log_tail: int = 25) -> dict[str, Any]:
+        ner_metrics = self.metrics.get("ner", {})
+        export_metrics = self.metrics.get("export", {})
         return {
             "job_id": self.job_id,
             "base_model_version": self.base_model_version,
@@ -57,10 +59,19 @@ class TrainingJob:
             "triggered_by": self.triggered_by,
             "status": self.status,
             "phase": self.phase,
-            # Keep list payloads light; UI only needs recent tail.
             "log_lines": self.log_lines[-max(0, log_tail) :] if log_tail > 0 else [],
             "log_line_count": len(self.log_lines),
             "metrics": self.metrics,
+            # Top-level shortcuts so the UI doesn't dig through nested dicts.
+            "precision": ner_metrics.get("precision"),
+            "recall": ner_metrics.get("recall"),
+            "f1": ner_metrics.get("f1"),
+            "per_label_f1": ner_metrics.get("per_label", {}),
+            "dev_doc_count": ner_metrics.get("dev_doc_count"),
+            "passed_gates": ner_metrics.get("passed_gates"),
+            "export_total": export_metrics.get("total"),
+            "export_assertion_filtered": export_metrics.get("assertion_filtered"),
+            "export_span_misaligned": export_metrics.get("span_misaligned"),
             "artifact_uri": self.artifact_uri,
             "model_version": self.model_version,
             "error": self.error,

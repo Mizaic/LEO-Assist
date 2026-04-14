@@ -859,7 +859,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                     <Alert severity="success" sx={{ py: 0.5 }}>
                       Added {promotedRules[rule.rule_id].concepts_added} code
                       {promotedRules[rule.rule_id].concepts_added !== 1 ? "s" : ""} to{" "}
-                      <Link href="/admin/domains" underline="hover">
+                      <Link href="/admin/clinical?tab=domains" underline="hover">
                         {promotedRules[rule.rule_id].domain_name}
                       </Link>.
                     </Alert>

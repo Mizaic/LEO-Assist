@@ -182,7 +182,7 @@ function ModelPresetPicker({
     return (
       <Alert severity="warning" sx={{ fontSize: "0.78rem" }}>
         No model presets found. Create presets in{" "}
-        <Typography component="a" href="/admin/models" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
+        <Typography component="a" href="/admin/platform?tab=model-config" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
           AI Models
         </Typography>{" "}first.
       </Alert>
@@ -637,7 +637,7 @@ function SubgraphSettingsPanel({
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
           Choose a preset from your model library. Presets set the AI engine, size, and consensus mode for this step.
           Manage presets in{" "}
-          <Typography component="a" href="/admin/models" target="_blank" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
+          <Typography component="a" href="/admin/platform?tab=model-config" target="_blank" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
             AI Models
           </Typography>.
         </Typography>
@@ -984,7 +984,7 @@ function SchemaAlignmentPanel({
     return (
       <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
         This prompt does not have an output schema yet. Add one in the{" "}
-        <Typography component="a" href="/admin/prompts" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
+        <Typography component="a" href="/admin/knowledge?tab=ai-instructions" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
           Prompt Tuner
         </Typography>.
       </Alert>
@@ -2550,7 +2550,7 @@ function ActionConfigurator({
                 />
                 {config.promptConfigId && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-                    <Typography component="a" href="/admin/prompts" variant="body2" color="primary"
+                    <Typography component="a" href="/admin/knowledge?tab=ai-instructions" variant="body2" color="primary"
                       sx={{ textDecoration: "underline" }}>
                       Open in Prompt Tuner
                     </Typography>{" "}to edit the instructions, output schema, or teaching examples.
@@ -4760,7 +4760,7 @@ export default function PathwayBuilderPage() {
     setSaveError(null);
     try {
       await api.delete(`/fhir/PlanDefinition/${planId}`);
-      router.push("/admin/pathways");
+      router.push("/admin/clinical?tab=pathways");
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to delete pathway");
     } finally {
@@ -4887,7 +4887,7 @@ export default function PathwayBuilderPage() {
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider", overflowX: "auto", flexShrink: 0 }}>
-        <IconButton size="small" onClick={() => router.push("/admin/pathways")} sx={{ flexShrink: 0 }}><ArrowBackIcon /></IconButton>
+        <IconButton size="small" onClick={() => router.push("/admin/clinical?tab=pathways")} sx={{ flexShrink: 0 }}><ArrowBackIcon /></IconButton>
         <TextField
           size="small" placeholder="Pathway name" value={planName}
           onChange={(e) => setPlanName(e.target.value)} sx={{ width: 200, flexShrink: 0 }}

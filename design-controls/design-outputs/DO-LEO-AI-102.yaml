@@ -1,4 +1,4 @@
-# -- DO-LEO-AI-102 -- Benign/Normal Qualifier Closure Implementation
+# -- DO-LEO-AI-102 -- Polarity-Encoded Finding Guard Implementation
 # ISO 13485 / IEC 62304 Design Output
 
 - id: "DO-LEO-AI-102"
@@ -8,83 +8,75 @@
 
   traceability:
     design_inputs: ["DI-LEO-AI-104"]
-    user_needs: ["UN-LEO-AI-052"]
+    user_needs: ["UN-LEO-AI-002"]
     risks_addressed: ["R-LEO-AI-071"]
     verification_tests: ["VT-LEO-AI-104"]
 
   specification:
-    title: "Episode closure from benign/normal qualifier co-occurrence"
+    title: "fix_polarity_encoded_findings guard in post_processing.py and terminology.py"
     description: |
-      Adds a conservative closure path for referral-only episodes:
+      Adds fix_polarity_encoded_findings() to libs/pipeline/post_processing.py.
+      The function iterates over resolved entities and, for any entity whose
+      semantic_tag is "finding" or "observable entity" and whose SNOMED
+      preferred term matches _POLARITY_SUFFIX_RE (ends with "absent",
+      "not detected", "not found", "not present", or "negative" before the
+      semantic tag parenthesis), forces assertion="present" and sets
+      _assertion_guard="polarity_encoded_finding".
 
-      1) Query encounters within 90 days of referral where a finding/disorder
-      concept and a benign/normal qualifier-value concept co-occur on the same
-      encounter.
-      2) Require site compatibility between referral site and finding concept.
-      3) Suppress closure if any confirmed cancer diagnosis exists in the same
-      90-day window.
-      4) Set status to closed_benign_qualifier with hitl_flag=true and explicit
-      hitl_reason.
+      Called from two locations:
+        1. post_processing.py layer 7d (_run_double_neg_guards), after
+           fix_double_negated_situations, for the training path.
+        2. terminology.py _resolve_terms, after fix_double_negated_situations,
+           for the runtime coding pipeline.
 
-      Existing no_cancer_discharge closure and diagnosis precedence remain
-      unchanged.
+      This closes the gap where the existing double-negation guard handles
+      only situation concepts with prefix-negated PTs. Finding concepts
+      encode polarity as a suffix word; this guard handles that pattern.
     acceptance_criteria:
-      - criterion: "Site-matched qualifier closure fires"
+      - criterion: "Perineural invasion absent finding corrected"
         type: "functional"
         measurement: "Test"
-        target: "Breast referral + breast finding + benign qualifier closes as closed_benign_qualifier"
-      - criterion: "Site mismatch is rejected"
-        type: "safety"
+        target: >
+          Entity with assertion=absent and term="Perineural invasion by tumor
+          absent (finding)" has assertion corrected to present with
+          _assertion_guard="polarity_encoded_finding".
+      - criterion: "Non-finding not corrected"
+        type: "functional"
         measurement: "Test"
-        target: "Breast referral + prostate benign finding remains in_progress"
-      - criterion: "Competing diagnosis suppresses closure"
-        type: "safety"
+        target: >
+          Entities with semantic_tag=disorder or situation are not affected
+          by this guard.
+      - criterion: "Runtime path corrected"
+        type: "functional"
         measurement: "Test"
-        target: "Referral episode does not close via qualifier rule when confirmed diagnosis exists in window"
-      - criterion: "HITL is mandatory"
-        type: "safety"
-        measurement: "Test"
-        target: "closed_benign_qualifier sets hitl_flag=true and non-empty hitl_reason"
+        target: >
+          _resolve_terms in terminology.py calls fix_polarity_encoded_findings
+          after SNOMED resolution.
 
   implementation:
     artifacts:
       - artifact_type: "source_code"
-        location: "services/analysis_worker/app/analyzers/episode_builder/_config.py"
-        description: "BENIGN_QUALIFIER_WINDOW_DAYS and BENIGN_QUALIFIER_CONCEPT_IDS"
+        location: "libs/pipeline/post_processing.py"
+        description: "_POLARITY_SUFFIX_RE regex, _POLARITY_FINDING_TAGS frozenset, fix_polarity_encoded_findings function, _run_double_neg_guards layer 7d wrapper"
       - artifact_type: "source_code"
-        location: "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
-        description: "BENIGN_QUALIFIER_CLOSURE_QUERY for same-encounter co-occurrence"
-      - artifact_type: "source_code"
-        location: "services/analysis_worker/app/analyzers/episode_builder/_persistence.py"
-        description: "_benign_qualifier_closure_for_episode() with site compatibility checks"
-      - artifact_type: "source_code"
-        location: "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
-        description: "Open-episode wiring and competing-diagnosis suppression"
-      - artifact_type: "source_code"
-        location: "services/analysis_worker/app/analyzers/episode_builder/_status.py"
-        description: "closed_benign_qualifier status with HITL reason"
-      - artifact_type: "test_code"
-        location: "tests/test_episode_builder_benign_qualifier_closure.py"
-        description: "Automated tests for closure, mismatch, suppression, and HITL"
+        location: "libs/pipeline_graph/subgraphs/terminology.py"
+        description: "Imports fix_polarity_encoded_findings; calls it after fix_double_negated_situations in _resolve_terms"
     storage_location: "git"
     technical_details:
       language: "Python"
-      loc: 120
+      loc: 25
       key_functions:
-        - "_benign_qualifier_closure_for_episode"
-        - "_build_open_episode"
-        - "_determine_episode_status"
+        - "fix_polarity_encoded_findings"
+        - "_run_double_neg_guards"
 
   safety_characteristics:
     safety_class: "B"
     safety_critical_functions:
-      - "Cancer pathway episode status assignment"
-      - "Automatic pathway closure for benign outcomes"
+      - "Correcting assertion inversion on polarity-encoding SNOMED finding concepts"
     risk_control_measures:
-      - "Same-encounter co-occurrence requirement for qualifier and finding"
-      - "Referral-site and finding-site compatibility check"
-      - "Competing confirmed diagnosis suppression"
-      - "Mandatory HITL on qualifier-based closure"
+      - "Suffix-based regex detects polarity-encoding SNOMED preferred terms and forces assertion=present"
+      - "Guard applied after SNOMED resolution when preferred term is known"
+      - "Both runtime and training paths covered"
 
   verification_status:
     verification_method: "Test"

@@ -194,7 +194,7 @@ export default function PathwayDetailPanel({
         >
           Record Action Taken
         </Button>
-        <Button variant="outlined" color="warning" component={Link} href="/admin/operations">
+        <Button variant="outlined" color="warning" component={Link} href="/admin/console">
           Escalate to Lead
         </Button>
         <Button

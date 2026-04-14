@@ -90,6 +90,7 @@ IMPORTANT — Negation is handled by post-processing, NOT by entity labels:
 - Negation context is detected automatically and stored as assertion=absent on the negated entity
 - If you see a negated concept ("no jaundice"), label "jaundice" with its correct clinical type (finding/disorder) — the negation is handled separately
 - If an entity seems redundant or overlapping, keep its CORRECT clinical label — do not try to remove it by mislabeling
+- MULTI-LABEL SPANS: if the same surface text carries two or more semantic classifications (e.g. both "medicinal_product" and "procedure", or both "disorder" and "finding"), preserve ALL of them as separate entries. Do NOT reduce a multi-label span to a single semantic type. Multi-label annotations are clinically valid and intentional.
 
 CRITICAL — X_DOSAGE vs qualifier_value:
 - X_DOSAGE is STRICTLY for medication/drug doses: "240 mg", "1250 mg/m2 BD", "20 mg daily"

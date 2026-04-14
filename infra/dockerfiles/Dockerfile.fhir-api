@@ -17,6 +17,7 @@ ARG BASE_IMAGE_RUNTIME
 FROM ${BASE_IMAGE_RUNTIME}
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
+COPY scripts/ /app/scripts/
 COPY services/fhir_api/ /app/services/fhir_api/
 WORKDIR /app
 ENV PYTHONPATH=/app:/app/services/fhir_api

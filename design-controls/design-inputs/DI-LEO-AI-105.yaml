@@ -1,0 +1,87 @@
+# -- DI-LEO-AI-105 -- Intelligence Console UX
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-105"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-059"]
+  requirement: >
+    The system SHALL provide a unified Intelligence Console at /admin/console
+    that presents the AI learning loop as 6 connected stages (Discover, Curate,
+    Train, Evaluate, Deploy, Monitor) in a health bar, displays one contextual
+    nudge banner derived from current system state, and renders an expandable
+    management panel for each stage. A slim training progress banner SHALL
+    appear at the top of every admin page when a training job is running. Admin
+    navigation SHALL be consolidated from 16 items to 8. All 10 deprecated
+    admin URLs SHALL return 301 redirects to their new consolidated locations.
+
+  rationale: >
+    Fragmented admin navigation prevents the model learning loop from operating
+    efficiently. A unified console with progressive disclosure eliminates
+    decision paralysis and surfaces the highest-value action at any moment.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "/admin/console renders a HealthBar with 6 stage pills (Discover, Curate, Train, Evaluate, Deploy, Monitor)"
+      - type: "functional"
+        spec: "Clicking a stage pill expands a CollapsibleStageCard showing management UI for that stage"
+      - type: "functional"
+        spec: "ConsoleContext hook derives a single NudgeSuggestion from system state using priority order"
+      - type: "functional"
+        spec: "TrainingProgressBanner renders on all admin pages when runningJob.status === 'running'"
+      - type: "functional"
+        spec: "ADMIN_NAV_ITEMS contains exactly 7 items: Console, Knowledge, Clinical, Platform, Users, Portal, Support"
+      - type: "functional"
+        spec: "admin-url-audit.test.ts passes with zero hardcoded deprecated URLs in src/"
+      - type: "functional"
+        spec: "next.config.mjs contains 301 redirects for all 10 deprecated admin URL paths"
+    constraints:
+      - type: "usability"
+        spec: "Console must answer 'what do I do next?' within 3 seconds of page load"
+      - type: "usability"
+        spec: "Health status must be visible without scrolling on a 1280px wide viewport"
+
+  dependencies: []
+  downstream_impacts:
+    - "Admin navigation structure"
+    - "All 10 deprecated admin page paths"
+    - "AppShell training banner"
+
+  technical_details:
+    language: "TypeScript"
+    framework: "Next.js 15 / React 19 / MUI"
+    file_structure:
+      - "services/ui/src/app/admin/console/page.tsx"
+      - "services/ui/src/components/console/useConsoleState.ts"
+      - "services/ui/src/components/console/TrainStage.tsx"
+      - "services/ui/src/components/console/EvaluateStage.tsx"
+      - "services/ui/src/components/console/MonitorStage.tsx"
+      - "services/ui/src/components/console/DeployStage.tsx"
+      - "services/ui/src/components/console/CurateStage.tsx"
+      - "services/ui/src/components/console/DiscoverStage.tsx"
+      - "services/ui/src/components/ui/HealthBar.tsx"
+      - "services/ui/src/components/ui/StageCard.tsx"
+      - "services/ui/src/components/ui/NudgeBanner.tsx"
+      - "services/ui/src/components/ui/PhaseProgress.tsx"
+      - "services/ui/src/components/ui/MetricChip.tsx"
+      - "services/ui/src/components/ui/StatusDot.tsx"
+      - "services/ui/src/theme/tokens.ts"
+      - "services/ui/src/app/admin/knowledge/page.tsx"
+      - "services/ui/src/app/admin/clinical/page.tsx"
+      - "services/ui/src/app/admin/platform/page.tsx"
+      - "services/ui/src/components/AppShell.tsx"
+      - "services/ui/next.config.mjs"
+    estimated_loc: 1200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in VT-LEO-AI-105 pass: HealthBar renders 6 pills,
+      stage expansion works, nudge derives correct suggestion, training
+      banner shows when running, URL audit test finds zero deprecated URLs.
+    test_protocol: "VT-LEO-AI-105"
+
+  safety_class: "A"
+  risks: []
+  tags: ["console", "ux", "navigation", "admin"]

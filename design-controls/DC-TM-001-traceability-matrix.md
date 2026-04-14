@@ -677,17 +677,42 @@ Safety constraints enforced:
 | Design Input | DI-LEO-AI-103 | draft | Assertion determined solely by post-processing pipeline - LLM extraction SHALL NOT assign assertion |
 | Design Output | DO-LEO-AI-101 | draft | Assertion-free LLM extraction output; parser hardcodes present; ConText is sole assertion authority |
 | Verification Test | VT-LEO-AI-103 | passed | 8 automated source-inspection and prompt-schema tests |
+| Design Input | DI-LEO-AI-104 | draft | Polarity-encoded finding guard - corrects double negation on finding concepts with absent/not-detected/negative suffix in SNOMED PT |
+| Design Output | DO-LEO-AI-102 | draft | fix_polarity_encoded_findings in post_processing.py; called from terminology.py after SNOMED resolution |
+| Risk | R-LEO-AI-071 | analyzed | Assertion inversion on polarity-encoding SNOMED finding concepts (e.g. Perineural invasion by tumor absent) |
+| Verification Test | VT-LEO-AI-104 | passed | 13 automated tests covering all polarity suffix patterns, tag gates, idempotency, and runtime path wiring |
 | Design Input | DI-LEO-AI-104 | draft | Referral episode closure from same-encounter benign/normal qualifier plus site-related finding within 90 days, suppressed by competing diagnosis |
 | Design Output | DO-LEO-AI-102 | draft | BENIGN_QUALIFIER_CLOSURE_QUERY and closed_benign_qualifier episode lifecycle wiring |
 | Risk | R-LEO-AI-071 | mitigated | Unrelated benign qualifier causes erroneous cancer pathway closure |
 | Verification Test | VT-LEO-AI-104 | passed | 11 automated tests including site-match, mismatch rejection, diagnosis suppression, and HITL enforcement |
+
+| Design Input | DI-LEO-AI-105 | draft | Intelligence Console UX - unified admin navigation, 6-stage health bar, contextual nudge, URL migration |
+| Design Output | DO-LEO-AI-103 | draft | Console page, stage components, design tokens, 301 redirects |
+| User Need | UN-LEO-AI-059 | draft | Clinical informaticians need a unified Intelligence Console |
+| Verification Test | VT-LEO-AI-105 | passed | URL audit CI test (0 deprecated admin URLs) and redirect config |
+
+| Design Input | DI-LEO-AI-106 | draft | Training quality - span realign, assertion filter, golden set, warm-start, active learning |
+| Design Output | DO-LEO-AI-104 | draft | label_exporter, evaluator, trainer, job_store, golden_set_queries, active learning API |
+| User Need | UN-LEO-AI-060 | draft | Model trainers need active learning, per-entity F1, golden set, warm-start |
+| Risk | R-LEO-AI-072 | mitigated | Corrupt or non-present training data degrades NER model |
+| Verification Test | VT-LEO-AI-106 | passed | 21 automated tests: span realign, assertion filter, per-label F1, warm-start fallback, golden gate |
+
+| Design Input | DI-LEO-AI-107 | draft | Multi-label NER - spancat, layer 5 nesting refinement, prompt preservation |
+| Design Output | DO-LEO-AI-105 | draft | base.cfg spancat, label_exporter doc.spans["sc"], evaluator spans_sc_*, inference fallback, post_processing nesting, prompts |
+| User Need | UN-LEO-AI-061 | draft | Clinicians need NER to classify same span under multiple SNOMED semantic types |
+| Risk | R-LEO-AI-073 | analyzed | Spurious additional NER label inflates false positive SNOMED coding rate |
+| Verification Test | VT-LEO-AI-107 | passed | Multi-label export, inference multi-label, layer 5 nesting, backward compat |
 
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
 | DI-LEO-AI-101 | Double-negation guard for pre-negated SNOMED situations | R-LEO-AI-069 | VT-LEO-AI-101 |
 | DI-LEO-AI-102 | Analytics assertion filter for CCI and cohort queries | R-LEO-AI-070 | VT-LEO-AI-102 |
 | DI-LEO-AI-103 | Assertion determined solely by post-processing pipeline | R-LEO-AI-003 | VT-LEO-AI-103 |
+| DI-LEO-AI-104 | Polarity-encoded finding guard corrects assertion inversion after SNOMED resolution | R-LEO-AI-071 | VT-LEO-AI-104 |
 | DI-LEO-AI-104 | Benign/normal qualifier-based episode closure with site compatibility | R-LEO-AI-071 | VT-LEO-AI-104 |
+| DI-LEO-AI-105 | Intelligence Console UX - unified navigation and URL migration | - | VT-LEO-AI-105 |
+| DI-LEO-AI-106 | Training quality capabilities (span realign, assertion filter, golden set) | R-LEO-AI-072 | VT-LEO-AI-106 |
+| DI-LEO-AI-107 | Multi-label NER - spancat component, layer 5 nesting refinement, prompt preservation (VT passed 2026-04-13) | R-LEO-AI-073 | VT-LEO-AI-107 |
 
 ---
 

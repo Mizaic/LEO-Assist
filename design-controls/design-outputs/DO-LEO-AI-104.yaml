@@ -1,0 +1,96 @@
+# -- DO-LEO-AI-104 -- Training Pipeline Quality Capabilities
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-104"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-106"]
+    user_needs: ["UN-LEO-AI-060"]
+    risks_addressed: ["R-LEO-AI-072"]
+    verification_tests: ["VT-LEO-AI-106"]
+
+  specification:
+    title: "Training pipeline quality - span realign, assertion filter, golden set, warm-start, active learning"
+    description: |
+      Six quality capabilities added to the training pipeline:
+      1. Span realignment: _realign_entity() uses find_span() to re-derive
+         character offsets from surface text before DocBin creation.
+      2. Assertion filter: entities with assertion in TRAINING_EXCLUDE_ASSERTIONS
+         (default: negated, hypothetical, family_history, possible) are removed.
+      3. Per-label F1: job.to_dict() adds per_label_f1 top-level shortcut.
+      4. Warm-start: TRAINING_BASE_MODEL_VERSION triggers download and NER
+         weight initialisation from promoted blob.
+      5. Golden evaluation set: GoldLabel.frozen_golden_set flag, golden_set_queries.py,
+         second evaluation pass in evaluator.py, MODEL_MIN_GOLDEN_F1 gate.
+      6. Active learning: POST /candidates/score scores by token entropy,
+         GET /candidates/active-learning-queue returns sorted queue.
+    acceptance_criteria:
+      - criterion: "Span realignment drops misaligned entities without exception"
+        type: "safety"
+        measurement: "Test"
+        target: "span_misaligned count > 0 and no exception when surface text absent"
+      - criterion: "Assertion filter removes non-present entities"
+        type: "safety"
+        measurement: "Test"
+        target: "assertion_filtered count > 0; negated entities absent from DocBin"
+      - criterion: "Warm-start falls back to cold init on blob failure"
+        type: "safety"
+        measurement: "Test"
+        target: "Training continues without warm-start when ModelStore raises exception"
+      - criterion: "Golden gate fails job when golden_f1 below threshold"
+        type: "safety"
+        measurement: "Test"
+        target: "job.status = 'failed' and error contains 'GOLDEN GATE FAILED'"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/label_exporter.py"
+        description: "_realign_entity(), _filter_and_realign(), _get_excluded_assertions()"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/evaluator.py"
+        description: "_fetch_golden_set_docs(), second evaluation pass, golden gate"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/trainer.py"
+        description: "_fetch_warm_start_model(), init_tok2vec_path parameter"
+      - artifact_type: "source_code"
+        location: "services/training_worker/app/job_store.py"
+        description: "per_label_f1 top-level shortcut in to_dict()"
+      - artifact_type: "source_code"
+        location: "libs/cypher/golden_set_queries.py"
+        description: "SET_GOLDEN_SET_FLAG, GET_GOLDEN_SET_LABELS, COUNT_GOLDEN_SET"
+      - artifact_type: "source_code"
+        location: "libs/cypher/training_candidate_queries.py"
+        description: "GET_ACTIVE_LEARNING_QUEUE, SET_UNCERTAINTY_SCORE"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "PATCH /gold-labels/{id}/golden-set, POST /candidates/score, GET /candidates/active-learning-queue"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 450
+      key_functions:
+        - "_realign_entity"
+        - "_filter_and_realign"
+        - "_fetch_golden_set_docs"
+        - "_fetch_warm_start_model"
+        - "active_learning_queue"
+        - "score_candidates_for_active_learning"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Assertion filtering prevents non-present clinical entities from training the NER model"
+      - "Span realignment ensures entity boundaries are correct before model training"
+      - "Golden gate detects model regression on frozen benchmark"
+    risk_control_measures:
+      - "Span realignment drops misaligned entities silently (logs warning) to prevent corrupt training data"
+      - "Assertion filter defaults to safe exclusion even when env var is absent"
+      - "Warm-start failure falls back to cold-start, never aborts the training job"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

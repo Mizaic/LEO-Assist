@@ -28,7 +28,7 @@ If rules conflict, earlier rules win.
 1. Extract only from sentence_subset.
 2. Exclude non-clinical/admin/safety-netting content first.
 3. Extract exact supported spans only.
-4. Assign exactly one semantic_tag.
+4. Assign exactly one semantic_tag per output entry. Do not emit multiple entries for the same text span.
 5. Normalize to a concise lookup_term for SNOMED CT search.
 6. Do not infer diagnoses from observations or results.
 
@@ -113,7 +113,7 @@ Do NOT use "No evidence of cancer found" for routine screening negatives such as
 ==================================================
 SEMANTIC TAG RULES
 
-Use one semantic_tag only.
+Assign exactly one semantic_tag per output entry. Do not emit multiple entries for the same text span. Multi-label classification of a single span is the responsibility of the NER model, not this extraction step.
 
 - Use disorder for formal diagnoses or conditions stated as diagnoses/problem-list items.
 - Use finding for symptoms, signs, exam findings, and result statements.
@@ -259,6 +259,30 @@ IMPROVING / IMPROVED
 - "resolved", "has since resolved", "cleared", "settled" -> historical
 
 ==================================================
+PROCEDURE + BODY SITE LINKING
+
+When a biopsy, excision, resection, or other site-specific procedure is followed
+by a body site or region within the same sentence, ALWAYS include the site in
+both text and lookup_term. Do NOT extract the bare procedure name alone when a
+site is present.
+
+Rules:
+- text must cover the full composite span as written: "Biopsy of omentum", "Core biopsy left breast", "Excision of skin lesion"
+- lookup_term uses the standard SNOMED composite term: "biopsy of omentum", "core needle biopsy of breast", "excision of skin lesion"
+- Only use the bare procedure name ("Biopsy", "Excision") when no body site or qualifier appears anywhere in sentence_subset
+
+Examples:
+- "Biopsy of omentum (XS8uj)" -> text: "Biopsy of omentum", lookup_term: "biopsy of omentum", semantic_tag: procedure
+- "Core biopsy right breast" -> text: "Core biopsy right breast", lookup_term: "core needle biopsy of breast", semantic_tag: procedure
+- "Biopsy" (no site present) -> text: "Biopsy", lookup_term: "biopsy", semantic_tag: procedure
+- "Excision wide local - breast" -> text: "Excision wide local - breast", lookup_term: "wide local excision of breast", semantic_tag: procedure
+- "Endoscopy and biopsy stomach" -> text: "Endoscopy and biopsy stomach", lookup_term: "endoscopy and biopsy of stomach", semantic_tag: procedure
+
+This also applies to: aspiration, drainage, debridement, repair, reconstruction,
+transplant, implant, removal, insertion — any procedure where the body site
+changes the SNOMED concept.
+
+==================================================
 LATERALITY / ANATOMICAL PRECISION
 
 Preserve side/site exactly when stated.
@@ -308,6 +332,7 @@ Before returning each entity, verify:
 5. Is lookup_term clinically faithful?
 6. For observable entity, is there a real measured value?
 7. Have I extracted all distinct supported concepts in the sentence?
+8. For procedures: if a body site is present in the sentence, does my text span include it? A bare "Biopsy" when "Biopsy of omentum" is written is incorrect.
 
 Return JSON only.
 """

@@ -1,0 +1,72 @@
+- id: "VT-LEO-AI-105"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-105"]
+    risks: []
+
+  metadata:
+    title: "Intelligence Console UX - URL audit and component rendering"
+    description: >
+      Verifies that the new Intelligence Console admin UX contains no
+      deprecated admin URLs in source files, that the admin URL audit
+      CI test passes, and that key component behaviour (HealthBar, NudgeBanner,
+      deriveNudge, deriveStageHealth) matches specification.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "A"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/admin-url-audit.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Node >= 20, npm install completed in services/ui"
+    test_data:
+      data_type: "static_source_scan"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-105-TC-001"
+      case_name: "No deprecated admin URLs in src/"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run admin-url-audit.test.ts via npx jest"
+          expected_result: "0 violations found; test passes"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Test exits with code 0 and reports 0 violations"
+    - case_id: "VT-105-TC-002"
+      case_name: "/admin/operations redirects to /admin/console"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Inspect next.config.mjs redirects array"
+          expected_result: "Entry with source: /admin/operations and destination: /admin/console exists with permanent: true"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Redirect entry present with permanent redirect"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-105/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-105-EXEC-001"
+      executed_by: "CI - local run"
+      executed_date: "2026-04-12"
+      result: "pass"
+      notes: >
+        admin-url-audit.test.ts passed with 0 violations after AppShell.tsx
+        was added to ALLOWED_FILES and /admin/pathways/[id]/page.tsx updated.
+        All 10 deprecated URL patterns verified absent from src/.

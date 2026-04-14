@@ -54,7 +54,7 @@ def test_extract_batch_maps_entities(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def post(self, url: str, json: dict):
+        def post(self, url: str, json: dict, **kwargs):
             assert url == "http://localhost:8004/extract"
             self.payload = json
             assert self.payload["sentences"][0]["sentence_id"] == "s0"

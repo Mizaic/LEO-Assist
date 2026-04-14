@@ -46,6 +46,12 @@ import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
+import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
+import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
+import LinearProgress from "@mui/material/LinearProgress";
+import Chip from "@mui/material/Chip";
 import { useAuth } from "@/lib/authContext";
 import { useIdleLogout } from "@/lib/useIdleLogout";
 import Avatar from "@mui/material/Avatar";
@@ -86,28 +92,51 @@ const CARE_NAV_ITEMS: NavItem[] = [
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
-  { label: "Operations", path: "/admin/operations", icon: <SettingsOutlinedIcon /> },
-  { label: "Pathways", path: "/admin/pathways", icon: <AccountTreeOutlinedIcon /> },
-  { label: "Prompts", path: "/admin/prompts", icon: <EditNoteOutlinedIcon /> },
-  { label: "Domains", path: "/admin/domains", icon: <TuneOutlinedIcon /> },
-  { label: "Models", path: "/admin/models", icon: <ModelTrainingOutlinedIcon /> },
-  { label: "Billing", path: "/admin/billing", icon: <PaidOutlinedIcon />, adminOnly: true },
-  { label: "Guidance", path: "/admin/guidance", icon: <MenuBookOutlinedIcon /> },
-  { label: "Terminology", path: "/admin/terminology", icon: <LibraryBooksOutlinedIcon /> },
-  { label: "Surface Forms", path: "/admin/surface-forms", icon: <DescriptionOutlinedIcon /> },
-  { label: "Context Rules", path: "/admin/context-rules", icon: <AssessmentOutlinedIcon /> },
-  { label: "Gold Dataset", path: "/admin/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
+  {
+    label: "Console",
+    path: "/admin/console",
+    icon: <AutoAwesomeOutlinedIcon />,
+    activePrefix: ["/admin/console", "/admin/operations"],
+  },
+  {
+    label: "Knowledge",
+    path: "/admin/knowledge",
+    icon: <StorageOutlinedIcon />,
+    activePrefix: [
+      "/admin/knowledge",
+      "/admin/gold-dataset",
+      "/admin/surface-forms",
+      "/admin/context-rules",
+      "/admin/prompts",
+      "/admin/guidance",
+    ],
+  },
+  {
+    label: "Clinical",
+    path: "/admin/clinical",
+    icon: <LocalHospitalOutlinedIcon />,
+    activePrefix: [
+      "/admin/clinical",
+      "/admin/pathways",
+      "/admin/domains",
+      "/admin/terminology",
+    ],
+  },
+  {
+    label: "Platform",
+    path: "/admin/platform",
+    icon: <BuildOutlinedIcon />,
+    activePrefix: [
+      "/admin/platform",
+      "/admin/billing",
+      "/admin/models",
+      "/admin/data-quality",
+    ],
+    adminOnly: true,
+  },
   { label: "Users", path: "/admin/users", icon: <PeopleOutlineIcon /> },
   { label: "Portal", path: "/admin/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
   { label: "Support", path: "/admin/support", icon: <SupportAgentOutlinedIcon /> },
-  { label: "Support Mail", path: "/mail", icon: <MailOutlineIcon />, adminOnly: true },
-  {
-    label: "Data quality",
-    path: "/admin/data-quality",
-    icon: <AssessmentOutlinedIcon />,
-    activePrefix: ["/admin/data-quality"],
-    adminOnly: true,
-  },
 ];
 
 function isEditorRoute(pathname: string): boolean {
@@ -217,7 +246,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           component="img"
           src="/leo-icon.svg"
           alt="LEO"
-          onClick={() => handleNav(uiMode === "admin" ? "/admin/operations" : "/care/dashboard")}
+          onClick={() => handleNav(uiMode === "admin" ? "/admin/console" : "/care/dashboard")}
           sx={{ width: 28, height: 28, mb: 1.5, cursor: "pointer" }}
         />
       </Tooltip>
@@ -503,8 +532,109 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           bgcolor: "background.default",
         }}
       >
+        {uiMode === "admin" && <TrainingProgressBanner />}
         {children}
       </Box>
+    </Box>
+  );
+}
+
+// -- Training progress banner (shown in admin mode when a job is running) --
+
+const PHASE_LABELS: Record<string, string> = {
+  export: "Export",
+  train: "Train",
+  evaluate: "Evaluate",
+  upload: "Upload",
+  register: "Register",
+};
+const PHASE_ORDER = ["export", "train", "evaluate", "upload", "register"];
+
+function _phaseProgress(phase: string): number {
+  const idx = PHASE_ORDER.indexOf(phase);
+  return idx < 0 ? 0 : Math.round(((idx + 1) / PHASE_ORDER.length) * 100);
+}
+
+function TrainingProgressBanner() {
+  const [runningJob, setRunningJob] = useState<{
+    job_id: string;
+    phase: string;
+    f1?: number;
+    status: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/training-worker/jobs");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const active = (data.jobs ?? data ?? []).find(
+          (j: { status: string }) => j.status === "running" || j.status === "evaluating" || j.status === "uploading"
+        );
+        setRunningJob(active ?? null);
+      } catch {
+        // ignore
+      }
+    };
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  if (!runningJob) return null;
+
+  const phase = runningJob.phase ?? "";
+  const progress = _phaseProgress(phase);
+  const phaseLabel = PHASE_LABELS[phase] ?? phase ?? "Running";
+
+  return (
+    <Box
+      sx={{
+        bgcolor: "primary.main",
+        color: "primary.contrastText",
+        px: 2,
+        py: 0.5,
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        minHeight: 36,
+      }}
+    >
+      <Chip
+        size="small"
+        label={phaseLabel}
+        sx={{
+          bgcolor: "primary.dark",
+          color: "primary.contrastText",
+          fontWeight: 700,
+          fontSize: "0.68rem",
+          height: 20,
+        }}
+      />
+      <Box sx={{ flex: 1 }}>
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{
+            height: 4,
+            borderRadius: 2,
+            bgcolor: "rgba(255,255,255,0.25)",
+            "& .MuiLinearProgress-bar": { bgcolor: "white" },
+          }}
+        />
+      </Box>
+      <Typography variant="caption" sx={{ whiteSpace: "nowrap", fontWeight: 500, fontSize: "0.72rem" }}>
+        {runningJob.f1 != null ? `F1 ${(runningJob.f1 * 100).toFixed(1)}%` : "Training…"}
+      </Typography>
+      <Link href="/admin/console" style={{ color: "inherit", fontSize: "0.72rem", textDecoration: "underline" }}>
+        View
+      </Link>
     </Box>
   );
 }

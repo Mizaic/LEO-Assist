@@ -383,6 +383,16 @@ def _has_nearby_observable(
 # ── Layer 5: Entity-Type Normalisation ──
 
 
+def _normalized_value(ent: dict[str, Any]) -> str:
+    """Return the lowercased normalized lookup term for an entity.
+
+    Falls back to the lowercased surface text when no normalized field is
+    present so that the nesting suppression guard can still operate.
+    """
+    raw = ent.get("normalized") or ent.get("lookup_term") or ent.get("text") or ""
+    return str(raw).strip().lower()
+
+
 def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
     """Deterministic label correction rules.  Mutates *entities* in place."""
 
@@ -471,6 +481,15 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
                 continue
 
             if a_label == b_label:
+                # Only suppress a nested span when its normalized lookup term
+                # is identical to the containing span's term. Different lookup
+                # terms indicate genuinely distinct clinical concepts (e.g.
+                # "breast lesion" vs "malignant neoplasm of breast with mets")
+                # that must both be preserved for multi-label NER output.
+                a_norm = _normalized_value(ent_a)
+                b_norm = _normalized_value(ent_b)
+                if a_norm != b_norm:
+                    continue
                 if a_start <= b_start and a_end >= b_end:
                     suppress_indices.add(j)
                 elif b_start <= a_start and b_end >= a_end:
@@ -638,6 +657,51 @@ def fix_double_negated_situations(entities: list[dict[str, Any]]) -> None:
         ent["_assertion_guard"] = "double_negated_situation"
         logger.info(
             "double_neg_guard: assertion restored to present | term=%r concept=%s",
+            term,
+            ent.get("concept_id"),
+        )
+
+
+# ── Layer 7d (b): Polarity-Encoded Finding Guard ──
+
+_POLARITY_SUFFIX_RE = re.compile(
+    r"\b(absent|not detected|not found|not present|negative)\s*\([^)]+\)\s*$",
+    re.IGNORECASE,
+)
+
+_POLARITY_FINDING_TAGS = frozenset({"finding", "observable entity"})
+
+
+def fix_polarity_encoded_findings(entities: list[dict[str, Any]]) -> None:
+    """Correct assertion inversion on polarity-encoding SNOMED finding concepts.
+
+    When a resolved SNOMED preferred term ends with a polarity word such as
+    "absent", "not detected", or "negative" before the semantic tag parenthesis
+    -- e.g. 370051000 "Perineural invasion by tumor absent (finding)" -- the
+    concept already encodes the clinical absence. If ConText has additionally
+    set assertion=absent (or any non-present value), the double negation inverts
+    the clinical meaning.
+
+    The concept choice is the authoritative statement of polarity. Entity
+    assertion must always be "present" to mean "this concept applies to this
+    patient".
+
+    Fires only on finding and observable entity tags; situation prefix-negated
+    concepts are handled by fix_double_negated_situations. Idempotent.
+    """
+    for ent in entities:
+        if ent.get("assertion") == "present":
+            continue
+        tag = str(ent.get("semantic_tag") or ent.get("label", "")).lower().strip()
+        if tag not in _POLARITY_FINDING_TAGS:
+            continue
+        term = str(ent.get("term") or "")
+        if not term or not _POLARITY_SUFFIX_RE.search(term):
+            continue
+        ent["assertion"] = "present"
+        ent["_assertion_guard"] = "polarity_encoded_finding"
+        logger.info(
+            "polarity_guard: assertion corrected to present | term=%r concept=%s",
             term,
             ent.get("concept_id"),
         )
@@ -990,15 +1054,16 @@ def run_post_processing_with_trace(
         )[1],
     )
 
-    # Layer 7d: Double-Negation Situation Guard
+    # Layer 7d: Double-Negation Guards
     # Fires only for entities that already carry a resolved SNOMED preferred
     # term (training path).  Runtime entities have no term yet at this point;
     # they are handled by terminology._resolve_terms after SNOMED resolution.
-    _run_layer(
-        "layer_7d",
-        "Double-Negation Situation Guard",
-        lambda current: (fix_double_negated_situations(current), current)[1],
-    )
+    def _run_double_neg_guards(current: list) -> list:
+        fix_double_negated_situations(current)
+        fix_polarity_encoded_findings(current)
+        return current
+
+    _run_layer("layer_7d", "Double-Negation Guards", _run_double_neg_guards)
 
     # Layer 8: Situation Lookup Normalisation
     _run_layer(

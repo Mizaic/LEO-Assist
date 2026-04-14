@@ -11,8 +11,11 @@ import logging
 import os
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
+from app.deps import get_session_data
+from libs.auth.service_auth import verify_service_token
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +81,10 @@ async def _publish_to_pipeline(message: PipelineJobMessage) -> dict[str, str]:
 
 
 @router.post("/lab-result")
-async def receive_lab_result(payload: LabResultPayload) -> dict[str, str]:
+async def receive_lab_result(
+    payload: LabResultPayload,
+    _: None = Depends(verify_service_token),
+) -> dict[str, str]:
     """Receive a lab result notification from an external system."""
     logger.info(
         "Lab result received for patient %s (test=%s)",
@@ -94,7 +100,10 @@ async def receive_lab_result(payload: LabResultPayload) -> dict[str, str]:
 
 
 @router.post("/referral-response")
-async def receive_referral_response(payload: ReferralResponsePayload) -> dict[str, str]:
+async def receive_referral_response(
+    payload: ReferralResponsePayload,
+    _: None = Depends(verify_service_token),
+) -> dict[str, str]:
     """Receive a referral response from eRS or another system."""
     logger.info(
         "Referral response received for patient %s (referral=%s)",
@@ -110,7 +119,11 @@ async def receive_referral_response(payload: ReferralResponsePayload) -> dict[st
 
 
 @router.post("/clinician-action")
-async def receive_clinician_action(payload: ClinicianActionPayload) -> dict[str, str]:
+async def receive_clinician_action(
+    payload: ClinicianActionPayload,
+    _session: dict = Depends(get_session_data),
+) -> dict[str, str]:
+    _ = _session
     """Receive a clinician decision from the Primary Care UI."""
     logger.info(
         "Clinician action: %s for patient %s",
@@ -136,6 +149,7 @@ async def schedule_timer_event(
     plan_definition_id: str,
     action_id: str,
     delay_seconds: int = 86400,
+    _: None = Depends(verify_service_token),
 ) -> dict[str, str]:
     """Schedule a safety net timer event for future delivery."""
     logger.info(

@@ -1,0 +1,76 @@
+# -- DO-LEO-AI-103 -- Intelligence Console Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-103"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-105"]
+    user_needs: ["UN-LEO-AI-059"]
+    risks_addressed: []
+    verification_tests: ["VT-LEO-AI-105"]
+
+  specification:
+    title: "Intelligence Console - unified admin UX"
+    description: |
+      A 4-section admin navigation (Console, Knowledge, Clinical, Platform)
+      replaces 12+ fragmented pages. The Console page renders a 6-stage
+      health bar (Discover->Curate->Train->Evaluate->Deploy->Monitor), a
+      contextual nudge banner, expandable stage panels, and design token
+      components (StatusDot, MetricChip, StageCard, HealthBar, NudgeBanner,
+      PhaseProgress). A persistent training progress banner appears on all
+      admin pages when a job is running. URL migration includes 301 redirects
+      in next.config.mjs and a fast-fail CI test (admin-url-audit.test.ts).
+    acceptance_criteria:
+      - criterion: "HealthBar renders 6 clickable stage pills"
+        type: "functional"
+        measurement: "Test"
+        target: "6 pills present and clickable in DOM"
+      - criterion: "URL audit passes"
+        type: "functional"
+        measurement: "Test"
+        target: "admin-url-audit.test.ts passes with 0 violations"
+      - criterion: "Contextual nudge reflects system state"
+        type: "functional"
+        measurement: "Test"
+        target: "deriveNudge returns error nudge when last job failed, warning nudge when queue >= 20"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/console/page.tsx"
+        description: "Main console page component"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/console/"
+        description: "Stage components: TrainStage, EvaluateStage, MonitorStage, DeployStage, CurateStage, DiscoverStage"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ui/"
+        description: "Design system: StatusDot, MetricChip, StageCard, HealthBar, NudgeBanner, PhaseProgress"
+      - artifact_type: "source_code"
+        location: "services/ui/src/theme/tokens.ts"
+        description: "Design tokens (health colours, stage colours, spacing, font sizes)"
+      - artifact_type: "source_code"
+        location: "services/ui/next.config.mjs"
+        description: "301 redirects for 10 deprecated admin URLs"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 1200
+      key_functions:
+        - "useConsoleState"
+        - "deriveNudge"
+        - "deriveStageHealth"
+        - "HealthBar"
+        - "StageCard"
+        - "TrainingProgressBanner"
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures: []
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

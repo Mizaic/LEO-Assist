@@ -77,6 +77,24 @@ const nextConfig = {
       { source: "/games", destination: "/care/wellbeing", permanent: true },
       { source: "/gold-dataset", destination: "/admin/gold-dataset", permanent: true },
       { source: "/portal", destination: "/care/portal", permanent: true },
+      // -- Consolidated admin section redirects (permanent 301) --
+      // Operations -> Console
+      { source: "/admin/operations", destination: "/admin/console", permanent: true },
+      // Knowledge
+      { source: "/admin/gold-dataset", destination: "/admin/knowledge?tab=training-data", permanent: true },
+      { source: "/admin/surface-forms", destination: "/admin/knowledge?tab=surface-forms", permanent: true },
+      { source: "/admin/context-rules", destination: "/admin/knowledge?tab=context-rules", permanent: true },
+      { source: "/admin/prompts", destination: "/admin/knowledge?tab=ai-instructions", permanent: true },
+      { source: "/admin/prompts/:path*", destination: "/admin/knowledge?tab=ai-instructions", permanent: false },
+      { source: "/admin/guidance", destination: "/admin/knowledge?tab=clinical-guidelines", permanent: true },
+      // Clinical
+      { source: "/admin/pathways", destination: "/admin/clinical?tab=pathways", permanent: true },
+      { source: "/admin/domains", destination: "/admin/clinical?tab=domains", permanent: true },
+      { source: "/admin/terminology", destination: "/admin/clinical?tab=terminology", permanent: true },
+      // Platform
+      { source: "/admin/billing", destination: "/admin/platform?tab=billing", permanent: true },
+      { source: "/admin/models", destination: "/admin/platform?tab=model-config", permanent: true },
+      { source: "/admin/data-quality", destination: "/admin/platform?tab=data-quality", permanent: true },
     ];
   },
   // Proxying is handled at runtime by src/middleware.ts so the same

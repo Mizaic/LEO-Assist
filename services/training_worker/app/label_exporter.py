@@ -7,6 +7,19 @@ De-id guarantee
 ---------------
 GoldLabel text is de-identified before persistence in the knowledge graph.
 This module never reads or writes raw patient identifiers.
+
+Span integrity
+--------------
+Each entity's start/end is re-derived from its surface text using find_span
+before building the DocBin. This corrects stale offsets caused by edits to
+sentence text or entity text after original span computation.
+
+Assertion filtering
+-------------------
+Entities with non-present assertions (negated, hypothetical, family_history,
+possible) are excluded from training by default. Teaching the NER to detect
+spans the patient does NOT have would degrade clinical precision. Configure
+via TRAINING_EXCLUDE_ASSERTIONS (comma-separated assertion values to drop).
 """
 
 from __future__ import annotations
@@ -14,16 +27,22 @@ from __future__ import annotations
 import datetime
 import json
 import logging
-import os
 import random
 from pathlib import Path
 from typing import Any
+
+from libs.pipeline.label_filter import (
+    DEFAULT_EXCLUDED_ASSERTIONS as _DEFAULT_EXCLUDED_ASSERTIONS,
+    filter_and_realign as _filter_and_realign,
+    get_excluded_assertions as _get_excluded_assertions,
+    realign_entity as _realign_entity,
+)
 
 logger = logging.getLogger(__name__)
 
 _SCHEMA_VERSION = "1.0"
 
-# Label normalisation — maps stored labels to canonical uppercase spaCy labels.
+# Label normalisation -- maps stored labels to canonical uppercase spaCy labels.
 _LABEL_MAP: dict[str, str] = {
     "disorder": "DISORDER",
     "finding": "FINDING",
@@ -60,10 +79,15 @@ def _normalise_label(raw: str) -> str:
 
 
 def _record_to_spacy_doc(nlp, text: str, entities: list[dict[str, Any]]):
-    """Convert a single training record to a spaCy Doc with entity spans."""
+    """Convert a single training record to a spaCy Doc with entity spans.
+
+    Entities passed here must already be assertion-filtered and span-realigned.
+    Overlapping and co-located spans with different labels are all written to
+    doc.spans["sc"] to support multi-label spancat training. The seen_tokens
+    dedup guard used by the legacy NER pipeline is intentionally absent.
+    """
     doc = nlp.make_doc(text)
     spans = []
-    seen_tokens: set[int] = set()
 
     for ent in entities:
         start_char = int(ent.get("start", 0))
@@ -77,14 +101,9 @@ def _record_to_spacy_doc(nlp, text: str, entities: list[dict[str, Any]]):
         if span is None:
             continue
 
-        # Skip overlapping spans
-        token_range = frozenset(range(span.start, span.end))
-        if token_range & seen_tokens:
-            continue
-        seen_tokens |= token_range
         spans.append(span)
 
-    doc.ents = spans
+    doc.spans["sc"] = spans
     return doc
 
 
@@ -126,8 +145,12 @@ def export_labels(
             log_fn(msg)
 
     _log("Phase 1/5 — Fetching GoldLabel records from Neo4j…")
+    excluded_assertions = _get_excluded_assertions()
     kg_client = KnowledgeGraphClient()
     records = []
+    total_assertion_filtered = 0
+    total_span_misaligned = 0
+    diagnostics: list[dict[str, Any]] = []
     try:
         patient_client = PatientGraphClient()
         try:
@@ -142,24 +165,47 @@ def export_labels(
         with kg_client.session() as session:
             rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
             for row in rows:
+                text = str(row["text"] or "")
                 entities = json.loads(row["entities_json"] or "[]")
+                label_id = str(row.get("label_id") or "")
+                source = str(row.get("source") or "")
                 if rules:
-                    entities = apply_rules_to_entities(
-                        str(row["text"] or ""), entities, rules
-                    )
+                    entities = apply_rules_to_entities(text, entities, rules)
+
+                entities, n_assert, n_span = _filter_and_realign(
+                    text,
+                    entities,
+                    excluded_assertions,
+                    diagnostics=diagnostics,
+                    label_id=label_id,
+                    source=source,
+                )
+                total_assertion_filtered += n_assert
+                total_span_misaligned += n_span
+
                 if not entities:
                     continue
                 records.append(
                     {
-                        "text": row["text"] or "",
+                        "text": text,
                         "entities": entities,
-                        "source": row.get("source", ""),
+                        "source": source,
                     }
                 )
     finally:
         kg_client.close()
 
     _log(f"Fetched {len(records)} labelled records.")
+    if total_assertion_filtered:
+        _log(
+            f"Assertion filter: {total_assertion_filtered} entities removed "
+            f"(excluded: {sorted(excluded_assertions)})."
+        )
+    if total_span_misaligned:
+        _log(
+            f"Span realignment: {total_span_misaligned} entities dropped "
+            "(surface text not found in sentence)."
+        )
 
     if len(records) < min_count:
         raise ValueError(
@@ -185,7 +231,6 @@ def export_labels(
     all_labels: set[str] = set()
     skipped = 0
 
-    # Single pass over all records: collect labels and build DocBins together.
     for is_train, rec in [(True, r) for r in train_records] + [
         (False, r) for r in dev_records
     ]:
@@ -203,28 +248,51 @@ def export_labels(
     dev_bin.to_disk(dev_path)
 
     if skipped:
-        _log(f"Warning: {skipped} records skipped due to span alignment issues.")
+        _log(f"Warning: {skipped} records skipped during DocBin conversion.")
 
+    exported_at = datetime.datetime.utcnow().isoformat()
     meta = {
-        "exported_at": datetime.datetime.utcnow().isoformat(),
+        "exported_at": exported_at,
         "total_records": len(records),
         "train_records": len(train_records),
         "dev_records": len(dev_records),
         "skipped": skipped,
+        "assertion_filtered": total_assertion_filtered,
+        "span_misaligned": total_span_misaligned,
+        "excluded_assertions": sorted(excluded_assertions),
         "label_set": sorted(all_labels),
         "train_ratio": train_ratio,
         "seed": seed,
         "schema_version": _SCHEMA_VERSION,
     }
     (output_dir / "export_meta.json").write_text(json.dumps(meta, indent=2))
+
+    diag_payload = {
+        "exported_at": exported_at,
+        "excluded_assertions": sorted(excluded_assertions),
+        "summary": {
+            "assertion_filtered_count": total_assertion_filtered,
+            "span_misaligned_count": total_span_misaligned,
+        },
+        "assertion_filtered": [
+            d for d in diagnostics if d["reason"] == "assertion_filtered"
+        ],
+        "span_misaligned": [
+            d for d in diagnostics if d["reason"] == "span_misaligned"
+        ],
+    }
+    (output_dir / "export_diagnostics.json").write_text(
+        json.dumps(diag_payload, indent=2)
+    )
     _log(f"DocBins written to {output_dir}")
 
-    exported_at = datetime.datetime.utcnow().isoformat()
     return {
         "total": len(records),
         "train_count": len(train_records),
         "dev_count": len(dev_records),
         "skipped": skipped,
+        "assertion_filtered": total_assertion_filtered,
+        "span_misaligned": total_span_misaligned,
         "labels_found": sorted(all_labels),
         "label_set": sorted(all_labels),
         "exported_at": exported_at,

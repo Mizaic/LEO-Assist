@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import PatientGraphClient
+from libs.auth.org_scope import CallerScope, get_caller_scope
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -41,8 +42,10 @@ class ScoreResponse(BaseModel):
 @router.post("/scores", response_model=ScoreResponse)
 def submit_score(
     body: ScoreSubmission,
+    scope: CallerScope = Depends(get_caller_scope),
     client: PatientGraphClient = Depends(_get_client),
 ):
+    _ = scope
     score_id = str(uuid.uuid4())
     rows = client.run(
         """
@@ -81,8 +84,10 @@ def submit_score(
 def get_leaderboard(
     game: GameName = Query(...),
     limit: int = Query(default=10, ge=1, le=50),
+    scope: CallerScope = Depends(get_caller_scope),
     client: PatientGraphClient = Depends(_get_client),
 ):
+    _ = scope
     rows = client.run(
         """
         MATCH (gs:GameScore)

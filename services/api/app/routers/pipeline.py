@@ -351,8 +351,11 @@ def _validate_bulk_run_confirmation(
 
 
 @router.get("/extractor-status")
-def get_extractor_status() -> dict[str, object]:
+def get_extractor_status(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, object]:
     """Return the active extractor backend configuration for UI display."""
+    _ = scope
     backend = os.getenv("CODING_EXTRACTOR_BACKEND", "llm")
     strict = os.getenv("CODING_EXTRACTOR_STRICT", "false").lower() == "true"
     model_name = os.getenv("CODING_MODEL_NAME", "")
@@ -475,7 +478,7 @@ def stream_encounter(
 
 
 @router.get("/progress/{run_id}")
-def stream_progress(run_id: str):
+def stream_progress(run_id: str, scope: CallerScope = Depends(get_caller_scope)):
     """Relay coding-worker progress events for *run_id* to the browser via SSE.
 
     The coding worker publishes events to Redis pub/sub channel
@@ -488,6 +491,7 @@ def stream_progress(run_id: str):
     - A ``run_completed``, ``pipeline_error``, or ``run_error`` event is received.
     - No events arrive for ``PROGRESS_IDLE_TIMEOUT_S`` seconds (default 5 min).
     """
+    _ = scope
     events: queue.Queue[dict | None] = queue.Queue()
 
     def _redis_listener() -> None:
@@ -583,7 +587,13 @@ _COMPLETED_EVENTS = frozenset(
     {"run_completed", "encounter_completed", "pipeline_done", "extraction_done"}
 )
 _RUNNING_EVENTS = frozenset(
-    {"run_started", "patient_started", "encounter_started", "step_completed", "step_done"}
+    {
+        "run_started",
+        "patient_started",
+        "encounter_started",
+        "step_completed",
+        "step_done",
+    }
 )
 _COMPLETED_STATUSES = frozenset({"completed", "empty_extraction", "needs_review"})
 
@@ -624,8 +634,11 @@ def _run_status_snapshot(run_id: str, raw: object) -> dict[str, object]:
 
 
 @router.get("/progress-status/{run_id}")
-def get_progress_status(run_id: str) -> dict[str, object]:
+def get_progress_status(
+    run_id: str, scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, object]:
     """Return latest known run status snapshot for UI polling fallback."""
+    _ = scope
     try:
         import redis as _redis
 
@@ -643,12 +656,14 @@ class BatchStatusRequest(BaseModel):
 @router.post("/progress-status/batch")
 def get_progress_status_batch(
     body: BatchStatusRequest,
+    scope: CallerScope = Depends(get_caller_scope),
 ) -> list[dict[str, object]]:
     """Return status snapshots for up to 500 run IDs in a single request.
 
     Used by the UI batch-recode path to avoid opening one SSE connection per
     encounter (which saturates the browser connection pool).
     """
+    _ = scope
     run_ids = [r for r in body.run_ids if r][:_MAX_BATCH_STATUS_IDS]
     if not run_ids:
         return []

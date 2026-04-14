@@ -671,3 +671,19 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | Verification Test | VT-LEO-AI-096 | draft | NER route + deterministic pre-filter verification |
 | Verification Test | VT-LEO-AI-097 | passed | Extraction check parse/apply/provenance verification including referral-procedure safeguard, side-effect counselling suppression, gold-training signal gate, candidate entities_json persistence, and unsafe terminology mapping blocklist |
 | Verification Test | VT-LEO-AI-098 | draft | Coding check drop/force-review and plan routing verification |
+
+---
+
+## Intelligence Console UX + Training Quality Capabilities (April 2026)
+
+| Artefact | ID | Status | Notes |
+|----------|----|--------|-------|
+| User Need | UN-LEO-AI-059 | draft | Clinical informaticians need a unified Intelligence Console |
+| Design Input | DI-LEO-AI-105 | draft | Intelligence Console UX - 8-item nav, 6-stage health bar, nudge banner, persistent training banner, URL migration |
+| Design Output | DO-LEO-AI-103 | draft | Console page, stage components, design tokens, 301 redirects, URL audit CI test |
+| Verification Test | VT-LEO-AI-105 | passed | URL audit passes with 0 deprecated admin URL violations |
+| User Need | UN-LEO-AI-060 | draft | Model trainers need active learning, per-entity F1, golden set, and warm-start |
+| Design Input | DI-LEO-AI-106 | draft | Span realignment, assertion filtering, per-label F1, warm-start, golden gate, active learning queue |
+| Design Output | DO-LEO-AI-104 | draft | label_exporter, evaluator, trainer, job_store, golden_set_queries, active learning API endpoints |
+| Risk | R-LEO-AI-072 | mitigated | Corrupt or non-present training data degrades NER model clinical coding accuracy |
+| Verification Test | VT-LEO-AI-106 | passed | 21 automated tests: span realign, assertion filter, per-label F1, warm-start fallback, golden gate |

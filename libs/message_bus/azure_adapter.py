@@ -88,13 +88,28 @@ def _reconnect_backoff_seconds(attempt: int) -> int:
 class AzureServiceBusAdapter(MessageBusAdapter):
     def __init__(self, fully_qualified_namespace: str) -> None:
         from azure.servicebus.aio import ServiceBusClient
-        from libs.azure.credentials import get_async_credential
 
-        self._client = ServiceBusClient(
-            fully_qualified_namespace=fully_qualified_namespace,
-            credential=get_async_credential(),
-            uamqp_transport=False,
-        )
+        connection_string = os.getenv("AZURE_SERVICE_BUS_CONNECTION_STRING", "").strip()
+        if connection_string:
+            self._client = ServiceBusClient.from_connection_string(
+                connection_string, uamqp_transport=False
+            )
+        else:
+            from libs.azure.credentials import get_async_credential
+
+            try:
+                credential = get_async_credential()
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Async Azure credential unavailable. Install aiohttp or "
+                    "set AZURE_SERVICE_BUS_CONNECTION_STRING."
+                ) from exc
+
+            self._client = ServiceBusClient(
+                fully_qualified_namespace=fully_qualified_namespace,
+                credential=credential,
+                uamqp_transport=False,
+            )
         self._senders: dict[str, Any] = {}
         self._receivers: list[Any] = []
         self._tasks: list[Any] = []

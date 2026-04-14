@@ -829,8 +829,8 @@ export default function RunAIPage() {
     <Box sx={{ p: 3, maxWidth: 760, mx: "auto" }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-        <Tooltip title="Back to Operations">
-          <IconButton size="small" onClick={() => router.push("/admin/operations")}>
+        <Tooltip title="Back to Console">
+          <IconButton size="small" onClick={() => router.push("/admin/console")}>
             <ArrowBackIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -858,7 +858,7 @@ export default function RunAIPage() {
           <Alert severity="warning">
             No pipelines set up yet.{" "}
             <Box component="span" sx={{ textDecoration: "underline", cursor: "pointer" }}
-              onClick={() => router.push("/admin/pathways")}>
+              onClick={() => router.push("/admin/clinical?tab=pathways")}>
               Go to Pathways to create one.
             </Box>
           </Alert>

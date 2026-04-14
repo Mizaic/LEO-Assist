@@ -6,6 +6,10 @@ labels before triggering a training run.
 
 Routes
 ------
+GET  /training/jobs                    — list training jobs (proxied to training worker)
+POST /training/jobs                    — start a training run (proxied to training worker)
+GET  /training/jobs/{job_id}           — job detail (proxied to training worker)
+DELETE /training/jobs/{job_id}         — cancel a job (proxied to training worker)
 GET  /training/labels/stats            — corpus statistics (total, by source)
 GET  /training/labels                  — paginated label list with filters
 GET  /training/labels/{label_id}       — single label detail
@@ -168,6 +172,9 @@ router = APIRouter(prefix="/training", tags=["training"])
 PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip(
     "/"
 )
+TRAINING_WORKER_BASE = os.getenv(
+    "TRAINING_WORKER_URL", "http://localhost:8005"
+).rstrip("/")
 
 from app.routers._training_askleo import register_askleo_routes
 
@@ -206,6 +213,104 @@ async def _proxy_pipeline_worker_json(
         raise HTTPException(
             status_code=502, detail="Pipeline worker returned invalid JSON"
         ) from exc
+
+
+async def _proxy_training_worker(
+    method: str,
+    path: str,
+    *,
+    json_body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Forward a request to the training worker service."""
+    url = f"{TRAINING_WORKER_BASE}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.request(method, url, json=json_body)
+    except httpx.ConnectError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Training worker unavailable at {TRAINING_WORKER_BASE}",
+        ) from exc
+
+    if resp.status_code >= 400:
+        detail: Any
+        try:
+            payload = resp.json()
+            detail = payload.get("detail", payload)
+        except ValueError:
+            detail = resp.text or f"Training worker error ({resp.status_code})"
+        raise HTTPException(status_code=resp.status_code, detail=detail)
+
+    try:
+        return resp.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502, detail="Training worker returned invalid JSON"
+        ) from exc
+
+
+# ---------------------------------------------------------------------------
+# Training job management — proxied to the training worker service
+# ---------------------------------------------------------------------------
+
+
+class _StartJobBody(BaseModel):
+    base_model_version: str = ""
+    notes: str = ""
+    triggered_by: str = "api"
+
+
+@router.get("/jobs")
+async def list_training_jobs(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """List all NER training jobs (most recent first).
+
+    Proxied to the training worker at GET /train/jobs.
+    """
+    return await _proxy_training_worker("GET", "/train/jobs")
+
+
+@router.post("/jobs")
+async def start_training_job(
+    body: _StartJobBody,
+    scope: CallerScope = Depends(get_caller_scope),
+    _admin: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Queue a new NER training run.
+
+    Proxied to the training worker at POST /train/jobs.
+    Returns immediately with job_id; subscribe to the SSE progress stream
+    at GET /train/progress/{job_id} on the training worker directly.
+    """
+    return await _proxy_training_worker(
+        "POST", "/train/jobs", json_body=body.model_dump()
+    )
+
+
+@router.get("/jobs/{job_id}")
+async def get_training_job(
+    job_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return full detail for a single training job.
+
+    Proxied to the training worker at GET /train/jobs/{job_id}.
+    """
+    return await _proxy_training_worker("GET", f"/train/jobs/{job_id}")
+
+
+@router.delete("/jobs/{job_id}")
+async def cancel_training_job(
+    job_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+    _admin: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Cancel a queued training job.
+
+    Proxied to the training worker at DELETE /train/jobs/{job_id}.
+    """
+    return await _proxy_training_worker("DELETE", f"/train/jobs/{job_id}")
 
 
 # ---------------------------------------------------------------------------
@@ -4548,6 +4653,64 @@ def list_training_candidates(
         client.close()
 
 
+@router.get("/candidates/active-learning-queue")
+def active_learning_queue(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return pending TrainingCandidates sorted by uncertainty score (DESC).
+
+    Candidates with the highest uncertainty are shown first -- these are the
+    examples that would teach the model the most if reviewed and verified.
+    The uncertainty_score is computed by the scoring job (POST /candidates/score)
+    and stored on each TrainingCandidate node.
+
+    MUST be declared before /candidates/{candidate_id} so FastAPI does not
+    treat the literal path segment as a candidate_id parameter.
+    """
+    from libs.cypher.training_candidate_queries import (
+        GET_ACTIVE_LEARNING_QUEUE,
+        COUNT_ACTIVE_LEARNING_QUEUE,
+    )
+
+    skip = (page - 1) * page_size
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                GET_ACTIVE_LEARNING_QUEUE, skip=skip, limit=page_size
+            )
+            items = [dict(r) for r in rows]
+            count_row = session.run(COUNT_ACTIVE_LEARNING_QUEUE).single()
+        total = count_row["total"] if count_row else 0
+        return {"items": items, "page": page, "page_size": page_size, "total": total}
+    finally:
+        client.close()
+
+
+@router.post("/candidates/score")
+def score_candidates_for_active_learning(
+    scope: CallerScope = Depends(get_caller_scope),
+    _admin=Depends(require_admin),
+) -> dict[str, Any]:
+    """Score pending candidates by NER uncertainty and store on the node.
+
+    Runs in a background thread. Returns immediately with job metadata.
+    Uncertainty = sum of -p*log(p) across token NER label distributions,
+    using the currently promoted model from the registry.
+    """
+    job_id = str(uuid.uuid4())
+    t = threading.Thread(
+        target=_run_active_learning_scoring,
+        args=(job_id,),
+        daemon=True,
+        name=f"al-score-{job_id[:8]}",
+    )
+    t.start()
+    return {"job_id": job_id, "status": "started"}
+
+
 @router.get("/candidates/{candidate_id}")
 def get_training_candidate(
     candidate_id: str,
@@ -4907,6 +5070,159 @@ def export_gold_labels(
             return {"items": [dict(r) for r in rows]}
     finally:
         client.close()
+
+
+@router.get("/gold-labels/export-diagnostics")
+def get_export_diagnostics(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Replay the export filter path and return per-entity drop diagnostics.
+
+    Runs the same assertion-filter + span-realignment logic as the training
+    export without writing DocBins. Returns two lists:
+    - assertion_filtered: entities removed because their assertion is excluded
+    - span_misaligned: entities whose surface text was not found in the sentence
+    """
+    from libs.pipeline.label_filter import compute_export_diagnostics
+
+    return compute_export_diagnostics()
+
+
+# -- Golden set flag management --------------------------------------------
+
+
+class _GoldenSetFlagBody(BaseModel):
+    frozen_golden_set: bool
+    updated_by: str = Field(default="api")
+
+
+@router.patch("/gold-labels/{label_id}/golden-set")
+def set_golden_set_flag(
+    label_id: str,
+    body: _GoldenSetFlagBody,
+    scope: CallerScope = Depends(get_caller_scope),
+    _admin=Depends(require_admin),
+) -> dict[str, Any]:
+    """Toggle the frozen_golden_set flag on a GoldLabel node."""
+    from libs.cypher.golden_set_queries import SET_GOLDEN_SET_FLAG
+
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                SET_GOLDEN_SET_FLAG,
+                label_id=label_id,
+                value=body.frozen_golden_set,
+                updated_by=body.updated_by,
+            ).single()
+        if row is None:
+            raise HTTPException(status_code=404, detail="GoldLabel not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/golden-set/stats")
+def golden_set_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return count statistics for the frozen golden evaluation set."""
+    from libs.cypher.golden_set_queries import COUNT_GOLDEN_SET, GET_GOLDEN_SET_STATS
+
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            stats_row = session.run(GET_GOLDEN_SET_STATS).single()
+            count_row = session.run(COUNT_GOLDEN_SET).single()
+        return {
+            "total": count_row["total"] if count_row else 0,
+            "avg_quality_score": (
+                round(float(stats_row["avg_quality_score"]), 4)
+                if stats_row and stats_row["avg_quality_score"]
+                else None
+            ),
+            "high_quality": stats_row["high_quality"] if stats_row else 0,
+        }
+    finally:
+        client.close()
+
+
+def _run_active_learning_scoring(job_id: str) -> None:
+    """Background: score pending candidates and write uncertainty_score."""
+    import math
+    import logging as _log
+
+    log = _log.getLogger(__name__)
+    log.info("[active-learning] Scoring job %s started", job_id)
+
+    try:
+        import spacy
+        from libs.model_registry import ModelRegistry
+        from libs.neo4j_client.client import KnowledgeGraphClient
+        from libs.cypher.training_candidate_queries import (
+            GET_PENDING_CANDIDATES_FOR_SCORING,
+            SET_UNCERTAINTY_SCORE,
+        )
+
+        registry = ModelRegistry()
+        promoted = registry.get_promoted_version()
+        if not promoted:
+            log.warning("[active-learning] No promoted model — skipping scoring")
+            return
+
+        from libs.model_store import ModelStore
+
+        store = ModelStore()
+        model_dir = store.download(promoted)
+        nlp = spacy.load(str(model_dir))
+
+        kg = KnowledgeGraphClient()
+        try:
+            with kg.session() as session:
+                rows = list(session.run(GET_PENDING_CANDIDATES_FOR_SCORING))
+        finally:
+            kg.close()
+
+        log.info("[active-learning] Scoring %d candidates", len(rows))
+
+        for row in rows:
+            text = str(row.get("text") or "")
+            cid = str(row.get("candidate_id") or "")
+            if not text or not cid:
+                continue
+            doc = nlp(text)
+            score = _token_entropy(doc)
+            kg2 = KnowledgeGraphClient()
+            try:
+                with kg2.session() as session:
+                    session.run(SET_UNCERTAINTY_SCORE, candidate_id=cid, score=score)
+            finally:
+                kg2.close()
+
+        log.info("[active-learning] Scoring job %s complete", job_id)
+    except Exception as exc:
+        log.exception("[active-learning] Scoring job %s failed: %s", job_id, exc)
+
+
+def _token_entropy(doc) -> float:
+    """Compute mean per-token NER entropy as an uncertainty measure."""
+    import math
+
+    if not doc or not hasattr(doc, "_"):
+        return 0.0
+
+    total = 0.0
+    count = 0
+    for token in doc:
+        probs = getattr(token, "_.trf_data", None)
+        if probs is None:
+            continue
+        for p in probs:
+            if p > 0:
+                total -= p * math.log(p + 1e-12)
+            count += 1
+
+    return round(total / count, 6) if count else 0.0
 
 
 # -- Surface form review tasks (Knowledge Graph) ---------------------------

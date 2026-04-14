@@ -1,83 +1,105 @@
-# -- DI-LEO-AI-104 -- Benign/Normal Qualifier Episode Closure
+# -- DI-LEO-AI-104 -- Polarity-Encoded Finding Guard
 # IEC 62304 / ISO 13485 Design Input
 
 - id: "DI-LEO-AI-104"
-  type: "Functional"
-  derived_from: ["UN-LEO-AI-052"]
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
   requirement: >
-    For open referral-only cancer pathway episodes, the episode builder SHALL
-    close the episode when a site-related finding/condition is coded on the same
-    encounter as a benign or normal qualifier-value concept within 90 days after
-    referral, provided no confirmed cancer diagnosis is coded within the same
-    90-day window. The closure SHALL set status='closed_benign_qualifier',
-    end_date to the qualifying encounter date, and hitl_flag=true.
+    The system SHALL detect and correct assertion inversion that arises when
+    a resolved SNOMED finding or observable entity concept's preferred term
+    (PT) explicitly encodes its own polarity via a suffix word -- such as
+    "absent", "not detected", "not found", "not present", or "negative" --
+    immediately before the semantic tag parenthesis (e.g. 370051000
+    "Perineural invasion by tumor absent (finding)"). In this case the
+    concept choice already encodes the clinical result; entity assertion
+    SHALL be forced to "present" to mean "this concept applies to this
+    patient". The correction SHALL be logged with guard reason
+    "polarity_encoded_finding". The guard SHALL fire after SNOMED
+    terminology resolution has populated the preferred term, in both the
+    runtime coding pipeline (terminology subgraph) and the training
+    label-verification path (post-processing layer 7d).
   rationale: >
-    Clinical pathways are frequently documented as condition + qualifier pairs
-    (for example, "breast lump" + "benign", or "biopsy" + "normal") rather than
-    explicit "no evidence of cancer" discharge concepts. Without this rule, these
-    pathways remain in_progress until stale auto-close, overstating unresolved
-    cancer investigations. Site compatibility and diagnosis suppression are safety
-    controls to prevent unrelated benign qualifiers from closing an active cancer
-    pathway.
+    When the source text states "Perineural invasion: absent", two things
+    happen simultaneously: ConText detects "absent" and sets
+    assertion=absent; SNOMED lookup finds the "absent" variant concept
+    (370051000) because the lookup text contains "absent". The result is
+    double negation -- assertion=absent on a concept that already means
+    absent -- semantically equivalent to "perineural invasion is present".
+    This is a clinical inversion. The fix_double_negated_situations guard
+    handles situation concepts only (prefix-based patterns such as "No
+    suicidal thoughts"). Finding concepts require a separate suffix-based
+    guard, because the polarity word in SNOMED finding PTs appears at the
+    end of the term rather than the beginning.
 
   machine_spec:
     acceptance_criteria:
-      - type: "functional"
-        spec: >
-          Given a breast referral on D and an encounter on D+25 containing a
-          breast finding plus benign/normal qualifier concept, the episode is
-          closed with status='closed_benign_qualifier' and end_date=D+25.
-      - type: "functional"
-        spec: >
-          Given a breast referral on D and a prostate finding plus benign
-          qualifier on D+25, the episode remains in_progress.
-      - type: "functional"
-        spec: >
-          Given a referral on D, benign-qualifier pair on D+20, and confirmed
-          cancer diagnosis on D+30, benign qualifier closure is suppressed and
-          the referral episode does not close via this rule.
       - type: "safety"
         spec: >
-          closed_benign_qualifier episodes MUST always set hitl_flag=true with
-          an explanatory hitl_reason.
+          Given a finding entity with any non-present assertion and a
+          resolved SNOMED PT ending with "absent (finding)", "not detected
+          (finding)", "not found (finding)", "not present (finding)", or
+          "negative (finding)", assertion SHALL be corrected to present and
+          _assertion_guard SHALL equal "polarity_encoded_finding".
+      - type: "safety"
+        spec: >
+          The guard SHALL also fire for "observable entity" semantic tag
+          concepts with polarity-encoding PTs.
+      - type: "functional"
+        spec: >
+          Guard SHALL NOT fire on situation concepts -- those are handled
+          by fix_double_negated_situations.
+      - type: "functional"
+        spec: >
+          Guard SHALL NOT fire on disorder concepts regardless of PT content.
+      - type: "functional"
+        spec: >
+          Guard SHALL be idempotent: applying it twice to the same entity
+          list produces the same result as applying it once.
+      - type: "functional"
+        spec: >
+          Guard SHALL NOT alter entities whose assertion is already "present".
+      - type: "functional"
+        spec: >
+          Guard fires after terminology resolution in both the runtime
+          (_resolve_terms in terminology.py) and training paths
+          (post_processing layer 7d).
     constraints:
       - type: "safety"
         spec: >
-          Benign qualifier closure applies only when referral site key is known
-          and finding site key is compatible.
-      - type: "safety"
-        spec: >
-          Qualifier concepts are restricted to a configured concept-id allowlist
-          and enforced by Cypher co-occurrence query on the same encounter.
-    dependencies: ["DI-LEO-AI-085", "DI-LEO-AI-084"]
+          Guard MUST only correct entities whose SNOMED preferred term is
+          already resolved. It MUST NOT infer polarity from the raw entity
+          text alone.
+      - type: "performance"
+        spec: "Guard processes each entity in O(1) time; no external calls"
+    dependencies: ["DI-LEO-AI-005", "DI-LEO-AI-101"]
     downstream_impacts:
-      - "Episode lifecycle status distribution"
-      - "Cancer pathway dashboards"
-      - "Human review queue (HITL) workload"
-
-  technical_details:
-    language: "Python"
-    framework: "neo4j"
-    file_structure:
-      - "services/analysis_worker/app/analyzers/episode_builder/_config.py"
-      - "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
-      - "services/analysis_worker/app/analyzers/episode_builder/_persistence.py"
-      - "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
-      - "services/analysis_worker/app/analyzers/episode_builder/_status.py"
-    estimated_loc: 90
+      - "libs/pipeline/post_processing.py -- new fix_polarity_encoded_findings function, called in layer 7d"
+      - "libs/pipeline_graph/subgraphs/terminology.py -- called after fix_double_negated_situations"
+    technical_details:
+      language: "Python"
+      framework: "None"
+      file_structure:
+        - "libs/pipeline/post_processing.py"
+        - "libs/pipeline_graph/subgraphs/terminology.py"
+      estimated_loc: 25
 
   verification:
     method: "Test"
     phase: "OQ"
     acceptance: >
-      All VT-LEO-AI-104 test cases pass, proving site-match closure, site-mismatch
-      rejection, diagnosis suppression, and mandatory HITL on benign qualifier
-      closure.
+      All test cases in VT-LEO-AI-104 pass: polarity-encoding finding PTs
+      corrected to present; non-finding and non-absent entities unaffected;
+      idempotency verified; runtime (_resolve_terms) and training paths both
+      corrected; specific "Perineural invasion by tumor absent (finding)" case
+      corrected.
     test_protocol: "VT-LEO-AI-104"
 
   safety_class: "B"
   risks: ["R-LEO-AI-071"]
   tags:
-    - "episode-detector"
-    - "benign-closure"
-    - "qualifier-value"
+    - "assertion"
+    - "double-negation"
+    - "safety-guard"
+    - "finding"
+    - "polarity"
+    - "snomed"

@@ -150,7 +150,7 @@ export default function LLMSpendPanel({ orgId, from, to }: LLMSpendPanelProps) {
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             {isAdmin && (
-              <Link href="/admin/billing" style={{ textDecoration: "none" }}>
+              <Link href="/admin/platform?tab=billing" style={{ textDecoration: "none" }}>
                 <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
                   View all tenants →
                 </Typography>

@@ -15,10 +15,12 @@ import logging
 import os
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.deps import require_admin
 from app.db.neo4j_client import CodingGraphClient
+from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.cypher.device_queries import (
     GET_DEVICE,
     GET_PIPELINE_CONFIG,
@@ -71,7 +73,8 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("")
-def list_devices() -> dict[str, Any]:
+def list_devices(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+    _ = scope
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -87,7 +90,10 @@ def list_devices() -> dict[str, Any]:
 
 
 @router.get("/pipeline-config")
-def get_pipeline_config() -> dict[str, Any]:
+def get_pipeline_config(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    _ = scope
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -115,7 +121,10 @@ def get_pipeline_config() -> dict[str, Any]:
 
 
 @router.get("/{device_id}")
-def get_device(device_id: str) -> dict[str, Any]:
+def get_device(
+    device_id: str, scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, Any]:
+    _ = scope
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -139,7 +148,11 @@ class StatusRequest(BaseModel):
 
 
 @router.patch("/{device_id}/status")
-def set_device_status(device_id: str, body: StatusRequest) -> dict[str, Any]:
+def set_device_status(
+    device_id: str,
+    body: StatusRequest,
+    _scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
     if body.status not in _VALID_STATUSES:
         raise HTTPException(
             status_code=400, detail=f"status must be one of {_VALID_STATUSES}"
@@ -175,7 +188,10 @@ class PipelineConfigRequest(BaseModel):
 
 
 @router.put("/pipeline-config")
-def update_pipeline_config(body: PipelineConfigRequest) -> dict[str, Any]:
+def update_pipeline_config(
+    body: PipelineConfigRequest,
+    _scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
     if body.provider not in _VALID_PROVIDERS:
         raise HTTPException(
             status_code=400, detail=f"provider must be one of {_VALID_PROVIDERS}"

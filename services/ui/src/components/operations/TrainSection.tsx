@@ -158,7 +158,7 @@ export default function TrainSection() {
           </Typography>
           <Button
             component={Link}
-            href="/admin/gold-dataset"
+            href="/admin/knowledge?tab=training-data"
             variant="outlined"
             size="small"
             sx={{ mt: 1.5 }}

@@ -586,7 +586,7 @@ export default function PromptTunerPage() {
     <Box sx={{ p: 3, maxWidth: 920, mx: "auto" }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-        <IconButton onClick={() => router.push("/admin/prompts")} aria-label="Back">
+        <IconButton onClick={() => router.push("/admin/knowledge?tab=ai-instructions")} aria-label="Back">
           <ArrowBackIcon />
         </IconButton>
         <Box sx={{ flex: 1 }}>

@@ -32,13 +32,15 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
+from libs.auth.org_scope import CallerScope, get_caller_scope
+from libs.auth.service_auth import get_service_auth_header
 from libs.model_registry.registry import ModelRecord, ModelRegistry, get_registry
 from libs.model_store import ModelStore
 from app.deps import require_admin
 
 logger = logging.getLogger(__name__)
 
-# Read-only routes are open to any authenticated user.
+# Read-only routes require an authenticated session (get_caller_scope).
 # Mutating routes (register, upload, validate, canary, promote, rollback, reject)
 # require platform admin -- see GAP-003.
 router = APIRouter(prefix="/model-registry", tags=["model-registry"])
@@ -389,9 +391,10 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
 
 
 async def _inference_health() -> dict[str, Any]:
+    headers = {**get_service_auth_header()}
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{_INFERENCE_ENDPOINT}/health")
+            resp = await client.get(f"{_INFERENCE_ENDPOINT}/health", headers=headers)
             resp.raise_for_status()
             return resp.json()
     except Exception:
@@ -404,7 +407,9 @@ async def _inference_health() -> dict[str, Any]:
 
 
 @router.get("/status")
-async def get_status() -> dict[str, Any]:
+async def get_status(
+    _scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Return active model record and inference service health in one call."""
     reg = get_registry()
     active = reg.get_active()
@@ -422,7 +427,9 @@ async def get_status() -> dict[str, Any]:
 
 
 @router.get("/versions")
-async def list_versions() -> dict[str, Any]:
+async def list_versions(
+    _scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Return all registered model versions with their lifecycle status.
 
     If the registry is empty, falls back to the inference service's /versions
@@ -435,8 +442,9 @@ async def list_versions() -> dict[str, Any]:
     # what it knows about (blob store contents + currently loaded version).
     if not versions:
         try:
+            hdrs = {**get_service_auth_header()}
             async with httpx.AsyncClient(timeout=8.0) as client:
-                resp = await client.get(f"{_INFERENCE_ENDPOINT}/versions")
+                resp = await client.get(f"{_INFERENCE_ENDPOINT}/versions", headers=hdrs)
                 if resp.status_code == 200:
                     inf_data = resp.json()
                     active_inf = inf_data.get("active_version")
@@ -493,7 +501,9 @@ async def list_versions() -> dict[str, Any]:
 
 
 @router.get("/versions/{version}")
-async def get_version(version: str) -> dict[str, Any]:
+async def get_version(
+    version: str, _scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, Any]:
     """Return full detail for a single version including blob manifest."""
     reg = get_registry()
     rec = reg.get(version)
@@ -749,7 +759,9 @@ def run_canary_gold(version: str, _: object = Depends(require_admin)) -> dict[st
 
 
 @router.get("/canary-jobs/{job_id}")
-def get_canary_gold_job(job_id: str) -> dict[str, Any]:
+def get_canary_gold_job(
+    job_id: str, _scope: CallerScope = Depends(get_caller_scope)
+) -> dict[str, Any]:
     with _canary_jobs_lock:
         job = _canary_jobs.get(job_id)
     if not job:
@@ -836,7 +848,9 @@ def rollback(_: object = Depends(require_admin)) -> dict[str, Any]:
 
 
 @router.get("/inference/health")
-async def inference_health() -> dict[str, Any]:
+async def inference_health(
+    _scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Proxy the inference service /health + /versions.
 
     Returns the active version currently loaded in memory, whether the
@@ -847,8 +861,9 @@ async def inference_health() -> dict[str, Any]:
 
     available: list[dict] = []
     try:
+        hdrs = {**get_service_auth_header()}
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"{_INFERENCE_ENDPOINT}/versions")
+            resp = await client.get(f"{_INFERENCE_ENDPOINT}/versions", headers=hdrs)
             if resp.status_code == 200:
                 available = resp.json().get("versions", [])
     except Exception:
@@ -877,11 +892,13 @@ async def reload_inference(
     to keep the audit trail in sync, but the inference service is the system.
     """
     try:
+        hdrs = {**get_service_auth_header()}
         async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 f"{_INFERENCE_ENDPOINT}/reload",
                 json={"version": req.version},
                 timeout=120.0,
+                headers=hdrs,
             )
             resp.raise_for_status()
             data = resp.json()

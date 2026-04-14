@@ -1,6 +1,7 @@
 """spaCy training subprocess wrapper.
 
-Runs `python -m spacy train` in a subprocess, streams stdout/stderr line
+Runs ``python -m app.run_spacy_train_cli train`` (registers ``leo_training.TransformerListener``)
+in a subprocess, streams stdout/stderr line
 by line to the job log, and returns the path to the best model output.
 
 If TRAINING_BASE_MODEL_VERSION is set, the promoted blob model is downloaded
@@ -26,12 +27,11 @@ from libs.utils.device_resolver import AcceleratorDecision, resolve_accelerator
 logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path(__file__).parent / "config" / "base.cfg"
+_TRAINING_APP_ROOT = Path(__file__).resolve().parents[1]
 _TIMEOUT_S = int(os.getenv("TRAINING_JOB_TIMEOUT_S", "3600"))
 _HF_MODEL = os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT")
 _FROZEN = os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer")
-_ALLOW_TRANSFORMER_FREEZE = os.getenv(
-    "TRAINING_ALLOW_TRANSFORMER_FREEZE", "false"
-).lower() in ("1", "true", "yes")
+_BASE_MODEL_VERSION = os.getenv("TRAINING_BASE_MODEL_VERSION", "").strip()
 
 
 def _register_nvidia_dll_dirs() -> None:
@@ -132,7 +132,37 @@ def _build_env() -> dict:
     env["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
     env.setdefault("PYTHONUNBUFFERED", "1")
     env.setdefault("HF_HOME", os.getenv("HF_HOME", "/tmp/hf_cache"))
+    existing_pythonpath = env.get("PYTHONPATH", "").strip()
+    training_root = str(_TRAINING_APP_ROOT)
+    env["PYTHONPATH"] = (
+        f"{training_root}{os.pathsep}{existing_pythonpath}"
+        if existing_pythonpath
+        else training_root
+    )
     return env
+
+
+def _fetch_warm_start_model(
+    version: str, log: Callable[[str], None]
+) -> Optional[Path]:
+    """Download a promoted model blob and return the local model directory.
+
+    Only the NER head weights are used — the transformer is always cold-started
+    from Bio_ClinicalBERT. Returns None (and logs a warning) on any failure so
+    training continues without warm-start rather than blocking the job.
+    """
+    try:
+        from libs.model_store import ModelStore
+
+        store = ModelStore()
+        log(f"[warm-start] Downloading base model version {version}…")
+        model_dir = store.download(version)
+        log(f"[warm-start] Base model ready at {model_dir}")
+        return model_dir
+    except Exception as exc:
+        log(f"[warm-start] WARNING: failed to download version {version}: {exc}")
+        log("[warm-start] Continuing without warm-start (cold init).")
+        return None
 
 
 def run_training(
@@ -146,10 +176,8 @@ def run_training(
 
     Retry strategy (each attempt gets its own named config file):
       1. Primary run — GPU if available, frozen components as configured.
-      2. CPU retry   — if GPU attempt fails for any reason.
-      3. Unfreeze    — if transformer-listener dim error seen; re-run on same
-                       device (CPU if we already fell back, otherwise GPU).
-      4. CPU+unfreeze— if unfreeze retry was GPU and that fails too.
+      2. Unfreeze transformer — if listener ``nO`` init error (before MPS fail-fast).
+      3. CPU retry — if GPU attempt fails (skipped when MPS fail-fast is on).
 
     Args:
         work_dir: Temporary working directory; output written to work_dir/output/.
@@ -177,11 +205,13 @@ def run_training(
         "TRAINING_MPS_FAIL_FAST", "true"
     ).lower() in ("1", "true", "yes")
     frozen_components = [c.strip() for c in _FROZEN.split(",") if c.strip()]
-    if "transformer" in frozen_components and not _ALLOW_TRANSFORMER_FREEZE:
+    if "transformer" in frozen_components:
         frozen_components = [c for c in frozen_components if c != "transformer"]
         _log(
-            "Transformer freeze disabled for reliability "
-            "(set TRAINING_ALLOW_TRANSFORMER_FREEZE=true to force freezing)."
+            "Transformer freeze disabled. This training path starts from the "
+            "Bio_ClinicalBERT HF checkpoint, so the transformer must initialize "
+            "its tokenizer/model before training. Freezing it here leaves the "
+            "tokenizer unset and causes spaCy to fail at runtime."
         )
     _log(
         "Starting spaCy training "
@@ -199,6 +229,12 @@ def run_training(
     if accelerator.resolved == "mps":
         env.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
+    # --- Optional: warm-start from a previously promoted model version -------
+    base_version = _BASE_MODEL_VERSION
+    init_tok2vec_path: Optional[Path] = None
+    if base_version:
+        init_tok2vec_path = _fetch_warm_start_model(base_version, _log)
+
     # --- Attempt 1: primary run (GPU if available) --------------------------
     current_gpu = use_gpu
     returncode, lines = _run_spacy_train(
@@ -211,36 +247,12 @@ def run_training(
         log=_log,
         frozen_components=frozen_components,
         config_name="train.cfg",
+        init_tok2vec_path=init_tok2vec_path,
     )
 
-    # --- Attempt 2: GPU -> CPU fallback --------------------------------------
-    if returncode != 0 and current_gpu:
-        if mps_fail_fast:
-            raise RuntimeError(
-                "spaCy training failed while running on MPS; fail-fast policy is enabled"
-            )
-        if _is_gpu_runtime_error(lines):
-            _log("Detected GPU runtime error; retrying training on CPU.")
-        else:
-            _log(
-                f"GPU training exited with code {returncode}; retrying once on CPU for isolation."
-            )
-        current_gpu = False
-        returncode, lines = _run_spacy_train(
-            work_dir=work_dir,
-            output_dir=output_dir,
-            train_path=train_path,
-            dev_path=dev_path,
-            use_gpu=current_gpu,
-            env=env,
-            log=_log,
-            frozen_components=frozen_components,
-            config_name="train_retry_cpu.cfg",
-        )
-
-    # --- Attempt 3: unfreeze transformer if dim-error seen ------------------
-    # Uses whatever device succeeded (or was last tried) — never escalates
-    # back to GPU after falling back to CPU.
+    # --- Attempt 2: unfreeze transformer if listener dim error (before MPS fail-fast)
+    # Frozen transformer skips initialize(); listener nO may stay unset unless
+    # leo_training.TransformerListener.v1 is used. Retry unfrozen as fallback.
     if (
         returncode != 0
         and _is_transformer_listener_dim_error(lines)
@@ -260,26 +272,57 @@ def run_training(
             log=_log,
             frozen_components=retry_frozen,
             config_name="train_retry_unfrozen.cfg",
+            init_tok2vec_path=init_tok2vec_path,
         )
 
-        # --- Attempt 4: unfreeze + CPU if unfrozen GPU attempt also failed --
-        if returncode != 0 and current_gpu:
-            if mps_fail_fast:
-                raise RuntimeError(
-                    "spaCy training failed while running on MPS; fail-fast policy is enabled"
-                )
-            _log("Detected GPU runtime error after unfreeze retry; retrying on CPU.")
-            returncode, lines = _run_spacy_train(
-                work_dir=work_dir,
-                output_dir=output_dir,
-                train_path=train_path,
-                dev_path=dev_path,
-                use_gpu=False,
-                env=env,
-                log=_log,
-                frozen_components=retry_frozen,
-                config_name="train_retry_unfrozen_cpu.cfg",
+    # --- Attempt 3: GPU -> CPU fallback --------------------------------------
+    if returncode != 0 and current_gpu:
+        gpu_runtime_error = _is_gpu_runtime_error(lines)
+        recovered_model = _recover_saved_model(output_dir, lines, _log)
+        if recovered_model is not None:
+            accelerator_meta = {
+                "requested_accelerator": accelerator.requested,
+                "resolved_accelerator": accelerator.resolved,
+                "fallback_applied": accelerator.fallback_applied,
+                "fallback_reason": accelerator.fallback_reason,
+                "recovered_after_failure": True,
+            }
+            return recovered_model, accelerator_meta
+        if mps_fail_fast and gpu_runtime_error:
+            raise RuntimeError(
+                "spaCy training failed while running on MPS; fail-fast policy is enabled"
             )
+        if gpu_runtime_error:
+            _log("Detected GPU runtime error; retrying training on CPU.")
+        else:
+            _log(
+                "Training failed before a GPU runtime error was detected; "
+                f"retrying once on CPU for isolation (exit code {returncode})."
+            )
+        current_gpu = False
+        returncode, lines = _run_spacy_train(
+            work_dir=work_dir,
+            output_dir=output_dir,
+            train_path=train_path,
+            dev_path=dev_path,
+            use_gpu=current_gpu,
+            env=env,
+            log=_log,
+            frozen_components=frozen_components,
+            config_name="train_retry_cpu.cfg",
+            init_tok2vec_path=init_tok2vec_path,
+        )
+
+    recovered_model = _recover_saved_model(output_dir, lines, _log)
+    if recovered_model is not None:
+        accelerator_meta = {
+            "requested_accelerator": accelerator.requested,
+            "resolved_accelerator": accelerator.resolved,
+            "fallback_applied": accelerator.fallback_applied,
+            "fallback_reason": accelerator.fallback_reason,
+            "recovered_after_failure": True,
+        }
+        return recovered_model, accelerator_meta
 
     if returncode != 0:
         raise RuntimeError(f"spaCy training failed with exit code {returncode}")
@@ -380,6 +423,34 @@ def _is_gpu_runtime_error(lines: list[str]) -> bool:
     return False
 
 
+def _recover_saved_model(
+    output_dir: Path,
+    lines: list[str],
+    log: Callable[[str], None],
+) -> Optional[Path]:
+    """Return a saved checkpoint if spaCy aborted after writing one."""
+    joined = "\n".join(lines).lower()
+    if "aborting and saving the final best model" not in joined:
+        return None
+
+    model_best = output_dir / "model-best"
+    if model_best.exists():
+        log(
+            "spaCy aborted after saving checkpoints; recovering model-best "
+            f"from {model_best}."
+        )
+        return model_best
+
+    model_last = output_dir / "model-last"
+    if model_last.exists():
+        log(
+            "spaCy aborted after saving checkpoints; model-best missing, "
+            f"recovering model-last from {model_last}."
+        )
+        return model_last
+    return None
+
+
 def _run_spacy_train(
     *,
     work_dir: Path,
@@ -391,6 +462,7 @@ def _run_spacy_train(
     log: Callable[[str], None],
     frozen_components: list[str],
     config_name: str,
+    init_tok2vec_path: Optional[Path] = None,
 ) -> tuple[int, list[str]]:
     filled_config = work_dir / config_name
     _write_filled_config(
@@ -404,7 +476,7 @@ def _run_spacy_train(
         sys.executable,
         "-u",
         "-m",
-        "spacy",
+        "app.run_spacy_train_cli",
         "train",
         str(filled_config),
         "--output",
@@ -416,6 +488,8 @@ def _run_spacy_train(
     ]
     if use_gpu:
         cmd.extend(["--gpu-id", "0"])
+    if init_tok2vec_path is not None and init_tok2vec_path.exists():
+        cmd.extend(["--initialize.init_tok2vec", str(init_tok2vec_path)])
 
     proc = subprocess.Popen(
         cmd,
@@ -423,6 +497,7 @@ def _run_spacy_train(
         stderr=subprocess.STDOUT,
         text=True,
         env=env,
+        cwd=_TRAINING_APP_ROOT,
     )
     lines: list[str] = []
     try:
