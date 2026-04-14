@@ -449,7 +449,8 @@ resource fhirApi 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
-// -- analytics-api (internal ingress) -------------------------------------
+// -- analytics-api (internal ingress) -- minReplicas: 1 keeps one warm instance so
+// the UI dashboard does not block on a cold start (0 -> 1 takes ~30-60s in ACA).
 resource analyticsApi 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'analytics-api'
   location: location
@@ -472,6 +473,7 @@ resource analyticsApi 'Microsoft.App/containerApps@2024-03-01' = {
         resources: { cpu: json('0.25'), memory: '0.5Gi' }
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
+          { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
         ])
         probes: [
           {
@@ -490,7 +492,7 @@ resource analyticsApi 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ]
       }]
-      scale: { minReplicas: 0, maxReplicas: 3 }
+      scale: { minReplicas: 1, maxReplicas: 3 }
     }
   }
 }

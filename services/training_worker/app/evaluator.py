@@ -60,15 +60,26 @@ def _register_training_architectures() -> None:
 
 
 def _score_examples(nlp, docs) -> dict:
-    """Run inference and return scorer output dict."""
-    from spacy.scorer import Scorer
+    """Run inference and return scorer output dict.
+
+    Uses each pipeline component's own .score() method so that spancat
+    (spans_sc_*) and NER (ents_*) scorers are both handled correctly.
+    A bare Scorer() only runs generic token-level scorers and misses the
+    component-registered span/entity scorers entirely.
+    """
     from spacy.training import Example
 
     texts = [doc.text for doc in docs]
     pred_docs = list(nlp.pipe(texts))
     examples = [Example(pred, gold) for pred, gold in zip(pred_docs, docs)]
-    scorer = Scorer()
-    return scorer.score(examples)
+    scores: dict = {}
+    for _, component in nlp.pipeline:
+        if hasattr(component, "score"):
+            try:
+                scores.update(component.score(examples))
+            except Exception:
+                pass
+    return scores
 
 
 def _build_per_label(scores: dict) -> dict[str, dict]:
