@@ -109,6 +109,15 @@ class DryRunRequest(BaseModel):
     encounters: list[DryRunEncounter]
 
 
+class PipelineTraceRequest(BaseModel):
+    encounters: list[DryRunEncounter]
+
+
+class PipelineEntityProvenance(BaseModel):
+    stage: str
+    detail: Optional[str] = None
+
+
 class PromoteRequest(BaseModel):
     rollback_target_version: Optional[str] = None
     force: bool = False
@@ -281,6 +290,82 @@ def _set_canary_job(job_id: str, patch: dict[str, Any]) -> None:
         current = _canary_jobs.get(job_id, {})
         current.update(patch)
         _canary_jobs[job_id] = current
+
+
+def _label_assertion(entity: dict[str, Any]) -> tuple[str, str]:
+    label = _canonical_model_label(
+        str(entity.get("label") or entity.get("semantic_tag") or "")
+    )
+    assertion = str(entity.get("assertion") or "").strip().lower()
+    return label, assertion
+
+
+def _span_key(entity: dict[str, Any]) -> tuple[int, int]:
+    return int(entity.get("start", 0)), int(entity.get("end", 0))
+
+
+def _diff_provenance(
+    before: list[dict[str, Any]],
+    after: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    before_by_span: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    for ent in before:
+        key = _span_key(ent)
+        before_by_span.setdefault(key, []).append(ent)
+
+    matched_ids: set[int] = set()
+    final_entities: list[dict[str, Any]] = []
+
+    for ent in after:
+        span = _span_key(ent)
+        ent_label, ent_assertion = _label_assertion(ent)
+        candidates = before_by_span.get(span, [])
+        picked: Optional[dict[str, Any]] = None
+        for cand in candidates:
+            if id(cand) in matched_ids:
+                continue
+            cand_label, cand_assertion = _label_assertion(cand)
+            if cand_label == ent_label and cand_assertion == ent_assertion:
+                picked = cand
+                break
+        if picked is None:
+            for cand in candidates:
+                if id(cand) not in matched_ids:
+                    picked = cand
+                    break
+
+        out = dict(ent)
+        if picked is None:
+            out["_provenance_stage"] = "post_processing_added"
+            out["_provenance_detail"] = None
+        else:
+            matched_ids.add(id(picked))
+            prev_label, prev_assertion = _label_assertion(picked)
+            details: list[str] = []
+            if prev_label != ent_label:
+                details.append(f"label: {prev_label} -> {ent_label}")
+            if prev_assertion != ent_assertion:
+                details.append(
+                    f"assertion: {prev_assertion or 'none'} -> {ent_assertion or 'none'}"
+                )
+            if details:
+                out["_provenance_stage"] = "post_processing_modified"
+                out["_provenance_detail"] = "; ".join(details)
+            else:
+                out["_provenance_stage"] = "ner"
+                out["_provenance_detail"] = None
+        final_entities.append(out)
+
+    suppressed: list[dict[str, Any]] = []
+    for ent in before:
+        if id(ent) in matched_ids:
+            continue
+        out = dict(ent)
+        out["_provenance_stage"] = "suppressed"
+        out["_provenance_detail"] = "Removed during post-processing"
+        suppressed.append(out)
+
+    return final_entities, suppressed
 
 
 def _ensure_leo_transformer_listener_registered() -> None:
@@ -978,6 +1063,130 @@ def dry_run_canary_model(
                 "entities": entities,
             }
         )
+    return {"model_version": version, "encounters": results, "count": len(results)}
+
+
+@router.post("/versions/{version}/canary/pipeline-trace")
+def dry_run_pipeline_trace(
+    version: str,
+    req: PipelineTraceRequest,
+    _: object = Depends(require_admin),
+) -> dict[str, Any]:
+    """Run model + post-processing + terminology with per-entity provenance."""
+    reg = get_registry()
+    rec = reg.get(version)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Version {version!r} not found")
+
+    encounters = req.encounters[:20]
+    if not encounters:
+        raise HTTPException(status_code=400, detail="Select at least one encounter")
+
+    store = ModelStore()
+    model_dir = store.download(version)
+    import spacy  # noqa: PLC0415 - lazy load in request path
+    from libs.pipeline.post_processing import run_post_processing_with_trace
+    from libs.terminology.client import TerminologyClient
+
+    _ensure_leo_transformer_listener_registered()
+    nlp = spacy.load(str(model_dir))
+
+    results: list[dict[str, Any]] = []
+    for enc in encounters:
+        text = enc.text.strip()
+        if not text:
+            results.append(
+                {
+                    "encounter_id": enc.encounter_id,
+                    "patient_id": enc.patient_id,
+                    "encounter_date": enc.encounter_date,
+                    "text_length": 0,
+                    "ner_entities": [],
+                    "final_entities": [],
+                    "suppressed_entities": [],
+                    "layer_trace": [],
+                }
+            )
+            continue
+
+        doc = nlp(text)
+        spans = doc.spans.get("sc", [])
+        if not spans:
+            spans = list(doc.ents)
+        ner_entities = [
+            {
+                "text": span.text,
+                "start": span.start_char,
+                "end": span.end_char,
+                "label": _canonical_model_label(span.label_),
+                "semantic_tag": _canonical_model_label(span.label_).lower(),
+                "assertion": "present",
+            }
+            for span in spans
+        ]
+
+        processed_entities, layer_trace = run_post_processing_with_trace(
+            text, ner_entities
+        )
+        terms = [
+            str(e.get("lookup_term") or e.get("text") or "").strip()
+            for e in processed_entities
+        ]
+        terms = [t for t in terms if t]
+        resolutions = TerminologyClient().resolve(terms) if terms else {}
+
+        resolved_entities: list[dict[str, Any]] = []
+        for ent in processed_entities:
+            out = dict(ent)
+            out["label"] = _canonical_model_label(
+                str(out.get("label") or out.get("semantic_tag") or "")
+            )
+            if not out.get("semantic_tag"):
+                out["semantic_tag"] = str(out["label"]).lower()
+
+            lookup_term = str(out.get("lookup_term") or out.get("text") or "").strip()
+            candidates = resolutions.get(lookup_term, [])
+            if candidates:
+                best = candidates[0]
+                out["concept_id"] = best.concept_id
+                out["term"] = best.term
+                out["score"] = float(best.score)
+                out["read_code"] = best.read_code
+            resolved_entities.append(out)
+
+        final_entities, suppressed_entities = _diff_provenance(
+            ner_entities, resolved_entities
+        )
+
+        trace_rows = [
+            {
+                "layer_id": str(step.get("layer_id") or ""),
+                "name": str(step.get("name") or ""),
+                "status": str(step.get("status") or "ok"),
+                "before_count": int(step.get("before_count") or 0),
+                "after_count": int(step.get("after_count") or 0),
+                "added_count": int(step.get("added_count") or 0),
+                "removed_count": int(step.get("removed_count") or 0),
+                "updated_count": int(step.get("updated_count") or 0),
+                "duration_ms": int(step.get("duration_ms") or 0),
+            }
+            for step in layer_trace
+            if isinstance(step, dict)
+        ]
+
+        results.append(
+            {
+                "encounter_id": enc.encounter_id,
+                "patient_id": enc.patient_id,
+                "encounter_date": enc.encounter_date,
+                "text_length": len(text),
+                "ner_entities": ner_entities,
+                "final_entities": final_entities,
+                "suppressed_entities": suppressed_entities,
+                "layer_trace": trace_rows,
+            }
+        )
+
     return {"model_version": version, "encounters": results, "count": len(results)}
 
 

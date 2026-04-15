@@ -11,3 +11,4 @@ langchain-aws>=0.3
 langchain-openai>=0.3
 azure-identity>=1.19.0
 azure-keyvault-secrets>=4.8.0
+graphdatascience>=1.10

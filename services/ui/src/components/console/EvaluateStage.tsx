@@ -112,6 +112,45 @@ interface DryRunResultRow {
   entities: DryRunEntity[];
 }
 
+type DryRunMode = "ner_only" | "full_pipeline";
+type ProvenanceStage =
+  | "ner"
+  | "post_processing_modified"
+  | "post_processing_added"
+  | "suppressed";
+
+interface PipelineEntity extends DryRunEntity {
+  assertion?: string;
+  semantic_tag?: string;
+  concept_id?: string;
+  term?: string;
+  score?: number;
+  read_code?: string;
+  _provenance_stage: ProvenanceStage;
+  _provenance_detail?: string | null;
+}
+
+interface LayerTraceSummary {
+  layer_id: string;
+  name: string;
+  status: string;
+  before_count: number;
+  after_count: number;
+  added_count: number;
+  removed_count: number;
+  updated_count: number;
+  duration_ms: number;
+}
+
+interface PipelineTraceResultRow {
+  encounter_id: string;
+  patient_id?: string | null;
+  encounter_date?: string | null;
+  final_entities: PipelineEntity[];
+  suppressed_entities: PipelineEntity[];
+  layer_trace: LayerTraceSummary[];
+}
+
 const MODEL_CANARY_MIN_PRECISION = 0.78;
 const MODEL_CANARY_MIN_RECALL = 0.72;
 
@@ -182,6 +221,91 @@ function renderAnnotatedText(text: string, entities: DryRunEntity[]) {
   const sorted = [...entities]
     .filter((e) => e.start >= 0 && e.end <= text.length && e.start < e.end)
     .sort((a, b) => a.start - b.start);
+  const grouped = new Map<string, { start: number; end: number; labels: string[] }>();
+  for (const ent of sorted) {
+    const key = `${ent.start}:${ent.end}`;
+    const current = grouped.get(key) ?? { start: ent.start, end: ent.end, labels: [] };
+    if (!current.labels.includes(ent.label)) current.labels.push(ent.label);
+    grouped.set(key, current);
+  }
+  const merged = Array.from(grouped.values()).sort((a, b) => a.start - b.start);
+  const nodes: JSX.Element[] = [];
+  let cursor = 0;
+  for (const ent of merged) {
+    if (ent.start < cursor) continue;
+    if (ent.start > cursor) {
+      nodes.push(<span key={`p-${cursor}`}>{text.slice(cursor, ent.start)}</span>);
+    }
+    const hasMultipleLabels = ent.labels.length > 1;
+    const primaryLabel = ent.labels[0];
+    const { bg, fg } = labelColor(primaryLabel);
+    nodes.push(
+      <Tooltip
+        key={`e-${ent.start}-${ent.end}`}
+        title={ent.labels.join(" | ")}
+        arrow
+        placement="top"
+      >
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <mark
+            style={{
+              backgroundColor: bg,
+              color: fg,
+              borderRadius: 3,
+              padding: "1px 4px",
+              cursor: "help",
+              fontWeight: 600,
+              border: `1px ${hasMultipleLabels ? "dashed" : "solid"} ${fg}55`,
+              display: "inline",
+            }}
+          >
+            {text.slice(ent.start, ent.end)}
+          </mark>
+          {hasMultipleLabels && (
+            <span
+              style={{
+                backgroundColor: "#F3E5F5",
+                color: "#6A1B9A",
+                border: "1px solid #CE93D8",
+                borderRadius: 8,
+                fontSize: 10,
+                lineHeight: 1,
+                padding: "2px 5px",
+                fontWeight: 700,
+              }}
+            >
+              {ent.labels.join(" / ")}
+            </span>
+          )}
+        </span>
+      </Tooltip>,
+    );
+    cursor = ent.end;
+  }
+  if (cursor < text.length) {
+    nodes.push(<span key={`p-end`}>{text.slice(cursor)}</span>);
+  }
+  return nodes;
+}
+
+const PROVENANCE_COLORS: Record<ProvenanceStage, { bg: string; fg: string }> = {
+  ner: { bg: "#E3F2FD", fg: "#0D47A1" },
+  post_processing_modified: { bg: "#FFF8E1", fg: "#E65100" },
+  post_processing_added: { bg: "#E8F5E9", fg: "#1B5E20" },
+  suppressed: { bg: "#FFEBEE", fg: "#B71C1C" },
+};
+
+function provenanceLabel(stage: ProvenanceStage): string {
+  if (stage === "ner") return "NER";
+  if (stage === "post_processing_modified") return "Pipeline modified";
+  if (stage === "post_processing_added") return "Pipeline added";
+  return "Suppressed";
+}
+
+function renderProvenanceAnnotatedText(text: string, entities: PipelineEntity[]) {
+  const sorted = [...entities]
+    .filter((e) => e.start >= 0 && e.end <= text.length && e.start < e.end)
+    .sort((a, b) => a.start - b.start);
   const nodes: JSX.Element[] = [];
   let cursor = 0;
   for (const ent of sorted) {
@@ -189,9 +313,11 @@ function renderAnnotatedText(text: string, entities: DryRunEntity[]) {
     if (ent.start > cursor) {
       nodes.push(<span key={`p-${cursor}`}>{text.slice(cursor, ent.start)}</span>);
     }
-    const { bg, fg } = labelColor(ent.label);
+    const stage = ent._provenance_stage;
+    const { bg, fg } = PROVENANCE_COLORS[stage];
+    const tip = `${provenanceLabel(stage)} - ${ent.label}${ent._provenance_detail ? ` (${ent._provenance_detail})` : ""}`;
     nodes.push(
-      <Tooltip key={`e-${ent.start}`} title={ent.label} arrow placement="top">
+      <Tooltip key={`e-${ent.start}-${ent.end}`} title={tip} arrow placement="top">
         <mark style={{ backgroundColor: bg, color: fg, borderRadius: 3, padding: "1px 4px", cursor: "help", fontWeight: 600, border: `1px solid ${fg}55`, display: "inline" }}>
           {text.slice(ent.start, ent.end)}
         </mark>
@@ -200,7 +326,7 @@ function renderAnnotatedText(text: string, entities: DryRunEntity[]) {
     cursor = ent.end;
   }
   if (cursor < text.length) {
-    nodes.push(<span key={`p-end`}>{text.slice(cursor)}</span>);
+    nodes.push(<span key="p-end">{text.slice(cursor)}</span>);
   }
   return nodes;
 }
@@ -224,7 +350,9 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
   const [selectedDryRun, setSelectedDryRun] = useState<Record<string, DryRunEncounterRow>>({});
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunRunning, setDryRunRunning] = useState(false);
+  const [dryRunMode, setDryRunMode] = useState<DryRunMode>("ner_only");
   const [dryRunResults, setDryRunResults] = useState<DryRunResultRow[]>([]);
+  const [pipelineTraceResults, setPipelineTraceResults] = useState<PipelineTraceResultRow[]>([]);
   const [dryRunDialogOpen, setDryRunDialogOpen] = useState(false);
 
   const doneJob = latestJob?.status === "done" ? latestJob : null;
@@ -341,6 +469,21 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       ).sort(),
     [dryRunResults],
   );
+  const pipelineStageCounts = useMemo(() => {
+    const counts: Record<ProvenanceStage, number> = {
+      ner: 0,
+      post_processing_modified: 0,
+      post_processing_added: 0,
+      suppressed: 0,
+    };
+    for (const row of pipelineTraceResults) {
+      for (const ent of row.final_entities) {
+        counts[ent._provenance_stage] += 1;
+      }
+      counts.suppressed += row.suppressed_entities.length;
+    }
+    return counts;
+  }, [pipelineTraceResults]);
 
   const canaryPerLabelRows = useMemo(() => {
     const rows = goldJob?.metrics?.per_label ?? [];
@@ -459,6 +602,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       setDryRunRows(rows);
       setSelectedDryRun({});
       setDryRunResults([]);
+      setPipelineTraceResults([]);
       if (rows.length > 0) setDryRunDialogOpen(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not search encounters.");
@@ -473,7 +617,8 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     setDryRunRunning(true);
     setError(null);
     try {
-      const res = await fetch(`/api/model-registry/versions/${selectedVersion}/canary/dry-run`, {
+      const endpoint = dryRunMode === "full_pipeline" ? "pipeline-trace" : "dry-run";
+      const res = await fetch(`/api/model-registry/versions/${selectedVersion}/canary/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -486,14 +631,20 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
-      setDryRunResults(Array.isArray(data.encounters) ? data.encounters : []);
+      if (!res.ok) throw new Error(detailToString(data.detail) || `Failed (${res.status})`);
+      if (dryRunMode === "full_pipeline") {
+        setPipelineTraceResults(Array.isArray(data.encounters) ? data.encounters : []);
+        setDryRunResults([]);
+      } else {
+        setDryRunResults(Array.isArray(data.encounters) ? data.encounters : []);
+        setPipelineTraceResults([]);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not run dry run.");
     } finally {
       setDryRunRunning(false);
     }
-  }, [selectedDryRun, selectedVersion]);
+  }, [dryRunMode, selectedDryRun, selectedVersion]);
 
   const promote = useCallback(async (version: string, force = false) => {
     setBusyAction(`promote:${version}`);
@@ -715,23 +866,40 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
 
           {/* Selection summary + run button */}
           {Object.keys(selectedDryRun).length > 0 && (
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "center" }}>
               <Typography variant="body2">
                 {Object.keys(selectedDryRun).length} encounter{Object.keys(selectedDryRun).length !== 1 ? "s" : ""} selected
               </Typography>
               <Button size="small" onClick={() => setDryRunDialogOpen(true)}>Change</Button>
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel id="dry-run-mode-label">Preview mode</InputLabel>
+                <Select
+                  labelId="dry-run-mode-label"
+                  value={dryRunMode}
+                  label="Preview mode"
+                  onChange={(e) => setDryRunMode(e.target.value as DryRunMode)}
+                  disabled={dryRunRunning}
+                >
+                  <MenuItem value="ner_only">NER only</MenuItem>
+                  <MenuItem value="full_pipeline">Full pipeline trace</MenuItem>
+                </Select>
+              </FormControl>
               <Button
                 variant="contained"
                 size="small"
                 onClick={() => void runDryRun()}
                 disabled={dryRunRunning || !selectedVersion}
               >
-                {dryRunRunning ? <CircularProgress aria-label="Loading" size={14} /> : "Run dry preview"}
+                {dryRunRunning
+                  ? <CircularProgress aria-label="Loading" size={14} />
+                  : dryRunMode === "full_pipeline"
+                    ? "Run full pipeline"
+                    : "Run NER preview"}
               </Button>
             </Stack>
           )}
 
-          {dryRunResults.length > 0 && (
+          {dryRunMode === "ner_only" && dryRunResults.length > 0 && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {/* Legend */}
               {dryRunAllLabels.length > 0 && (
@@ -825,6 +993,163 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                           );
                         })}
                       </Box>
+                    )}
+                  </Paper>
+                );
+              })}
+            </Box>
+          )}
+          {dryRunMode === "full_pipeline" && pipelineTraceResults.length > 0 && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mr: 0.25 }}>
+                  Stage tags:
+                </Typography>
+                {(Object.keys(PROVENANCE_COLORS) as ProvenanceStage[]).map((stage) => {
+                  const { bg, fg } = PROVENANCE_COLORS[stage];
+                  return (
+                    <Box
+                      key={stage}
+                      sx={{ backgroundColor: bg, color: fg, border: `1px solid ${fg}55`, borderRadius: 1, px: 0.75, py: 0.25, fontSize: 11, fontWeight: 600 }}
+                    >
+                      {provenanceLabel(stage)} ({pipelineStageCounts[stage]})
+                    </Box>
+                  );
+                })}
+              </Box>
+              {pipelineTraceResults.map((row) => {
+                const originalRow = selectedDryRun[row.encounter_id];
+                const text = originalRow?.text ?? "";
+                const terminologyResolved = row.final_entities.filter((e) => !!e.concept_id).length;
+                const stageCounts = row.final_entities.reduce<Record<string, number>>((acc, ent) => {
+                  const key = ent._provenance_stage;
+                  acc[key] = (acc[key] ?? 0) + 1;
+                  return acc;
+                }, {});
+                return (
+                  <Paper key={row.encounter_id} variant="outlined" sx={{ p: 1.5 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                      <Box sx={{ display: "flex", gap: 1, alignItems: "baseline", flexWrap: "wrap" }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: "monospace", fontSize: 11 }}>
+                          {row.encounter_id.slice(0, 8)}&hellip;
+                        </Typography>
+                        {row.encounter_date && (
+                          <Typography variant="caption" color="text.secondary">{row.encounter_date}</Typography>
+                        )}
+                        {row.patient_id && (
+                          <Typography variant="caption" color="text.secondary">Patient {row.patient_id}</Typography>
+                        )}
+                      </Box>
+                      <Stack direction="row" spacing={0.5}>
+                        <Chip
+                          size="small"
+                          color="info"
+                          label={`${row.final_entities.length} final entities`}
+                        />
+                        <Chip
+                          size="small"
+                          color="success"
+                          label={`${terminologyResolved} SNOMED resolved`}
+                        />
+                      </Stack>
+                    </Box>
+
+                    {row.final_entities.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
+                        No entities remained after pipeline processing.
+                      </Typography>
+                    ) : text ? (
+                      <Typography
+                        component="p"
+                        variant="body2"
+                        sx={{ lineHeight: 2, fontFamily: "monospace", fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                      >
+                        {renderProvenanceAnnotatedText(text, row.final_entities)}
+                      </Typography>
+                    ) : (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {row.final_entities.map((ent, idx) => {
+                          const { bg, fg } = PROVENANCE_COLORS[ent._provenance_stage];
+                          return (
+                            <Chip
+                              key={`${row.encounter_id}-${idx}`}
+                              size="small"
+                              label={`${ent.text} (${ent.label})`}
+                              sx={{ bgcolor: bg, color: fg }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    )}
+
+                    <Box sx={{ mt: 1.25, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {(Object.keys(stageCounts) as ProvenanceStage[]).map((stage) => {
+                        const { bg, fg } = PROVENANCE_COLORS[stage];
+                        return (
+                          <Box
+                            key={stage}
+                            sx={{ backgroundColor: bg, color: fg, border: `1px solid ${fg}55`, borderRadius: 1, px: 0.75, py: 0.25, fontSize: 11 }}
+                          >
+                            {stageCounts[stage]} {provenanceLabel(stage)}
+                          </Box>
+                        );
+                      })}
+                    </Box>
+
+                    {row.suppressed_entities.length > 0 && (
+                      <Alert severity="warning" sx={{ mt: 1.25 }}>
+                        <Typography variant="caption" sx={{ display: "block", mb: 0.5 }}>
+                          Suppressed by pipeline ({row.suppressed_entities.length}):
+                        </Typography>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {row.suppressed_entities.map((ent, idx) => (
+                            <Chip
+                              key={`${row.encounter_id}-supp-${idx}`}
+                              size="small"
+                              label={`${ent.text} (${ent.label})`}
+                              color="error"
+                              variant="outlined"
+                            />
+                          ))}
+                        </Box>
+                      </Alert>
+                    )}
+
+                    {row.layer_trace.length > 0 && (
+                      <Accordion sx={{ mt: 1.25 }} disableGutters>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            Stage-by-stage pipeline trace
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Stage</TableCell>
+                                <TableCell align="right">Added</TableCell>
+                                <TableCell align="right">Removed</TableCell>
+                                <TableCell align="right">Modified</TableCell>
+                                <TableCell align="right">Time (ms)</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {row.layer_trace.map((step) => {
+                                const hasChanges = step.added_count > 0 || step.removed_count > 0 || step.updated_count > 0;
+                                return (
+                                  <TableRow key={`${row.encounter_id}-${step.layer_id}`} sx={hasChanges ? { backgroundColor: "action.hover" } : undefined}>
+                                    <TableCell>{step.name || step.layer_id}</TableCell>
+                                    <TableCell align="right">{step.added_count}</TableCell>
+                                    <TableCell align="right">{step.removed_count}</TableCell>
+                                    <TableCell align="right">{step.updated_count}</TableCell>
+                                    <TableCell align="right">{step.duration_ms}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </AccordionDetails>
+                      </Accordion>
                     )}
                   </Paper>
                 );
