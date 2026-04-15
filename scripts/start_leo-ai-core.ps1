@@ -179,6 +179,11 @@ if ($kvUrl) {
 } else {
     Write-Host "  [kv]   AZURE_KEYVAULT_URL not set - KV secret loading disabled." -ForegroundColor Yellow
 }
+if (-not [System.Environment]::GetEnvironmentVariable("SESSION_KEY_NAMESPACE", "Process")) {
+    [System.Environment]::SetEnvironmentVariable("SESSION_KEY_NAMESPACE", "dev", "Process")
+}
+$sessionKeyNamespace = [System.Environment]::GetEnvironmentVariable("SESSION_KEY_NAMESPACE", "Process")
+Write-Host "  [auth] Session key namespace: $sessionKeyNamespace" -ForegroundColor DarkGray
 $vectorDevice = [System.Environment]::GetEnvironmentVariable("VECTOR_DEVICE", "Process")
 if (-not $vectorDevice) { $vectorDevice = "auto" }
 $mpsMin = [System.Environment]::GetEnvironmentVariable("MPS_MIN_MACOS_MAJOR", "Process")

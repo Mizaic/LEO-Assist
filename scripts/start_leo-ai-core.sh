@@ -171,6 +171,10 @@ if [[ -n "${AZURE_KEYVAULT_URL:-}" ]]; then
 else
   echo "  [kv]   AZURE_KEYVAULT_URL not set - KV secret loading disabled."
 fi
+if [[ -z "${SESSION_KEY_NAMESPACE:-}" ]]; then
+  export SESSION_KEY_NAMESPACE="dev"
+fi
+echo "  [auth] Session key namespace: ${SESSION_KEY_NAMESPACE}"
 echo "  [accel] VECTOR_DEVICE=${VECTOR_DEVICE:-auto}  (MPS min macOS ${MPS_MIN_MACOS_MAJOR:-26})"
 echo "  [accel] TRAINING_ACCELERATOR=${TRAINING_ACCELERATOR:-auto}  TRAINING_MPS_FAIL_FAST=${TRAINING_MPS_FAIL_FAST:-true}"
 echo "  [accel] MODEL_INFERENCE_ACCELERATOR=${MODEL_INFERENCE_ACCELERATOR:-auto}  MODEL_INFERENCE_MPS_FAIL_FAST=${MODEL_INFERENCE_MPS_FAIL_FAST:-true}"

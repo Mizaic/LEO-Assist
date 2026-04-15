@@ -15,6 +15,11 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
@@ -220,6 +225,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunRunning, setDryRunRunning] = useState(false);
   const [dryRunResults, setDryRunResults] = useState<DryRunResultRow[]>([]);
+  const [dryRunDialogOpen, setDryRunDialogOpen] = useState(false);
 
   const doneJob = latestJob?.status === "done" ? latestJob : null;
   const targetVersion = doneJob?.model_version ?? null;
@@ -453,6 +459,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       setDryRunRows(rows);
       setSelectedDryRun({});
       setDryRunResults([]);
+      if (rows.length > 0) setDryRunDialogOpen(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not search encounters.");
     } finally {
@@ -678,8 +685,10 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       <Card variant="outlined">
         <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.25 }}>
           <Typography variant="body2" color="text.secondary">
-            Search encounter text, select one or more records, then preview what this model would extract.
+            Search for real patient encounters, read the full text, select the ones you want to test, then run the model.
           </Typography>
+
+          {/* Search row */}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
             <TextField
               size="small"
@@ -698,88 +707,28 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
               variant="outlined"
               onClick={() => void searchDryRunEncounters()}
               disabled={dryRunLoading}
+              sx={{ whiteSpace: "nowrap" }}
             >
               {dryRunLoading ? <CircularProgress aria-label="Loading" size={16} /> : "Search"}
             </Button>
-            <Button
-              variant="contained"
-              onClick={() => void runDryRun()}
-              disabled={dryRunRunning || !selectedVersion || Object.keys(selectedDryRun).length === 0}
-            >
-              {dryRunRunning ? <CircularProgress aria-label="Loading" size={16} /> : "Run dry preview"}
-            </Button>
           </Stack>
 
-          {dryRunRows.length > 0 && (
-            <Box sx={{ maxHeight: 220, overflow: "auto", border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        aria-label="Select all encounters"
-                        checked={Object.keys(selectedDryRun).length > 0 && Object.keys(selectedDryRun).length === dryRunRows.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            const next: Record<string, DryRunEncounterRow> = {};
-                            dryRunRows.forEach((row) => { next[row.encounter_id] = row; });
-                            setSelectedDryRun(next);
-                          } else {
-                            setSelectedDryRun({});
-                          }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>Encounter / Date</TableCell>
-                    <TableCell>Text preview</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {dryRunRows.map((row) => (
-                    <TableRow
-                      key={row.encounter_id}
-                      hover
-                      onClick={() => setSelectedDryRun((prev) => {
-                        const next = { ...prev };
-                        if (next[row.encounter_id]) { delete next[row.encounter_id]; } else { next[row.encounter_id] = row; }
-                        return next;
-                      })}
-                      sx={{ cursor: "pointer" }}
-                    >
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          aria-label={`Select encounter ${row.encounter_id}`}
-                          checked={!!selectedDryRun[row.encounter_id]}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={() => {
-                            setSelectedDryRun((prev) => {
-                              const next = { ...prev };
-                              if (next[row.encounter_id]) {
-                                delete next[row.encounter_id];
-                              } else {
-                                next[row.encounter_id] = row;
-                              }
-                              return next;
-                            });
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        <Typography variant="caption" sx={{ fontFamily: "monospace", display: "block" }}>
-                          {row.encounter_id.slice(0, 8)}&hellip;
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {row.encounter_date ?? "—"} &middot; {row.patient_id}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                        {(row.text ?? "").slice(0, 160)}{(row.text ?? "").length > 160 ? "..." : ""}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
+          {/* Selection summary + run button */}
+          {Object.keys(selectedDryRun).length > 0 && (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2">
+                {Object.keys(selectedDryRun).length} encounter{Object.keys(selectedDryRun).length !== 1 ? "s" : ""} selected
+              </Typography>
+              <Button size="small" onClick={() => setDryRunDialogOpen(true)}>Change</Button>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => void runDryRun()}
+                disabled={dryRunRunning || !selectedVersion}
+              >
+                {dryRunRunning ? <CircularProgress aria-label="Loading" size={14} /> : "Run dry preview"}
+              </Button>
+            </Stack>
           )}
 
           {dryRunResults.length > 0 && (
@@ -884,6 +833,117 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
           )}
         </Box>
       </Card>
+
+      {/* Encounter picker dialog */}
+      <Dialog
+        open={dryRunDialogOpen}
+        onClose={() => setDryRunDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>Choose encounters to test</span>
+            {dryRunRows.length > 0 && (
+              <Typography variant="caption" color="text.secondary">
+                {Object.keys(selectedDryRun).length} of {dryRunRows.length} selected
+              </Typography>
+            )}
+          </Box>
+          {dryRunQuery && (
+            <Typography variant="caption" color="text.secondary">
+              Results for &ldquo;{dryRunQuery}&rdquo;
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          {dryRunRows.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography color="text.secondary">No results. Search for encounters first.</Typography>
+            </Box>
+          ) : (
+            <Box>
+              {dryRunRows.map((row, idx) => {
+                const selected = !!selectedDryRun[row.encounter_id];
+                const toggleRow = () => setSelectedDryRun((prev) => {
+                  const next = { ...prev };
+                  if (next[row.encounter_id]) { delete next[row.encounter_id]; } else { next[row.encounter_id] = row; }
+                  return next;
+                });
+                return (
+                  <Box key={row.encounter_id}>
+                    {idx > 0 && <Divider />}
+                    <Box
+                      onClick={toggleRow}
+                      sx={{
+                        p: 2,
+                        display: "flex",
+                        gap: 1.5,
+                        alignItems: "flex-start",
+                        cursor: "pointer",
+                        backgroundColor: selected ? "rgba(25, 118, 210, 0.06)" : "transparent",
+                        "&:hover": { backgroundColor: selected ? "rgba(25, 118, 210, 0.10)" : "action.hover" },
+                      }}
+                    >
+                      <Checkbox
+                        checked={selected}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={toggleRow}
+                        sx={{ mt: -0.25 }}
+                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" spacing={1.5} mb={0.75} alignItems="baseline" flexWrap="wrap">
+                          <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+                            {row.encounter_id.slice(0, 8)}&hellip;
+                          </Typography>
+                          {row.encounter_date && (
+                            <Typography variant="caption" color="text.secondary">{row.encounter_date}</Typography>
+                          )}
+                          <Typography variant="caption" color="text.secondary">Patient {row.patient_id}</Typography>
+                        </Stack>
+                        <Typography
+                          variant="body2"
+                          sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.65, color: "text.primary" }}
+                        >
+                          {row.text ?? ""}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 2, py: 1.5 }}>
+          <Button
+            size="small"
+            onClick={() => {
+              if (Object.keys(selectedDryRun).length === dryRunRows.length) {
+                setSelectedDryRun({});
+              } else {
+                const next: Record<string, DryRunEncounterRow> = {};
+                dryRunRows.forEach((r) => { next[r.encounter_id] = r; });
+                setSelectedDryRun(next);
+              }
+            }}
+          >
+            {Object.keys(selectedDryRun).length === dryRunRows.length ? "Deselect all" : "Select all"}
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button onClick={() => setDryRunDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={Object.keys(selectedDryRun).length === 0}
+            onClick={() => setDryRunDialogOpen(false)}
+          >
+            {Object.keys(selectedDryRun).length > 0
+              ? `Confirm (${Object.keys(selectedDryRun).length})`
+              : "Confirm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Section 3 -- Results and decision */}
       <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
