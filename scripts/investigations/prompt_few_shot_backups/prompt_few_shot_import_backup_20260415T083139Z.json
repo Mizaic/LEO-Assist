@@ -1,0 +1,181 @@
+{
+  "created_at_utc": "2026-04-15T08:31:40.043059+00:00",
+  "prompt_count": 25,
+  "prompts": [
+    {
+      "id": "9c1df836-558d-4876-8f2c-a206ced12e7d",
+      "name": "anchor_domain_review",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "e5f1811d-7a79-4bb0-a3bc-878ae4100f48",
+      "name": "coding_check",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 8
+    },
+    {
+      "id": "daa08219-5215-48df-a8dc-c9ca0610a54d",
+      "name": "disambiguation",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "cacc0818-1984-48b1-9f45-386b23f03d3f",
+      "name": "encounter_classify",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "9f848002-507f-47db-9821-1513bfe9ef24",
+      "name": "episode_builder_system",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "7b66a8b7-5463-47d9-9d88-32e5d1f7b859",
+      "name": "episode_builder_task",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "b1c6b231-b708-4940-a800-40a785b20aca",
+      "name": "episode_consolidation_system",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "3e8d3eae-00d6-48e4-ba81-d8b9f664b79b",
+      "name": "episode_consolidation_task",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "ac42c4b2-042a-423a-9178-e53bdee8d8a4",
+      "name": "exclusion_detect",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "7f1cfce5-fb99-4868-9fa9-df355a373314",
+      "name": "extraction_check",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 12
+    },
+    {
+      "id": "bb4c8801-7291-474b-9bc2-e8a4264c1260",
+      "name": "extraction_check",
+      "version": 2,
+      "few_shot_examples": "[]",
+      "max_few_shot": 12
+    },
+    {
+      "id": "339b942a-faba-43dc-86d8-01d4f44efb3c",
+      "name": "guidance_rule_code_verifier",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "b62107ed-4f97-4b76-ad5f-9b86c87d54ca",
+      "name": "guidance_rule_code_verifier",
+      "version": 2,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "9b16c1c8-dec1-4631-bd9c-d8d1605b514a",
+      "name": "guidance_rule_code_verifier_default",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "bba1cbd7-c688-4785-8d1c-9799d2326c3c",
+      "name": "guidance_rule_code_verifier_default",
+      "version": 2,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "96ddfaa3-cfc3-44ee-91e4-55ff7a35649d",
+      "name": "guidance_rule_extraction",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "33a91846-e8af-47ca-8f85-af98a9b542a9",
+      "name": "guidance_rule_extraction",
+      "version": 2,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "750fa74f-3b8d-4766-b597-550f9c7586d5",
+      "name": "guidance_rule_extraction_NG12",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "7ccc28cf-adeb-41bc-aa71-aa6dd36607d2",
+      "name": "guidance_rule_extraction_NG12",
+      "version": 2,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "70c2b05e-b4b0-4e1a-ba10-bede3045f866",
+      "name": "guidance_rule_extraction_default",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "23b33331-db81-436e-977d-b5a25d1a36d6",
+      "name": "guidance_rule_extraction_default",
+      "version": 2,
+      "few_shot_examples": "[]",
+      "max_few_shot": 4
+    },
+    {
+      "id": "a72c90c7-7d3f-414c-a0bc-7cbcde04ab1b",
+      "name": "label_disambiguation",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "31791a1a-bd5b-4daa-9a15-dfd9ec36301a",
+      "name": "label_verification",
+      "version": 2,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    },
+    {
+      "id": "27f7ed6a-3ec2-4e89-bf29-79c58d7ac912",
+      "name": "relation_linking",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 8
+    },
+    {
+      "id": "c0a94fb0-45a3-48f3-96e3-5c3c711cc38e",
+      "name": "verification",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 12
+    }
+  ]
+}
