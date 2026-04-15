@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
 import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -39,6 +39,7 @@ import {
 } from "recharts";
 import { TrainingJob } from "./useConsoleState";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { renderNerSpans, themeForTag, type AnnotatedSpan } from "@/lib/nerAnnotation";
 import { FONT_SIZES } from "@/theme/tokens";
 
 interface EvaluateStageProps {
@@ -217,75 +218,47 @@ function labelColor(label: string): { bg: string; fg: string } {
   return LABEL_COLORS[key] ?? { bg: "#F5F5F5", fg: "#616161" };
 }
 
-function renderAnnotatedText(text: string, entities: DryRunEntity[]) {
+function renderAnnotatedText(text: string, entities: DryRunEntity[]): ReactNode {
   const sorted = [...entities]
     .filter((e) => e.start >= 0 && e.end <= text.length && e.start < e.end)
     .sort((a, b) => a.start - b.start);
-  const grouped = new Map<string, { start: number; end: number; labels: string[] }>();
-  for (const ent of sorted) {
-    const key = `${ent.start}:${ent.end}`;
-    const current = grouped.get(key) ?? { start: ent.start, end: ent.end, labels: [] };
-    if (!current.labels.includes(ent.label)) current.labels.push(ent.label);
-    grouped.set(key, current);
+  if (!sorted.length) {
+    return text;
   }
-  const merged = Array.from(grouped.values()).sort((a, b) => a.start - b.start);
-  const nodes: JSX.Element[] = [];
-  let cursor = 0;
-  for (const ent of merged) {
-    if (ent.start < cursor) continue;
-    if (ent.start > cursor) {
-      nodes.push(<span key={`p-${cursor}`}>{text.slice(cursor, ent.start)}</span>);
+
+  type RawSpan = { start: number; end: number; label: string };
+  const raw: RawSpan[] = sorted.map((ent) => ({
+    start: ent.start,
+    end: ent.end,
+    label: ent.label,
+  }));
+
+  const merged: AnnotatedSpan[] = [];
+  let i = 0;
+  while (i < raw.length) {
+    let unionStart = raw[i].start;
+    let unionEnd = raw[i].end;
+    const labelToChip = new Map<string, ReturnType<typeof themeForTag>>();
+    labelToChip.set(raw[i].label, { ...themeForTag(raw[i].label), label: raw[i].label });
+
+    let j = i + 1;
+    while (j < raw.length && raw[j].start < unionEnd) {
+      unionEnd = Math.max(unionEnd, raw[j].end);
+      if (!labelToChip.has(raw[j].label)) {
+        labelToChip.set(raw[j].label, { ...themeForTag(raw[j].label), label: raw[j].label });
+      }
+      j += 1;
     }
-    const hasMultipleLabels = ent.labels.length > 1;
-    const primaryLabel = ent.labels[0];
-    const { bg, fg } = labelColor(primaryLabel);
-    nodes.push(
-      <Tooltip
-        key={`e-${ent.start}-${ent.end}`}
-        title={ent.labels.join(" | ")}
-        arrow
-        placement="top"
-      >
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <mark
-            style={{
-              backgroundColor: bg,
-              color: fg,
-              borderRadius: 3,
-              padding: "1px 4px",
-              cursor: "help",
-              fontWeight: 600,
-              border: `1px ${hasMultipleLabels ? "dashed" : "solid"} ${fg}55`,
-              display: "inline",
-            }}
-          >
-            {text.slice(ent.start, ent.end)}
-          </mark>
-          {hasMultipleLabels && (
-            <span
-              style={{
-                backgroundColor: "#F3E5F5",
-                color: "#6A1B9A",
-                border: "1px solid #CE93D8",
-                borderRadius: 8,
-                fontSize: 10,
-                lineHeight: 1,
-                padding: "2px 5px",
-                fontWeight: 700,
-              }}
-            >
-              {ent.labels.join(" / ")}
-            </span>
-          )}
-        </span>
-      </Tooltip>,
-    );
-    cursor = ent.end;
+
+    merged.push({
+      start: unionStart,
+      end: unionEnd,
+      chips: Array.from(labelToChip.values()),
+    });
+    i = j;
   }
-  if (cursor < text.length) {
-    nodes.push(<span key={`p-end`}>{text.slice(cursor)}</span>);
-  }
-  return nodes;
+
+  return renderNerSpans(text, merged);
 }
 
 const PROVENANCE_COLORS: Record<ProvenanceStage, { bg: string; fg: string }> = {
