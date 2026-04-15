@@ -166,9 +166,7 @@ async def proxy_analytics(
         full_path = f"{full_path}?{request.url.query}"
     # Mission Control and other analytics routes run heavy Neo4j aggregations;
     # default 60s often trips before the graph finishes on large orgs.
-    analytics_timeout = float(
-        os.getenv("PROXY_ANALYTICS_TIMEOUT_S", "180") or "180"
-    )
+    analytics_timeout = float(os.getenv("PROXY_ANALYTICS_TIMEOUT_S", "180") or "180")
     try:
         resp = await _proxy_request(
             request.method,

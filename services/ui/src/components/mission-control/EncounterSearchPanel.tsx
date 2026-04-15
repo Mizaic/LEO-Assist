@@ -21,13 +21,15 @@ import ScoreHistogram, { type BucketFilter } from "./ScoreHistogram";
 // Dedup similarity levels (index 0 = keep most variation, last = remove most aggressively)
 // Covers sub-1% differences (0.999) down to ~20% differences (0.80)
 const DEDUP_LEVELS = [0.999, 0.99, 0.95, 0.90, 0.85, 0.80] as const;
+// Labels describe what gets hidden, not the raw similarity score.
+// The final two positions are flagged as aggressive to warn reviewers.
 const DEDUP_LABELS = [
-  "Almost identical (<0.1% different)",
-  "Near-identical (<1% different)",
-  "Very similar (<5% different)",
-  "Quite similar (<10% different)",
-  "Similar (<15% different)",
-  "Broadly similar (<20% different)",
+  "Exact copies only — safest",
+  "Near-exact copies (tiny edits)",
+  "Same template, different patient details",
+  "Same structure, some variation — use with care",
+  "Similar notes — may hide distinct encounters",
+  "Aggressive — high risk of missing relevant notes",
 ];
 
 export interface EncounterSearchState {
@@ -61,6 +63,7 @@ interface Props {
   onSearch: () => void;
   onShow3D: () => void;
   onBucketFilter?: (filter: BucketFilter | null) => void;
+  onNearDuplicateThresholdCommit?: () => void;
 }
 
 function dedupIndexFromThreshold(threshold: string): number {
@@ -189,6 +192,7 @@ export default function EncounterSearchPanel({
   onSearch,
   onShow3D,
   onBucketFilter,
+  onNearDuplicateThresholdCommit,
 }: Props) {
   const minScore = Math.round(Number(state.minCombinedScore) * 100) || 0;
   const minVectorScore = Math.round(Number(state.minVectorScore) * 100) || 0;
@@ -350,11 +354,18 @@ export default function EncounterSearchPanel({
                     const idx = Array.isArray(v) ? v[0] : v;
                     onNearDuplicateThresholdChange(String(DEDUP_LEVELS[idx] ?? 0.90));
                   }}
+                  onChangeCommitted={() => onNearDuplicateThresholdCommit?.()}
                   sx={{ py: 0.5 }}
                 />
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography variant="caption" color="text.disabled">Keep more variety</Typography>
-                  <Typography variant="caption" color="primary.main" fontWeight={600}>{dedupLabel}</Typography>
+                  <Typography
+                    variant="caption"
+                    fontWeight={600}
+                    color={dedupIdx >= 4 ? "error.main" : dedupIdx === 3 ? "warning.main" : "primary.main"}
+                  >
+                    {dedupLabel}
+                  </Typography>
                   <Typography variant="caption" color="text.disabled">Remove more</Typography>
                 </Stack>
               </Box>

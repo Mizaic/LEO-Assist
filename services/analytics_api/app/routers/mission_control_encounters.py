@@ -6,6 +6,7 @@ Provides org-scoped encounter listing, KPI summary, and hybrid search
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 import logging
@@ -108,6 +109,31 @@ def _safe_iso_date(value: str | None) -> datetime | None:
         return datetime.fromisoformat(value[:10])
     except Exception:
         return None
+
+
+def _run_fulltext_leg(
+    client: Any, cypher: str, params: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Execute the fulltext search leg; returns empty list on failure."""
+    try:
+        return client.run(cypher, **params)
+    except Exception:
+        logger.warning("Encounter fulltext leg unavailable", exc_info=True)
+        return []
+
+
+def _run_vector_leg(
+    client: Any, text_q: str, cypher: str, params: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Embed query then execute vector search leg; returns empty list on failure."""
+    try:
+        query_vector = _try_embed_query(text_q)
+        if not query_vector:
+            return []
+        return client.run(cypher, **{**params, "query_vector": query_vector})
+    except Exception:
+        logger.warning("Encounter vector leg unavailable", exc_info=True)
+        return []
 
 
 def _try_embed_query(query: str) -> Optional[list[float]]:
@@ -357,7 +383,7 @@ async def get_mission_control_encounters(
     patient_id: Optional[str] = Query(None, max_length=_MAX_PATIENT_ID_LEN),
     q: Optional[str] = Query(None, min_length=1),
     page: int = Query(1, ge=1),
-    page_size: int = Query(25, ge=1, le=100),
+    page_size: int = Query(25, ge=1, le=1200),
     max_results: int = Query(1200, ge=100, le=2000),
     min_combined_score: Optional[float] = Query(0.2, ge=0.0, le=1.0),
     min_vector_score: Optional[float] = Query(None, ge=0.0, le=1.0),
@@ -431,107 +457,107 @@ async def get_mission_control_encounters(
             or query_ctx.original_query
         )
 
-        try:
-            fulltext_q = (
-                "CALL db.index.fulltext.queryNodes('encounter_text_index', $q_text, {limit: $limit}) "
-                "YIELD node, score "
-                "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(node) "
-                "WITH p, node AS e, score "
-                "WHERE trim(coalesce(e.text, '')) <> '' "
+        fulltext_q = (
+            "CALL db.index.fulltext.queryNodes('encounter_text_index', $q_text, {limit: $limit}) "
+            "YIELD node, score "
+            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(node) "
+            "WITH p, node AS e, score "
+            "WHERE trim(coalesce(e.text, '')) <> '' "
+        )
+        fulltext_params = {
+            "q_text": query_ctx.fulltext_query or text_q,
+            "limit": min(max(max_results, page_size * 3), 1500),
+        }
+        where_chunks: list[str] = []
+        if "org" in params:
+            where_chunks.append(
+                "EXISTS { MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+                "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(:Organization {id: $org}) "
+                "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(:Organization {id: $org}) }"
             )
-            fulltext_params = {
-                "q_text": query_ctx.fulltext_query or text_q,
-                "limit": min(max(max_results, page_size * 3), 1500),
-            }
-            where_chunks: list[str] = []
-            if "org" in params:
-                where_chunks.append(
-                    "EXISTS { MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-                    "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(:Organization {id: $org}) "
-                    "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(:Organization {id: $org}) }"
-                )
-                fulltext_params["org"] = params["org"]
-            elif not scope.is_admin:
-                # Scope fallback handled by post-filter when non-admin/no explicit org.
-                pass
-            if date_from:
-                where_chunks.append("toString(e.date) >= $date_from")
-                fulltext_params["date_from"] = date_from
-            if date_to:
-                where_chunks.append("toString(e.date) <= $date_to")
-                fulltext_params["date_to"] = date_to
-            if pid:
-                where_chunks.append("toString(p.id) = $patient_id")
-                fulltext_params["patient_id"] = pid
-            if where_chunks:
-                fulltext_q += " AND " + " AND ".join(where_chunks) + " "
-            fulltext_q += (
-                "OPTIONAL MATCH (e)-[r:DOCUMENTS]->() "
-                "WITH p, e, score, count(r) AS coded_count "
-                "RETURN toString(e.id) AS encounter_id, "
-                "       toString(p.id) AS patient_id, "
-                "       toString(e.date) AS encounter_date, "
-                "       e.text AS text, "
-                "       e.flags AS flags, "
-                "       coded_count, "
-                "       score AS fulltext_score "
-                "ORDER BY fulltext_score DESC "
-                "LIMIT $limit"
+            fulltext_params["org"] = params["org"]
+        elif not scope.is_admin:
+            pass
+        if date_from:
+            where_chunks.append("toString(e.date) >= $date_from")
+            fulltext_params["date_from"] = date_from
+        if date_to:
+            where_chunks.append("toString(e.date) <= $date_to")
+            fulltext_params["date_to"] = date_to
+        if pid:
+            where_chunks.append("toString(p.id) = $patient_id")
+            fulltext_params["patient_id"] = pid
+        if where_chunks:
+            fulltext_q += " AND " + " AND ".join(where_chunks) + " "
+        fulltext_q += (
+            "OPTIONAL MATCH (e)-[r:DOCUMENTS]->() "
+            "WITH p, e, score, count(r) AS coded_count "
+            "RETURN toString(e.id) AS encounter_id, "
+            "       toString(p.id) AS patient_id, "
+            "       toString(e.date) AS encounter_date, "
+            "       e.text AS text, "
+            "       e.flags AS flags, "
+            "       coded_count, "
+            "       score AS fulltext_score "
+            "ORDER BY fulltext_score DESC "
+            "LIMIT $limit"
+        )
+        # Build vector query template (query_vector injected at run time)
+        vector_q = (
+            "CALL db.index.vector.queryNodes('encounter_vector_index', $k, $query_vector) "
+            "YIELD node, score "
+            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(node) "
+            "WITH p, node AS e, score "
+            "WHERE trim(coalesce(e.text, '')) <> '' "
+        )
+        vector_params: dict[str, Any] = {
+            "k": min(max(max_results, page_size * 4), 2500),
+            "limit": min(max(max_results, page_size * 3), 1500),
+        }
+        vec_where: list[str] = []
+        if "org" in params:
+            vec_where.append(
+                "EXISTS { MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+                "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(:Organization {id: $org}) "
+                "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(:Organization {id: $org}) }"
             )
-            fulltext_rows = client.run(fulltext_q, **fulltext_params)
-        except Exception:
-            logger.warning("Encounter fulltext leg unavailable", exc_info=True)
+            vector_params["org"] = params["org"]
+        if date_from:
+            vec_where.append("toString(e.date) >= $date_from")
+            vector_params["date_from"] = date_from
+        if date_to:
+            vec_where.append("toString(e.date) <= $date_to")
+            vector_params["date_to"] = date_to
+        if pid:
+            vec_where.append("toString(p.id) = $patient_id")
+            vector_params["patient_id"] = pid
+        if vec_where:
+            vector_q += " AND " + " AND ".join(vec_where) + " "
+        vector_q += (
+            "OPTIONAL MATCH (e)-[r:DOCUMENTS]->() "
+            "WITH p, e, score, count(r) AS coded_count "
+            "RETURN toString(e.id) AS encounter_id, "
+            "       toString(p.id) AS patient_id, "
+            "       toString(e.date) AS encounter_date, "
+            "       e.text AS text, "
+            "       e.flags AS flags, "
+            "       coded_count, "
+            "       score AS vector_score "
+            "ORDER BY vector_score DESC "
+            "LIMIT $limit"
+        )
 
-        try:
-            query_vector = _try_embed_query(text_q)
-            if query_vector:
-                vector_q = (
-                    "CALL db.index.vector.queryNodes('encounter_vector_index', $k, $query_vector) "
-                    "YIELD node, score "
-                    "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(node) "
-                    "WITH p, node AS e, score "
-                    "WHERE trim(coalesce(e.text, '')) <> '' "
-                )
-                vector_params = {
-                    "k": min(max(max_results, page_size * 4), 2500),
-                    "query_vector": query_vector,
-                    "limit": min(max(max_results, page_size * 3), 1500),
-                }
-                where_chunks = []
-                if "org" in params:
-                    where_chunks.append(
-                        "EXISTS { MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-                        "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(:Organization {id: $org}) "
-                        "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(:Organization {id: $org}) }"
-                    )
-                    vector_params["org"] = params["org"]
-                if date_from:
-                    where_chunks.append("toString(e.date) >= $date_from")
-                    vector_params["date_from"] = date_from
-                if date_to:
-                    where_chunks.append("toString(e.date) <= $date_to")
-                    vector_params["date_to"] = date_to
-                if pid:
-                    where_chunks.append("toString(p.id) = $patient_id")
-                    vector_params["patient_id"] = pid
-                if where_chunks:
-                    vector_q += " AND " + " AND ".join(where_chunks) + " "
-                vector_q += (
-                    "OPTIONAL MATCH (e)-[r:DOCUMENTS]->() "
-                    "WITH p, e, score, count(r) AS coded_count "
-                    "RETURN toString(e.id) AS encounter_id, "
-                    "       toString(p.id) AS patient_id, "
-                    "       toString(e.date) AS encounter_date, "
-                    "       e.text AS text, "
-                    "       e.flags AS flags, "
-                    "       coded_count, "
-                    "       score AS vector_score "
-                    "ORDER BY vector_score DESC "
-                    "LIMIT $limit"
-                )
-                vector_rows = client.run(vector_q, **vector_params)
-        except Exception:
-            logger.warning("Encounter vector leg unavailable", exc_info=True)
+        # Run fulltext and vector (embed + query) concurrently.
+        client2 = type(client)()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            ft_fut = pool.submit(
+                _run_fulltext_leg, client, fulltext_q, fulltext_params
+            )
+            vec_fut = pool.submit(
+                _run_vector_leg, client2, text_q, vector_q, vector_params
+            )
+            fulltext_rows = ft_fut.result()
+            vector_rows = vec_fut.result()
 
         merged: dict[str, dict[str, Any]] = {}
         for row in fulltext_rows:

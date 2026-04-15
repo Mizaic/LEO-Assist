@@ -119,7 +119,7 @@ export interface NudgeSuggestion {
 }
 
 export function deriveNudge(state: ConsoleState): NudgeSuggestion | null {
-  const { latestJob, runningJob, goldStats, candidateQueueTotal } = state;
+  const { latestJob, runningJob, goldStats, candidateQueueTotal, promotedVersion } = state;
 
   if (runningJob) {
     const phase = runningJob.phase ?? "running";
@@ -143,12 +143,13 @@ export function deriveNudge(state: ConsoleState): NudgeSuggestion | null {
   if (
     latestJob?.status === "done" &&
     latestJob?.passed_gates === true &&
-    !latestJob?.model_version
+    !!latestJob?.model_version &&
+    promotedVersion !== latestJob.model_version
   ) {
     return {
-      message: `Model passed all evaluation gates. Review metrics and promote it to live.`,
-      actionLabel: "Review and promote",
-      actionStage: "DEPLOY",
+      message: "Model passed training checks. Run the safety test and decide whether to make it live.",
+      actionLabel: "Open evaluation",
+      actionStage: "EVALUATE",
       severity: "info",
     };
   }
@@ -205,14 +206,16 @@ export function deriveStageHealth(state: ConsoleState): Record<string, { status:
       : latestJob?.status === "done"
       ? { status: "healthy", reason: `Last job: ${latestJob.model_version ?? "done"}` }
       : { status: "neutral", reason: "No training history" },
-    EVALUATE: latestJob?.passed_gates === false
-      ? { status: "error", reason: "Gate failed" }
-      : latestJob?.passed_gates === true
-      ? { status: "healthy", reason: `F1 ${((latestJob.f1 ?? 0) * 100).toFixed(1)}%` }
-      : { status: "neutral", reason: "Not evaluated" },
+    EVALUATE: latestJob?.status === "done" && latestJob?.passed_gates === false
+      ? { status: "error", reason: "Learning gate failed" }
+      : latestJob?.status === "done" && latestJob?.passed_gates === true && latestJob?.model_version
+      ? promotedVersion === latestJob.model_version
+        ? { status: "healthy", reason: "Latest model is live" }
+        : { status: "warning", reason: "Safety test and release decision pending" }
+      : { status: "neutral", reason: "No evaluation ready" },
     DEPLOY: promotedVersion
       ? { status: "healthy", reason: `Live: ${promotedVersion}` }
-      : { status: "warning", reason: "No promoted model" },
+      : { status: "neutral", reason: "No live model" },
     MONITOR: { status: "healthy", reason: "Monitoring active" },
   };
 }

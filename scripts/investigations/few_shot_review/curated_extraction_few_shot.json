@@ -1,0 +1,371 @@
+{
+  "prompts": [
+    {
+      "name": "extraction",
+      "version": 1,
+      "max_few_shot": 20,
+      "few_shot_examples": [
+        {
+          "id": "gold_0116",
+          "input": "pT3b malignant melanoma right thigh, Breslow thickness 3.7 mm, BRAF positive on initital biopsy.",
+          "output": "[{\"mention_text\": \"biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"malignant melanoma\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Breslow thickness 3.7 mm\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"BRAF positive\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disposition\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"right thigh\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"pT3b\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "body_structure, disorder, disposition, observable_entity, procedure",
+          "core": true
+        },
+        {
+          "id": "gold_0203",
+          "input": "Urology letter. Prostate biopsy histology: benign prostatic hyperplasia, no evidence of malignancy. Gleason score not applicable — benign tissue only. PSA repeat 3.1 ng/mL — within normal range. No evidence of cancer found. Discharged from fast track pathway.",
+          "output": "[{\"mention_text\": \"Prostate biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"benign prostatic hyperplasia\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"malignancy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"PSA\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"cancer\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "disorder, finding, procedure",
+          "core": true
+        },
+        {
+          "id": "gold_0400",
+          "input": "History/symptoms: - Breslow thickness: 0.8mm (rounded from 0.83 mm)- Ulceration: None- Micro-satellite nodules: Absent- TNM8 category: pT1b- Distance to peripheral margin, in situ: 0.7mm- Distance to peripheral margin, invasive: 5mm- Distance to deep margin, invasive: 14mmOther Features- Mitotic activity (mm2): 0- Lymphovascular invasion: absent- Perineural invasion: absent- Clark level: III- Tumour infiltrating lymphocytes: non-brisk- Growth phase: vertical- Regression: Absent- Co-existing benign naevus: Present",
+          "output": "[{\"mention_text\": \"Lymphovascular invasion: absent\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Breslow thickness: 0.8mm\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"TNM8 category: pT1b\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Clark level: III\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Ulceration: None\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Perineural invasion: absent\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Micro-satellite nodules: Absent\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"benign naevus: Present\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "disorder, finding, observable_entity",
+          "core": true
+        },
+        {
+          "id": "gold_0604",
+          "input": "Colonoscopy in Jan '23 following +ve screening FIT showed 8 benign sessile polyps scattered through the large bowel and diverticulae.",
+          "output": "[{\"mention_text\": \"Colonoscopy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"diverticulae\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"morphologic abnormality\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"+ve screening FIT\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"sessile polyps\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"morphologic abnormality\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"benign\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"situation\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "finding, morphologic abnormality, procedure, situation",
+          "core": true
+        },
+        {
+          "id": "gold_0609",
+          "input": "Histology result: right breast core biopsy — benign fibroadenoma. No malignancy identified. Discharged from breast clinic. Reassured. No further follow-up required. Routine mammogram in 3 years as per screening programme.",
+          "output": "[{\"mention_text\": \"right breast core biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"benign fibroadenoma\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"malignancy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Routine mammogram in 3 years as per screening programme\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"hypothetical\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "disorder, procedure",
+          "core": true
+        },
+        {
+          "id": "gold_0176",
+          "input": "Degarelix 240 mg SC injection administered today. Starting androgen deprivation therapy for prostate cancer prior to radiotherapy. PSA to be monitored monthly. Next dose in 28 days. Patient counselled on ADT side effects.",
+          "output": "[{\"mention_text\": \"Degarelix 240 mg SC injection\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"medicinal_product\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"androgen deprivation therapy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"prostate cancer\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"radiotherapy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"hypothetical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"PSA\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"hypothetical\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "disorder, medicinal_product, procedure",
+          "core": true
+        },
+        {
+          "id": "gold_0132",
+          "input": "FH of breast ca - maternal grandmother in her 80's - had chemo and lumpectomy.",
+          "output": "[{\"mention_text\": \"chemo\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"family\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"lumpectomy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"family\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"breast ca\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"family\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "disorder, procedure",
+          "core": true
+        },
+        {
+          "id": "gold_0100",
+          "input": "Problem: Carcinoma of prostate (X78Y6) - Assumed diagnosis, PSA 32; bone scan suggests bony mets R humerus, L scapula, pelvic girdle and possibly ribs",
+          "output": "[{\"mention_text\": \"Carcinoma of prostate\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"possible\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"PSA 32;\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"R humerus\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"L scapula\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"pelvic girdle\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"ribs\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"bony mets\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"possible\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "body_structure, disorder, observable_entity",
+          "core": true
+        },
+        {
+          "id": "gold_0399",
+          "input": "History: see derm response - \"photos show freckles and benign melanocytic naevi - given prev dysplastic hx these require dermatoscopy.",
+          "output": "[{\"mention_text\": \"dermatoscopy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"dysplastic\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"freckles\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"benign melanocytic naevi\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "disorder, procedure",
+          "core": true
+        },
+        {
+          "id": "gold_0064",
+          "input": "Recent CT thorax, abdomen and pelvis - reported as normal (lungs, liver, gallbladder, spleen, pancreas, kidneys, adrenals all normal; no retroperitoneal lymphadenopathy; bones normal; scattered chronic diverticula noted)",
+          "output": "[{\"mention_text\": \"CT thorax, abdomen and pelvis\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"diverticula\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"lungs\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"liver\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"gallbladder\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"spleen\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"pancreas\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"kidneys\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"adrenals\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"normal\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"qualifier_value\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "body_structure, finding, procedure, qualifier_value",
+          "core": true
+        },
+        {
+          "id": "gold_0000",
+          "input": "Atypical Lymphocytes: 0.70 x10^9/l; Outside reference range",
+          "output": "[{\"mention_text\": \"Atypical Lymphocytes: 0.70 x10^9/l;\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Atypical Lymphocytes\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Atypical Lymphocytes: 0.70 x10^9/l; Outside reference range\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "finding, observable_entity, procedure",
+          "core": true
+        },
+        {
+          "id": "gold_0001",
+          "input": "Serum vitamin D level (XE2e7) 64 nmol/L",
+          "output": "[{\"mention_text\": \"Serum vitamin D level (XE2e7) 64 nmol/L\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "observable_entity",
+          "core": true
+        },
+        {
+          "id": "gold_0004",
+          "input": "History: abdo pains for last 4d.",
+          "output": "[{\"mention_text\": \"abdo pains\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "finding",
+          "core": true
+        },
+        {
+          "id": "gold_0009",
+          "input": "Problem: Hypothyroidism NOS (XE10A)",
+          "output": "[{\"mention_text\": \"Hypothyroidism NOS\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "disorder",
+          "core": true
+        },
+        {
+          "id": "gold_0149",
+          "input": "Surgical treatment not an option.",
+          "output": "[{\"mention_text\": \"Surgical treatment not an option\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:core",
+          "model_scope": "any",
+          "description": "situation",
+          "core": true
+        },
+        {
+          "id": "gold_0080",
+          "input": "US scan of breast (585C.) - L - fibroglandular tissue and small intramammary nodes, normal nodes to L axilla, 3mm calcified dermal and subdermal nodule (New Episode)",
+          "output": "[{\"mention_text\": \"US scan of breast\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"fibroglandular tissue\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"intramammary nodes\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"calcified dermal and subdermal nodule\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"morphologic_abnormality\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"breast\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, disorder, finding, morphologic_abnormality, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0082",
+          "input": "Liver function tests Report,ï¿½Abnormal,ï¿½Need to speak to doctor: ALP rising and raised gamma GT-note recent thyrotoxicosis",
+          "output": "[{\"mention_text\": \"raised gamma GT\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"thyrotoxicosis\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Liver function tests\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Liver function tests Report,\\u00ef\\u00bf\\u00bdAbnormal,\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"liver\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, disorder, finding, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0088",
+          "input": "Dizziness/balance issue ongoing, non progressive ?all related to stroke diagnosed from MRi arranged by ENT when was prev assessed re balance - time frame fits as well as lack of progression of symptoms",
+          "output": "[{\"mention_text\": \"stroke\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"dizziness\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"balance issue\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"MRi\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, finding, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0092",
+          "input": "Was treated for chest infectio , still has productive green / white sputum , no blood",
+          "output": "[{\"mention_text\": \"productive green\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"white sputum\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"chest infectio\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"chest\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, disorder, finding",
+          "core": false
+        },
+        {
+          "id": "gold_0101",
+          "input": "There was a small superficial erosion to the front of the scalp which may be a superficial basal cell carcinoma but at this stage I would simply monitor the area and we can treat it if required in the future if it becomes troublesome.",
+          "output": "[{\"mention_text\": \"basal cell carcinoma\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"possible\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"stage I\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"front of the scalp\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, disorder, finding",
+          "core": false
+        },
+        {
+          "id": "gold_0105",
+          "input": "Examination: L breast - inferior aspect at biopsy site - bruising noted and small haematoma but not tense and no tissue loss",
+          "output": "[{\"mention_text\": \"biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"bruising\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"haematoma\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"morphologic_abnormality\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"L breast\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, finding, morphologic_abnormality, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0112",
+          "input": "background of SLL under haematology - diagnosed via Right Axillary nodes biopsy",
+          "output": "[{\"mention_text\": \"biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"SLL\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Right Axillary nodes\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, disorder, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0114",
+          "input": "They did a shave biopsy on right anterior thigh lesion and found MM.",
+          "output": "[{\"mention_text\": \"MM\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"right anterior thigh\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"shave biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, disorder, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0180",
+          "input": "Problem: Myeloproliferative disorder (Xa0SP) - JAK2-positive myeloproliferative neoplasm; immunotherapy with ruxolitinib",
+          "output": "[{\"mention_text\": \"Myeloproliferative disorder\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"myeloproliferative neoplasm\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"morphologic_abnormality\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"ruxolitinib\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"medicinal_product\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"immunotherapy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, medicinal_product, morphologic_abnormality, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0197",
+          "input": "Been through a lot - breat cancer, chemo, cholecystectomy and now on letrozole",
+          "output": "[{\"mention_text\": \"chemo\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"cholecystectomy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"letrozole\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"medicinal_product\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"breat cancer\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, medicinal_product, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0206",
+          "input": "Clinical Information: Reasons for Request: atypical lymhocytes + splenomegally repeat FBC non invasive liver scree.",
+          "output": "[{\"mention_text\": \"FBC\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"atypical lymhocytes\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"morphologic_abnormality\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"non invasive liver scree.\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"splenomegally\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, morphologic_abnormality, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0308",
+          "input": "noted 2ww earlier this year based on anemia and fit + - had grade 2 hemorrhoids on scope and normal histology",
+          "output": "[{\"mention_text\": \"anemia\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"grade 2 hemorrhoids\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"2ww earlier this year\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"fit +\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"normal histology\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, finding, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0334",
+          "input": "Mum had skin cancer before at breast - no other family history",
+          "output": "[{\"mention_text\": \"mum had skin cancer\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"situation\", \"assertion\": \"family\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Mum had skin cancer before at breast\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"situation\", \"assertion\": \"family\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "situation",
+          "core": false
+        },
+        {
+          "id": "gold_0360",
+          "input": "biopsy done due to raise PSA + MRI suggestive of CAP",
+          "output": "[{\"mention_text\": \"biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"MRI\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"raise PSA\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"CAP\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"possible\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, finding, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0361",
+          "input": "Had prostate biopsy - was warned re blood in urine after the event but was clear initially and now has noticed a small amount, but no other new symptoms (eg dysuria)",
+          "output": "[{\"mention_text\": \"dysuria\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"blood in urine\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"prostate biopsy\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "finding, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0606",
+          "input": "Examination: No anal ulceration, empty rectum, moderately, benignly enlarged prostate, no masses, nil on glove.",
+          "output": "[{\"mention_text\": \"anal ulceration\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"empty rectum\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"moderately, benignly enlarged prostate\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"masses\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"morphologic abnormality\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, finding, morphologic abnormality",
+          "core": false
+        },
+        {
+          "id": "gold_0611",
+          "input": "Dermatology letter. Shave biopsy right forearm. Histology: seborrhoeic keratosis. No evidence of basal cell carcinoma or squamous cell carcinoma. Benign lesion fully excised. Cancer not found. Discharged.",
+          "output": "[{\"mention_text\": \"Shave biopsy right forearm\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"seborrhoeic keratosis\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"basal cell carcinoma\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"squamous cell carcinoma\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"disorder\", \"assertion\": \"absent\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Benign lesion fully excised\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "disorder, procedure",
+          "core": false
+        },
+        {
+          "id": "gold_0068",
+          "input": "2. Continue on Amlodipine and GTN if needed",
+          "output": "[{\"mention_text\": \"Amlodipine\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"medicinal_product\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "medicinal_product",
+          "core": false
+        },
+        {
+          "id": "gold_0098",
+          "input": "Recent history retroperitoneal mass concerning for lymphoma",
+          "output": "[{\"mention_text\": \"concerning for lymphoma\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"situation\", \"assertion\": \"possible\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"retroperitoneal mass\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "finding, situation",
+          "core": false
+        },
+        {
+          "id": "gold_0123",
+          "input": "Ultrasound of testicles showed no lumps of concern, some calcium deposits noted.",
+          "output": "[{\"mention_text\": \"Ultrasound of testicles\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"no lumps of concern\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"testicles\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"body_structure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "body_structure, procedure, situation",
+          "core": false
+        },
+        {
+          "id": "gold_0002",
+          "input": "Haemoglobin A1c level (X772q) 5.6 % [4 - 5.9]",
+          "output": "[{\"mention_text\": \"Haemoglobin A1c level\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}, {\"mention_text\": \"Haemoglobin A1c level (X772q) 5.6 %\", \"lookup_term\": \"\", \"code\": \"\", \"semantic_tag\": \"observable_entity\", \"assertion\": \"present\", \"value\": \"\", \"unit\": \"\"}]",
+          "deidentified": true,
+          "category": "extraction:dynamic",
+          "model_scope": "any",
+          "description": "observable_entity, procedure",
+          "core": false
+        }
+      ]
+    }
+  ]
+}

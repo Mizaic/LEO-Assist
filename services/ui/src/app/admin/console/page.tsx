@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import { HealthBar, NudgeBanner, StageCard, MetricChip } from "@/components/ui";
-import { useConsoleState, deriveNudge, deriveStageHealth, TrainingJob } from "@/components/console/useConsoleState";
+import { useConsoleState, deriveNudge, deriveStageHealth } from "@/components/console/useConsoleState";
 import { DiscoverStage } from "@/components/console/DiscoverStage";
 import { CurateStage } from "@/components/console/CurateStage";
 import { TrainStage } from "@/components/console/TrainStage";
@@ -36,15 +36,6 @@ export default function ConsolePage() {
     } finally {
       setTraining(false);
     }
-  };
-
-  const handlePromote = async (version: string, notes: string) => {
-    await fetch(`/api/model-registry/versions/${encodeURIComponent(version)}/promote`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ force: false, notes }),
-    });
-    state.refresh();
   };
 
   const stages = STAGE_KEYS.map((key) => ({
@@ -157,7 +148,6 @@ export default function ConsolePage() {
               jobs={state.jobs}
               latestJob={state.latestJob}
               promotedVersion={state.promotedVersion}
-              onPromote={handlePromote}
             />
           </StageCard>
         )}
@@ -220,7 +210,7 @@ function _stageActionLabel(stage: string): string {
     DISCOVER: "View encounters",
     CURATE: "Review candidates",
     TRAIN: "Train now",
-    EVALUATE: "View metrics",
+    EVALUATE: "Run safety test",
     DEPLOY: "Manage models",
     MONITOR: "View alerts",
   };

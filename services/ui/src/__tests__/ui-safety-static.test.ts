@@ -294,34 +294,26 @@ describe("VT-036-TC-021: LabelVerificationPanel ARIA (static)", () => {
   });
 });
 
-// -- VT-036-TC-022: DeploySection plain-language metrics ----------------------
+// -- VT-036-TC-022: EvaluateStage plain-language safety flow ------------------
 
-describe("VT-036-TC-022: DeploySection plain-language metrics (static)", () => {
-  const deploy = readUISrc("components/operations/DeploySection.tsx");
+describe("VT-036-TC-022: EvaluateStage plain-language safety flow (static)", () => {
+  const evaluate = readUISrc("components/console/EvaluateStage.tsx");
 
-  it("uses 'Training accuracy' instead of 'Offline precision'", () => {
-    expect(deploy).toContain("Training accuracy");
-    expect(deploy).not.toContain("Offline precision");
+  it("uses numbered plain-language step headers", () => {
+    expect(evaluate).toContain("1) Check learning scores");
+    expect(evaluate).toContain("2) Run safety test");
+    expect(evaluate).toContain("3) Decide what to do");
   });
 
-  it("uses 'Training completeness' instead of 'Offline recall'", () => {
-    expect(deploy).toContain("Training completeness");
-    expect(deploy).not.toContain("Offline recall");
+  it("uses plain-language outcome labels", () => {
+    expect(evaluate).toContain("Right answers");
+    expect(evaluate).toContain("Items found");
+    expect(evaluate).toContain("Did not pass");
   });
 
-  it("uses 'Live test accuracy' instead of 'Canary precision'", () => {
-    expect(deploy).toContain("Live test accuracy");
-    expect(deploy).not.toContain("Canary precision");
-  });
-
-  it("uses 'Live test completeness' instead of 'Canary recall'", () => {
-    expect(deploy).toContain("Live test completeness");
-    expect(deploy).not.toContain("Canary recall");
-  });
-
-  it("metric tooltips are present", () => {
-    expect(deploy).toContain("How often the AI got the right answer during training");
-    expect(deploy).toContain("How many real items the AI found during training");
+  it("does not use canary jargon in user-facing headings", () => {
+    expect(evaluate).not.toContain("Canary precision");
+    expect(evaluate).not.toContain("Canary recall");
   });
 });
 
@@ -339,16 +331,8 @@ describe("VT-036-TC-023: ModelLifecyclePanel ConfirmDialog (static)", () => {
     expect(dialogImportMatch).toBeNull();
   });
 
-  it("uses ConfirmDialog for force-promote", () => {
-    expect(panel).toContain("Go live anyway");
-  });
-
   it("uses ConfirmDialog for rollback", () => {
     expect(panel).toContain("Switch back to the previous AI?");
-  });
-
-  it("uses ConfirmDialog for reject", () => {
-    expect(panel).toContain("Reject this AI version?");
   });
 });
 

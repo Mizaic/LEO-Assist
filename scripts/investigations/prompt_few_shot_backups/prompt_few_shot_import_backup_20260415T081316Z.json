@@ -1,0 +1,13 @@
+{
+  "created_at_utc": "2026-04-15T08:13:17.456072+00:00",
+  "prompt_count": 1,
+  "prompts": [
+    {
+      "id": "723abe46-25f0-4988-a03d-5154580cf6f8",
+      "name": "extraction",
+      "version": 1,
+      "few_shot_examples": "[]",
+      "max_few_shot": 20
+    }
+  ]
+}

@@ -32,8 +32,9 @@ const DEFAULT_KPI: EncounterKPIs = {
   median_codes_per_encounter: 0,
 };
 const RESULT_CAP = 1200;
-/** Larger pages reduce round trips through the API proxy (each has its own timeout). */
-const FETCH_PAGE_SIZE = 200;
+// Match RESULT_CAP so all results arrive in a single HTTP request.
+// The backend now allows page_size up to 1200.
+const FETCH_PAGE_SIZE = RESULT_CAP;
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -81,6 +82,7 @@ export default function EncounterMissionControl() {
   const [previewLinksLoading, setPreviewLinksLoading] = useState(false);
   const [previewLinksError, setPreviewLinksError] = useState<string | null>(null);
   const lastBatchRefreshKeyRef = useRef<string>("");
+  const hasRowsRef = useRef(false);
 
   const selectedItems = useMemo(() => Object.values(selected), [selected]);
 
@@ -115,7 +117,20 @@ export default function EncounterMissionControl() {
       requireKeywordAnchor: search.requireKeywordAnchor,
       nearDuplicateThreshold: nearDuplicateThresholdValue,
     }),
-    [orgId, search, scoreValues, nearDuplicateThresholdValue]
+    // Depend on individual primitive fields, not the whole `search` object,
+    // so that unrelated state changes (e.g. excludeNearDuplicates toggle)
+    // do not recreate this callback and re-trigger the load effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      orgId,
+      search.dateFrom,
+      search.dateTo,
+      search.query,
+      search.requireKeywordAnchor,
+      scoreValues.minCombinedScore,
+      scoreValues.minVectorScore,
+      nearDuplicateThresholdValue,
+    ]
   );
 
   const { statuses, message, loading: batchLoading, runBatchForItems, runBatchAll } =
@@ -156,6 +171,7 @@ export default function EncounterMissionControl() {
       // Run KPI fetch after encounters so Neo4j is not hit with two full org scans at once.
       const encounters = await fetchAllEncounterRows();
       setRows(encounters.items);
+      hasRowsRef.current = encounters.items.length > 0;
       setTotalResults(encounters.total);
       setQueryDiagnostics(encounters.query_diagnostics);
       if (resetKpis) {
@@ -293,11 +309,17 @@ export default function EncounterMissionControl() {
 
   const handleRequireKeywordAnchorChange = useCallback((v: boolean) => {
     setSearch((prev) => ({ ...prev, requireKeywordAnchor: v }));
+    if (hasRowsRef.current) setAutoSearch(true);
   }, []);
 
   const handleExcludeNearDuplicatesChange = useCallback((v: boolean) => {
     setSearch((prev) => ({ ...prev, excludeNearDuplicates: v }));
+    if (hasRowsRef.current) setAutoSearch(true);
   }, []);
+
+  const handleNearDuplicateThresholdCommit = useCallback(() => {
+    if (hasRowsRef.current) load();
+  }, [load]);
 
   const handleNearDuplicateThresholdChange = useCallback((v: string) => {
     setSearch((prev) => ({ ...prev, nearDuplicateThreshold: v }));
@@ -329,6 +351,7 @@ export default function EncounterMissionControl() {
           onRequireKeywordAnchorChange={handleRequireKeywordAnchorChange}
           onExcludeNearDuplicatesChange={handleExcludeNearDuplicatesChange}
           onNearDuplicateThresholdChange={handleNearDuplicateThresholdChange}
+          onNearDuplicateThresholdCommit={handleNearDuplicateThresholdCommit}
           onSearch={load}
           onShow3D={() => setShow3D(true)}
           onBucketFilter={handleBucketFilter}

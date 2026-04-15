@@ -18,7 +18,7 @@ import TrackChangesOutlinedIcon from "@mui/icons-material/TrackChangesOutlined";
 import StatusDot from "./StatusDot";
 import RunSection from "./RunSection";
 import TrainSection from "./TrainSection";
-import DeploySection from "./DeploySection";
+import ModelLifecyclePanel from "./ModelLifecyclePanel";
 import QualitySection from "./QualitySection";
 
 // -- Types -------------------------------------------------------------------
@@ -416,7 +416,7 @@ export default function OperationsWorkspace({ initialTab }: Props) {
             open={openSection === "deploy"}
             onToggle={toggle}
           >
-            <DeploySection />
+            <ModelLifecyclePanel />
           </SectionRow>
 
           {/* 4 -- Process patients (utility action, not a workflow step) */}

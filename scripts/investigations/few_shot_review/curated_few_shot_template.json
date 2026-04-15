@@ -1,0 +1,20 @@
+{
+  "prompts": [
+    {
+      "name": "extraction",
+      "version": 1,
+      "max_few_shot": 20,
+      "few_shot_examples": [
+        {
+          "input": {
+            "encounterText": "Example de-identified encounter text"
+          },
+          "output": {
+            "entities": []
+          },
+          "core": true
+        }
+      ]
+    }
+  ]
+}

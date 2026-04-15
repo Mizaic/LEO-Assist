@@ -14,9 +14,9 @@ jest.mock("../QualitySection", () => ({
   default: () => <div data-testid="quality-section">QualitySection</div>,
 }));
 
-jest.mock("../DeploySection", () => ({
+jest.mock("../ModelLifecyclePanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="deploy-section">DeploySection</div>,
+  default: () => <div data-testid="model-lifecycle-panel">ModelLifecyclePanel</div>,
 }));
 
 jest.mock("../RunSection", () => ({
@@ -153,7 +153,7 @@ describe("OperationsWorkspace: accordion interaction", () => {
     global.fetch = makeFetch({ pending: 0, modelStatus: "active", unacknowledged: 0 });
     render(<OperationsWorkspace />);
     await waitFor(() =>
-      expect(screen.getByTestId("deploy-section")).toBeInTheDocument(),
+      expect(screen.getByTestId("model-lifecycle-panel")).toBeInTheDocument(),
     );
   });
 

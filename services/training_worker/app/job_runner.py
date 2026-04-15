@@ -93,26 +93,23 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             relation_metrics = _phase_evaluate_relations(
                 job, store, relation_model_path, work_dir
             )
-            metrics = {
-                **metrics,
-                "relation_model": relation_metrics,
-                "relation_export": relation_export_meta,
-            }
+            store.update(
+                job,
+                metrics={**job.metrics, "relation_model": relation_metrics},
+            )
             store.append_log(
                 job, f"Phase evaluate complete in {time.perf_counter() - eval_t:.1f}s"
             )
-
             relation_gate_passed = bool(
-                metrics.get("relation_model", {}).get("passed_gates", True)
+                relation_metrics.get("passed_gates", True)
             )
             if (not metrics["passed_gates"]) or (not relation_gate_passed):
                 g_f = metrics.get("golden_f1")
                 min_g = metrics.get("min_golden_f1")
                 if not relation_gate_passed:
-                    rel = metrics.get("relation_model", {})
                     err = (
-                        f"Relation model gate failed: F1={float(rel.get('f1') or 0.0):.3f} "
-                        f"(min={float(rel.get('min_f1') or 0.6):.3f})."
+                        f"Relation model gate failed: F1={float(relation_metrics.get('f1') or 0.0):.3f} "
+                        f"(min={float(relation_metrics.get('min_f1') or 0.6):.3f})."
                     )
                 elif g_f is not None and g_f < (min_g or 0):
                     err = (
@@ -129,7 +126,6 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
                     status="failed",
                     phase="evaluate",
                     error=err,
-                    metrics=metrics,
                     finished_at=time.time(),
                 )
                 return
@@ -154,7 +150,6 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
                 phase="",
                 artifact_uri=artifact_uri,
                 model_version=version,
-                metrics=metrics,
                 finished_at=time.time(),
             )
             store.append_log(
@@ -416,8 +411,12 @@ def _phase_register(
                 "train_count": export_meta.get("train_count", 0),
                 "dev_count": export_meta.get("dev_count", 0),
                 "total_labels": export_meta.get("total_records", 0),
+                "holdback_count": len(export_meta.get("holdback_label_ids", [])),
                 "label_set": export_meta.get("label_set", []),
                 "exported_at": export_meta.get("exported_at", ""),
+                "train_split_hash": export_meta.get("train_split_hash", ""),
+                "dev_split_hash": export_meta.get("dev_split_hash", ""),
+                "holdback_split_hash": export_meta.get("holdback_split_hash", ""),
                 # Evaluation results (full detail for V&V report)
                 "offline_f1": metrics.get("f1"),
                 "offline_precision": metrics.get("precision"),

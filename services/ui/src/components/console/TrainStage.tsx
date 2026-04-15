@@ -31,6 +31,7 @@ import {
   BarChart,
   Bar,
   Cell,
+  ReferenceLine,
 } from "recharts";
 import { PhaseProgress } from "@/components/ui/PhaseProgress";
 import { TrainingJob } from "./useConsoleState";
@@ -345,6 +346,114 @@ function TrainingCurveInfoDialog({
 
 // -- Per-label accuracy chart ------------------------------------------------
 
+const F1_GOOD = 0.8;
+const F1_WARN = 0.5;
+
+function f1Colour(f1: number): string {
+  if (f1 >= F1_GOOD) return "#2e7d32";
+  if (f1 >= F1_WARN) return "#e65100";
+  return "#c62828";
+}
+
+const ENTITY_METRIC_DESCRIPTIONS: Record<string, { what: string; good: string; bad: string }> = {
+  F1: {
+    what: "Overall accuracy for this entity type. Balances finding codes (recall) and avoiding wrong ones (precision).",
+    good: ">=80% (green zone). The model reliably finds and codes this entity.",
+    bad: "<50% (red zone). The model is struggling with this entity -- check training data volume and label quality.",
+  },
+  Precision: {
+    what: "Of every suggestion LEO makes for this entity, how many are actually correct.",
+    good: "Stays above 70% and tracks close to F1.",
+    bad: "Far below F1 -- the model is over-predicting this entity, adding codes that should not be there.",
+  },
+  Recall: {
+    what: "Of all the real instances of this entity in the records, how many did LEO find.",
+    good: "Stays close to Precision. Both rising together toward F1.",
+    bad: "Far below Precision -- the model is missing many real instances of this entity.",
+  },
+};
+
+function PerLabelInfoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button
+        size="small"
+        variant="text"
+        startIcon={<InfoOutlinedIcon sx={{ fontSize: 14 }} />}
+        onClick={() => setOpen(true)}
+        sx={{
+          fontSize: 11,
+          textTransform: "none",
+          color: "primary.main",
+          py: 0,
+          px: 0.75,
+          minWidth: 0,
+          lineHeight: 1.4,
+        }}
+      >
+        What do these scores mean?
+      </Button>
+      <PerLabelInfoDialog open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+function PerLabelInfoDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontSize: FONT_SIZES.subtitle, fontWeight: 700 }}>
+        How to read entity accuracy scores
+      </DialogTitle>
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          {[
+            { label: "Good (>=80%)", color: "#2e7d32" },
+            { label: "Fair (50-79%)", color: "#e65100" },
+            { label: "Low (<50%)", color: "#c62828" },
+          ].map(({ label, color }) => (
+            <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box sx={{ width: 12, height: 12, bgcolor: color, borderRadius: 0.5 }} />
+              <Typography sx={{ fontSize: 11, color }}>{label}</Typography>
+            </Box>
+          ))}
+        </Box>
+
+        <Typography sx={{ fontSize: FONT_SIZES.body, color: "text.secondary" }}>
+          The F1 bar is coloured by performance band. Green means the model handles this entity
+          well. Orange is fair but needs improvement. Red means the model is struggling -- check
+          training data volume and label consistency.
+        </Typography>
+
+        <Typography sx={{ fontSize: FONT_SIZES.body, color: "text.secondary" }}>
+          The dashed lines show the 50% (minimum) and 80% (target) thresholds. Aim to get all
+          entity types above the 80% line before deploying.
+        </Typography>
+
+        {Object.entries(ENTITY_METRIC_DESCRIPTIONS).map(([label, info]) => (
+          <Box key={label}>
+            <Typography sx={{ fontWeight: 700, fontSize: FONT_SIZES.body, mb: 0.25 }}>
+              {label}
+            </Typography>
+            <Typography sx={{ fontSize: FONT_SIZES.body, mb: 0.25 }}>{info.what}</Typography>
+            <Typography sx={{ fontSize: 12, color: "success.dark" }}>
+              <strong>Good:</strong> {info.good}
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: "error.dark" }}>
+              <strong>Problem:</strong> {info.bad}
+            </Typography>
+          </Box>
+        ))}
+      </DialogContent>
+      <DialogActions>
+        <Button variant="text" onClick={onClose}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 type PerLabelEntry = { precision: number; recall: number; f1: number };
 
 function pct(v: unknown): string {
@@ -371,9 +480,12 @@ function PerLabelChart({
 
   return (
     <Box>
-      <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle, mb: 0.5 }}>
-        Accuracy by entity type
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+        <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle }}>
+          Accuracy by entity type
+        </Typography>
+        <PerLabelInfoButton />
+      </Box>
       <Typography sx={{ fontSize: 10, color: "text.secondary", mb: 1 }}>
         Precision, Recall and F1 per label on the dev split.
       </Typography>
@@ -418,6 +530,21 @@ function PerLabelChart({
               v === "precision" ? "Precision" : v === "recall" ? "Recall" : "F1"
             }
           />
+          {/* Threshold reference lines */}
+          <ReferenceLine
+            x={F1_WARN}
+            stroke="#e65100"
+            strokeDasharray="4 3"
+            strokeWidth={1.5}
+            label={{ value: "50%", position: "top", fontSize: 9, fill: "#e65100" }}
+          />
+          <ReferenceLine
+            x={F1_GOOD}
+            stroke="#2e7d32"
+            strokeDasharray="4 3"
+            strokeWidth={1.5}
+            label={{ value: "80%", position: "top", fontSize: 9, fill: "#2e7d32" }}
+          />
           {/* Precision -- light tint of the entity colour */}
           <Bar dataKey="precision" maxBarSize={rowHeight - 4} radius={[0, 2, 2, 0]}>
             {data.map((d) => (
@@ -430,10 +557,10 @@ function PerLabelChart({
               <Cell key={d.label} fill={entityLabelColour(d.label)} opacity={0.65} />
             ))}
           </Bar>
-          {/* F1 -- full entity colour */}
+          {/* F1 -- coloured by performance band */}
           <Bar dataKey="f1" maxBarSize={rowHeight - 4} radius={[0, 2, 2, 0]}>
             {data.map((d) => (
-              <Cell key={d.label} fill={entityLabelColour(d.label)} opacity={1} />
+              <Cell key={d.label} fill={f1Colour(d.f1)} opacity={1} />
             ))}
           </Bar>
         </BarChart>

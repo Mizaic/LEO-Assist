@@ -26,6 +26,7 @@ import os
 import threading
 import time
 import uuid
+import importlib
 from typing import Any, Optional
 
 import httpx
@@ -91,6 +92,21 @@ class CanaryStartRequest(BaseModel):
 class CanaryResultRequest(BaseModel):
     precision: float
     recall: float
+
+
+class CanaryGoldRunRequest(BaseModel):
+    corpus: str = "full"  # full | holdback
+
+
+class DryRunEncounter(BaseModel):
+    encounter_id: str
+    text: str
+    patient_id: Optional[str] = None
+    encounter_date: Optional[str] = None
+
+
+class DryRunRequest(BaseModel):
+    encounters: list[DryRunEncounter]
 
 
 class PromoteRequest(BaseModel):
@@ -202,6 +218,64 @@ def _fetch_gold_labels(limit: int = _GOLD_MAX_CANDIDATES) -> list[dict[str, Any]
     return rows[:limit]
 
 
+def _fetch_holdback_gold_labels(limit: int = _GOLD_MAX_CANDIDATES) -> list[dict[str, Any]]:
+    """Fetch frozen holdback GoldLabel nodes for canary evaluation."""
+    from libs.cypher.golden_set_queries import GET_GOLDEN_SET_LABELS
+    from libs.neo4j_client.client import KnowledgeGraphClient
+
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_GOLDEN_SET_LABELS).data()
+    finally:
+        client.close()
+    return rows[:limit]
+
+
+def _count_holdback_gold_labels() -> int:
+    """Return total number of frozen holdback GoldLabel rows."""
+    from libs.cypher.golden_set_queries import COUNT_GOLDEN_SET
+    from libs.neo4j_client.client import KnowledgeGraphClient
+
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(COUNT_GOLDEN_SET).single()
+    finally:
+        client.close()
+    if not row:
+        return 0
+    return int(row.get("total") or 0)
+
+
+def _canonical_model_label(raw: str) -> str:
+    cleaned = raw.replace("-", "_").replace(" ", "_").strip()
+    key = cleaned.lower()
+    label_map: dict[str, str] = {
+        "disorder": "DISORDER",
+        "finding": "FINDING",
+        "procedure": "PROCEDURE",
+        "observable_entity": "OBSERVABLE_ENTITY",
+        "observable": "OBSERVABLE_ENTITY",
+        "qualifier_value": "QUALIFIER",
+        "substance": "SUBSTANCE",
+        "medicinal_product": "MEDICINAL_PRODUCT",
+        "clinical_drug": "CLINICAL_DRUG",
+        "situation": "SITUATION",
+        "event": "EVENT",
+        "body_structure": "BODY_STRUCTURE",
+        "tumor_staging": "TUMOR_STAGING",
+        "x_temporal": "TEMPORAL",
+        "x_dosage": "DOSAGE",
+        "x_frequency": "FREQUENCY",
+        "x_route": "ROUTE",
+    }
+    mapped = label_map.get(key)
+    if mapped:
+        return mapped
+    return cleaned.upper()
+
+
 def _set_canary_job(job_id: str, patch: dict[str, Any]) -> None:
     with _canary_jobs_lock:
         current = _canary_jobs.get(job_id, {})
@@ -209,12 +283,51 @@ def _set_canary_job(job_id: str, patch: dict[str, Any]) -> None:
         _canary_jobs[job_id] = current
 
 
-def _run_canary_gold_job(version: str, job_id: str) -> None:
+def _ensure_leo_transformer_listener_registered() -> None:
+    """Register custom spaCy architecture used by trained model configs."""
+    try:
+        importlib.import_module("services.training_worker.app.spacy_listener_width")
+        return
+    except Exception:
+        # Fallback to local registration for API/runtime environments where the
+        # training worker package path is not importable.
+        pass
+
+    try:
+        from spacy.tokens import Doc
+        from spacy_transformers.layers import TransformerListener, trfs2arrays
+        from spacy_transformers.util import registry
+        from thinc.api import Model, chain
+        from thinc.types import Floats2d, Ragged
+    except Exception:
+        return
+
+    try:
+        @registry.architectures.register("leo_training.TransformerListener.v1")
+        def _leo_transformer_listener_v1(
+            pooling: Model[Ragged, Floats2d],
+            grad_factor: float = 1.0,
+            upstream: str = "*",
+            width: int = 768,
+        ) -> Model[list[Doc], list[Floats2d]]:
+            listener = TransformerListener(upstream_name=upstream)
+            listener.set_dim("nO", int(width))
+            model: Model = chain(listener, trfs2arrays(pooling, grad_factor))
+            model.set_ref("listener", listener)
+            return model
+    except ValueError:
+        # Already registered in this process.
+        return
+
+
+def _run_canary_gold_job(version: str, job_id: str, corpus: str = "full") -> None:
+    run_corpus = "holdback" if corpus == "holdback" else "full"
     _set_canary_job(
         job_id,
         {
             "job_id": job_id,
             "version": version,
+            "corpus": run_corpus,
             "status": "running",
             "phase": "initializing",
             "message": "Preparing canary gold evaluation",
@@ -255,46 +368,42 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
         model_dir = store.download(version)
         import spacy  # noqa: PLC0415 — lazy to avoid CuPy CUDA probe at API startup
 
+        _ensure_leo_transformer_listener_registered()
         nlp = spacy.load(str(model_dir))
 
         _set_canary_job(
             job_id,
             {
                 "phase": "loading_gold_data",
-                "message": "Fetching included TrainingLabel gold corpus",
+                "message": (
+                    "Fetching frozen holdback gold corpus"
+                    if run_corpus == "holdback"
+                    else "Fetching included TrainingLabel gold corpus"
+                ),
                 "updated_at": time.time(),
             },
         )
         import json as _json
 
-        rows = _fetch_gold_labels()
+        rows = (
+            _fetch_holdback_gold_labels()
+            if run_corpus == "holdback"
+            else _fetch_gold_labels()
+        )
         if not rows:
             raise RuntimeError(
-                "No included TrainingLabel records found — add labels in the Training Data tab first"
+                "No holdback gold labels found — freeze labels first in Training Data"
+                if run_corpus == "holdback"
+                else "No included TrainingLabel records found — add labels in the Training Data tab first"
             )
+        from libs.pipeline.label_filter import (
+            filter_and_realign as _filter_and_realign,
+            get_excluded_assertions as _get_excluded_assertions,
+        )
 
-        # Reuse the same label normalisation as the offline evaluator / exporter.
-        _LABEL_MAP: dict[str, str] = {
-            "disorder": "DISORDER",
-            "finding": "FINDING",
-            "procedure": "PROCEDURE",
-            "observable_entity": "OBSERVABLE",
-            "qualifier_value": "QUALIFIER",
-            "substance": "SUBSTANCE",
-            "medicinal_product": "MEDICINAL_PRODUCT",
-            "clinical_drug": "CLINICAL_DRUG",
-            "situation": "SITUATION",
-            "event": "EVENT",
-            "body_structure": "BODY_STRUCTURE",
-            "tumor_staging": "TUMOR_STAGING",
-            "X_TEMPORAL": "TEMPORAL",
-            "X_DOSAGE": "DOSAGE",
-            "X_FREQUENCY": "FREQUENCY",
-            "X_ROUTE": "ROUTE",
-        }
-
-        def _norm(raw: str) -> str:
-            return _LABEL_MAP.get(raw, raw.upper())
+        excluded_assertions = _get_excluded_assertions()
+        assertion_filtered_total = 0
+        span_misaligned_total = 0
 
         tp: dict[str, int] = {}
         fp: dict[str, int] = {}
@@ -327,20 +436,39 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
                 entities = _json.loads(row.get("entities_json") or "[]")
             except Exception:
                 continue
+            entities, n_assertion_filtered, n_span_misaligned = _filter_and_realign(
+                text,
+                entities,
+                excluded_assertions,
+            )
+            assertion_filtered_total += n_assertion_filtered
+            span_misaligned_total += n_span_misaligned
 
             gold: set[tuple[int, int, str]] = set()
             for ent in entities:
                 try:
                     start = int(ent.get("start", 0))
                     end = int(ent.get("end", 0))
-                    label = _norm(str(ent.get("label", "") or ""))
+                    label = _canonical_model_label(
+                        str(ent.get("label") or ent.get("semantic_tag") or "")
+                    )
                     if end > start and label:
                         gold.add((start, end, label))
                 except Exception:
                     continue
 
             pred_doc = nlp(text)
-            pred = {(e.start_char, e.end_char, e.label_) for e in pred_doc.ents}
+            pred_spans = pred_doc.spans.get("sc", [])
+            if pred_spans:
+                pred = {
+                    (span.start_char, span.end_char, _canonical_model_label(span.label_))
+                    for span in pred_spans
+                }
+            else:
+                pred = {
+                    (ent.start_char, ent.end_char, _canonical_model_label(ent.label_))
+                    for ent in pred_doc.ents
+                }
 
             for span in pred:
                 lbl = span[2]
@@ -372,6 +500,9 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
                 "metrics": metrics,
                 "sentences_scored": docs_scored,
                 "candidate_count": len(rows),
+                "corpus": run_corpus,
+                "assertion_filtered": assertion_filtered_total,
+                "span_misaligned": span_misaligned_total,
             },
         )
     except Exception as exc:
@@ -727,7 +858,11 @@ def record_canary_result(
 
 
 @router.post("/versions/{version}/canary/run-gold")
-def run_canary_gold(version: str, _: object = Depends(require_admin)) -> dict[str, Any]:
+def run_canary_gold(
+    version: str,
+    req: CanaryGoldRunRequest | None = None,
+    _: object = Depends(require_admin),
+) -> dict[str, Any]:
     """Run automated gold-patient canary evaluation in a background thread."""
     reg = get_registry()
     rec = reg.get(version)
@@ -738,12 +873,21 @@ def run_canary_gold(version: str, _: object = Depends(require_admin)) -> dict[st
             status_code=400,
             detail=f"Version {version!r} must be offline_validated or canary",
         )
+    run_corpus = "holdback" if req and req.corpus == "holdback" else "full"
+    if run_corpus == "holdback":
+        holdback_count = _count_holdback_gold_labels()
+        if holdback_count <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="No holdback gold labels found — freeze labels first in Training Data",
+            )
     job_id = str(uuid.uuid4())
     _set_canary_job(
         job_id,
         {
             "job_id": job_id,
             "version": version,
+            "corpus": run_corpus,
             "status": "accepted",
             "phase": "queued",
             "message": "Canary gold run queued",
@@ -752,10 +896,15 @@ def run_canary_gold(version: str, _: object = Depends(require_admin)) -> dict[st
         },
     )
     thread = threading.Thread(
-        target=_run_canary_gold_job, args=(version, job_id), daemon=True
+        target=_run_canary_gold_job, args=(version, job_id, run_corpus), daemon=True
     )
     thread.start()
-    return {"accepted": True, "job_id": job_id, "version": version}
+    return {
+        "accepted": True,
+        "job_id": job_id,
+        "version": version,
+        "corpus": run_corpus,
+    }
 
 
 @router.get("/canary-jobs/{job_id}")
@@ -767,6 +916,69 @@ def get_canary_gold_job(
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id!r} not found")
     return job
+
+
+@router.post("/versions/{version}/canary/dry-run")
+def dry_run_canary_model(
+    version: str,
+    req: DryRunRequest,
+    _: object = Depends(require_admin),
+) -> dict[str, Any]:
+    """Run ad-hoc extraction on selected encounters using a specific model version."""
+    reg = get_registry()
+    rec = reg.get(version)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Version {version!r} not found")
+
+    encounters = req.encounters[:20]
+    if not encounters:
+        raise HTTPException(status_code=400, detail="Select at least one encounter")
+
+    store = ModelStore()
+    model_dir = store.download(version)
+    import spacy  # noqa: PLC0415 - lazy load in request path
+
+    _ensure_leo_transformer_listener_registered()
+    nlp = spacy.load(str(model_dir))
+
+    results: list[dict[str, Any]] = []
+    for enc in encounters:
+        text = enc.text.strip()
+        if not text:
+            results.append(
+                {
+                    "encounter_id": enc.encounter_id,
+                    "patient_id": enc.patient_id,
+                    "encounter_date": enc.encounter_date,
+                    "text_length": 0,
+                    "entities": [],
+                }
+            )
+            continue
+        doc = nlp(text)
+        spans = doc.spans.get("sc", [])
+        if not spans:
+            spans = list(doc.ents)
+        entities = [
+            {
+                "text": span.text,
+                "start": span.start_char,
+                "end": span.end_char,
+                "label": _canonical_model_label(span.label_),
+                "semantic_tag": _canonical_model_label(span.label_).lower(),
+            }
+            for span in spans
+        ]
+        results.append(
+            {
+                "encounter_id": enc.encounter_id,
+                "patient_id": enc.patient_id,
+                "encounter_date": enc.encounter_date,
+                "text_length": len(text),
+                "entities": entities,
+            }
+        )
+    return {"model_version": version, "encounters": results, "count": len(results)}
 
 
 # ------------------------------------------------------------------

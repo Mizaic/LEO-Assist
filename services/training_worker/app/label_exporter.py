@@ -29,6 +29,7 @@ where you never want to detect family-history spans).
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import logging
 import os
@@ -138,7 +139,8 @@ def export_labels(
     from spacy.tokens import DocBin
 
     from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
-    from libs.cypher.gold_label_queries import GET_ALL_GOLD_LABELS_FOR_EXPORT
+    from libs.cypher.gold_label_queries import GET_TRAINING_GOLD_LABELS_FOR_EXPORT
+    from libs.cypher.golden_set_queries import GET_GOLDEN_SET_LABELS
     from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
     from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules
 
@@ -153,6 +155,7 @@ def export_labels(
     excluded_assertions = _get_excluded_assertions()
     kg_client = KnowledgeGraphClient()
     records = []
+    holdback_label_ids: list[str] = []
     total_assertion_filtered = 0
     total_span_misaligned = 0
     diagnostics: list[dict[str, Any]] = []
@@ -170,7 +173,7 @@ def export_labels(
             patient_client.close()
 
         with kg_client.session() as session:
-            rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
+            rows = session.run(GET_TRAINING_GOLD_LABELS_FOR_EXPORT)
             for row in rows:
                 text = str(row["text"] or "")
                 entities = json.loads(row["entities_json"] or "[]")
@@ -194,11 +197,20 @@ def export_labels(
                     continue
                 records.append(
                     {
+                        "label_id": label_id,
                         "text": text,
                         "entities": entities,
                         "source": source,
                     }
                 )
+            holdback_rows = session.run(GET_GOLDEN_SET_LABELS)
+            holdback_label_ids = sorted(
+                {
+                    str(r.get("label_id") or "")
+                    for r in holdback_rows
+                    if str(r.get("label_id") or "").strip()
+                }
+            )
     finally:
         kg_client.close()
 
@@ -227,6 +239,12 @@ def export_labels(
     split_idx = max(1, int(len(shuffled) * train_ratio))
     train_records = shuffled[:split_idx]
     dev_records = shuffled[split_idx:] or shuffled[:1]  # at least 1 dev record
+    train_label_ids = sorted(
+        [str(r.get("label_id") or "") for r in train_records if str(r.get("label_id") or "").strip()]
+    )
+    dev_label_ids = sorted(
+        [str(r.get("label_id") or "") for r in dev_records if str(r.get("label_id") or "").strip()]
+    )
 
     _log(f"Split: {len(train_records)} train / {len(dev_records)} dev")
 
@@ -258,11 +276,22 @@ def export_labels(
         _log(f"Warning: {skipped} records skipped during DocBin conversion.")
 
     exported_at = datetime.datetime.utcnow().isoformat()
+    train_split_hash = hashlib.sha256("\n".join(train_label_ids).encode("utf-8")).hexdigest()
+    dev_split_hash = hashlib.sha256("\n".join(dev_label_ids).encode("utf-8")).hexdigest()
+    holdback_split_hash = hashlib.sha256(
+        "\n".join(holdback_label_ids).encode("utf-8")
+    ).hexdigest()
     meta = {
         "exported_at": exported_at,
         "total_records": len(records),
         "train_records": len(train_records),
         "dev_records": len(dev_records),
+        "train_label_ids": train_label_ids,
+        "dev_label_ids": dev_label_ids,
+        "holdback_label_ids": holdback_label_ids,
+        "train_split_hash": train_split_hash,
+        "dev_split_hash": dev_split_hash,
+        "holdback_split_hash": holdback_split_hash,
         "skipped": skipped,
         "assertion_filtered": total_assertion_filtered,
         "span_misaligned": total_span_misaligned,

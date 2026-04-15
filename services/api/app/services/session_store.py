@@ -9,14 +9,58 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import secrets
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
-SESSION_PREFIX = "auth:session:"
+LEGACY_SESSION_PREFIX = "auth:session:"
+
+
+def _normalise_namespace(raw: str) -> str:
+    cleaned = re.sub(r"[^a-z0-9-]+", "-", (raw or "").strip().lower())
+    cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
+    return cleaned or "default"
+
+
+def _detect_session_namespace() -> str:
+    """Return a stable namespace for Redis session keys.
+
+    Priority:
+    1) SESSION_KEY_NAMESPACE (explicit override)
+    2) ENVIRONMENT / APP_ENV / LEO_ENV
+    3) FRONTEND_URL / AUTH_REDIRECT_URI host-derived fallback
+    4) "local" (safe default for developer startup)
+    """
+    explicit = (os.getenv("SESSION_KEY_NAMESPACE") or "").strip()
+    if explicit:
+        return _normalise_namespace(explicit)
+
+    for env_name in ("ENVIRONMENT", "APP_ENV", "LEO_ENV"):
+        value = (os.getenv(env_name) or "").strip()
+        if value:
+            return _normalise_namespace(value)
+
+    for url_var in ("FRONTEND_URL", "AUTH_REDIRECT_URI"):
+        candidate = (os.getenv(url_var) or "").strip()
+        if not candidate:
+            continue
+        if "://" not in candidate:
+            candidate = f"https://{candidate}"
+        host = (urlparse(candidate).hostname or "").lower().strip()
+        if host in {"localhost", "127.0.0.1", "0.0.0.0"}:
+            return "local"
+        if host:
+            return _normalise_namespace(host.split(".")[0])
+    return "local"
+
+
+SESSION_NAMESPACE = _detect_session_namespace()
+SESSION_PREFIX = f"auth:{SESSION_NAMESPACE}:session:"
 # TTL configurable so the ops team can tune without a code change
 _SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "168"))  # default 7 days
 SESSION_TTL = _SESSION_TTL_HOURS * 3600
@@ -28,6 +72,20 @@ _REDIS_MAX_RETRIES = 3
 _REDIS_HEALTH_CHECK = 30
 
 _redis_client: Any = None
+
+
+def _session_key(session_id: str) -> str:
+    return f"{SESSION_PREFIX}{session_id}"
+
+
+def _legacy_session_key(session_id: str) -> str:
+    return f"{LEGACY_SESSION_PREFIX}{session_id}"
+
+
+def _session_prefixes() -> tuple[str, ...]:
+    if SESSION_PREFIX == LEGACY_SESSION_PREFIX:
+        return (SESSION_PREFIX,)
+    return (SESSION_PREFIX, LEGACY_SESSION_PREFIX)
 
 
 def _get_redis_url() -> str | None:
@@ -104,7 +162,7 @@ def save_session(
     session_id: str, data: dict[str, Any], ttl_seconds: int = SESSION_TTL
 ) -> None:
     r = _require_redis()
-    key = f"{SESSION_PREFIX}{session_id}"
+    key = _session_key(session_id)
     result = _redis_op(r.setex, key, ttl_seconds, json.dumps(data, default=str))
     if result is None:
         raise HTTPException(status_code=503, detail="Session store unavailable")
@@ -112,8 +170,11 @@ def save_session(
 
 def load_session(session_id: str) -> dict[str, Any] | None:
     r = _require_redis()
-    key = f"{SESSION_PREFIX}{session_id}"
+    key = _session_key(session_id)
     raw = _redis_op(r.get, key)
+    # Backward compatibility: read legacy keys during rollout.
+    if raw is None and SESSION_PREFIX != LEGACY_SESSION_PREFIX:
+        raw = _redis_op(r.get, _legacy_session_key(session_id))
     if raw is None:
         return None
     try:
@@ -125,7 +186,9 @@ def load_session(session_id: str) -> dict[str, Any] | None:
 def delete_session(session_id: str) -> None:
     r = _get_redis()
     if r:
-        _redis_op(r.delete, f"{SESSION_PREFIX}{session_id}")
+        _redis_op(r.delete, _session_key(session_id))
+        if SESSION_PREFIX != LEGACY_SESSION_PREFIX:
+            _redis_op(r.delete, _legacy_session_key(session_id))
 
 
 def list_all_sessions() -> list[dict[str, Any]]:
@@ -138,20 +201,21 @@ def list_all_sessions() -> list[dict[str, Any]]:
         return []
     result = []
     try:
-        for key in r.scan_iter(match=f"{SESSION_PREFIX}*", count=100):
-            session_id = key[len(SESSION_PREFIX) :]
-            raw = _redis_op(r.get, key)
-            ttl = _redis_op(r.ttl, key) or 0
-            email = None
-            if raw:
-                try:
-                    data = json.loads(raw)
-                    email = (data.get("email") or "").strip().lower()
-                except json.JSONDecodeError:
-                    pass
-            result.append(
-                {"session_id": session_id, "email": email or "", "ttl_seconds": ttl}
-            )
+        for prefix in _session_prefixes():
+            for key in r.scan_iter(match=f"{prefix}*", count=100):
+                session_id = key[len(prefix) :]
+                raw = _redis_op(r.get, key)
+                ttl = _redis_op(r.ttl, key) or 0
+                email = None
+                if raw:
+                    try:
+                        data = json.loads(raw)
+                        email = (data.get("email") or "").strip().lower()
+                    except json.JSONDecodeError:
+                        pass
+                result.append(
+                    {"session_id": session_id, "email": email or "", "ttl_seconds": ttl}
+                )
     except Exception as exc:
         logger.warning("[Auth] list_all_sessions failed: %s", exc)
     return result
@@ -167,16 +231,17 @@ def delete_sessions_by_email(email: str) -> int:
         return 0
     deleted = 0
     try:
-        for key in r.scan_iter(match=f"{SESSION_PREFIX}*", count=100):
-            raw = _redis_op(r.get, key)
-            if raw:
-                try:
-                    data = json.loads(raw)
-                    if (data.get("email") or "").strip().lower() == email:
-                        _redis_op(r.delete, key)
-                        deleted += 1
-                except json.JSONDecodeError:
-                    pass
+        for prefix in _session_prefixes():
+            for key in r.scan_iter(match=f"{prefix}*", count=100):
+                raw = _redis_op(r.get, key)
+                if raw:
+                    try:
+                        data = json.loads(raw)
+                        if (data.get("email") or "").strip().lower() == email:
+                            _redis_op(r.delete, key)
+                            deleted += 1
+                    except json.JSONDecodeError:
+                        pass
     except Exception as exc:
         logger.warning("[Auth] delete_sessions_by_email failed: %s", exc)
     return deleted
@@ -189,9 +254,10 @@ def delete_all_sessions() -> int:
         return 0
     deleted = 0
     try:
-        for key in r.scan_iter(match=f"{SESSION_PREFIX}*", count=100):
-            _redis_op(r.delete, key)
-            deleted += 1
+        for prefix in _session_prefixes():
+            for key in r.scan_iter(match=f"{prefix}*", count=100):
+                _redis_op(r.delete, key)
+                deleted += 1
     except Exception as exc:
         logger.warning("[Auth] delete_all_sessions failed: %s", exc)
     return deleted

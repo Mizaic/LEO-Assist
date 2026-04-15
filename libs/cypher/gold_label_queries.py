@@ -134,6 +134,21 @@ RETURN
 ORDER BY g.created_at ASC
 """
 
+GET_TRAINING_GOLD_LABELS_FOR_EXPORT = """
+MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+WHERE c.status = 'completed'
+  AND g.entities_json IS NOT NULL
+  AND coalesce(g.frozen_golden_set, false) = false
+RETURN
+    g.label_id AS label_id,
+    g.text AS text,
+    g.entities_json AS entities_json,
+    g.source AS source,
+    g.quality_score AS quality_score,
+    toString(g.verified_at) AS verified_at
+ORDER BY g.created_at ASC
+"""
+
 UPDATE_GOLD_LABEL_ENTITIES = """
 MATCH (g:GoldLabel {label_id: $label_id})
 SET g.entities_json = $entities_json,
