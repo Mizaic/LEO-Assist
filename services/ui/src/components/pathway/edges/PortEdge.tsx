@@ -784,7 +784,7 @@ interface MonitorProps {
 }
 
 function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
-  const { testTrace, isTestRunning, runningStepId, haltedNodeId, runToStep, getNodeExpectedInputs } = usePipelineTest();
+  const { testTrace, isTestRunning, runningStepId, haltedNodeId, partialRunEndNodeId, runToStep, getNodeExpectedInputs } = usePipelineTest();
   const [tab, setTab] = useState<ProbeTab>("changes");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedPath, setSelectedPath] = useState<PathSegment[]>([]);
@@ -901,9 +901,12 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
 
   // "halted" = the source step ran but its quality gate stopped the pipeline
   const isSourceHalted = sourceTrace?.status === "halted";
-  // "not reached" = a run finished but this edge's source never executed because
-  // something upstream halted first
+  // "not reached (quality gate)" = a run finished but upstream halted before this edge
   const isEdgeNotReached = !isTestRunning && testTrace !== null && !sourceTrace && !!haltedNodeId;
+  // "partial run end" = this edge's source was the last step in a "Run to here" partial run
+  const isPartialRunEnd = !isTestRunning && sourceId === partialRunEndNodeId && !!sourceTrace;
+  // "not reached (partial run)" = this edge's source was beyond the partial run boundary
+  const isNotReachedByPartialRun = !isTestRunning && testTrace !== null && !sourceTrace && !!partialRunEndNodeId && !haltedNodeId;
 
   const statusColor = isSourceHalted
     ? "#f38ba8"
@@ -1034,6 +1037,24 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
           </div>
         )}
 
+        {/* ── Partial run ended at this step ───────────────────────── */}
+        {isPartialRunEnd && (
+          <div style={{
+            padding: "10px 12px",
+            background: "#1a2a1a",
+            borderBottom: "1px solid #a6e3a140",
+          }}>
+            <div style={{ color: "#a6e3a1", fontWeight: 700, fontSize: 11, marginBottom: 4 }}>
+              ▶ Partial run stopped here
+            </div>
+            <div style={{ color: "#a6adc8", fontSize: 10, lineHeight: 1.5 }}>
+              This is as far as the last "Run to here" went. Steps to the right
+              were not run. Click <span style={{ color: "#89b4fa" }}>Run all steps</span> to
+              execute the full pipeline.
+            </div>
+          </div>
+        )}
+
         {/* ── Edge was never reached (upstream halt) ──────────────── */}
         {isEdgeNotReached && (
           <div style={{
@@ -1047,6 +1068,23 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
             <div style={{ color: "#45475a", fontSize: 10, lineHeight: 1.5 }}>
               A quality gate earlier in the pipeline halted the run. This step never
               executed. Fix the problem on the node marked 🛑 red and run again.
+            </div>
+          </div>
+        )}
+
+        {/* ── Step not included in partial run ─────────────────────── */}
+        {isNotReachedByPartialRun && (
+          <div style={{
+            padding: "14px 12px",
+            background: "#1a1a2e",
+            borderBottom: "1px solid #313244",
+          }}>
+            <div style={{ color: "#6c7086", fontWeight: 700, fontSize: 11, marginBottom: 6 }}>
+              ⏹ Not run — beyond the partial run boundary
+            </div>
+            <div style={{ color: "#45475a", fontSize: 10, lineHeight: 1.5 }}>
+              The last run used "Run to here" and stopped before this step.
+              Click <span style={{ color: "#89b4fa" }}>Run all steps</span> to include it.
             </div>
           </div>
         )}
@@ -1369,7 +1407,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
             </div>
           )}
 
-          {tab === "data" && !isTestRunning && !wireState && (
+          {tab === "data" && !isTestRunning && !wireState && !isEdgeNotReached && !isNotReachedByPartialRun && (
             <div style={{ color: "#585b70", padding: "6px 0", textAlign: "center" }}>
               No results yet — click <span style={{ color: "#cba6f7" }}>Run to here</span> to see what this step does
             </div>

@@ -1,0 +1,84 @@
+# -- DI-LEO-AI-111 -- Observable value-unit linking: string results and pre-entity values
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-111"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-064"]
+  requirement: >
+    The post-processing Layer 6 value-unit linker SHALL be extended to: (1)
+    attach string-based result descriptors (positive, negative, borderline,
+    reactive, non-reactive, and all other terms in _RESULT_DESCRIPTOR_TEXTS)
+    as obs["value"] on the nearest observable_entity within 40 characters;
+    (2) perform a raw-text window scan of up to 60 characters preceding an
+    observable entity's start offset to capture numeric or string values that
+    were not extracted as separate entity spans by the NER model; and (3)
+    accept an optional encounter_text parameter so that both the entity-list
+    path and the raw-text fallback path operate in a single function call
+    without breaking existing callers.
+
+  rationale: >
+    String test results (positive, negative, borderline) are the dominant
+    result form in microbiology and immunology consultations. Pre-entity
+    value ordering is common in GP system templates. Without these two
+    extensions, observable entities leave the pipeline with obs.value = None
+    despite a result being clearly present, degrading downstream abnormal
+    detection and audit analytics.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Given an observable_entity and a qualifier_value entity whose text is
+          "negative" within 40 characters, link_observable_value_units sets
+          obs["value"] = "negative" and obs["unit"] = ""
+      - type: "functional"
+        spec: >
+          Given encounter text "7.2 mmol/L HbA1c" where no measurement entity
+          was extracted, link_observable_value_units with encounter_text set
+          attaches value="7.2" and unit="mmol/L" to the HbA1c observable
+      - type: "functional"
+        spec: >
+          Given encounter text "negative -- Urine culture" where no qualifier
+          entity was extracted, the raw-text scan attaches value="negative"
+          and unit="" to the Urine culture observable
+      - type: "functional"
+        spec: >
+          Observables that already have obs["value"] set are skipped by all
+          three passes
+    constraints:
+      - type: "safety"
+        spec: >
+          The raw-text fallback scan MUST only operate within a 60-character
+          window immediately before the observable start offset to prevent
+          attaching values from unrelated preceding sentences
+      - type: "safety"
+        spec: >
+          String value linking MUST only match exact entries in
+          _RESULT_DESCRIPTOR_TEXTS to prevent free-text fragments being
+          incorrectly interpreted as result values
+
+  dependencies: []
+  downstream_impacts:
+    - "Abnormal result detection (UN-LEO-AI-003 / DI-LEO-AI-007)"
+    - "Observable entity coding accuracy in training and runtime pipelines"
+    - "Neo4j observable entity nodes value property"
+
+  technical_details:
+    language: "Python"
+    framework: "libs/pipeline post-processing stack"
+    file_structure:
+      - "libs/pipeline/post_processing.py"
+    estimated_loc: 60
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All four VT-LEO-AI-111 test cases pass: string result after entity,
+      string result before entity, raw-text numeric before entity, raw-text
+      string before entity.
+    test_protocol: "VT-LEO-AI-111"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-077"]
+  tags: ["observable-entity", "value-unit-linking", "pipeline", "post-processing"]

@@ -111,6 +111,8 @@ jobs:
             dockerfile: infra/dockerfiles/Dockerfile.model-inference
           - service: training-worker
             dockerfile: infra/dockerfiles/Dockerfile.training-worker
+          - service: research-worker
+            dockerfile: infra/dockerfiles/Dockerfile.research-worker
 
     steps:
       - name: Checkout

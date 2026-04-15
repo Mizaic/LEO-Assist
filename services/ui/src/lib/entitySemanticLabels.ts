@@ -33,9 +33,27 @@ export type EntitySemanticLabel = (typeof VALID_ENTITY_SEMANTIC_LABELS)[number];
 
 const VALID_ENTITY_SEMANTIC_LABEL_SET = new Set<string>(VALID_ENTITY_SEMANTIC_LABELS);
 
+// Maps SNOMED display strings (space/slash-separated) and legacy aliases to the
+// canonical underscore form used in training data and the NER model.
+const _SPACE_FORM_MAP: Record<string, EntitySemanticLabel> = {
+  "observable entity": "observable_entity",
+  "qualifier value": "qualifier_value",
+  "body structure": "body_structure",
+  "tumor staging": "tumor_staging",
+  "assessment scale": "assessment_scale",
+  "staging scale": "staging_scale",
+  "regime/therapy": "regime_therapy",
+  "record artifact": "record_artifact",
+  "physical object": "physical_object",
+  "morphologic abnormality": "morphologic_abnormality",
+  "clinical drug": "clinical_drug",
+  "medicinal product": "medicinal_product",
+  snomedconcept: "finding",
+};
+
 /**
- * Map legacy Neo4j / sync placeholders (e.g. SnomedConcept) to a valid semantic tag
- * for MUI Selects and training entity JSON.
+ * Map any raw label string (canonical, SNOMED display, or legacy alias) to the
+ * canonical underscore form used in training data and MUI selects.
  */
 export function coerceEntitySemanticLabel(raw: string | undefined | null): EntitySemanticLabel {
   const s = String(raw ?? "").trim();
@@ -43,9 +61,8 @@ export function coerceEntitySemanticLabel(raw: string | undefined | null): Entit
     return s as EntitySemanticLabel;
   }
   const lower = s.toLowerCase();
-  if (lower === "snomedconcept") {
-    return "finding";
-  }
+  const mapped = _SPACE_FORM_MAP[lower];
+  if (mapped) return mapped;
   if (VALID_ENTITY_SEMANTIC_LABEL_SET.has(lower)) {
     return lower as EntitySemanticLabel;
   }

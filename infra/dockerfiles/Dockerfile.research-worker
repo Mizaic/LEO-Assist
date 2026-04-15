@@ -1,0 +1,38 @@
+# -- Pathway Explorer Research Worker ----------------------------------------
+# Always-on FastAPI service (port 8007) that executes graph algorithm missions
+# as background jobs. Reads job definitions from Redis and writes results back.
+#
+# Uses the shared .venv deps (graphdatascience, redis, neo4j driver) -- no
+# spaCy/PyTorch needed, so a standard slim image is sufficient.
+
+ARG BASE_IMAGE_BUILD=python:3.12-slim-bookworm
+ARG BASE_IMAGE_RUNTIME=python:3.12-slim-bookworm
+
+# -- Build stage: install deps into /venv ------------------------------------
+FROM ${BASE_IMAGE_BUILD} AS build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc && \
+    rm -rf /var/lib/apt/lists/*
+RUN python -m venv /venv && /venv/bin/pip install --upgrade pip setuptools wheel
+
+FROM build AS build-venv
+COPY requirements.txt /requirements.txt
+COPY services/research_worker/requirements.txt /svc-requirements.txt
+RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
+RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /svc-requirements.txt
+
+# -- Runtime: slim, non-root user --------------------------------------------
+ARG BASE_IMAGE_RUNTIME
+FROM ${BASE_IMAGE_RUNTIME}
+RUN apt-get update && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd --no-create-home --shell /sbin/nologin appuser
+COPY --from=build-venv /venv /venv
+COPY libs/ /app/libs/
+COPY services/analytics_api/ /app/services/analytics_api/
+COPY services/research_worker/ /app/services/research_worker/
+WORKDIR /app
+ENV PYTHONPATH=/app
+USER appuser
+EXPOSE 8007
+ENTRYPOINT ["/venv/bin/python3", "-m", "services.research_worker.app.main"]

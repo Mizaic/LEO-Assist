@@ -3,14 +3,22 @@
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import BuildIcon from "@mui/icons-material/Build";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -34,8 +42,11 @@ const MIN_SPANS_PER_LABEL = 30;
 import {
   fetchLabelDistribution,
   fetchExportDiagnostics,
+  fetchPhraseConsistency,
+  upsertPhraseMultiLabelApproval,
   type LabelDistribution,
   type ExportDiagnostics,
+  type PhraseConsistencyResponse,
 } from "@/lib/api/legacy";
 import { FONT_SIZES } from "@/theme/tokens";
 import { entityLabelColour } from "./goldDatasetUtils";
@@ -205,17 +216,37 @@ export default function DatasetHealthPanel({
 }) {
   const [dist, setDist] = useState<LabelDistribution | null>(null);
   const [diag, setDiag] = useState<ExportDiagnostics | null>(null);
+  const [phraseConsistency, setPhraseConsistency] =
+    useState<PhraseConsistencyResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [phraseFixIndex, setPhraseFixIndex] = useState<Record<string, number>>({});
+  const [approvingPhrase, setApprovingPhrase] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [approvalsExpanded, setApprovalsExpanded] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<{
+    phrase: string;
+    labels: string[];
+  } | null>(null);
+  const [confirmApprovalChecked, setConfirmApprovalChecked] = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([fetchLabelDistribution(), fetchExportDiagnostics()])
-      .then(([d, diag]) => {
-        if (!cancelled) { setDist(d); setDiag(diag); }
+    Promise.all([
+      fetchLabelDistribution(),
+      fetchExportDiagnostics(),
+      fetchPhraseConsistency({ minOccurrences: 2, top: 10 }),
+    ])
+      .then(([d, diagnostics, phrase]) => {
+        if (!cancelled) {
+          setDist(d);
+          setDiag(diagnostics);
+          setPhraseConsistency(phrase);
+        }
       })
       .catch((e) => { if (!cancelled) setError(String(e?.message ?? e)); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -223,6 +254,40 @@ export default function DatasetHealthPanel({
   }, [refreshKey]);
 
   const totalNotReady = diag?.summary.span_misaligned_count ?? 0;
+
+  const runApproveMultiLabel = async (
+    phrase: string,
+    labels: string[],
+  ): Promise<boolean> => {
+    setApprovingPhrase(phrase);
+    try {
+      await upsertPhraseMultiLabelApproval({
+        phrase,
+        allowed_labels: labels,
+      });
+      setActionMsg(
+        `Approved multi-label phrase "${phrase}" with labels: ${labels.join(", ")}.`,
+      );
+      const [d, diagnostics, phraseData] = await Promise.all([
+        fetchLabelDistribution(),
+        fetchExportDiagnostics(),
+        fetchPhraseConsistency({ minOccurrences: 2, top: 10 }),
+      ]);
+      setDist(d);
+      setDiag(diagnostics);
+      setPhraseConsistency(phraseData);
+      setApprovalError(null);
+      return true;
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Could not approve multi-label phrase";
+      setError(message);
+      setApprovalError(message);
+      return false;
+    } finally {
+      setApprovingPhrase(null);
+    }
+  };
 
   return (
     <Box
@@ -269,6 +334,11 @@ export default function DatasetHealthPanel({
 
       <Collapse in={expanded}>
         <Box sx={{ p: 1.5 }}>
+          {actionMsg && (
+            <Alert severity="success" sx={{ mb: 1 }}>
+              {actionMsg}
+            </Alert>
+          )}
           {error && (
             <Alert severity="error" sx={{ mb: 1.5, fontSize: FONT_SIZES.body }}>
               {error}
@@ -408,8 +478,499 @@ export default function DatasetHealthPanel({
               All verified records are ready for training.
             </Typography>
           )}
+
+          {!loading && phraseConsistency && (
+            <>
+              <Divider sx={{ my: 1.5 }} />
+
+              {/* -- Section header ---------------------------------------- */}
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <WarningAmberIcon
+                  sx={{
+                    fontSize: 15,
+                    color:
+                      phraseConsistency.summary.conflicting_phrases > 0
+                        ? "warning.main"
+                        : "success.main",
+                  }}
+                />
+                <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle, flex: 1 }}>
+                  Phrase annotation consistency
+                </Typography>
+                <Chip
+                  size="small"
+                  label={
+                    phraseConsistency.summary.conflicting_phrases === 0
+                      ? "Clean"
+                      : `${phraseConsistency.summary.conflicting_phrases} conflict${phraseConsistency.summary.conflicting_phrases !== 1 ? "s" : ""}`
+                  }
+                  color={phraseConsistency.summary.conflicting_phrases > 0 ? "warning" : "success"}
+                  sx={{ height: 18, fontSize: "0.68rem" }}
+                />
+                {(phraseConsistency.summary.approved_multilabel_variants ?? 0) > 0 && (
+                  <Chip
+                    size="small"
+                    icon={<CheckCircleOutlineIcon sx={{ fontSize: "12px !important" }} />}
+                    label={`${phraseConsistency.summary.approved_multilabel_variants} approved`}
+                    color="success"
+                    variant="outlined"
+                    sx={{ height: 18, fontSize: "0.68rem" }}
+                  />
+                )}
+              </Stack>
+
+              {/* -- No conflicts state ------------------------------------ */}
+              {phraseConsistency.summary.conflicting_phrases === 0 ? (
+                <Typography sx={{ fontSize: 11, color: "success.dark" }}>
+                  No annotation conflicts in the training set.
+                </Typography>
+              ) : (
+                <>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
+                    The same phrase appears under different labels. Use{" "}
+                    <strong>Fix</strong> to open mismatched records directly.
+                    Assertion differences are expected and are not counted.
+                  </Typography>
+                  {(phraseConsistency.summary.assertion_only_variants ?? 0) > 0 && (
+                    <Typography sx={{ fontSize: 10, color: "text.disabled", mb: 1 }}>
+                      {phraseConsistency.summary.assertion_only_variants} assertion-only
+                      variants ignored (not NER conflicts).
+                    </Typography>
+                  )}
+
+                  {/* -- Conflict cards ------------------------------------ */}
+                  <Stack spacing={1}>
+                    {phraseConsistency.conflicts.map((item) => {
+                      const outliers = item.outlier_examples ?? [];
+                      const fixIdx = phraseFixIndex[item.phrase] ?? 0;
+                      const allLabels = Array.from(
+                        new Set(item.signature_counts.map((s) => s.label)),
+                      );
+                      return (
+                        <Box
+                          key={item.phrase}
+                          sx={{
+                            border: "1px solid",
+                            borderColor: "warning.200",
+                            borderLeft: "3px solid",
+                            borderLeftColor: "warning.main",
+                            borderRadius: 1.5,
+                            bgcolor: "background.paper",
+                            overflow: "hidden",
+                            transition: "box-shadow 0.15s",
+                            "&:hover": { boxShadow: "0 2px 8px rgba(0,0,0,0.08)" },
+                          }}
+                        >
+                          <Stack
+                            direction={{ xs: "column", md: "row" }}
+                            alignItems="stretch"
+                          >
+                            {/* Left: phrase details */}
+                            <Box sx={{ p: 1.25, flex: 1, minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: "text.primary",
+                                  mb: 0.35,
+                                }}
+                              >
+                                &ldquo;{item.phrase}&rdquo;
+                              </Typography>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                                sx={{ mb: 0.6 }}
+                              >
+                                <Typography sx={{ fontSize: 10, color: "text.secondary" }}>
+                                  {item.occurrences} occurrences
+                                </Typography>
+                                <Typography sx={{ fontSize: 10, color: "text.disabled" }}>
+                                  &bull;
+                                </Typography>
+                                <Typography sx={{ fontSize: 10, color: "text.secondary" }}>
+                                  {item.distinct_labels} label{item.distinct_labels !== 1 ? "s" : ""}
+                                </Typography>
+                                {!!item.primary_label && (
+                                  <>
+                                    <Typography sx={{ fontSize: 10, color: "text.disabled" }}>
+                                      &bull;
+                                    </Typography>
+                                    <Typography
+                                      sx={{
+                                        fontSize: 10,
+                                        color: "primary.main",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      Canonical: {item.primary_label}
+                                    </Typography>
+                                  </>
+                                )}
+                              </Stack>
+                              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                {item.signature_counts.slice(0, 5).map((sig) => (
+                                  <Chip
+                                    key={`${item.phrase}-${sig.label}-${sig.assertion}`}
+                                    size="small"
+                                    label={`${sig.label} (${sig.count})`}
+                                    variant="outlined"
+                                    sx={{
+                                      height: 20,
+                                      fontSize: "0.67rem",
+                                      borderColor: "warning.300",
+                                      color: "warning.dark",
+                                    }}
+                                  />
+                                ))}
+                              </Stack>
+                              {onOpenLabel && item.examples.length > 0 && (
+                                <Stack
+                                  direction="row"
+                                  spacing={0.5}
+                                  flexWrap="wrap"
+                                  useFlexGap
+                                  sx={{ mt: 0.6 }}
+                                >
+                                  {item.examples.slice(0, 3).map((ex) => (
+                                    <Chip
+                                      key={`${item.phrase}-${ex.label_id}-${ex.label}`}
+                                      size="small"
+                                      label={`${ex.label_id.slice(0, 8)} [${ex.label}]`}
+                                      onClick={() => onOpenLabel(ex.label_id)}
+                                      clickable
+                                      sx={{
+                                        height: 18,
+                                        fontSize: "0.65rem",
+                                        bgcolor: "grey.100",
+                                      }}
+                                    />
+                                  ))}
+                                </Stack>
+                              )}
+                            </Box>
+
+                            {/* Right: actions panel */}
+                            <Box
+                              sx={{
+                                p: 1.25,
+                                minWidth: { md: 220 },
+                                borderLeft: { xs: "none", md: "1px solid" },
+                                borderTop: { xs: "1px solid", md: "none" },
+                                borderColor: "divider",
+                                bgcolor: "grey.50",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 0.75,
+                                justifyContent: "center",
+                              }}
+                            >
+                              {onOpenLabel && outliers.length > 0 && (
+                                <Box>
+                                  <Button
+                                    variant="contained"
+                                    size="small"
+                                    fullWidth
+                                    onClick={() => {
+                                      const next = fixIdx % outliers.length;
+                                      onOpenLabel(outliers[next].label_id);
+                                      setPhraseFixIndex((prev) => ({
+                                        ...prev,
+                                        [item.phrase]: (next + 1) % outliers.length,
+                                      }));
+                                    }}
+                                    sx={{
+                                      textTransform: "none",
+                                      fontSize: "0.75rem",
+                                      fontWeight: 700,
+                                      bgcolor: "#1565C0",
+                                      "&:hover": { bgcolor: "#0D47A1" },
+                                    }}
+                                  >
+                                    Fix mismatch &mdash; {item.outlier_count ?? outliers.length} to fix
+                                  </Button>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.65rem",
+                                      color: "text.disabled",
+                                      mt: 0.35,
+                                      textAlign: "center",
+                                    }}
+                                  >
+                                    Opens record {(fixIdx % outliers.length) + 1} of{" "}
+                                    {outliers.length}
+                                  </Typography>
+                                </Box>
+                              )}
+                              {allLabels.length > 1 && (
+                                <Box sx={{ mt: onOpenLabel && outliers.length > 0 ? 0.5 : 0 }}>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.62rem",
+                                      color: "text.disabled",
+                                      fontWeight: 600,
+                                      textTransform: "uppercase",
+                                      letterSpacing: "0.04em",
+                                      mb: 0.4,
+                                    }}
+                                  >
+                                    Exception
+                                  </Typography>
+                                  <Button
+                                    variant="outlined"
+                                    color="warning"
+                                    size="small"
+                                    fullWidth
+                                    disabled={approvingPhrase === item.phrase}
+                                    onClick={() => {
+                                      setConfirmApprovalChecked(false);
+                                      setApprovalError(null);
+                                      setPendingApproval({
+                                        phrase: item.phrase,
+                                        labels: allLabels,
+                                      });
+                                    }}
+                                    sx={{
+                                      textTransform: "none",
+                                      fontSize: "0.72rem",
+                                      fontWeight: 600,
+                                      borderWidth: 1.5,
+                                    }}
+                                  >
+                                    Approve multi-label
+                                  </Button>
+                                </Box>
+                              )}
+                            </Box>
+                          </Stack>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                </>
+              )}
+
+              {/* -- Approved exceptions ----------------------------------- */}
+              {(phraseConsistency.approved_multilabel?.length ?? 0) > 0 && (
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    border: "1px solid",
+                    borderColor: "success.200",
+                    borderRadius: 1.5,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    spacing={0.75}
+                    sx={{
+                      px: 1.25,
+                      py: 0.85,
+                      bgcolor: "success.50",
+                      cursor: "pointer",
+                      userSelect: "none",
+                    }}
+                    onClick={() => setApprovalsExpanded((v) => !v)}
+                  >
+                    <CheckCircleOutlineIcon
+                      sx={{ fontSize: 14, color: "success.main", flexShrink: 0 }}
+                    />
+                    <Typography
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "success.dark",
+                        flex: 1,
+                      }}
+                    >
+                      Approved multi-label exceptions (
+                      {phraseConsistency.approved_multilabel!.length})
+                    </Typography>
+                    <Typography sx={{ fontSize: 10, color: "text.disabled" }}>
+                      {approvalsExpanded ? "hide" : "show"}
+                    </Typography>
+                    {approvalsExpanded ? (
+                      <ExpandLessIcon sx={{ fontSize: 15, color: "text.secondary" }} />
+                    ) : (
+                      <ExpandMoreIcon sx={{ fontSize: 15, color: "text.secondary" }} />
+                    )}
+                  </Stack>
+                  <Collapse in={approvalsExpanded}>
+                    <Stack spacing={0} divider={<Divider />}>
+                      {phraseConsistency.approved_multilabel!.map((item) => (
+                        <Box
+                          key={`approved-${item.phrase}`}
+                          sx={{ px: 1.25, py: 1, bgcolor: "background.paper" }}
+                        >
+                          <Stack
+                            direction="row"
+                            alignItems="flex-start"
+                            justifyContent="space-between"
+                            spacing={1}
+                          >
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  color: "text.primary",
+                                  mb: 0.4,
+                                }}
+                              >
+                                &ldquo;{item.phrase}&rdquo;
+                              </Typography>
+                              <Stack
+                                direction="row"
+                                spacing={0.5}
+                                flexWrap="wrap"
+                                useFlexGap
+                              >
+                                {item.signature_counts.slice(0, 5).map((sig) => (
+                                  <Chip
+                                    key={`approved-${item.phrase}-${sig.label}-${sig.assertion}`}
+                                    size="small"
+                                    label={`${sig.label} (${sig.count})`}
+                                    variant="outlined"
+                                    color="success"
+                                    sx={{ height: 18, fontSize: "0.65rem" }}
+                                  />
+                                ))}
+                              </Stack>
+                            </Box>
+                            <Chip
+                              size="small"
+                              icon={<CheckCircleOutlineIcon sx={{ fontSize: "11px !important" }} />}
+                              label="Approved"
+                              color="success"
+                              sx={{ height: 18, fontSize: "0.64rem", flexShrink: 0 }}
+                            />
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Collapse>
+                </Box>
+              )}
+            </>
+          )}
         </Box>
       </Collapse>
+      <Dialog
+        open={!!pendingApproval}
+        onClose={() => {
+          if (!approvingPhrase) {
+            setPendingApproval(null);
+            setConfirmApprovalChecked(false);
+            setApprovalError(null);
+          }
+        }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ pb: 0.5, fontWeight: 700, fontSize: "1rem" }}>
+          Approve as multi-label exception?
+        </DialogTitle>
+        <DialogContent sx={{ pt: "8px !important" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.25 }}>
+            Only approve when this phrase <strong>intentionally</strong> carries
+            multiple labels in your training data. It will be excluded from the
+            conflict list permanently.
+          </Typography>
+
+          {pendingApproval && (
+            <Box
+              sx={{
+                p: 1.25,
+                border: "1px solid",
+                borderColor: "warning.300",
+                borderLeft: "3px solid",
+                borderLeftColor: "warning.main",
+                borderRadius: 1.5,
+                mb: 1.25,
+                bgcolor: "warning.50",
+              }}
+            >
+              <Typography
+                sx={{ fontSize: 12, fontWeight: 700, color: "text.primary", mb: 0.35 }}
+              >
+                &ldquo;{pendingApproval.phrase}&rdquo;
+              </Typography>
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                {pendingApproval.labels.map((label) => (
+                  <Chip
+                    key={label}
+                    size="small"
+                    label={label}
+                    color="warning"
+                    variant="outlined"
+                    sx={{ height: 18, fontSize: "0.66rem" }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
+
+          {approvalError && (
+            <Alert severity="error" sx={{ mb: 1.25, fontSize: 12 }}>
+              {approvalError}
+            </Alert>
+          )}
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={confirmApprovalChecked}
+                onChange={(e) => setConfirmApprovalChecked(e.target.checked)}
+                size="small"
+                color="warning"
+              />
+            }
+            label={
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                I confirm this is an intentional multi-label phrase and should
+                be excluded from annotation conflicts.
+              </Typography>
+            }
+            sx={{ alignItems: "flex-start", ml: 0 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setPendingApproval(null);
+              setConfirmApprovalChecked(false);
+              setApprovalError(null);
+            }}
+            disabled={!!approvingPhrase}
+            sx={{ textTransform: "none" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={!pendingApproval || !confirmApprovalChecked || !!approvingPhrase}
+            onClick={async () => {
+              if (!pendingApproval) return;
+              const current = pendingApproval;
+              const ok = await runApproveMultiLabel(current.phrase, current.labels);
+              if (ok) {
+                setPendingApproval(null);
+                setConfirmApprovalChecked(false);
+                setApprovalError(null);
+                setApprovalsExpanded(true);
+              }
+            }}
+            sx={{ textTransform: "none", fontWeight: 700 }}
+          >
+            {approvingPhrase ? "Saving..." : "Approve exception"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -31,6 +31,12 @@ export interface PipelineTestContextValue {
    * null when the last run completed normally or no run has happened.
    */
   haltedNodeId: string | null;
+  /**
+   * ID of the furthest node included in the last "Run to here" partial run.
+   * null when the last run was a full pipeline run (or no run has happened).
+   * Cleared automatically at the start of every new run.
+   */
+  partialRunEndNodeId: string | null;
   /** Set of edge keys ("sourceId|targetId") the user has clamped a probe onto */
   probedEdges: Set<string>;
   toggleProbe: (sourceNodeId: string, targetNodeId: string) => void;
@@ -59,6 +65,7 @@ export const PipelineTestContext = createContext<PipelineTestContextValue>({
   runningStepId: null,
   isTestRunning: false,
   haltedNodeId: null,
+  partialRunEndNodeId: null,
   probedEdges: new Set(),
   toggleProbe: () => undefined,
   runToStep: () => undefined,

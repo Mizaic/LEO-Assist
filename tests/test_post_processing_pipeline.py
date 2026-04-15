@@ -431,3 +431,24 @@ def test_observable_span_cleaned_and_value_attached() -> None:
     assert obs[0].get("value") or obs[0].get(
         "unit"
     ), "Observable should have value/unit attached"
+
+
+def test_run_post_processing_attaches_string_result_via_raw_text() -> None:
+    """VT-111-TC-003/04 integration: raw-text fallback wired through run_post_processing."""
+    encounter = "7.2 mmol/L HbA1c"
+    entities = [
+        {
+            "text": "HbA1c",
+            "label": "observable_entity",
+            "start": 11,
+            "end": 16,
+            "assertion": "present",
+        }
+    ]
+    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
+        result = run_post_processing(encounter, entities)
+
+    obs = [e for e in result if e.get("label") == "observable_entity"]
+    assert len(obs) >= 1, "HbA1c observable entity should survive pipeline"
+    assert obs[0].get("value") == "7.2", "value should be attached from raw text"
+    assert obs[0].get("unit") == "mmol/L", "unit should be attached from raw text"

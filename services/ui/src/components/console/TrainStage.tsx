@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DialogContentText from "@mui/material/DialogContentText";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -73,10 +74,21 @@ interface TrainStageProps {
   latestJob: TrainingJob | null;
   onTrain: () => void;
   training: boolean;
+  onCancelJob?: (jobId: string) => void;
+  cancelling?: boolean;
 }
 
-export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: TrainStageProps) {
+export function TrainStage({
+  jobs,
+  runningJob,
+  latestJob,
+  onTrain,
+  training,
+  onCancelJob,
+  cancelling = false,
+}: TrainStageProps) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const displayJob =
     selectedJobId ? jobs.find((j) => j.job_id === selectedJobId) ?? latestJob : runningJob ?? latestJob;
@@ -86,7 +98,7 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
   return (
     <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
       {/* Action row */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Button
           variant="contained"
           onClick={onTrain}
@@ -96,6 +108,21 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
         >
           {runningJob ? "Training in progress" : "Train now"}
         </Button>
+
+        {runningJob && onCancelJob && (
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            disabled={cancelling}
+            startIcon={cancelling ? <CircularProgress size={12} color="inherit" /> : undefined}
+            onClick={() => setCancelDialogOpen(true)}
+            sx={{ textTransform: "none" }}
+          >
+            {cancelling ? "Cancelling…" : "Cancel training"}
+          </Button>
+        )}
+
         {displayJob && (
           <Chip
             size="small"
@@ -110,6 +137,35 @@ export function TrainStage({ jobs, runningJob, latestJob, onTrain, training }: T
           />
         )}
       </Box>
+
+      {/* Cancel confirmation dialog */}
+      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Cancel training job?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: "0.9rem" }}>
+            This will stop the current training run. Progress will be lost and the model will not be updated.
+            You can start a new run at any time.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelDialogOpen(false)} sx={{ textTransform: "none" }}>
+            Keep running
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={cancelling}
+            startIcon={cancelling ? <CircularProgress size={12} color="inherit" /> : undefined}
+            onClick={() => {
+              setCancelDialogOpen(false);
+              if (runningJob) onCancelJob?.(runningJob.job_id);
+            }}
+            sx={{ textTransform: "none" }}
+          >
+            {cancelling ? "Cancelling…" : "Yes, cancel"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Phase progress */}
       {runningJob && (

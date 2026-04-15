@@ -1,0 +1,68 @@
+# -- UN-LEO-AI-063 -- Pathway Explorer research workspace
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-063"
+  title: "Audit teams and pathway coordinators need a guided research workspace to investigate patient populations, discover cohorts, and analyse pathway bottlenecks without requiring data science expertise"
+  description: |
+    Clinical audit teams, pathway coordinators, and quality leads need to
+    investigate patient populations and cancer pathway performance using graph
+    algorithms, without having to know what algorithms are or how to configure
+    them.
+
+    The platform must provide:
+    - A set of plain-English mission cards organised by intent (find problems,
+      find patterns, find what matters most)
+    - Three simple scoping questions (pathway, time period, detail level) rather
+      than algorithm parameter screens
+    - Four-layer results (headline finding, visual, detail table, method text)
+    - Data coverage indicators alongside every finding so users know how much to
+      trust the result
+    - A persona lens toggle (Patients / Pathways / Capacity) that reframes the
+      same underlying analysis for different roles
+    - Data-gated mission cards for investigations that require referral network
+      data not yet loaded -- shown but clearly unavailable with a plain
+      explanation
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Lead / Pathway Coordinator / Quality Lead"
+    organization: "NHS Cancer Alliance / ICB"
+
+  priority: "SHOULD"
+
+  rationale: |
+    Without a research workspace, users who need to investigate population-level
+    patterns must either request bespoke analytics or use raw data exports, both
+    of which are slow and inaccessible to non-data-science staff. The workspace
+    reduces this barrier while ensuring outputs are clearly labelled with data
+    coverage and confidence so users do not over-interpret sparse data.
+
+  acceptance_criteria:
+    - "Mission cards display in plain English with no algorithm names visible to end users"
+    - "Scoping is limited to 3 questions: area, period, detail level"
+    - "Every result includes a plain-English headline with a coverage badge"
+    - "Detail table is exportable as CSV"
+    - "Method text is hidden behind a collapsible How did we work this out? section"
+    - "Data-gated missions are visible but muted with a clear Coming soon message"
+    - "Persona lens toggle reframes titles and descriptions for each role"
+
+  regulatory_impact: "medium"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-04-15"
+    status: "draft"
+
+  design_inputs: ["DI-LEO-AI-109", "DI-LEO-AI-110"]
+  validation_tests: []
+
+  tags: ["research-workspace", "pathway-explorer", "graph-algorithms", "audit"]

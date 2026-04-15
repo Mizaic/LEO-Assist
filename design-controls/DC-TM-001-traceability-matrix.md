@@ -707,6 +707,21 @@ Safety constraints enforced:
 | User Need | UN-LEO-AI-062 | draft | Clinical reviewers need ontology-grounded relation linking for safe entity semantics |
 | Risk | R-LEO-AI-074 | analyzed | Invalid or missing relations distort coding interpretation and analytics |
 | Verification Test | VT-LEO-AI-108 | passed | Relation schema/policy/runtime and relation train/eval verification |
+| User Need | UN-LEO-AI-063 | draft | Guided research workspace for longitudinal patient graph exploration |
+| Design Input | DI-LEO-AI-109 | draft | Pathway Explorer API and GDS services |
+| Design Input | DI-LEO-AI-110 | draft | Pathway Explorer UI/UX components |
+| Design Output | DO-LEO-AI-107 | draft | Pathway Explorer API and GDS services implementation |
+| Design Output | DO-LEO-AI-108 | draft | Pathway Explorer UI components implementation |
+| Risk | R-LEO-AI-075 | analyzed | Misleading graph algorithm results acted on clinically |
+| Risk | R-LEO-AI-076 | analyzed | Algorithm jargon in UI causes user misinterpretation |
+| Verification Test | VT-LEO-AI-109 | passed | Pathway Explorer API/GDS services unit tests |
+| Verification Test | VT-LEO-AI-110 | passed | Pathway Explorer UI static analysis (49 assertions) |
+
+| User Need | UN-LEO-AI-064 | draft | Pipeline must completely capture string results and pre-entity values for observable entities |
+| Design Input | DI-LEO-AI-111 | draft | Observable value-unit linking: string results and pre-entity values |
+| Design Output | DO-LEO-AI-109 | draft | Extended link_observable_value_units with string pass and raw-text fallback |
+| Risk | R-LEO-AI-077 | analyzed | Observable value left empty for string or pre-entity results - downstream abnormal detection degraded |
+| Verification Test | VT-LEO-AI-111 | passed | Four tests: string after, string before, numeric raw-text fallback, string raw-text fallback |
 
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
@@ -719,6 +734,9 @@ Safety constraints enforced:
 | DI-LEO-AI-106 | Training quality capabilities (span realign, assertion filter, golden set) | R-LEO-AI-072 | VT-LEO-AI-106 |
 | DI-LEO-AI-107 | Multi-label NER - spancat component, layer 5 nesting refinement, prompt preservation (VT passed 2026-04-13) | R-LEO-AI-073 | VT-LEO-AI-107 |
 | DI-LEO-AI-108 | Ontology-grounded relation modeling and reviewer workflow | R-LEO-AI-074 | VT-LEO-AI-108 |
+| DI-LEO-AI-109 | Pathway Explorer API and GDS services | R-LEO-AI-075 | VT-LEO-AI-109 |
+| DI-LEO-AI-110 | Pathway Explorer UI/UX components | R-LEO-AI-076 | VT-LEO-AI-110 |
+| DI-LEO-AI-111 | Observable value-unit linking: string results and pre-entity raw-text fallback (VT passed 2026-04-15) | R-LEO-AI-077 | VT-LEO-AI-111 |
 
 ---
 

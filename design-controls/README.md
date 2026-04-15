@@ -692,3 +692,17 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | Design Output | DO-LEO-AI-106 | draft | API/UI/runtime/training implementation for ontology-grounded relation modeling |
 | Risk | R-LEO-AI-074 | analyzed | Invalid or missing relations distort coding interpretation and pathway analytics |
 | Verification Test | VT-LEO-AI-108 | passed | Relation schema/policy/runtime fallback and relation training pipeline verification |
+| User Need | UN-LEO-AI-063 | draft | Clinicians and service improvement leads need a guided research workspace to explore longitudinal patient data |
+| Design Input | DI-LEO-AI-109 | draft | Pathway Explorer API: GDS projections, algorithm runner, research router, research worker service |
+| Design Input | DI-LEO-AI-110 | draft | Pathway Explorer UI: mission cards, scoping wizard, 4-layer results, persona lens, data-gated UX |
+| Design Output | DO-LEO-AI-107 | draft | Backend implementation: gds_projection_manager, algorithm_runner, headline_generator, research router, research_worker |
+| Design Output | DO-LEO-AI-108 | draft | Frontend implementation: 11 React components + API client + useResearchState hook |
+| Risk | R-LEO-AI-075 | analyzed | Misleading graph algorithm results acted on clinically without data coverage warning |
+| Risk | R-LEO-AI-076 | analyzed | Algorithm jargon exposed in UI causes user misinterpretation of findings |
+| Verification Test | VT-LEO-AI-109 | passed | Pathway Explorer API/GDS backend unit tests (pytest, 6 test cases) |
+| Verification Test | VT-LEO-AI-110 | passed | Pathway Explorer UI static analysis (jest, 49 assertions across 10 suites) |
+| User Need | UN-LEO-AI-064 | draft | Pipeline must completely capture string results and pre-entity values for observable entities |
+| Design Input | DI-LEO-AI-111 | draft | Observable value-unit linking: string result descriptors and pre-entity raw-text fallback |
+| Design Output | DO-LEO-AI-109 | draft | Extended link_observable_value_units in post_processing.py |
+| Risk | R-LEO-AI-077 | analyzed | Observable value left empty for string or pre-entity results - downstream abnormal detection degraded |
+| Verification Test | VT-LEO-AI-111 | passed | Four unit tests: string entity after, string entity before, numeric raw-text, string raw-text |

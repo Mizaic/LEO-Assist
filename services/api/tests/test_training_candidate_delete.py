@@ -748,3 +748,58 @@ def test_find_similar_candidates_by_entity_returns_404_for_missing_source(client
         )
 
     assert r.status_code == 404
+
+
+def test_find_similar_candidates_by_entity_finds_source_with_non_pending_status(
+    client,
+):
+    """Source candidate with status != 'pending' must not cause a 404."""
+    from libs.cypher.training_candidate_queries import GET_TRAINING_CANDIDATES_PAGE
+
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+
+        def run_side_effect(query, **kwargs):
+            if query == GET_TRAINING_CANDIDATES_PAGE:
+                return [
+                    {
+                        "candidate_id": "cand-source",
+                        "text": "Type 2 diabetes reviewed",
+                        "entities_json": '[{"text":"type 2 diabetes","label":"finding"}]',
+                        "source": "pipeline_gold",
+                        "status": "completed",
+                        "updated_at": "2026-04-15T10:00:00Z",
+                    },
+                    {
+                        "candidate_id": "cand-pending",
+                        "text": "Type 2 diabetes annual review",
+                        "entities_json": '[{"text":"type 2 diabetes","label":"finding"}]',
+                        "source": "pipeline_gold",
+                        "status": "pending",
+                        "updated_at": "2026-04-15T10:01:00Z",
+                    },
+                ]
+            return MagicMock(single=MagicMock(return_value=None))
+
+        inner.run.side_effect = run_side_effect
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.post(
+            "/training/candidates/find-similar-by-entity",
+            json={
+                "candidate_id": "cand-source",
+                "limit": 10,
+                "similarity_threshold": 0.5,
+            },
+        )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["source_candidate_id"] == "cand-source"
+    assert payload["count"] == 1
+    assert payload["items"][0]["candidate_id"] == "cand-pending"

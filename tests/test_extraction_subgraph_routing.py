@@ -10,9 +10,19 @@ from libs.pipeline_graph.subgraphs.extraction import extract_entities
 
 def test_extract_entities_uses_ner_provider_when_requested(monkeypatch):
     class _Provider:
-        def extract_batch(self, encounter_text, chunks):
+        def extract_batch(
+            self,
+            encounter_text,
+            chunks,
+            requested_model_version=None,
+            strict_model_version=False,
+        ):
             assert encounter_text == "Patient has asthma."
             assert len(chunks) == 1
+            assert requested_model_version is None
+            assert strict_model_version is False
+            self.model_name = "model-inference"
+            self.model_version = "v1"
             return [
                 ExtractionItem(
                     sentence_id="s0",
@@ -55,9 +65,17 @@ def test_extract_entities_uses_ner_provider_when_requested(monkeypatch):
 
 def test_extract_entities_uses_deterministic_lab_fallback_when_ner_empty(monkeypatch):
     class _Provider:
-        def extract_batch(self, encounter_text, chunks):
+        def extract_batch(
+            self,
+            encounter_text,
+            chunks,
+            requested_model_version=None,
+            strict_model_version=False,
+        ):
             assert encounter_text
             assert chunks
+            self.model_name = "model-inference"
+            self.model_version = "v1"
             return []
 
     monkeypatch.setattr(
@@ -86,3 +104,45 @@ def test_extract_entities_uses_deterministic_lab_fallback_when_ner_empty(monkeyp
     assert ent["value"] == "5.14"
     assert ent["unit"] == "10^9/L"
     assert ent["__source"] == "ner_lab_fallback"
+
+
+def test_extract_entities_raises_when_strict_model_version_error(monkeypatch):
+    class _Provider:
+        model_name = "model-inference"
+        model_version = "v1"
+
+        def extract_batch(
+            self,
+            encounter_text,
+            chunks,
+            requested_model_version=None,
+            strict_model_version=False,
+        ):
+            assert requested_model_version == "requested-v2"
+            assert strict_model_version is True
+            raise RuntimeError(
+                "Requested model version requested-v2 but extraction returned model version actual-v3"
+            )
+
+    monkeypatch.setattr(
+        "services.coding_worker.app.pipeline.providers.model_provider.ModelExtractorProvider",
+        _Provider,
+    )
+
+    with pytest.raises(RuntimeError, match="Requested model version requested-v2"):
+        extract_entities(
+            {
+                "encounter_text": "Patient has asthma.",
+                "extraction_method": "ner",
+                "requested_model_version": "requested-v2",
+                "strict_model_version": True,
+                "sentences": [
+                    {
+                        "sentence_id": "s0",
+                        "text": "Patient has asthma.",
+                        "start": 0,
+                        "end": 19,
+                    }
+                ],
+            }
+        )

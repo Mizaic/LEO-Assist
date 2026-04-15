@@ -86,6 +86,7 @@ var fhirApiUrl = 'http://fhir-api'
 var analyticsApiUrl = 'http://analytics-api'
 var modelInferenceUrl = 'http://model-inference'
 var pipelineWorkerUrl = 'http://pipeline-worker'
+var researchWorkerUrl = 'http://research-worker'
 
 var hasUiTlsCustomDomain = !empty(uiCustomDomainHost) && !empty(uiIngressCertificateName)
 // Inner ternary: managed free cert vs uploaded / imported cert on the environment.
@@ -292,6 +293,7 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'ANALYTICS_API_BASE', value: analyticsApiUrl }
           { name: 'CODING_MODEL_ENDPOINT', value: modelInferenceUrl }
           { name: 'PIPELINE_WORKER_URL', value: pipelineWorkerUrl }
+          { name: 'RESEARCH_WORKER_URL', value: researchWorkerUrl }
           { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
           // URL of the UI -- controls OAuth redirects and invite email links.
           { name: 'FRONTEND_URL', value: frontendUrl }
@@ -657,6 +659,56 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
           }
         }]
       }
+    }
+  }
+}
+
+// -- research-worker (internal ingress) -- Pathway Explorer job executor ----
+// Scales to 0 when no graph algorithm missions are running; scales up on
+// Redis queue depth (KEDA http-requests trigger can be added when available).
+resource researchWorker 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'research-worker'
+  location: location
+  identity: identityConfig
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      secrets: sharedSecrets
+      registries: registryConfig
+      ingress: {
+        external: false
+        targetPort: 8007
+        transport: 'http'
+      }
+    }
+    template: {
+      containers: [{
+        name: 'research-worker'
+        image: usePlaceholder ? placeholderImage : '${acrLoginServer}/research-worker:${imageTag}'
+        resources: { cpu: json('1.0'), memory: '2Gi' }
+        env: union(sharedEnv, [
+          { name: 'NEO4J_USER', value: neo4jUser }
+          { name: 'ANALYTICS_API_URL', value: analyticsApiUrl }
+          { name: 'RESEARCH_WORKER_PORT', value: '8007' }
+        ])
+        probes: [
+          {
+            type: 'Liveness'
+            httpGet: { path: '/health', port: 8007, scheme: 'HTTP' }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          }
+          {
+            type: 'Readiness'
+            httpGet: { path: '/health', port: 8007, scheme: 'HTTP' }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+        ]
+      }]
+      scale: { minReplicas: 0, maxReplicas: 2 }
     }
   }
 }

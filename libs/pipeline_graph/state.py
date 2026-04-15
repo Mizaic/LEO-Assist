@@ -37,9 +37,15 @@ class ExtractionState(TypedDict, total=False):
 
     encounter_text: str
     extraction_method: str
+    requested_model_version: str
+    strict_model_version: bool
     prompt_config: dict[str, Any]
     sentences: list[dict[str, Any]]
     entities: list[dict[str, Any]]
+    extraction_model_name: str
+    extraction_model_version: str
+    extraction_model_requested_version: str
+    extraction_model_version_mismatch: bool
     errors: list[str]
 
 
@@ -149,6 +155,10 @@ class PipelineState(TypedDict, total=False):
     entities: list[dict[str, Any]]
     resolved_entities: list[dict[str, Any]]
     tier_decisions: list[dict[str, Any]]
+    extraction_model_name: str
+    extraction_model_version: str
+    extraction_model_requested_version: str
+    extraction_model_version_mismatch: bool
 
     # Output
     documents_written: int

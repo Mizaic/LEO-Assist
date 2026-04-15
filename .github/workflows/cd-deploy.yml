@@ -69,8 +69,8 @@ jobs:
       - name: Update Container App image tags
         run: |
           # Must match images built in ci-build.yml and apps in infra/bicep/modules/container-apps.bicep
-          # Parity with scripts/start_leo-ai-core.ps1 (-Services names: api, terminology_api, ...)
-          SERVICES="core-api terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker ui"
+          # Parity with scripts/start_leo-ai-core.sh (--services names: api, terminology_api, ...)
+          SERVICES="core-api terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker ui"
           TAG=${{ steps.tag.outputs.tag }}
           for SERVICE in $SERVICES; do
             az containerapp update \
@@ -98,7 +98,7 @@ jobs:
 
       - name: Verify revision health (dev)
         run: |
-          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker"
           for APP in $APPS; do
             echo "Checking revision states for ${APP}"
             BAD=$(az containerapp revision list \
@@ -114,7 +114,7 @@ jobs:
 
       - name: Report deployed images (dev)
         run: |
-          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker"
           {
             echo "## Deployed ACA images - dev"
             echo ""
@@ -195,7 +195,7 @@ jobs:
 
       - name: Verify revision health (validation)
         run: |
-          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker"
           for APP in $APPS; do
             echo "Checking revision states for ${APP}"
             BAD=$(az containerapp revision list \
@@ -211,7 +211,7 @@ jobs:
 
       - name: Report deployed images (validation)
         run: |
-          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker"
           {
             echo "## Deployed ACA images - validation"
             echo ""
@@ -292,7 +292,7 @@ jobs:
 
       - name: Verify revision health (production)
         run: |
-          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker"
           for APP in $APPS; do
             echo "Checking revision states for ${APP}"
             BAD=$(az containerapp revision list \
@@ -308,7 +308,7 @@ jobs:
 
       - name: Report deployed images (production)
         run: |
-          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker"
+          APPS="core-api ui terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker"
           {
             echo "## Deployed ACA images - production"
             echo ""

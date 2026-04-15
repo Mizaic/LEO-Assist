@@ -50,6 +50,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
+import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import LinearProgress from "@mui/material/LinearProgress";
 import Chip from "@mui/material/Chip";
 import { useAuth } from "@/lib/authContext";
@@ -121,6 +122,12 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
       "/admin/domains",
       "/admin/terminology",
     ],
+  },
+  {
+    label: "Pathway Explorer",
+    path: "/admin/pathway-explorer",
+    icon: <ExploreOutlinedIcon />,
+    activePrefix: ["/admin/pathway-explorer"],
   },
   {
     label: "Platform",

@@ -790,3 +790,87 @@ export async function fetchExportDiagnostics(): Promise<ExportDiagnostics> {
     `${API_BASE}/api/training/gold-labels/export-diagnostics`,
   );
 }
+
+export interface PhraseSignatureCount {
+  label: string;
+  assertion: string;
+  count: number;
+}
+
+export interface PhraseConflictExample {
+  label_id: string;
+  source: string;
+  label: string;
+  assertion: string;
+  sentence_preview: string;
+}
+
+export interface PhraseConflictItem {
+  phrase: string;
+  occurrences: number;
+  distinct_labels: number;
+  distinct_assertions: number;
+  primary_label?: string;
+  outlier_count?: number;
+  outlier_examples?: PhraseConflictExample[];
+  signature_counts: PhraseSignatureCount[];
+  examples: PhraseConflictExample[];
+}
+
+export interface PhraseConsistencyResponse {
+  summary: {
+    total_records: number;
+    total_entities: number;
+    unique_phrases: number;
+    conflicting_phrases: number;
+    assertion_only_variants?: number;
+    approved_multilabel_variants?: number;
+    min_occurrences: number;
+  };
+  conflicts: PhraseConflictItem[];
+  approved_multilabel?: PhraseConflictItem[];
+  policy?: PhraseMultiLabelApproval[];
+}
+
+export async function fetchPhraseConsistency(
+  options?: { phrase?: string; minOccurrences?: number; top?: number },
+): Promise<PhraseConsistencyResponse> {
+  const params = new URLSearchParams();
+  if (options?.phrase?.trim()) {
+    params.set("phrase", options.phrase.trim());
+  }
+  if (options?.minOccurrences) {
+    params.set("min_occurrences", String(options.minOccurrences));
+  }
+  if (options?.top) {
+    params.set("top", String(options.top));
+  }
+  const qs = params.toString();
+  return fetchJson<PhraseConsistencyResponse>(
+    `${API_BASE}/api/training/gold-labels/phrase-consistency${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export interface PhraseMultiLabelApproval {
+  phrase_norm: string;
+  phrase_display: string;
+  allowed_labels: string[];
+  created_at?: string;
+  created_by?: string;
+  updated_at?: string;
+  updated_by?: string;
+}
+
+export async function upsertPhraseMultiLabelApproval(payload: {
+  phrase: string;
+  allowed_labels: string[];
+}): Promise<PhraseMultiLabelApproval> {
+  return fetchJson<PhraseMultiLabelApproval>(
+    `${API_BASE}/api/training/gold-labels/phrase-multilabel-approvals`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}

@@ -346,6 +346,10 @@ def _is_result_descriptor(text: str) -> bool:
     return text.strip().lower() in _RESULT_DESCRIPTOR_TEXTS
 
 
+def _is_string_result_text(text: str) -> bool:
+    return text.strip().lower() in _RESULT_DESCRIPTOR_TEXTS
+
+
 def _is_bare_analyte(text: str) -> bool:
     return text.strip().lower() in _ANALYTE_NAMES
 
@@ -502,53 +506,111 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
 # ── Layer 6: Value-Unit Linking ──
 
 
-def link_observable_value_units(entities: list[dict[str, Any]]) -> None:
-    """Attach value/unit from nearby numeric spans onto observable entities.
+def _nearest_entity_within(
+    obs_start: int,
+    obs_end: int,
+    candidate_indices: list[int],
+    entities: list[dict[str, Any]],
+    max_dist: int,
+) -> int | None:
+    """Return the index of the closest candidate entity within max_dist chars."""
+    closest_idx: int | None = None
+    closest_dist: int | None = None
+    for idx in candidate_indices:
+        e = entities[idx]
+        e_start = int(e.get("start", 0) or 0)
+        e_end = int(e.get("end", 0) or 0)
+        dist = min(abs(e_start - obs_end), abs(obs_start - e_end))
+        if closest_dist is None or dist < closest_dist:
+            closest_dist = dist
+            closest_idx = idx
+    if closest_idx is None or (closest_dist is not None and closest_dist > max_dist):
+        return None
+    return closest_idx
+
+
+def _raw_text_value_before(
+    encounter_text: str, obs_start: int, window: int = 60
+) -> tuple[str, str] | None:
+    """Scan up to *window* characters before obs_start for a value or result."""
+    if not encounter_text or obs_start <= 0:
+        return None
+    snippet = encounter_text[max(0, obs_start - window) : obs_start]
+    parsed = _extract_value_unit(snippet)
+    if parsed:
+        return parsed
+    for token in reversed(snippet.split()):
+        if token.lower() in _RESULT_DESCRIPTOR_TEXTS:
+            return token.lower(), ""
+    return None
+
+
+def link_observable_value_units(
+    entities: list[dict[str, Any]],
+    encounter_text: str = "",
+) -> None:
+    """Attach value/unit from nearby spans or raw text onto observable entities.
+
+    Three passes, each only runs on observables that still have no value:
+
+    Pass 1 - numeric entity: nearest qualifier_value whose text starts with
+             a digit and contains a recognised unit, within 40 characters.
+    Pass 2 - string entity: nearest entity whose text is in
+             _RESULT_DESCRIPTOR_TEXTS, within 40 characters.
+    Pass 3 - raw-text fallback: scan up to 60 characters before the
+             observable start in encounter_text for a numeric or string match.
 
     Mutates *entities* in place.
     """
-    observable_indices = [
+    obs_indices = [
         i
         for i, e in enumerate(entities)
         if str(e.get("label", "")) == "observable_entity"
     ]
-    if not observable_indices:
+    if not obs_indices:
         return
 
-    measurement_indices = [
+    numeric_indices = [
         i
         for i, e in enumerate(entities)
         if _is_numeric_measurement_text(str(e.get("text", "")))
     ]
-    if not measurement_indices:
-        return
+    string_indices = [
+        i
+        for i, e in enumerate(entities)
+        if _is_string_result_text(str(e.get("text", "")))
+    ]
 
-    for obs_i in observable_indices:
+    for obs_i in obs_indices:
         obs = entities[obs_i]
-        if obs.get("value") is not None and obs.get("unit"):
+        if obs.get("value") is not None:
             continue
         obs_start = int(obs.get("start", 0) or 0)
         obs_end = int(obs.get("end", 0) or 0)
-        closest_idx: int | None = None
-        closest_dist: int | None = None
 
-        for meas_i in measurement_indices:
-            meas = entities[meas_i]
-            meas_start = int(meas.get("start", 0) or 0)
-            meas_end = int(meas.get("end", 0) or 0)
-            dist = min(abs(meas_start - obs_end), abs(obs_start - meas_end))
-            if closest_dist is None or dist < closest_dist:
-                closest_dist = dist
-                closest_idx = meas_i
+        # Pass 1: numeric entity
+        closest = _nearest_entity_within(
+            obs_start, obs_end, numeric_indices, entities, max_dist=40
+        )
+        if closest is not None:
+            parsed = _extract_value_unit(str(entities[closest].get("text", "")))
+            if parsed:
+                obs["value"], obs["unit"] = parsed
+                continue
 
-        if closest_idx is None or (closest_dist is not None and closest_dist > 40):
+        # Pass 2: string result entity
+        closest = _nearest_entity_within(
+            obs_start, obs_end, string_indices, entities, max_dist=40
+        )
+        if closest is not None:
+            obs["value"] = str(entities[closest].get("text", "")).strip().lower()
+            obs["unit"] = ""
             continue
-        parsed = _extract_value_unit(str(entities[closest_idx].get("text", "")))
-        if not parsed:
-            continue
-        value, unit = parsed
-        obs["value"] = value
-        obs["unit"] = unit
+
+        # Pass 3: raw-text fallback
+        result = _raw_text_value_before(encounter_text, obs_start)
+        if result is not None:
+            obs["value"], obs["unit"] = result
 
 
 # ── Layer 9: Disorder Gate ──
@@ -1022,7 +1084,10 @@ def run_post_processing_with_trace(
     _run_layer(
         "layer_6",
         "Value-Unit Linking",
-        lambda current: (link_observable_value_units(current), current)[1],
+        lambda current: (
+            link_observable_value_units(current, encounter_text),
+            current,
+        )[1],
     )
 
     # Layer 7: ConText Assertion Detection

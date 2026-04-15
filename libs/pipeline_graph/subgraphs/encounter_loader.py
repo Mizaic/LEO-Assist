@@ -19,6 +19,11 @@ class EncounterLoaderState(TypedDict, total=False):
 
 
 def load_encounter(state: EncounterLoaderState) -> dict[str, Any]:
+    # Short-circuit: text already provided inline (e.g. dry-run / test-run payloads).
+    existing_text = str(state.get("encounter_text") or "").strip()
+    if existing_text:
+        return {"encounter_text": existing_text}
+
     encounter_id = str(state.get("encounter_id") or "").strip()
     if not encounter_id:
         raise ValueError("encounter_id is required for encounter_loader")

@@ -310,6 +310,18 @@ class WorkflowEngine:
                 for sr in step_results
             ],
             "entity_count": len(pipeline_state.get("entities") or []),
+            "extraction_model": {
+                "requested_version": str(
+                    pipeline_state.get("extraction_model_requested_version") or ""
+                ),
+                "actual_version": str(
+                    pipeline_state.get("extraction_model_version") or ""
+                ),
+                "actual_name": str(pipeline_state.get("extraction_model_name") or ""),
+                "version_mismatch": bool(
+                    pipeline_state.get("extraction_model_version_mismatch", False)
+                ),
+            },
             "llm_usage": {
                 "input_tokens": total_input,
                 "output_tokens": total_output,
@@ -356,16 +368,44 @@ class WorkflowEngine:
         actions: list[ActionDefinition],
     ) -> dict[str, list[dict[str, Any]]]:
         outgoing: dict[str, list[dict[str, Any]]] = {}
+        seen: set[tuple[str, str, str, str]] = set()
         for action in actions:
             for edge in action.related_edges:
                 source_id = edge.get("actionId")
                 if not source_id:
                     continue
+                source_handle = str(edge.get("sourceHandle") or "")
+                target_handle = str(edge.get("targetHandle") or "")
+                dedupe_key = (source_id, action.action_id, source_handle, target_handle)
+                if dedupe_key in seen:
+                    continue
+                seen.add(dedupe_key)
                 outgoing.setdefault(source_id, []).append(
                     {
                         "target": action.action_id,
                         "sourceHandle": edge.get("sourceHandle"),
                         "targetHandle": edge.get("targetHandle"),
+                    }
+                )
+            # Backward-compatible fallback: many plans still use related_actions
+            # without relatedActionEdges for plain after-end sequencing.
+            for rel in action.related_actions:
+                source_id = ""
+                if isinstance(rel, str):
+                    source_id = rel
+                elif isinstance(rel, dict):
+                    source_id = str(rel.get("actionId") or "")
+                if not source_id:
+                    continue
+                dedupe_key = (source_id, action.action_id, "", "")
+                if dedupe_key in seen:
+                    continue
+                seen.add(dedupe_key)
+                outgoing.setdefault(source_id, []).append(
+                    {
+                        "target": action.action_id,
+                        "sourceHandle": None,
+                        "targetHandle": None,
                     }
                 )
         return outgoing
@@ -1228,6 +1268,18 @@ class WorkflowEngine:
                     ),
                     "extraction_model_tier": (
                         extraction_step.llm_model_tier if extraction_step else ""
+                    ),
+                    "extraction_model_requested_version": str(
+                        pipeline_state.get("extraction_model_requested_version") or ""
+                    ),
+                    "extraction_model_actual_version": str(
+                        pipeline_state.get("extraction_model_version") or ""
+                    ),
+                    "extraction_model_actual_name": str(
+                        pipeline_state.get("extraction_model_name") or ""
+                    ),
+                    "extraction_model_version_mismatch": bool(
+                        pipeline_state.get("extraction_model_version_mismatch", False)
                     ),
                     "steps": json.dumps(
                         [

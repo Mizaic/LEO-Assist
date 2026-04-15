@@ -118,19 +118,33 @@ const PREFIX_RULES: PrefixRule[] = [
 
 function proxyRewrite(request: NextRequest, dest: string): NextResponse {
   // Forward X-Requested-With so the Core API CSRF check passes.
+  // Pass `body` explicitly so Next.js 16 Edge Runtime forwards the POST body
+  // when rewriting to an absolute external URL (rewrite() can silently drop
+  // the body when the `request` init object is present without a body key).
   const headers = new Headers(request.headers);
   headers.set("X-Requested-With", "XMLHttpRequest");
-  return NextResponse.rewrite(new URL(dest), { request: { headers } });
+  const method = request.method.toUpperCase();
+  const hasMutationBody =
+    method === "POST" || method === "PUT" || method === "PATCH";
+  return NextResponse.rewrite(new URL(dest), {
+    request: { headers, ...(hasMutationBody ? { body: request.body } : {}) },
+  });
 }
 
 function serviceAuthRewrite(request: NextRequest, dest: string): NextResponse {
   // Forward X-Requested-With and inject the shared service secret so that
   // endpoints protected by verify_service_token accept the request.
+  // Pass `body` explicitly for the same reason as proxyRewrite above.
   const headers = new Headers(request.headers);
   headers.set("X-Requested-With", "XMLHttpRequest");
   const secret = process.env.SERVICE_AUTH_SECRET;
   if (secret) headers.set("Authorization", `Bearer ${secret}`);
-  return NextResponse.rewrite(new URL(dest), { request: { headers } });
+  const method = request.method.toUpperCase();
+  const hasMutationBody =
+    method === "POST" || method === "PUT" || method === "PATCH";
+  return NextResponse.rewrite(new URL(dest), {
+    request: { headers, ...(hasMutationBody ? { body: request.body } : {}) },
+  });
 }
 
 // Alias kept for readability in PREFIX_RULES routing logic.

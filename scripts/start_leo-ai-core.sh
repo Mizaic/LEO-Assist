@@ -8,15 +8,17 @@
 #   ./scripts/start_leo-ai-core.sh --no-workers
 #   ./scripts/start_leo-ai-core.sh --no-model-inference
 #   ./scripts/start_leo-ai-core.sh --no-training-worker
+#   ./scripts/start_leo-ai-core.sh --no-research-worker
 #   ./scripts/start_leo-ai-core.sh --services api,ui
 #   ./scripts/start_leo-ai-core.sh --pipeline-workers 3
 #   ./scripts/start_leo-ai-core.sh --term-workers 3
+#   ./scripts/start_leo-ai-core.sh --monitor cursor
 #
 # Environment overrides (optional):
 #   LEO_PYTHON  -- full path to python3.12 used to create .venv (must be 3.12.x; matches CI)
 #   API_PORT, TERM_PORT, FHIR_PORT, ANALYTICS_PORT, MODEL_INFERENCE_PORT,
-#   TRAINING_WORKER_PORT, PIPELINE_WORKER_PORT, UI_PORT,
-#   PIPELINE_WORKERS, TERM_WORKERS
+#   TRAINING_WORKER_PORT, PIPELINE_WORKER_PORT, RESEARCH_WORKER_PORT, UI_PORT,
+#   PIPELINE_WORKERS, TERM_WORKERS, TERMINAL_MONITOR (cursor|primary|secondary|all)
 
 set -euo pipefail
 
@@ -30,14 +32,22 @@ ANALYTICS_PORT="${ANALYTICS_PORT:-8003}"
 MODEL_INFERENCE_PORT="${MODEL_INFERENCE_PORT:-8004}"
 TRAINING_WORKER_PORT="${TRAINING_WORKER_PORT:-8005}"
 PIPELINE_WORKER_PORT="${PIPELINE_WORKER_PORT:-8006}"
+RESEARCH_WORKER_PORT="${RESEARCH_WORKER_PORT:-8007}"
 UI_PORT="${UI_PORT:-3000}"
 PIPELINE_WORKERS="${PIPELINE_WORKERS:-1}"
 TERM_WORKERS="${TERM_WORKERS:-1}"
+TERMINAL_GRID_COLS="${TERMINAL_GRID_COLS:-4}"
+TERMINAL_TILE_MARGIN="${TERMINAL_TILE_MARGIN:-14}"
+TERMINAL_TILE_TOP_OFFSET="${TERMINAL_TILE_TOP_OFFSET:-34}"
+TERMINAL_MAIN_DISPLAY_WIDTH="${TERMINAL_MAIN_DISPLAY_WIDTH:-}"
+TERMINAL_MAIN_DISPLAY_HEIGHT="${TERMINAL_MAIN_DISPLAY_HEIGHT:-}"
+TERMINAL_MONITOR="${TERMINAL_MONITOR:-cursor}"
 
 SKIP_INSTALL=0
 NO_WORKERS=0
 NO_MODEL_INFERENCE=0
 NO_TRAINING_WORKER=0
+NO_RESEARCH_WORKER=0
 SERVICES_FILTER=""
 
 usage() {
@@ -51,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --no-workers) NO_WORKERS=1; shift ;;
     --no-model-inference) NO_MODEL_INFERENCE=1; shift ;;
     --no-training-worker) NO_TRAINING_WORKER=1; shift ;;
+    --no-research-worker) NO_RESEARCH_WORKER=1; shift ;;
     --services)
       [[ $# -lt 2 ]] && usage
       SERVICES_FILTER="$2"
@@ -63,9 +74,15 @@ while [[ $# -gt 0 ]]; do
     --model-inference-port) MODEL_INFERENCE_PORT="$2"; shift 2 ;;
     --training-worker-port) TRAINING_WORKER_PORT="$2"; shift 2 ;;
     --pipeline-worker-port) PIPELINE_WORKER_PORT="$2"; shift 2 ;;
+    --research-worker-port) RESEARCH_WORKER_PORT="$2"; shift 2 ;;
     --ui-port) UI_PORT="$2"; shift 2 ;;
     --pipeline-workers) PIPELINE_WORKERS="$2"; shift 2 ;;
     --term-workers) TERM_WORKERS="$2"; shift 2 ;;
+    --monitor)
+      [[ $# -lt 2 ]] && usage
+      TERMINAL_MONITOR="$2"
+      shift 2
+      ;;
     -h|--help) usage ;;
     *)
       echo "Unknown option: $1" >&2
@@ -73,6 +90,14 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+case "${TERMINAL_MONITOR}" in
+  cursor|primary|secondary|all) ;;
+  *)
+    echo "Invalid --monitor value: ${TERMINAL_MONITOR}. Use: cursor | primary | secondary | all" >&2
+    exit 1
+    ;;
+esac
 
 python_major_minor() {
   "$1" -c 'import sys; print(sys.version_info[0] * 100 + sys.version_info[1])'
@@ -109,6 +134,7 @@ UI_DIR="${REPO_ROOT}/services/ui"
 API_DIR="${REPO_ROOT}/services/api"
 MODEL_INFERENCE_DIR="${REPO_ROOT}/services/model_inference"
 TRAINING_WORKER_DIR="${REPO_ROOT}/services/training_worker"
+RESEARCH_WORKER_DIR="${REPO_ROOT}/services/research_worker"
 REQ_FILE="${REPO_ROOT}/requirements.txt"
 API_REQ="${API_DIR}/requirements.txt"
 MODEL_INFERENCE_REQ="${MODEL_INFERENCE_DIR}/requirements.txt"
@@ -116,6 +142,7 @@ PIPELINE_WORKER_REQ="${REPO_ROOT}/services/pipeline_worker/requirements.txt"
 TERMINOLOGY_API_REQ="${REPO_ROOT}/services/terminology_api/requirements.txt"
 FHIR_API_REQ="${REPO_ROOT}/services/fhir_api/requirements.txt"
 ANALYTICS_API_REQ="${REPO_ROOT}/services/analytics_api/requirements.txt"
+RESEARCH_WORKER_REQ="${RESEARCH_WORKER_DIR}/requirements.txt"
 TRAINING_WORKER_REQ="${TRAINING_WORKER_DIR}/requirements.txt"
 MODEL_CACHE_DIR="${REPO_ROOT}/.model_cache"
 
@@ -227,7 +254,7 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   if [[ -f "$MODEL_INFERENCE_REQ" ]]; then
     "$VENV_PYTHON" -m pip install --quiet --upgrade -r "$MODEL_INFERENCE_REQ"
   fi
-  for extra in "$PIPELINE_WORKER_REQ" "$TERMINOLOGY_API_REQ" "$FHIR_API_REQ" "$ANALYTICS_API_REQ"; do
+  for extra in "$PIPELINE_WORKER_REQ" "$TERMINOLOGY_API_REQ" "$FHIR_API_REQ" "$ANALYTICS_API_REQ" "$RESEARCH_WORKER_REQ"; do
     if [[ -f "$extra" ]]; then
       "$VENV_PYTHON" -m pip install --quiet --upgrade -r "$extra"
     fi
@@ -277,6 +304,37 @@ should_start() {
   return 1
 }
 
+detect_main_display_resolution() {
+  local width="${TERMINAL_MAIN_DISPLAY_WIDTH}"
+  local height="${TERMINAL_MAIN_DISPLAY_HEIGHT}"
+  if [[ -n "$width" && -n "$height" ]]; then
+    echo "${width} ${height}"
+    return 0
+  fi
+  if [[ "$(uname -s)" != "Darwin" ]]; then
+    return 1
+  fi
+  local detected
+  detected="$(
+    system_profiler SPDisplaysDataType 2>/dev/null | awk '
+      /Main Display: Yes/ { main_display = 1 }
+      main_display && /Resolution:/ {
+        line = $0
+        gsub(/[^0-9x]/, "", line)
+        if (match(line, /([0-9]+)x([0-9]+)/, parts)) {
+          print parts[1], parts[2]
+          exit
+        }
+      }
+    '
+  )"
+  if [[ -n "$detected" ]]; then
+    echo "$detected"
+    return 0
+  fi
+  return 1
+}
+
 # macOS: open a new Terminal.app window running a generated launcher script.
 # Args: title, inner_command, [workdir defaults to REPO_ROOT]
 start_service_window() {
@@ -289,6 +347,8 @@ start_service_window() {
     echo '#!/usr/bin/env bash'
     printf '# %s\n' "$title"
     printf 'cd %q\n' "$workdir"
+    # Force a friendly terminal title for this service tab/window.
+    printf 'printf %q\n' $'\033]0;'"${title}"$'\007\033]1;'"${title}"$'\007'
     printf 'export PYTHONPATH=%q\n' "$REPO_ROOT"
     if [[ -n "${TERMINOLOGY_API_URLS:-}" ]]; then
       printf 'export TERMINOLOGY_API_URLS=%q\n' "$TERMINOLOGY_API_URLS"
@@ -297,7 +357,151 @@ start_service_window() {
   } > "$launcher"
   chmod +x "$launcher"
   if [[ "$(uname -s)" == "Darwin" ]]; then
-    osascript -e "tell application \"Terminal\" to do script quoted form of \"$launcher\"" >/dev/null
+    osascript <<OSA >/dev/null
+set launcherPath to "$launcher"
+set windowTitle to "$title"
+set targetMonitor to "${TERMINAL_MONITOR}"
+set gridCols to ${TERMINAL_GRID_COLS}
+set gridMargin to ${TERMINAL_TILE_MARGIN}
+set tileTopOffset to ${TERMINAL_TILE_TOP_OFFSET}
+set tileIndex to ${MAC_WINDOW_INDEX}
+set mainDisplayWidth to ${MAC_MAIN_DISPLAY_WIDTH}
+set mainDisplayHeight to ${MAC_MAIN_DISPLAY_HEIGHT}
+
+if gridCols < 1 then set gridCols to 1
+
+tell application "Finder"
+  set screenBounds to bounds of window of desktop
+end tell
+set virtualLeft to item 1 of screenBounds
+set virtualTop to item 2 of screenBounds
+set virtualRight to item 3 of screenBounds
+set virtualBottom to item 4 of screenBounds
+set virtualWidth to virtualRight - virtualLeft
+set virtualHeight to virtualBottom - virtualTop
+
+set screenLeft to virtualLeft
+set screenTop to virtualTop
+set screenWidth to virtualWidth
+set screenHeight to virtualHeight
+set monitorPlaced to false
+
+if targetMonitor is "cursor" then
+  try
+    tell application "System Events"
+      tell process "Cursor"
+        if (count of windows) > 0 then
+          set p to position of window 1
+          set s to size of window 1
+          set screenLeft to item 1 of p
+          set screenTop to item 2 of p
+          set screenWidth to item 1 of s
+          set screenHeight to item 2 of s
+          set monitorPlaced to true
+        end if
+      end tell
+    end tell
+  end try
+end if
+
+if (not monitorPlaced) and targetMonitor is "primary" then
+  if mainDisplayWidth > 0 and mainDisplayHeight > 0 then
+    set screenLeft to 0
+    set screenTop to 0
+    set screenWidth to mainDisplayWidth
+    set screenHeight to mainDisplayHeight
+    set monitorPlaced to true
+  end if
+else if (not monitorPlaced) and targetMonitor is "secondary" then
+  set placed to false
+  if mainDisplayWidth > 0 and mainDisplayHeight > 0 then
+    set leftStripWidth to 0
+    if virtualLeft < 0 then set leftStripWidth to (0 - virtualLeft)
+    set rightStripWidth to 0
+    if virtualRight > mainDisplayWidth then set rightStripWidth to (virtualRight - mainDisplayWidth)
+    set topStripHeight to 0
+    if virtualTop < 0 then set topStripHeight to (0 - virtualTop)
+    set bottomStripHeight to 0
+    if virtualBottom > mainDisplayHeight then set bottomStripHeight to (virtualBottom - mainDisplayHeight)
+
+    set bestSize to 0
+    set bestRegion to ""
+    if rightStripWidth > bestSize then
+      set bestSize to rightStripWidth
+      set bestRegion to "right"
+    end if
+    if leftStripWidth > bestSize then
+      set bestSize to leftStripWidth
+      set bestRegion to "left"
+    end if
+    if bottomStripHeight > bestSize then
+      set bestSize to bottomStripHeight
+      set bestRegion to "bottom"
+    end if
+    if topStripHeight > bestSize then
+      set bestSize to topStripHeight
+      set bestRegion to "top"
+    end if
+
+    if bestRegion is "right" then
+      set screenLeft to mainDisplayWidth
+      set screenTop to virtualTop
+      set screenWidth to rightStripWidth
+      set screenHeight to virtualHeight
+      set placed to true
+    else if bestRegion is "left" then
+      set screenLeft to virtualLeft
+      set screenTop to virtualTop
+      set screenWidth to leftStripWidth
+      set screenHeight to virtualHeight
+      set placed to true
+    else if bestRegion is "bottom" then
+      set screenLeft to virtualLeft
+      set screenTop to mainDisplayHeight
+      set screenWidth to virtualWidth
+      set screenHeight to bottomStripHeight
+      set placed to true
+    else if bestRegion is "top" then
+      set screenLeft to virtualLeft
+      set screenTop to virtualTop
+      set screenWidth to virtualWidth
+      set screenHeight to topStripHeight
+      set placed to true
+    end if
+  end if
+
+  if not placed then
+    if mainDisplayWidth > 0 and mainDisplayHeight > 0 then
+      set screenLeft to 0
+      set screenTop to 0
+      set screenWidth to mainDisplayWidth
+      set screenHeight to mainDisplayHeight
+    end if
+  end if
+end if
+
+set tileWidth to (screenWidth - ((gridCols + 1) * gridMargin)) div gridCols
+if tileWidth < 320 then set tileWidth to 320
+set tileHeight to (screenHeight - tileTopOffset - (3 * gridMargin)) div 2
+if tileHeight < 220 then set tileHeight to 220
+
+set rowIndex to tileIndex div gridCols
+set colIndex to tileIndex mod gridCols
+set leftPos to screenLeft + gridMargin + (colIndex * (tileWidth + gridMargin))
+set topPos to screenTop + tileTopOffset + gridMargin + (rowIndex * (tileHeight + gridMargin))
+set rightPos to leftPos + tileWidth
+set bottomPos to topPos + tileHeight
+
+tell application "Terminal"
+  activate
+  do script quoted form of launcherPath
+  delay 0.1
+  set targetWindow to front window
+  set custom title of selected tab of targetWindow to windowTitle
+  set bounds of targetWindow to {leftPos, topPos, rightPos, bottomPos}
+end tell
+OSA
+    MAC_WINDOW_INDEX=$((MAC_WINDOW_INDEX + 1))
   else
     echo "  [note] Non-macOS: starting in background: $title"
     bash "$launcher" &
@@ -318,6 +522,15 @@ kill_listener_on_port() {
 
 TERMINOLOGY_API_URLS=""
 WINDOW_COUNT=0
+MAC_WINDOW_INDEX=0
+MAC_MAIN_DISPLAY_WIDTH=0
+MAC_MAIN_DISPLAY_HEIGHT=0
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  if read -r w h < <(detect_main_display_resolution); then
+    MAC_MAIN_DISPLAY_WIDTH="$w"
+    MAC_MAIN_DISPLAY_HEIGHT="$h"
+  fi
+fi
 
 echo ""
 echo "  Starting services..."
@@ -383,6 +596,15 @@ if [[ "$NO_TRAINING_WORKER" -eq 0 ]] && should_start "training_worker"; then
   WINDOW_COUNT=$((WINDOW_COUNT + 1))
 else
   echo "    Training Worker    [skipped; omit --no-training-worker to start]"
+fi
+
+if [[ "$NO_RESEARCH_WORKER" -eq 0 ]] && should_start "research_worker"; then
+  start_service_window "Research Worker :${RESEARCH_WORKER_PORT}" \
+    "'$VENV_PYTHON' -m uvicorn services.research_worker.app.main:app --reload --reload-dir services/research_worker --reload-dir services/analytics_api --reload-dir libs --host 0.0.0.0 --port $RESEARCH_WORKER_PORT"
+  echo "    Research Worker    http://localhost:${RESEARCH_WORKER_PORT}  (Pathway Explorer /research/jobs)"
+  WINDOW_COUNT=$((WINDOW_COUNT + 1))
+else
+  echo "    Research Worker    [skipped; omit --no-research-worker to start]"
 fi
 
 if [[ "$NO_WORKERS" -eq 0 ]] && should_start "pipeline_worker"; then

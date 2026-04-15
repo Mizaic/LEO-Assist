@@ -49,26 +49,41 @@ logger = logging.getLogger(__name__)
 _SCHEMA_VERSION = "1.0"
 
 # Label normalisation -- maps stored labels to canonical uppercase spaCy labels.
+# Includes both underscore form (current canonical) and legacy space form (SNOMED
+# display string) so that any historical records with space-separated labels are
+# correctly exported rather than producing a spurious new spaCy class.
 _LABEL_MAP: dict[str, str] = {
     "disorder": "DISORDER",
     "finding": "FINDING",
     "procedure": "PROCEDURE",
     "observable_entity": "OBSERVABLE",
+    "observable entity": "OBSERVABLE",          # legacy space form
     "qualifier_value": "QUALIFIER",
+    "qualifier value": "QUALIFIER",             # legacy space form
     "substance": "SUBSTANCE",
     "medicinal_product": "MEDICINAL_PRODUCT",
+    "medicinal product": "MEDICINAL_PRODUCT",   # legacy space form
     "clinical_drug": "CLINICAL_DRUG",
+    "clinical drug": "CLINICAL_DRUG",           # legacy space form
     "situation": "SITUATION",
     "event": "EVENT",
     "body_structure": "BODY_STRUCTURE",
+    "body structure": "BODY_STRUCTURE",         # legacy space form
     "tumor_staging": "TUMOR_STAGING",
+    "tumor staging": "TUMOR_STAGING",           # legacy space form
     "assessment_scale": "ASSESSMENT_SCALE",
+    "assessment scale": "ASSESSMENT_SCALE",     # legacy space form
     "staging_scale": "STAGING_SCALE",
+    "staging scale": "STAGING_SCALE",           # legacy space form
     "regime_therapy": "REGIME_THERAPY",
+    "regime/therapy": "REGIME_THERAPY",         # legacy slash form
     "record_artifact": "RECORD_ARTIFACT",
+    "record artifact": "RECORD_ARTIFACT",       # legacy space form
     "physical_object": "PHYSICAL_OBJECT",
+    "physical object": "PHYSICAL_OBJECT",       # legacy space form
     "organism": "ORGANISM",
     "morphologic_abnormality": "MORPHOLOGIC_ABNORMALITY",
+    "morphologic abnormality": "MORPHOLOGIC_ABNORMALITY",  # legacy space form
     "occupation": "OCCUPATION",
     "attribute": "ATTRIBUTE",
     "environment": "ENVIRONMENT",

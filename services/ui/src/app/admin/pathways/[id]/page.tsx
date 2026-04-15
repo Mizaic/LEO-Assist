@@ -3639,6 +3639,7 @@ export default function PathwayBuilderPage() {
   const [runningStepId, setRunningStepId] = useState<string | null>(null);
   /** ID of the node that caused the pipeline to halt (null = completed normally) */
   const [haltedNodeId, setHaltedNodeId] = useState<string | null>(null);
+  const [partialRunEndNodeId, setPartialRunEndNodeId] = useState<string | null>(null);
   const deleteConfirmTarget = planName.trim() || planId;
   /** Set of edge keys ("sourceId|targetId") the user has clamped a probe onto */
   const [probedEdges, setProbedEdges] = useState<Set<string>>(new Set());
@@ -4223,12 +4224,15 @@ export default function PathwayBuilderPage() {
     initialState: Record<string, unknown>,
     overrideNodes?: typeof nodes,
     overrideEdges?: typeof edges,
+    partialEndNodeId?: string | null,
   ) => {
     setTestRunError(null);
     setIsTestRunning(true);
     setTestTrace(null);
     setRunningStepId(null);
     setHaltedNodeId(null);
+    // Track where a partial "run to here" stopped; null for full pipeline runs.
+    setPartialRunEndNodeId(partialEndNodeId ?? null);
     setTestRunOpen(false);
     setSelectedBatchCandidateId(null);
     setSelectedBatchTrace(null);
@@ -4376,6 +4380,7 @@ export default function PathwayBuilderPage() {
         initialState,
         actionNodes.filter((n) => ancestors.has(n.id)),
         actionEdges.filter((e) => ancestors.has(e.source) && ancestors.has(e.target)),
+        upToNodeId,
       );
     } else {
       runTestStream(initialState);
@@ -4606,7 +4611,7 @@ export default function PathwayBuilderPage() {
       setTestRunOpen(true);
       return;
     }
-    runTestStream(initialState, partialNodes, partialEdges);
+    runTestStream(initialState, partialNodes, partialEdges, resolvedId);
   }, [nodes, edges, nodeConfigs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper: what fields does a node expect to receive from pipeline_state?
@@ -5168,6 +5173,7 @@ export default function PathwayBuilderPage() {
           runningStepId,
           isTestRunning,
           haltedNodeId,
+          partialRunEndNodeId,
           probedEdges,
           toggleProbe,
           runToStep,

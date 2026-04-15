@@ -26,6 +26,10 @@ class ModelExtractorProvider:
             "MODEL_INFERENCE_EXTRACT_URL",
             "http://localhost:8004/extract",
         )
+        self._reload_url = os.getenv(
+            "MODEL_INFERENCE_RELOAD_URL",
+            "http://localhost:8004/reload",
+        )
         self._enabled = os.getenv("CODING_MODEL_PROVIDER_ENABLED", "true").lower() in {
             "true",
             "1",
@@ -91,8 +95,77 @@ class ModelExtractorProvider:
 
         return build_extractor()
 
+    def _ensure_model_version(
+        self,
+        requested_model_version: str | None,
+        *,
+        strict: bool = False,
+    ) -> None:
+        wanted = str(requested_model_version or "").strip()
+        if not wanted:
+            return
+        hdrs = {**get_service_auth_header()}
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                health = client.get(self._health_url, headers=hdrs)
+                health.raise_for_status()
+                active = str((health.json() or {}).get("active_version") or "").strip()
+                if active == wanted:
+                    self.model_version = active
+                    return
+                reload_res = client.post(
+                    self._reload_url,
+                    json={"version": wanted},
+                    headers=hdrs,
+                )
+                try:
+                    reload_res.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    detail = (exc.response.text or "").strip()
+                    suffix = f" detail={detail}" if detail else ""
+                    raise RuntimeError(
+                        f"Model reload failed for {wanted}: "
+                        f"HTTP {exc.response.status_code}.{suffix}"
+                    ) from exc
+                verify = client.get(self._health_url, headers=hdrs)
+                verify.raise_for_status()
+                active_after = str(
+                    (verify.json() or {}).get("active_version") or ""
+                ).strip()
+                self.model_version = active_after or wanted
+                if strict and active_after != wanted:
+                    raise RuntimeError(
+                        f"Requested model version {wanted} but active is {active_after or 'unknown'}"
+                    )
+        except Exception as exc:
+            if strict:
+                raise
+            logger.warning("Model version override failed (wanted=%s): %s", wanted, exc)
+
+    @staticmethod
+    def _enforce_requested_vs_actual_version(
+        requested_model_version: str | None,
+        actual_model_version: str | None,
+        *,
+        strict: bool,
+    ) -> None:
+        wanted = str(requested_model_version or "").strip()
+        actual = str(actual_model_version or "").strip()
+        if not wanted or not actual or wanted == actual:
+            return
+        message = (
+            f"Requested model version {wanted} but extraction returned model version {actual}"
+        )
+        if strict:
+            raise RuntimeError(message)
+        logger.warning(message)
+
     def extract_batch(
-        self, encounter_text: str, sentences: list
+        self,
+        encounter_text: str,
+        sentences: list,
+        requested_model_version: str | None = None,
+        strict_model_version: bool = False,
     ) -> list[ExtractionItem]:
         if not self._enabled:
             logger.warning(
@@ -101,6 +174,10 @@ class ModelExtractorProvider:
             )
             fallback_extractor = self._build_fallback_extractor()
             return fallback_extractor.extract_batch(encounter_text, sentences)
+        self._ensure_model_version(
+            requested_model_version,
+            strict=strict_model_version,
+        )
         payload = {
             "text": encounter_text,
             "sentences": [
@@ -122,6 +199,11 @@ class ModelExtractorProvider:
 
         self.model_name = str(data.get("model_name") or self.model_name)
         self.model_version = str(data.get("model_version") or self.model_version)
+        self._enforce_requested_vs_actual_version(
+            requested_model_version,
+            self.model_version,
+            strict=strict_model_version,
+        )
 
         items: list[ExtractionItem] = []
         for raw in data.get("entities", []):

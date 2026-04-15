@@ -1,0 +1,122 @@
+- id: "VT-LEO-AI-111"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-111"]
+    risks: ["R-LEO-AI-077"]
+
+  metadata:
+    title: "Observable value-unit linking: string results and pre-entity values"
+    description: >
+      Verifies that Layer 6 of the post-processing pipeline correctly attaches
+      string result descriptors (positive, negative, borderline, etc.) as the
+      value property on the nearest observable entity, and that the raw-text
+      fallback scan captures numeric and string values that appear before the
+      observable entity span in the encounter text. Missing or incorrect value
+      attachment degrades downstream abnormal result detection and audit
+      analytics.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_label_verifier_normalization_rules.py"
+      - "tests/test_post_processing_pipeline.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-111-TC-001"
+      case_name: "String result after observable entity is linked via entity pass"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call link_observable_value_units with an observable_entity for
+            'Urine culture' at start=0,end=12 and a qualifier_value entity
+            'negative' at start=15,end=23. No encounter_text provided.
+          expected_result: >
+            obs['value'] == 'negative' and obs['unit'] == ''
+          verification_method: "automated"
+      acceptance_criteria:
+        - "obs['value'] == 'negative'"
+        - "obs['unit'] == ''"
+
+    - case_id: "VT-111-TC-002"
+      case_name: "String result before observable entity is linked via entity pass"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call link_observable_value_units with a qualifier_value entity
+            'positive' at start=0,end=8 and an observable_entity 'COVID antigen'
+            at start=12,end=25. No encounter_text provided.
+          expected_result: >
+            obs['value'] == 'positive' and obs['unit'] == ''
+          verification_method: "automated"
+      acceptance_criteria:
+        - "obs['value'] == 'positive'"
+        - "obs['unit'] == ''"
+
+    - case_id: "VT-111-TC-003"
+      case_name: "Raw-text fallback attaches numeric value appearing before entity"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call link_observable_value_units with a single observable_entity
+            'HbA1c' at start=11,end=16 and no measurement entity, but with
+            encounter_text='7.2 mmol/L HbA1c'.
+          expected_result: >
+            obs['value'] == '7.2' and obs['unit'] == 'mmol/L'
+          verification_method: "automated"
+      acceptance_criteria:
+        - "obs['value'] == '7.2'"
+        - "obs['unit'] == 'mmol/L'"
+
+    - case_id: "VT-111-TC-004"
+      case_name: "Raw-text fallback attaches string result appearing before entity"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call link_observable_value_units with a single observable_entity
+            'Urine culture' at start=13,end=26 and no qualifier entity, but
+            with encounter_text='negative -- Urine culture'.
+          expected_result: >
+            obs['value'] == 'negative' and obs['unit'] == ''
+          verification_method: "automated"
+      acceptance_criteria:
+        - "obs['value'] == 'negative'"
+        - "obs['unit'] == ''"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-111/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-111-RUN-001"
+      date: "2026-04-15"
+      executor: "automated CI (pytest)"
+      environment: "development / Python 3.14.3"
+      result: "pass"
+      notes: >
+        54 tests collected (including 4 new VT-111 cases and 1 new integration
+        test). All 5 new tests pass. 1 pre-existing unrelated failure in
+        test_sub_span_of_same_label_is_suppressed (tests _normalise_entity_types
+        sub-span suppression; out of scope for this VT). New test results:
+        VT-111-TC-001 PASS, VT-111-TC-002 PASS, VT-111-TC-003 PASS,
+        VT-111-TC-004 PASS.

@@ -30,10 +30,48 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import importlib
 from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _ensure_leo_transformer_listener_registered() -> None:
+    """Register custom training-time TransformerListener architecture if needed."""
+    try:
+        importlib.import_module("services.training_worker.app.spacy_listener_width")
+        return
+    except Exception:
+        # Fallback to local registration in runtime environments where the
+        # training worker package path may not be importable.
+        pass
+
+    try:
+        from spacy.tokens import Doc
+        from spacy_transformers.layers import TransformerListener, trfs2arrays
+        from spacy_transformers.util import registry
+        from thinc.api import Model, chain
+        from thinc.types import Floats2d, Ragged
+    except Exception:
+        return
+
+    try:
+        @registry.architectures.register("leo_training.TransformerListener.v1")
+        def _leo_transformer_listener_v1(
+            pooling: Model[Ragged, Floats2d],
+            grad_factor: float = 1.0,
+            upstream: str = "*",
+            width: int = 768,
+        ) -> Model[list[Doc], list[Floats2d]]:
+            listener = TransformerListener(upstream_name=upstream)
+            listener.set_dim("nO", int(width))
+            model: Model = chain(listener, trfs2arrays(pooling, grad_factor))
+            model.set_ref("listener", listener)
+            return model
+    except ValueError:
+        # Already registered in this process.
+        return
 
 
 class ModelLoader:
@@ -110,6 +148,7 @@ class ModelLoader:
                         if self._accelerator == "mps" and self._mps_fail_fast:
                             raise RuntimeError(msg)
                         logger.warning("%s; continuing on CPU", msg)
+                _ensure_leo_transformer_listener_registered()
                 new_nlp = spacy.load(str(local_model_dir))
             except Exception as exc:
                 raise RuntimeError(

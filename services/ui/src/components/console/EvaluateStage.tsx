@@ -39,7 +39,7 @@ import {
 } from "recharts";
 import { TrainingJob } from "./useConsoleState";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { renderNerSpans, themeForTag, type AnnotatedSpan } from "@/lib/nerAnnotation";
+import { renderNerSpans, themeForTag, type AnnotatedSpan, type TagTheme } from "@/lib/nerAnnotation";
 import { FONT_SIZES } from "@/theme/tokens";
 
 interface EvaluateStageProps {
@@ -127,6 +127,7 @@ interface PipelineEntity extends DryRunEntity {
   term?: string;
   score?: number;
   read_code?: string;
+  __model_version?: string;
   _provenance_stage: ProvenanceStage;
   _provenance_detail?: string | null;
 }
@@ -143,17 +144,56 @@ interface LayerTraceSummary {
   duration_ms: number;
 }
 
+interface ExtractionModelSummary {
+  requested_version: string;
+  actual_version: string;
+  actual_name?: string;
+  version_mismatch: boolean;
+}
+
 interface PipelineTraceResultRow {
   encounter_id: string;
   patient_id?: string | null;
   encounter_date?: string | null;
   final_entities: PipelineEntity[];
   suppressed_entities: PipelineEntity[];
+  deduplicated_entities?: PipelineEntity[];
   layer_trace: LayerTraceSummary[];
+  extraction_model?: ExtractionModelSummary;
+  status?: string;
+  errors?: string[];
+  error?: string;
+  failing_step?: string;
+  step_count?: number;
+  entity_counts?: {
+    extraction?: number;
+    final?: number;
+    suppressed?: number;
+    deduplicated?: number;
+  };
 }
 
 const MODEL_CANARY_MIN_PRECISION = 0.78;
 const MODEL_CANARY_MIN_RECALL = 0.72;
+const DEFAULT_API_TIMEOUT_MS = 15000;
+const DRY_RUN_API_TIMEOUT_MS = 180000;
+
+async function fetchWithTimeout(
+  input: string,
+  init?: RequestInit,
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
 
 function canonicalWordType(raw: string): string {
   const normalised = raw.replace(/[\s-]+/g, "_").toUpperCase();
@@ -203,6 +243,13 @@ function f1(precision: number | null | undefined, recall: number | null | undefi
   return (2 * precision * recall) / denom;
 }
 
+function compareModelVersionsDesc(a: string, b: string): number {
+  const an = a.replace(/[^0-9]/g, "");
+  const bn = b.replace(/[^0-9]/g, "");
+  if (an !== bn) return bn.localeCompare(an);
+  return b.localeCompare(a);
+}
+
 const LABEL_COLORS: Record<string, { bg: string; fg: string }> = {
   "DISORDER":           { bg: "#FFF3E0", fg: "#E65100" },
   "FINDING":            { bg: "#FFF8E1", fg: "#BF360C" },
@@ -226,35 +273,30 @@ function renderAnnotatedText(text: string, entities: DryRunEntity[]): ReactNode 
     return text;
   }
 
-  type RawSpan = { start: number; end: number; label: string };
-  const raw: RawSpan[] = sorted.map((ent) => ({
-    start: ent.start,
-    end: ent.end,
-    label: ent.label,
-  }));
-
   const merged: AnnotatedSpan[] = [];
   let i = 0;
-  while (i < raw.length) {
-    let unionStart = raw[i].start;
-    let unionEnd = raw[i].end;
-    const labelToChip = new Map<string, ReturnType<typeof themeForTag>>();
-    labelToChip.set(raw[i].label, { ...themeForTag(raw[i].label), label: raw[i].label });
+  while (i < sorted.length) {
+    let unionEnd = sorted[i].end;
+    const chips: TagTheme[] = [
+      {
+        ...themeForTag(sorted[i].label),
+        label: sorted[i].label,
+        entityText: text.slice(sorted[i].start, sorted[i].end),
+      },
+    ];
 
     let j = i + 1;
-    while (j < raw.length && raw[j].start < unionEnd) {
-      unionEnd = Math.max(unionEnd, raw[j].end);
-      if (!labelToChip.has(raw[j].label)) {
-        labelToChip.set(raw[j].label, { ...themeForTag(raw[j].label), label: raw[j].label });
-      }
+    while (j < sorted.length && sorted[j].start < unionEnd) {
+      unionEnd = Math.max(unionEnd, sorted[j].end);
+      chips.push({
+        ...themeForTag(sorted[j].label),
+        label: sorted[j].label,
+        entityText: text.slice(sorted[j].start, sorted[j].end),
+      });
       j += 1;
     }
 
-    merged.push({
-      start: unionStart,
-      end: unionEnd,
-      chips: Array.from(labelToChip.values()),
-    });
+    merged.push({ start: sorted[i].start, end: unionEnd, chips });
     i = j;
   }
 
@@ -275,33 +317,40 @@ function provenanceLabel(stage: ProvenanceStage): string {
   return "Suppressed";
 }
 
+function buildProvenanceChip(ent: PipelineEntity, text: string): TagTheme {
+  const { bg, fg } = PROVENANCE_COLORS[ent._provenance_stage];
+  const detail = ent._provenance_detail ? ` (${ent._provenance_detail})` : "";
+  return {
+    bg,
+    border: fg,
+    label: provenanceLabel(ent._provenance_stage),
+    entityText: `${text.slice(ent.start, ent.end)} - ${ent.label}${detail}`,
+  };
+}
+
 function renderProvenanceAnnotatedText(text: string, entities: PipelineEntity[]) {
   const sorted = [...entities]
     .filter((e) => e.start >= 0 && e.end <= text.length && e.start < e.end)
     .sort((a, b) => a.start - b.start);
-  const nodes: JSX.Element[] = [];
-  let cursor = 0;
-  for (const ent of sorted) {
-    if (ent.start < cursor) continue;
-    if (ent.start > cursor) {
-      nodes.push(<span key={`p-${cursor}`}>{text.slice(cursor, ent.start)}</span>);
+
+  const merged: AnnotatedSpan[] = [];
+  let i = 0;
+  while (i < sorted.length) {
+    let unionEnd = sorted[i].end;
+    const chips: TagTheme[] = [buildProvenanceChip(sorted[i], text)];
+
+    let j = i + 1;
+    while (j < sorted.length && sorted[j].start < unionEnd) {
+      unionEnd = Math.max(unionEnd, sorted[j].end);
+      chips.push(buildProvenanceChip(sorted[j], text));
+      j += 1;
     }
-    const stage = ent._provenance_stage;
-    const { bg, fg } = PROVENANCE_COLORS[stage];
-    const tip = `${provenanceLabel(stage)} - ${ent.label}${ent._provenance_detail ? ` (${ent._provenance_detail})` : ""}`;
-    nodes.push(
-      <Tooltip key={`e-${ent.start}-${ent.end}`} title={tip} arrow placement="top">
-        <mark style={{ backgroundColor: bg, color: fg, borderRadius: 3, padding: "1px 4px", cursor: "help", fontWeight: 600, border: `1px solid ${fg}55`, display: "inline" }}>
-          {text.slice(ent.start, ent.end)}
-        </mark>
-      </Tooltip>,
-    );
-    cursor = ent.end;
+
+    merged.push({ start: sorted[i].start, end: unionEnd, chips });
+    i = j;
   }
-  if (cursor < text.length) {
-    nodes.push(<span key="p-end">{text.slice(cursor)}</span>);
-  }
-  return nodes;
+
+  return renderNerSpans(text, merged);
 }
 
 export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStageProps) {
@@ -336,8 +385,8 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     setError(null);
     try {
       const [versionsRes, statusRes] = await Promise.all([
-        fetch("/api/model-registry/versions"),
-        fetch("/api/model-registry/status"),
+        fetchWithTimeout("/api/model-registry/versions"),
+        fetchWithTimeout("/api/model-registry/status"),
       ]);
       if (!versionsRes.ok) {
         const data = await versionsRes.json().catch(() => ({}));
@@ -349,10 +398,18 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       }
       const versionsData = await versionsRes.json();
       const statusData = await statusRes.json();
-      setVersions(versionsData.versions ?? []);
+      const sortedVersions = [...(versionsData.versions ?? [])].sort((a, b) =>
+        compareModelVersionsDesc(
+          String(a?.model_version ?? ""),
+          String(b?.model_version ?? ""),
+        ),
+      );
+      setVersions(sortedVersions);
       setActiveModelVersion(statusData.active_model?.model_version ?? null);
       try {
-        const holdbackRes = await fetch("/api/training/gold-labels/golden-set/stats");
+        const holdbackRes = await fetchWithTimeout(
+          "/api/training/gold-labels/golden-set/stats",
+        );
         if (holdbackRes.ok) {
           const holdbackData = await holdbackRes.json();
           setHoldbackCount(Number(holdbackData.total ?? 0));
@@ -386,7 +443,9 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     if (!goldJobId) return;
     const timer = window.setInterval(async () => {
       try {
-        const res = await fetch(`/api/model-registry/canary-jobs/${goldJobId}`);
+        const res = await fetchWithTimeout(
+          `/api/model-registry/canary-jobs/${goldJobId}`,
+        );
         if (!res.ok) return;
         const data = (await res.json()) as CanaryJob;
         setGoldJob(data);
@@ -442,6 +501,10 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       ).sort(),
     [dryRunResults],
   );
+  const nerOnlyTotalEntities = useMemo(
+    () => dryRunResults.reduce((sum, row) => sum + row.entities.length, 0),
+    [dryRunResults],
+  );
   const pipelineStageCounts = useMemo(() => {
     const counts: Record<ProvenanceStage, number> = {
       ner: 0,
@@ -457,6 +520,14 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     }
     return counts;
   }, [pipelineTraceResults]);
+  const pipelineDeduplicatedCount = useMemo(
+    () =>
+      pipelineTraceResults.reduce(
+        (sum, row) => sum + (row.deduplicated_entities?.length ?? 0),
+        0,
+      ),
+    [pipelineTraceResults],
+  );
 
   const canaryPerLabelRows = useMemo(() => {
     const rows = goldJob?.metrics?.per_label ?? [];
@@ -517,11 +588,14 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     setBusyAction(`run-gold:${version}`);
     setError(null);
     try {
-      const res = await fetch(`/api/model-registry/versions/${version}/canary/run-gold`, {
+      const res = await fetchWithTimeout(
+        `/api/model-registry/versions/${version}/canary/run-gold`,
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ corpus }),
-      });
+        },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
       setInfo(
@@ -562,7 +636,9 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
         min_combined_score: "0",
         require_keyword_anchor: "false",
       });
-      const res = await fetch(`/api/proxy/analytics/mission-control/encounters?${params.toString()}`);
+      const res = await fetchWithTimeout(
+        `/api/proxy/analytics/mission-control/encounters?${params.toString()}`,
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(detailToString(data.detail) || `Failed (${res.status})`);
       const items = Array.isArray(data.items) ? data.items : [];
@@ -587,31 +663,43 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
   const runDryRun = useCallback(async () => {
     const picks = Object.values(selectedDryRun).slice(0, 20);
     if (!selectedVersion || picks.length === 0) return;
+    const usablePicks = picks.filter((row) => (row.text ?? "").trim().length > 0);
+    if (usablePicks.length === 0) {
+      setError("The selected encounters have no text available for preview. Choose encounters with visible text content.");
+      return;
+    }
     setDryRunRunning(true);
     setError(null);
+    setInfo(null);
+    setDryRunResults([]);
+    setPipelineTraceResults([]);
     try {
-      const endpoint = dryRunMode === "full_pipeline" ? "pipeline-trace" : "dry-run";
-      const res = await fetch(`/api/model-registry/versions/${selectedVersion}/canary/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          encounters: picks.map((row) => ({
-            encounter_id: row.encounter_id,
-            patient_id: row.patient_id,
-            encounter_date: row.encounter_date,
-            text: row.text ?? "",
-          })),
-        }),
-      });
+      const endpoint = dryRunMode === "full_pipeline" ? "worker-trace" : "dry-run";
+      const res = await fetchWithTimeout(
+        `/api/model-registry/versions/${selectedVersion}/canary/${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            encounters: usablePicks.map((row) => ({
+              encounter_id: row.encounter_id,
+              patient_id: row.patient_id,
+              encounter_date: row.encounter_date,
+              text: row.text ?? "",
+            })),
+          }),
+        },
+        DRY_RUN_API_TIMEOUT_MS,
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(detailToString(data.detail) || `Failed (${res.status})`);
       if (dryRunMode === "full_pipeline") {
         setPipelineTraceResults(Array.isArray(data.encounters) ? data.encounters : []);
-        setDryRunResults([]);
       } else {
         setDryRunResults(Array.isArray(data.encounters) ? data.encounters : []);
-        setPipelineTraceResults([]);
       }
+      const count = Array.isArray(data.encounters) ? data.encounters.length : 0;
+      setInfo(`${dryRunMode === "full_pipeline" ? "Full pipeline trace" : "NER preview"} finished for ${count} encounter${count === 1 ? "" : "s"}.`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not run dry run.");
     } finally {
@@ -623,7 +711,9 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     setBusyAction(`promote:${version}`);
     setError(null);
     try {
-      const res = await fetch(`/api/model-registry/versions/${version}/promote`, {
+      const res = await fetchWithTimeout(
+        `/api/model-registry/versions/${version}/promote`,
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -631,7 +721,8 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
           force,
           force_reason: force ? "Manual override from Evaluate stage." : "",
         }),
-      });
+        },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
       setInfo(`Version ${version} is now live.`);
@@ -649,11 +740,14 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     setBusyAction(`reject:${version}`);
     setError(null);
     try {
-      const res = await fetch(`/api/model-registry/versions/${version}/reject`, {
+      const res = await fetchWithTimeout(
+        `/api/model-registry/versions/${version}/reject`,
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: "Rejected after safety test in Evaluate stage" }),
-      });
+        },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
       setInfo(`Version ${version} has been rejected.`);
@@ -874,6 +968,11 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
 
           {dryRunMode === "ner_only" && dryRunResults.length > 0 && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {nerOnlyTotalEntities === 0 && (
+                <Alert severity="warning">
+                  No entities were found in NER-only preview. Re-run this encounter in Full pipeline trace to verify model version and extraction path.
+                </Alert>
+              )}
               {/* Legend */}
               {dryRunAllLabels.length > 0 && (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
@@ -967,6 +1066,23 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                         })}
                       </Box>
                     )}
+                    {row.entities.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                          Extracted entities:
+                        </Typography>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {row.entities.map((ent, idx) => (
+                            <Chip
+                              key={`${row.encounter_id}-raw-${idx}`}
+                              size="small"
+                              label={`${ent.text} (${ent.label})`}
+                              variant="outlined"
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
                   </Paper>
                 );
               })}
@@ -989,11 +1105,40 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                     </Box>
                   );
                 })}
+                {pipelineDeduplicatedCount > 0 && (
+                  <Box
+                    sx={{
+                      backgroundColor: "#ECEFF1",
+                      color: "#37474F",
+                      border: "1px solid #90A4AE55",
+                      borderRadius: 1,
+                      px: 0.75,
+                      py: 0.25,
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Deduplicated ({pipelineDeduplicatedCount})
+                  </Box>
+                )}
               </Box>
               {pipelineTraceResults.map((row) => {
                 const originalRow = selectedDryRun[row.encounter_id];
                 const text = originalRow?.text ?? "";
                 const terminologyResolved = row.final_entities.filter((e) => !!e.concept_id).length;
+                const extractedVersions = Array.from(
+                  new Set(
+                    row.final_entities
+                      .map((e) => String(e.__model_version ?? "").trim())
+                      .filter((v) => v.length > 0),
+                  ),
+                );
+                const requestedModelVersion =
+                  row.extraction_model?.requested_version?.trim() || selectedVersion;
+                const extractedModelVersion =
+                  row.extraction_model?.actual_version?.trim() || extractedVersions.join(", ");
+                const extractedModelName = row.extraction_model?.actual_name?.trim() || "";
+                const modelVersionMismatch = !!row.extraction_model?.version_mismatch;
                 const stageCounts = row.final_entities.reduce<Record<string, number>>((acc, ent) => {
                   const key = ent._provenance_stage;
                   acc[key] = (acc[key] ?? 0) + 1;
@@ -1001,6 +1146,17 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                 }, {});
                 return (
                   <Paper key={row.encounter_id} variant="outlined" sx={{ p: 1.5 }}>
+                    {(row.error || (Array.isArray(row.errors) && row.errors.length > 0)) && (
+                      <Alert severity="warning" sx={{ mb: 1 }}>
+                        {row.error || row.errors?.join("; ")}
+                        {(row.failing_step || row.step_count != null) && (
+                          <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
+                            {row.failing_step ? `Failed step: ${row.failing_step}. ` : ""}
+                            {row.step_count != null ? `Steps executed: ${row.step_count}.` : ""}
+                          </Typography>
+                        )}
+                      </Alert>
+                    )}
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                       <Box sx={{ display: "flex", gap: 1, alignItems: "baseline", flexWrap: "wrap" }}>
                         <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: "monospace", fontSize: 11 }}>
@@ -1026,6 +1182,22 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                         />
                       </Stack>
                     </Box>
+                    {(requestedModelVersion || extractedModelVersion) && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                        Requested model: {requestedModelVersion || "unknown"} - Extracted with: {extractedModelVersion || "unknown"}
+                        {extractedModelName ? ` (${extractedModelName})` : ""}
+                      </Typography>
+                    )}
+                    {modelVersionMismatch && (
+                      <Alert severity="error" sx={{ mb: 0.75 }}>
+                        Model version mismatch: requested {requestedModelVersion || "unknown"} but extraction used {extractedModelVersion || "unknown"}.
+                      </Alert>
+                    )}
+                    {row.entity_counts && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                        Entity counts - extraction: {row.entity_counts.extraction ?? 0}, final: {row.entity_counts.final ?? 0}, suppressed: {row.entity_counts.suppressed ?? 0}, deduplicated: {row.entity_counts.deduplicated ?? 0}
+                      </Typography>
+                    )}
 
                     {row.final_entities.length === 0 ? (
                       <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
@@ -1068,6 +1240,25 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                         );
                       })}
                     </Box>
+                    {row.final_entities.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                          Final entities:
+                        </Typography>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {row.final_entities.map((ent, idx) => (
+                            <Chip
+                              key={`${row.encounter_id}-final-${idx}`}
+                              size="small"
+                              variant="outlined"
+                              label={ent.concept_id
+                                ? `${ent.text} (${ent.label}) - ${ent.concept_id}`
+                                : `${ent.text} (${ent.label})`}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
 
                     {row.suppressed_entities.length > 0 && (
                       <Alert severity="warning" sx={{ mt: 1.25 }}>
@@ -1081,6 +1272,23 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                               size="small"
                               label={`${ent.text} (${ent.label})`}
                               color="error"
+                              variant="outlined"
+                            />
+                          ))}
+                        </Box>
+                      </Alert>
+                    )}
+                    {!!(row.deduplicated_entities && row.deduplicated_entities.length > 0) && (
+                      <Alert severity="info" sx={{ mt: 1.25 }}>
+                        <Typography variant="caption" sx={{ display: "block", mb: 0.5 }}>
+                          Removed as duplicates ({row.deduplicated_entities?.length ?? 0}):
+                        </Typography>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {(row.deduplicated_entities ?? []).map((ent, idx) => (
+                            <Chip
+                              key={`${row.encounter_id}-dedupe-${idx}`}
+                              size="small"
+                              label={`${ent.text} (${ent.label})`}
                               variant="outlined"
                             />
                           ))}

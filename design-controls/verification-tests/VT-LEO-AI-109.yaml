@@ -1,0 +1,130 @@
+- id: "VT-LEO-AI-109"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-109"]
+    risks: ["R-LEO-AI-075", "R-LEO-AI-076"]
+
+  metadata:
+    title: "Pathway Explorer API and GDS services verification"
+    description: >
+      Verifies the Pathway Explorer backend: GDS projection manager creates
+      correct projections with org-scoping, the algorithm runner dispatches
+      all ten missions and returns structured results, the headline generator
+      produces plain-English output with no algorithm jargon, and the research
+      router exposes the mission catalogue and run lifecycle endpoints.
+      Also verifies data-gating logic blocks unavailable Layer B missions.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_pathway_explorer_phase1.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "pytest and pytest-asyncio installed"
+      - "Neo4j driver mocked via unittest.mock"
+      - "graphdatascience library mocked"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-109-TC-001"
+      case_name: "Projection manager creates patient-condition projection"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call create_projection with name='patient-condition' and mocked Neo4j session"
+          expected_result: "GDS project.graph.cypher() is called with correct node and relationship queries"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "create_projection returns ProjectionSummary with node_count > 0"
+
+    - case_id: "VT-109-TC-002"
+      case_name: "Data-gating blocks referral-network when data unavailable"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock check_referral_data_available to return False"
+          expected_result: "create_projection for referral-network returns data_available=False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "ProjectionSummary.data_available is False when referral record count below threshold"
+
+    - case_id: "VT-109-TC-003"
+      case_name: "Algorithm runner dispatches all ten missions"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call run_mission for each of: groups, similar, critical, busiest, bottleneck, gaps, circles, teams, missing, bridges"
+          expected_result: "Each returns an AlgorithmResult with non-empty rows list and a headline string"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All ten mission IDs return AlgorithmResult without raising exceptions"
+        - "Each result.headline is a non-empty string"
+
+    - case_id: "VT-109-TC-004"
+      case_name: "Headline generator produces plain-English output"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call generate_headline for each mission ID with synthetic result data"
+          expected_result: "Returned string contains no algorithm names"
+          verification_method: "automated"
+      acceptance_criteria:
+        - >
+          Output strings do not contain: betweenness, centrality, leiden,
+          pagerank, jaccard, cosine, knn, wcc, scc, fastRP, graphsage
+
+    - case_id: "VT-109-TC-005"
+      case_name: "Research router returns mission catalogue"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "GET /analytics/research/missions via TestClient"
+          expected_result: "200 response with JSON array of at least 10 missions"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Response contains missions for all ten mission IDs"
+        - "Each mission has id, group, title_patients, title_pathways, title_capacity fields"
+
+    - case_id: "VT-109-TC-006"
+      case_name: "Research router run lifecycle"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST /analytics/research/missions/groups/run; then GET the returned run_id"
+          expected_result: "POST returns run_id; GET returns status in [queued, running, completed]"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "POST returns 202 with run_id"
+        - "GET returns status field"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-109/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-109-EXEC-001"
+      date: "2026-04-15"
+      executor: "pytest (automated CI)"
+      environment: "development"
+      result: "pass"
+      notes: >
+        All six test cases passed. Test file: tests/test_pathway_explorer_phase1.py.
+        Six test functions covering projection manager, data-gating, algorithm
+        runner dispatch, headline generator plain-language compliance, and
+        research router catalogue and run lifecycle endpoints.
+      pass_count: 6
+      fail_count: 0

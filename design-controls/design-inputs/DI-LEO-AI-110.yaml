@@ -1,0 +1,101 @@
+# -- DI-LEO-AI-110 -- Pathway Explorer mission card UX, scoping, and 4-layer results
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-110"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-063"]
+  requirement: >
+    The system SHALL implement a Pathway Explorer UI workspace that: (1) presents
+    mission cards grouped by intent in plain English with no algorithm names
+    visible; (2) provides a three-question scoping wizard (area, period, detail
+    level) using pill-button selectors; (3) displays results in a four-layer
+    pattern (headline, data table, method text, guided next steps); (4) shows a
+    data coverage badge alongside every result; (5) provides a persona lens
+    toggle (Patients / Pathways / Capacity) that reframes card titles and
+    descriptions; (6) renders data-gated mission cards as muted/locked with a
+    Coming soon indicator; (7) uses MUI components with theme tokens throughout
+    (no hardcoded colours, no emojis); and (8) meets WCAG 2.1 AA keyboard
+    accessibility requirements.
+
+  rationale: >
+    Clinical users must be able to investigate patient populations without data
+    science knowledge. The mission card pattern abstracts algorithm complexity
+    behind plain English questions. The four-layer result pattern ensures every
+    finding is accompanied by its confidence basis and method explanation,
+    preventing misinterpretation of population-level analytics.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "usability"
+        spec: >
+          All mission card titles and descriptions pass a Flesch-Kincaid
+          Grade Level <= 6 check (reading age 9-11 years)
+      - type: "usability"
+        spec: >
+          Scoping wizard shows exactly 3 questions; no algorithm parameters
+          are exposed to users
+      - type: "functional"
+        spec: >
+          Selecting a mission opens the scoping wizard; submitting the wizard
+          triggers a run and displays the headline result when complete
+      - type: "functional"
+        spec: >
+          Data-gated mission cards are visible with a Coming soon badge and
+          disabled state; clicking shows an informational message without
+          triggering an API call
+      - type: "functional"
+        spec: >
+          Results table is sortable, exportable as CSV, and shows total_count
+          vs items shown when truncated
+      - type: "accessibility"
+        spec: >
+          All interactive elements have aria-label; mission cards are keyboard
+          navigable with Enter/Space activation; focus management works on view
+          transitions; headline result has role=status and aria-live=polite
+    constraints:
+      - type: "safety"
+        spec: >
+          Coverage badge MUST be visible on every result screen showing patient
+          count, practice count, and confidence level (low/moderate/high)
+      - type: "usability"
+        spec: >
+          The word betweenness, centrality, leiden, pagerank, jaccard, cosine,
+          knn, or wcc MUST NOT appear in any user-facing text
+
+  dependencies: ["DI-LEO-AI-109"]
+  downstream_impacts:
+    - "Admin UI pathway-explorer workspace"
+    - "Research API integration"
+
+  technical_details:
+    language: "TypeScript"
+    framework: "Next.js / React / MUI"
+    file_structure:
+      - "services/ui/src/app/admin/pathway-explorer/page.tsx"
+      - "services/ui/src/components/research/PathwayExplorerWorkspace.tsx"
+      - "services/ui/src/components/research/MissionCardGrid.tsx"
+      - "services/ui/src/components/research/MissionCard.tsx"
+      - "services/ui/src/components/research/PersonaLensToggle.tsx"
+      - "services/ui/src/components/research/ScopingWizard.tsx"
+      - "services/ui/src/components/research/ResultsPanel.tsx"
+      - "services/ui/src/components/research/HeadlineResult.tsx"
+      - "services/ui/src/components/research/ResultsTable.tsx"
+      - "services/ui/src/components/research/MethodExplainer.tsx"
+      - "services/ui/src/components/research/GuidedNextSteps.tsx"
+      - "services/ui/src/components/research/useResearchState.ts"
+      - "services/ui/src/lib/researchApi.ts"
+    estimated_loc: 800
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-110 test cases pass: mission catalogue rendering,
+      scoping wizard flow, result display, data-gated card behaviour,
+      accessibility (aria labels, keyboard navigation, role=status),
+      and CSV export link.
+    test_protocol: "VT-LEO-AI-110"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-076"]
+  tags: ["research-workspace", "pathway-explorer", "ui", "accessibility", "usability"]

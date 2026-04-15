@@ -30,7 +30,7 @@ import subprocess
 import sys
 import threading
 import uuid
-from collections import defaultdict
+from collections import Counter, defaultdict
 from difflib import SequenceMatcher
 from typing import Any, Optional
 
@@ -113,6 +113,11 @@ from libs.cypher.synthetic_candidate_queries import (
     GET_SYNTHETIC_GOLD_STATS,
     GET_SYNTHETIC_GOLD_TAG_BREAKDOWN,
     GET_VALUESET_RAW_JSON,
+)
+from libs.cypher.phrase_consistency_queries import (
+    DELETE_PHRASE_MULTILABEL_APPROVAL,
+    LIST_PHRASE_MULTILABEL_APPROVALS,
+    UPSERT_PHRASE_MULTILABEL_APPROVAL,
 )
 from libs.cypher.surface_form_task_queries import (
     COUNT_SURFACE_FORM_TASKS,
@@ -4603,8 +4608,10 @@ def find_similar_candidates_by_entity(
     body: SimilarCandidatesByEntityRequest,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
+    # Fetch all candidates (no status filter) so the source candidate is found
+    # regardless of its current status (it may not be "pending" any more).
     rows = _fetch_dedupe_candidates(
-        status="pending",
+        status=None,
         source=None,
         search=None,
         max_candidates=3000,
@@ -4628,7 +4635,8 @@ def find_similar_candidates_by_entity(
         candidate_id = str(row.get("candidate_id") or "")
         if not candidate_id or candidate_id == body.candidate_id:
             continue
-        if str(row.get("status") or "") == "completed":
+        # Only surface pending candidates as bulk-labelling targets.
+        if str(row.get("status") or "") != "pending":
             continue
         terms = _extract_candidate_entity_terms(row.get("entities_json"))
         similarity = _entity_similarity(source_terms, terms)
@@ -4968,6 +4976,346 @@ def get_gold_label_distribution(
             for lbl, cnt in counter.most_common()
         ],
     }
+
+
+def _normalise_phrase_for_consistency(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "").strip()).lower()
+
+
+_APPROVED_MULTI_LABEL_PHRASES: dict[str, set[str]] = {
+    # Program-defined dual meaning phrases where both labels are expected.
+    "2ww breast": {"PROCEDURE", "SITUATION"},
+    "2ww gynae": {"PROCEDURE", "SITUATION"},
+    "2ww gynaecology": {"PROCEDURE", "SITUATION"},
+    "2ww head and neck": {"PROCEDURE", "SITUATION"},
+    "2ww referral": {"PROCEDURE", "SITUATION"},
+}
+
+
+class PhraseMultiLabelApprovalRequest(BaseModel):
+    phrase: str = Field(..., min_length=1, max_length=200)
+    allowed_labels: list[str] = Field(..., min_length=2, max_length=10)
+
+
+def _normalise_label_name(label: str) -> str:
+    return str(label or "").strip().replace(" ", "_").upper()
+
+
+def _normalise_phrase_key(phrase: str) -> str:
+    return _normalise_phrase_for_consistency(phrase)
+
+
+def _load_phrase_multilabel_policy(
+    session,
+) -> tuple[dict[str, set[str]], list[dict[str, Any]]]:
+    policy = {k: set(v) for k, v in _APPROVED_MULTI_LABEL_PHRASES.items()}
+    rows: list[dict[str, Any]] = []
+    for row in session.run(LIST_PHRASE_MULTILABEL_APPROVALS):
+        item = dict(row)
+        phrase_norm = str(item.get("phrase_norm") or "").strip().lower()
+        if not phrase_norm:
+            continue
+        labels = {
+            _normalise_label_name(str(label))
+            for label in (item.get("allowed_labels") or [])
+            if str(label).strip()
+        }
+        if len(labels) < 2:
+            continue
+        policy[phrase_norm] = labels
+        rows.append(
+            {
+                "phrase_norm": phrase_norm,
+                "phrase_display": str(item.get("phrase_display") or phrase_norm),
+                "allowed_labels": sorted(labels),
+                "created_at": item.get("created_at"),
+                "created_by": item.get("created_by"),
+                "updated_at": item.get("updated_at"),
+                "updated_by": item.get("updated_by"),
+            }
+        )
+    return policy, rows
+
+
+def _is_approved_multilabel_phrase_with_policy(
+    phrase: str,
+    labels: set[str],
+    policy: dict[str, set[str]],
+) -> bool:
+    allowed = policy.get(phrase)
+    return bool(allowed and len(labels) > 1 and labels.issubset(allowed))
+
+
+def _is_approved_multilabel_phrase(phrase: str, labels: set[str]) -> bool:
+    allowed = _APPROVED_MULTI_LABEL_PHRASES.get(phrase)
+    return bool(allowed and len(labels) > 1 and labels.issubset(allowed))
+
+
+def _safe_entities_json_list(raw: Any) -> list[dict[str, Any]]:
+    if isinstance(raw, list):
+        return [item for item in raw if isinstance(item, dict)]
+    if not isinstance(raw, str):
+        return []
+    payload = raw.strip()
+    if not payload:
+        return []
+    try:
+        parsed = json.loads(payload)
+    except Exception:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [item for item in parsed if isinstance(item, dict)]
+
+
+def _build_phrase_groups(
+    rows: list[dict[str, Any]],
+    phrase_filter: str | None,
+) -> tuple[dict[str, list[dict[str, str]]], int]:
+    grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
+    needle = _normalise_phrase_for_consistency(phrase_filter) if phrase_filter else ""
+    total_entities = 0
+    for row in rows:
+        sentence_preview = str(row.get("text") or "").replace("\n", " ")[:180]
+        for ent in _safe_entities_json_list(row.get("entities_json")):
+            phrase = _normalise_phrase_for_consistency(ent.get("text") or "")
+            if not phrase:
+                continue
+            if needle and needle not in phrase:
+                continue
+            total_entities += 1
+            grouped[phrase].append(
+                {
+                    "label": _normalise_label_name(
+                        ent.get("label") or ent.get("semantic_tag") or "UNKNOWN"
+                    ),
+                    "assertion": str(ent.get("assertion") or "present").strip().lower()
+                    or "present",
+                    "label_id": str(row.get("label_id") or ""),
+                    "source": str(row.get("source") or ""),
+                    "sentence_preview": sentence_preview,
+                }
+            )
+    return grouped, total_entities
+
+
+def _build_phrase_conflict_entry(
+    phrase: str,
+    items: list[dict[str, str]],
+    max_examples: int,
+) -> dict[str, Any]:
+    signature_counts: Counter[str] = Counter(
+        f"{item['label']}|{item['assertion']}" for item in items
+    )
+    label_counts: Counter[str] = Counter(item["label"] for item in items)
+    primary_label = label_counts.most_common(1)[0][0] if label_counts else "UNKNOWN"
+    examples: list[dict[str, str]] = []
+    seen_examples: set[str] = set()
+    for item in items:
+        sig = f"{item['label']}|{item['assertion']}"
+        ex_key = f"{sig}:{item['label_id']}"
+        if ex_key in seen_examples:
+            continue
+        seen_examples.add(ex_key)
+        examples.append(item)
+        if len(examples) >= max_examples:
+            break
+    outlier_examples: list[dict[str, str]] = []
+    seen_outliers: set[str] = set()
+    for item in items:
+        if item["label"] == primary_label:
+            continue
+        label_id = item["label_id"]
+        if label_id in seen_outliers:
+            continue
+        seen_outliers.add(label_id)
+        outlier_examples.append(
+            {
+                "label_id": label_id,
+                "source": item["source"],
+                "label": item["label"],
+                "assertion": item["assertion"],
+                "sentence_preview": item["sentence_preview"],
+            }
+        )
+        if len(outlier_examples) >= max_examples:
+            break
+    return {
+        "phrase": phrase,
+        "occurrences": len(items),
+        "distinct_labels": len({item["label"] for item in items}),
+        "distinct_assertions": len({item["assertion"] for item in items}),
+        "primary_label": primary_label,
+        "outlier_count": len({item["label_id"] for item in items if item["label"] != primary_label}),
+        "outlier_examples": outlier_examples,
+        "signature_counts": [
+            {
+                "label": sig.split("|", 1)[0],
+                "assertion": sig.split("|", 1)[1],
+                "count": count,
+            }
+            for sig, count in signature_counts.most_common()
+        ],
+        "examples": examples,
+    }
+
+
+def _extract_phrase_conflicts(
+    rows: list[dict[str, Any]],
+    *,
+    phrase_filter: str | None,
+    min_occurrences: int,
+    max_examples: int,
+    top: int,
+    policy: dict[str, set[str]] | None = None,
+    policy_rows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    grouped, total_entities = _build_phrase_groups(rows, phrase_filter)
+    active_policy = policy or _APPROVED_MULTI_LABEL_PHRASES
+
+    conflicts: list[dict[str, Any]] = []
+    approved_multilabel: list[dict[str, Any]] = []
+    assertion_only_variants = 0
+    for phrase, items in grouped.items():
+        if len(items) < min_occurrences:
+            continue
+        labels = {item["label"] for item in items}
+        assertions = {item["assertion"] for item in items}
+        if len(labels) <= 1:
+            if len(assertions) > 1:
+                assertion_only_variants += 1
+            continue
+        if _is_approved_multilabel_phrase_with_policy(phrase, labels, active_policy):
+            approved_multilabel.append(_build_phrase_conflict_entry(phrase, items, max_examples))
+            continue
+        conflicts.append(_build_phrase_conflict_entry(phrase, items, max_examples))
+
+    conflicts.sort(key=lambda item: (-int(item["occurrences"]), str(item["phrase"])))
+    approved_multilabel.sort(
+        key=lambda item: (-int(item["occurrences"]), str(item["phrase"]))
+    )
+    return {
+        "summary": {
+            "total_records": len(rows),
+            "total_entities": total_entities,
+            "unique_phrases": len(grouped),
+            "conflicting_phrases": len(conflicts),
+            "assertion_only_variants": assertion_only_variants,
+            "approved_multilabel_variants": len(approved_multilabel),
+            "min_occurrences": min_occurrences,
+        },
+        "conflicts": conflicts[:top],
+        "approved_multilabel": approved_multilabel[:top],
+        "policy": policy_rows or [],
+    }
+
+
+@router.get("/gold-labels/phrase-multilabel-approvals")
+def list_phrase_multilabel_approvals(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            _, rows = _load_phrase_multilabel_policy(session)
+    finally:
+        client.close()
+    return {"items": rows, "count": len(rows)}
+
+
+@router.post("/gold-labels/phrase-multilabel-approvals")
+def upsert_phrase_multilabel_approval(
+    body: PhraseMultiLabelApprovalRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+    _admin: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    phrase_norm = _normalise_phrase_key(body.phrase)
+    if not phrase_norm:
+        raise HTTPException(status_code=422, detail="phrase must be non-empty")
+    labels = sorted(
+        {_normalise_label_name(label) for label in body.allowed_labels if str(label).strip()}
+    )
+    if len(labels) < 2:
+        raise HTTPException(
+            status_code=422, detail="allowed_labels must contain at least 2 labels"
+        )
+
+    actor = getattr(scope, "email", "") or "admin"
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                UPSERT_PHRASE_MULTILABEL_APPROVAL,
+                id=str(uuid.uuid4()),
+                phrase_norm=phrase_norm,
+                phrase_display=str(body.phrase).strip(),
+                allowed_labels=labels,
+                updated_by=actor,
+            ).single()
+            result = dict(row) if row else {}
+    finally:
+        client.close()
+    return result
+
+
+@router.delete("/gold-labels/phrase-multilabel-approvals/{phrase_norm}")
+def delete_phrase_multilabel_approval(
+    phrase_norm: str,
+    scope: CallerScope = Depends(get_caller_scope),
+    _admin: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    key = _normalise_phrase_key(phrase_norm)
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                DELETE_PHRASE_MULTILABEL_APPROVAL, phrase_norm=key
+            ).single()
+            deleted = int((row or {}).get("deleted") or 0)
+    finally:
+        client.close()
+    return {"phrase_norm": key, "deleted": deleted}
+
+
+@router.get("/gold-labels/phrase-consistency")
+def get_gold_label_phrase_consistency(
+    phrase: str | None = Query(default=None),
+    min_occurrences: int = Query(default=2, ge=1, le=50),
+    max_examples: int = Query(default=5, ge=1, le=20),
+    top: int = Query(default=25, ge=1, le=100),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            policy, policy_rows = _load_phrase_multilabel_policy(session)
+            rows = [
+                dict(r)
+                for r in session.run(
+                    """
+                    MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
+                    WHERE c.status = 'completed'
+                      AND g.entities_json IS NOT NULL
+                    RETURN
+                      g.label_id AS label_id,
+                      g.text AS text,
+                      g.entities_json AS entities_json,
+                      g.source AS source
+                    ORDER BY g.updated_at DESC
+                    """
+                )
+            ]
+    finally:
+        client.close()
+    return _extract_phrase_conflicts(
+        rows,
+        phrase_filter=phrase,
+        min_occurrences=min_occurrences,
+        max_examples=max_examples,
+        top=top,
+        policy=policy,
+        policy_rows=policy_rows,
+    )
 
 
 @router.get("/gold-labels")

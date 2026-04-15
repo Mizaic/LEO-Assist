@@ -20,6 +20,7 @@ export default function ConsolePage() {
   const state = useConsoleState();
   const [activeStage, setActiveStage] = useState<string | null>(null);
   const [training, setTraining] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const stageHealth = deriveStageHealth(state);
   const nudge = deriveNudge(state);
@@ -31,10 +32,27 @@ export default function ConsolePage() {
   const handleTrain = async () => {
     setTraining(true);
     try {
-      await fetch("/api/training-worker/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ triggered_by: "console" }) });
+      await fetch("/api/training-worker/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ triggered_by: "console" }),
+      });
       state.refresh();
     } finally {
       setTraining(false);
+    }
+  };
+
+  const handleCancelJob = async (jobId: string) => {
+    setCancelling(true);
+    try {
+      await fetch(`/api/training/jobs/${encodeURIComponent(jobId)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      state.refresh();
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -123,6 +141,8 @@ export default function ConsolePage() {
               latestJob={state.latestJob}
               onTrain={handleTrain}
               training={training}
+              onCancelJob={handleCancelJob}
+              cancelling={cancelling}
             />
           </StageCard>
         )}

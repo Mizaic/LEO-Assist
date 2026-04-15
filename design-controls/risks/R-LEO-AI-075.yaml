@@ -1,0 +1,99 @@
+# -- R-LEO-AI-075 -- Misleading graph algorithm results acted on clinically
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-075"
+  title: >
+    Graph algorithm results are misinterpreted and acted on clinically without
+    understanding the data limitations
+
+  hazard:
+    description: >
+      Graph algorithms run over incomplete or low-quality patient data may
+      produce outputs (e.g. community groupings, importance scores) that appear
+      authoritative but are statistically unreliable, leading a clinician or
+      service improvement lead to take a pathway or care decision based on
+      misleading information.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A user runs a Pathway Explorer mission against a thin data set (e.g. fewer
+    than 30 patients in a 3-month window). The algorithm returns a result with a
+    headline in confident plain-English. No data coverage warning is displayed.
+    The user makes a service redesign or patient triage decision based on this
+    finding.
+
+  harm:
+    description: >
+      Incorrect service changes or patient routing decisions that could delay
+      care, misallocate clinical resource, or cause patient harm through
+      deprioritisation or sub-optimal pathway assignment.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Every result screen includes a CoverageBadge component that displays
+        the number of patients and time period the result is based on.
+        HeadlineResult renders the badge as the first visible element above the
+        result text. When coverage falls below the configured threshold the
+        badge is displayed in amber with a plain-English caution message.
+      implemented_by: ["DI-LEO-AI-109", "DI-LEO-AI-110"]
+      verified_by: ["VT-LEO-AI-109", "VT-LEO-AI-110"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Data-gated missions are visually disabled when the required graph layer
+        (e.g. referral-network projection) has insufficient data. Users cannot
+        submit a run; a plain-English explanation is shown instead.
+      implemented_by: ["DI-LEO-AI-109", "DI-LEO-AI-110"]
+      verified_by: ["VT-LEO-AI-109", "VT-LEO-AI-110"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Every result panel includes a Method Explainer section that describes
+        in plain English what the algorithm does, what the data requirements
+        are, and what limitations apply.
+      implemented_by: ["DI-LEO-AI-110"]
+      verified_by: ["VT-LEO-AI-110"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      After controls are in place (coverage badge on every result, data-gating
+      for thin projections, method explainer), the probability of a user acting
+      on misleading results without any warning is low. The Pathway Explorer
+      is a decision-support tool; final clinical and operational decisions
+      require human judgement and are governed by separate clinical governance
+      processes outside the software system.
+
+  monitoring:
+    monitoring_plan: >
+      Review CoverageBadge amber trigger rates in production analytics.
+      Capture any user-reported concerns about misleading results via the
+      in-app feedback mechanism. Review at each quarterly governance meeting.
+    metrics:
+      - "Count of algorithm runs with coverage below threshold per month"
+      - "Count of user feedback reports citing unexpected or incorrect results"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Design review -- Pathway Explorer R&D feature"
+    identified_date: "2026-04-15"
+    status: "analyzed"
+    tags:
+      - "pathway-explorer"
+      - "graph-algorithms"
+      - "clinical-decision-support"

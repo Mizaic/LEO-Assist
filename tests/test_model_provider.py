@@ -95,3 +95,57 @@ def test_extract_batch_falls_back_to_llm_when_disabled(monkeypatch):
     provider = ModelExtractorProvider()
     assert provider.extract_batch("text", []) == []
     assert called["value"] is True
+
+
+def test_extract_batch_strict_version_mismatch_raises(monkeypatch):
+    monkeypatch.setenv("CODING_MODEL_PROVIDER_ENABLED", "true")
+
+    class _Resp:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self._payload
+
+    class _Client:
+        def __init__(self, timeout: float):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def get(self, url: str, **kwargs):
+            assert url == "http://localhost:8004/health"
+            return _Resp({"active_version": "requested-v2"})
+
+        def post(self, url: str, json: dict, **kwargs):
+            if url == "http://localhost:8004/reload":
+                return _Resp({"active_version": "requested-v2"})
+            assert url == "http://localhost:8004/extract"
+            return _Resp(
+                {
+                    "model_name": "model-inference",
+                    "model_version": "actual-v3",
+                    "entities": [],
+                }
+            )
+
+    monkeypatch.setattr(
+        "services.coding_worker.app.pipeline.providers.model_provider.httpx.Client",
+        _Client,
+    )
+    provider = ModelExtractorProvider()
+    sentences = [SimpleNamespace(sentence_id="s0", text="alpha", start=0, end=5)]
+    with pytest.raises(RuntimeError, match="Requested model version requested-v2"):
+        provider.extract_batch(
+            "alpha",
+            sentences,
+            requested_model_version="requested-v2",
+            strict_model_version=True,
+        )

@@ -56,9 +56,15 @@ class ExtractionState(TypedDict, total=False):
     encounter_id: str
     encounter_text: str
     extraction_method: str
+    requested_model_version: str
+    strict_model_version: bool
     prompt_config: dict[str, Any]
     sentences: list[dict[str, Any]]
     entities: list[dict[str, Any]]
+    extraction_model_name: str
+    extraction_model_version: str
+    extraction_model_requested_version: str
+    extraction_model_version_mismatch: bool
     errors: list[str]
 
 
@@ -206,7 +212,22 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             )
 
             extractor = ModelExtractorProvider()
-            items = extractor.extract_batch(encounter_text, chunks)
+            requested_model_version = str(
+                state.get("requested_model_version") or ""
+            ).strip()
+            strict_model_version = bool(state.get("strict_model_version", False))
+            items = extractor.extract_batch(
+                encounter_text,
+                chunks,
+                requested_model_version=requested_model_version or None,
+                strict_model_version=strict_model_version,
+            )
+            actual_model_version = str(extractor.model_version or "").strip()
+            mismatch = bool(
+                requested_model_version
+                and actual_model_version
+                and requested_model_version != actual_model_version
+            )
             entities = _items_to_dicts(items)
             if not entities:
                 entities = _extract_lab_fallback_entities(encounter_text, chunks)
@@ -218,6 +239,10 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                     )
             return {
                 "entities": entities,
+                "extraction_model_name": str(extractor.model_name or ""),
+                "extraction_model_version": actual_model_version,
+                "extraction_model_requested_version": requested_model_version,
+                "extraction_model_version_mismatch": mismatch,
                 "llm_tokens": {
                     "input_tokens": 0,
                     "output_tokens": 0,
@@ -270,6 +295,12 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
         logger.warning("Extractor unavailable: %s", e)
         return {"entities": [], "errors": [str(e)]}
     except Exception as e:
+        strict_requested_ner = (
+            str(state.get("extraction_method") or "llm").lower() == "ner"
+            and bool(state.get("strict_model_version", False))
+        )
+        if strict_requested_ner:
+            raise
         logger.exception("Entity extraction failed")
         return {"entities": [], "errors": [str(e)]}
 
@@ -277,6 +308,14 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
 def merge_results(state: ExtractionState) -> dict[str, Any]:
     return {
         "entities": state.get("entities", []),
+        "extraction_model_name": state.get("extraction_model_name", ""),
+        "extraction_model_version": state.get("extraction_model_version", ""),
+        "extraction_model_requested_version": state.get(
+            "extraction_model_requested_version", ""
+        ),
+        "extraction_model_version_mismatch": bool(
+            state.get("extraction_model_version_mismatch", False)
+        ),
         "errors": state.get("errors", []),
     }
 

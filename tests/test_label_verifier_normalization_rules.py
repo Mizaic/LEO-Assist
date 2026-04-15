@@ -261,6 +261,71 @@ def test_observable_gets_value_unit_from_nearby_measurement() -> None:
     assert entities[0]["unit"] == "mL/min"
 
 
+def test_observable_gets_string_value_from_nearby_qualifier() -> None:
+    """VT-111-TC-001: string result after observable entity is linked."""
+    entities = [
+        {
+            "text": "Urine culture",
+            "label": "observable_entity",
+            "start": 0,
+            "end": 13,
+        },
+        {"text": "negative", "label": "qualifier_value", "start": 16, "end": 24},
+    ]
+    _link_observable_value_units(entities)
+    assert entities[0]["value"] == "negative"
+    assert entities[0]["unit"] == ""
+
+
+def test_observable_gets_string_value_before_entity() -> None:
+    """VT-111-TC-002: string result before observable entity is linked."""
+    entities = [
+        {"text": "positive", "label": "qualifier_value", "start": 0, "end": 8},
+        {
+            "text": "COVID antigen",
+            "label": "observable_entity",
+            "start": 11,
+            "end": 24,
+        },
+    ]
+    _link_observable_value_units(entities)
+    obs = entities[1]
+    assert obs["value"] == "positive"
+    assert obs["unit"] == ""
+
+
+def test_raw_text_scan_attaches_numeric_value_before_observable() -> None:
+    """VT-111-TC-003: numeric value before entity captured via raw-text fallback."""
+    encounter = "7.2 mmol/L HbA1c"
+    entities = [
+        {
+            "text": "HbA1c",
+            "label": "observable_entity",
+            "start": 11,
+            "end": 16,
+        }
+    ]
+    _link_observable_value_units(entities, encounter)
+    assert entities[0]["value"] == "7.2"
+    assert entities[0]["unit"] == "mmol/L"
+
+
+def test_raw_text_scan_attaches_string_value_before_observable() -> None:
+    """VT-111-TC-004: string result before entity captured via raw-text fallback."""
+    encounter = "negative -- Urine culture"
+    entities = [
+        {
+            "text": "Urine culture",
+            "label": "observable_entity",
+            "start": 12,
+            "end": 25,
+        }
+    ]
+    _link_observable_value_units(entities, encounter)
+    assert entities[0]["value"] == "negative"
+    assert entities[0]["unit"] == ""
+
+
 # ── Deterministic pre-resolution ──
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HealthStatus } from "@/theme/tokens";
 
 export interface TrainingJob {
@@ -39,6 +39,25 @@ export interface ConsoleState {
   refresh: () => void;
 }
 
+const CONSOLE_FETCH_TIMEOUT_MS = 12000;
+
+async function fetchWithTimeout(
+  input: string,
+  init?: RequestInit,
+  timeoutMs = CONSOLE_FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 export function useConsoleState(): ConsoleState {
   const [jobs, setJobs] = useState<TrainingJob[]>([]);
   const [goldStats, setGoldStats] = useState<ConsoleState["goldStats"]>(null);
@@ -46,15 +65,20 @@ export function useConsoleState(): ConsoleState {
   const [candidateQueueTotal, setCandidateQueueTotal] = useState<number | null>(null);
   const [promotedVersion, setPromotedVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const pollInFlightRef = useRef(false);
 
   const fetchAll = useCallback(async () => {
+    if (pollInFlightRef.current) {
+      return;
+    }
+    pollInFlightRef.current = true;
     try {
       const [jobsRes, goldRes, goldenRes, queueRes, modelRes] = await Promise.allSettled([
-        fetch("/api/training-worker/jobs"),
-        fetch("/api/training/gold-labels/stats"),
-        fetch("/api/training/gold-labels/golden-set/stats"),
-        fetch("/api/training/candidates/active-learning-queue?page=1&page_size=1"),
-        fetch("/api/model-registry/status"),
+        fetchWithTimeout("/api/training-worker/jobs"),
+        fetchWithTimeout("/api/training/gold-labels/stats"),
+        fetchWithTimeout("/api/training/gold-labels/golden-set/stats"),
+        fetchWithTimeout("/api/training/candidates/active-learning-queue?page=1&page_size=1"),
+        fetchWithTimeout("/api/model-registry/status"),
       ]);
 
       if (jobsRes.status === "fulfilled" && jobsRes.value.ok) {
@@ -78,6 +102,7 @@ export function useConsoleState(): ConsoleState {
       }
     } finally {
       setLoading(false);
+      pollInFlightRef.current = false;
     }
   }, []);
 

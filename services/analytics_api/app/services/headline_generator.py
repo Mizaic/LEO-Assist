@@ -10,7 +10,7 @@ the 'How did we work this out?' layer.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 def generate_headline(
@@ -216,6 +216,25 @@ def _headline_circles(
     )
 
 
+def _headline_bridges(
+    results: List[Dict[str, Any]],
+    scope: str,
+    detail: str,
+) -> str:
+    if not results:
+        return f"No bridge conditions were identified in {scope}."
+    top = results[0]
+    label = top.get("label", "an unknown condition")
+    score = top.get("score", 0)
+    n = len(results)
+    return (
+        f"We found {n} condition{'' if n == 1 else 's'} that act as "
+        f"bridges between different parts of the pathway in {scope}. "
+        f"The most important bridge is {label!r} "
+        f"with a centrality score of {score:.3f}."
+    )
+
+
 # -- Dispatch table ----------------------------------------------------------
 
 _GENERATORS = {
@@ -228,6 +247,7 @@ _GENERATORS = {
     "bottleneck": _headline_bottleneck,
     "gaps": _headline_gaps,
     "circles": _headline_circles,
+    "bridges": _headline_bridges,
 }
 
 # -- Method text templates (plain English + technical note) ------------------
@@ -340,6 +360,20 @@ _METHOD_TEMPLATES: Dict[str, Dict[str, str]] = {
             "Technical note: Strongly Connected Components (SCC) on the "
             "patient-journey projection (GDS). Components with 2 or more "
             "members are considered circular."
+        ),
+    },
+    "bridges": {
+        "plain": (
+            "We found conditions that act as bridges between different groups "
+            "of conditions in {scope}. Bridge conditions connect areas of the "
+            "pathway that would otherwise be separate. When a bridge condition "
+            "is missed, it can break links between different parts of a "
+            "patient's care record."
+        ),
+        "technical": (
+            "Technical note: Betweenness Centrality on the condition "
+            "co-occurrence graph projection (GDS). Scores normalised by "
+            "graph size."
         ),
     },
 }

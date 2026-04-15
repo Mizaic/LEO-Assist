@@ -47,6 +47,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/model-registry", tags=["model-registry"])
 
 _INFERENCE_ENDPOINT = os.getenv("CODING_MODEL_ENDPOINT", "http://localhost:8004")
+_PIPELINE_WORKER_ENDPOINT = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006")
+_TRACE_PLAN_DEFINITION_ID = os.getenv(
+    "MODEL_TRACE_PLAN_DEFINITION_ID", "pd-gp-encounter-coding"
+)
 
 _GOLD_MAX_CANDIDATES = int(os.getenv("MODEL_GOLD_MAX_CANDIDATES", "1500"))
 
@@ -116,6 +120,11 @@ class PipelineTraceRequest(BaseModel):
 class PipelineEntityProvenance(BaseModel):
     stage: str
     detail: Optional[str] = None
+
+
+class WorkerTraceRequest(BaseModel):
+    encounters: list[DryRunEncounter]
+    plan_definition_id: str = _TRACE_PLAN_DEFINITION_ID
 
 
 class PromoteRequest(BaseModel):
@@ -285,6 +294,63 @@ def _canonical_model_label(raw: str) -> str:
     return cleaned.upper()
 
 
+def _extract_spacy_entities(doc: Any) -> list[dict[str, Any]]:
+    """Extract entities from spaCy docs across model output variants.
+
+    Primary source is `doc.spans["sc"]` for spancat models. Fallbacks:
+    - `doc.ents` for ner-style models
+    - first non-empty span group in `doc.spans` when key is not `sc`
+    """
+    spans: list[Any] = list(doc.spans.get("sc", []))
+    if not spans and doc.ents:
+        spans = list(doc.ents)
+
+    if not spans:
+        groups: list[tuple[str, list[Any]]] = []
+        for key, group in doc.spans.items():
+            items = list(group or [])
+            if items:
+                groups.append((str(key), items))
+        if groups:
+            groups.sort(key=lambda item: len(item[1]), reverse=True)
+            spans = groups[0][1]
+
+    seen: set[tuple[int, int, str]] = set()
+    entities: list[dict[str, Any]] = []
+    for span in spans:
+        start = int(getattr(span, "start_char", 0))
+        end = int(getattr(span, "end_char", 0))
+        if end <= start:
+            continue
+        label = _canonical_model_label(str(getattr(span, "label_", "") or ""))
+        key = (start, end, label)
+        if key in seen:
+            continue
+        seen.add(key)
+        entities.append(
+            {
+                "text": str(getattr(span, "text", "")),
+                "start": start,
+                "end": end,
+                "label": label,
+                "semantic_tag": label.lower(),
+            }
+        )
+    return entities
+
+
+def _normalise_worker_entity(ent: dict[str, Any]) -> dict[str, Any]:
+    out = dict(ent)
+    out["label"] = _canonical_model_label(
+        str(out.get("label") or out.get("semantic_tag") or "")
+    )
+    if not out.get("semantic_tag"):
+        out["semantic_tag"] = str(out["label"]).lower()
+    if "text" not in out:
+        out["text"] = str(out.get("term") or out.get("lookup_term") or "")
+    return out
+
+
 def _set_canary_job(job_id: str, patch: dict[str, Any]) -> None:
     with _canary_jobs_lock:
         current = _canary_jobs.get(job_id, {})
@@ -304,10 +370,17 @@ def _span_key(entity: dict[str, Any]) -> tuple[int, int]:
     return int(entity.get("start", 0)), int(entity.get("end", 0))
 
 
+def _dedupe_signature(entity: dict[str, Any]) -> tuple[str, str, int, int, str]:
+    label, assertion = _label_assertion(entity)
+    start, end = _span_key(entity)
+    text = str(entity.get("text") or "").strip().lower()
+    return (label, assertion, start, end, text)
+
+
 def _diff_provenance(
     before: list[dict[str, Any]],
     after: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     before_by_span: dict[tuple[int, int], list[dict[str, Any]]] = {}
     for ent in before:
         key = _span_key(ent)
@@ -356,16 +429,23 @@ def _diff_provenance(
                 out["_provenance_detail"] = None
         final_entities.append(out)
 
+    final_signatures = {_dedupe_signature(ent) for ent in final_entities}
     suppressed: list[dict[str, Any]] = []
+    deduplicated: list[dict[str, Any]] = []
     for ent in before:
         if id(ent) in matched_ids:
             continue
         out = dict(ent)
-        out["_provenance_stage"] = "suppressed"
-        out["_provenance_detail"] = "Removed during post-processing"
-        suppressed.append(out)
+        if _dedupe_signature(ent) in final_signatures:
+            out["_provenance_stage"] = "deduplicated"
+            out["_provenance_detail"] = "Removed as duplicate entity"
+            deduplicated.append(out)
+        else:
+            out["_provenance_stage"] = "suppressed"
+            out["_provenance_detail"] = "Removed during post-processing"
+            suppressed.append(out)
 
-    return final_entities, suppressed
+    return final_entities, suppressed, deduplicated
 
 
 def _ensure_leo_transformer_listener_registered() -> None:
@@ -1028,8 +1108,8 @@ def dry_run_canary_model(
 
     results: list[dict[str, Any]] = []
     for enc in encounters:
-        text = enc.text.strip()
-        if not text:
+        raw_text = enc.text or ""
+        if not raw_text.strip():
             results.append(
                 {
                     "encounter_id": enc.encounter_id,
@@ -1040,20 +1120,9 @@ def dry_run_canary_model(
                 }
             )
             continue
+        text = raw_text
         doc = nlp(text)
-        spans = doc.spans.get("sc", [])
-        if not spans:
-            spans = list(doc.ents)
-        entities = [
-            {
-                "text": span.text,
-                "start": span.start_char,
-                "end": span.end_char,
-                "label": _canonical_model_label(span.label_),
-                "semantic_tag": _canonical_model_label(span.label_).lower(),
-            }
-            for span in spans
-        ]
+        entities = _extract_spacy_entities(doc)
         results.append(
             {
                 "encounter_id": enc.encounter_id,
@@ -1093,8 +1162,8 @@ def dry_run_pipeline_trace(
 
     results: list[dict[str, Any]] = []
     for enc in encounters:
-        text = enc.text.strip()
-        if not text:
+        raw_text = enc.text or ""
+        if not raw_text.strip():
             results.append(
                 {
                     "encounter_id": enc.encounter_id,
@@ -1104,26 +1173,17 @@ def dry_run_pipeline_trace(
                     "ner_entities": [],
                     "final_entities": [],
                     "suppressed_entities": [],
+                    "deduplicated_entities": [],
                     "layer_trace": [],
                 }
             )
             continue
+        text = raw_text
 
         doc = nlp(text)
-        spans = doc.spans.get("sc", [])
-        if not spans:
-            spans = list(doc.ents)
-        ner_entities = [
-            {
-                "text": span.text,
-                "start": span.start_char,
-                "end": span.end_char,
-                "label": _canonical_model_label(span.label_),
-                "semantic_tag": _canonical_model_label(span.label_).lower(),
-                "assertion": "present",
-            }
-            for span in spans
-        ]
+        ner_entities = _extract_spacy_entities(doc)
+        for ent in ner_entities:
+            ent["assertion"] = "present"
 
         processed_entities, layer_trace = run_post_processing_with_trace(
             text, ner_entities
@@ -1154,7 +1214,7 @@ def dry_run_pipeline_trace(
                 out["read_code"] = best.read_code
             resolved_entities.append(out)
 
-        final_entities, suppressed_entities = _diff_provenance(
+        final_entities, suppressed_entities, deduplicated_entities = _diff_provenance(
             ner_entities, resolved_entities
         )
 
@@ -1183,11 +1243,63 @@ def dry_run_pipeline_trace(
                 "ner_entities": ner_entities,
                 "final_entities": final_entities,
                 "suppressed_entities": suppressed_entities,
+                "deduplicated_entities": deduplicated_entities,
                 "layer_trace": trace_rows,
             }
         )
 
     return {"model_version": version, "encounters": results, "count": len(results)}
+
+
+@router.post("/versions/{version}/canary/worker-trace")
+async def dry_run_worker_trace(
+    version: str,
+    req: WorkerTraceRequest,
+    _: object = Depends(require_admin),
+) -> dict[str, Any]:
+    """Run worker-trace on pipeline-worker and return the same JSON shape."""
+    reg = get_registry()
+    rec = reg.get(version)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Version {version!r} not found")
+
+    encounters = req.encounters[:20]
+    if not encounters:
+        raise HTTPException(status_code=400, detail="Select at least one encounter")
+
+    try:
+        payload = {
+            "version": version,
+            "plan_definition_id": req.plan_definition_id,
+            "encounters": [enc.model_dump() for enc in encounters],
+        }
+        headers = {
+            "Content-Type": "application/json",
+            **get_service_auth_header(),
+        }
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            response = await client.post(
+                f"{_PIPELINE_WORKER_ENDPOINT}/model-registry/worker-trace",
+                json=payload,
+                headers=headers,
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Pipeline Worker unreachable: {exc}"
+        ) from exc
+
+    try:
+        data = response.json()
+    except ValueError:
+        data = {"detail": response.text}
+
+    if not response.is_success:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=detail or f"Worker trace failed ({response.status_code})",
+        )
+    return data
 
 
 # ------------------------------------------------------------------

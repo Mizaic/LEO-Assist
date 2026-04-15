@@ -34,8 +34,9 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Optional
 
+from libs.model_registry.registry import get_registry
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
@@ -392,6 +393,21 @@ class GuidanceGenerateRequest(BaseModel):
     guideline_id: str
 
 
+class WorkerTraceEncounter(BaseModel):
+    encounter_id: str
+    text: str
+    patient_id: Optional[str] = None
+    encounter_date: Optional[str] = None
+
+
+class WorkerTraceRequest(BaseModel):
+    version: str
+    plan_definition_id: str = os.getenv(
+        "MODEL_TRACE_PLAN_DEFINITION_ID", "pd-gp-encounter-coding"
+    )
+    encounters: list[WorkerTraceEncounter]
+
+
 # ── Single-record dry-run helpers ────────────────────────────────────────────
 
 
@@ -422,6 +438,104 @@ def _build_actions(
         for idx, a in enumerate(body_actions)
     ]
     return actions, edges_by_target
+
+
+def _normalise_worker_entity(ent: dict[str, Any]) -> dict[str, Any]:
+    out = dict(ent)
+    out["label"] = str(out.get("label") or out.get("semantic_tag") or "").upper()
+    if not out.get("semantic_tag"):
+        out["semantic_tag"] = str(out["label"]).lower()
+    if "text" not in out:
+        out["text"] = str(out.get("term") or out.get("lookup_term") or "")
+    return out
+
+
+def _label_assertion(entity: dict[str, Any]) -> tuple[str, str]:
+    label = str(entity.get("label") or entity.get("semantic_tag") or "").upper()
+    assertion = str(entity.get("assertion") or "").strip().lower()
+    return label, assertion
+
+
+def _span_key(entity: dict[str, Any]) -> tuple[int, int]:
+    return int(entity.get("start", 0)), int(entity.get("end", 0))
+
+
+def _dedupe_signature(entity: dict[str, Any]) -> tuple[str, str, int, int, str]:
+    label, assertion = _label_assertion(entity)
+    start, end = _span_key(entity)
+    text = str(entity.get("text") or "").strip().lower()
+    return (label, assertion, start, end, text)
+
+
+def _diff_provenance(
+    before: list[dict[str, Any]],
+    after: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    before_by_span: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    for ent in before:
+        key = _span_key(ent)
+        before_by_span.setdefault(key, []).append(ent)
+
+    matched_ids: set[int] = set()
+    final_entities: list[dict[str, Any]] = []
+
+    for ent in after:
+        span = _span_key(ent)
+        ent_label, ent_assertion = _label_assertion(ent)
+        candidates = before_by_span.get(span, [])
+        picked: Optional[dict[str, Any]] = None
+        for cand in candidates:
+            if id(cand) in matched_ids:
+                continue
+            cand_label, cand_assertion = _label_assertion(cand)
+            if cand_label == ent_label and cand_assertion == ent_assertion:
+                picked = cand
+                break
+        if picked is None:
+            for cand in candidates:
+                if id(cand) not in matched_ids:
+                    picked = cand
+                    break
+
+        out = dict(ent)
+        if picked is None:
+            out["_provenance_stage"] = "post_processing_added"
+            out["_provenance_detail"] = None
+        else:
+            matched_ids.add(id(picked))
+            prev_label, prev_assertion = _label_assertion(picked)
+            details: list[str] = []
+            if prev_label != ent_label:
+                details.append(f"label: {prev_label} -> {ent_label}")
+            if prev_assertion != ent_assertion:
+                details.append(
+                    f"assertion: {prev_assertion or 'none'} -> {ent_assertion or 'none'}"
+                )
+            if details:
+                out["_provenance_stage"] = "post_processing_modified"
+                out["_provenance_detail"] = "; ".join(details)
+            else:
+                out["_provenance_stage"] = "ner"
+                out["_provenance_detail"] = None
+        final_entities.append(out)
+
+    final_signatures = {_dedupe_signature(ent) for ent in final_entities}
+    suppressed: list[dict[str, Any]] = []
+    deduplicated: list[dict[str, Any]] = []
+    for ent in before:
+        if id(ent) in matched_ids:
+            continue
+        out = dict(ent)
+        if _dedupe_signature(ent) in final_signatures:
+            out["_provenance_stage"] = "deduplicated"
+            out["_provenance_detail"] = "Removed as duplicate entity"
+            deduplicated.append(out)
+        else:
+            out["_provenance_stage"] = "suppressed"
+            out["_provenance_detail"] = "Removed during post-processing"
+            suppressed.append(out)
+
+    return final_entities, suppressed, deduplicated
 
 
 @app.post(
@@ -815,6 +929,232 @@ async def get_batch_candidate_trace(
             detail="Trace not found for this candidate/run (it may not have been persisted or has expired).",
         )
     return payload
+
+
+@app.post("/model-registry/worker-trace", dependencies=[Depends(verify_service_token)])
+async def model_registry_worker_trace(body: WorkerTraceRequest) -> dict[str, Any]:
+    reg = get_registry()
+    rec = reg.get(body.version)
+    if not rec:
+        raise HTTPException(
+            status_code=404, detail=f"Version {body.version!r} not found"
+        )
+
+    encounters = body.encounters[:20]
+    if not encounters:
+        raise HTTPException(status_code=400, detail="Select at least one encounter")
+
+    from libs.neo4j_client.client import get_async_driver, get_async_patient_driver
+
+    kg_driver = get_async_driver()
+    pg_driver = get_async_patient_driver()
+    engine = WorkflowEngine(neo4j_driver=kg_driver, audit_neo4j_driver=pg_driver)
+    try:
+        actions = await engine._get_all_plan_actions(body.plan_definition_id)
+        if not actions:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No actions found for plan_definition_id={body.plan_definition_id!r}",
+            )
+
+        results: list[dict[str, Any]] = []
+        for enc in encounters:
+            encounter_id = str(enc.encounter_id or "").strip()
+            patient_id = str(enc.patient_id or "").strip()
+            if not encounter_id or not patient_id:
+                results.append(
+                    {
+                        "encounter_id": enc.encounter_id,
+                        "patient_id": enc.patient_id,
+                        "encounter_date": enc.encounter_date,
+                        "text_length": len(str(enc.text or "")),
+                        "ner_entities": [],
+                        "final_entities": [],
+                        "suppressed_entities": [],
+                        "deduplicated_entities": [],
+                        "layer_trace": [],
+                        "status": "failed",
+                        "error": "patient_id and encounter_id are required for worker trace",
+                        "errors": [
+                            "encounter_loader: patient_id and encounter_id are required"
+                        ],
+                        "failing_step": "encounter_loader",
+                        "step_count": 0,
+                        "entity_counts": {
+                            "extraction": 0,
+                            "final": 0,
+                            "suppressed": 0,
+                            "deduplicated": 0,
+                        },
+                        "extraction_model": {
+                            "requested_version": body.version,
+                            "actual_version": "",
+                            "actual_name": "",
+                            "version_mismatch": False,
+                        },
+                    }
+                )
+                continue
+
+            initial_state = {
+                "patient_id": patient_id,
+                "encounter_id": encounter_id,
+                "run_id": str(uuid.uuid4()),
+                "errors": [],
+                "plan_definition_id": body.plan_definition_id,
+                "mode": "extract_encounter",
+                "dry_run": True,
+                "trigger_analysis": False,
+                "extraction_method": "ner",
+                "requested_model_version": body.version,
+                "strict_model_version": True,
+            }
+            trace = await engine.trace_run(actions, initial_state)
+            steps = trace.get("steps", []) if isinstance(trace, dict) else []
+            final_state = (
+                trace.get("final_state", {}) if isinstance(trace, dict) else {}
+            ) or {}
+            trace_status = str(trace.get("status") or "completed")
+
+            extraction_entities: list[dict[str, Any]] = []
+            post_processing_trace: list[dict[str, Any]] = []
+            step_errors: list[str] = []
+            failing_step: str | None = None
+            for step in steps:
+                if not isinstance(step, dict):
+                    continue
+                subgraph_id = str(step.get("subgraph_id") or "")
+                output_state = step.get("output_state") or {}
+                if (
+                    subgraph_id == "extraction"
+                    and isinstance(output_state, dict)
+                    and isinstance(output_state.get("entities"), list)
+                ):
+                    extraction_entities = [
+                        _normalise_worker_entity(dict(e))
+                        for e in output_state.get("entities", [])
+                        if isinstance(e, dict)
+                    ]
+                if (
+                    subgraph_id == "post_processing"
+                    and isinstance(output_state, dict)
+                    and isinstance(output_state.get("post_processing_trace"), list)
+                ):
+                    post_processing_trace = [
+                        dict(r)
+                        for r in output_state.get("post_processing_trace", [])
+                        if isinstance(r, dict)
+                    ]
+                status = str(step.get("status") or "")
+                err = str(step.get("error") or "").strip()
+                if status in {"error", "halted"} or err:
+                    label = str(step.get("label") or step.get("subgraph_id") or "step")
+                    if err:
+                        step_errors.append(f"{label}: {err}")
+                    elif status == "halted":
+                        step_errors.append(
+                            f"{label}: {str(step.get('halt_reason') or 'halted')}"
+                        )
+                    if not failing_step:
+                        failing_step = label
+
+            final_entities_raw = final_state.get("entities")
+            final_entities_clean = (
+                [
+                    _normalise_worker_entity(dict(e))
+                    for e in final_entities_raw
+                    if isinstance(e, dict)
+                ]
+                if isinstance(final_entities_raw, list)
+                else []
+            )
+            final_entities, suppressed_entities, deduplicated_entities = _diff_provenance(
+                extraction_entities, final_entities_clean
+            )
+            extraction_model_requested_version = str(
+                final_state.get("extraction_model_requested_version")
+                or final_state.get("requested_model_version")
+                or body.version
+            ).strip()
+            extraction_model_actual_version = str(
+                final_state.get("extraction_model_version") or ""
+            ).strip()
+            extraction_model_actual_name = str(
+                final_state.get("extraction_model_name") or ""
+            ).strip()
+            extraction_model_version_mismatch = bool(
+                final_state.get("extraction_model_version_mismatch", False)
+            )
+
+            layer_trace = [
+                {
+                    "layer_id": str(step.get("layer_id") or ""),
+                    "name": str(step.get("name") or ""),
+                    "status": str(step.get("status") or "ok"),
+                    "before_count": int(step.get("before_count") or 0),
+                    "after_count": int(step.get("after_count") or 0),
+                    "added_count": int(step.get("added_count") or 0),
+                    "removed_count": int(step.get("removed_count") or 0),
+                    "updated_count": int(step.get("updated_count") or 0),
+                    "duration_ms": int(step.get("duration_ms") or 0),
+                }
+                for step in post_processing_trace
+            ]
+
+            results.append(
+                {
+                    "encounter_id": enc.encounter_id,
+                    "patient_id": enc.patient_id,
+                    "encounter_date": enc.encounter_date,
+                    "text_length": len(str(enc.text or "")),
+                    "ner_entities": extraction_entities,
+                    "final_entities": final_entities,
+                    "suppressed_entities": suppressed_entities,
+                    "deduplicated_entities": deduplicated_entities,
+                    "layer_trace": layer_trace,
+                    "status": trace_status,
+                    "errors": step_errors
+                    + [
+                        str(e)
+                        for e in (final_state.get("errors") or [])
+                        if str(e).strip()
+                    ],
+                    "error": (
+                        step_errors[0]
+                        if step_errors
+                        else (
+                            str((final_state.get("errors") or [""])[0]).strip()
+                            if final_state.get("errors")
+                            else None
+                        )
+                    ),
+                    "failing_step": failing_step,
+                    "step_count": len(steps),
+                    "entity_counts": {
+                        "extraction": len(extraction_entities),
+                        "final": len(final_entities),
+                        "suppressed": len(suppressed_entities),
+                        "deduplicated": len(deduplicated_entities),
+                    },
+                    "extraction_model": {
+                        "requested_version": extraction_model_requested_version,
+                        "actual_version": extraction_model_actual_version,
+                        "actual_name": extraction_model_actual_name,
+                        "version_mismatch": extraction_model_version_mismatch,
+                    },
+                }
+            )
+    finally:
+        await kg_driver.close()
+        await pg_driver.close()
+
+    return {
+        "model_version": body.version,
+        "plan_definition_id": body.plan_definition_id,
+        "mode": "worker_trace",
+        "encounters": results,
+        "count": len(results),
+    }
 
 
 @app.post("/label-verify/start", dependencies=[Depends(verify_service_token)])

@@ -2859,6 +2859,11 @@ export default function GoldDatasetPanel() {
   const [similarCandidates, setSimilarCandidates] = useState<SimilarCandidateItem[]>([]);
   const [similarSelected, setSimilarSelected] = useState<Record<string, boolean>>({});
   const [similarApplying, setSimilarApplying] = useState(false);
+  const [sourceEntityCount, setSourceEntityCount] = useState<number>(0);
+  const [similarReviewedIds, setSimilarReviewedIds] = useState<Set<string>>(new Set());
+  const [loadingReviewId, setLoadingReviewId] = useState<string | null>(null);
+  const [similarCandidateLabel, setSimilarCandidateLabel] = useState<GoldLabel | null>(null);
+  const [pendingNextCandidateId, setPendingNextCandidateId] = useState<string | null>(null);
   const [dedupeDialogOpen, setDedupeDialogOpen] = useState(false);
   const [dedupeStatus, setDedupeStatus] = useState("completed");
   const [dedupeThreshold, setDedupeThreshold] = useState(0.9);
@@ -3208,17 +3213,29 @@ export default function GoldDatasetPanel() {
     }
   }
 
-  function openNextCandidate(afterCandidateId: string) {
-    const rows = items as Candidate[];
-    const index = rows.findIndex((row) => row.candidate_id === afterCandidateId);
-    if (index < 0) return;
-    const next = rows.slice(index + 1).find((row) => row.status !== "completed");
-    if (next?.candidate_id) {
-      void openCandidateLabelEditor(next.candidate_id);
-    }
+  function flushPendingNextCandidate() {
+    setPendingNextCandidateId((pending) => {
+      if (pending) void openCandidateLabelEditor(pending);
+      return null;
+    });
   }
 
-  async function findSimilarCandidates(candidateId: string) {
+  function getNextCandidateId(afterCandidateId: string): string | null {
+    const rows = items as Candidate[];
+    const index = rows.findIndex((row) => row.candidate_id === afterCandidateId);
+    if (index < 0) return null;
+    return rows.slice(index + 1).find((row) => row.status !== "completed")?.candidate_id ?? null;
+  }
+
+  function openNextCandidate(afterCandidateId: string) {
+    const nextId = getNextCandidateId(afterCandidateId);
+    if (nextId) void openCandidateLabelEditor(nextId);
+  }
+
+  async function findSimilarCandidates(
+    candidateId: string,
+    sourceEntitiesJson: string | null = null,
+  ): Promise<boolean> {
     try {
       const response = await jsonFetch<SimilarCandidatesResponse>(
         "/api/training/candidates/find-similar-by-entity",
@@ -3228,45 +3245,102 @@ export default function GoldDatasetPanel() {
           body: JSON.stringify({ candidate_id: candidateId, limit: 20 }),
         },
       );
-      if (!response.items?.length) return;
+      if (!response.items?.length) return false;
+
+      // Count entities on the source candidate so we can warn about mismatches.
+      const srcEntities = parseEntities(sourceEntitiesJson ?? candidateGoldLabel?.entities_json ?? null);
+      const srcCount = srcEntities.length;
+      setSourceEntityCount(srcCount);
+
+      // Default-untick candidates whose entity count differs from the source.
       const selected: Record<string, boolean> = {};
       for (const item of response.items) {
-        selected[item.candidate_id] = true;
+        const itemCount = parseEntities(item.entities_json).length;
+        selected[item.candidate_id] = itemCount === srcCount;
       }
       setSimilarCandidates(response.items);
       setSimilarSelected(selected);
       setSimilarDialogOpen(true);
+      return true;
     } catch {
       // Non-blocking helper -- user still completed the current candidate.
+      return false;
+    }
+  }
+
+  async function handleReviewSimilarCandidate(candidateId: string) {
+    setLoadingReviewId(candidateId);
+    try {
+      const label = await jsonFetch<GoldLabel>(
+        `/api/training/gold-labels/by-candidate/${encodeURIComponent(candidateId)}/ensure`,
+        { method: "POST" },
+      );
+      setSimilarCandidateLabel(label);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Could not open candidate editor.");
+    } finally {
+      setLoadingReviewId(null);
+    }
+  }
+
+  async function markSimilarCandidateAsGold(candidateId: string) {
+    if (!candidateId) return;
+    try {
+      await jsonFetch<{ candidate_id: string; status: string }>(
+        `/api/training/candidates/${encodeURIComponent(candidateId)}/mark-completed`,
+        { method: "POST" },
+      );
+      setSimilarReviewedIds((prev) => new Set([...prev, candidateId]));
+      await Promise.all([loadList(), loadStats()]);
+    } catch (e) {
+      // Dialog already closed optimistically; surface error in the list.
+      setListError(e instanceof Error ? e.message : "Could not mark candidate as gold.");
     }
   }
 
   async function applySimilarSelections() {
+    // Exclude candidates already individually reviewed and marked gold.
     const selectedIds = similarCandidates
-      .filter((row) => Boolean(similarSelected[row.candidate_id]))
+      .filter(
+        (row) =>
+          Boolean(similarSelected[row.candidate_id]) &&
+          !similarReviewedIds.has(row.candidate_id),
+      )
       .map((row) => row.candidate_id)
       .filter(Boolean);
     if (!selectedIds.length) {
       setSimilarDialogOpen(false);
+      setSimilarReviewedIds(new Set());
       return;
     }
     setSimilarApplying(true);
     try {
       await Promise.all(
-        selectedIds.map((candidateId) =>
-          jsonFetch<{ candidate_id: string; status: string }>(
+        selectedIds.map(async (candidateId) => {
+          // Ensure a gold label exists (created from candidate entities) before marking completed.
+          await jsonFetch<{ label_id: string }>(
+            `/api/training/gold-labels/by-candidate/${encodeURIComponent(candidateId)}/ensure`,
+            { method: "POST" },
+          );
+          await jsonFetch<{ candidate_id: string; status: string }>(
             `/api/training/candidates/${encodeURIComponent(candidateId)}/mark-completed`,
             { method: "POST" },
-          ),
-        ),
+          );
+        }),
       );
-      setActionMsg(`Marked ${selectedIds.length} similar candidate(s) as gold.`);
+      const totalAccepted = selectedIds.length + similarReviewedIds.size;
+      setActionMsg(`Marked ${totalAccepted} similar candidate(s) as gold.`);
       setSimilarDialogOpen(false);
       setSimilarCandidates([]);
       setSimilarSelected({});
+      setSimilarReviewedIds(new Set());
+      flushPendingNextCandidate();
       await Promise.all([loadList(), loadStats()]);
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Could not apply similar updates");
+      setSimilarDialogOpen(false);
+      setSimilarReviewedIds(new Set());
+      flushPendingNextCandidate();
     } finally {
       setSimilarApplying(false);
     }
@@ -3277,15 +3351,24 @@ export default function GoldDatasetPanel() {
     setMarkingGoldCandidateId(candidateId);
     setActionMsg(null);
     setListError(null);
+    // Capture entity JSON now -- candidateGoldLabel may be cleared before the
+    // async findSimilarCandidates call resolves.
+    const sourceEntitiesJson = candidateGoldLabel?.entities_json ?? null;
     try {
-      const result = await jsonFetch<{ candidate_id: string; status: string; gold_label_id: string | null }>(
+      await jsonFetch<{ candidate_id: string; status: string; gold_label_id: string | null }>(
         `/api/training/candidates/${encodeURIComponent(candidateId)}/mark-completed`,
         { method: "POST" },
       );
       setActionMsg("Saved as gold data. Candidate status updated to completed.");
       await Promise.all([loadList(), loadStats()]);
-      openNextCandidate(candidateId);
-      void findSimilarCandidates(candidateId);
+      const similarOpened = await findSimilarCandidates(candidateId, sourceEntitiesJson);
+      if (similarOpened) {
+        // Defer opening the next candidate until the similar dialog is dismissed.
+        const nextId = getNextCandidateId(candidateId);
+        if (nextId) setPendingNextCandidateId(nextId);
+      } else {
+        openNextCandidate(candidateId);
+      }
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Could not mark candidate as gold data");
     } finally {
@@ -3794,16 +3877,34 @@ export default function GoldDatasetPanel() {
         candidates={similarCandidates}
         selected={similarSelected}
         loading={similarApplying}
+        sourceEntityCount={sourceEntityCount}
+        reviewedIds={similarReviewedIds}
+        loadingReviewId={loadingReviewId}
         onClose={() => {
           setSimilarDialogOpen(false);
           setSimilarCandidates([]);
           setSimilarSelected({});
+          setSimilarReviewedIds(new Set());
+          flushPendingNextCandidate();
         }}
         onToggle={(candidateId, checked) =>
           setSimilarSelected((prev) => ({ ...prev, [candidateId]: checked }))
         }
+        onReviewCandidate={(candidateId) => void handleReviewSimilarCandidate(candidateId)}
         onApply={() => void applySimilarSelections()}
       />
+      {similarCandidateLabel && (
+        <GoldLabelDetailDialog
+          item={similarCandidateLabel}
+          onClose={() => setSimilarCandidateLabel(null)}
+          onEntitiesChanged={() => void silentRefreshList()}
+          onMarkGold={() => {
+            const candidateId = similarCandidateLabel.candidate_id ?? "";
+            setSimilarCandidateLabel(null);
+            void markSimilarCandidateAsGold(candidateId);
+          }}
+        />
+      )}
       <Dialog
         open={dedupeDialogOpen}
         onClose={() => !dedupeApplyLoading && setDedupeDialogOpen(false)}

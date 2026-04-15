@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -14,7 +15,11 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import EditNoteIcon from "@mui/icons-material/EditNote";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { parseEntities, truncate } from "./goldDatasetUtils";
 import type { SimilarCandidateItem } from "./goldDatasetTypes";
 
@@ -23,8 +28,12 @@ interface Props {
   candidates: SimilarCandidateItem[];
   selected: Record<string, boolean>;
   loading: boolean;
+  sourceEntityCount: number;
+  reviewedIds: Set<string>;
+  loadingReviewId: string | null;
   onClose: () => void;
   onToggle: (candidateId: string, checked: boolean) => void;
+  onReviewCandidate: (candidateId: string) => void;
   onApply: () => void;
 }
 
@@ -33,74 +42,220 @@ export default function SimilarCandidatesBatch({
   candidates,
   selected,
   loading,
+  sourceEntityCount,
+  reviewedIds,
+  loadingReviewId,
   onClose,
   onToggle,
+  onReviewCandidate,
   onApply,
 }: Props) {
   const selectedCount = useMemo(
-    () => candidates.filter((c) => selected[c.candidate_id]).length,
-    [candidates, selected],
+    () =>
+      candidates.filter(
+        (c) => selected[c.candidate_id] && !reviewedIds.has(c.candidate_id),
+      ).length,
+    [candidates, selected, reviewedIds],
   );
+
+  const mismatchCount = useMemo(
+    () =>
+      candidates.filter((c) => {
+        if (reviewedIds.has(c.candidate_id)) return false;
+        return parseEntities(c.entities_json).length !== sourceEntityCount;
+      }).length,
+    [candidates, sourceEntityCount, reviewedIds],
+  );
+
+  const totalAccepted = selectedCount + reviewedIds.size;
 
   return (
     <Dialog open={open} onClose={() => !loading && onClose()} maxWidth="lg" fullWidth>
-      <DialogTitle>Apply to similar candidates</DialogTitle>
+      <DialogTitle>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <span>Apply to similar candidates</span>
+          {reviewedIds.size > 0 && (
+            <Chip
+              icon={<CheckCircleIcon />}
+              label={`${reviewedIds.size} reviewed`}
+              color="success"
+              size="small"
+              variant="outlined"
+            />
+          )}
+        </Stack>
+      </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           <Alert severity="info">
-            Review similar rows, untick any mismatches, then mark selected rows as gold.
+            Each encounter is different. Use <strong>Review</strong> to open the full editor
+            — fix entity types, SNOMED codes, and assertions before accepting. For candidates
+            where the extraction looks correct, tick the checkbox to accept as-is.
           </Alert>
-          <Box sx={{ maxHeight: 420, overflowY: "auto" }}>
+
+          {mismatchCount > 0 && (
+            <Alert severity="warning" icon={<WarningAmberIcon />}>
+              {mismatchCount} candidate{mismatchCount > 1 ? "s have" : " has"} a different
+              number of entities than the one you just reviewed. Those rows are unticked by
+              default — review them individually.
+            </Alert>
+          )}
+
+          <Box sx={{ maxHeight: 460, overflowY: "auto" }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox" />
-                  <TableCell>Candidate</TableCell>
                   <TableCell>Encounter text</TableCell>
-                  <TableCell>Entities</TableCell>
+                  <TableCell>Extracted entities</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                    Entities
+                  </TableCell>
                   <TableCell align="right">Similarity</TableCell>
+                  <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {candidates.map((item) => {
+                  const isReviewed = reviewedIds.has(item.candidate_id);
+                  const isLoadingReview = loadingReviewId === item.candidate_id;
                   const entities = parseEntities(item.entities_json);
+                  const countMismatch =
+                    !isReviewed && entities.length !== sourceEntityCount;
+
                   return (
-                    <TableRow key={item.candidate_id} hover>
+                    <TableRow
+                      key={item.candidate_id}
+                      hover
+                      sx={
+                        isReviewed
+                          ? { backgroundColor: "rgba(46,125,50,0.05)" }
+                          : countMismatch
+                          ? { backgroundColor: "rgba(237,108,2,0.06)" }
+                          : undefined
+                      }
+                    >
+                      {/* Checkbox — hidden for reviewed rows */}
                       <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={Boolean(selected[item.candidate_id])}
-                          onChange={(event) => onToggle(item.candidate_id, event.target.checked)}
-                          disabled={loading}
-                        />
+                        {isReviewed ? (
+                          <CheckCircleIcon
+                            sx={{ fontSize: 18, color: "success.main", ml: 1 }}
+                          />
+                        ) : (
+                          <Checkbox
+                            checked={Boolean(selected[item.candidate_id])}
+                            onChange={(e) => onToggle(item.candidate_id, e.target.checked)}
+                            disabled={loading || isLoadingReview}
+                          />
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                          {item.candidate_id}
+
+                      {/* Encounter text */}
+                      <TableCell sx={{ maxWidth: 260 }}>
+                        <Typography
+                          variant="body2"
+                          sx={isReviewed ? { color: "text.secondary" } : undefined}
+                        >
+                          {truncate(item.text, 200)}
                         </Typography>
+                        {isReviewed && (
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "success.main", fontWeight: 600 }}
+                          >
+                            Reviewed and accepted
+                          </Typography>
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{truncate(item.text, 180)}</Typography>
-                      </TableCell>
+
+                      {/* Entities */}
                       <TableCell>
                         <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                          {entities.slice(0, 3).map((entity, index) => (
+                          {entities.map((entity, index) => (
                             <Chip
                               key={`${entity.text}-${index}`}
                               size="small"
                               label={entity.snomed_term || entity.text}
                               color={entity.snomed_concept_id ? "primary" : "warning"}
                               variant="outlined"
+                              sx={isReviewed ? { opacity: 0.5 } : undefined}
                             />
                           ))}
-                          {entities.length > 3 && (
-                            <Chip size="small" label={`+${entities.length - 3} more`} variant="outlined" />
+                          {entities.length === 0 && (
+                            <Typography variant="caption" sx={{ color: "text.disabled" }}>
+                              No entities
+                            </Typography>
                           )}
                         </Stack>
                       </TableCell>
+
+                      {/* Entity count */}
                       <TableCell align="right">
-                        <Typography variant="caption">
+                        {countMismatch ? (
+                          <Tooltip
+                            title={`Source has ${sourceEntityCount} ${sourceEntityCount === 1 ? "entity" : "entities"} — this has ${entities.length}. Review before including.`}
+                          >
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              justifyContent="flex-end"
+                              spacing={0.5}
+                            >
+                              <WarningAmberIcon
+                                sx={{ fontSize: 14, color: "warning.main" }}
+                              />
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "warning.main", fontWeight: 600 }}
+                              >
+                                {entities.length} vs {sourceEntityCount}
+                              </Typography>
+                            </Stack>
+                          </Tooltip>
+                        ) : (
+                          <Typography
+                            variant="caption"
+                            sx={isReviewed ? { color: "text.disabled" } : undefined}
+                          >
+                            {entities.length}
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      {/* Similarity */}
+                      <TableCell align="right">
+                        <Typography
+                          variant="caption"
+                          sx={isReviewed ? { color: "text.disabled" } : undefined}
+                        >
                           {Math.round((item.similarity || 0) * 100)}%
                         </Typography>
+                      </TableCell>
+
+                      {/* Review action */}
+                      <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                        {isReviewed ? null : (
+                          <Tooltip title="Open the full editor — fix entity types, codes, and assertions before accepting">
+                            <span>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={
+                                  isLoadingReview ? (
+                                    <CircularProgress size={12} />
+                                  ) : (
+                                    <EditNoteIcon />
+                                  )
+                                }
+                                disabled={loading || !!loadingReviewId}
+                                onClick={() => onReviewCandidate(item.candidate_id)}
+                                sx={{ textTransform: "none", fontSize: "0.75rem" }}
+                              >
+                                Review
+                              </Button>
+                            </span>
+                          </Tooltip>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -111,11 +266,22 @@ export default function SimilarCandidatesBatch({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
-          Skip
+        <Button onClick={onClose} disabled={loading} sx={{ textTransform: "none" }}>
+          Skip all
         </Button>
-        <Button variant="contained" onClick={onApply} disabled={loading || selectedCount < 1}>
-          {loading ? "Applying..." : `Mark ${selectedCount} as gold`}
+        <Button
+          variant="contained"
+          onClick={onApply}
+          disabled={loading || totalAccepted < 1}
+          sx={{ textTransform: "none" }}
+        >
+          {loading
+            ? "Applying..."
+            : selectedCount === 0 && reviewedIds.size > 0
+            ? "Done"
+            : selectedCount > 0
+            ? `Accept ${selectedCount} as gold`
+            : "Accept as gold"}
         </Button>
       </DialogActions>
     </Dialog>

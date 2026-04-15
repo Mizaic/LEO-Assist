@@ -1,0 +1,93 @@
+# -- DI-LEO-AI-109 -- Pathway Explorer GDS projection management and algorithm API
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-109"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-063"]
+  requirement: >
+    The system SHALL implement a GDS-backed research API that: (1) manages four
+    named in-memory graph projections (patient-condition, condition-cooccur,
+    patient-journey, referral-network) with org-scoped tenant isolation; (2)
+    exposes mission execution endpoints that map plain-English mission IDs to
+    GDS algorithm calls; (3) returns structured results including headline text,
+    ranked items, data coverage metadata, and guided next steps; (4) gates Layer
+    B (referral-network) projection creation on a minimum referral record count;
+    (5) dispatches expensive algorithms to a background thread and returns a
+    run_id for polling; and (6) provides CSV export for result tables.
+
+  rationale: >
+    Population-level graph analysis requires in-memory GDS projections for
+    acceptable performance. Org-scoped projections are necessary for multi-tenant
+    data isolation. The mission-id abstraction hides algorithm complexity from
+    users. Data-gating of Layer B features prevents empty or misleading results
+    when referral data has not yet been loaded for an organisation.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          POST /analytics/research/projections/{name}/refresh creates the named
+          projection scoped to the caller's org_ids
+      - type: "functional"
+        spec: >
+          POST /analytics/research/missions/{id}/run returns 200 with result for
+          inline missions (bottleneck, critical, busiest, bridges, gaps, circles)
+          and 202 with run_id for async missions (groups, similar, teams, missing)
+      - type: "functional"
+        spec: >
+          GET /analytics/research/missions/{id}/runs/{run_id} returns status
+          queued | running | done | failed with result when done
+      - type: "functional"
+        spec: >
+          GET /analytics/research/runs/{run_id}/export returns CSV when run is done
+      - type: "safety"
+        spec: >
+          Creating the referral-network projection when fewer than 10
+          ReferralRequest nodes exist returns data_available: false with a
+          plain-English reason; no exception is raised
+      - type: "performance"
+        spec: >
+          Inline missions return within 10 seconds for graphs with fewer than
+          100,000 nodes under normal GDS load
+    constraints:
+      - type: "safety"
+        spec: >
+          All projections include an org_ids filter derived from the caller's
+          CallerScope; admin users receive unscoped projections across all orgs
+      - type: "safety"
+        spec: >
+          Algorithm results MUST include a coverage object with patient_count,
+          practice_count, and a plain-English confidence_note so users can
+          assess how representative the results are
+
+  dependencies: []
+  downstream_impacts:
+    - "Pathway Explorer UI data layer"
+    - "Research worker job execution"
+    - "Neo4j GDS projection lifecycle"
+
+  technical_details:
+    language: "Python"
+    framework: "FastAPI / graphdatascience"
+    file_structure:
+      - "services/analytics_api/app/routers/research.py"
+      - "services/analytics_api/app/services/gds_projection_manager.py"
+      - "services/analytics_api/app/services/algorithm_runner.py"
+      - "services/analytics_api/app/services/headline_generator.py"
+      - "services/research_worker/app/main.py"
+      - "services/research_worker/app/job_runner.py"
+      - "services/research_worker/app/job_store.py"
+    estimated_loc: 900
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-109 test cases pass: projection lifecycle, data-gating,
+      mission execution dispatch, inline and async result paths, CSV export,
+      headline generation, and coverage badge output.
+    test_protocol: "VT-LEO-AI-109"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-075"]
+  tags: ["research-workspace", "pathway-explorer", "graph-algorithms", "gds", "api"]
