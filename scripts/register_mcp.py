@@ -45,12 +45,19 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _register_server(config: dict[str, Any], name: str, cwd: str) -> dict[str, Any]:
+    # Cursor spawns `command` without resolving it relative to `cwd`; a relative
+    # path like `.venv/bin/python` fails with ENOENT. Use an absolute interpreter.
+    # Some Cursor builds also omit `cwd` for the child process; without repo root
+    # on sys.path, `python -m services.neo4j_mcp.server` raises ModuleNotFoundError.
+    repo = Path(cwd).expanduser().resolve()
+    py = repo / ".venv" / "bin" / "python"
+    env = {**_build_env(), "PYTHONPATH": str(repo)}
     servers = config.setdefault("mcpServers", {})
     servers[name] = {
-        "command": ".venv/bin/python",
+        "command": str(py),
         "args": ["-m", "services.neo4j_mcp.server"],
-        "cwd": cwd,
-        "env": _build_env(),
+        "cwd": str(repo),
+        "env": env,
     }
     return config
 

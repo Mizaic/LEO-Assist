@@ -40,6 +40,11 @@ def _classify_tiers(state: TierClassifyState) -> dict[str, Any]:
         terminology_score = float(e.get("score") or e.get("terminology_score", 0.0))
         surface_form_status = e.get("surface_form_status", "") or ""
         disorder_verdict = e.get("disorder_verdict", "") or ""
+        semantic_tag = str(e.get("semantic_tag") or "")
+        extractor_confidence = float(
+            e.get("extractor_confidence", e.get("confidence", 1.0)) or 0.0
+        )
+        assertion_parity_failed = bool(e.get("assertion_parity_failed", False))
         td = classify_tier(
             assertion=assertion,
             context_failed=context_failed,
@@ -47,6 +52,9 @@ def _classify_tiers(state: TierClassifyState) -> dict[str, Any]:
             surface_form_status=surface_form_status,
             coding_mode=coding_mode,
             disorder_verdict=disorder_verdict,
+            semantic_tag=semantic_tag,
+            extractor_confidence=extractor_confidence,
+            assertion_parity_failed=assertion_parity_failed,
         )
         decisions.append(
             {

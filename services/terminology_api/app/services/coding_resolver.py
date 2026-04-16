@@ -207,6 +207,33 @@ def _has_lexical_candidates(merged: dict[str, dict[str, Any]]) -> bool:
     )
 
 
+def _top_lexical_score(merged: dict[str, dict[str, Any]]) -> float:
+    """Return the maximum raw lexical score across all current candidates."""
+    if not merged:
+        return 0.0
+    return max(float(c.get("lexical_raw", 0.0)) for c in merged.values())
+
+
+# Minimum top lexical score above which the vector branch is skipped.
+# Set via TERMINOLOGY_VECTOR_SKIP_SCORE. Previously the vector branch was
+# skipped whenever any lexical hit existed (score > 0), which caused weak
+# partial-token matches (a chronic failure mode for multi-token phrases) to
+# suppress the embedding branch entirely. A 0.7 threshold preserves the
+# cost/latency win for unambiguous exact-match terms while ensuring hybrid
+# retrieval actually runs when lexical is weak.
+_DEFAULT_VECTOR_SKIP_SCORE = 0.7
+
+
+def _vector_skip_score() -> float:
+    try:
+        value = float(os.getenv("TERMINOLOGY_VECTOR_SKIP_SCORE", ""))
+    except (TypeError, ValueError):
+        return _DEFAULT_VECTOR_SKIP_SCORE
+    if value < 0.0 or value > 1.0:
+        return _DEFAULT_VECTOR_SKIP_SCORE
+    return value
+
+
 def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
     """Parse a RELATED_CONCEPTS_QUERY / BATCH_RELATED_CONCEPTS_QUERY row."""
     related: list[dict[str, str]] = []
@@ -379,16 +406,20 @@ class CodingResolver:
         )
 
         # ── Vector branch (1-2 round trips per term, run after exact+fulltext) ──
-        # Short-circuit: only run vector for terms that still have NO lexical
-        # candidates after exact+fulltext. Once lexical retrieval has any hits,
-        # vector is usually marginally useful but disproportionately expensive.
-        # Set TERMINOLOGY_ENABLE_VECTOR=false to disable entirely (e.g. for eval runs
-        # where AuraDB vector index latency would otherwise dominate request time).
+        # Run vector UNLESS the top lexical score is already strong enough
+        # (see _DEFAULT_VECTOR_SKIP_SCORE). Previously vector was skipped when
+        # ANY lexical hit existed (score > 0), which suppressed the embedding
+        # branch precisely when weak fulltext token matches returned spurious
+        # partial-word candidates for multi-token phrases -- the biggest known
+        # driver of misresolved NG12 terms.
+        # Set TERMINOLOGY_ENABLE_VECTOR=false to disable entirely (e.g. eval
+        # runs where AuraDB vector index latency would dominate request time).
         vector_enabled = (
             os.getenv("TERMINOLOGY_ENABLE_VECTOR", "true").lower() != "false"
         )
+        skip_score = _vector_skip_score()
         vector_needed = [
-            t for t in unique_texts if not _has_lexical_candidates(merged_all[t])
+            t for t in unique_texts if _top_lexical_score(merged_all[t]) < skip_score
         ]
         if embeddings and vector_needed and vector_enabled:
             for text in vector_needed:
@@ -775,7 +806,7 @@ class CodingResolver:
                         self._surface_form_fulltext_ok = False
 
         # Branch 3 & 4: vector
-        if embedding and not _has_lexical_candidates(merged):
+        if embedding and _top_lexical_score(merged) < _vector_skip_score():
             self._run_vector_for_term(mention, embedding, session, merged)
 
         return self._fuse_and_rank(merged, expected_tag=expected_tag)

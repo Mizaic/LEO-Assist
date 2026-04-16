@@ -445,3 +445,56 @@ class TestBatchRelatedConcepts:
 
         result = resolver._batch_get_related_concepts(["12345"], session)
         assert result == {}
+
+
+class TestVectorBranchGate:
+    def test_top_lexical_score_zero_for_empty(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            _top_lexical_score,
+        )
+
+        assert _top_lexical_score({}) == 0.0
+
+    def test_top_lexical_score_returns_max(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            _top_lexical_score,
+        )
+
+        merged = {
+            "c1": {"lexical_raw": 0.3},
+            "c2": {"lexical_raw": 0.8},
+            "c3": {"lexical_raw": 0.5},
+        }
+        assert _top_lexical_score(merged) == 0.8
+
+    def test_vector_skip_score_defaults_to_0_7(self, monkeypatch):
+        from services.terminology_api.app.services.coding_resolver import (
+            _vector_skip_score,
+        )
+
+        monkeypatch.delenv("TERMINOLOGY_VECTOR_SKIP_SCORE", raising=False)
+        assert _vector_skip_score() == 0.7
+
+    def test_vector_skip_score_respects_env_override(self, monkeypatch):
+        from services.terminology_api.app.services.coding_resolver import (
+            _vector_skip_score,
+        )
+
+        monkeypatch.setenv("TERMINOLOGY_VECTOR_SKIP_SCORE", "0.85")
+        assert _vector_skip_score() == 0.85
+
+    def test_vector_skip_score_falls_back_on_out_of_range(self, monkeypatch):
+        from services.terminology_api.app.services.coding_resolver import (
+            _vector_skip_score,
+        )
+
+        monkeypatch.setenv("TERMINOLOGY_VECTOR_SKIP_SCORE", "1.4")
+        assert _vector_skip_score() == 0.7
+
+    def test_vector_skip_score_falls_back_on_invalid(self, monkeypatch):
+        from services.terminology_api.app.services.coding_resolver import (
+            _vector_skip_score,
+        )
+
+        monkeypatch.setenv("TERMINOLOGY_VECTOR_SKIP_SCORE", "not-a-number")
+        assert _vector_skip_score() == 0.7

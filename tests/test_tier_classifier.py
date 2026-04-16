@@ -309,3 +309,111 @@ class TestTierPriorityOrdering:
             disorder_verdict="informational",
         )
         assert d.tier == 3
+
+
+class TestPerSemanticTagThresholds:
+    """Per-tag thresholds: disorder tier1 at 0.92; substance tier1 at 0.96."""
+
+    def test_disorder_auto_codes_at_lower_threshold(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.93,
+            surface_form_status="approved",
+            coding_mode="autonomous",
+            semantic_tag="disorder",
+        )
+        assert d.tier == 1
+
+    def test_substance_blocked_at_disorder_threshold(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.93,
+            surface_form_status="approved",
+            coding_mode="autonomous",
+            semantic_tag="substance",
+        )
+        assert d.tier == 2
+
+    def test_substance_auto_codes_above_tag_threshold(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.97,
+            surface_form_status="approved",
+            coding_mode="autonomous",
+            semantic_tag="substance",
+        )
+        assert d.tier == 1
+
+
+class TestExtractorConfidenceFusion:
+    """Extractor confidence is fused into the effective tier gate score."""
+
+    def test_low_extractor_confidence_blocks_tier1(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.99,
+            surface_form_status="approved",
+            coding_mode="autonomous",
+            semantic_tag="disorder",
+            extractor_confidence=0.5,
+        )
+        assert d.tier == 2
+        assert d.reason == "low_extractor_confidence"
+
+    def test_high_extractor_confidence_permits_tier1(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.96,
+            surface_form_status="approved",
+            coding_mode="autonomous",
+            semantic_tag="disorder",
+            extractor_confidence=0.95,
+        )
+        assert d.tier == 1
+
+    def test_confidence_fusion_drops_to_tier3(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.95,
+            surface_form_status="approved",
+            coding_mode="autonomous",
+            extractor_confidence=0.45,
+        )
+        assert d.tier == 2
+
+
+class TestAssertionParity:
+    def test_parity_failure_blocks_tier1(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.98,
+            surface_form_status="approved",
+            coding_mode="autonomous",
+            semantic_tag="disorder",
+            extractor_confidence=0.95,
+            assertion_parity_failed=True,
+        )
+        assert d.tier == 2
+        assert d.reason == "assertion_parity"
+
+
+class TestGateFailedDisorderVerdict:
+    def test_gate_failed_maps_to_tier3(self):
+        d = classify_tier(
+            assertion="present",
+            context_failed=False,
+            terminology_score=0.99,
+            surface_form_status="approved",
+            coding_mode="hitl",
+            semantic_tag="disorder",
+            disorder_verdict="gate_failed",
+        )
+        assert d.tier == 3
+        assert d.reason == "uncertain_assertion"

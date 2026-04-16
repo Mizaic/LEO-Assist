@@ -12,8 +12,6 @@ from __future__ import annotations
 import json
 from unittest.mock import patch
 
-import pytest
-
 from libs.llm_client.consensus import ConsensusResult
 from libs.llm_client.disorder_verifier import (
     DisorderVerdict,
@@ -57,15 +55,22 @@ class TestParseVerdict:
 
 
 class TestFailVerdictForMode:
+    """Fail-closed behaviour: both modes now return ``gate_failed`` on failure.
 
-    def test_hitl_defaults_to_active_diagnosis(self):
-        assert _fail_verdict_for_mode("hitl") == "active_diagnosis"
+    The tier classifier maps ``gate_failed`` to tier 3 (do-not-code) which
+    routes the entity to review in HITL mode and blocks auto-coding in
+    autonomous mode. Previously HITL defaulted to ``active_diagnosis`` which
+    silently passed provider outages as confirmed diagnoses.
+    """
 
-    def test_autonomous_defaults_to_uncertain(self):
-        assert _fail_verdict_for_mode("autonomous") == "uncertain"
+    def test_hitl_defaults_to_gate_failed(self):
+        assert _fail_verdict_for_mode("hitl") == "gate_failed"
 
-    def test_unknown_mode_defaults_to_active_diagnosis(self):
-        assert _fail_verdict_for_mode("unknown") == "active_diagnosis"
+    def test_autonomous_defaults_to_gate_failed(self):
+        assert _fail_verdict_for_mode("autonomous") == "gate_failed"
+
+    def test_unknown_mode_defaults_to_gate_failed(self):
+        assert _fail_verdict_for_mode("unknown") == "gate_failed"
 
 
 class TestVerifyDisorderEndToEnd:
@@ -84,7 +89,7 @@ class TestVerifyDisorderEndToEnd:
         )
         assert result == DisorderVerdict.ACTIVE_DIAGNOSIS
         call_kwargs = mock_consensus.call_args.kwargs
-        assert call_kwargs["fail_verdict"] == "active_diagnosis"
+        assert call_kwargs["fail_verdict"] == "gate_failed"
 
     @patch("libs.llm_client.disorder_verifier.run_consensus")
     def test_informational_autonomous(self, mock_consensus):
@@ -100,7 +105,7 @@ class TestVerifyDisorderEndToEnd:
         )
         assert result == DisorderVerdict.INFORMATIONAL
         call_kwargs = mock_consensus.call_args.kwargs
-        assert call_kwargs["fail_verdict"] == "uncertain"
+        assert call_kwargs["fail_verdict"] == "gate_failed"
 
     @patch("libs.llm_client.disorder_verifier.run_consensus")
     def test_historical_verdict(self, mock_consensus):
@@ -123,24 +128,34 @@ class TestVerifyDisorderEndToEnd:
         assert result == DisorderVerdict.UNCERTAIN
 
     @patch("libs.llm_client.disorder_verifier.run_consensus")
-    def test_unknown_verdict_hitl_falls_back(self, mock_consensus):
+    def test_unknown_verdict_hitl_falls_back_to_gate_failed(self, mock_consensus):
         mock_consensus.return_value = ConsensusResult(
             verdict="some_random_garbage",
             agreed=True,
             model_ids=["haiku", "gpt5"],
         )
         result = verify_disorder("diabetes", "test", coding_mode="hitl")
-        assert result == DisorderVerdict.ACTIVE_DIAGNOSIS
+        assert result == DisorderVerdict.GATE_FAILED
 
     @patch("libs.llm_client.disorder_verifier.run_consensus")
-    def test_unknown_verdict_autonomous_falls_back(self, mock_consensus):
+    def test_unknown_verdict_autonomous_falls_back_to_gate_failed(self, mock_consensus):
         mock_consensus.return_value = ConsensusResult(
             verdict="some_random_garbage",
             agreed=True,
             model_ids=["haiku", "gpt5"],
         )
         result = verify_disorder("diabetes", "test", coding_mode="autonomous")
-        assert result == DisorderVerdict.UNCERTAIN
+        assert result == DisorderVerdict.GATE_FAILED
+
+    @patch("libs.llm_client.disorder_verifier.run_consensus")
+    def test_consensus_failure_returns_gate_failed_hitl(self, mock_consensus):
+        mock_consensus.return_value = ConsensusResult(
+            verdict="gate_failed",
+            agreed=False,
+            reason="aws/big call/parse failed",
+        )
+        result = verify_disorder("diabetes", "test", coding_mode="hitl")
+        assert result == DisorderVerdict.GATE_FAILED
 
     @patch("libs.llm_client.disorder_verifier.run_consensus")
     def test_encounter_text_truncated_to_2000(self, mock_consensus):
@@ -174,4 +189,4 @@ class TestDisorderVerifierPromptRules:
         from libs.llm_client.disorder_verifier import _SYSTEM_PROMPT
 
         assert "observation" in _SYSTEM_PROMPT.lower()
-        assert "NOT a diagnosis" in _SYSTEM_PROMPT
+        assert "not a diagnosis" in _SYSTEM_PROMPT.lower()

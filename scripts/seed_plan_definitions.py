@@ -83,6 +83,10 @@ ACTIVITY_DEFINITIONS = [
         "status": "active",
         "description": "9-layer post-processing: dedup, negation gate, disorder gate, etc.",
         "_subgraphId": "post_processing",
+        "dynamicValue": [
+            {"path": "coding_mode", "expression": {"expression": "hitl"}},
+            {"path": "enable_disorder_gate", "expression": {"expression": True}},
+        ],
     },
     {
         "id": "ad-relation-linking",
@@ -148,6 +152,9 @@ ACTIVITY_DEFINITIONS = [
         "status": "active",
         "description": "Three-tier confidence classification for HITL routing",
         "_subgraphId": "tier_classify",
+        "dynamicValue": [
+            {"path": "coding_mode", "expression": {"expression": "hitl"}},
+        ],
     },
     {
         "id": "ad-verification",

@@ -693,7 +693,7 @@ class TestPromptLabValueRules:
     def test_candidates_system_contains_lab_value_rule(self):
         from libs.llm_client.escalation import _CANDIDATES_SYSTEM
 
-        assert "Do NOT infer a DISORDER from a lab value" in _CANDIDATES_SYSTEM
+        assert "Do NOT infer a disorder from a lab value" in _CANDIDATES_SYSTEM
         assert "CKD-EPI" in _CANDIDATES_SYSTEM
         assert "not_codeable" in _CANDIDATES_SYSTEM
         assert "observable-entity" in _CANDIDATES_SYSTEM

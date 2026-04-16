@@ -1,0 +1,95 @@
+# -- DI-LEO-AI-114 -- Optional dual-model consensus (supersedes DI-036)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-114"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: >
+    The LLM-judge consensus runner (libs/llm_client/consensus.py) SHALL
+    support two execution modes selected by the ``CONSENSUS_DUAL_MODEL``
+    environment variable:
+
+    Default (single-model): a single AWS Bedrock call at the configured
+    tier (``CONSENSUS_AWS_TIER``, default ``big``) with a strict-output
+    parse-retry on failure.
+
+    Opt-in (dual-model): AWS small and Azure small judges called in
+    parallel. When they agree, the shared verdict wins. When they
+    disagree, or either provider fails, a big-tier AWS arbitrator
+    resolves the call.
+
+    On any unrecoverable failure the runner SHALL return the
+    caller-supplied ``fail_verdict`` and MUST never return an empty or
+    null verdict.
+
+  rationale: >
+    DI-LEO-AI-036 required dual-model consensus unconditionally. The
+    production implementation in libs/llm_client/consensus.py ran a
+    single AWS call and had been doing so for several months, while the
+    design-controls documentation and the ``ConsensusResult`` fields
+    implied a dual-model topology. This DI aligns the controlled design
+    with the deployed behaviour and adds a feature-flagged path back to
+    dual-model for contexts that warrant the 2-3x token cost (e.g.
+    high-risk clinical decisions or safety drills).
+
+    Short classification calls (disorder gate, coding-verifier yes/no)
+    show marginal accuracy gains from a second provider; the
+    parse-retry branch captures most single-provider transient errors.
+    Making dual-model opt-in keeps cost and latency predictable while
+    preserving the option for high-stakes decisions.
+
+    Supersedes DI-LEO-AI-036 (revision 2.0, April 2026).
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "test"
+        spec: "Default mode: exactly one AWS Bedrock call per run_consensus invocation (plus at most one parse-retry)."
+      - type: "test"
+        spec: "CONSENSUS_DUAL_MODEL=true with matching verdicts: two calls, no arbitrator, agreed=True, aws_verdict and azure_verdict populated."
+      - type: "test"
+        spec: "CONSENSUS_DUAL_MODEL=true with disagreeing verdicts: arbitrator called, arbitrator_verdict returned, agreed=False."
+      - type: "test"
+        spec: "CONSENSUS_DUAL_MODEL=true with one provider failing: arbitrator called, single_model_fallback=True, surviving verdict or arbitrator verdict returned."
+      - type: "test"
+        spec: "All providers failing: fail_verdict returned, never empty/null, reason populated."
+      - type: "safety"
+        spec: "Arbitrator tier is always CONSENSUS_AWS_TIER (default big) regardless of the single-model tier override."
+
+    constraints:
+      - type: "safety"
+        spec: "The runner MUST NOT silently omit the arbitrator when dual-model is enabled and the two small calls disagree or one fails."
+      - type: "safety"
+        spec: "Single-model default MUST fail closed: on provider exception or parse failure, return the caller-supplied fail_verdict."
+      - type: "performance"
+        spec: "Dual-model mode SHALL call AWS small and Azure small concurrently."
+
+    dependencies: []
+    downstream_impacts:
+      - "libs/llm_client/disorder_verifier.py (fail_verdict=gate_failed)"
+      - "libs/llm_client/escalation.py (coding-verifier consensus)"
+      - "libs/pipeline_graph/subgraphs/guidance_rule_extraction_v2_impl.py"
+
+    technical_details:
+      language: "Python"
+      framework: "concurrent.futures"
+      libraries: ["libs.llm_client.factory"]
+      file_structure:
+        - "libs/llm_client/consensus.py"
+      estimated_loc: 300
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-114 cases pass: single-model default, dual-model
+      agreement, dual-model disagreement with arbitration, single-provider
+      failure promotion, and all-providers-fail returns fail_verdict.
+    test_protocol: "VT-LEO-AI-114"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-001", "R-LEO-AI-026", "R-LEO-AI-030"]
+  tags:
+    - "consensus"
+    - "llm-judge"
+    - "safety-gate"
+    - "autonomous-coding"

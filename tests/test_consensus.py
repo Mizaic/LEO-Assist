@@ -1,8 +1,8 @@
-"""Tests for libs/llm_client/consensus.py -- AWS Bedrock single-call runner.
+"""Tests for libs/llm_client/consensus.py.
 
-run_consensus performs one Bedrock call (with optional parse-retry). Fields such
-as azure_verdict and arbitrator_verdict remain on ConsensusResult for backward
-compatibility but are not populated by this module.
+run_consensus defaults to a single Bedrock call (with parse-retry). When
+CONSENSUS_DUAL_MODEL=true it runs AWS + Azure small-tier in parallel and
+arbitrates disagreements with a big-tier AWS model.
 """
 
 from __future__ import annotations
@@ -139,3 +139,99 @@ class TestConsensusResultDefaults:
         assert r.model_ids == []
         assert r.arbitrator_verdict == ""
         assert r.arbitrator_model_id == ""
+
+
+class TestDualModelConsensus:
+    """CONSENSUS_DUAL_MODEL=true runs AWS+Azure small, arbitrates with big."""
+
+    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "true"}, clear=False)
+    @patch("libs.llm_client.consensus._call_provider")
+    def test_agreement_short_circuits_without_arbitrator(self, mock_call):
+        def route(provider, tier, *_args, **_kwargs):
+            return _make_response("yes", f"{provider}-{tier}")
+
+        mock_call.side_effect = route
+        result = run_consensus(
+            system_prompt="s",
+            user_msg="m",
+            parse_fn=_simple_parse,
+            fail_verdict="fail",
+        )
+        assert result.verdict == "yes"
+        assert result.agreed is True
+        assert result.aws_verdict == "yes"
+        assert result.azure_verdict == "yes"
+        assert result.arbitrator_verdict == ""
+        assert mock_call.call_count == 2
+
+    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "true"}, clear=False)
+    @patch("libs.llm_client.consensus._call_provider")
+    def test_disagreement_triggers_arbitrator(self, mock_call):
+        def route(provider, tier, *_args, **_kwargs):
+            if tier == "small" and provider == "aws":
+                return _make_response("yes", "aws-small")
+            if tier == "small" and provider == "azure":
+                return _make_response("no", "az-small")
+            return _make_response("yes", "aws-big")
+
+        mock_call.side_effect = route
+        result = run_consensus(
+            system_prompt="s",
+            user_msg="m",
+            parse_fn=_simple_parse,
+            fail_verdict="fail",
+        )
+        assert result.verdict == "yes"
+        assert result.agreed is False
+        assert result.arbitrator_verdict == "yes"
+        assert result.arbitrator_model_id == "aws-big"
+        assert mock_call.call_count == 3
+
+    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "true"}, clear=False)
+    @patch("libs.llm_client.consensus._call_provider")
+    def test_single_provider_failure_promotes_arbitrator(self, mock_call):
+        def route(provider, tier, *_args, **_kwargs):
+            if tier == "small" and provider == "azure":
+                raise RuntimeError("azure down")
+            if tier == "small" and provider == "aws":
+                return _make_response("yes", "aws-small")
+            return _make_response("yes", "aws-big")
+
+        mock_call.side_effect = route
+        result = run_consensus(
+            system_prompt="s",
+            user_msg="m",
+            parse_fn=_simple_parse,
+            fail_verdict="fail",
+        )
+        assert result.verdict == "yes"
+        assert result.single_model_fallback is True
+        assert result.arbitrator_verdict == "yes"
+
+    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "true"}, clear=False)
+    @patch("libs.llm_client.consensus._call_provider")
+    def test_all_providers_fail_returns_fail_verdict(self, mock_call):
+        mock_call.side_effect = RuntimeError("everything is on fire")
+        result = run_consensus(
+            system_prompt="s",
+            user_msg="m",
+            parse_fn=_simple_parse,
+            fail_verdict="gate_failed",
+        )
+        assert result.verdict == "gate_failed"
+        assert result.agreed is False
+
+
+class TestSingleModelIsDefault:
+    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "false"}, clear=False)
+    @patch("libs.llm_client.consensus._call_provider")
+    def test_no_azure_call_in_default_mode(self, mock_call):
+        mock_call.return_value = _make_response("yes", "aws-big")
+        run_consensus(
+            system_prompt="s",
+            user_msg="m",
+            parse_fn=_simple_parse,
+            fail_verdict="fail",
+        )
+        assert mock_call.call_count == 1
+        assert mock_call.call_args[0][0] == "aws"

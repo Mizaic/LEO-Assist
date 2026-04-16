@@ -297,6 +297,97 @@ DEDUPLICATION
 - If one phrase contains a complete concept, do not also extract a smaller fragment inside it unless it is clearly a separate concept.
 
 ==================================================
+CLINICAL QUALIFIER PRESERVATION (IMPORTANT)
+
+The lookup_term is what the terminology service uses to retrieve SNOMED CT
+candidates. If you strip a clinical qualifier the system will resolve to a
+less specific (often wrong) concept. PRESERVE the following qualifiers in
+lookup_term whenever they appear in or are clearly implied by sentence_subset:
+
+1. Onset: new, new-onset, sudden-onset, recent-onset, acute-onset
+   - "new-onset diabetes" -> lookup_term: "new onset diabetes mellitus"
+     NOT "diabetes mellitus"
+2. Chronicity: acute, chronic, recurrent, persistent, intermittent
+   - "acute kidney injury" -> lookup_term: "acute kidney injury"
+     NOT "kidney injury"
+3. Certainty: suspected, probable, possible, provisional, query/?/working
+   - "suspected mesothelioma" -> lookup_term: "suspected mesothelioma"
+     (also set semantic_tag: finding or situation, assertion: possible)
+4. Severity / grade / stage when stated: mild, moderate, severe, stage N
+   - "severe anaemia" -> lookup_term: "severe anaemia"
+5. Laterality and site: left, right, bilateral, unilateral, distal, proximal,
+   upper/lower lobe, anterior/posterior
+   - "right lower lobe pneumonia" -> lookup_term: "right lower lobe pneumonia"
+6. Body-system qualifier when the bare noun is ambiguous: lung, renal,
+   hepatic, cardiac, cerebral, gynaecological, skin.
+   - "gynaecological cancer referral" -> lookup_term:
+     "suspected gynaecological cancer referral"
+   - "chest X-ray findings suggestive of mesothelioma" -> lookup_term:
+     "chest x-ray finding of mesothelioma"
+7. Pattern words that change the concept: screening, surveillance, contrast,
+   with contrast, without contrast, first-line, second-line
+   - "screening mammography" -> lookup_term: "screening mammography"
+     NOT "mammography"
+
+You MAY normalise abbreviations in lookup_term. You MUST NOT drop the
+qualifier. If the qualifier appears only in full_encounter_text (not in
+sentence_subset), include it in lookup_term but keep text as the exact span
+from sentence_subset.
+
+==================================================
+ASSERTION
+
+Every entity MUST be labelled with exactly one assertion value. Use the
+strongest contextual signal available in sentence_subset and full_encounter_text.
+
+Allowed values:
+- present      -- asserted as currently true for this patient (default when
+                  no other signal applies)
+- absent       -- explicitly negated ("no chest pain", "denies cough",
+                  "no wheeze", "chest clear")
+- refuted      -- initially suspected but later overridden by investigation
+                  ("thought to be X, biopsy confirmed Y": X is refuted)
+- possible     -- hedged or provisional ("possible X", "? X", "query X",
+                  "suspected X", "cannot exclude X")
+- historical   -- past and resolved or clearly described in past tense
+                  ("h/o X", "history of X", "X in 2019", "resolved X")
+- planned      -- arranged but not yet performed ("for X next week",
+                  "referral to be sent", "awaiting X"); applies to
+                  procedures/investigations
+- hypothetical -- conditional or educational ("if X occurs", "X might
+                  require Y"); applies to recommendations / safety-netting
+- family       -- belongs to a family member not the patient ("FH of X",
+                  "brother has X", "mother died of X")
+- declined     -- patient refused ("declined flu vaccine", "refused referral")
+- cancelled   -- previously arranged but cancelled ("cancelled MRI", "stopped X")
+
+Rules:
+- Never leave assertion blank. If no signal applies, use present.
+- NAD and generic normal findings ("chest clear", "abdomen soft") remain
+  present (they are positive findings of absence-of-pathology).
+- "Denies X" / "no X" / "nil X" -> absent.
+- "Discussed X" / "counselled about X" does NOT make X historical.
+- Observable entities with a value are always present (the value is real).
+
+==================================================
+CONFIDENCE
+
+Every entity MUST include a confidence value in [0.0, 1.0] rating HOW CERTAIN
+you are that the entity you extracted is correct clinical content and correctly
+tagged. This is NOT the SNOMED match confidence (that is computed later).
+
+Rubric:
+- 0.95-1.00: the entity is explicitly stated with no ambiguity, the semantic_tag
+             is unambiguous, and the assertion is clearly signalled.
+- 0.80-0.94: the entity is clearly stated but the semantic_tag OR assertion
+             required mild contextual judgement.
+- 0.60-0.79: the entity required inference from context (e.g. resolving an
+             ambiguous abbreviation, deciding between finding vs disorder).
+- 0.40-0.59: the entity or its classification is uncertain but you still
+             judge the output net-useful.
+- <0.40:     do not return the entity.
+
+==================================================
 OUTPUT FORMAT
 
 Return valid JSON only.
@@ -308,6 +399,8 @@ Schema:
       "text": "...",
       "lookup_term": "...",
       "semantic_tag": "...",
+      "assertion": "...",
+      "confidence": 0.92,
       "value": "...",
       "unit": "...",
       "reference_range": "..."
@@ -316,6 +409,7 @@ Schema:
 }
 
 Rules:
+- assertion and confidence are REQUIRED on every entity.
 - Include value, unit, reference_range only when applicable.
 - For non-observable entities, omit value/unit/reference_range unless needed for staging scale value.
 - If no codable entity is present, return:
@@ -329,6 +423,9 @@ Before returning each entity, check:
 2. Is it clinical content, not admin, workflow, or safety-netting text?
 3. Am I coding what is written, not a diagnosis inferred from a value?
 4. For procedures: if a body site appears in the sentence, does my text span include it?
+5. Did I preserve onset/chronicity/certainty/laterality qualifiers in lookup_term?
+6. Does assertion reflect the strongest contextual signal, not just "present" by habit?
+7. Is confidence a genuine self-assessment and not a constant 1.0?
 
 Return JSON only.
 """

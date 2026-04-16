@@ -633,6 +633,9 @@ def _apply_disorder_gate(
             encounter_text,
             coding_mode=coding_mode,
         )
+        # Record verdict on the entity so the tier classifier can gate on
+        # informational / uncertain / gate_failed directly.
+        ent["disorder_verdict"] = verdict.value
         if verdict == DisorderVerdict.INFORMATIONAL:
             ent["__suppress__"] = True
         elif verdict == DisorderVerdict.HISTORICAL:
@@ -642,6 +645,11 @@ def _apply_disorder_gate(
         elif verdict == DisorderVerdict.UNCERTAIN:
             ent["assertion"] = "possible"
             ent["__needs_review"] = True
+        elif verdict == DisorderVerdict.GATE_FAILED:
+            # Fail-closed: keep the entity but force review. Tier classifier
+            # treats gate_failed the same as uncertain (tier 3 / review).
+            ent["__needs_review"] = True
+            ent["__gate_failed__"] = True
 
 
 # ── Layer 3: Scope Guard (dict-based helper) ──
@@ -930,6 +938,31 @@ def _summarise_layer_delta(
     }
 
 
+def _snapshot_extractor_assertions(entities: list[dict[str, Any]]) -> None:
+    """Record the extractor-provided assertion before post-processing mutates it.
+
+    The tier classifier reads ``assertion_parity_failed`` to know when the
+    LLM and the deterministic post-processing stack (ConText + scope guard)
+    disagreed about an entity's assertion. When they disagree we hold the
+    entity at tier 2 rather than auto-coding, since exactly one of the two
+    signals is wrong.
+    """
+    for ent in entities:
+        if "_extractor_assertion" in ent:
+            continue
+        ent["_extractor_assertion"] = str(ent.get("assertion") or "present")
+
+
+def _apply_assertion_parity_check(entities: list[dict[str, Any]]) -> None:
+    """Flag entities where extractor and post-processing disagreed."""
+    for ent in entities:
+        before = str(ent.pop("_extractor_assertion", "") or "").strip().lower()
+        after = str(ent.get("assertion") or "").strip().lower()
+        if not before or not after:
+            continue
+        ent["assertion_parity_failed"] = before != after
+
+
 def run_post_processing_with_trace(
     encounter_text: str,
     entities: list[dict],
@@ -940,6 +973,7 @@ def run_post_processing_with_trace(
 ) -> tuple[list[dict], list[dict[str, Any]]]:
     """Run post-processing and return (entities, per-layer trace)."""
     working = [dict(e) for e in entities]
+    _snapshot_extractor_assertions(working)
     layer_trace: list[dict[str, Any]] = []
 
     def _run_layer(
@@ -1149,6 +1183,8 @@ def run_post_processing_with_trace(
         skip_when=not enable_disorder_gate,
         skip_reason="disabled",
     )
+
+    _apply_assertion_parity_check(working)
 
     return working, layer_trace
 

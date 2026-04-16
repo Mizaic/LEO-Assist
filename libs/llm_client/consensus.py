@@ -1,25 +1,43 @@
-"""Single-model runner on AWS Bedrock.
+"""LLM-judge runner used by the disorder gate and coding-verifier steps.
 
-Tier selection:
-  CONSENSUS_AWS_TIER       -- extraction step (default "big" / Sonnet).
-  CONSENSUS_VERIFIER_TIER  -- verifier step   (default: same as CONSENSUS_AWS_TIER).
+The pipeline is NER-then-LLM-as-judge-and-fixer: the deterministic post-
+processing stack emits entity dicts and terminology candidates, then the
+LLM is invoked as a *judge* to classify disorder context or validate a
+terminology match.
 
-Set CONSENSUS_AWS_TIER=small to use Haiku for extraction; leave
-CONSENSUS_VERIFIER_TIER unset (or set to "big") to keep Sonnet for the more
-demanding code-verification step. This gives the best cost/quality split.
+Two execution modes
+-------------------
+Single model (default)
+    One AWS Bedrock call at the configured tier. A second "strict reminder"
+    retry is issued if the first call fails to parse. This is the production
+    default because the cost/latency of the second provider rarely justifies
+    the marginal accuracy gain for these short classification decisions.
 
-Examples:
-  CONSENSUS_AWS_TIER=small                          -- Haiku extraction + Haiku verify
-  CONSENSUS_AWS_TIER=small CONSENSUS_VERIFIER_TIER=big  -- Haiku extraction + Sonnet verify
+Dual-model consensus (opt-in)
+    Enable with ``CONSENSUS_DUAL_MODEL=true``. Runs AWS small-tier and Azure
+    small-tier judges in parallel. If they agree, the shared verdict wins.
+    If they disagree (or one fails), a big-tier AWS model arbitrates. This
+    mirrors the design previously described in the docstring but costs 2-3x
+    tokens per call.
 
-The ConsensusResult fields (aws_verdict, azure_verdict, agreed, etc.)
-are kept for API compatibility with existing callers.
+Tier selection
+--------------
+``CONSENSUS_AWS_TIER`` -- AWS tier for single-model mode and the dual-model
+    arbitrator (default ``big``).
+``CONSENSUS_VERIFIER_TIER`` -- tier used when the caller passes the verifier
+    override (``tier=_consensus_verifier_tier()``). Falls back to
+    ``CONSENSUS_AWS_TIER`` if unset.
+
+``ConsensusResult`` fields are kept for API compatibility -- in single-model
+mode ``azure_verdict``, ``arbitrator_verdict``, and ``arbitrator_model_id``
+remain empty but ``agreed`` is True iff the single call produced a verdict.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -27,27 +45,33 @@ from libs.llm_client.factory import LLMResponse, create_llm
 
 logger = logging.getLogger(__name__)
 
-# Valid tier values for AWS Bedrock: "small" (Haiku), "big" (Sonnet), "max" (Opus).
 _VALID_CONSENSUS_TIERS = frozenset({"small", "big", "max"})
 
 
 def _consensus_aws_tier() -> str:
-    """Extraction tier -- controlled by CONSENSUS_AWS_TIER (default: big)."""
     raw = (os.getenv("CONSENSUS_AWS_TIER") or "big").strip().lower()
     return raw if raw in _VALID_CONSENSUS_TIERS else "big"
 
 
 def _consensus_verifier_tier() -> str:
-    """Verifier tier -- CONSENSUS_VERIFIER_TIER; falls back to CONSENSUS_AWS_TIER."""
     raw = (os.getenv("CONSENSUS_VERIFIER_TIER") or "").strip().lower()
     if raw in _VALID_CONSENSUS_TIERS:
         return raw
     return _consensus_aws_tier()
 
 
+def _dual_model_enabled() -> bool:
+    return (os.getenv("CONSENSUS_DUAL_MODEL") or "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 @dataclass
 class ConsensusResult:
-    """Outcome of a dual-model consensus check."""
+    """Outcome of a single-model or dual-model judge call."""
 
     verdict: Any
     confidence: float = 0.0
@@ -57,12 +81,8 @@ class ConsensusResult:
     arbitrator_verdict: Any = ""
     arbitrator_model_id: str = ""
     agreed: bool = False
-    single_model_fallback: bool = (
-        False  # True when only one provider succeeded (unvalidated)
-    )
+    single_model_fallback: bool = False
     model_ids: list[str] = field(default_factory=list)
-    # Aggregated token counts across ALL provider calls in this consensus run
-    # (small model A + small model B + optional Sonnet arbitrator).
     input_tokens: int = 0
     output_tokens: int = 0
     cached_input_tokens: int = 0
@@ -89,13 +109,197 @@ def _call_provider(
 
 
 def _sum_tokens(responses: list[LLMResponse | None]) -> dict[str, int]:
-    """Sum token fields across a list of LLMResponse objects (None entries skipped)."""
     return {
         "input_tokens": sum(r.input_tokens for r in responses if r),
         "output_tokens": sum(r.output_tokens for r in responses if r),
         "cached_input_tokens": sum(r.cached_input_tokens for r in responses if r),
         "llm_calls": sum(1 for r in responses if r),
     }
+
+
+def _safe_call(
+    provider: str,
+    tier: str,
+    system_prompt: str,
+    user_msg: str,
+    max_tokens: int,
+    parse_fn: Callable[[str], Any],
+    *,
+    json_mode: bool = False,
+) -> tuple[LLMResponse | None, Any, str]:
+    """Call a single provider and return ``(response, verdict, model_id)``.
+
+    Any provider error becomes ``(None, None, "")`` -- callers decide how to
+    degrade.
+    """
+    try:
+        resp = _call_provider(
+            provider, tier, system_prompt, user_msg, max_tokens, json_mode=json_mode
+        )
+    except Exception:
+        logger.warning("Consensus (%s/%s): call failed", provider, tier, exc_info=True)
+        return None, None, ""
+    verdict = parse_fn(resp.text) if resp else None
+    return resp, verdict, (resp.model_id if resp else "")
+
+
+def _single_model(
+    system_prompt: str,
+    user_msg: str,
+    parse_fn: Callable[[str], Any],
+    fail_verdict: Any,
+    max_tokens: int,
+    tier: str,
+    *,
+    json_mode: bool,
+) -> ConsensusResult:
+    label = f"aws/{tier}"
+    resp, verdict, model_id = _safe_call(
+        "aws", tier, system_prompt, user_msg, max_tokens, parse_fn, json_mode=json_mode
+    )
+
+    if resp and not verdict:
+        logger.warning(
+            "Consensus (%s): parse failed (stop_reason=%r text_len=%d) -- retrying",
+            label,
+            resp.stop_reason,
+            len(resp.text or ""),
+        )
+        retry_msg = (
+            user_msg
+            + "\n\nSTRICT OUTPUT REMINDER: Return ONLY one valid JSON object. "
+            + "No prose, no markdown fences, no explanation."
+        )
+        resp_retry, retry_verdict, retry_model_id = _safe_call(
+            "aws",
+            tier,
+            system_prompt,
+            retry_msg,
+            max_tokens,
+            parse_fn,
+            json_mode=json_mode,
+        )
+        if retry_verdict:
+            resp = resp_retry
+            verdict = retry_verdict
+            model_id = retry_model_id
+            logger.info("Consensus (%s): parse-retry recovered.", label)
+
+    tok = _sum_tokens([resp])
+    if not verdict:
+        logger.error(
+            "Consensus (%s): failed after retry -- returning fail_verdict", label
+        )
+        return ConsensusResult(
+            verdict=fail_verdict,
+            reason=f"{label} call/parse failed",
+            model_ids=[model_id] if model_id else [],
+            **tok,
+        )
+
+    logger.info("Consensus (%s): verdict=%s", label, verdict)
+    return ConsensusResult(
+        verdict=verdict,
+        aws_verdict=verdict,
+        agreed=True,
+        model_ids=[model_id] if model_id else [],
+        **tok,
+    )
+
+
+def _dual_model(
+    system_prompt: str,
+    user_msg: str,
+    parse_fn: Callable[[str], Any],
+    fail_verdict: Any,
+    max_tokens: int,
+    arbitrator_tier: str,
+    *,
+    json_mode: bool,
+) -> ConsensusResult:
+    """Run AWS small + Azure small in parallel; arbitrate on disagreement."""
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        aws_future = pool.submit(
+            _safe_call,
+            "aws",
+            "small",
+            system_prompt,
+            user_msg,
+            max_tokens,
+            parse_fn,
+            json_mode=json_mode,
+        )
+        az_future = pool.submit(
+            _safe_call,
+            "azure",
+            "small",
+            system_prompt,
+            user_msg,
+            max_tokens,
+            parse_fn,
+            json_mode=json_mode,
+        )
+        aws_resp, aws_verdict, aws_model = aws_future.result()
+        az_resp, az_verdict, az_model = az_future.result()
+
+    responses: list[LLMResponse | None] = [aws_resp, az_resp]
+    model_ids = [m for m in (aws_model, az_model) if m]
+
+    if aws_verdict and az_verdict and aws_verdict == az_verdict:
+        tok = _sum_tokens(responses)
+        return ConsensusResult(
+            verdict=aws_verdict,
+            aws_verdict=aws_verdict,
+            azure_verdict=az_verdict,
+            agreed=True,
+            model_ids=model_ids,
+            **tok,
+        )
+
+    # Disagreement OR at least one provider failed -> arbitrate with big model.
+    arb_resp, arb_verdict, arb_model = _safe_call(
+        "aws",
+        arbitrator_tier,
+        system_prompt,
+        user_msg,
+        max_tokens,
+        parse_fn,
+        json_mode=json_mode,
+    )
+    responses.append(arb_resp)
+    tok = _sum_tokens(responses)
+
+    if arb_verdict:
+        if arb_model:
+            model_ids.append(arb_model)
+        return ConsensusResult(
+            verdict=arb_verdict,
+            aws_verdict=aws_verdict or "",
+            azure_verdict=az_verdict or "",
+            arbitrator_verdict=arb_verdict,
+            arbitrator_model_id=arb_model,
+            agreed=False,
+            single_model_fallback=not (aws_verdict and az_verdict),
+            model_ids=model_ids,
+            **tok,
+        )
+
+    # If arbitrator also failed, surface whichever single-model verdict we do
+    # have -- otherwise fall back to fail_verdict.
+    fallback_verdict = aws_verdict or az_verdict or fail_verdict
+    return ConsensusResult(
+        verdict=fallback_verdict,
+        aws_verdict=aws_verdict or "",
+        azure_verdict=az_verdict or "",
+        arbitrator_verdict="",
+        reason=(
+            "arbitrator failed" if (aws_verdict or az_verdict) else "all models failed"
+        ),
+        agreed=bool(aws_verdict) and bool(az_verdict) and aws_verdict == az_verdict,
+        single_model_fallback=bool(aws_verdict) ^ bool(az_verdict),
+        model_ids=model_ids,
+        **tok,
+    )
 
 
 def run_consensus(
@@ -108,88 +312,43 @@ def run_consensus(
     json_mode: bool = False,
     tier: str | None = None,
 ) -> ConsensusResult:
-    """Call AWS Bedrock once at the specified tier (default: ``CONSENSUS_AWS_TIER``).
+    """Run the LLM judge in single-model or dual-model mode.
 
-    Callers that run the verifier step should pass ``tier=_consensus_verifier_tier()``
-    so the verifier can be pinned to a stronger model independently of the extraction tier.
+    Dual-model mode is opt-in via ``CONSENSUS_DUAL_MODEL=true``. The
+    arbitrator always uses ``CONSENSUS_AWS_TIER`` (default ``big``) regardless
+    of the ``tier`` override, so a Sonnet arbitrator resolves Haiku + GPT-5
+    mini disagreements.
 
     Args:
-        system_prompt: System prompt for the model.
+        system_prompt: System prompt for the judge.
         user_msg: User message (typically JSON-serialised context).
-        parse_fn: Extracts the verdict from raw LLM response text.
-                  Must return a falsy value on parse failure.
-        fail_verdict: Returned when the call fails or parse fails after retry.
-        max_tokens: Max output tokens for the call.
+        parse_fn: Extracts the verdict string from raw LLM output. MUST
+            return a falsy value on parse failure.
+        fail_verdict: Returned when no provider produces a parseable verdict.
+        max_tokens: Max output tokens per call.
         json_mode: Passed through to the provider client.
-        tier: AWS tier override ("small", "big", "max"). Defaults to CONSENSUS_AWS_TIER.
-
-    Returns:
-        ConsensusResult with the verdict and token totals.
+        tier: Single-model tier override; ignored when dual-model is active.
     """
     if tier is None or tier not in _VALID_CONSENSUS_TIERS:
         tier = _consensus_aws_tier()
-    label = f"aws/{tier}"
-    resp: LLMResponse | None = None
-    verdict: Any = None
-    model_id = ""
 
-    try:
-        resp = _call_provider(
-            "aws", tier, system_prompt, user_msg, max_tokens, json_mode=json_mode
-        )
-        verdict = parse_fn(resp.text)
-        model_id = resp.model_id
-    except Exception:
-        logger.warning("Consensus (%s): call failed", label, exc_info=True)
-
-    # One parse-retry on empty/unparseable output
-    if resp and not verdict:
-        logger.warning(
-            "Consensus (%s): parse failed (stop_reason=%r text_len=%d) -- retrying",
-            label,
-            resp.stop_reason,
-            len(resp.text or ""),
-        )
-        try:
-            retry_msg = (
-                user_msg
-                + "\n\nSTRICT OUTPUT REMINDER: Return ONLY one valid JSON object. "
-                + "No prose, no markdown fences, no explanation."
-            )
-            resp_retry = _call_provider(
-                "aws", tier, system_prompt, retry_msg, max_tokens, json_mode=json_mode
-            )
-            verdict = parse_fn(resp_retry.text)
-            if verdict:
-                resp = resp_retry
-                model_id = resp_retry.model_id
-                logger.info("Consensus (%s): parse-retry recovered.", label)
-        except Exception:
-            logger.warning("Consensus (%s): parse-retry failed", label, exc_info=True)
-
-    tok = _sum_tokens([resp])
-    if not verdict:
-        logger.error(
-            "Consensus (%s): failed after retry -- returning fail_verdict", label
-        )
-        return ConsensusResult(
-            verdict=fail_verdict,
-            reason=f"{label} call/parse failed",
-            model_ids=[model_id] if model_id else [],
-            input_tokens=tok["input_tokens"],
-            output_tokens=tok["output_tokens"],
-            cached_input_tokens=tok["cached_input_tokens"],
-            llm_calls=tok["llm_calls"],
+    if _dual_model_enabled():
+        return _dual_model(
+            system_prompt,
+            user_msg,
+            parse_fn,
+            fail_verdict,
+            max_tokens,
+            arbitrator_tier=_consensus_aws_tier(),
+            json_mode=json_mode,
         )
 
-    logger.info("Consensus (%s): verdict=%s", label, verdict)
-    return ConsensusResult(
-        verdict=verdict,
-        aws_verdict=verdict,
-        agreed=True,
-        model_ids=[model_id] if model_id else [],
-        input_tokens=tok["input_tokens"],
-        output_tokens=tok["output_tokens"],
-        cached_input_tokens=tok["cached_input_tokens"],
-        llm_calls=tok["llm_calls"],
+    return _single_model(
+        system_prompt,
+        user_msg,
+        parse_fn,
+        fail_verdict,
+        max_tokens,
+        tier,
+        json_mode=json_mode,
     )

@@ -1,0 +1,92 @@
+# -- DI-LEO-AI-112 -- SpanResolver for LLM-extracted entity character offsets
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-112"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: >
+    The LLM extractor paths SHALL assign each extracted entity absolute
+    character offsets (span_start, span_end) into the encounter text,
+    resolved via a shared SpanResolver utility. Sentence-level matching
+    SHALL be attempted first; on failure the resolver SHALL fall back to
+    encounter-wide search. Repeated mentions of the same surface form
+    SHALL be disambiguated by an encounter-wide cursor so that each
+    occurrence is assigned distinct offsets.
+  rationale: >
+    Before this DI both LLM extractor paths initialised every extracted
+    entity with ``span_start=0, span_end=len(text)``, which broke every
+    downstream consumer that depends on absolute offsets: ConText
+    assertion detection (uses span distance to cues), scope guard (sentence
+    boundary checks), observable value-unit linking (the 60-character
+    window scan), and highlight rendering in the review UI. Accurate spans
+    are a prerequisite for the assertion, context-detection, and
+    observable-linking layers to operate correctly.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Given an encounter containing "chest pain" once, SpanResolver.resolve
+          returns (start, end) matching the substring's actual offsets and
+          encounter_text[start:end] == "chest pain".
+      - type: "functional"
+        spec: >
+          Given an encounter containing "cough" twice and the extractor
+          producing two extracted terms for "cough", SpanResolver returns
+          distinct offsets for the second mention (cursor advances past the
+          first match).
+      - type: "functional"
+        spec: >
+          Given a term whose text case differs from the encounter
+          ("Diabetes" vs "diabetes"), SpanResolver resolves the offsets
+          using case-insensitive matching.
+      - type: "functional"
+        spec: >
+          When sentence_id is supplied but the sentence lookup fails, the
+          resolver falls back to encounter-wide search without raising.
+      - type: "functional"
+        spec: >
+          Both the WorkflowEngine extractor (libs/pipeline_graph/subgraphs/
+          _extractor.py) and the coding_worker extractor (services/
+          coding_worker/app/pipeline/llm_extractor.py) invoke SpanResolver
+          so that extracted entities carry correct spans on both paths.
+    constraints:
+      - type: "safety"
+        spec: >
+          The resolver MUST never return spans outside [0, len(encounter_text)]
+          and MUST never return span_start >= span_end.
+      - type: "safety"
+        spec: >
+          On unresolvable terms the caller MUST preserve whatever fallback
+          offsets it previously used; the resolver MUST signal failure via
+          return value, never by raising.
+    dependencies: ["DI-LEO-AI-003"]
+    downstream_impacts:
+      - "libs/ner/context_engine.py (ConText cue-to-entity distance)"
+      - "libs/ner/scope_guard.py (sentence-boundary checks)"
+      - "libs/pipeline/post_processing.py (value-unit linking window scan)"
+      - "services/ui highlight rendering"
+    technical_details:
+      language: "Python"
+      framework: "N/A"
+      file_structure:
+        - "libs/ner/span_resolver.py"
+        - "services/coding_worker/app/pipeline/llm_extractor.py"
+        - "libs/pipeline_graph/subgraphs/_extractor.py"
+      estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-112 test cases pass: single-mention resolution,
+      repeated-mention cursor advancement, case-insensitive matching,
+      sentence-fallback, and bounds-checking.
+    test_protocol: "VT-LEO-AI-112"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-003"]
+  tags:
+    - "llm-extraction"
+    - "span-resolution"
+    - "post-processing"

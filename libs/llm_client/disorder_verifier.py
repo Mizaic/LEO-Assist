@@ -1,17 +1,25 @@
-"""Disorder entity verifier: dual-model consensus gate for false positives.
+"""Disorder entity verifier: LLM-judge gate for disorder false positives.
 
-Only called for disorder entities whose assertion is 'present' after ConText.
-Classifies whether the entity is an active confirmed diagnosis or merely
-informational/historical/uncertain context within the encounter text.
+Only called for disorder entities whose assertion is ``present`` after
+ConText. Classifies whether the entity is an active confirmed diagnosis or
+merely informational / historical / uncertain context within the encounter
+text.
 
-Consensus pattern:
-  1. Haiku (AWS small) + GPT-5 mini (Azure small) in parallel.
-  2. If they agree, use that verdict.
-  3. If they disagree, Sonnet (AWS big) arbitrates.
+Backing implementation
+----------------------
+``libs.llm_client.consensus.run_consensus`` issues a single AWS Bedrock call
+(with one parse-retry). An optional dual-model consensus can be enabled via
+``CONSENSUS_DUAL_MODEL=true`` which dispatches parallel AWS + Azure small-tier
+judges with a big-tier arbitrator on disagreement (see ``consensus.py``).
 
-Fail-safe behaviour depends on coding mode:
-  HITL:       default to ACTIVE_DIAGNOSIS (human will review)
-  AUTONOMOUS: default to UNCERTAIN (do not code without confirmation)
+Fail-safe behaviour
+-------------------
+Both HITL and AUTONOMOUS now fail CLOSED on consensus failure. A failed gate
+call returns ``GATE_FAILED`` (not ``ACTIVE_DIAGNOSIS``). Downstream, the tier
+classifier treats ``gate_failed`` the same way as ``uncertain`` -- the entity
+is routed to review, never silently auto-coded. Previously HITL defaulted to
+``ACTIVE_DIAGNOSIS`` which meant a silent Bedrock failure looked identical to
+a confirmed diagnosis in the review queue.
 """
 
 from __future__ import annotations
@@ -84,6 +92,10 @@ class DisorderVerdict(str, Enum):
     HISTORICAL = "historical"
     REFUTED = "refuted"
     UNCERTAIN = "uncertain"
+    # Consensus call failed (provider error, parse error, etc). This is
+    # surfaced explicitly so callers can distinguish "the model is unsure"
+    # from "we never got an answer".
+    GATE_FAILED = "gate_failed"
 
 
 def _parse_verdict(text: str) -> str:
@@ -117,9 +129,16 @@ _VALID_VERDICTS = {v.value for v in DisorderVerdict}
 
 
 def _fail_verdict_for_mode(coding_mode: str) -> str:
-    if coding_mode == "autonomous":
-        return DisorderVerdict.UNCERTAIN.value
-    return DisorderVerdict.ACTIVE_DIAGNOSIS.value
+    """Fail-closed for both modes.
+
+    Any verify_disorder call that cannot obtain a parseable consensus response
+    returns ``gate_failed``. The tier classifier treats ``gate_failed`` the
+    same as ``uncertain`` which routes the entity to review (HITL) or blocks
+    auto-coding (autonomous). Previously HITL fell back to ACTIVE_DIAGNOSIS
+    which silently let provider outages look like confirmed diagnoses.
+    """
+    del coding_mode  # retained for call-site symmetry; no longer branches
+    return DisorderVerdict.GATE_FAILED.value
 
 
 def verify_disorder(
@@ -128,10 +147,12 @@ def verify_disorder(
     *,
     coding_mode: str = "hitl",
 ) -> DisorderVerdict:
-    """Classify a disorder entity using dual-model consensus.
+    """Classify a disorder entity using the LLM-judge consensus gate.
 
-    In HITL mode, defaults to ACTIVE_DIAGNOSIS on failure so a human sees it.
-    In AUTONOMOUS mode, defaults to UNCERTAIN so the entity is not coded.
+    Fails CLOSED in both modes: a consensus failure (provider error, empty
+    response, unknown verdict) returns ``GATE_FAILED`` so the downstream tier
+    classifier can route the entity to review instead of silently passing it
+    as an active diagnosis.
     """
     user_msg = json.dumps(
         {
@@ -154,10 +175,11 @@ def verify_disorder(
     if raw not in _VALID_VERDICTS:
         logger.warning(
             "DisorderVerifier consensus returned unknown verdict %r for %r "
-            "-- using fail_verdict=%s",
+            "-- using fail_verdict=%s (coding_mode=%s)",
             raw,
             entity_text,
             fail_v,
+            coding_mode,
         )
         return DisorderVerdict(fail_v)
 

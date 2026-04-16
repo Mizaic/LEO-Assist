@@ -22,6 +22,10 @@ Lines starting with >> show real gold-verified span examples:
    >> colonoscopy | procedure | planned | SNOMED: 73761001
    >> Mammogram | procedure | absent | SNOMED: 71651007
    >> chemo/ | procedure | historical | SNOMED: 367336001
+   >> Liver function tests (XE28K) | procedure | present | SNOMED: 26958001
+   >> Magnetic resonance imaging of lumbar spine (X70pF) | procedure | present | SNOMED: 241648005
+   >> MRI of prostate (X70or) | procedure | present | SNOMED: 75691003
+   >> Wide local excision of breast lesion (X40EC) | procedure | present | SNOMED: 237371007
 
 3) Use "situation" for clinical context, suspicion, and family history.
    If a phrase describes a patient's status, suspected diagnosis, or
@@ -33,8 +37,17 @@ Lines starting with >> show real gold-verified span examples:
 4) Keep all labels when a phrase has more than one correct label.
    Fast-track cancer referrals name both an action and a clinical status.
    They are correctly labelled as both "procedure" and "situation".
+   Measured clinical parameters often have both observable_entity and procedure.
    >> Fast track referral for suspected lower GI cancer | procedure | present | SNOMED: 892201000000106
    >> suspected lower GI cancer | situation | present | SNOMED: 315274008
+   >> blood pressure reading (246..)108/69 | observable_entity | present | SNOMED: 75367002
+   >> blood pressure | procedure | present | SNOMED: 46973005
+   >> pulse rate (242..) 67 bpm | observable_entity | present | SNOMED: 78564009
+   >> pulse rate (242..) | procedure | present | SNOMED: 65653002
+   >> temperature (XaBzA) 36.9 degC | observable_entity | present | SNOMED: 386725007
+   >> temperature (XaBzA) | procedure | present | SNOMED: 56342008
+   >> Body mass index 17.68 Kg/m | observable_entity | present | SNOMED: 60621009
+   >> Body mass index | procedure | present | SNOMED: 698094009
 
 5) Always keep labels that a gold reviewer has already approved.
    If a reviewer signed off a dual label or an unusual choice, trust it.
@@ -65,4 +78,26 @@ Lines starting with >> show real gold-verified span examples:
    to "Left breast" (body_structure/80248007).
    Example: "benign" (qualifier_value/30807003) links via qualifies
    to "seborrhoeic keratosis" (disorder/394726009).
+   >> sweating | finding | present | SNOMED: 415690000
+      relates via "qualifies" to "with physical exertion"
+   >> increased internal temperature | finding | present | SNOMED: 105723007
+      relates via "qualifies" to "with physical exertion"
+
+9) Lab results above or below the reference range get two spans: the
+   measured value (observable_entity) and the interpretation (finding).
+   >> Mean cell volume (42A..) 100 fL | observable_entity | present | SNOMED: 1022491000000106
+   >> Mean cell volume (42A..) 100 fL [80 - 99] - Outside reference range | finding | present | SNOMED: 165454002
+   >> Mean cell haemoglobin level (XE2pb) 32.1 pg | observable_entity | present | SNOMED: 1022471000000107
+   >> Mean cell haemoglobin level (XE2pb) 32.1 pg [27 - 32] - Outside reference range | finding | present | SNOMED: 165442002
+
+10) Smoking and lifestyle status are "finding", not "situation".
+    Smoking status, vaping, BMI range interpretation, and similar
+    lifestyle findings use label "finding" with assertion "present".
+    >> Ex-smoker | finding | present | SNOMED: 8517006
+    >> Vapes | finding | present | SNOMED: 35361000087100
+    >> Never Smoked | finding | present | SNOMED: 266919005
+    >> overweight | finding | present | SNOMED: 238131007
+    Smoking assessments and weighing procedures stay "procedure".
+    >> Smoking History | procedure | present | SNOMED: 196771000000101
+    >> Smoking assessment | procedure | present | SNOMED: 196771000000101
 """

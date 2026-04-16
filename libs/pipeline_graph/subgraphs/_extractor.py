@@ -4,8 +4,8 @@ Prompt assembly
 ---------------
 The final system prompt is assembled from three parts stored in Neo4j:
 
-1. ``systemPrompt``   — instructions only (scope, rules, assertions, surface-form rules)
-2. ``outputSchema``   — machine-readable JSON schema rendered as a "## Output Format" block
+1. ``systemPrompt``   - instructions only (scope, rules, assertions, surface-form)
+2. ``outputSchema``   - machine-readable JSON schema rendered as a "## Output Format"
 3. ``fewShotExamples`` — example library; filtered by ``model_scope`` and appended as
                           a "## Examples" block
 
@@ -20,10 +20,44 @@ import json
 import logging
 from typing import Any
 
-from libs.ner.extractor_contract import ExtractionItem, ExtractorProvider
+from libs.ner.extractor_contract import ExtractionItem
+from libs.ner.span_resolver import SpanResolver
 from libs.nlp.sentence_splitter import SentenceChunk
 from libs.pipeline.extraction_response_parse import parse_extraction_terms_response
 from libs.prompts.few_shot_selector import FewShotSelector
+
+_VALID_ASSERTIONS_EXTRACT = {
+    "present",
+    "absent",
+    "refuted",
+    "possible",
+    "historical",
+    "planned",
+    "hypothetical",
+    "family",
+    "declined",
+    "cancelled",
+}
+
+_DEFAULT_EXTRACT_CONFIDENCE = 0.75
+
+
+def _normalise_assertion(raw: Any) -> str:
+    if not raw:
+        return "present"
+    value = str(raw).strip().lower()
+    return value if value in _VALID_ASSERTIONS_EXTRACT else "present"
+
+
+def _normalise_confidence(raw: Any) -> float:
+    if raw is None:
+        return _DEFAULT_EXTRACT_CONFIDENCE
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return _DEFAULT_EXTRACT_CONFIDENCE
+    return max(0.0, min(1.0, value))
+
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +240,8 @@ class LLMExtractorAdapter:
     ) -> tuple[list[ExtractionItem], dict]:
         """Run extraction and return (items, llm_token_dict).
 
-        ``llm_token_dict`` has keys: input_tokens, output_tokens, cached_tokens, cost_usd.
+        ``llm_token_dict`` has keys: input_tokens, output_tokens, cached_tokens,
+        cost_usd.
         It is written into subgraph state so WorkflowEngine can aggregate it.
         """
         items, usage = self._run_llm(encounter_text, sentences)
@@ -318,47 +353,13 @@ class LLMExtractorAdapter:
 
         terms = data.get("terms", [])
         items: list[ExtractionItem] = []
-        sentence_index = {
-            str(s.sentence_id): s for s in sentences if getattr(s, "sentence_id", None)
-        }
-        sentence_cursors: dict[str, int] = {}
-        encounter_cursor = 0
-        encounter_text_lower = encounter_text.lower()
-
-        def _resolve_span(term: dict[str, Any], text_val: str) -> tuple[int, int]:
-            nonlocal encounter_cursor
-            term_text = text_val.strip()
-            fallback_len = max(len(term_text), 1)
-            sentence_id = str(term.get("sentence_id") or "")
-            sentence = sentence_index.get(sentence_id)
-            if sentence and term_text:
-                sentence_text = str(sentence.text or "")
-                sentence_text_lower = sentence_text.lower()
-                term_lower = term_text.lower()
-                start_hint = sentence_cursors.get(sentence_id, 0)
-                local_idx = sentence_text_lower.find(term_lower, start_hint)
-                if local_idx < 0:
-                    local_idx = sentence_text_lower.find(term_lower)
-                if local_idx >= 0:
-                    sentence_cursors[sentence_id] = local_idx + len(term_text)
-                    abs_start = int(sentence.start) + local_idx
-                    return abs_start, abs_start + len(term_text)
-                abs_start = int(sentence.start)
-                return abs_start, abs_start + fallback_len
-
-            if term_text:
-                term_lower = term_text.lower()
-                idx = encounter_text_lower.find(term_lower, encounter_cursor)
-                if idx < 0:
-                    idx = encounter_text_lower.find(term_lower)
-                if idx >= 0:
-                    encounter_cursor = idx + len(term_text)
-                    return idx, idx + len(term_text)
-            return 0, fallback_len
+        resolver = SpanResolver(encounter_text=encounter_text, sentences=sentences)
 
         for t in terms:
             text_val = t.get("text", "")
-            span_start, span_end = _resolve_span(t, text_val)
+            span_start, span_end = resolver.resolve(
+                text_val, sentence_id=str(t.get("sentence_id") or "") or None
+            )
             items.append(
                 ExtractionItem(
                     sentence_id=t.get("sentence_id", ""),
@@ -366,10 +367,11 @@ class LLMExtractorAdapter:
                     span_start=span_start,
                     span_end=span_end,
                     semantic_tag=t.get("semantic_tag", "finding"),
-                    # Assertion is always initialised to "present"; final
-                    # assertion is set by post-processing (ConText + scope guard).
-                    assertion="present",
-                    confidence=1.0,
+                    # Assertion comes from the extractor when it provides one;
+                    # final assertion is still re-checked by post-processing
+                    # (ConText + scope guard) which can override.
+                    assertion=_normalise_assertion(t.get("assertion")),
+                    confidence=_normalise_confidence(t.get("confidence")),
                     normalized=t.get("lookup_term", text_val),
                     numeric_value=t.get("value") or "",
                     unit=t.get("unit") or "",

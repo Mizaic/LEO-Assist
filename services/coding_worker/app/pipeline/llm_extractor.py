@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from libs.ner.extractor_contract import CONTRACT_VERSION, ExtractionItem
+from libs.ner.span_resolver import SpanResolver
 from libs.pipeline_graph.subgraphs._extractor import assemble_system_prompt
 from libs.prompts.registry import get_prompt_config
 
@@ -164,8 +165,10 @@ Full schema when entities exist:
     {
       "sentence_id": "<id from the Sentences list>",
       "text": "<exact span as written in the sentence>",
-      "lookup_term": "<standard clinical term for SNOMED lookup>",
+      "lookup_term": "<standard clinical term for SNOMED lookup; preserve onset/chronicity/certainty/laterality qualifiers>",
       "semantic_tag": "<disorder|finding|procedure|substance|product|observable entity|situation|regime/therapy|staging scale>",
+      "assertion": "<present|absent|refuted|possible|historical|planned|hypothetical|family|declined|cancelled>",
+      "confidence": 0.92,
       "numeric_value": "<numeric value if observable entity, else empty string>",
       "unit": "<unit if observable entity, else empty string>",
       "reference_range": "<range if present, else empty string>",
@@ -173,6 +176,9 @@ Full schema when entities exist:
     }
   ]
 }
+
+assertion and confidence are REQUIRED on every entity. confidence is a
+self-assessment in [0.0, 1.0]; do not hard-code 1.0 for every entity.
 
 Never replace the JSON object with prose (for example "No codable entities").
 """
@@ -189,6 +195,42 @@ _VALID_ASSERTIONS = {
     "declined",
     "cancelled",
 }
+
+_DEFAULT_CONFIDENCE = 0.75
+
+
+def _parse_assertion(raw: Any) -> str:
+    """Normalise an LLM-emitted assertion value.
+
+    Unknown or empty values fall back to ``"present"``. Final assertion is
+    still re-checked by the post-processing pipeline (ConText + scope guard)
+    so an incorrect extractor emission is never the only signal.
+    """
+    if not raw:
+        return "present"
+    value = str(raw).strip().lower()
+    return value if value in _VALID_ASSERTIONS else "present"
+
+
+def _parse_confidence(raw: Any) -> float:
+    """Clamp an LLM-emitted confidence into ``[0.0, 1.0]``.
+
+    Missing / non-numeric values fall back to ``_DEFAULT_CONFIDENCE`` (0.75)
+    rather than the previous hard-coded 1.0 -- we do not want to treat every
+    extraction as infallibly confident.
+    """
+    if raw is None:
+        return _DEFAULT_CONFIDENCE
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return _DEFAULT_CONFIDENCE
+    if value < 0.0:
+        return 0.0
+    if value > 1.0:
+        return 1.0
+    return value
+
 
 _ASSERTION_TO_CONTEXT: dict[str, dict[str, bool]] = {
     "present": {"negated": False, "declined": False, "cancelled": False},
@@ -217,6 +259,9 @@ class ExtractedTerm:
     lookup_term: str
     semantic_tag: str
     assertion: str
+    span_start: int = 0
+    span_end: int = 0
+    confidence: float = 1.0
     context: dict[str, Any] = field(default_factory=dict)
     modifiers: dict[str, Any] = field(default_factory=dict)
 
@@ -306,7 +351,7 @@ class LLMExtractor:
         except Exception as exc:
             logger.error("LLMExtractor.extract_batch failed: %s", exc)
             return []
-        terms = self._parse_terms(payload, sentences)
+        terms = self._parse_terms(payload, sentences, encounter_text)
         return [
             extracted_term_to_item(
                 t,
@@ -350,7 +395,10 @@ class LLMExtractor:
         return "\n".join(parts)
 
     def _parse_terms(
-        self, payload: dict[str, Any], sentences: list
+        self,
+        payload: dict[str, Any],
+        sentences: list,
+        encounter_text: str = "",
     ) -> list[ExtractedTerm]:
         terms = payload.get("terms") or []
         if not isinstance(terms, list):
@@ -358,6 +406,7 @@ class LLMExtractor:
         valid_sentence_ids = {
             getattr(sentence, "sentence_id", "") for sentence in sentences
         }
+        resolver = SpanResolver(encounter_text=encounter_text, sentences=sentences)
         results: list[ExtractedTerm] = []
         seen: set[tuple[str, str, str]] = set()  # (text_lower, tag, assertion)
         for term in terms:
@@ -369,10 +418,7 @@ class LLMExtractor:
             text = str(term.get("text") or "").strip()
             if not text:
                 continue
-            # Assertion is always initialised to "present"; the post-processing
-            # pipeline (scope guard, ConText, double-negation guard) is the
-            # sole authoritative source for all non-present assertions.
-            assertion = "present"
+            assertion = _parse_assertion(term.get("assertion"))
             dedup_key = (text.lower(), str(term.get("semantic_tag") or ""), assertion)
             if dedup_key in seen:
                 continue
@@ -380,6 +426,10 @@ class LLMExtractor:
             context = dict(
                 _ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"])
             )
+            span_start, span_end = resolver.resolve(
+                text, sentence_id=sentence_id or None
+            )
+            confidence = _parse_confidence(term.get("confidence"))
             results.append(
                 ExtractedTerm(
                     sentence_id=sentence_id or "s0",
@@ -387,6 +437,9 @@ class LLMExtractor:
                     lookup_term=str(term.get("lookup_term") or text),
                     semantic_tag=str(term.get("semantic_tag") or "finding"),
                     assertion=assertion,
+                    span_start=span_start,
+                    span_end=span_end,
+                    confidence=confidence,
                     context=context,
                     modifiers=dict(term.get("modifiers") or {}),
                 )
@@ -401,6 +454,8 @@ class LLMExtractor:
                     text=text,
                     semantic_tag=str(term.get("semantic_tag") or ""),
                     assertion=assertion,
+                    confidence=confidence,
+                    resolver=resolver,
                 )
             )
         return results
@@ -412,6 +467,8 @@ class LLMExtractor:
         text: str,
         semantic_tag: str,
         assertion: str,
+        confidence: float,
+        resolver: SpanResolver,
     ) -> list[ExtractedTerm]:
         tag = semantic_tag.strip().lower()
         if tag != "staging scale":
@@ -432,6 +489,7 @@ class LLMExtractor:
             deduped.append(comp)
         out: list[ExtractedTerm] = []
         for comp in deduped:
+            span_start, span_end = resolver.resolve(comp, sentence_id=sentence_id)
             out.append(
                 ExtractedTerm(
                     sentence_id=sentence_id,
@@ -439,6 +497,9 @@ class LLMExtractor:
                     lookup_term=comp,
                     semantic_tag="observable entity",
                     assertion=assertion,
+                    span_start=span_start,
+                    span_end=span_end,
+                    confidence=confidence,
                     context=dict(
                         _ASSERTION_TO_CONTEXT.get(
                             assertion, _ASSERTION_TO_CONTEXT["present"]
@@ -494,14 +555,18 @@ def maybe_create_surface_form_tasks(
 def extracted_term_to_item(
     term: ExtractedTerm, *, source: str, model_name: str, model_version: str
 ) -> ExtractionItem:
+    span_start = int(term.span_start or 0)
+    span_end = int(term.span_end or 0)
+    if span_end <= span_start:
+        span_end = span_start + max(len(term.text), 1)
     return ExtractionItem(
         sentence_id=term.sentence_id,
         text=term.text,
-        span_start=0,
-        span_end=len(term.text),
+        span_start=span_start,
+        span_end=span_end,
         semantic_tag=term.semantic_tag,
         assertion=term.assertion,
-        confidence=1.0,
+        confidence=float(term.confidence),
         normalized=term.lookup_term,
         source_meta={"context": term.context, "modifiers": term.modifiers},
         source=source,
