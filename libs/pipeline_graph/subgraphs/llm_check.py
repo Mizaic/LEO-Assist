@@ -103,25 +103,34 @@ def _parse_json_result(raw: str) -> dict[str, Any]:
 
 
 def _resolve_prompt(mode: str, state: LLMCheckState) -> str:
+    prompt_name = "coding_check" if mode == "coding" else "extraction_check"
     cfg = state.get("prompt_config") or {}
     prompt = cfg.get("systemPrompt")
     if prompt:
-        return str(prompt)
+        from libs.prompts.registry import compose_prompt_with_annotation_guidelines
+
+        return compose_prompt_with_annotation_guidelines(prompt_name, str(prompt))
 
     try:
         from libs.prompts.registry import get_prompt
 
         if mode == "coding":
-            return get_prompt("coding_check", version=1)
-        return get_prompt("extraction_check", version=2)
+            return get_prompt(prompt_name, version=1)
+        return get_prompt(prompt_name, version=2)
     except Exception:
+        from libs.prompts.registry import compose_prompt_with_annotation_guidelines
+
         if mode == "coding":
             from libs.prompts.coding_check_v1 import CODING_CHECK_SYSTEM_V1
 
-            return CODING_CHECK_SYSTEM_V1
+            return compose_prompt_with_annotation_guidelines(
+                prompt_name, CODING_CHECK_SYSTEM_V1
+            )
         from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_SYSTEM_V2
 
-        return EXTRACTION_CHECK_SYSTEM_V2
+        return compose_prompt_with_annotation_guidelines(
+            prompt_name, EXTRACTION_CHECK_SYSTEM_V2
+        )
 
 
 def _resolve_span(encounter_text: str, needle: str) -> tuple[int, int]:

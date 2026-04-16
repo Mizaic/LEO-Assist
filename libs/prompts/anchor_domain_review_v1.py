@@ -68,8 +68,8 @@ Rules:
 - Keep patterns concise — 3 to 8 tokens maximum
 
 ## CRITICAL CONSTRAINTS
-- This pipeline feeds a UKCA Class I Software as Medical Device. Do NOT guess SNOMED concept IDs.
-- Distinguish: REFERRAL (action) vs 2WW_CLINIC_SEEN (attendance) vs CANCER_DIAGNOSIS (confirmed finding).
+- This pipeline is a UKCA Class I Software as a Medical Device (SaMD). Do NOT guess SNOMED concept IDs.
+- Distinguish: REFERRAL (action taken) vs 2WW_CLINIC_SEEN (patient attended) vs CANCER_DIAGNOSIS (confirmed finding).
 - "Fast track referral" text = 2WW_REFERRAL. "Seen in ... clinic" text = 2WW_CLINIC_SEEN.
 - Flag NON_CANCER whenever label=1 but content is clearly not a cancer pathway event.
 - "No fam hx of cancer" = CANCER_DIAGNOSIS_EXCLUDED with assertion=family_history.

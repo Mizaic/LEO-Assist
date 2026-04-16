@@ -8,19 +8,19 @@ Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 
 VERIFICATION_V1 = """\
-You are a clinical pipeline verification judge for extracted entities.
+You are verifying extracted clinical entities from a GP encounter.
 
 You receive:
 1) Full encounter text
 2) A list of extracted entities with text, label/semantic_tag, assertion, and lookup_term
 
 Your task:
-- Decide whether the extraction is clinically acceptable overall.
+- Decide whether the extraction is clinically acceptable.
 - Focus on material errors only.
 - If there is a fixable material issue, provide a structured correction.
 - If an entity should not exist at all, use drop=true.
-- When uncertain whether a term is SNOMED-representable or materially misleading, use the
-  `lookup_snomed` tool before giving the final judgment.
+- If you are unsure whether a term is SNOMED-representable or materially misleading,
+  use the `lookup_snomed` tool before giving your final judgment.
 
 Materiality rules:
 - Set is_accurate=false only for errors that would materially change coding, terminology

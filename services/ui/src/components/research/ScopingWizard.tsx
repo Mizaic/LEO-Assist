@@ -2,6 +2,7 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -9,11 +10,17 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import type { DetailLevel, MissionDescription, PersonaLens } from "@/lib/researchApi";
+import {
+  normalizeDetailLevel,
+  type DetailLevel,
+  type MissionDescription,
+  type PersonaLens,
+} from "@/lib/researchApi";
 import type { ScopingParams } from "./useResearchState";
 
 interface Props {
   open: boolean;
+  loading: boolean;
   mission: MissionDescription | null;
   lens: PersonaLens;
   scoping: ScopingParams;
@@ -79,6 +86,7 @@ const CONTEXT_OPTIONS: Array<{
 
 export default function ScopingWizard({
   open,
+  loading,
   mission,
   lens,
   scoping,
@@ -162,9 +170,11 @@ export default function ScopingWizard({
         {/* Question 3: How much detail? */}
         <ScopingQuestion label="How much detail?">
           <ToggleButtonGroup
-            value={scoping.detail}
+            value={normalizeDetailLevel(scoping.detail)}
             exclusive
-            onChange={(_, v) => v && onUpdate({ detail: v as DetailLevel })}
+            onChange={(_, v) =>
+              v != null && onUpdate({ detail: normalizeDetailLevel(v) })
+            }
             size="small"
             sx={{ flexWrap: "wrap", gap: 0.75 }}
           >
@@ -233,16 +243,22 @@ export default function ScopingWizard({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit">
+        <Button onClick={onClose} color="inherit" disabled={loading}>
           Cancel
         </Button>
         <Button
           onClick={onSubmit}
           variant="contained"
           disableElevation
-          sx={{ minWidth: 120 }}
+          disabled={loading}
+          startIcon={
+            loading ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : undefined
+          }
+          sx={{ minWidth: 148 }}
         >
-          Run investigation
+          {loading ? "Running..." : "Run investigation"}
         </Button>
       </DialogActions>
     </Dialog>

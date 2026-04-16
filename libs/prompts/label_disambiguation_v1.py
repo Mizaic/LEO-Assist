@@ -41,9 +41,9 @@ Boundary reminders:
 - Discharged from 2WW pathway = situation (clinical status change)
 - Smoking status, current smoker = finding (not attribute)
 - Lifestyle factors (diet, alcohol, exercise, weight, drives) = finding (not attribute)
-- Lab result values (142 mmol/L, 43 mL/min, 0.399, 28.8 pg) = qualifier_value (NEVER X_DOSAGE)
-- X_DOSAGE is ONLY for medication doses (240 mg, 20 mg daily)
-- Smoking consumption (1-9 cigs/day) = qualifier_value (NOT X_DOSAGE)
+- Lab result values (142 mmol/L, 43 mL/min, 0.399, 28.8 pg) = qualifier_value; NEVER X_DOSAGE
+- X_DOSAGE is only for drug doses (240 mg, 20 mg daily)
+- Smoking consumption (1-9 cigs/day) = qualifier_value (not X_DOSAGE)
 - Abnormal, Outside reference range, Satisfactory, NAD, weight stable = qualifier_value (not finding)
 - Bare analyte names (creatinine, albumin, folate, urea) near a lab test = qualifier_value
 - New Episode, Ongoing Episode = qualifier_value (not X_TEMPORAL)
@@ -51,10 +51,11 @@ Boundary reminders:
 - MDT outcome heading/document phrase = record_artifact
 - Severe, mild, worsened, pale, urgent = qualifier_value (severity/modifier)
 - ??, ??? = qualifier_value (uncertainty marker)
-- Negated concepts (no jaundice, no infection) = keep the BASE type (finding/disorder); negation is handled by post-processing
-- Planned/pending procedures (on waiting list, booked for, referred for, planned) = situation (SNOMED 405613005), NOT procedure
+- Negated concepts (no jaundice, no infection): keep the BASE type (finding/disorder); negation is handled by post-processing
+- Status phrases for planned items (on waiting list, awaiting appointment) = situation
+- Procedure nouns (colonoscopy, biopsy, mammogram) stay procedure even when planned/pending/cancelled
 - chemo, HRT, radiotherapy in treatment context = regime_therapy
-- "drop in eGFR from 24 to 19" = finding (narrative, NOT observable_entity)
+- "drop in eGFR from 24 to 19" = finding (narrative, not observable_entity)
 - Formal staging (FIGO IB1, Dukes C, Clark IV) = tumor_staging
 
 Rules:

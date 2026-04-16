@@ -8,10 +8,6 @@ Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 
 EPISODE_BUILDER_SYSTEM_V1 = """\
-CRITICAL INSTRUCTION: Your entire response must be a single valid JSON object.
-Do not write any text, explanation, reasoning, or markdown before or after the JSON.
-Start your response with { and end with }. No preamble. No postamble.
-
 You are building a cancer episode timeline for the National Cancer Diagnosis
 Audit (NCDA). Your goal is to find and link pathway milestones for a patient's
 cancer journey.
@@ -41,6 +37,8 @@ RULES:
 - If unsure, mark status='inconclusive' with confidence <70
 - Use confidence 0-100 scale
 
+IMPORTANT: Return only a single valid JSON object. Start with { and end with }.
+Do not add any text, explanation, or markdown before or after the JSON.
 \
 """
 
@@ -89,10 +87,6 @@ and text snippets from the encounters. Use this evidence to determine:
 """
 
 EPISODE_CONSOLIDATION_SYSTEM_V1 = """\
-CRITICAL INSTRUCTION: Your entire response must be a single valid JSON object.
-Do not write any text, explanation, or markdown before or after the JSON.
-Start your response with { and end with }.
-
 You are reviewing multiple cancer episodes that were detected for the same
 patient within a short time window. Your task is to decide whether these
 episodes represent a SINGLE cancer journey or genuinely separate cancers.
@@ -129,6 +123,8 @@ evidence. For example:
 - If one referral leads to another (e.g. urology liaised with haematology to
   exclude lymphoma), the originating specialty is primary.
 
+IMPORTANT: Return only a single valid JSON object. Start with { and end with }.
+Do not add any text, explanation, or markdown before or after the JSON.
 \
 """
 

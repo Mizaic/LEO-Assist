@@ -161,10 +161,15 @@ class LLMExtractorAdapter:
         self._dynamic_budget = max(0, self._max_few_shot - len(self._core_examples))
         self._few_shot_selector = FewShotSelector(dynamic_pool=dynamic_pool)
         self._few_shot_selector.warm()
+        from libs.prompts.registry import compose_prompt_with_annotation_guidelines
+
+        composed_prompt = compose_prompt_with_annotation_guidelines(
+            self._prompt_name, system_prompt
+        )
 
         # Assemble static system prompt from instructions/schema/core examples.
         self._system_prompt = assemble_system_prompt(
-            instructions=system_prompt,
+            instructions=composed_prompt,
             output_schema_json=output_schema_json,
             few_shot_examples=self._core_examples,
             provider=self._provider,

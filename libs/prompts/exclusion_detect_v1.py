@@ -64,6 +64,6 @@ not_relevant — The encounter has no bearing on the cancer referral pathway:
 4. "Seen in fast track suspected X cancer clinic" is about the referral pathway
    itself — classify based on what ELSE the encounter says about the outcome.
    If it only records the clinic visit with no result, it is still_investigating.
-5. Be conservative: only classify as cancer_excluded or cancer_confirmed when
-   there is genuine evidence. When uncertain, prefer still_investigating.\
+5. If you are unsure, use still_investigating. Only use cancer_excluded or
+   cancer_confirmed when the evidence is clear.\
 """

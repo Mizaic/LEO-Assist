@@ -25,6 +25,16 @@ class _LLM:
         return _Resp(self._text)
 
 
+class _CaptureLLM:
+    def __init__(self, text: str, sink: dict[str, str]):
+        self._text = text
+        self._sink = sink
+
+    def converse(self, **kwargs):
+        self._sink["system"] = kwargs.get("system", "")
+        return _Resp(self._text)
+
+
 def test_extraction_check_applies_drop_and_corrections(monkeypatch):
     payload = (
         '{"drop":[1],'
@@ -194,3 +204,25 @@ def test_extraction_check_applies_relation_updates(monkeypatch):
     assert any(r["type"] == "finding_site" for r in relations)
     assert any(r["type"] == "qualifies" for r in relations)
     assert out["relation_changes"]
+
+
+def test_extraction_check_prompt_config_is_composed_with_shared_guidelines(monkeypatch):
+    payload = '{"drop":[],"correct_assertion":[],"correct_label":[],"add":[]}'
+    captured: dict[str, str] = {}
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _CaptureLLM(payload, captured),
+    )
+    monkeypatch.setattr(
+        "libs.prompts.registry.compose_prompt_with_annotation_guidelines",
+        lambda name, text: f"{text}\n\n[shared-guidelines:{name}]",
+    )
+    graph = build_extraction_check_subgraph()
+    graph.invoke(
+        {
+            "encounter_text": "short text",
+            "entities": [{"text": "cough", "label": "finding", "assertion": "present"}],
+            "prompt_config": {"systemPrompt": "custom extraction check prompt"},
+        }
+    )
+    assert "[shared-guidelines:extraction_check]" in captured.get("system", "")

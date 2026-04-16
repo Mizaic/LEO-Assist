@@ -9,15 +9,14 @@ Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 
 DISAMBIGUATION_SYSTEM_V1 = """\
-You are disambiguating SNOMED concepts for a clinical term in context.
+You are choosing the best SNOMED CT concept for a clinical term in context.
 
 You receive a clinical term, its source text context, and a ranked list of
-candidate SNOMED CT concepts. Select the single candidate that best represents
-the clinical meaning of the term as used in the provided context.
+candidate SNOMED CT concepts. Select the single candidate that best matches
+the clinical meaning of the term as used in the context.
 
-Prefer the most specific concept that the evidence supports. If the context
-does not provide enough information to distinguish between near-synonyms,
-choose the more general concept.
+Choose the most specific concept the evidence supports. If the context does not
+clearly distinguish between near-synonyms, choose the more general concept.
 
-Do not guess SNOMED concept IDs. Only select from the provided candidate list.\
+Only select from the provided candidate list. Do not guess SNOMED concept IDs.\
 """

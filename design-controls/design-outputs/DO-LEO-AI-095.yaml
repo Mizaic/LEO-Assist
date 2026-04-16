@@ -65,6 +65,10 @@
         type: "safety"
         measurement: "Test"
         target: "Medication side-effect counselling lists are suppressed and not persisted as current findings"
+      - criterion: "Shared annotation guideline composition"
+        type: "safety"
+        measurement: "Test"
+        target: "extraction_check, coding_check, and relation_linking prompt resolvers compose canonical annotation_guidelines v1 even when prompt_config is provided in state or literal fallback is used"
 
   implementation:
     artifacts:
@@ -95,6 +99,14 @@
       - artifact_type: "source_code"
         location: "libs/prompts/relation_linking_v1.py"
         description: "Relation linking prompt and example library"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/annotation_guidelines_v1.py"
+        description: "Canonical shared annotation guideline block composed into quality-check and relation-linking prompt paths"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/registry.py"
+        description: "Prompt composition helper applies annotation_guidelines to extraction_check/coding_check/relation_linking families"
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/pipeline_graph/registry.py"

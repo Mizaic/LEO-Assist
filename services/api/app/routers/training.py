@@ -4935,6 +4935,34 @@ def get_gold_label_stats(
         client.close()
 
 
+@router.get("/annotation-guidelines")
+def get_annotation_guidelines(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return the canonical annotation guideline text used by prompt composition."""
+    from libs.prompts.registry import get_prompt_config
+
+    try:
+        cfg = get_prompt_config("annotation_guidelines", version=1)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503, detail=f"Annotation guidelines unavailable: {exc}"
+        ) from exc
+
+    return {
+        "name": cfg.get("name", "annotation_guidelines"),
+        "version": int(cfg.get("version", 1) or 1),
+        "guidelines": str(cfg.get("systemPrompt") or ""),
+        "applies_to": [
+            "extraction",
+            "label_verification",
+            "extraction_check",
+            "coding_check",
+            "relation_linking",
+        ],
+    }
+
+
 @router.get("/gold-labels/label-distribution")
 def get_gold_label_distribution(
     scope: CallerScope = Depends(get_caller_scope),

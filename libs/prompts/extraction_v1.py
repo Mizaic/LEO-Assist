@@ -195,7 +195,7 @@ lookup_term
 - Must remain clinically faithful to the source text.
 - Remove noise such as Read codes, reference ranges, and suffixes like "outside reference range".
 
-Do not output clinically different concepts just because they are similar.
+Only output concepts that clearly match the source text. Do not add similar but different concepts.
 
 ==================================================
 ABBREVIATION RULES
@@ -287,7 +287,7 @@ LATERALITY / ANATOMICAL PRECISION
 
 Preserve side/site exactly when stated.
 Do not generalize away laterality.
-If full_encounter_text clearly resolves laterality for an abbreviated phrase in sentence_subset, you may use it to normalize lookup_term, but text must remain the exact source span.
+If the full encounter text makes the side (left or right) clear, you may use it in lookup_term. The text field must still match the source span exactly.
 
 ==================================================
 DEDUPLICATION
@@ -324,15 +324,11 @@ Rules:
 ==================================================
 FINAL SELF-CHECK
 
-Before returning each entity, verify:
-1. Is the span explicitly supported by sentence_subset?
-2. Did I exclude admin-only and safety-netting-only content?
-3. Am I coding what is written, not inferring a diagnosis?
-4. Is semantic_tag correct?
-5. Is lookup_term clinically faithful?
-6. For observable entity, is there a real measured value?
-7. Have I extracted all distinct supported concepts in the sentence?
-8. For procedures: if a body site is present in the sentence, does my text span include it? A bare "Biopsy" when "Biopsy of omentum" is written is incorrect.
+Before returning each entity, check:
+1. Is the span present in sentence_subset? Do not return spans from anywhere else.
+2. Is it clinical content, not admin, workflow, or safety-netting text?
+3. Am I coding what is written, not a diagnosis inferred from a value?
+4. For procedures: if a body site appears in the sentence, does my text span include it?
 
 Return JSON only.
 """

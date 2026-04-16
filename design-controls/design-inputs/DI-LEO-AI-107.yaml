@@ -19,7 +19,11 @@
     extraction prompt SHALL NOT generate multiple entries for the same text
     span during fresh extraction; (6) the label verification prompt SHALL
     explicitly instruct the LLM to preserve multi-label annotations rather
-    than reducing them to a single semantic type.
+    than reducing them to a single semantic type; (7) a canonical shared
+    annotation guideline artifact SHALL be reused across extraction, label
+    verification, extraction_check, coding_check, and relation_linking prompt
+    composition so the same boundary policy applies end-to-end and remains
+    visible to human reviewers in the gold review workflow.
 
   rationale: >
     Single-label NER silently drops dual codings (e.g. medicinal_product +
@@ -37,6 +41,8 @@
         spec: "_record_to_spacy_doc() populates doc.spans['sc'] not doc.ents; entities at same token range both written"
       - type: "functional"
         spec: "base.cfg pipeline = ['transformer','spancat']; score_weights uses spans_sc_f"
+      - type: "performance"
+        spec: "ngram_range_suggester max_size >= p95 of gold-label token-length distribution (currently 10) so that at least 95% of curated training spans are proposable as candidates"
       - type: "functional"
         spec: "evaluator.py reads spans_sc_per_type and spans_sc_f instead of ents_per_type and ents_f"
       - type: "functional"
@@ -45,6 +51,10 @@
         spec: "normalise_entity_types only suppresses nested same-label span when normalized values are identical"
       - type: "safety"
         spec: "If 'sc' spans are absent (old model loaded), inference falls back to doc.ents and logs a warning; no exception"
+      - type: "functional"
+        spec: "PromptConfig annotation_guidelines v1 is seedable and composed into extraction, label_verification, extraction_check, coding_check, and relation_linking prompts"
+      - type: "usability"
+        spec: "Gold dataset review UI displays the same annotation_guidelines text used by prompt composition"
     constraints:
       - type: "safety"
         spec: "LLM extraction prompt rule 4 retains 'one semantic_tag per output entry'; LLM may not generate multi-label during fresh extraction"
@@ -57,6 +67,8 @@
     - "SNOMED coding completeness for ambiguous clinical events"
     - "Post-processing span deduplication behaviour"
     - "LLM label verification correctness"
+    - "Prompt consistency across extraction and quality-check subgraphs"
+    - "Reviewer annotation guidance visibility in gold dataset workflow"
 
   technical_details:
     language: "Python"
@@ -69,6 +81,10 @@
       - "libs/pipeline/post_processing.py"
       - "libs/prompts/extraction_v1.py"
       - "libs/prompts/label_verification_v2.py"
+      - "libs/prompts/annotation_guidelines_v1.py"
+      - "libs/prompts/registry.py"
+      - "services/api/app/routers/training.py"
+      - "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
     estimated_loc: 80
 
   verification:

@@ -895,6 +895,79 @@ const guidanceRuleExtraction: ProbeStrategy = {
 
 /* ── registry ───────────────────────────────────────────────────────── */
 
+const relationLinking: ProbeStrategy = {
+  icon: "🔗",
+  headline: (out, inp) => {
+    const before = arr(inp.entities).length;
+    const after = arr(out.entities).length;
+    const changes = arr(out.relation_changes).length;
+    const errs = arr(out.errors).length;
+    let h = `Linked relations on ${pl(before, "entity", "entities")}`;
+    if (changes > 0) h += ` — ${pl(changes, "relation")} added`;
+    if (before !== after) h += ` · ${before} → ${after} entities`;
+    if (errs > 0) h += ` · ${pl(errs, "error")}`;
+    return h;
+  },
+  Detail: ({ output, input, openInspector }) => {
+    const entities = arr(output.entities).filter(isRec) as Record<string, unknown>[];
+    const changes = arr(output.relation_changes).filter(isRec) as Record<string, unknown>[];
+    return (
+      <div style={{ display: "grid", gap: 8 }}>
+        <EntityDelta input={input} output={output} />
+        {changes.length > 0 && (
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.purple, marginBottom: 4 }}>
+              {pl(changes.length, "relation")} linked
+            </div>
+            <MiniTable
+              cols={["source", "relation_type", "target"]}
+              rows={changes}
+            />
+          </div>
+        )}
+        {entities.length > 0 && (
+          <MiniTable
+            cols={["text", "semantic_tag", "relations"]}
+            rows={entities}
+            onRow={(i) => openInspector(["entities", i])}
+          />
+        )}
+      </div>
+    );
+  },
+};
+
+const hitlQueue: ProbeStrategy = {
+  icon: "🧑‍⚕️",
+  headline: (out) => {
+    const written = typeof out.training_labels_written === "number"
+      ? out.training_labels_written
+      : arr(out.training_labels_written).length;
+    const errs = arr(out.errors).length;
+    let h = `${pl(written, "candidate")} queued for review`;
+    if (errs > 0) h += ` · ${pl(errs, "error")}`;
+    return h;
+  },
+  Detail: ({ output }) => {
+    const written = typeof output.training_labels_written === "number"
+      ? output.training_labels_written
+      : arr(output.training_labels_written).length;
+    const errs = arr(output.errors).filter(isRec);
+    return (
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ color: written > 0 ? C.green : C.dim, fontSize: 11 }}>
+          {written > 0
+            ? `${written} training candidate${written === 1 ? "" : "s"} written to HITL queue.`
+            : "No candidates written — nothing to queue."}
+        </div>
+        {errs.length > 0 && (
+          <MiniTable cols={["error"]} rows={errs} />
+        )}
+      </div>
+    );
+  },
+};
+
 export const PROBE_STRATEGIES: Record<string, ProbeStrategy> = {
   extraction,
   post_processing: postProcessing,
@@ -915,6 +988,9 @@ export const PROBE_STRATEGIES: Record<string, ProbeStrategy> = {
   rest_connector: restConnector,
   queue_publish: queuePublish,
   guidance_rule_extraction: guidanceRuleExtraction,
+  relation_linking: relationLinking,
+  hitl_ner_queue: hitlQueue,
+  hitl_coding_queue: hitlQueue,
 };
 
 /* ── target hint ────────────────────────────────────────────────────── */

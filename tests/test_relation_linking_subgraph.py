@@ -23,6 +23,16 @@ class _LLM:
         return _Resp(self._text)
 
 
+class _CaptureLLM:
+    def __init__(self, text: str, sink: dict[str, str]):
+        self._text = text
+        self._sink = sink
+
+    def converse(self, **kwargs):
+        self._sink["system"] = kwargs.get("system", "")
+        return _Resp(self._text)
+
+
 def test_relation_linking_adds_relations_and_lookup_term(monkeypatch):
     payload = (
         '{"relations":[{"head_idx":0,"tail_idx":1,"type":"finding_site","confidence":0.94}],'
@@ -69,3 +79,29 @@ def test_relation_linking_model_first_without_llm(monkeypatch):
     assert rels
     assert rels[0]["type"] == "finding_site"
     assert rels[0]["target_idx"] == 1
+
+
+def test_relation_linking_prompt_config_is_composed_with_shared_guidelines(monkeypatch):
+    payload = '{"relations":[],"suppress":[]}'
+    captured: dict[str, str] = {}
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _CaptureLLM(payload, captured),
+    )
+    monkeypatch.setattr(
+        "libs.prompts.registry.compose_prompt_with_annotation_guidelines",
+        lambda name, text: f"{text}\n\n[shared-guidelines:{name}]",
+    )
+    monkeypatch.setattr(relation_linking_mod, "_MODEL_CONFIDENCE_THRESHOLD", 0.99)
+    graph = build_relation_linking_subgraph()
+    graph.invoke(
+        {
+            "encounter_text": "note text",
+            "entities": [
+                {"text": "numbness", "label": "finding"},
+                {"text": "arm", "label": "body structure"},
+            ],
+            "prompt_config": {"systemPrompt": "custom relation prompt"},
+        }
+    )
+    assert "[shared-guidelines:relation_linking]" in captured.get("system", "")

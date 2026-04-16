@@ -20,17 +20,17 @@ SCOPE -- only flag issues within these SNOMED semantic tag categories:
 """
 
 _ASSERTIONS = """\
-ASSERTIONS -- the following are the only valid assertion values:
+ASSERTIONS -- valid values only:
   present   -- condition is active and currently relevant to this patient
   historical -- condition was present in the past; not active now
   absent    -- explicitly stated as absent (e.g. "no chest pain")
-  refuted   -- a previous coding is being corrected (rare)
-  possible  -- uncertain, under investigation (e.g. "? diabetes")
+  refuted   -- a previous coding was later overridden (rare)
+  possible  -- uncertain or under investigation (e.g. "? diabetes")
   family    -- present in a family member, not the patient
   declined  -- patient declined an offered intervention
-  cancelled -- a planned procedure or referral did not proceed
+  cancelled -- a planned procedure or referral did not go ahead
 
-NOTE: absent and family findings do NOT create patient-level shortcuts.
+absent and family findings do NOT create patient-level shortcuts.
 declined and cancelled findings are blocked from patient shortcuts.
 """
 
@@ -60,11 +60,11 @@ _SNOMED_SEARCH_RULES = """\
 SNOMED SEARCH PHRASE RULES:
 The "snomed_search" field must be a SHORT, NORMALISED clinical term (2-5 words max).
 It is passed directly to a SNOMED terminology server search API -- long phrases fail.
-  1. Extract ONE core clinical concept only -- never combine multiple conditions.
-  2. NEVER include assertion words: absent, present, historical, possible, family,
-     declined, normal, negative in the search string.
-  3. NEVER use "OR" -- pick the single most specific concept.
-  4. NEVER include drug names -- search the diagnosis instead.
+  1. One core clinical concept only. Never combine multiple conditions.
+  2. Never include assertion words: absent, present, historical, possible, family,
+     declined, normal, negative.
+  3. Never use "OR" -- pick the single most specific concept.
+  4. Never include drug names -- search the diagnosis instead.
   GOOD: "weight loss", "type 2 diabetes", "faecal immunochemical test positive"
   BAD:  "acute kidney injury absent" (assertion word in search)
   BAD:  "weight loss OR fatigue" (multiple concepts + OR)
@@ -72,113 +72,99 @@ If you cannot extract a 2-5 word normalised term, do NOT include the finding.
 """
 
 _DO_NOT_FLAG = """\
-DO NOT flag:
-- Administrative text: system routing headers, referral destination lines,
-  receptionist access logs, appointment scheduling text
+DO NOT flag these types of content:
+
+Admin and workflow:
+- System routing headers, referral destination lines, appointment scheduling text
+- Receptionist access logs, template prompts, or placeholder text
 - Concepts only in copy-pasted secondary care letters (coded separately)
-- Template prompts or placeholder text
-- Lifestyle factors already implied by a coded disorder
-- Individual drug names (metformin, ramipril, etc.) -- medications live in the
-  medication record. You MAY flag medication-related events and explicit diagnoses.
-- Absent findings in the "missing" list -- "no chest pain" must NEVER appear
-  in "missing". absent assertion is only valid in "wrong_assertion" corrections.
-- Diagnoses inferred from medication without explicit textual confirmation.
-- Normal/negative investigation results where the test procedure is already coded.
+
+Medications:
+- Individual drug names (metformin, ramipril) -- medications are in the medication
+  record. You MAY flag medication-related events and explicit diagnoses.
+- Diagnoses inferred from medication without explicit text to confirm them.
+
+Lab data:
 - Raw numeric lab values (MCH 30.4 pg, BMI 27.14 kg/m2) -- flag only the
   clinical interpretation if explicitly documented (e.g. "obesity").
-- Background history phrases if already coded (any assertion including historical).
-- Future/planned procedures: if the note says the patient WILL have a procedure
-  (e.g. "going for a cystoscopy on Tuesday", "scheduled for colonoscopy next
-  week"), do NOT include in "missing" with assertion=present -- the procedure
-  has not yet occurred. Mention it in verdict notes only.
+- Normal or negative investigation results where the procedure is already coded.
+- Absent findings in the "missing" list -- "no chest pain" must NEVER appear
+  in "missing". absent assertion is only valid in "wrong_assertion" corrections.
+
+History and problem list:
+- Background history phrases already coded (any assertion including historical).
+- Lifestyle factors already implied by a coded disorder.
+- Future or planned procedures: if the note says the patient WILL have a procedure
+  (e.g. "going for a cystoscopy on Tuesday"), do NOT put it in "missing" with
+  assertion=present. Mention it in verdict notes only.
 
 DO NOT flag as OVERCODED:
-- Laboratory observable entity codes (blood pressure, HbA1c, eGFR, etc.) --
-  written by structured lab pipelines, not derived from the encounter note.
-- Standard encounter type codes (GP surgery, telephone consultation, seen in
-  primary care establishment, consultation by multidisciplinary team) -- set
+- Laboratory observable entity codes (blood pressure, HbA1c, eGFR) -- written
+  by structured lab pipelines, not derived from the encounter note.
+- Standard encounter type codes (GP surgery, telephone consultation, MDT) -- set
   by the appointment system, not derived from the encounter note.
 - "History of X" situation codes where the note contains any historical reference.
 - "Normal appearance (finding)" and similar normal-result findings.
-- Problem-list codes (disorders, findings, situations) that are absent from THIS
-  encounter text but are part of the patient's ongoing problem list. A single
-  encounter not mentioning a condition does NOT justify removing that code.
-  Problem-list codes may only be flagged overcoded if the code is clearly wrong
-  or contradicted by explicit clinical evidence.
-- Codes on administrative encounters (repeat medication requests, CMHT routing
-  acceptances, referral routing headers, appointment confirmations). These contain
-  no clinical narrative and MUST NOT be used to justify deletion of standing codes.
+- Problem-list codes for conditions not mentioned in THIS encounter. One encounter
+  not mentioning a condition does not justify removing the code. Problem-list codes
+  may only be flagged overcoded when clearly wrong or contradicted by explicit evidence.
+- Codes on administrative encounters (repeat medication requests, routing headers,
+  appointment confirmations). Do not use admin-only notes to delete standing codes.
 """
 
 _TOOL_GUIDANCE = """\
 TOOL USAGE RULES:
-- ALWAYS call search_snomed before proposing any concept ID not already in the
-  coded list. Select from the returned candidates and explain your choice.
-- ALWAYS call lookup_concept before flagging an existing coded concept as wrong.
+- Call search_snomed before proposing any concept ID not already in the coded list.
+  Select from the returned candidates and explain your choice.
+- Call lookup_concept before flagging an existing coded concept as wrong.
 - If search_snomed or resolve_evidence returns ok=false, do NOT propose a new
-  concept ID -- omit that finding from the verdict entirely.
+  concept ID -- leave that finding out of the verdict.
 - Use get_patient_demographics and get_patient_problems to avoid false positives
   (e.g. do not flag a chronic condition as missing if it is on the problem list).
 - Use read_context when a phrase is ambiguous and you need surrounding sentences.
 - Call submit_verdict when you are ready to submit the final verdict.
 
-LOOKUP_CONCEPT RELIABILITY RULES:
-- If lookup_concept returns "unreliable": true, the terminology server cannot
-  confirm this concept ID. Do NOT flag the concept as overcoded on that basis
-  alone. If uncertain, call get_descendants on a known parent concept to verify
-  whether the coded concept ID is a legitimate child in the expected hierarchy.
+LOOKUP_CONCEPT RELIABILITY:
+- If lookup_concept returns "unreliable": true, the server cannot confirm this
+  concept ID. Do NOT flag the concept as overcoded on that basis alone. If unsure,
+  call get_descendants on a known parent to check whether the concept is a
+  legitimate child in the expected hierarchy.
 - If lookup_concept returns a semantic_tag that is clearly wrong for the clinical
-  context (e.g. "organism" or "virus" for what should be a disorder or situation
-  code), treat the result as unreliable. Do NOT act on it. Note the discrepancy.
+  context (e.g. "organism" when a disorder code is expected), treat the result as
+  unreliable. Note the discrepancy but do not act on it.
 - If lookup_concept returns a preferred_term containing "Extension Namespace",
   the server cannot verify the concept. Do not propose deletion on this basis.
 
-GET_DESCENDANTS USAGE:
-- Call get_descendants when you want to check if a coded concept is at the right
-  level of specificity (e.g. patient has "Diabetes mellitus" but should they have
-  "Type 2 diabetes mellitus"?).
-- Call get_descendants with semantic_tag="disorder" to find all disorder subtypes
-  under a broad parent, then compare against what is currently coded.
-- Do NOT call get_descendants before every lookup -- only use it when specificity
-  or hierarchy membership is genuinely in question.
+GET_DESCENDANTS:
+- Use when you need to check if a coded concept is at the right level of detail
+  (e.g. "Diabetes mellitus" vs "Type 2 diabetes mellitus").
+- Use with semantic_tag="disorder" to find all disorder subtypes under a broad
+  parent, then compare against what is coded.
+- Do not call before every lookup -- only use it when hierarchy membership or
+  specificity is genuinely in question.
 
-GET_RELATED_CONCEPTS USAGE:
-- Call get_related_concepts for observable entity or lab-result concepts to find
-  the associated procedures and findings (e.g. which procedure measures this
-  observable, which findings interpret it).
-- Not needed for most clinical coding audits; skip unless dealing with lab data.
+GET_RELATED_CONCEPTS:
+- Use for observable entity or lab-result concepts to find related procedures and
+  findings (e.g. which procedure measures this observable).
+- Not needed for most coding audits; skip unless dealing with lab data.
 
-FINDING THE BEST CONCEPT -- COMBINED STRATEGY:
-When a finding is clinically significant and the top search hit seems too broad
-or uncertain, combine tools in this order (counts as ONE iteration each):
+FINDING THE BEST CONCEPT:
+When the top search hit is too broad, use these steps in order (one iteration each):
   1. search_snomed("<specific term>", semantic_tag="<expected tag>")
-     -> examine candidates; if the top hit is a broad parent (e.g. "Referral")
-        rather than a specific child, proceed to step 2.
+     -- if the top hit is a broad parent, go to step 2.
   2. get_descendants("<broad parent concept_id>", semantic_tag="<expected tag>",
-     limit=30)
-     -> scan the children list for a term that matches the note text precisely.
-        If a child matches, use that concept_id in the verdict.
-  3. get_related_concepts("<concept_id>") -- ONLY for observable/lab concepts
-     -> confirm the procedure-observable-finding chain when coding a lab result.
+     limit=30) -- scan children for the term that matches the note.
+  3. get_related_concepts("<concept_id>") -- ONLY for observable/lab concepts.
 
-Apply this strategy when:
-- The note mentions a specific referral, procedure, or investigation and
-  search_snomed returns only a high-level parent concept.
-- A coded concept looks too broad given the note text (e.g. "Anxiety disorder"
-  when the note says "generalised anxiety disorder").
-- lookup_concept returns unreliable=true and you need an alternative route to
-  verify the concept is clinically legitimate.
-
-Do NOT apply this strategy for straightforward findings -- if search_snomed
-returns a clear, specific, high-scoring match, use it and submit_verdict.
-The 3-iteration limit is shared across ALL tool calls in the encounter.
+Use this only when search_snomed returns only a high-level concept, a coded
+concept looks too broad, or lookup_concept returns unreliable=true.
+For straightforward findings with a clear, specific match, use it and submit.
+The 3-iteration limit covers ALL tool calls in the encounter.
 
 MANDATORY SUBMISSION RULE:
-You MUST call submit_verdict within 3 tool iterations. Do not spend more than 3
-tool calls researching -- make your best judgement with available information and
-submit. Never respond with plain text after tool results -- always call a tool or
-submit_verdict. If you have reviewed the encounter and have no remaining questions,
-call submit_verdict immediately.
+You MUST call submit_verdict within 3 tool iterations. Make your best judgement
+with the available information and submit. Never respond with plain text after
+tool results -- always call a tool or submit_verdict.
 """
 
 _ASSESSMENT_DEFINITIONS = """\
@@ -203,32 +189,27 @@ uncertainty or tool failure.
 """
 
 _ADMIN_ENCOUNTER_RULES = """\
-ADMIN / NON-CLINICAL ENCOUNTERS -- IGNORE (NO NOISE):
-If the note is ONLY administration or workflow text with NO substantive clinical
-narrative in THIS encounter, do NOT generate audit or coding issues.
+ADMIN-ONLY ENCOUNTERS:
+If the note contains NO clinical narrative -- only admin or workflow text -- do
+NOT generate audit or coding issues.
 
-Examples of admin-only content: receptionist or secretary lines; appointment
-confirmations or reminders; routing or handoff headers with no clinical body;
-repeat prescription or medication requests with no prescriber review text;
-blank or template-only reason-for-contact fields; satisfaction surveys;
-kit or device collection messages; access-role logs.
+Admin-only content includes: receptionist lines; appointment confirmations or
+reminders; routing headers with no clinical body; repeat prescription requests
+with no prescriber review; blank or template-only reason-for-contact fields;
+satisfaction surveys; kit collection messages; access-role logs.
 
-When that applies (nothing in the note about symptoms, exam, diagnosis, plan,
-therapy change, safeguarding, referral decision with clinical reason, or
-investigation interpretation for THIS encounter):
+If nothing in the note covers symptoms, exam findings, diagnosis, plan, therapy
+change, safeguarding, referral decision with clinical reason, or investigation
+interpretation for THIS encounter:
 
-AUDIT MODE (mandatory):
-  - Set encounter_assessment to "no_clinical_content".
-  - Return "missing": [], "overcoded": [], "wrong_assertion": [].
-  - Do NOT flag problem-list codes as missing or overcoded.
-  - One short sentence in "notes" is enough.
+AUDIT MODE: set encounter_assessment to "no_clinical_content". Return empty
+arrays for missing, overcoded, and wrong_assertion. One short sentence in
+"notes" is enough.
 
-CODE MODE (mandatory):
-  - Use "no_clinical_content" with "entities": [] when there is nothing in scope
-    to code from the text.
+CODE MODE: use "no_clinical_content" with "entities": [].
 
-NEVER return "has_issues" just because problem-list codes are absent from an
-admin-only note. NEVER propose deleting standing codes on admin-only notes
+Do NOT return "has_issues" just because problem-list codes are absent from an
+admin-only note. Do NOT propose deleting standing codes on admin-only notes
 unless the text clearly contradicts a code.
 """
 

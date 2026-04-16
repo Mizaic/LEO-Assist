@@ -9,6 +9,7 @@ import {
   PersonaLens,
   RunResult,
   fetchMissions,
+  normalizeDetailLevel,
   pollMissionRun,
   startMissionRun,
 } from "@/lib/researchApi";
@@ -55,7 +56,7 @@ export interface ResearchState {
 
 const DEFAULT_SCOPING: ScopingParams = {
   area: "all",
-  period: "6m",
+  period: "12m",
   detail: "summary",
   context_filter: "current",
   confidence_min: 0.5,
@@ -143,7 +144,11 @@ export function useResearchState(): ResearchState {
   const submitRun = useCallback(
     async (overrides?: Partial<ScopingParams>) => {
       if (!activeMission) return;
-      const params = { ...scoping, ...overrides };
+      const params = {
+        ...scoping,
+        ...overrides,
+        detail: normalizeDetailLevel(overrides?.detail ?? scoping.detail),
+      };
       setRunLoading(true);
       setResult(null);
       setActiveRun(null);
@@ -169,6 +174,7 @@ export function useResearchState(): ResearchState {
         }
       } catch (err) {
         setRunLoading(false);
+        setScopingOpen(false);
         const msg = err instanceof Error ? err.message : "Run failed";
         setActiveRun({
           run_id: "",

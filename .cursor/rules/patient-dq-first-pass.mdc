@@ -1,0 +1,42 @@
+---
+description: Run dq_* MCP health checks before deep patient investigations
+alwaysApply: true
+---
+
+# Patient Investigation -- DQ First Pass
+
+Before deep patient/pathway investigations, run a quick first-pass using
+`user-leo-neo4j` `dq_*` tools to establish data quality context.
+
+## Minimum first-pass set
+
+1. `dq_patients_with_encounters_no_documents`
+2. `dq_coding_completeness_by_site_month`
+3. `dq_missing_milestone_chains`
+4. `dq_orphan_coded_encounters`
+5. `dq_stale_unactioned_safety_alerts`
+
+## When escalation or variation is in scope
+
+Also run:
+
+- `dq_escalation_yield_by_rule`
+- `dq_repeat_escalations_no_state_change`
+- `dq_escalation_parity_by_site`
+
+## When training or writeback quality is in scope
+
+Also run:
+
+- `dq_training_candidate_pipeline_health`
+- `dq_gold_label_conflicts`
+- `dq_writeback_effectiveness_drift`
+
+## Reporting format
+
+- Start with a concise \"DQ baseline\" section:
+  - key counts
+  - breaches vs thresholds
+  - top 1-3 risks
+- Then proceed to detailed investigation queries.
+- If a `dq_*` tool errors, state the failed tool and continue with the rest.

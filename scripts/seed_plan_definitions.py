@@ -726,7 +726,7 @@ def _to_ui_format(pd_def: dict) -> dict:
         ad_lookup = {a["id"]: a for a in ACTIVITY_DEFINITIONS}
         ad = ad_lookup.get(activity_id, {})
         dv = ad.get("dynamicValue", [])
-        config = {}
+        config: dict = {}
         for v in dv:
             path = v.get("path", "")
             expr = v.get("expression", {}).get("expression", "")
@@ -746,12 +746,29 @@ def _to_ui_format(pd_def: dict) -> dict:
             elif path == "model_tier":
                 config["modelTier"] = expr
             elif path == "max_retries":
-                config["maxRetries"] = int(expr) if expr.isdigit() else 2
+                config["maxRetries"] = int(expr) if str(expr).isdigit() else 2
             elif path == "confidence_threshold":
                 try:
                     config["confidenceThreshold"] = float(expr)
-                except ValueError:
+                except (TypeError, ValueError):
                     pass
+            elif path == "rules":
+                raw_rules = expr if isinstance(expr, list) else []
+                params = config.setdefault("params", {})
+                params["rules"] = [
+                    {
+                        "id": f"rule_{i}",
+                        "field": r.get("field", ""),
+                        "operator": r.get("operator", "=="),
+                        "value": str(r.get("value", "")).lower()
+                        if isinstance(r.get("value"), bool)
+                        else str(r.get("value", "")),
+                        "outputPort": r.get("outputPort", ""),
+                    }
+                    for i, r in enumerate(raw_rules)
+                ]
+            elif path == "defaultPort":
+                config.setdefault("params", {})["defaultPort"] = expr
 
         ui_actions.append(
             {
@@ -764,9 +781,16 @@ def _to_ui_format(pd_def: dict) -> dict:
             }
         )
 
+        # Build a set of sources that already have a typed edge (sourceHandle present)
+        # so the plain relatedAction fallback edge is not duplicated.
+        typed_edge_sources = {
+            rel.get("actionId", "")
+            for rel in act.get("relatedActionEdges", [])
+            if rel.get("actionId")
+        }
         for rel in act.get("relatedAction", []):
             source_id = rel.get("actionId", "")
-            if source_id:
+            if source_id and source_id not in typed_edge_sources:
                 ui_edges.append({"source": source_id, "target": act["id"]})
         for rel in act.get("relatedActionEdges", []):
             source_id = rel.get("actionId", "")

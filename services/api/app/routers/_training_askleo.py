@@ -42,26 +42,24 @@ class AskLeoSmartRequest(BaseModel):
 
 
 _ASSERTION_NOTES: dict[str, str] = {
-    "absent": "The entity was explicitly negated in this record. Coding is likely inappropriate.",
+    "absent": "The entity was explicitly negated in this record. Do not code it.",
     "declined": (
-        "The patient declined or refused this. Code the underlying procedure or referral "
-        "using its normal SNOMED concept -- do NOT search for 'patient declined [entity]'. "
-        "The system will store the code with assertion='declined' on the relationship so "
-        "the timeline shows it was offered but not accepted."
+        "The patient said no to this. Code the underlying procedure or referral as "
+        "normal -- do NOT search for 'patient declined [entity]'. "
+        "The system stores it with assertion='declined' so the record shows it was "
+        "offered but not accepted."
     ),
     "cancelled": (
-        "The appointment or procedure was cancelled (by patient or practice). Code the "
-        "underlying procedure using its normal SNOMED concept. The system will store the "
-        "code with assertion='cancelled' on the relationship."
+        "The appointment or procedure was cancelled. Code the underlying procedure "
+        "as normal. The system stores it with assertion='cancelled'."
     ),
     "refuted": (
-        "Initial impression overridden by subsequent investigation. "
-        "Code the entity that WAS confirmed using its normal SNOMED concept. "
-        "The refuted entity should NOT be coded."
+        "An earlier clinical impression was later ruled out by test results. "
+        "Code only what was confirmed. Do not code the original impression."
     ),
     "historical": "This may be a past event, not a current active condition.",
-    "planned": "This procedure was booked or referred -- it is confirmed but has not happened yet.",
-    "hypothetical": "This is a conditional or speculative future event -- it has not been arranged.",
+    "planned": "This procedure was booked or referred. It is confirmed but has not happened yet.",
+    "hypothetical": "This is a 'what if' event. It has not been booked or arranged yet.",
     "possible": "This was uncertain or suspected in the original record.",
     "family": "This applies to a family member, not the patient directly.",
 }
@@ -160,27 +158,24 @@ def register_askleo_routes(router) -> None:
             "You are a UK primary care SNOMED CT coding specialist.\n"
             "Pick the best concept from the numbered list for the clinical entity "
             "and encounter context.\n\n"
-            "CRITICAL RULES:\n"
-            "1. Only pick from the numbered list provided. Do not invent or "
-            "reference any SNOMED concept IDs -- the list already contains the "
-            "verified real codes.\n"
-            "2. Clinical subtype matters. For example:\n"
-            "   - 'weight loss' without a qualifier should map to the generic term, "
-            "not a specific subtype (intentional/unintentional/unexplained) unless "
-            "the encounter text clearly indicates which.\n"
-            "   - 'no weight loss' or 'weight loss absent' suggests negation; pick "
-            "the plain concept (the negation flag is handled separately).\n"
-            "3. Use measurement units to disambiguate lab results: g/L -> mass "
-            "concentration; mmol/L -> substance concentration.\n"
+            "RULES:\n"
+            "1. Only pick from the numbered list. Do not invent or reference any "
+            "SNOMED concept IDs -- the list already contains the verified real codes.\n"
+            "2. Clinical subtype matters:\n"
+            "   - 'weight loss' without a qualifier -> generic term, not a specific "
+            "subtype (intentional/unintentional/unexplained) unless the encounter "
+            "text is clear.\n"
+            "   - 'no weight loss' suggests negation; pick the plain concept "
+            "(negation is handled separately).\n"
+            "3. Use measurement units to distinguish lab results: "
+            "g/L -> mass concentration; mmol/L -> substance concentration.\n"
             "4. UK convention: blood tests are serum-based unless stated otherwise.\n"
-            "5. If no candidate clearly fits, pick the closest and set a lower "
+            "5. If no candidate clearly fits, pick the closest and note the lower "
             "confidence in your reason.\n"
             "6. Do NOT infer diagnoses from lab values. A lab result (eGFR, HbA1c, "
-            "creatinine, sodium, etc.) is an observation, NOT a diagnosis. 'CKD-EPI' "
-            "is a formula name, not CKD. If the encounter text is a lab result, pick "
-            "the observable entity concept, not a disorder concept.\n"
-            "7. This system is a CODING tool. You code what is written, not what is "
-            "inferred or recommended.\n\n"
+            "creatinine, sodium) is an observation, not a diagnosis. CKD-EPI is a "
+            "formula name, not CKD. Pick the observable entity concept for lab results.\n"
+            "7. This system is a CODING tool. You code what is written.\n\n"
             "Reply ONLY with JSON: "
             '{"selected_index": <int>, "reason": "<one sentence>"}'
         )

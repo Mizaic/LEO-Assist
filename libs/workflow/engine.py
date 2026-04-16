@@ -964,14 +964,23 @@ class WorkflowEngine:
         # Nodes saved before the scoped-id migration only have id; fall back
         # so those plans keep working until they are re-saved.
         action_id = action_node.get("canvas_id") or action_node["id"]
+        resolved_subgraph_id = (
+            ad_node["subgraphId"] if ad_node else action_node.get("subgraphId", "")
+        )
+        # Plans seeded before nodeType was stored on the Action node lack the
+        # property. Infer node_type from the resolved subgraph_id so that
+        # condition and trigger nodes still route correctly without a re-seed.
+        _SUBGRAPH_IMPLIES_NODE_TYPE = {"condition": "condition", "trigger": "trigger"}
+        raw_node_type = action_node.get("nodeType") or action_node.get("node_type", "")
+        node_type = raw_node_type or _SUBGRAPH_IMPLIES_NODE_TYPE.get(
+            resolved_subgraph_id, "action"
+        )
         return ActionDefinition(
             action_id=action_id,
-            subgraph_id=(
-                ad_node["subgraphId"] if ad_node else action_node.get("subgraphId", "")
-            ),
+            subgraph_id=resolved_subgraph_id,
             trigger_type=action_node.get("trigger_type", ""),
             trigger_name=action_node.get("trigger_name", ""),
-            node_type=action_node.get("nodeType", "action"),
+            node_type=node_type,
             condition=action_node.get("condition"),
             config=config,
             related_actions=action_node.get("relatedActions", []),

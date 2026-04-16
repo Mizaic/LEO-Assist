@@ -100,6 +100,7 @@ export default function PathwayExplorerWorkspace() {
       {/* Scoping wizard dialog */}
       <ScopingWizard
         open={state.scopingOpen}
+        loading={state.runLoading}
         mission={state.activeMission}
         lens={state.lens}
         scoping={state.scoping}

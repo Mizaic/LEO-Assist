@@ -37,6 +37,33 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 export type DetailLevel = "summary" | "detailed" | "everything";
 export type PersonaLens = "patients" | "pathways" | "capacity";
 
+/** Order matches the detail-level toggle row in ScopingWizard (index 0..2). */
+const DETAIL_LEVEL_ORDER: readonly DetailLevel[] = [
+  "summary",
+  "detailed",
+  "everything",
+];
+
+/**
+ * MUI ToggleButtonGroup can surface the selected index (0, 1, 2) instead of
+ * the string value in some cases. Coerce to a valid DetailLevel for the API.
+ */
+export function normalizeDetailLevel(value: unknown): DetailLevel {
+  if (value === "summary" || value === "detailed" || value === "everything") {
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const idx = Math.round(value);
+    if (idx >= 0 && idx < DETAIL_LEVEL_ORDER.length) {
+      return DETAIL_LEVEL_ORDER[idx];
+    }
+  }
+  if (value === "0" || value === "1" || value === "2") {
+    return DETAIL_LEVEL_ORDER[Number(value)];
+  }
+  return "summary";
+}
+
 export interface RunRequest {
   area: string;
   period: string;

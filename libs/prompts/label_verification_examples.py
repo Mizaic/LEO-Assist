@@ -22,6 +22,7 @@ Category taxonomy (extends extraction_examples.py):
   label-verify:boundary:find-dis  -- finding vs disorder boundary
   label-verify:boundary:obs-qual  -- observable_entity vs qualifier_value boundary
   label-verify:boundary:sub-proc  -- substance vs procedure boundary
+  label-verify:boundary:multi-label -- preserve intentional dual-labelled spans
   label-verify:negation           -- negated concept keeps its base type
   label-verify:new-span           -- missing span suggested as a new entity
 """
@@ -180,14 +181,14 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
     {
         "category": "label-verify:regime-therapy",
         "model_scope": "any",
-        "description": "Chemo shorthand - regime_therapy not substance",
+        "description": "Named regimen stays regime_therapy",
         "input": (
-            'Encounter: "Has discussed pros and cons of chemo with oncologist."\n'
-            'Entities: [{"entity_index": 0, "text": "chemo", "current_label": "substance"}]'
+            'Encounter: "Discussed CHOP regimen with oncology team."\n'
+            'Entities: [{"entity_index": 0, "text": "CHOP regimen", "current_label": "procedure"}]'
         ),
-        "output": '{"entities": [{"entity_index": 0, "suggested_label": "regime_therapy", "confidence": 0.90, "rule_triggered": "treatment_regimen_shorthand", "rationale": "Chemo is shorthand for a treatment regimen, not a bare substance name; regime_therapy is correct.", "is_new": false, "new_text": ""}]}',
+        "output": '{"entities": [{"entity_index": 0, "suggested_label": "regime_therapy", "confidence": 0.92, "rule_triggered": "named_regimen", "rationale": "CHOP regimen names a treatment regimen/course rather than the act of treatment, so regime_therapy is correct.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Situation ─────────────────────────────────────────────────────────────
+    # ── Situation / procedure status boundary ────────────────────────────────
     {
         "category": "label-verify:situation",
         "model_scope": "any",
@@ -199,14 +200,24 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "situation", "confidence": 0.93, "rule_triggered": "diagnostic_conclusion_status", "rationale": "Cancer ruled out is a clinical status statement (diagnostic conclusion); situation is correct.", "is_new": false, "new_text": ""}]}',
     },
     {
-        "category": "label-verify:situation",
+        "category": "label-verify:procedure",
         "model_scope": "any",
-        "description": "Planned procedure on waiting list - situation not procedure",
+        "description": "Planned colonoscopy keeps procedure label",
         "input": (
-            'Encounter: "Patient on waiting list for total knee replacement."\n'
-            'Entities: [{"entity_index": 0, "text": "on waiting list for total knee replacement", "current_label": "procedure"}]'
+            'Encounter: "Plan: colonoscopy planned next week."\n'
+            'Entities: [{"entity_index": 0, "text": "colonoscopy", "current_label": "situation"}]'
         ),
-        "output": '{"entities": [{"entity_index": 0, "suggested_label": "situation", "confidence": 0.94, "rule_triggered": "planned_procedure", "rationale": "Waiting list for a procedure not yet performed is situation (SNOMED 405613005 Planned procedure); procedure = performed.", "is_new": false, "new_text": ""}]}',
+        "output": '{"entities": [{"entity_index": 0, "suggested_label": "procedure", "confidence": 0.94, "rule_triggered": "procedure_status_preserved", "rationale": "Colonoscopy is the clinical action itself; planned timing should not change the semantic type from procedure.", "is_new": false, "new_text": ""}]}',
+    },
+    {
+        "category": "label-verify:boundary:multi-label",
+        "model_scope": "any",
+        "description": "2WW referral preserves intentional dual labels",
+        "input": (
+            'Encounter: "Happy to continue with 2WW referral under NHS."\n'
+            'Entities: [{"entity_index": 0, "text": "2WW referral", "current_label": "procedure"}, {"entity_index": 1, "text": "2WW referral", "current_label": "situation"}]'
+        ),
+        "output": '{"entities": [{"entity_index": 0, "suggested_label": "procedure", "confidence": 0.95, "rule_triggered": "preserve_existing_multilabel", "rationale": "This gold-annotated referral phrase can legitimately carry a procedure label; keep it rather than collapsing to a single type.", "is_new": false, "new_text": ""}, {"entity_index": 1, "suggested_label": "situation", "confidence": 0.95, "rule_triggered": "preserve_existing_multilabel", "rationale": "This gold-annotated referral phrase can also carry a pathway/status meaning; preserve both labels when the span is intentionally dual-labelled.", "is_new": false, "new_text": ""}]}',
     },
     # ── Negation: base type preserved ─────────────────────────────────────────
     {

@@ -6,6 +6,7 @@ pytest.importorskip("langgraph.graph")
 
 from libs.ner.extractor_contract import ExtractionItem
 from libs.pipeline_graph.subgraphs.extraction import extract_entities
+from libs.workflow.engine import WorkflowEngine
 
 
 def test_extract_entities_uses_ner_provider_when_requested(monkeypatch):
@@ -146,3 +147,66 @@ def test_extract_entities_raises_when_strict_model_version_error(monkeypatch):
                 ],
             }
         )
+
+
+# -- _record_to_action node_type inference tests ------------------------------
+
+
+def _make_record(action_props: dict, ad_props: dict | None):
+    """Minimal Neo4j-like record stub for _record_to_action."""
+
+    class _Node(dict):
+        pass
+
+    a = _Node(action_props)
+    ad = _Node(ad_props) if ad_props is not None else None
+    return {"a": a, "ad": ad}
+
+
+def test_record_to_action_condition_explicit_node_type():
+    """Action node with nodeType stored explicitly is respected."""
+    record = _make_record(
+        {"id": "act-1", "nodeType": "condition", "sequence": 5},
+        {"subgraphId": "condition", "dynamicValues": None},
+    )
+    action = WorkflowEngine._record_to_action(record)
+    assert action.node_type == "condition"
+    assert action.subgraph_id == "condition"
+
+
+def test_record_to_action_condition_inferred_from_subgraph_id():
+    """Stale Action node without nodeType gets node_type inferred from subgraph_id.
+
+    This is the regression fix for 'Unknown subgraph: condition' when a plan
+    was seeded before nodeType was stored on the Action node.
+    """
+    record = _make_record(
+        {"id": "act-extraction-route", "sequence": 5},
+        {"subgraphId": "condition", "dynamicValues": None},
+    )
+    action = WorkflowEngine._record_to_action(record)
+    assert action.node_type == "condition", (
+        "node_type should be inferred as 'condition' from subgraph_id "
+        "when the Action node lacks a nodeType property"
+    )
+
+
+def test_record_to_action_trigger_inferred_from_subgraph_id():
+    """Stale trigger Action node without nodeType gets node_type 'trigger'."""
+    record = _make_record(
+        {"id": "act-trigger", "sequence": 0},
+        {"subgraphId": "trigger", "dynamicValues": None},
+    )
+    action = WorkflowEngine._record_to_action(record)
+    assert action.node_type == "trigger"
+
+
+def test_record_to_action_ordinary_action_defaults_to_action():
+    """Regular action without nodeType defaults to 'action'."""
+    record = _make_record(
+        {"id": "act-extract", "sequence": 1},
+        {"subgraphId": "extraction", "dynamicValues": None},
+    )
+    action = WorkflowEngine._record_to_action(record)
+    assert action.node_type == "action"
+    assert action.subgraph_id == "extraction"

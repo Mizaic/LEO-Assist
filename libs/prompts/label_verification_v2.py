@@ -69,9 +69,11 @@ Allowed labels:
 
 Decision ladder (apply in order):
 1) Document/admin artifact or correspondence phrase -> record_artifact or event
-2) Risk/pending/excluded status statement -> situation (NOT for negated entities — \
+2) Risk/ruled-out/pathway-status statement -> situation (NOT for negated entities — \
 negated entities keep their base clinical type per the negation rules below)
-3) Treatment action phrase (administered/commenced/performed) -> procedure
+3) Clinical action / investigation / treatment phrase -> procedure, including \
+mentions that are planned, historical, hypothetical, absent, or under discussion \
+when the span still names the action itself
 4) Drug administration phrase (if span is the FULL administration phrase, e.g. \
 "Degarelix 240 mg SC injection administered") -> procedure. If the span is just \
 the drug name alone (e.g. "Degarelix") -> substance.
@@ -86,17 +88,22 @@ the drug name alone (e.g. "Degarelix") -> substance.
 13) Do NOT label negation tokens (no, denies, without) as entities — negation is handled by post-processing
 
 IMPORTANT — Negation is handled by post-processing, NOT by entity labels:
-- Do NOT label negation tokens (no, denies, without, nil, never) as entities at all
-- Negation context is detected automatically and stored as assertion=absent on the negated entity
+- Do NOT label negation tokens (no, denies, without, nil, never) as entities
+- Post-processing stores assertion=absent on the negated entity automatically
 - If you see a negated concept ("no jaundice"), label "jaundice" with its correct clinical type (finding/disorder) — the negation is handled separately
 - If an entity seems redundant or overlapping, keep its CORRECT clinical label — do not try to remove it by mislabeling
-- MULTI-LABEL SPANS: if the same surface text carries two or more semantic classifications (e.g. both "medicinal_product" and "procedure", or both "disorder" and "finding"), preserve ALL of them as separate entries. Do NOT reduce a multi-label span to a single semantic type. Multi-label annotations are clinically valid and intentional.
 
-CRITICAL — X_DOSAGE vs qualifier_value:
-- X_DOSAGE is STRICTLY for medication/drug doses: "240 mg", "1250 mg/m2 BD", "20 mg daily"
-- Lab result values are NEVER X_DOSAGE: "9 mg/L", "36 mmol/mol", "142 mmol/L", "0.399", "43 mL/min", "28.8 pg" -> qualifier_value
-- If the number+unit appears next to a lab test name (e.g., "Serum sodium level 142 mmol/L"), the value is qualifier_value
-- If the number+unit appears next to a drug name (e.g., "Degarelix 240 mg"), the value is X_DOSAGE
+IMPORTANT — Multi-label spans:
+- One span of text can have two or more correct labels. Keep all of them.
+- Do not reduce a multi-label span to a single semantic type.
+- Multi-label annotations are clinically valid and intentional.
+- Example: "2WW referral" can correctly be both "procedure" and "situation" at the same time.
+
+X_DOSAGE vs qualifier_value:
+- X_DOSAGE is only for drug doses: "240 mg", "1250 mg/m2 BD", "20 mg daily"
+- Lab result values are always qualifier_value: "9 mg/L", "142 mmol/L", "43 mL/min"
+- Number next to a drug name (e.g. "Degarelix 240 mg") -> X_DOSAGE
+- Number next to a lab test name (e.g. "Serum sodium level 142 mmol/L") -> qualifier_value
 
 CRITICAL — substance vs observable_entity for analyte names:
 - Bare analyte names (creatinine, albumin, phosphate, cholesterol) within lab result context are NOT standalone substance entities
@@ -126,14 +133,14 @@ Boundary rules:
   - "Degarelix" -> substance
   - "Degarelix 240 mg SC injection administered today" -> procedure (treatment action performed)
 - procedure vs situation for planned/pending procedures:
-  - procedure = PERFORMED or BEING PERFORMED ("Colonoscopy performed today")
-  - situation = PLANNED / PENDING / NOT YET DONE ("Patient on waiting list for op", "colonoscopy planned", "referred for MRI", "booked for surgery")
-  - SNOMED confirms: 405613005 | Planned procedure (situation) | — planned procedures are situations, not procedures
+  - procedure = the clinical action itself, even when context says planned / pending / historical / absent / hypothetical ("colonoscopy planned", "mammogram clear", "biopsy booked", "radiotherapy planned")
+  - situation = pathway / waiting-list / administrative status wording when the span expresses status rather than the action itself ("on waiting list", "discharged from pathway", "cancer ruled out")
+  - do NOT relabel a procedure noun to situation solely because it has not happened yet; the status belongs in assertion/context, not the semantic type
 - Pathway events use standard clinical labels — pathway significance is determined by the analytics pipeline:
   - "Discharged from 2WW pathway" -> situation (clinical status change)
   - "First cycle CHOP chemotherapy" -> procedure (treatment administered)
   - "Cancer ruled out" -> situation (diagnostic conclusion)
-  - "2WW referral" -> situation (pending referral)
+  - "2WW referral" -> preserve existing gold annotation; this phrase may legitimately be `procedure`, `situation`, or both when dual-labelled
 - finding vs attribute:
   - "Smoking status: current smoker" -> finding (clinical status statement)
   - Lifestyle factors (diet, alcohol, exercise, weight, drives) -> finding (not attribute)
@@ -150,7 +157,8 @@ Boundary rules:
 - Severity/modifier words (severe, mild, worsened, pale, urgent, minor) -> qualifier_value
 - Uncertainty markers (??, ???) -> qualifier_value (not X_NEGATION_CUE)
 - Treatment shorthands:
-  - "chemo" / "HRT" / "radiotherapy" in treatment context -> regime_therapy
+  - "chemo" / "chemotherapy" / "HRT" / "radiotherapy" in ordinary treatment context usually -> procedure
+  - use regime_therapy only when the span clearly names a regimen/course/category rather than the treatment act itself (for example "CHOP regimen")
   - Do NOT use substance for treatment regimen shorthand names
 - Narrative clinical descriptions are NOT observable_entity:
   - "drop in eGFR from 24 to 19" -> finding (narrative observation, not structured measurement)

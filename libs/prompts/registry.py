@@ -25,6 +25,18 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+_ANNOTATION_GUIDELINES_NAME = "annotation_guidelines"
+_ANNOTATION_GUIDELINES_VERSION = 1
+_ANNOTATION_TARGET_PROMPTS = frozenset(
+    {
+        "extraction",
+        "label_verification",
+        "extraction_check",
+        "coding_check",
+        "relation_linking",
+    }
+)
+
 
 def _neo4j_fetch(name: str, version: int) -> dict | None:
     """Fetch a PromptConfig row from Neo4j.
@@ -42,6 +54,46 @@ def _neo4j_fetch(name: str, version: int) -> dict | None:
         return dict(row) if row else None
     finally:
         client.close()
+
+
+def _load_annotation_guidelines_text() -> str:
+    """Return canonical annotation guidelines from Neo4j or code fallback."""
+    try:
+        row = _neo4j_fetch(_ANNOTATION_GUIDELINES_NAME, _ANNOTATION_GUIDELINES_VERSION)
+        if row:
+            text = str(row.get("systemPrompt") or "").strip()
+            if text:
+                return text
+    except Exception:
+        logger.debug("Could not load annotation_guidelines from Neo4j", exc_info=True)
+
+    try:
+        from libs.prompts.annotation_guidelines_v1 import ANNOTATION_GUIDELINES_V1
+
+        return str(ANNOTATION_GUIDELINES_V1).strip()
+    except Exception:
+        logger.debug(
+            "Could not load annotation_guidelines fallback constant", exc_info=True
+        )
+        return ""
+
+
+def compose_prompt_with_annotation_guidelines(name: str, prompt_text: str) -> str:
+    """Append canonical annotation guidelines to selected prompt families."""
+    base = str(prompt_text or "").strip()
+    if not base:
+        return base
+    if name not in _ANNOTATION_TARGET_PROMPTS:
+        return base
+    if name == _ANNOTATION_GUIDELINES_NAME:
+        return base
+
+    guidance = _load_annotation_guidelines_text()
+    if not guidance:
+        return base
+    if guidance in base:
+        return base
+    return f"{base}\n\n{guidance}"
 
 
 def get_prompt(name: str, version: int = 1) -> str:
@@ -65,7 +117,7 @@ def get_prompt(name: str, version: int = 1) -> str:
             f"Prompt {name!r} v{version} not found in Neo4j. "
             "Run: python -m scripts.seed_prompt_configs"
         )
-    return row["systemPrompt"]
+    return compose_prompt_with_annotation_guidelines(name, row["systemPrompt"])
 
 
 def get_prompt_with_few_shot(
@@ -122,7 +174,9 @@ def _normalise_prompt_config_row(
         "id": row.get("id", ""),
         "name": row.get("name", name),
         "version": int(row.get("version", version) or version),
-        "systemPrompt": row["systemPrompt"],
+        "systemPrompt": compose_prompt_with_annotation_guidelines(
+            name, row["systemPrompt"]
+        ),
         "outputSchema": row.get("outputSchema") or None,
         "fewShotExamples": examples,
         "maxFewShot": int(row.get("maxFewShot", 20) or 20),

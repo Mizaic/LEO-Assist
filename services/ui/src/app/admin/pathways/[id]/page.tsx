@@ -3679,18 +3679,24 @@ export default function PathwayBuilderPage() {
             .map((a, i) => {
               const cfg = hydrateActionConfig(a);
               configs[a.id] = cfg;
+              const resolvedNodeType = a.nodeType || cfg.nodeType || "action";
               return {
                 id: a.id,
-                type: a.nodeType || cfg.nodeType || "action",
+                type: resolvedNodeType,
                 position: a.position || { x: 250, y: 100 + i * 150 },
                 data: {
                   label: a.label || a.subgraphId,
                   subgraphId: a.subgraphId,
                   color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
-                  nodeType: a.nodeType || cfg.nodeType || "action",
+                  nodeType: resolvedNodeType,
                   config: cfg,
                   // Restore saved field mappings so output port handles appear immediately on load.
                   fieldMappings: (cfg.params.field_mappings as FieldMappingRow[]) ?? [],
+                  // For condition nodes, propagate rules and defaultPort so the node renders correctly.
+                  ...(resolvedNodeType === "condition" && {
+                    rules: cfg.params.rules ?? [],
+                    defaultPort: cfg.params.defaultPort ?? "else",
+                  }),
                   onConfigure: () => openConfigurator(a.id),
                 },
               };

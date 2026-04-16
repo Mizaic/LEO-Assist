@@ -661,10 +661,10 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | User Need | UN-LEO-AI-049 | draft | Coding quality monitoring loop extended with runtime LLM quality gates |
 | User Need | UN-LEO-AI-050 | draft | NER training feedback loop extended with extraction correction provenance |
 | Design Input | DI-LEO-AI-096 | draft | NER-first extraction route and deterministic non-evidence pre-filter |
-| Design Input | DI-LEO-AI-097 | draft | Pre-terminology relation_linking plus extraction quality check (drop/correct/add/relation fixes) with provenance, extraction condition routing to HITL queue, referral-procedure assertion guard, side-effect counselling suppression, gold-training write gating, sentence-level candidate entities_json persistence, and unsafe terminology mapping blocklist |
+| Design Input | DI-LEO-AI-097 | draft | Pre-terminology relation_linking plus extraction quality check (drop/correct/add/relation fixes) with provenance, extraction condition routing to HITL queue, referral-procedure assertion guard, side-effect counselling suppression, gold-training write gating, sentence-level candidate entities_json persistence, unsafe terminology mapping blocklist, and shared annotation-guideline prompt composition |
 | Design Input | DI-LEO-AI-098 | draft | Post-terminology coding quality check (drop/force_review), coding condition routing to HITL queue, tier override enforcement, and patient-graph hold on coding issues |
 | Design Output | DO-LEO-AI-094 | draft | Extraction routing, model provider integration, and sentence pre-filter implementation |
-| Design Output | DO-LEO-AI-095 | draft | relation_linking and extraction_check v2 subgraphs, extraction route condition branch, referral-procedure assertion guard, side-effect counselling suppression, candidate entities_json persistence, unsafe terminology mapping blocklist, and prompt seeding implementation |
+| Design Output | DO-LEO-AI-095 | draft | relation_linking and extraction_check v2 subgraphs, extraction route condition branch, referral-procedure assertion guard, side-effect counselling suppression, candidate entities_json persistence, unsafe terminology mapping blocklist, shared annotation-guideline composition in check/link prompt resolvers, and prompt seeding implementation |
 | Design Output | DO-LEO-AI-096 | draft | coding_check subgraph, coding route condition branch, tier override enforcement, coding HITL queue, and guarded persist routing |
 | Risk | R-LEO-AI-067 | analyzed | Extraction check may drop valid entities or add unsupported mentions |
 | Risk | R-LEO-AI-068 | analyzed | Coding check may suppress valid coded entities or over-escalate review |
@@ -687,6 +687,11 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | Design Output | DO-LEO-AI-104 | draft | label_exporter, evaluator, trainer, job_store, golden_set_queries, active learning API endpoints |
 | Risk | R-LEO-AI-072 | mitigated | Corrupt or non-present training data degrades NER model clinical coding accuracy |
 | Verification Test | VT-LEO-AI-106 | passed | 21 automated tests: span realign, assertion filter, per-label F1, warm-start fallback, golden gate |
+| User Need | UN-LEO-AI-061 | draft | Clinicians need NER to classify the same span under multiple SNOMED semantic types |
+| Design Input | DI-LEO-AI-107 | draft | Multi-label NER via spancat, refined nesting suppression, and canonical shared annotation-guideline reuse across prompt paths and reviewer UI |
+| Design Output | DO-LEO-AI-105 | draft | spancat config/export/inference updates plus shared annotation-guideline composition and Gold Dataset reviewer guidance surfaces |
+| Risk | R-LEO-AI-073 | analyzed | Spurious additional NER label inflates false positive SNOMED coding rate |
+| Verification Test | VT-LEO-AI-107 | passed | Multi-label export, inference fallback, refined nesting, and prompt-preservation checks |
 | User Need | UN-LEO-AI-062 | draft | Clinical reviewers need ontology-grounded relation linking for safe entity-to-entity semantics |
 | Design Input | DI-LEO-AI-108 | draft | Canonical relations, policy validation, multi-site links, relation export/train/eval, model-first runtime fallback |
 | Design Output | DO-LEO-AI-106 | draft | API/UI/runtime/training implementation for ontology-grounded relation modeling |

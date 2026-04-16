@@ -44,15 +44,22 @@ def _resolve_prompt(state: RelationLinkState) -> str:
     cfg = state.get("prompt_config") or {}
     prompt = cfg.get("systemPrompt")
     if prompt:
-        return str(prompt)
+        from libs.prompts.registry import compose_prompt_with_annotation_guidelines
+
+        return compose_prompt_with_annotation_guidelines(
+            "relation_linking", str(prompt)
+        )
     try:
         from libs.prompts.registry import get_prompt
 
         return get_prompt("relation_linking", version=1)
     except Exception:
+        from libs.prompts.registry import compose_prompt_with_annotation_guidelines
         from libs.prompts.relation_linking_v1 import RELATION_LINKING_SYSTEM_V1
 
-        return RELATION_LINKING_SYSTEM_V1
+        return compose_prompt_with_annotation_guidelines(
+            "relation_linking", RELATION_LINKING_SYSTEM_V1
+        )
 
 
 def _build_compound_lookup(head_text: str, tail_text: str) -> str:

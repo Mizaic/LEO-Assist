@@ -2,7 +2,7 @@
 # ISO 13485 / IEC 62304 Design Output
 
 - id: "DO-LEO-AI-105"
-  version: "1.0.0"
+  version: "1.1.0"
   type: "Software_Module"
   status: "draft"
 
@@ -15,12 +15,16 @@
   specification:
     title: "Multi-label NER - spancat component, layer 5 nesting refinement, prompt preservation"
     description: |
-      Seven coordinated changes to support multi-label span classification:
+      Eight coordinated changes to support multi-label span classification:
 
       1. base.cfg: pipeline switched from ["transformer","ner"] to
          ["transformer","spancat"]. NER component block replaced with
-         SpanCategorizer.v1 using ngram_suggester (sizes 1-5) and
-         TransformerListener. Score weights updated to spans_sc_f.
+         SpanCategorizer.v1 using ngram_range_suggester (min_size=1,
+         max_size=10) and TransformerListener. Score weights updated to
+         spans_sc_f. Suggester upgraded from ngram_suggester sizes=[1..5]
+         to ngram_range_suggester max_size=10 to cover entity spans up to
+         10 tokens (p95 of gold-label corpus), recovering 11.6% of training
+         spans that were silently dropped by the 5-token cap.
 
       2. label_exporter._record_to_spacy_doc(): seen_tokens dedup guard
          removed. doc.ents assignment replaced with doc.spans["sc"] so
@@ -45,6 +49,11 @@
       7. label_verification_v2.py: explicit multi-label preservation rule
          added so the LLM verifier does not reduce a dual-labelled span to
          a single semantic type during gold-label review.
+
+      8. Shared annotation guidelines: annotation_guidelines PromptConfig v1
+         is composed into extraction, label_verification, extraction_check,
+         coding_check, and relation_linking prompt paths, and the same text is
+         exposed in the Gold Dataset reviewer UI.
     acceptance_criteria:
       - criterion: "Multi-label span export"
         type: "functional"
@@ -62,12 +71,20 @@
         type: "safety"
         measurement: "Test"
         target: "Old model without 'sc' spans falls back to doc.ents; no exception raised"
+      - criterion: "Shared annotation guidance parity"
+        type: "safety"
+        measurement: "Test"
+        target: "Extraction, verification, extraction_check, coding_check, and relation_linking prompt paths all include annotation_guidelines v1"
+      - criterion: "Reviewer guidance visibility"
+        type: "usability"
+        measurement: "Test"
+        target: "Gold dataset page and review dialog render canonical annotation_guidelines text"
 
   implementation:
     artifacts:
       - artifact_type: "configuration"
         location: "services/training_worker/app/config/base.cfg"
-        description: "spancat component definition, ngram_suggester, spans_sc_f score weight"
+        description: "spancat component definition, ngram_range_suggester (min_size=1, max_size=10), spans_sc_f score weight"
       - artifact_type: "source_code"
         location: "services/training_worker/app/label_exporter.py"
         description: "_record_to_spacy_doc() - removed seen_tokens, uses doc.spans['sc']"
@@ -86,6 +103,18 @@
       - artifact_type: "source_code"
         location: "libs/prompts/label_verification_v2.py"
         description: "Multi-label preservation rule added"
+      - artifact_type: "source_code"
+        location: "libs/prompts/annotation_guidelines_v1.py"
+        description: "Canonical shared annotation guideline block"
+      - artifact_type: "source_code"
+        location: "libs/prompts/registry.py"
+        description: "Prompt composition helper injects shared annotation guidelines for target prompt families"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "Read-only endpoint exposes canonical annotation guidelines to reviewer UI"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+        description: "Reviewer-visible annotation guideline accordion and in-dialog guidance panel"
     storage_location: "git"
     technical_details:
       language: "Python"

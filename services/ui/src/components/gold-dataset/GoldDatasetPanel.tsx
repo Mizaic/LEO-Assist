@@ -43,7 +43,10 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import LinkIcon from "@mui/icons-material/Link";
 import NotInterestedIcon from "@mui/icons-material/NotInterested";
@@ -71,7 +74,7 @@ import GoldLabelRow from "@/components/gold-dataset/GoldLabelRow";
 import SimilarCandidatesBatch from "@/components/gold-dataset/SimilarCandidatesBatch";
 import SnomedInlineSearch from "@/components/gold-dataset/SnomedInlineSearch";
 import useKeyboardShortcuts from "@/components/gold-dataset/useKeyboardShortcuts";
-import type { SimilarCandidateItem } from "@/components/gold-dataset/goldDatasetTypes";
+import type { RejectedRelation, SimilarCandidateItem } from "@/components/gold-dataset/goldDatasetTypes";
 import { entityLabelColour } from "@/components/gold-dataset/goldDatasetUtils";
 
 // ---------------------------------------------------------------------------
@@ -108,6 +111,13 @@ interface SyntheticStats {
   synthetic_gold_labels: number;
   tag_breakdown: SyntheticTagCount[];
   tag_options: SyntheticTagOption[];
+}
+
+interface AnnotationGuidelinesResponse {
+  name: string;
+  version: number;
+  guidelines: string;
+  applies_to: string[];
 }
 
 interface ValuesetOption {
@@ -158,6 +168,7 @@ interface Entity {
   body_site_concept_id?: string;
   body_site_term?: string;
   relations?: EntityRelation[];
+  rejected_relations?: RejectedRelation[];
 }
 
 interface EntityRelation {
@@ -717,6 +728,418 @@ function DeleteCandidateDialog({
   );
 }
 
+// -- Annotation guidelines panel ------------------------------------------
+
+const _GUIDELINE_COLORS = [
+  "#5C6BC0",
+  "#039BE5",
+  "#00897B",
+  "#43A047",
+  "#FB8C00",
+  "#E53935",
+  "#8E24AA",
+  "#00ACC1",
+];
+
+interface _ParsedRule {
+  number: number;
+  title: string;
+  body: string;
+}
+
+function _parseAnnotationRules(text: string): _ParsedRule[] {
+  const rules: _ParsedRule[] = [];
+  let current: _ParsedRule | null = null;
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    const m = line.match(/^(\d+)\)\s+(.+)/);
+    if (m) {
+      if (current) rules.push(current);
+      current = { number: parseInt(m[1], 10), title: m[2].trim(), body: "" };
+    } else if (current && line && !line.startsWith("#") && !line.startsWith("Apply")) {
+      const stripped = line.replace(/^-\s+/, "");
+      current.body += (current.body ? "\n" : "") + stripped;
+    }
+  }
+  if (current) rules.push(current);
+  return rules;
+}
+
+function AnnotationGuidelinesPanel({
+  text,
+  defaultExpanded = false,
+}: {
+  text: string;
+  defaultExpanded?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultExpanded);
+  const [page, setPage] = useState(0);
+  const rules = _parseAnnotationRules(text);
+  const total = rules.length;
+  const rule = rules[page] ?? null;
+  const accent = rule
+    ? _GUIDELINE_COLORS[(rule.number - 1) % _GUIDELINE_COLORS.length]
+    : _GUIDELINE_COLORS[0];
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPage((p) => Math.max(0, p - 1));
+  };
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPage((p) => Math.min(total - 1, p + 1));
+  };
+  const handleDot = (e: React.MouseEvent, i: number) => {
+    e.stopPropagation();
+    setPage(i);
+  };
+
+  const _SPAN_LABEL_COLORS: Record<string, { bg: string; text: string }> = {
+    procedure: { bg: "#1565C0", text: "#fff" },
+    situation: { bg: "#6A1B9A", text: "#fff" },
+    finding: { bg: "#BF360C", text: "#fff" },
+    disorder: { bg: "#B71C1C", text: "#fff" },
+    observable_entity: { bg: "#0277BD", text: "#fff" },
+    qualifier_value: { bg: "#558B2F", text: "#fff" },
+    regime_therapy: { bg: "#E65100", text: "#fff" },
+    substance: { bg: "#004D40", text: "#fff" },
+  };
+
+  const _ASSERTION_COLORS: Record<string, string> = {
+    present: "#2E7D32",
+    absent: "#C62828",
+    planned: "#1565C0",
+    historical: "#795548",
+    hypothetical: "#6A1B9A",
+    possible: "#E65100",
+    family: "#37474F",
+  };
+
+  const _bodyLines = (body: string) =>
+    body.split("\n").map((line, i) => {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith(">> ")) {
+        const parts = trimmed.slice(3).split("|").map((s) => s.trim());
+        const spanText = parts[0] ?? "";
+        const rawLabels = (parts[1] ?? "")
+          .split("+")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+        const assertion = parts[2]?.trim().toLowerCase() ?? "";
+        const snomed = parts[3]?.replace(/^SNOMED:\s*/i, "").trim() ?? "";
+        return (
+          <Box
+            key={i}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 0.5,
+              mt: 0.75,
+              mb: 0.1,
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
+                px: 0.75,
+                py: 0.2,
+                bgcolor: "grey.100",
+                border: "1px solid",
+                borderColor: "grey.300",
+                borderRadius: 0.75,
+                fontSize: "0.71rem",
+                fontFamily: "monospace",
+                color: "text.primary",
+                fontWeight: 500,
+              }}
+            >
+              {spanText}
+            </Box>
+            <Box component="span" sx={{ color: "text.disabled", fontSize: "0.65rem", mx: 0.25 }}>
+              {"\u2192"}
+            </Box>
+            {rawLabels.map((lbl) => {
+              const c = _SPAN_LABEL_COLORS[lbl] ?? { bg: "#607D8B", text: "#fff" };
+              return (
+                <Box
+                  key={lbl}
+                  component="span"
+                  sx={{
+                    px: 0.75,
+                    py: 0.2,
+                    bgcolor: c.bg,
+                    color: c.text,
+                    borderRadius: 0.75,
+                    fontSize: "0.63rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  {lbl}
+                </Box>
+              );
+            })}
+            {assertion && (
+              <Box
+                component="span"
+                sx={{
+                  px: 0.75,
+                  py: 0.2,
+                  bgcolor: (_ASSERTION_COLORS[assertion] ?? "#607D8B") + "1a",
+                  color: _ASSERTION_COLORS[assertion] ?? "#607D8B",
+                  border: "1px solid",
+                  borderColor: (_ASSERTION_COLORS[assertion] ?? "#607D8B") + "44",
+                  borderRadius: 0.75,
+                  fontSize: "0.63rem",
+                  fontWeight: 600,
+                }}
+              >
+                {assertion}
+              </Box>
+            )}
+            {snomed && (
+              <Box
+                component="span"
+                sx={{
+                  px: 0.75,
+                  py: 0.2,
+                  bgcolor: "grey.50",
+                  border: "1px dashed",
+                  borderColor: "grey.400",
+                  borderRadius: 0.75,
+                  fontSize: "0.62rem",
+                  color: "text.disabled",
+                  fontFamily: "monospace",
+                }}
+              >
+                {snomed}
+              </Box>
+            )}
+          </Box>
+        );
+      }
+
+      const isExample = trimmed.toLowerCase().startsWith("example");
+      return (
+        <Box
+          key={i}
+          sx={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 0.5,
+            mt: isExample ? 0.6 : 0.1,
+          }}
+        >
+          {isExample && (
+            <Box
+              component="span"
+              sx={{
+                display: "inline-block",
+                px: 0.6,
+                py: 0.1,
+                borderRadius: 0.75,
+                bgcolor: accent + "22",
+                color: accent,
+                fontSize: "0.62rem",
+                fontWeight: 700,
+                lineHeight: 1.4,
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              eg.
+            </Box>
+          )}
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.72rem",
+              lineHeight: 1.5,
+              color: isExample ? "text.primary" : "text.secondary",
+              fontStyle: isExample ? "italic" : "normal",
+            }}
+          >
+            {isExample ? trimmed.replace(/^example:\s*/i, "") : trimmed}
+          </Typography>
+        </Box>
+      );
+    });
+
+  return (
+    <Box>
+      {/* Header / toggle bar */}
+      <Box
+        onClick={() => setOpen((v) => !v)}
+        role="button"
+        aria-expanded={open}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 1.5,
+          py: 0.85,
+          borderRadius: open ? "10px 10px 0 0" : "10px",
+          border: "1px solid",
+          borderBottom: open ? "none" : "1px solid",
+          borderColor: open ? "primary.200" : "grey.200",
+          bgcolor: open ? "primary.50" : "background.paper",
+          cursor: "pointer",
+          userSelect: "none",
+          transition: "background-color 0.15s, border-color 0.15s",
+          "&:hover": { bgcolor: "primary.50", borderColor: "primary.200" },
+        }}
+      >
+        <InfoOutlinedIcon sx={{ color: "primary.main", fontSize: 15, flexShrink: 0 }} />
+        <Typography
+          variant="body2"
+          sx={{ flex: 1, fontWeight: 600, fontSize: "0.78rem", color: "primary.main" }}
+        >
+          Annotation guidelines
+        </Typography>
+        <Chip
+          label={open ? `${page + 1} of ${total}` : `${total} rules`}
+          size="small"
+          sx={{
+            height: 18,
+            fontSize: "0.66rem",
+            bgcolor: open ? accent : "grey.200",
+            color: open ? "white" : "text.secondary",
+            transition: "background-color 0.2s",
+            "& .MuiChip-label": { px: 0.75 },
+          }}
+        />
+        <ExpandMoreIcon
+          sx={{
+            color: "primary.main",
+            fontSize: 16,
+            flexShrink: 0,
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s",
+          }}
+        />
+      </Box>
+
+      {/* Paged rule card */}
+      {open && rule && (
+        <Box
+          sx={{
+            border: "1px solid",
+            borderColor: "primary.100",
+            borderRadius: "0 0 10px 10px",
+            overflow: "hidden",
+            bgcolor: "background.paper",
+          }}
+        >
+          {/* Coloured top accent bar */}
+          <Box sx={{ height: 3, bgcolor: accent, transition: "background-color 0.25s" }} />
+
+          {/* Rule content */}
+          <Box sx={{ px: 2, pt: 1.5, pb: 1.25, minHeight: 120 }}>
+            <Stack direction="row" alignItems="flex-start" gap={1.5}>
+              <Box
+                sx={{
+                  minWidth: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  bgcolor: accent,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  mt: 0.1,
+                  transition: "background-color 0.25s",
+                  boxShadow: `0 2px 6px ${accent}55`,
+                }}
+              >
+                <Typography sx={{ fontSize: "0.65rem", color: "white", fontWeight: 800, lineHeight: 1 }}>
+                  {rule.number}
+                </Typography>
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 700, fontSize: "0.8rem", lineHeight: 1.4, color: "text.primary", mb: 0.5 }}
+                >
+                  {rule.title}
+                </Typography>
+                {rule.body && (
+                  <Box>{_bodyLines(rule.body)}</Box>
+                )}
+              </Box>
+            </Stack>
+          </Box>
+
+          {/* Navigation footer */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 1.5,
+              py: 0.75,
+              borderTop: "1px solid",
+              borderColor: "grey.100",
+              bgcolor: "grey.50",
+            }}
+          >
+            {/* Pill progress dots */}
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              {rules.map((_, i) => (
+                <Box
+                  key={i}
+                  onClick={(e) => handleDot(e, i)}
+                  sx={{
+                    width: i === page ? 18 : 6,
+                    height: 6,
+                    borderRadius: 3,
+                    bgcolor: i === page
+                      ? _GUIDELINE_COLORS[i % _GUIDELINE_COLORS.length]
+                      : "grey.300",
+                    cursor: "pointer",
+                    transition: "width 0.2s, background-color 0.2s",
+                    "&:hover": { bgcolor: i !== page ? "grey.400" : undefined },
+                  }}
+                />
+              ))}
+            </Stack>
+
+            {/* Prev / Next */}
+            <Stack direction="row" spacing={0.25} alignItems="center">
+              <IconButton
+                size="small"
+                onClick={handlePrev}
+                disabled={page === 0}
+                sx={{ width: 28, height: 28, color: "text.secondary" }}
+              >
+                <ChevronLeftIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+              <Typography
+                variant="caption"
+                sx={{ fontSize: "0.68rem", color: "text.disabled", minWidth: 32, textAlign: "center" }}
+              >
+                {page + 1} / {total}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={handleNext}
+                disabled={page === total - 1}
+                sx={{ width: 28, height: 28, color: "text.secondary" }}
+              >
+                <ChevronRightIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Stack>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+// -- End annotation guidelines panel ---------------------------------------
+
 function GoldLabelDetailDialog({
   item,
   onClose,
@@ -725,6 +1148,7 @@ function GoldLabelDetailDialog({
   onNextCandidate,
   onDeleteCandidate,
   markingGold,
+  annotationGuidelines,
 }: {
   item: GoldLabel;
   onClose: () => void;
@@ -733,6 +1157,7 @@ function GoldLabelDetailDialog({
   onNextCandidate?: () => void;
   onDeleteCandidate?: (suppressText: boolean) => void;
   markingGold?: boolean;
+  annotationGuidelines?: string | null;
 }) {
   const [entities, setEntities] = useState<Entity[]>(() => parseEntities(item.entities_json));
   const [saving, setSaving] = useState(false);
@@ -1709,6 +2134,11 @@ function GoldLabelDetailDialog({
             <Alert severity="info" sx={{ mb: 1.5 }} onClose={() => setShowShortcutHelp(false)}>
               Shortcuts: Enter = mark gold, A = accept all suggestions, N = next, Esc = close
             </Alert>
+          )}
+          {annotationGuidelines && (
+            <Box sx={{ mb: 1.5 }}>
+              <AnnotationGuidelinesPanel text={annotationGuidelines} defaultExpanded={false} />
+            </Box>
           )}
 
           {/* Sentence */}
@@ -2886,6 +3316,10 @@ export default function GoldDatasetPanel() {
 
   const [selectedItem, setSelectedItem] = useState<Candidate | GoldLabel | null>(null);
   const [healthRefreshKey, setHealthRefreshKey] = useState(0);
+  const [annotationGuidelines, setAnnotationGuidelines] = useState<string>("");
+  const [annotationGuidelinesError, setAnnotationGuidelinesError] = useState<string | null>(
+    null,
+  );
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2922,6 +3356,24 @@ export default function GoldDatasetPanel() {
   useEffect(() => {
     void loadStats();
   }, [loadStats]);
+
+  useEffect(() => {
+    let cancelled = false;
+    jsonFetch<AnnotationGuidelinesResponse>("/api/training/annotation-guidelines")
+      .then((payload) => {
+        if (cancelled) return;
+        setAnnotationGuidelines(String(payload.guidelines || "").trim());
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setAnnotationGuidelinesError(
+          err instanceof Error ? err.message : "Could not load annotation guidelines",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load valueset options once when the synthetic dialog is first opened
   useEffect(() => {
@@ -3484,6 +3936,11 @@ export default function GoldDatasetPanel() {
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, fontSize: "0.82rem" }}>
             Check each sentence, fix any wrong codes, then mark it as gold.
           </Typography>
+          {annotationGuidelinesError && (
+            <Typography variant="caption" color="warning.main" sx={{ display: "block", mt: 0.5 }}>
+              Annotation guide unavailable: {annotationGuidelinesError}
+            </Typography>
+          )}
         </Box>
         <Stack direction="row" spacing={1}>
           {tab === "candidates" && (
@@ -3517,6 +3974,11 @@ export default function GoldDatasetPanel() {
           </Tooltip>
         </Stack>
       </Stack>
+      {annotationGuidelines && (
+        <Box sx={{ mb: 1.5 }}>
+          <AnnotationGuidelinesPanel text={annotationGuidelines} defaultExpanded={false} />
+        </Box>
+      )}
 
       {/* Stats row */}
       {statsError && <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setStatsError(null)}>{statsError}</Alert>}
@@ -3815,6 +4277,7 @@ export default function GoldDatasetPanel() {
           item={selectedItem as GoldLabel}
           onClose={() => setSelectedItem(null)}
           onEntitiesChanged={() => void silentRefreshList()}
+          annotationGuidelines={annotationGuidelines}
         />
       )}
       {selectedItem && tab === "synthetic" && (
@@ -3822,6 +4285,7 @@ export default function GoldDatasetPanel() {
           item={selectedItem as GoldLabel}
           onClose={() => setSelectedItem(null)}
           onEntitiesChanged={() => void silentRefreshList()}
+          annotationGuidelines={annotationGuidelines}
         />
       )}
       {confirmGoldLabel && (
@@ -3856,6 +4320,7 @@ export default function GoldDatasetPanel() {
           item={candidateGoldLabel}
           onClose={() => setCandidateGoldLabel(null)}
           onEntitiesChanged={() => void silentRefreshList()}
+          annotationGuidelines={annotationGuidelines}
           onMarkGold={() => {
             setCandidateGoldLabel(null);
             void markCandidateAsGold(candidateGoldLabel.candidate_id ?? "");
@@ -3898,6 +4363,7 @@ export default function GoldDatasetPanel() {
           item={similarCandidateLabel}
           onClose={() => setSimilarCandidateLabel(null)}
           onEntitiesChanged={() => void silentRefreshList()}
+          annotationGuidelines={annotationGuidelines}
           onMarkGold={() => {
             const candidateId = similarCandidateLabel.candidate_id ?? "";
             setSimilarCandidateLabel(null);

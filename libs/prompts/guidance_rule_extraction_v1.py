@@ -33,16 +33,14 @@ You must NOT flatten distinct branches into one approximate list.
      factors or diagnoses not present in the recommendation.
 6. If the recommendation is a service standard with no patient-level trigger, \
    return `logic_tree: null` and `action: null`.
-7. For wording such as `suggestive of`, `suspicious of`, `raises suspicion of`,
-   or `consistent with`:
-   - If the phrase refers to a simple symptom (haemoptysis, weight loss, etc.),
-     keep it as a single `concept` leaf with broad `search_terms`.
-   - If the phrase refers to a composite examination finding ("chest signs
-     consistent with X", "signs compatible with Y", "mass consistent with Z"),
-     apply the clinical examination-sign decomposition pattern (see below) to
-     produce an `OR` subtree of specific codeable findings.
-   - Do not convert the patient criterion into a confirmed diagnosis unless the
-     recommendation itself is explicitly diagnostic.
+7. If NICE uses words like "suggestive of", "suspicious of", "raises suspicion of",
+   or "consistent with":
+   - For a simple symptom (haemoptysis, weight loss), use a single `concept` leaf
+     with broad `search_terms`.
+   - For a composite examination finding ("chest signs consistent with X",
+     "mass consistent with Z"), apply the examination-sign decomposition pattern
+     below to produce an `OR` subtree of specific codeable findings.
+   - Only use a confirmed diagnosis concept if the NICE text is explicitly diagnostic.
 
 ## Concept node rules
 

@@ -1,0 +1,28 @@
+---
+description: Use user-leo-neo4j MCP first for patient graph queries
+alwaysApply: true
+---
+
+# Patient Data -- MCP First
+
+For any request involving patient data, encounters, episodes, `:DOCUMENTS`,
+training candidates, gold labels, alerts, or pathway explorer investigations:
+
+1. Use the `user-leo-neo4j` MCP server first.
+2. Prefer named MCP tools (for example `list_patients`, `get_patient_episodes`,
+   `dq_*` tools) before raw Cypher.
+3. Use `run_cypher_patient` or `run_cypher_knowledge` only when no named tool
+   covers the question.
+4. Do not query Neo4j directly via ad-hoc shell/python when MCP is available.
+
+## If MCP is unavailable
+
+- State that MCP failed and why (for example auth or tool not found).
+- Ask to fix MCP connection or approval before using fallback queries.
+- If fallback is explicitly requested, note that results came from fallback.
+
+## Output discipline
+
+- Return counts, cohorts, and summaries by default.
+- Only return patient IDs/details when needed for the user task.
+- Never expose secrets, tokens, or credentials from config/env files.

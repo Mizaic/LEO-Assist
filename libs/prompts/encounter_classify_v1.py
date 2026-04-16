@@ -44,9 +44,9 @@ clinical — The GP, practice nurse, or HCA has performed a clinical assessment.
 
 ## Decision Rule
 
-Ask yourself: "Does this text show a clinician making a clinical decision or
-recording a clinical observation?" If NO → admin_only or document_transfer.
-If YES → clinical.
+Classify as clinical only when a clinician made a decision or recorded a
+clinical observation. If no such content exists, classify as admin_only or
+document_transfer.
 
 ## Domains (assign zero or more; empty list for non-clinical)
 

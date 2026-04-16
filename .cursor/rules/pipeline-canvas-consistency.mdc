@@ -1,0 +1,106 @@
+---
+description: Pipeline canvas consistency checks for subgraph, seed, and probe strategy changes
+globs: "{scripts/seed_plan_definitions.py,libs/pipeline_graph/**,services/ui/src/components/pathway/**,services/ui/src/app/admin/pathways/**}"
+alwaysApply: false
+---
+
+# Pipeline Canvas Consistency
+
+Any change to the pipeline subgraph registry, plan seed, or pathway UI must keep the
+following four artefacts in sync. Check all four before opening a PR.
+
+## 1. Subgraph registered in Python backend
+
+File: `libs/pipeline_graph/registry.py`
+
+Every subgraph has a unique string ID (e.g. `"relation_linking"`). When adding or
+renaming one, the same ID must propagate to all other artefacts below.
+
+## 2. Frontend catalogue (`subgraphs.ts`)
+
+File: `services/ui/src/components/pathway/config/subgraphs.ts`
+
+Four places must be updated for every new subgraph ID:
+
+| Location | What to add |
+|---|---|
+| `SUBGRAPH_OPTIONS_RAW` | `{ id, label, color, category, description }` |
+| `SUBGRAPH_IO` | `{ reads: [...], writes: [...], requiredFields?: {...} }` |
+| `SUBGRAPH_CATEGORY` | `id: "llm" | "persist" | "post_process" | "terminology" | "tier_classify" | "generic"` |
+| `inferDataType` arrayKeys | any new array-typed output keys |
+
+If any entry is missing, canvas nodes render grey with a raw ID label, IO validation is
+skipped, and the configurator panel falls back to the generic form.
+
+## 3. Probe strategy (`probeStrategies.tsx`)
+
+File: `services/ui/src/components/pathway/edges/probeStrategies.tsx`
+
+Add a `ProbeStrategy` entry to `PROBE_STRATEGIES` for every new subgraph ID.
+Reuse an existing strategy if the output shape is identical (e.g. `hitl_ner_queue`
+and `hitl_coding_queue` both reuse `hitlQueue`).
+
+Without a probe strategy the edge popup shows a blank "No results" panel after a
+test run.
+
+## 4. Seed script (`seed_plan_definitions.py`)
+
+File: `scripts/seed_plan_definitions.py`
+
+### Condition node configs
+`_to_ui_format` must encode `rules` and `defaultPort` into `config.params` so the
+canvas loads them correctly:
+
+```python
+elif path == "rules":
+    params = config.setdefault("params", {})
+    params["rules"] = [
+        {"id": f"rule_{i}", "field": r["field"], "operator": r["operator"],
+         "value": str(r.get("value","")).lower() if isinstance(r.get("value"), bool)
+                 else str(r.get("value","")),
+         "outputPort": r["outputPort"]}
+        for i, r in enumerate(expr if isinstance(expr, list) else [])
+    ]
+elif path == "defaultPort":
+    config.setdefault("params", {})["defaultPort"] = expr
+```
+
+### No duplicate edges
+When an action has BOTH `relatedAction` (generic link) and `relatedActionEdges`
+(typed handle link), emit only the typed edge. The dedup guard:
+
+```python
+typed_sources = {r["actionId"] for r in act.get("relatedActionEdges", []) if r.get("actionId")}
+for rel in act.get("relatedAction", []):
+    if rel["actionId"] not in typed_sources:
+        ui_edges.append({"source": rel["actionId"], "target": act["id"]})
+```
+
+### Condition node data on canvas load (`page.tsx`)
+When loading plan nodes, propagate `rules` and `defaultPort` into React Flow node
+`data` for condition nodes so `ConditionNode` renders the correct rule count:
+
+```typescript
+...(resolvedNodeType === "condition" && {
+  rules: cfg.params.rules ?? [],
+  defaultPort: cfg.params.defaultPort ?? "else",
+}),
+```
+
+## 5. Re-seed Neo4j after any seed change
+
+After editing `seed_plan_definitions.py`, always force-reseed the affected plans:
+
+```bash
+source .venv/bin/activate
+python3 -m scripts.seed_plan_definitions --force
+```
+
+Verify with:
+
+```bash
+curl -s http://localhost:8002/fhir/PlanDefinition/pd-gp-encounter-coding \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d['edges']), 'edges,', len(d['actions']), 'actions')"
+```
+
+Expected output for the GP plan: `17 edges, 18 actions` (including the `__source__` node).

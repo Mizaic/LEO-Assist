@@ -10,8 +10,6 @@ import logging
 from collections import Counter
 from typing import Any, Dict, List
 
-from libs.auth.org_scope import CallerScope
-from libs.neo4j_client.client import PatientGraphClient
 from services.analytics_api.app.services.algorithm_runner_helpers import (
     AlgorithmResult,
     _ensure_projection,
@@ -33,13 +31,24 @@ logger = logging.getLogger(__name__)
 
 
 def _run_critical(
-    client, scope, area, period, detail, limit, scope_label, patient_id=None,
-    confidence_min=0.5, context_filter="current",
+    client,
+    scope,
+    area,
+    period,
+    detail,
+    limit,
+    scope_label,
+    patient_id=None,
+    confidence_min=0.5,
+    context_filter="current",
 ) -> AlgorithmResult:
     """PageRank on condition co-occurrence -> most important conditions."""
     _ensure_projection(
-        client, scope, PROJ_CONDITION_COOCCUR,
-        confidence_min=confidence_min, context_filter=context_filter,
+        client,
+        scope,
+        PROJ_CONDITION_COOCCUR,
+        confidence_min=confidence_min,
+        context_filter=context_filter,
     )
     gds = _gds_client_from_env()
     coverage = _get_coverage(client, scope, area, period)
@@ -48,7 +57,9 @@ def _run_critical(
     try:
         g = gds.graph.get(PROJ_CONDITION_COOCCUR)
         pr_df = gds.pageRank.stream(
-            g, dampingFactor=0.85, maxIterations=20,
+            g,
+            dampingFactor=0.85,
+            maxIterations=20,
             relationshipWeightProperty="weight",
         )
         rows = pr_df.nlargest(limit, "score").to_dict("records")
@@ -63,21 +74,37 @@ def _run_critical(
     items = _enrich_evidence_text(client, items)
     headline = generate_headline("critical", items, scope_label, detail)
     return AlgorithmResult(
-        mission_id="critical", headline=headline, items=items,
-        total_count=len(items), coverage=coverage,
-        method_plain=method["plain"], method_technical=method["technical"],
-        next_steps=NEXT_STEPS["critical"], detail_level=detail,
+        mission_id="critical",
+        headline=headline,
+        items=items,
+        total_count=len(items),
+        coverage=coverage,
+        method_plain=method["plain"],
+        method_technical=method["technical"],
+        next_steps=NEXT_STEPS["critical"],
+        detail_level=detail,
     )
 
 
 def _run_busiest(
-    client, scope, area, period, detail, limit, scope_label, patient_id=None,
-    confidence_min=0.5, context_filter="current",
+    client,
+    scope,
+    area,
+    period,
+    detail,
+    limit,
+    scope_label,
+    patient_id=None,
+    confidence_min=0.5,
+    context_filter="current",
 ) -> AlgorithmResult:
     """Degree centrality on condition co-occurrence -> most-connected conditions."""
     _ensure_projection(
-        client, scope, PROJ_CONDITION_COOCCUR,
-        confidence_min=confidence_min, context_filter=context_filter,
+        client,
+        scope,
+        PROJ_CONDITION_COOCCUR,
+        confidence_min=confidence_min,
+        context_filter=context_filter,
     )
     gds = _gds_client_from_env()
     coverage = _get_coverage(client, scope, area, period)
@@ -86,7 +113,8 @@ def _run_busiest(
     try:
         g = gds.graph.get(PROJ_CONDITION_COOCCUR)
         dc_df = gds.degree.stream(
-            g, orientation="UNDIRECTED",
+            g,
+            orientation="UNDIRECTED",
             relationshipWeightProperty="weight",
         )
         rows = dc_df.nlargest(limit, "score").to_dict("records")
@@ -101,21 +129,37 @@ def _run_busiest(
     items = _enrich_evidence_text(client, items)
     headline = generate_headline("busiest", items, scope_label, detail)
     return AlgorithmResult(
-        mission_id="busiest", headline=headline, items=items,
-        total_count=len(items), coverage=coverage,
-        method_plain=method["plain"], method_technical=method["technical"],
-        next_steps=NEXT_STEPS["busiest"], detail_level=detail,
+        mission_id="busiest",
+        headline=headline,
+        items=items,
+        total_count=len(items),
+        coverage=coverage,
+        method_plain=method["plain"],
+        method_technical=method["technical"],
+        next_steps=NEXT_STEPS["busiest"],
+        detail_level=detail,
     )
 
 
 def _run_bridges(
-    client, scope, area, period, detail, limit, scope_label, patient_id=None,
-    confidence_min=0.5, context_filter="current",
+    client,
+    scope,
+    area,
+    period,
+    detail,
+    limit,
+    scope_label,
+    patient_id=None,
+    confidence_min=0.5,
+    context_filter="current",
 ) -> AlgorithmResult:
     """Betweenness Centrality on condition co-occurrence -> bridge conditions."""
     _ensure_projection(
-        client, scope, PROJ_CONDITION_COOCCUR,
-        confidence_min=confidence_min, context_filter=context_filter,
+        client,
+        scope,
+        PROJ_CONDITION_COOCCUR,
+        confidence_min=confidence_min,
+        context_filter=context_filter,
     )
     gds = _gds_client_from_env()
     coverage = _get_coverage(client, scope, area, period)
@@ -123,9 +167,7 @@ def _run_bridges(
 
     try:
         g = gds.graph.get(PROJ_CONDITION_COOCCUR)
-        bc_df = gds.betweenness.stream(
-            g, relationshipWeightProperty="weight"
-        )
+        bc_df = gds.betweenness.stream(g, relationshipWeightProperty="weight")
         rows = bc_df.nlargest(limit, "score").to_dict("records")
     finally:
         gds.close()
@@ -138,16 +180,29 @@ def _run_bridges(
     items = _enrich_evidence_text(client, items)
     headline = generate_headline("bridges", items, scope_label, detail)
     return AlgorithmResult(
-        mission_id="bridges", headline=headline, items=items,
-        total_count=len(items), coverage=coverage,
-        method_plain=method["plain"], method_technical=method["technical"],
-        next_steps=NEXT_STEPS.get("bridges", []), detail_level=detail,
+        mission_id="bridges",
+        headline=headline,
+        items=items,
+        total_count=len(items),
+        coverage=coverage,
+        method_plain=method["plain"],
+        method_technical=method["technical"],
+        next_steps=NEXT_STEPS.get("bridges", []),
+        detail_level=detail,
     )
 
 
 def _run_missing(
-    client, scope, area, period, detail, limit, scope_label, patient_id=None,
-    confidence_min=0.5, context_filter="current",
+    client,
+    scope,
+    area,
+    period,
+    detail,
+    limit,
+    scope_label,
+    patient_id=None,
+    confidence_min=0.5,
+    context_filter="current",
 ) -> AlgorithmResult:
     """Adamic-Adar link prediction -> likely missing condition co-occurrences.
 
@@ -182,8 +237,12 @@ def _run_missing(
         rows = []
 
     items = [
-        {"node_a": int(r["node_a"]), "node_b": int(r["node_b"]),
-         "score": float(r["score"]), "rank": i + 1}
+        {
+            "node_a": int(r["node_a"]),
+            "node_b": int(r["node_b"]),
+            "score": float(r["score"]),
+            "rank": i + 1,
+        }
         for i, r in enumerate(rows)
     ]
 
@@ -208,21 +267,37 @@ def _run_missing(
 
     headline = generate_headline("missing", items, scope_label, detail)
     return AlgorithmResult(
-        mission_id="missing", headline=headline, items=items,
-        total_count=len(items), coverage=coverage,
-        method_plain=method["plain"], method_technical=method["technical"],
-        next_steps=NEXT_STEPS["missing"], detail_level=detail,
+        mission_id="missing",
+        headline=headline,
+        items=items,
+        total_count=len(items),
+        coverage=coverage,
+        method_plain=method["plain"],
+        method_technical=method["technical"],
+        next_steps=NEXT_STEPS["missing"],
+        detail_level=detail,
     )
 
 
 def _run_teams(
-    client, scope, area, period, detail, limit, scope_label, patient_id=None,
-    confidence_min=0.5, context_filter="current",
+    client,
+    scope,
+    area,
+    period,
+    detail,
+    limit,
+    scope_label,
+    patient_id=None,
+    confidence_min=0.5,
+    context_filter="current",
 ) -> AlgorithmResult:
     """Label Propagation -> tightly-knit condition groups."""
     _ensure_projection(
-        client, scope, PROJ_CONDITION_COOCCUR,
-        confidence_min=confidence_min, context_filter=context_filter,
+        client,
+        scope,
+        PROJ_CONDITION_COOCCUR,
+        confidence_min=confidence_min,
+        context_filter=context_filter,
     )
     gds = _gds_client_from_env()
     coverage = _get_coverage(client, scope, area, period)
@@ -244,23 +319,40 @@ def _run_teams(
         for cid in top_communities
     }
     items: List[Dict[str, Any]] = [
-        {"community_id": cid, "size": community_sizes[cid],
-         "node_ids": community_members[cid][:5], "rank": i + 1}
+        {
+            "community_id": cid,
+            "size": community_sizes[cid],
+            "node_ids": community_members[cid][:5],
+            "rank": i + 1,
+        }
         for i, cid in enumerate(top_communities)
     ]
     items = _enrich_snomed_labels(client, items)
     headline = generate_headline("teams", items, scope_label, detail)
     return AlgorithmResult(
-        mission_id="teams", headline=headline, items=items,
-        total_count=len(items), coverage=coverage,
-        method_plain=method["plain"], method_technical=method["technical"],
-        next_steps=NEXT_STEPS["teams"], detail_level=detail,
+        mission_id="teams",
+        headline=headline,
+        items=items,
+        total_count=len(items),
+        coverage=coverage,
+        method_plain=method["plain"],
+        method_technical=method["technical"],
+        next_steps=NEXT_STEPS["teams"],
+        detail_level=detail,
     )
 
 
 def _run_bottleneck(
-    client, scope, area, period, detail, limit, scope_label, patient_id=None,
-    confidence_min=0.5, context_filter="current",
+    client,
+    scope,
+    area,
+    period,
+    detail,
+    limit,
+    scope_label,
+    patient_id=None,
+    confidence_min=0.5,
+    context_filter="current",
 ) -> AlgorithmResult:
     """Shortest path + temporal gap -> where patients wait longest."""
     coverage = _get_coverage(client, scope, area, period)
@@ -282,19 +374,20 @@ def _run_bottleneck(
     rows = client.run(
         f"MATCH (p:Patient) {scope_where} "
         "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        # Guard against empty/null referral_date before calling date()
+        "WHERE ep.referral_date IS NOT NULL AND trim(ep.referral_date) <> '' "
+        "WITH p, ep, date(ep.referral_date) AS ref_date "
+        "WHERE ref_date >= date() - duration({months: $months}) "
         "MATCH (e1:Encounter)-[r1:IS_PART_OF]->(ep) "
         "MATCH (e2:Encounter)-[r2:IS_PART_OF]->(ep) "
-        "WHERE r1.milestone_type IS NOT NULL "
-        "  AND r2.milestone_type IS NOT NULL "
+        "WHERE r1.milestone_type IS NOT NULL AND trim(r1.milestone_type) <> '' "
+        "  AND r2.milestone_type IS NOT NULL AND trim(r2.milestone_type) <> '' "
         "  AND e1.date IS NOT NULL AND e2.date IS NOT NULL "
         "  AND e2.date > e1.date "
-        "  AND ep.referral_date >= date() - duration({months: $months}) "
-        "WITH r1.milestone_type AS from_milestone, "
-        "     r2.milestone_type AS to_milestone, "
-        "     duration.inDays(date(toString(e1.date)), "
-        "                     date(toString(e2.date))).days AS wait_days, "
+        "WITH r2.milestone_type AS label, "
+        "     duration.inDays(date(e1.date), date(e2.date)).days AS wait_days, "
         "     p.id AS patient_id "
-        "WITH to_milestone AS label, "
+        "WITH label, "
         "     avg(wait_days) AS avg_wait_days, "
         "     count(DISTINCT patient_id) AS patient_count "
         "ORDER BY avg_wait_days DESC "
@@ -304,20 +397,27 @@ def _run_bottleneck(
     )
 
     items = [
-        {"label": row["label"] or "Unknown step",
-         "avg_wait_days": float(row["avg_wait_days"] or 0),
-         "patient_count": int(row["patient_count"] or 0),
-         "is_bottleneck": (row["avg_wait_days"] or 0) >= 14,
-         "rank": i + 1}
+        {
+            "label": row["label"] or "Unknown step",
+            "avg_wait_days": float(row["avg_wait_days"] or 0),
+            "patient_count": int(row["patient_count"] or 0),
+            "is_bottleneck": (row["avg_wait_days"] or 0) >= 14,
+            "rank": i + 1,
+        }
         for i, row in enumerate(rows)
     ]
 
     headline = generate_headline("bottleneck", items, scope_label, detail)
     return AlgorithmResult(
-        mission_id="bottleneck", headline=headline, items=items,
-        total_count=len(items), coverage=coverage,
-        method_plain=method["plain"], method_technical=method["technical"],
-        next_steps=NEXT_STEPS["bottleneck"], detail_level=detail,
+        mission_id="bottleneck",
+        headline=headline,
+        items=items,
+        total_count=len(items),
+        coverage=coverage,
+        method_plain=method["plain"],
+        method_technical=method["technical"],
+        next_steps=NEXT_STEPS["bottleneck"],
+        detail_level=detail,
     )
 
 

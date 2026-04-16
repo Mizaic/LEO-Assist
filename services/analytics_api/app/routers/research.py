@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
@@ -58,13 +58,35 @@ _INLINE_MISSIONS = {"critical", "busiest", "bridges", "bottleneck", "gaps", "cir
 # -- Pydantic models ----------------------------------------------------------
 
 
+_DETAIL_BY_INDEX = {0: "summary", 1: "detailed", 2: "everything"}
+
+
 class RunRequest(BaseModel):
     area: str = "all"
-    period: str = "6m"
+    period: str = "12m"
     detail: str = "summary"
     patient_id: Optional[str] = None
     confidence_min: float = 0.5
     context_filter: str = "current"  # "current" | "all"
+
+    @field_validator("detail", mode="before")
+    @classmethod
+    def _coerce_detail(cls, v: Any) -> str:
+        """Accept toggle indices (0-2) from older clients; API expects strings."""
+        if v is None or v == "":
+            return "summary"
+        if isinstance(v, bool):
+            return "summary"
+        if isinstance(v, int):
+            return _DETAIL_BY_INDEX.get(v, "summary")
+        if isinstance(v, float) and v.is_integer():
+            return _DETAIL_BY_INDEX.get(int(v), "summary")
+        if isinstance(v, str):
+            if v.isdigit():
+                return _DETAIL_BY_INDEX.get(int(v), "summary")
+            if v in ("summary", "detailed", "everything"):
+                return v
+        return "summary"
 
 
 class RunResponse(BaseModel):

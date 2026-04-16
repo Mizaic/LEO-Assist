@@ -487,6 +487,20 @@ _add(
 )
 
 # ── Label verification ─────────────────────────────────────────────────────────
+_add(
+    "annotation_guidelines",
+    1,
+    "libs.prompts.annotation_guidelines_v1.ANNOTATION_GUIDELINES_V1",
+    output_schema="{}",
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "Canonical annotation rules shared across extraction, quality checks, "
+        "relation linking, and human gold review."
+    ),
+)
+
+# ── Label verification ─────────────────────────────────────────────────────────
 from libs.prompts.label_verification_output_schema import (
     LABEL_VERIFICATION_OUTPUT_SCHEMA,
 )
