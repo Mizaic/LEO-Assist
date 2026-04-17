@@ -62,13 +62,11 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
         re.I,
     ),
     "prostate": re.compile(
-        r"\bprostate\b|prostatic|\bPSA\b|transurethral|\bTRUS\b|gleason"
-        r"|\bDRE\b",
+        r"\bprostate\b|prostatic|\bPSA\b|transurethral|\bTRUS\b|gleason" r"|\bDRE\b",
         re.I,
     ),
     "bladder": re.compile(
-        r"\bbladder\b|urothelial|haematuri|\bureter\w*\b|urethra"
-        r"|cystoscop|urolog",
+        r"\bbladder\b|urothelial|haematuri|\bureter\w*\b|urethra" r"|cystoscop|urolog",
         re.I,
     ),
     "renal": re.compile(
@@ -114,8 +112,7 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
         re.I,
     ),
     "endometrial": re.compile(
-        r"endometr|uter|menopaus.{0,20}bleed|post.{0,5}menopausal\s+bleed"
-        r"|\bPMB\b",
+        r"endometr|uter|menopaus.{0,20}bleed|post.{0,5}menopausal\s+bleed" r"|\bPMB\b",
         re.I,
     ),
     "ovarian": re.compile(
@@ -127,8 +124,7 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
         re.I,
     ),
     "haematological": re.compile(
-        r"haematol|hematol|lympho|leuka?emi|myelo|plasma\s+cell"
-        r"|Haem\s+Triage",
+        r"haematol|hematol|lympho|leuka?emi|myelo|plasma\s+cell" r"|Haem\s+Triage",
         re.I,
     ),
     "lymphoma": re.compile(
@@ -154,8 +150,7 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
         re.I,
     ),
     "stomach": re.compile(
-        r"\bgastric\b|\bstomach\b|Ca\s+(?:of\s+)?stomach|gastroscop"
-        r"|\bOGD\b",
+        r"\bgastric\b|\bstomach\b|Ca\s+(?:of\s+)?stomach|gastroscop" r"|\bOGD\b",
         re.I,
     ),
     "liver": re.compile(
@@ -190,7 +185,7 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
         re.I,
     ),
     "childrens_tumour": re.compile(
-        r"paediatr|pediatr|child.{0,5}(?:tumour|tumor|cancer|oncolog)",
+        r"paediatr|pediatr|child(?:ren)?'?s?\s*(?:tumour|tumor|cancer|oncolog)",
         re.I,
     ),
     "urological": re.compile(

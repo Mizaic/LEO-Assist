@@ -97,7 +97,24 @@ export default function AuditSummarySection({
               <StatTile label="Active" value={summary.active_episodes?.toLocaleString("en-GB")} sub="Still in progress" />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-              <StatTile label="Confirmed cancer" value={summary.confirmed_cancers?.toLocaleString("en-GB")} color="#15803D" />
+              <StatTile
+                label="Confirmed cancer"
+                value={summary.confirmed_cancers?.toLocaleString("en-GB")}
+                sub={
+                  summary.confirmed_cancers_via_2ww != null
+                    ? `${summary.confirmed_cancers_via_2ww.toLocaleString("en-GB")} via 2WW (${fmt(summary.confirmed_cancers_via_2ww_pct) ?? "—"}%)`
+                    : undefined
+                }
+                color="#15803D"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+              <StatTile
+                label="2WW route rate"
+                value={fmt(summary.confirmed_cancers_via_2ww_pct) != null ? `${fmt(summary.confirmed_cancers_via_2ww_pct)}%` : "—"}
+                sub="Confirmed cancers referred via fast-track (2WW)"
+                color="#15803D"
+              />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
               <StatTile

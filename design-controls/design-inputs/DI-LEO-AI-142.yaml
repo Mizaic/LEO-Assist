@@ -67,8 +67,11 @@
           to comfortable.
       - type: "functional"
         spec: >
-          Every primitive renders with useMotion() reduced-motion
-          fallback and does not crash when motion tokens are missing.
+          Every primitive consumes useMotion() and collapses its
+          animation durations / stagger to 0 when reducedMotion is
+          true; absence of motion tokens does not crash the render.
+          (Whole-app reduced-motion behaviour is re-verified by the
+          Phase 7 Playwright sweep.)
     constraints:
       - type: "safety"
         spec: >

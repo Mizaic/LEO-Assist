@@ -3,7 +3,7 @@
 
 - id: "VT-LEO-AI-137"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-136"]

@@ -53,6 +53,15 @@ import NotInterestedIcon from "@mui/icons-material/NotInterested";
 import SearchIcon from "@mui/icons-material/Search";
 import SyncIcon from "@mui/icons-material/Sync";
 import VerifiedIcon from "@mui/icons-material/Verified";
+import {
+  FilterBar,
+  ProgressStrip,
+  SegmentedTabs,
+  StatHero,
+  ToolbarActions,
+  type StatTile as DsStatTile,
+  type ToolbarAction,
+} from "@leo/design-system";
 import { createEncounterSuppressRule, createSuppressRule, exportMedSpaCyTraining, fetchGoldLabel, fetchSurfaceForms, patchGoldLabelEntities, searchTerms, upsertSurfaceFormMapping } from "@/lib/api/legacy";
 import {
   addConceptToSubdomain,
@@ -3929,8 +3938,8 @@ export default function GoldDatasetPanel() {
   return (
     <Box sx={{ py: 2, px: 2 }}>
 
-      {/* Header */}
-      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" spacing={1.5}>
+      {/* Header + toolbar (Wave E Phase 2) */}
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2, flexWrap: "wrap" }}>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>Training data review</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, fontSize: "0.82rem" }}>
@@ -3942,163 +3951,123 @@ export default function GoldDatasetPanel() {
             </Typography>
           )}
         </Box>
-        <Stack direction="row" spacing={1}>
-          {tab === "candidates" && (
-            <Tooltip title="Preview and mark very similar candidates as duplicates">
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => {
+        <ToolbarActions
+          actions={(() => {
+            const items: ToolbarAction[] = [];
+            if (tab === "candidates") {
+              items.push({
+                id: "deduplicate",
+                label: "Deduplicate similar",
+                variant: "secondary",
+                onClick: () => {
                   setDedupeDialogOpen(true);
                   setDedupePreview(null);
                   setExpandedDedupeGroup(false);
-                }}
-                size="small"
-              >
-                Deduplicate similar
-              </Button>
-            </Tooltip>
-          )}
-          <Tooltip title="Export all verified gold labels as MedSpaCy training data">
-            <span>
-              <Button
-                variant="outlined"
-                startIcon={exporting ? <CircularProgress size={14} /> : <DownloadIcon />}
-                disabled={exporting || !goldStats || goldStats.total === 0}
-                onClick={handleExport}
-                size="small"
-              >
-                Export training data
-              </Button>
-            </span>
-          </Tooltip>
-        </Stack>
-      </Stack>
+                },
+              });
+            }
+            items.push({
+              id: "export",
+              label: "Export training data",
+              variant: "primary",
+              loading: exporting,
+              disabled: exporting || !goldStats || goldStats.total === 0,
+              onClick: handleExport,
+            });
+            return items;
+          })()}
+        />
+      </Box>
+
       {annotationGuidelines && (
         <Box sx={{ mb: 1.5 }}>
           <AnnotationGuidelinesPanel text={annotationGuidelines} defaultExpanded={false} />
         </Box>
       )}
 
-      {/* Stats row */}
+      {/* Stats row (design-system StatHero with framer-motion stagger) */}
       {statsError && <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setStatsError(null)}>{statsError}</Alert>}
-      <Stack direction="row" spacing={1.25} sx={{ mb: 1.5 }} flexWrap="wrap" useFlexGap>
-        {statsLoading ? (
-          [0, 1, 2, 3, 4].map((i) => <Skeleton key={i} variant="rounded" width={110} height={60} />)
-        ) : (
-          <>
-            <StatTile label="Received" value={candidateStats?.total ?? 0} />
-            <StatTile
-              label="Ready for training"
-              value={goldStats?.total ?? 0}
-              color="success.main"
-            />
-            <StatTile
-              label="Failed"
-              value={candidateStats?.failed ?? 0}
-              color={candidateStats?.failed ? "error.main" : undefined}
-            />
-            <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", sm: "block" } }} />
-            <StatTile
-              label="Verified gold"
-              value={goldStats?.total ?? 0}
-              color="primary.main"
-            />
-            <StatTile
-              label="Synthetic gold"
-              value={syntheticStats?.synthetic_gold_labels ?? 0}
-              color="secondary.main"
-            />
-            <StatTile
-              label="Avg quality"
-              value={goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
+      {statsLoading ? (
+        <Stack direction="row" spacing={1.25} sx={{ mb: 1.5 }} flexWrap="wrap" useFlexGap>
+          {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} variant="rounded" width={160} height={96} />)}
+        </Stack>
+      ) : (() => {
+        const stats: DsStatTile[] = [
+          { id: "received", label: "Received", value: candidateStats?.total ?? 0 },
+          {
+            id: "ready",
+            label: "Ready for training",
+            value: goldStats?.total ?? 0,
+            tone: "positive",
+          },
+          {
+            id: "failed",
+            label: "Failed",
+            value: candidateStats?.failed ?? 0,
+            tone: (candidateStats?.failed ?? 0) > 0 ? "danger" : "neutral",
+          },
+          {
+            id: "verified",
+            label: "Verified gold",
+            value: goldStats?.total ?? 0,
+          },
+          {
+            id: "synthetic",
+            label: "Synthetic gold",
+            value: syntheticStats?.synthetic_gold_labels ?? 0,
+          },
+          {
+            id: "quality",
+            label: "Avg quality",
+            value:
+              goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
                 ? `${Math.round((goldStats.avg_quality_score ?? 0) * 100)}%`
-                : "—"}
-              sub={goldStats && goldStats.total > 0 ? `${goldStats.high_quality} high quality` : undefined}
-              color={goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
-                ? goldStats.avg_quality_score >= 0.8 ? "success.main" : goldStats.avg_quality_score >= 0.5 ? "warning.main" : "error.main"
-                : undefined}
-            />
-          </>
-        )}
-      </Stack>
+                : "-",
+            hint:
+              goldStats && goldStats.total > 0 ? `${goldStats.high_quality} high quality` : undefined,
+            tone:
+              goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
+                ? goldStats.avg_quality_score >= 0.8
+                  ? "positive"
+                  : goldStats.avg_quality_score >= 0.5
+                    ? "warning"
+                    : "danger"
+                : "neutral",
+          },
+        ];
+        return <StatHero stats={stats} maxTiles={6} />;
+      })()}
 
-      {/* Guided progress banner */}
+      {/* Progress strip (design-system ProgressStrip) */}
       {!statsLoading && tab === "candidates" && candidateStats && candidateStats.total > candidateStats.completed && (
-        <Box
-          sx={{
-            mb: 1.5,
-            p: 1.25,
-            borderRadius: 1.5,
-            bgcolor: "primary.50",
-            border: "1px solid",
-            borderColor: "primary.100",
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.82rem" }}>
-              {candidateStats.total - candidateStats.completed} item{candidateStats.total - candidateStats.completed !== 1 ? "s" : ""} left to review
-            </Typography>
-            <Box sx={{ mt: 0.5, height: 5, borderRadius: 3, bgcolor: "divider", overflow: "hidden" }}>
-              <Box
-                sx={{
-                  height: "100%",
-                  borderRadius: 3,
-                  bgcolor: "success.main",
-                  width: `${Math.round((candidateStats.completed / candidateStats.total) * 100)}%`,
-                  transition: "width 0.4s ease",
-                }}
-              />
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.68rem" }}>
-              {Math.round((candidateStats.completed / candidateStats.total) * 100)}% complete
-            </Typography>
-          </Box>
+        <Box sx={{ mb: 1.5 }}>
+          <ProgressStrip
+            label={`${candidateStats.total - candidateStats.completed} item${
+              candidateStats.total - candidateStats.completed !== 1 ? "s" : ""
+            } left to review`}
+            value={candidateStats.completed}
+            total={candidateStats.total}
+            tone="positive"
+          />
         </Box>
       )}
 
       {exportMsg && <Alert severity="success" sx={{ mb: 1.5 }} onClose={() => setExportMsg(null)}>{exportMsg}</Alert>}
       {actionMsg && <Alert severity="success" sx={{ mb: 1.5 }} onClose={() => setActionMsg(null)}>{actionMsg}</Alert>}
 
-      {/* Tabs */}
-      <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 1.5, borderBottom: 1, borderColor: "divider", minHeight: 40, "& .MuiTab-root": { minHeight: 40, py: 0.75, fontSize: "0.82rem" } }}>
-        <Tab
-          value="candidates"
-          label={
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <span>Candidates</span>
-              {candidateStats && (
-                <Chip label={candidateStats.total} size="small" sx={{ height: 18, fontSize: "0.7rem" }} />
-              )}
-            </Stack>
-          }
+      {/* Segmented tabs (design-system SegmentedTabs with keyboard nav + pill styling) */}
+      <Box sx={{ mb: 1.5 }}>
+        <SegmentedTabs
+          aria-label="Training data views"
+          value={tab}
+          onChange={(id) => handleTabChange({} as React.SyntheticEvent, id as typeof tab)}
+          tabs={[
+            { id: "candidates", label: "Candidates", count: candidateStats?.total },
+            { id: "gold", label: "Verified gold", count: goldStats?.total },
+            { id: "synthetic", label: "Synthetic", count: syntheticStats?.synthetic_gold_labels },
+          ]}
         />
-        <Tab
-          value="gold"
-          label={
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <span>Verified gold</span>
-              {goldStats && (
-                <Chip label={goldStats.total} size="small" color="primary" sx={{ height: 18, fontSize: "0.7rem" }} />
-              )}
-            </Stack>
-          }
-        />
-        <Tab
-          value="synthetic"
-          label={
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <span>Synthetic</span>
-              {syntheticStats && (
-                <Chip label={syntheticStats.synthetic_gold_labels} size="small" color="secondary" sx={{ height: 18, fontSize: "0.7rem" }} />
-              )}
-            </Stack>
-          }
-        />
-      </Tabs>
+      </Box>
 
       {tab === "gold" && (
         <DatasetHealthPanel

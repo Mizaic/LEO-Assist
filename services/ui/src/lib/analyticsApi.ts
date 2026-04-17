@@ -684,6 +684,8 @@ export interface AuditSummary {
   total_episodes: number;
   active_episodes: number;
   confirmed_cancers: number;
+  confirmed_cancers_via_2ww?: number;
+  confirmed_cancers_via_2ww_pct?: number | null;
   median_pci_days: number | null;
   median_di_days: number | null;
   avg_consultations: number | null;

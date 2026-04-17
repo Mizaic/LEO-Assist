@@ -90,6 +90,8 @@ export default function DashboardPage() {
     total_episodes: number;
     active_episodes: number;
     confirmed_cancers: number;
+    confirmed_cancers_via_2ww?: number;
+    confirmed_cancers_via_2ww_pct?: number | null;
   } | null>(null);
   const [kpis, setKpis] = useState<any>(null);
   const [alerts, setAlerts] = useState<Array<any>>([]);
@@ -122,6 +124,8 @@ export default function DashboardPage() {
           total_episodes: summaryResult.value.total_episodes,
           active_episodes: summaryResult.value.active_episodes,
           confirmed_cancers: summaryResult.value.confirmed_cancers,
+          confirmed_cancers_via_2ww: summaryResult.value.confirmed_cancers_via_2ww,
+          confirmed_cancers_via_2ww_pct: summaryResult.value.confirmed_cancers_via_2ww_pct,
         });
       } else {
         errors.summary = "Unable to load summary metrics.";

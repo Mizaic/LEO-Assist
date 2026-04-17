@@ -175,9 +175,14 @@ def audit_summary(
         # completed episode + not letter-inferred-benign + has a
         # diagnosis-milestone encounter. A second field surfaces the
         # narrower '2WW-route' subset alongside.
-        confirmed = int((confirmed_rows[0] or {}).get("n") or 0) if confirmed_rows else 0
+        confirmed = (
+            int((confirmed_rows[0] or {}).get("n") or 0) if confirmed_rows else 0
+        )
         confirmed_via_2ww = (
             int((via_2ww_rows[0] or {}).get("n") or 0) if via_2ww_rows else 0
+        )
+        confirmed_via_2ww_pct = (
+            round(confirmed_via_2ww * 100.0 / confirmed, 1) if confirmed else None
         )
 
         pci_vals = sorted(
@@ -209,6 +214,7 @@ def audit_summary(
             "active_episodes": active,
             "confirmed_cancers": confirmed,
             "confirmed_cancers_via_2ww": confirmed_via_2ww,
+            "confirmed_cancers_via_2ww_pct": confirmed_via_2ww_pct,
             "median_pci_days": (round(_median(pci_vals), 1) if pci_vals else None),
             "median_di_days": (round(_median(di_vals), 1) if di_vals else None),
             "avg_consultations": (
