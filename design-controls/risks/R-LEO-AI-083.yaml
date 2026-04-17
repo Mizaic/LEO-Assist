@@ -1,0 +1,107 @@
+# -- R-LEO-AI-083 -- Junior operator makes wrong coding-review decision
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-083"
+  title: >
+    A junior trainee misinterprets a coding-review case because
+    clinical terms like 'assertion', 'semantic tag', or
+    'suppress' are not explained in product, and either accepts
+    an incorrect SNOMED code or suppresses a clinically
+    relevant finding.
+
+  hazard:
+    description: >
+      The coding-review queue asks the operator to accept LEO's
+      suggestion, override it with a different SNOMED term, or
+      suppress the finding from future pipeline runs. Each
+      decision writes to the patient record. Without
+      plain-language explanations of the terms shown on the
+      card, a junior or non-clinical operator may not know what
+      they are agreeing to.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A trainee opens the coding-review cases modal, sees a case
+    with assertion 'declined' and a suggested semantic tag
+    mismatch. Unsure of what either term means, they click
+    'Suppress' to make the case go away. The finding was in fact
+    a real clinical event that should have been coded, and it
+    is now filtered from future runs.
+
+  harm:
+    description: >
+      A real clinical finding is systematically suppressed from
+      the patient record, leading to missed follow-up or a
+      coding gap in the patient's care audit.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "information_for_safety"
+      description: >
+        PageIntro at the top of the cases modal explains why
+        this queue exists, what 'accept', 'code differently',
+        and 'suppress' each do, written at FK grade <=9.
+      implemented_by: ["DI-LEO-AI-123"]
+      verified_by: ["VT-LEO-AI-118"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Every clinical term (assertion, semantic tag, suppress,
+        declined, absent, planned, hypothetical) renders as a
+        GlossaryTerm with a plain-language popover so the
+        operator can check its meaning without leaving the
+        queue.
+      implemented_by: ["DI-LEO-AI-123", "DI-LEO-AI-121"]
+      verified_by: ["VT-LEO-AI-118", "VT-LEO-AI-116"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The suppress form shows a HelpPopover warning
+        explicitly that the action should NOT be used when the
+        finding is genuinely present but worded unusually, so
+        an operator who reads the help will not suppress a
+        real finding.
+      implemented_by: ["DI-LEO-AI-123"]
+      verified_by: ["VT-LEO-AI-118"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With PageIntro, in-card glossary, and the suppress-form
+      warning, an operator who pauses to read the help cannot
+      confuse assertion vs semantic tag, and is warned before
+      suppressing a real finding.
+
+  monitoring:
+    monitoring_plan: >
+      Track the rate of suppression rules rolled back per month
+      and the rate of coding-review cases re-opened after
+      initial resolution. Both should trend down after the
+      inclusive redesign lands.
+    metrics:
+      - "suppressions_rolled_back_per_month"
+      - "coding_review_reopen_rate"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave B coding-review redesign review"
+    identified_date: "2026-04-16"
+    status: "analyzed"
+    tags:
+      - "coding-review"
+      - "trainee"
+      - "patient-safety"
+      - "explanation-pattern"

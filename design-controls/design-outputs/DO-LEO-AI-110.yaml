@@ -1,0 +1,58 @@
+# -- DO-LEO-AI-110 -- SpanResolver utility
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-110"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-112"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-003"]
+    verification_tests: ["VT-LEO-AI-112"]
+
+  specification:
+    title: "SpanResolver -- absolute character-offset resolver for LLM-extracted terms"
+    description: |
+      Shared utility that resolves absolute ``(span_start, span_end)``
+      offsets for LLM-extracted terms within the full encounter text.
+      Maintains per-sentence and encounter-wide cursors so repeated
+      mentions of the same surface form get distinct offsets. Falls back
+      to encounter-wide search when a sentence-scoped match fails.
+    acceptance_criteria:
+      - criterion: "single mention resolves correctly"
+        type: "functional"
+        measurement: "Test"
+        target: "encounter_text[start:end] == term_text"
+      - criterion: "repeated mentions advance cursor"
+        type: "functional"
+        measurement: "Test"
+        target: "second resolve returns offsets strictly after the first match end"
+      - criterion: "case-insensitive matching"
+        type: "functional"
+        measurement: "Test"
+        target: "'Diabetes' resolves inside an encounter containing 'diabetes'"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/ner/span_resolver.py"
+        description: "SpanResolver dataclass with resolve(term_text, sentence_id) method"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 120
+      key_functions: ["SpanResolver.resolve", "_resolve_in_sentence", "_resolve_in_encounter"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Correct spans are a prerequisite for ConText assertion detection and scope guard."
+    risk_control_measures:
+      - "Bounded search within encounter_text length; resolver signals failure via return value, never raises."
+      - "Per-sentence cursor prevents cross-sentence bleed for repeated mentions."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

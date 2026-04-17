@@ -1,0 +1,113 @@
+# -- DO-LEO-AI-118 -- Explanation pattern components + glossary
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-118"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-121"]
+    user_needs: ["UN-LEO-AI-065", "UN-LEO-AI-067"]
+    risks_addressed: ["R-LEO-AI-081"]
+    verification_tests: ["VT-LEO-AI-116"]
+
+  specification:
+    title: "PageIntro + HelpPopover + CoachMark + ProgressiveReveal + GlossaryTerm + glossary.ts + readability.ts"
+    description: |
+      Five explanation primitives exported from
+      services/ui/src/components/ui/. A glossary module in
+      services/ui/src/lib/glossary.ts provides
+      (label, clinicalTerm, plainLanguage) triplets keyed by
+      termId. A readability utility computes Flesch-Kincaid
+      Grade to gate shipped copy in CI.
+      - PageIntro: SSR-safe, persists collapse state per
+        screen in localStorage.
+      - HelpPopover: MUI Popover with role='dialog',
+        aria-labelledby, Escape-closes.
+      - CoachMark: portal-rendered overlay tied to an anchor
+        ref; respects prefers-reduced-motion; dismissal
+        persists in localStorage 'leo-tour-<tour-id>-done'.
+      - ProgressiveReveal: MUI Collapse wrapped with
+        aria-expanded disclosure button.
+      - GlossaryTerm: renders an underlined span that opens a
+        HelpPopover with plainLanguage; tree-shakeable import.
+
+    acceptance_criteria:
+      - criterion: "PageIntro semantics"
+        type: "functional"
+        measurement: "Test"
+        target: "Contains a single h1 or h2 derived from the 'why' prop"
+      - criterion: "HelpPopover roles"
+        type: "functional"
+        measurement: "Test"
+        target: "Trigger has aria-haspopup='dialog'; popover has role='dialog' and aria-labelledby"
+      - criterion: "CoachMark dismiss"
+        type: "functional"
+        measurement: "Test"
+        target: "Escape key closes; dismissal written to localStorage"
+      - criterion: "ProgressiveReveal disclosure"
+        type: "functional"
+        measurement: "Test"
+        target: "Disclosure button toggles aria-expanded between 'false' and 'true'"
+      - criterion: "GlossaryTerm renders plainLanguage"
+        type: "functional"
+        measurement: "Test"
+        target: "Clicking the term opens popover whose body equals glossary[termId].plainLanguage"
+      - criterion: "Readability gate"
+        type: "safety"
+        measurement: "Test"
+        target: "All plainLanguage strings in glossary.ts compute FK Grade <= 9"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ui/PageIntro.tsx"
+        description: "PageIntro"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ui/HelpPopover.tsx"
+        description: "HelpPopover"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ui/CoachMark.tsx"
+        description: "CoachMark"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ui/ProgressiveReveal.tsx"
+        description: "ProgressiveReveal"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ui/GlossaryTerm.tsx"
+        description: "GlossaryTerm"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/glossary.ts"
+        description: "Glossary source of truth"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/readability.ts"
+        description: "Flesch-Kincaid Grade computation"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 420
+      key_functions:
+        - "PageIntro"
+        - "HelpPopover"
+        - "CoachMark"
+        - "ProgressiveReveal"
+        - "GlossaryTerm"
+        - "fleschKincaidGrade"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Plain-language definitions rendered by GlossaryTerm are the primary mitigation against patient misunderstanding of clinical terminology."
+    risk_control_measures:
+      - "Readability CI gate prevents jargon creeping into shipped glossary copy."
+      - "Single source of truth prevents divergent definitions across screens."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

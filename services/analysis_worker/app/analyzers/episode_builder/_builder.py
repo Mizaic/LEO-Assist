@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from services.analysis_worker.app.analyzers.anchor_detector import AnchorResult
+from services.analysis_worker.app.analyzers.kpi_calculator import calculate_kpis
 
 from . import _config as cfg
 from ._auto_close import _apply_auto_close_rules, _apply_outcome_inference
@@ -494,4 +495,7 @@ async def build_episodes(
 
     _apply_auto_close_rules(patient_id, episode_ids, patient_client)
     _apply_outcome_inference(patient_id, episode_ids, patient_client)
+    # DI-LEO-AI-125: persist NCDA interval KPIs as named properties on each
+    # EpisodeOfCare so downstream dashboards all read the same numbers.
+    calculate_kpis(patient_id, episode_ids, patient_client)
     return result

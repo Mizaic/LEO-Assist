@@ -1,0 +1,108 @@
+{
+  "generated_at_utc": "2026-04-16T16:14:21.632966Z",
+  "totals": {
+    "inspected": 929,
+    "lab_records": 76,
+    "already_complete": 72,
+    "records_needing_backfill": 4,
+    "spans_proposed": 5,
+    "proposed_by_label": {
+      "observable_entity": 1,
+      "procedure": 4
+    }
+  },
+  "plans": [
+    {
+      "label_id": "manual-3bfe6f027deb460a8065b42260978851",
+      "text": "GNRH given: Degarelix (Fermagon) 80mg",
+      "existing_labels": [],
+      "proposed": [
+        {
+          "text": "GNRH given: Degarelix",
+          "start": 0,
+          "end": 21,
+          "label": "procedure",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "snomed_concept_id": "",
+          "snomed_term": "",
+          "_backfilled": true
+        },
+        {
+          "text": "GNRH given: Degarelix (Fermagon) 80mg",
+          "start": 0,
+          "end": 37,
+          "label": "observable_entity",
+          "semantic_tag": "observable_entity",
+          "assertion": "present",
+          "snomed_concept_id": "",
+          "snomed_term": "",
+          "_backfilled": true
+        }
+      ]
+    },
+    {
+      "label_id": "manual-0dfc3b8dcaa4469887aa8c107df0294e",
+      "text": "Serum alkaline phosphatase level (XE2px) 473 iu/L [30 - 130] - Outside reference range",
+      "existing_labels": [
+        "finding",
+        "observable_entity"
+      ],
+      "proposed": [
+        {
+          "text": "Serum alkaline phosphatase level",
+          "start": 0,
+          "end": 32,
+          "label": "procedure",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "snomed_concept_id": "",
+          "snomed_term": "",
+          "_backfilled": true
+        }
+      ]
+    },
+    {
+      "label_id": "manual-af1fc1863f4446adb890c896b1695d4b",
+      "text": "Serum ferritin level (XE24r) 20 ng/ml [22 - 322] - Outside reference range",
+      "existing_labels": [
+        "finding",
+        "observable_entity"
+      ],
+      "proposed": [
+        {
+          "text": "Serum ferritin level",
+          "start": 0,
+          "end": 20,
+          "label": "procedure",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "snomed_concept_id": "",
+          "snomed_term": "",
+          "_backfilled": true
+        }
+      ]
+    },
+    {
+      "label_id": "manual-c8d35a7738fe4b8e96693399f9003eae",
+      "text": "Serum ferritin level (XE24r) 69 ng/ml [22 - 322]",
+      "existing_labels": [
+        "finding",
+        "observable_entity"
+      ],
+      "proposed": [
+        {
+          "text": "Serum ferritin level",
+          "start": 0,
+          "end": 20,
+          "label": "procedure",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "snomed_concept_id": "",
+          "snomed_term": "",
+          "_backfilled": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+# -- DO-LEO-AI-117 -- Global inclusive a11y baseline implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-117"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-120"]
+    user_needs: ["UN-LEO-AI-065", "UN-LEO-AI-066", "UN-LEO-AI-068"]
+    risks_addressed: ["R-LEO-AI-078", "R-LEO-AI-080"]
+    verification_tests: ["VT-LEO-AI-115"]
+
+  specification:
+    title: "AppShell + primitive a11y fixes + CI a11y gate"
+    description: |
+      AppShell.tsx:
+        - aria-current='page' on the active ListItemButton in
+          BOTH rail and full drawer modes.
+        - Logo rendered as a <button> with aria-label; Tooltip
+          remains for sighted users.
+        - OrgSelect wrapped in an InputLabel + aria-label, no
+          placeholder-only state.
+      ConfirmDialog.tsx:
+        - aria-labelledby on title, aria-describedby on body.
+      StatusDot.tsx:
+        - Adds an optional icon slot and renders a shape
+          (circle/triangle/square) tied to status so colour is
+          not the sole indicator.
+      TermSearch.tsx:
+        - TextField label 'Search SNOMED terms' replaces
+          placeholder-only.
+      eslint.config.js:
+        - Adds eslint-plugin-jsx-a11y recommended rules.
+      e2e/a11y-baseline.spec.ts:
+        - @axe-core/playwright scan on a representative
+          patient-reachable route; fails on critical/serious.
+
+    acceptance_criteria:
+      - criterion: "AppShell rail aria-current"
+        type: "functional"
+        measurement: "Test"
+        target: "Rendered rail drawer has exactly one item with aria-current='page'"
+      - criterion: "Logo is button"
+        type: "functional"
+        measurement: "Test"
+        target: "getByRole('button', { name: /leo by mizaic|go to/i }) is present in AppShell"
+      - criterion: "ConfirmDialog described"
+        type: "safety"
+        measurement: "Test"
+        target: "Dialog has aria-labelledby and aria-describedby attributes pointing to actual ids"
+      - criterion: "StatusDot non-colour"
+        type: "safety"
+        measurement: "Test"
+        target: "StatusDot renders a shape container with a data-shape attribute derived from status"
+      - criterion: "axe CI gate"
+        type: "safety"
+        measurement: "Test"
+        target: "Playwright run returns 0 critical/serious axe violations"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/AppShell.tsx"
+        description: "rail aria-current, button-as-logo, OrgSelect label"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ConfirmDialog.tsx"
+        description: "aria-labelledby/describedby"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ui/StatusDot.tsx"
+        description: "shape + icon slot in addition to colour"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/TermSearch.tsx"
+        description: "TextField label"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/eslint.config.js"
+        description: "jsx-a11y recommended rules"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/e2e/a11y-baseline.spec.ts"
+        description: "axe-core Playwright scan"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 240
+      key_functions:
+        - "AppShell"
+        - "ConfirmDialog"
+        - "StatusDot"
+        - "TermSearch"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Keeps a11y violations out of production so users with assistive technology retain access to safety-netting and clinical information."
+    risk_control_measures:
+      - "CI gate on axe-core violations"
+      - "Static analysis via eslint-plugin-jsx-a11y"
+      - "Shape encoding breaks the colour-only status dependency"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

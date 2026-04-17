@@ -1,0 +1,86 @@
+# -- DI-LEO-AI-128 -- Care Overview (Dashboard) inclusive redesign
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-128"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-067", "UN-LEO-AI-068"]
+  requirement: >
+    The Care Overview page (services/ui/src/app/dashboard/page.tsx)
+    SHALL render the shared PageIntro primitive as the first block
+    below the date filter so that, on first load, a junior staff
+    member or older clinician sees a plain-language explanation of
+    why they are on this page, how to read the four summary cards and
+    two chart rows, and what the date filter changes. The chart
+    section titles and their supporting descriptions SHALL meet
+    Flesch-Kincaid Grade level 9 or below. The four summary StatCard
+    values SHALL remain single-number focal points with larger
+    (>=2rem) numerals and plain-language captions; uppercase chip-
+    style labels on summary cards SHALL be softened to sentence case
+    with 12px minimum font size.
+  rationale: >
+    The Care Overview is the first and most-used screen for the
+    full clinical audience. Today the page opens on an unlabelled
+    chart grid with no "why am I here?" block and mixes uppercase
+    caption chips at sub-12px. Junior staff and older clinicians
+    regularly ask what a metric means before they act. Adding a
+    PageIntro, softening the case/size of the summary labels, and
+    lifting each chart description to FK grade 9 or below gives
+    every reader -- from a new receptionist to a 70-year-old GP
+    partner -- a clear, sentence-case summary of what the page
+    shows and what to do next.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          DashboardPage renders a PageIntro block (screenId=
+          'care-overview') immediately below the date filter with
+          'why', 'how', and 'what' copy, each at Flesch-Kincaid
+          Grade level 9 or below.
+      - type: "functional"
+        spec: >
+          The four summary StatCard labels ('Cancer referrals',
+          'Active cases', 'Confirmed cancers', 'Safety alerts') are
+          rendered in sentence case (not uppercase) at a minimum
+          font size of 12px.
+      - type: "safety"
+        spec: >
+          Every chart card section heading is an h2 element and
+          every descriptive body2 text block passes Flesch-Kincaid
+          Grade level 9 or below.
+    constraints:
+      - type: "performance"
+        spec: >
+          PageIntro must not block render of the summary cards or
+          charts; its collapsed state persists per-user in
+          localStorage without suspending data fetches.
+    dependencies: ["DI-LEO-AI-118", "DI-LEO-AI-120", "DI-LEO-AI-121", "DI-LEO-AI-122"]
+    downstream_impacts:
+      - "services/ui/src/app/dashboard/page.tsx"
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js + MUI"
+      file_structure:
+        - "services/ui/src/app/dashboard/page.tsx"
+      estimated_loc: 40
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-123 cases pass: PageIntro renders with
+      screenId='care-overview' and FK grade <=9 on all three
+      strings; summary StatCard labels are sentence case at
+      >=12px; each chart card uses an h2 heading; each descriptive
+      body2 string passes FK grade <=9.
+
+    test_protocol: "VT-LEO-AI-123"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-088"]
+  tags:
+    - "care-overview"
+    - "dashboard"
+    - "inclusive-design"
+    - "explanation-pattern"
+    - "accessibility"

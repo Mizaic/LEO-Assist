@@ -30,6 +30,9 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { detail?: string }).detail || `Request failed (${res.status})`);
   }
+  if (res.status === 204) {
+    return undefined as unknown as T;
+  }
   return res.json();
 }
 

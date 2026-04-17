@@ -1,0 +1,91 @@
+# -- DO-LEO-AI-121 -- Milestone temporal integrity (gap + PRISM)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-121"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-124"]
+    user_needs: ["UN-LEO-AI-005", "UN-LEO-AI-006"]
+    risks_addressed: ["R-LEO-AI-084"]
+    verification_tests: ["VT-LEO-AI-119"]
+
+  specification:
+    title: "MIN_REFERRAL_TO_DIAG_DAYS + _RE_REFERRAL_PRISM + referral_subtype dedupe"
+    description: |
+      Three coordinated changes in the episode-build path.
+
+      1. _config.MIN_REFERRAL_TO_DIAG_DAYS (default 3) makes the
+         minimum plausible referral-to-diagnosis interval explicit
+         and configurable.
+
+      2. _grouping._find_best_referral skips candidate referrals
+         whose gap to the diagnosis is below this minimum, so that
+         an earlier valid referral is preferred over a same-day or
+         next-day false positive.
+
+      3. anchor_detector gains _RE_REFERRAL_PRISM and a PRISM-aware
+         sentinel. PRISM matches emit a referral anchor with
+         referral_subtype='prism' at confidence 0.9. Generic matches
+         continue to emit referral_subtype='text_generic' at
+         confidence 0.6. _dedupe_by_encounter prefers higher-confidence
+         anchors when both exist on one encounter.
+
+    acceptance_criteria:
+      - criterion: "Config exposed"
+        type: "functional"
+        measurement: "Test"
+        target: "cfg.MIN_REFERRAL_TO_DIAG_DAYS exists and respects env var override"
+      - criterion: "Gap enforced"
+        type: "safety"
+        measurement: "Test"
+        target: "_find_best_referral returns None when the only candidate is a same-day referral, and returns the earlier match when both exist"
+      - criterion: "PRISM regex"
+        type: "functional"
+        measurement: "Test"
+        target: "_RE_REFERRAL_PRISM matches proforma finalised/submitted/completed phrasing and does not match plain 'refer 2WW'"
+      - criterion: "PRISM primacy"
+        type: "functional"
+        measurement: "Test"
+        target: "When PRISM and generic match the same encounter only one anchor is emitted with confidence 0.9 and referral_subtype='prism'"
+      - criterion: "Legacy tests still pass"
+        type: "functional"
+        measurement: "Test"
+        target: "tests/test_anchor_detector*.py and tests/test_episode_builder*.py continue to pass"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_config.py"
+        description: "MIN_REFERRAL_TO_DIAG_DAYS"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_grouping.py"
+        description: "_find_best_referral gap guard"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "_RE_REFERRAL_PRISM + referral_subtype dedupe"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 120
+      key_functions:
+        - "_find_best_referral"
+        - "_classify_text_encounters"
+        - "_dedupe_by_encounter"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Referral-to-diagnosis intervals feed the Diagnostic Interval KPI; false same-day referrals falsely compress this interval and mis-represent pathway performance."
+    risk_control_measures:
+      - "Explicit minimum gap prevents false-positive same-day referrals"
+      - "PRISM primacy ensures the authoritative referral trigger outranks weaker textual evidence"
+      - "Regression tests on the five known affected patients ensure the fix holds"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

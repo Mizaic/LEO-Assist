@@ -723,6 +723,51 @@ Safety constraints enforced:
 | Risk | R-LEO-AI-077 | analyzed | Observable value left empty for string or pre-entity results - downstream abnormal detection degraded |
 | Verification Test | VT-LEO-AI-111 | passed | Four tests: string after, string before, numeric raw-text fallback, string raw-text fallback |
 
+| User Need | UN-LEO-AI-065 | draft | Patient-facing surfaces usable ages 8-80 at WCAG 2.1 AA with plain-English copy |
+| User Need | UN-LEO-AI-066 | draft | Carer-facing surfaces make patient context, permission scope, and escalation explicit |
+| User Need | UN-LEO-AI-067 | draft | Junior / trainee staff can self-onboard through in-product explanation and coach marks |
+| User Need | UN-LEO-AI-068 | draft | Older clinicians can work at full speed with larger default text, high contrast, and keyboard-first alternatives |
+| Design Input | DI-LEO-AI-118 | draft | Inclusive design token system (typography, spacing, radius, motion, focus, contrast pairs) |
+| Design Output | DO-LEO-AI-115 | draft | services/ui/src/theme/tokens.ts + tokens.css + theme.ts consume tokens; AA pairs validated |
+| Risk | R-LEO-AI-078 | analyzed | Low-contrast text or unchecked motion causes missed safety information |
+| Verification Test | VT-LEO-AI-113 | passed | 5 Jest cases: token group presence, WCAG AA contrast pairs, focus-ring size/contrast, readable typography, tokens.css :root + reduced-motion |
+| Design Input | DI-LEO-AI-119 | draft | Density modes (compact/comfortable/spacious) with 44x44px touch targets on patient-reachable routes |
+| Design Output | DO-LEO-AI-116 | draft | DensityProvider + useDensity/useDensityTokens hooks; localStorage persistence; route-based default |
+| Risk | R-LEO-AI-079 | analyzed | Dense UI causes mis-taps for touch / low-dexterity users on patient-reachable screens |
+| Verification Test | VT-LEO-AI-114 | passed | 5 Jest cases: default tier, patient-reachable override, >=44px spacious, localStorage persist, staff preference |
+| Design Input | DI-LEO-AI-120 | draft | Global a11y baseline - AppShell landmarks, aria-current, logo-as-button, OrgSelect label, ConfirmDialog aria, StatusDot shape encoding |
+| Design Output | DO-LEO-AI-117 | draft | AppShell.tsx, ConfirmDialog.tsx, StatusDot.tsx, TermSearch.tsx updates; eslint-plugin-jsx-a11y; @axe-core/playwright e2e |
+| Risk | R-LEO-AI-080 | analyzed | Assistive-tech users cannot perceive navigation state or status information |
+| Verification Test | VT-LEO-AI-115 | partial_pass | 5 Jest cases pass (aria-current, nav landmark, OrgSelect, ConfirmDialog, StatusDot); axe-core e2e case wired and pending CI run |
+| Design Input | DI-LEO-AI-121 | draft | Explanation pattern framework (PageIntro, HelpPopover, CoachMark, ProgressiveReveal, GlossaryTerm) with FK grade <=9 |
+| Design Output | DO-LEO-AI-118 | draft | services/ui/src/components/ui/{PageIntro,HelpPopover,CoachMark,ProgressiveReveal,GlossaryTerm}.tsx + src/lib/{glossary,readability}.ts |
+| Risk | R-LEO-AI-081 | analyzed | Patients / juniors misunderstand clinical terms without in-product explanation |
+| Verification Test | VT-LEO-AI-116 | passed | 6 Jest cases: PageIntro collapse, HelpPopover dialog, ProgressiveReveal expand, GlossaryTerm known+unknown, glossary FK grade gate |
+| Design Input | DI-LEO-AI-125 | draft | NCDA interval KPIs computed and persisted as named properties on every EpisodeOfCare with prerequisite milestones |
+| Design Output | DO-LEO-AI-122 | draft | kpi_calculator.calculate_kpis wired into build_episodes; _DIAGNOSIS_MILESTONES / _TREATMENT_MILESTONES accept canonical + legacy keys; MATCH-only persistence |
+| Risk | R-LEO-AI-085 | analyzed | Inconsistent interval KPIs across dashboards when computed ad-hoc per router |
+| Verification Test | VT-LEO-AI-120 | passed | Covers complete milestone set, missing milestones, idempotency, build_episodes integration, null-safety |
+| Design Input | DI-LEO-AI-126 | draft | Staging enrichment uses diagnosis + 90 day window and filters evidence rows by cancer-type specialty markers |
+| Design Output | DO-LEO-AI-123 | draft | libs/clinical_scoping specialty markers; staging_enrichment._choose_window and filter_rows_by_specialty integration |
+| Risk | R-LEO-AI-086 | analyzed | Staging cross-contamination between concurrent cancer pathways for the same patient |
+| Verification Test | VT-LEO-AI-121 | passed | Marker coverage, window calculation, filtering, fallback when no rows match marker |
+| Design Input | DI-LEO-AI-124 | draft | Milestone temporal integrity: MIN_REFERRAL_TO_DIAG_DAYS gap + PRISM authoritative primacy over generic text referrals |
+| Design Input | DI-LEO-AI-127 | draft | Safety-net alert persistence with Patient edge + canonical alert_id in analytics router |
+| Design Output | DO-LEO-AI-124 | draft | services/analysis_worker/app/analyzers/safety_net_persistence.py; subgraph wiring; dashboards.py alert_id cleanup |
+| Risk | R-LEO-AI-087 | analyzed | Safety-net alerts lost (never persisted) or silently unactionable (router matches wrong key) |
+| Verification Test | VT-LEO-AI-122 | passed | 11 pytest cases: persistence, Patient edge, FOR_EPISODE link, idempotency, alert_id in router SELECT/MATCH/SET, subgraph wiring |
+| Design Output | DO-LEO-AI-121 | draft | _config.MIN_REFERRAL_TO_DIAG_DAYS; _grouping._find_best_referral gap guard; anchor_detector._RE_REFERRAL_PRISM + referral_subtype dedupe |
+| Risk | R-LEO-AI-084 | analyzed | False same-day referral-to-diagnosis interval misleads quality improvement decisions |
+| Verification Test | VT-LEO-AI-119 | passed | 11 pytest cases: same-day skip, earlier-referral preference, env override, PRISM regex positive/negative, PRISM primacy, generic fallback, parametrised gap checks |
+| Design Input | DI-LEO-AI-122 | draft | OperationsWorkspace inclusive redesign - PageIntro, shared StatusDot shape encoding, aria-expanded/controls on SectionRow |
+| Design Output | DO-LEO-AI-119 | draft | OperationsWorkspace.tsx renders PageIntro screenId='admin-operations'; local StatusDot.tsx removed; SectionRow trigger carries aria-expanded and aria-controls to named region |
+| Risk | R-LEO-AI-082 | analyzed | Operations workspace misread by junior staff or older clinicians due to jargon and colour-only status cues |
+| Verification Test | VT-LEO-AI-117 | passed | 7 Jest cases: PageIntro renders with h2 + collapses via localStorage, why/how/what FK grade <=9, SectionRow aria-expanded/aria-controls toggle, local StatusDot.tsx removed |
+| Design Input | DI-LEO-AI-123 | draft | CodingReviewCasesModal split into eight modules (main, title, CaseCard, CaseCardLeoResult, CaseCardSuppressForm, EncounterContextPanel, utils, copy) each <=500 LOC with PageIntro + GlossaryTerm + HelpPopover |
+| Design Output | DO-LEO-AI-120 | draft | CodingReviewCasesModal.tsx (389) + CodingReviewCasesModalTitle.tsx (213) + CaseCard.tsx (461) + CaseCardLeoResult.tsx (174) + CaseCardSuppressForm.tsx (175) + EncounterContextPanel.tsx (133) + codingReviewUtils.ts (135) + codingReviewCopy.ts (44); glossary expanded with semantic-tag, suppress, declined, absent, planned, hypothetical |
+| Risk | R-LEO-AI-083 | analyzed | Junior operator makes wrong coding-review decision due to unexplained clinical terms |
+| Verification Test | VT-LEO-AI-118 | passed | 19 Jest cases: all eight split modules <=500 LOC, CODING_REVIEW_INTRO FK grade <=9, seven glossary terms resolve at grade <=9, CodingReviewCasesModal empty-state Props preserved |
+
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
 | DI-LEO-AI-101 | Double-negation guard for pre-negated SNOMED situations | R-LEO-AI-069 | VT-LEO-AI-101 |
@@ -737,6 +782,16 @@ Safety constraints enforced:
 | DI-LEO-AI-109 | Pathway Explorer API and GDS services | R-LEO-AI-075 | VT-LEO-AI-109 |
 | DI-LEO-AI-110 | Pathway Explorer UI/UX components | R-LEO-AI-076 | VT-LEO-AI-110 |
 | DI-LEO-AI-111 | Observable value-unit linking: string results and pre-entity raw-text fallback (VT passed 2026-04-15) | R-LEO-AI-077 | VT-LEO-AI-111 |
+| DI-LEO-AI-118 | Inclusive design token system (WCAG AA contrast pairs, 16px base, focus ring, reduced motion) | R-LEO-AI-078 | VT-LEO-AI-113 |
+| DI-LEO-AI-119 | Density modes with patient-reachable 44px minimum touch target | R-LEO-AI-079 | VT-LEO-AI-114 |
+| DI-LEO-AI-120 | Global a11y baseline (AppShell, ConfirmDialog, StatusDot, TermSearch, axe-core CI) | R-LEO-AI-080 | VT-LEO-AI-115 |
+| DI-LEO-AI-121 | Explanation pattern framework (PageIntro, HelpPopover, CoachMark, ProgressiveReveal, GlossaryTerm) and FK grade gate | R-LEO-AI-081 | VT-LEO-AI-116 |
+| DI-LEO-AI-125 | NCDA interval KPIs persisted on EpisodeOfCare (VT passed 2026-04-16) | R-LEO-AI-085 | VT-LEO-AI-120 |
+| DI-LEO-AI-126 | Specialty-scoped staging with post-diagnosis 90-day window (VT passed 2026-04-16) | R-LEO-AI-086 | VT-LEO-AI-121 |
+| DI-LEO-AI-124 | Referral-to-diagnosis temporal integrity + PRISM primacy (VT passed 2026-04-16) | R-LEO-AI-084 | VT-LEO-AI-119 |
+| DI-LEO-AI-127 | Safety-net alert persistence + canonical alert_id (VT passed 2026-04-16) | R-LEO-AI-087 | VT-LEO-AI-122 |
+| DI-LEO-AI-122 | OperationsWorkspace inclusive redesign (PageIntro, shared StatusDot, aria-expanded) - VT passed 2026-04-16 | R-LEO-AI-082 | VT-LEO-AI-117 |
+| DI-LEO-AI-123 | CodingReviewCasesModal split (8 modules <=500 LOC) + PageIntro/GlossaryTerm/HelpPopover - VT passed 2026-04-16 | R-LEO-AI-083 | VT-LEO-AI-118 |
 
 ---
 

@@ -10,19 +10,56 @@ interface StatusDotProps {
   size?: number;
 }
 
-export function StatusDot({ status, reason, size = 10 }: StatusDotProps) {
+type Shape = "circle" | "triangle" | "square" | "diamond" | "pill";
+
+const STATUS_SHAPE: Record<HealthStatus, Shape> = {
+  healthy: "circle",
+  warning: "triangle",
+  error: "square",
+  info: "pill",
+  neutral: "diamond",
+};
+
+const STATUS_LABEL: Record<HealthStatus, string> = {
+  healthy: "Healthy",
+  warning: "Warning",
+  error: "Error",
+  info: "Information",
+  neutral: "Not applicable",
+};
+
+/**
+ * StatusDot communicates status through THREE channels so no single
+ * perception (colour, shape, text) is load-bearing:
+ * - colour (HEALTH_COLORS token)
+ * - shape (STATUS_SHAPE; exposed as data-shape for testability)
+ * - accessible label (STATUS_LABEL + optional reason, aria-label)
+ *
+ * See DI-LEO-AI-120 and VT-LEO-AI-115.
+ */
+export function StatusDot({ status, reason, size = 12 }: StatusDotProps) {
   const color = HEALTH_COLORS[status] ?? HEALTH_COLORS.neutral;
+  const shape = STATUS_SHAPE[status] ?? "circle";
+  const statusLabel = STATUS_LABEL[status] ?? "Unknown";
+  const ariaLabel = reason
+    ? `${statusLabel}: ${reason}`
+    : `Status: ${statusLabel}`;
+
+  const shapeSx = shapeStyle(shape, color, size);
+
   const dot = (
     <Box
-      aria-label={reason ? `Status: ${status} - ${reason}` : `Status: ${status}`}
+      role="img"
+      data-shape={shape}
+      data-status={status}
+      aria-label={ariaLabel}
       sx={{
         width: size,
         height: size,
-        borderRadius: "50%",
-        bgcolor: color,
         display: "inline-block",
         flexShrink: 0,
         boxShadow: status !== "neutral" ? `0 0 0 2px ${color}33` : "none",
+        ...shapeSx,
       }}
     />
   );
@@ -32,4 +69,31 @@ export function StatusDot({ status, reason, size = 10 }: StatusDotProps) {
       {dot}
     </Tooltip>
   );
+}
+
+function shapeStyle(
+  shape: Shape,
+  color: string,
+  size: number,
+): Record<string, string | number> {
+  if (shape === "circle") {
+    return { bgcolor: color, borderRadius: "50%" };
+  }
+  if (shape === "square") {
+    return { bgcolor: color, borderRadius: 2 };
+  }
+  if (shape === "pill") {
+    return { bgcolor: color, borderRadius: size };
+  }
+  if (shape === "diamond") {
+    return { bgcolor: color, borderRadius: 2, transform: "rotate(45deg)" };
+  }
+  return {
+    width: 0,
+    height: 0,
+    bgcolor: "transparent",
+    borderLeft: `${size / 2}px solid transparent`,
+    borderRight: `${size / 2}px solid transparent`,
+    borderBottom: `${size}px solid ${color}`,
+  };
 }

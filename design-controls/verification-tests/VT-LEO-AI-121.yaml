@@ -1,0 +1,103 @@
+- id: "VT-LEO-AI-121"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-126"]
+    risks: ["R-LEO-AI-086"]
+
+  metadata:
+    title: "Staging specialty scoping and post-diagnosis window"
+    description: >
+      Verifies the clinical_scoping library and the staging enrichment
+      subgraph correctly scope evidence to the current cancer pathway
+      inside a 90-day post-diagnosis window.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_clinical_scoping.py"
+      - "tests/test_staging_specialty_scoping.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-121-TC-001"
+      case_name: "SPECIALTY_MARKERS covers required sites"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert SPECIALTY_MARKERS contains breast, lower-gi, urology-prostate, urology-bladder, gynae, lung, hepato-pancreato-biliary, skin"
+          expected_result: "All required keys present"
+          verification_method: "automated"
+
+    - case_id: "VT-121-TC-002"
+      case_name: "specialty_for matches site keyword in text"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call specialty_for('breast lump, mammogram today') returns 'breast'"
+          expected_result: "Match returned"
+          verification_method: "automated"
+
+    - case_id: "VT-121-TC-003"
+      case_name: "filter_rows_by_specialty scopes rows to site"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Filter rows {breast MDT letter, colon histology} for cancer_type=breast"
+          expected_result: "Only breast row retained"
+          verification_method: "automated"
+
+    - case_id: "VT-121-TC-004"
+      case_name: "filter_rows_by_specialty fallback"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Filter rows that contain no keyword matches for a known cancer_type"
+          expected_result: "Original rows returned unchanged"
+          verification_method: "automated"
+
+    - case_id: "VT-121-TC-005"
+      case_name: "_choose_window returns 90 days post-diagnosis"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "_choose_window with diagnosis_date=2024-03-01"
+          expected_result: "Window is 2024-03-01 -> 2024-05-30"
+          verification_method: "automated"
+
+    - case_id: "VT-121-TC-006"
+      case_name: "_choose_window fallback when diagnosis_date is missing"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "_choose_window with diagnosis_date=None, referral_date + end_date supplied"
+          expected_result: "Falls back to referral -> end_date"
+          verification_method: "automated"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-121/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-121-EXEC-20260416-001"
+      executed_on: "2026-04-16"
+      executed_by: "ci-pytest"
+      environment: "local-dev"
+      result: "pass"
+      notes: >
+        pytest tests/test_clinical_scoping.py tests/test_staging_specialty_scoping.py ran green.

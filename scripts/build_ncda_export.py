@@ -35,6 +35,8 @@ from typing import Any
 
 from dotenv import load_dotenv
 
+from libs.clinical_scoping import filter_rows_by_specialty
+from libs.metrics import days_between
 from libs.neo4j_client.client import PatientGraphClient
 from scripts.ncda_patterns import (
     ADMIN_HEADER,
@@ -167,12 +169,13 @@ def _is_clinical(text: str) -> bool:
 
 
 def _gap_days(a: Any, b: Any) -> int | None:
-    """Return inclusive day difference between two dates (None if any missing)."""
-    da = _to_date(a)
-    db = _to_date(b)
-    if da is None or db is None:
-        return None
-    return (db - da).days
+    """Inclusive day difference (None if any missing).
+
+    Thin wrapper over libs.metrics.days_between so runtime and export
+    produce identical numbers. Kept as a local name so call sites stay
+    readable.
+    """
+    return days_between(a, b)
 
 
 def extract_pre_referral_fields(
@@ -220,8 +223,13 @@ def extract_stage_fields(
         return _empty_stage_fields()
     window_end = diag + timedelta(days=90)
     post_diag = _window(patient_encs, diag, window_end)
-    joined = "\n".join(e["text"] for e in post_diag)
-    stage = resolve_stage_from_text(joined, ep.get("cancer_type", ""))
+    # DI-LEO-AI-126: filter by cancer-type specialty marker so evidence
+    # from a concurrent cancer pathway cannot leak into this episode's
+    # stage derivation. Matches the runtime staging_enrichment subgraph.
+    cancer_type = str(ep.get("cancer_type") or "")
+    scoped = filter_rows_by_specialty(post_diag, cancer_type, text_key="text")
+    joined = "\n".join(e["text"] for e in scoped)
+    stage = resolve_stage_from_text(joined, cancer_type)
     return {
         "stage_at_diagnosis": stage["cancer_stage_group"] or None,
         "stage_early_late": stage["cancer_stage"],

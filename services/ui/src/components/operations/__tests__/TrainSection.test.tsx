@@ -55,10 +55,16 @@ describe("VT-036-TC-019: TrainSection plain-language stat cards", () => {
   it("renders gold-label training stats", async () => {
     render(<TrainSection />);
     await waitFor(() => {
-      expect(screen.getByText("120 gold labels")).toBeInTheDocument();
+      expect(screen.getByText("120")).toBeInTheDocument();
     });
-    expect(screen.getByText("95 high quality")).toBeInTheDocument();
-    expect(screen.getByText("Avg quality: 0.880")).toBeInTheDocument();
+    expect(screen.getByText("Teaching examples")).toBeInTheDocument();
+    expect(screen.getByText("Checked records")).toBeInTheDocument();
+    expect(screen.getByText("Need attention")).toBeInTheDocument();
+    expect(screen.getByText("95")).toBeInTheDocument();
+    expect(screen.getByText("25")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Average quality score: 0\.880/),
+    ).toBeInTheDocument();
   });
 
   it("links to gold dataset management", async () => {

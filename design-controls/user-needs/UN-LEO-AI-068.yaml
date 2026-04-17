@@ -1,0 +1,97 @@
+# -- UN-LEO-AI-068 -- Older clinician / low-dexterity / low-vision staff
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-068"
+  title: "Experienced clinicians with age-related vision, hearing, or dexterity changes can use LEO at full professional speed without workarounds"
+  description: |
+    Primary care is staffed by clinicians across the full adult age
+    range, including partners in their 60s and 70s and returners
+    working reduced hours. These users are highly expert but their
+    interface needs differ from younger users: larger default text,
+    generous target sizes, high-contrast options, no thin strokes, no
+    low-contrast grey-on-grey, no time-pressured interactions, no
+    animations that distract, and a keyboard-first option for every
+    mouse gesture.
+
+    They are also the product's most senior reviewers and safety
+    owners. If LEO is unpleasant or tiring for them, clinical
+    oversight suffers. An explicit persona makes these needs testable.
+
+  stakeholder:
+    type: "internal_user"
+    role: "Senior clinician / returner / older coder"
+    organization: "LEO subscribing primary care organisations"
+
+  priority: "MUST"
+
+  rationale: |
+    Older clinicians currently work around the product (increase
+    browser zoom, lean closer to the screen, ask juniors to read chips
+    to them). This is inefficient and unsafe. A dedicated persona
+    ensures every screen redesign is measured against a legibility,
+    density, and contrast bar that supports them.
+
+  benefit: "Senior oversight of clinical decisions remains effective. The product becomes sustainable for users working into later career. Accessibility compliance is stronger than WCAG AA minimum."
+
+  use_case: |
+    1. A 68-year-old GP partner reviews coded encounters at 125% browser
+       zoom without horizontal scrolling or overlapping UI.
+    2. A nurse with mild tremor uses the new generous target sizes
+       ('Spacious' density) and no longer mis-taps adjacent controls.
+    3. A coder with colour-blindness relies on shape and label, not
+       colour alone, for every status signal.
+
+  current_solution: "No density mode, base font is 14px, some chips are 10px, contrast is variable, status communicated by colour alone in several places."
+
+  pain_points:
+    - "Default font size is too small (14px base; chips at 0.65rem are below accessible minimum)"
+    - "No Spacious density; experienced users who prefer comfort cannot opt in"
+    - "Status dots and chips communicate state by colour alone"
+    - "Hover-only affordances do not work for stylus or touch users"
+    - "Focus rings are thin and low contrast"
+    - "No visible keyboard alternative for many mouse gestures"
+
+  acceptance_criteria:
+    - "Minimum body font size is 16px on staff-reachable screens"
+    - "Minimum chip/caption font size is 12px with >=4.5:1 contrast"
+    - "Density control offers Compact, Comfortable, and Spacious; user choice persists"
+    - "Every status is communicated by shape + label + colour, never colour alone"
+    - "Focus ring is >=3px with >=3:1 contrast and visible on all focusable elements"
+    - "Every mouse-only gesture has a documented keyboard alternative"
+    - "No time-limited interaction without an explicit extension affordance"
+
+  success_metrics:
+    - metric: "Median text zoom used by >55 user cohort"
+      target: "<=110%"
+      baseline: "Not measured"
+    - metric: "Contrast failures (axe serious or critical) on staff screens"
+      target: "0"
+      baseline: "Variable"
+    - metric: "Self-reported 'easy to use' score for >55 cohort"
+      target: ">=4 / 5"
+      baseline: "Not measured"
+
+  regulatory_impact: "medium"
+  safety_impact: "high"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "Equality Act 2010 s.20 reasonable adjustments"
+    - "WCAG 2.1 AA"
+
+  related_standards:
+    - "WCAG 2.1 AA"
+    - "EN 301 549"
+    - "IEC 62366-1:2015"
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+
+  metadata:
+    created_by: "UX redesign programme 2026-04"
+    created_date: "2026-04-16"
+    status: "draft"
+
+  design_inputs: ["DI-LEO-AI-118", "DI-LEO-AI-119", "DI-LEO-AI-120", "DI-LEO-AI-122", "DI-LEO-AI-123", "DI-LEO-AI-128"]
+  validation_tests: []
+
+  tags: ["senior-clinician", "low-vision", "low-dexterity", "accessibility", "density", "ui-redesign"]

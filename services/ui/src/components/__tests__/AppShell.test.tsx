@@ -100,7 +100,7 @@ describe("AppShell — Tenant Switcher", () => {
   });
 
   it("does not show tenant switcher when no orgs", () => {
-    mockOrgCtx = { ...mockOrgCtx, organizations: [] };
+    mockOrgCtx = { ...mockOrgCtx, organizations: [], isPlatformAdmin: false };
     renderShell();
     expect(screen.queryByText("ORGANISATION")).not.toBeInTheDocument();
   });

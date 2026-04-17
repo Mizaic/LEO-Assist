@@ -393,6 +393,16 @@ _RE_REFERRAL = re.compile(
     r"straight to test|direct access|PRISM.*2WW)\b",
     re.IGNORECASE,
 )
+# DI-LEO-AI-124: PRISM is the Welsh 2WW digital proforma. A finalised /
+# submitted / completed PRISM questionnaire is the authoritative referral
+# trigger and outranks generic fast-track language that may appear in
+# clinic notes post-hoc.
+_RE_REFERRAL_PRISM = re.compile(
+    r"\b(?:PRISM|2WW\s*proforma|2WW\s*questionnaire)\b"
+    r".{0,80}?"
+    r"\b(?:finalised|finalized|completed|submitted|sent|issued)\b",
+    re.IGNORECASE | re.DOTALL,
+)
 _RE_SPECIALIST = re.compile(
     r"\b(?:seen (?:in|at) (?:fast.?track|dermatol|oncol|urol|haematol|"
     r"colorectal|colorect|breast|lung|upper gi|lower gi|head and neck|"
@@ -514,10 +524,26 @@ def _classify_text_encounters(
             s = _TEXT_SENTINEL["specialist_outcome_letter"]
             specialist_letters.append({**base, **s})
 
-        # Referral
-        if _RE_REFERRAL.search(text):
+        # Referral (DI-LEO-AI-124: PRISM primacy over generic fast-track text)
+        if _RE_REFERRAL_PRISM.search(text):
             s = _TEXT_SENTINEL["referral"]
-            referrals.append({**base, **s})
+            referrals.append(
+                {
+                    **base,
+                    **s,
+                    "referral_subtype": "prism",
+                    "confidence": 0.9,
+                }
+            )
+        elif _RE_REFERRAL.search(text):
+            s = _TEXT_SENTINEL["referral"]
+            referrals.append(
+                {
+                    **base,
+                    **s,
+                    "referral_subtype": "text_generic",
+                }
+            )
 
         # Diagnosis -- cancer
         if has_cancer and has_confirmed and not has_no_cancer:

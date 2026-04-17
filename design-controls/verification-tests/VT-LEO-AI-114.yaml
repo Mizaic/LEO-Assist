@@ -1,0 +1,113 @@
+# -- VT-LEO-AI-114 -- Density provider and density map tests
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-114"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-119"]
+    risks: ["R-LEO-AI-079"]
+
+  metadata:
+    title: "Density provider resolves correct tier and guarantees 44px touch targets on patient-reachable routes"
+    description: >
+      Verifies DensityProvider default resolution (route >
+      localStorage > fallback), that DENSITY_MAP.spacious meets
+      the 44px minimum, that Settings toggle persists to
+      localStorage, and that patient-reachable routes override
+      a compact localStorage preference to Spacious.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/density-context.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-114-TC-001"
+      case_name: "no storage, staff route, default is comfortable"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "render DensityProvider with pathname '/dashboard' and empty localStorage"
+          expected_result: "useDensity() returns 'comfortable'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "returned tier is 'comfortable'"
+
+    - case_id: "VT-114-TC-002"
+      case_name: "patient-reachable route forces spacious"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "render DensityProvider with pathname '/portal' and localStorage['leo-density']='compact'"
+          expected_result: "useDensity() returns 'spacious'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "returned tier is 'spacious'"
+
+    - case_id: "VT-114-TC-003"
+      case_name: "DENSITY_MAP.spacious guarantees 44px touch target"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "import DENSITY_MAP from theme/tokens"
+          expected_result: "DENSITY_MAP.spacious.minHeightPx >= 44"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "minHeightPx>=44 for spacious"
+
+    - case_id: "VT-114-TC-004"
+      case_name: "setDensity persists to localStorage"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "render DensityProvider and call setDensity('compact')"
+          expected_result: "localStorage['leo-density']==='compact'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "localStorage matches new value"
+
+    - case_id: "VT-114-TC-005"
+      case_name: "localStorage chosen when on non-patient staff route"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "render DensityProvider with pathname '/admin/console' and localStorage['leo-density']='spacious'"
+          expected_result: "useDensity() returns 'spacious'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "returned tier follows localStorage when route does not force override"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-114/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-114-EXEC-20260416"
+      executed_at: "2026-04-16"
+      executor: "ui-design-system-wave-a"
+      environment: "development"
+      command: "npx jest src/__tests__/density-context.test.tsx --no-coverage"
+      result: "pass"
+      cases_passed: 5
+      cases_failed: 0
+      notes: >
+        resolveInitialDensity correctly prioritises patient-reachable
+        routes over stored tier, DENSITY_MAP.spacious guarantees 48px
+        minHeightPx (>=44px), and setDensity persists to localStorage.

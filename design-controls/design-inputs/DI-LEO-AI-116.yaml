@@ -1,0 +1,89 @@
+# -- DI-LEO-AI-116 -- Disorder gate fail-closed (amends DI-037)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-116"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: >
+    The disorder verifier (libs/llm_client/disorder_verifier.py) SHALL
+    fail closed: whenever the underlying consensus call errors, times
+    out, returns an unparseable response, or returns a verdict that is
+    not in the controlled vocabulary, the verifier SHALL return the new
+    ``DisorderVerdict.GATE_FAILED`` value in BOTH HITL and autonomous
+    coding modes.
+
+    The disorder gate layer in post-processing SHALL record this verdict
+    on the entity dict as ``disorder_verdict = "gate_failed"``, flag
+    ``__needs_review__`` = True and ``__gate_failed__`` = True, and
+    suppress the ``__auto_suppress__`` path.
+
+    The tier classifier (DI-LEO-AI-115) SHALL treat ``gate_failed`` the
+    same as ``uncertain`` -- the entity routes to tier 3 / review.
+
+  rationale: >
+    DI-LEO-AI-037 previously specified mode-aware fail-safes: HITL mode
+    defaulted unknown or failed verdicts to ``active_diagnosis`` so the
+    entity would be coded and surfaced for review, while autonomous mode
+    defaulted to ``uncertain`` to prevent silent auto-coding.
+
+    The HITL fail-safe was subtly unsafe. A coder reviewing a coded
+    disorder is primed to accept or reject the code, not to question
+    whether the upstream classifier even ran. Silently coding as
+    active_diagnosis masked provider outages and made root-cause
+    analysis harder. The new ``GATE_FAILED`` verdict surfaces the
+    failure mode explicitly in both paths: the entity is held for
+    review with a visible "gate_failed" signal rather than presented as
+    a confident active diagnosis.
+
+    Amends DI-LEO-AI-037 (revision 2.0, April 2026): the HITL fail-safe
+    changes from ``active_diagnosis`` to ``gate_failed``. The autonomous
+    fail-safe behaviour (route to review, do not auto-code) is preserved
+    and strengthened (explicit gate_failed instead of generic uncertain).
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "test"
+        spec: "_fail_verdict_for_mode returns 'gate_failed' for coding_mode in {'hitl', 'autonomous', 'unknown'}."
+      - type: "test"
+        spec: "Consensus raises -> verify_disorder returns DisorderVerdict.GATE_FAILED."
+      - type: "test"
+        spec: "Consensus returns an unknown verdict string -> verify_disorder returns DisorderVerdict.GATE_FAILED."
+      - type: "test"
+        spec: "When the disorder-gate layer observes gate_failed, the entity dict has __needs_review__=True and __gate_failed__=True, and disorder_verdict='gate_failed'."
+      - type: "test"
+        spec: "Tier classifier with disorder_verdict='gate_failed' routes to tier 3 (route_to_review)."
+    constraints:
+      - type: "safety"
+        spec: "HITL mode MUST NOT default failed/unknown verdicts to active_diagnosis. Any code path that previously did so is a regression."
+      - type: "safety"
+        spec: "The gate MUST surface the failure explicitly (disorder_verdict='gate_failed') rather than silently coding or silently dropping."
+    dependencies: ["DI-LEO-AI-037", "DI-LEO-AI-114", "DI-LEO-AI-115"]
+    downstream_impacts:
+      - "libs/pipeline/post_processing.py (disorder gate layer)"
+      - "libs/coding_engine/tier_classifier.py (routes gate_failed to tier 3)"
+    technical_details:
+      language: "Python"
+      framework: "N/A"
+      libraries: ["libs.llm_client.consensus"]
+      file_structure:
+        - "libs/llm_client/disorder_verifier.py"
+        - "libs/pipeline/post_processing.py"
+      estimated_loc: 60
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-115 cases pass: _fail_verdict_for_mode always returns
+      gate_failed, consensus-raise / unknown-verdict return GATE_FAILED in
+      both modes, and the disorder-gate layer marks gate_failed on the
+      entity with __needs_review__=True.
+    test_protocol: "VT-LEO-AI-115"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-001", "R-LEO-AI-026", "R-LEO-AI-030"]
+  tags:
+    - "disorder-verifier"
+    - "fail-closed"
+    - "safety-gate"
+    - "autonomous-coding"

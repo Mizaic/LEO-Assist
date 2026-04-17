@@ -14,6 +14,9 @@ from services.analysis_worker.app.analyzers.abnormal_results import (
 from services.analysis_worker.app.analyzers.safety_net_detector import (
     detect_safety_net_signals,
 )
+from services.analysis_worker.app.analyzers.safety_net_persistence import (
+    persist_safety_net_alerts,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,14 +52,22 @@ def detect_safety_net(state: SafetyNetState) -> dict[str, Any]:
             patient_client = PatientGraphClient()
             knowledge_client = KnowledgeGraphClient()
             try:
-                alerts.extend(
-                    detect_safety_net_signals(
-                        patient_id,
-                        episode_ids,
-                        patient_client,
-                        knowledge_client,
-                    )
+                detected = detect_safety_net_signals(
+                    patient_id,
+                    episode_ids,
+                    patient_client,
+                    knowledge_client,
                 )
+                alerts.extend(detected)
+                # DI-LEO-AI-127: persist signals as SafetyNetAlert nodes
+                # with a Patient (and optional EpisodeOfCare) edge so
+                # the safety-netting worklist can surface them.
+                if detected:
+                    persist_safety_net_alerts(
+                        patient_id,
+                        detected,
+                        patient_client,
+                    )
             finally:
                 patient_client.close()
                 knowledge_client.close()

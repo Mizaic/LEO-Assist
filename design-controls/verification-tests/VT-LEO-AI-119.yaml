@@ -1,0 +1,125 @@
+- id: "VT-LEO-AI-119"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-124"]
+    risks: ["R-LEO-AI-084"]
+
+  metadata:
+    title: "Milestone temporal integrity (referral-to-diagnosis gap + PRISM)"
+    description: >
+      Verifies MIN_REFERRAL_TO_DIAG_DAYS is honoured, _find_best_referral
+      selects an earlier valid referral over a sub-gap candidate, the
+      PRISM regex matches the expected phrasing and the PRISM sentinel
+      is preferred over generic text referrals on the same encounter.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_referral_temporal_integrity.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-119-TC-001"
+      case_name: "Same-day referral candidate is skipped"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _find_best_referral with diag_date=2024-02-01 and a single referral on 2024-02-01"
+          expected_result: "Returns None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result is None"
+
+    - case_id: "VT-119-TC-002"
+      case_name: "Earlier valid referral preferred over sub-gap candidate"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _find_best_referral with diag_date=2024-02-01, referrals at 2024-01-02 and 2024-02-01"
+          expected_result: "Returns the 2024-01-02 referral"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result.ref_date == 2024-01-02"
+
+    - case_id: "VT-119-TC-003"
+      case_name: "MIN_REFERRAL_TO_DIAG_DAYS respects env override"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Import cfg after patching env var"
+          expected_result: "cfg.MIN_REFERRAL_TO_DIAG_DAYS reflects override value"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Integer value equals override"
+
+    - case_id: "VT-119-TC-004"
+      case_name: "PRISM regex matches finalised proforma phrasing"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "_RE_REFERRAL_PRISM.search applied to several positive + negative strings"
+          expected_result: "Positive strings match; generic fast-track mentions do not"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Positive match for 'PRISM 2WW questionnaire finalised'"
+        - "Positive match for 'PRISM proforma submitted'"
+        - "Negative match for 'plan to refer 2WW'"
+
+    - case_id: "VT-119-TC-005"
+      case_name: "PRISM anchor primacy on dedupe"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on an encounter matching both PRISM and generic patterns"
+          expected_result: "Single referral anchor emitted with referral_subtype='prism' confidence 0.9"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "len(referrals) == 1"
+        - "anchor.referral_subtype == prism"
+        - "anchor.confidence == 0.9"
+
+    - case_id: "VT-119-TC-006"
+      case_name: "Generic referral anchor still emitted when no PRISM match"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on encounter matching only generic fast-track phrase"
+          expected_result: "Referral anchor emitted with referral_subtype='text_generic' confidence 0.6"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "anchor.referral_subtype == text_generic"
+        - "anchor.confidence == 0.6"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-119/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-119-EXEC-20260416-001"
+      executed_on: "2026-04-16"
+      executed_by: "ci-pytest"
+      environment: "local-dev"
+      result: "pass"
+      total_cases: 11
+      passed: 11
+      failed: 0
+      notes: >
+        pytest tests/test_referral_temporal_integrity.py -v
+        11 passed in 0.06s. Covers VT-119-TC-001..TC-006 plus
+        parametrised gap checks and control cases.

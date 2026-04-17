@@ -581,7 +581,7 @@ def safety_net_alerts(
             f"{org_prefix}"
             "OPTIONAL MATCH (a)-[:FOR_EPISODE]->(ep:EpisodeOfCare) "
             "OPTIONAL MATCH (a)-[:TRIGGERED_AT]->(enc:Encounter) "
-            "RETURN a.id AS id, a.alert_type AS type, a.rule_name AS rule_name, "
+            "RETURN a.alert_id AS id, a.alert_type AS type, a.rule_name AS rule_name, "
             "       a.severity AS severity, a.status AS status, "
             "       a.guideline AS guideline, a.recommendation_title AS description, "
             "       a.suggested_action AS suggested_action, "
@@ -651,7 +651,7 @@ def safety_net_worklist(
             "     collect(DISTINCT CASE "
             "       WHEN a IS NULL THEN NULL "
             "       ELSE {"
-            "         id: a.id, "
+            "         id: a.alert_id, "
             "         type: a.alert_type, "
             "         rule_name: a.rule_name, "
             "         severity: a.severity, "
@@ -699,7 +699,8 @@ def action_css_alert(
     try:
         if not scope.is_admin:
             owner = client.run(
-                "MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert {id: $aid}) "
+                "MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->"
+                "(a:SafetyNetAlert {alert_id: $aid}) "
                 "MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
                 "RETURN gp.id AS gp_id",
                 aid=alert_id,
@@ -707,9 +708,9 @@ def action_css_alert(
             if not owner or owner[0].get("gp_id") not in scope.org_ids:
                 raise HTTPException(status_code=404, detail="Alert not found")
         result = client.run(
-            "MATCH (a:SafetyNetAlert {id: $aid}) "
+            "MATCH (a:SafetyNetAlert {alert_id: $aid}) "
             "SET a.actioned = $actioned "
-            "RETURN a.id AS id",
+            "RETURN a.alert_id AS id",
             aid=alert_id,
             actioned=body.actioned,
         )

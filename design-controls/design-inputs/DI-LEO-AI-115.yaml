@@ -1,0 +1,105 @@
+# -- DI-LEO-AI-115 -- Per-semantic-tag tier thresholds + extractor confidence fusion + assertion parity
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-115"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: >
+    The three-tier decision engine (libs/coding_engine/tier_classifier.py)
+    SHALL:
+
+    (a) Select tier-1 and tier-2 score thresholds from a per-semantic-tag
+        table. Tags with a lower ambiguity profile (disorder, finding,
+        situation) use a lower tier-1 bar (>=0.92); tags where a wrong
+        auto-code has high clinical impact (substance, product, medicinal
+        product, clinical drug, observable entity) use a higher tier-1
+        bar (>=0.96). The default (unknown tag) is 0.95.
+
+    (b) Fuse the LLM extractor's self-rated confidence into the tier
+        gate via ``effective_score = min(terminology_score, extractor_
+        confidence)``. Additionally cap the entity at tier 2 when
+        extractor_confidence is below a hard floor (default 0.80) with
+        reason ``low_extractor_confidence``.
+
+    (c) Read the ``assertion_parity_failed`` flag (set by the
+        post-processing stack per DI-LEO-AI-113) and, when True, cap the
+        entity at tier 2 with reason ``assertion_parity``.
+
+    (d) Treat a disorder_verdict of ``gate_failed`` the same way as
+        ``uncertain``: the entity is routed to tier 3 / review.
+
+  rationale: >
+    The original DI-LEO-AI-038 specified a single global threshold pair
+    (0.95 / 0.70) regardless of semantic domain and treated the
+    terminology score as the sole confidence signal. In practice a
+    disorder entity with a clean exact-FSN match at 0.93 is very
+    trustworthy (auto-codeable), while a ``substance`` match at 0.93 is
+    ambiguous and must be reviewed. Per-tag thresholds capture this
+    calibration without hardcoding exceptions.
+
+    Extractor confidence fusion prevents a weakly-extracted entity from
+    auto-coding just because its terminology score happens to be high --
+    the tier gate now requires BOTH the NER and the terminology step to
+    be confident. Using ``min(...)`` (not multiplication) avoids
+    penalising two high-but-not-1.0 signals unfairly while still
+    gating hard on a single weak signal.
+
+    The parity flag closes a gap where ConText's output was the only
+    assertion signal reaching the tier gate. When the LLM and ConText
+    disagree, holding at tier 2 is the conservative choice (one of the
+    two is wrong) and surfaces ConText misses for human review.
+
+    The ``gate_failed`` verdict is the fail-closed outcome from
+    DI-LEO-AI-116; the tier classifier honours it so disorder-gate
+    failures cannot silently auto-code.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "test"
+        spec: "disorder at terminology_score=0.93 auto-codes (tier 1); substance at 0.93 caps at tier 2; substance at 0.97 auto-codes."
+      - type: "test"
+        spec: "extractor_confidence=0.5 with terminology_score=0.99 caps at tier 2 with reason low_extractor_confidence."
+      - type: "test"
+        spec: "extractor_confidence=0.95 with terminology_score=0.96 for disorder reaches tier 1."
+      - type: "test"
+        spec: "assertion_parity_failed=True caps at tier 2 with reason assertion_parity even when terminology_score=0.98."
+      - type: "test"
+        spec: "disorder_verdict=gate_failed routes to tier 3 with reason uncertain_assertion."
+      - type: "test"
+        spec: "Unknown semantic_tag falls back to default thresholds (0.95 / 0.70)."
+    constraints:
+      - type: "safety"
+        spec: "Tier 3 gates (context_failure, informational, gate_failed, uncertain, non-codeable assertions) MUST be evaluated before Tier 1 gates."
+      - type: "safety"
+        spec: "Pending surface forms MUST NOT reach Tier 1."
+      - type: "code_quality"
+        spec: "classify_tier remains a pure function with no side effects and cyclomatic complexity <= 15."
+    dependencies: ["DI-LEO-AI-038", "DI-LEO-AI-113", "DI-LEO-AI-116"]
+    downstream_impacts:
+      - "libs/pipeline_graph/subgraphs/tier_classify.py"
+      - "libs/pipeline/post_processing.py (parity snapshot)"
+    technical_details:
+      language: "Python"
+      framework: "N/A"
+      file_structure:
+        - "libs/coding_engine/tier_classifier.py"
+        - "libs/pipeline_graph/subgraphs/tier_classify.py"
+        - "libs/pipeline/post_processing.py"
+      estimated_loc: 150
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-113 tier-classifier cases pass: per-tag thresholds,
+      confidence fusion (min and floor), assertion parity, gate_failed
+      routing, and default fallback.
+    test_protocol: "VT-LEO-AI-113"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-001", "R-LEO-AI-026"]
+  tags:
+    - "tier-classifier"
+    - "decision-engine"
+    - "safety-gate"
+    - "autonomous-coding"

@@ -1,0 +1,84 @@
+/*
+ * LEO design tokens as CSS custom properties.
+ * Mirrors services/ui/src/theme/tokens.ts for non-MUI DOM (skip-link,
+ * print rules, utility CSS). Imported once from app/layout.tsx via
+ * globals.css.
+ * See DI-LEO-AI-118.
+ */
+
+:root {
+  --leo-color-primary: #1F3A8A;
+  --leo-color-primary-contrast: #FFFFFF;
+  --leo-color-secondary: #0F766E;
+  --leo-color-bg-default: #F8FAFC;
+  --leo-color-bg-paper: #FFFFFF;
+  --leo-color-text-primary: #0F172A;
+  --leo-color-text-secondary: #475569;
+  --leo-color-text-muted: #4b5563;
+  --leo-color-divider: #CBD5E1;
+  --leo-color-success: #15803d;
+  --leo-color-warning: #b45309;
+  --leo-color-error: #b91c1c;
+  --leo-color-info: #0277bd;
+
+  --leo-space-xs: 4px;
+  --leo-space-sm: 8px;
+  --leo-space-md: 16px;
+  --leo-space-lg: 24px;
+  --leo-space-xl: 32px;
+  --leo-space-xxl: 48px;
+
+  --leo-radius-sm: 6px;
+  --leo-radius-md: 10px;
+  --leo-radius-lg: 14px;
+  --leo-radius-xl: 20px;
+
+  --leo-motion-duration-fast: 120ms;
+  --leo-motion-duration-normal: 200ms;
+  --leo-motion-duration-slow: 320ms;
+  --leo-motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --leo-focus-ring-width: 3px;
+  --leo-focus-ring-offset: 2px;
+  --leo-focus-ring-color: #1F3A8A;
+
+  --leo-font-size-body: 1rem;
+  --leo-font-size-caption: 0.8125rem;
+  --leo-font-size-heading: 1.25rem;
+
+  --leo-touch-target-min: 44px;
+}
+
+/* Reduced motion: disable non-essential animation. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --leo-motion-duration-fast: 0ms;
+    --leo-motion-duration-normal: 0ms;
+    --leo-motion-duration-slow: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark-mode opt-in via prefers-color-scheme. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --leo-color-bg-default: #0B1220;
+    --leo-color-bg-paper: #111827;
+    --leo-color-text-primary: #F8FAFC;
+    --leo-color-text-secondary: #CBD5E1;
+    --leo-color-text-muted: #94A3B8;
+    --leo-color-divider: #1F2937;
+    --leo-focus-ring-color: #93C5FD;
+  }
+}
+
+/* Shared focus ring: any focusable element that opts in gets AA-compliant focus. */
+.leo-focus-ring:focus-visible {
+  outline: var(--leo-focus-ring-width) solid var(--leo-focus-ring-color);
+  outline-offset: var(--leo-focus-ring-offset);
+}

@@ -1,0 +1,115 @@
+- id: "VT-LEO-AI-117"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-122"]
+    risks: ["R-LEO-AI-082"]
+
+  metadata:
+    title: "Operations workspace inclusive redesign verification"
+    description: >
+      Verifies that the Operations workspace renders the shared
+      PageIntro primitive with readable copy, uses the shared
+      shape-encoded StatusDot, and keeps section-row ARIA
+      semantics intact.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/operations-workspace-intro.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "jest + @testing-library/react installed"
+      - "next/jest configured (services/ui/jest.config.js)"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-117-TC-001"
+      case_name: "PageIntro is rendered with screenId='admin-operations'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render OperationsWorkspace and query for PageIntro content"
+          expected_result: >
+            A heading with 'control room for the AI' is present and
+            the intro title element id is 'admin-operations-intro-title'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "PageIntro appears before the first SectionRow"
+
+    - case_id: "VT-117-TC-002"
+      case_name: "PageIntro copy passes Flesch-Kincaid grade <=9"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Import the shipped OPERATIONS_INTRO copy object and call
+            fleschKincaidGrade on each of why, how, what.
+          expected_result: "All three strings return grade <=9"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Readability gate blocks jargon regressions"
+
+    - case_id: "VT-117-TC-003"
+      case_name: "SectionRow trigger exposes aria-expanded + aria-controls"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render OperationsWorkspace with initialTab='train'"
+          expected_result: >
+            The row's button aria-expanded toggles between 'false'
+            and 'true', aria-controls equals 'ops-section-train',
+            and the region has role='region'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All four rows behave consistently"
+
+    - case_id: "VT-117-TC-004"
+      case_name: "Local StatusDot is removed"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Inspect the filesystem to confirm
+            services/ui/src/components/operations/StatusDot.tsx no
+            longer exists.
+          expected_result: "File is absent"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Shape-encoded shared StatusDot is now the single source"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-117/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-117-RUN-20260416-001"
+      executed_at: "2026-04-16"
+      executed_by: "developer"
+      result: "pass"
+      environment: "jest (next/jest), jsdom"
+      tests_run: 7
+      tests_passed: 7
+      tests_failed: 0
+      notes: >
+        Command:
+        `npx jest src/__tests__/operations-workspace-intro.test.tsx
+        --no-coverage`. All 7 cases pass: PageIntro renders with
+        correct screenId and h2 semantics, collapse persists to
+        localStorage, Flesch-Kincaid grade <=9 on all three copy
+        strings, SectionRow aria-expanded and aria-controls remain
+        consistent, and components/operations/StatusDot.tsx is
+        confirmed absent.

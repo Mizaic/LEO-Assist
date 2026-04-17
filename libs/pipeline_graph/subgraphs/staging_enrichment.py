@@ -1,16 +1,27 @@
-"""Stage-at-diagnosis enrichment subgraph."""
+"""Stage-at-diagnosis enrichment subgraph.
+
+Scopes staging evidence to a post-diagnosis 90-day window and filters
+encounter text through the cancer-type specialty marker (DI-LEO-AI-126,
+R-LEO-AI-086). Both controls prevent stage mis-attribution on patients
+with multiple concurrent cancer pathways.
+"""
 
 from __future__ import annotations
 
 import logging
 import re
+from datetime import date, timedelta
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from libs.clinical_scoping import filter_rows_by_specialty
 from libs.staging.engine import StagingRulesEngine
 from libs.staging.tnm_parser import parse_tnm_triplet
+
+# DI-LEO-AI-126: post-diagnosis staging evidence window in days.
+STAGING_WINDOW_DAYS = 90
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +79,22 @@ class StagingState(TypedDict, total=False):
 
 
 def _choose_window(meta: dict[str, Any]) -> tuple[str, str]:
+    """Select the staging evidence window.
+
+    Preferred: [diagnosis_date, diagnosis_date + STAGING_WINDOW_DAYS].
+    Fallback (only when diagnosis_date is missing): [referral_date, end_date]
+    to preserve legacy behaviour for episodes that lack a diagnosis anchor.
+    """
+    diagnosis_date = str(meta.get("diagnosis_date") or "")[:10]
+    if diagnosis_date:
+        try:
+            start_d = date.fromisoformat(diagnosis_date)
+            end_d = start_d + timedelta(days=STAGING_WINDOW_DAYS)
+            return diagnosis_date, end_d.isoformat()
+        except ValueError:
+            pass
     referral_date = str(meta.get("referral_date") or "")[:10]
     end_date = str(meta.get("end_date") or "")[:10]
-    diagnosis_date = str(meta.get("diagnosis_date") or "")[:10]
     start = referral_date or diagnosis_date
     end = end_date or diagnosis_date or referral_date
     return start, end
@@ -131,6 +155,15 @@ def enrich_staging(state: StagingState) -> dict[str, Any]:
                         window_end=window_end,
                     )
                     or []
+                )
+                # DI-LEO-AI-126: filter by cancer-type specialty marker so
+                # evidence from a concurrent cancer pathway cannot leak into
+                # this episode's stage derivation. filter_rows_by_specialty
+                # falls back to the unfiltered set when no marker is defined
+                # or when zero rows match, so staging coverage is preserved.
+                cancer_type = str(meta.get("cancer_type") or "")
+                evidence_rows = filter_rows_by_specialty(
+                    evidence_rows, cancer_type, text_key="encounter_text"
                 )
                 explicit_stage, tnm_triplet = _extract_evidence(evidence_rows)
                 source = "coded"

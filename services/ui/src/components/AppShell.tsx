@@ -246,48 +246,60 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const currentWidth = isEditor ? RAIL_WIDTH : DRAWER_WIDTH;
 
+  const homeRoute = uiMode === "admin" ? "/admin/console" : "/care/dashboard";
+
   const railContent = (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", py: 1.5 }}>
-      <Tooltip title="LEO by Mizaic" placement="right">
-        <Box
-          component="img"
-          src="/leo-icon.svg"
-          alt="LEO"
-          onClick={() => handleNav(uiMode === "admin" ? "/admin/console" : "/care/dashboard")}
-          sx={{ width: 28, height: 28, mb: 1.5, cursor: "pointer" }}
-        />
+      <Tooltip title="LEO by Mizaic - go to home" placement="right">
+        <IconButton
+          aria-label="LEO by Mizaic - go to home"
+          onClick={() => handleNav(homeRoute)}
+          sx={{ width: 40, height: 40, mb: 1.5, p: 0.5 }}
+        >
+          <Box
+            component="img"
+            src="/leo-icon.svg"
+            alt=""
+            aria-hidden="true"
+            sx={{ width: 28, height: 28 }}
+          />
+        </IconButton>
       </Tooltip>
       <Divider sx={{ width: "80%", mb: 1 }} />
-      <List sx={{ p: 0, width: "100%" }}>
-        {visibleNavItems.map((item) => {
-          const isActive = pathname
-            ? (item.activePrefix
-                ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
-                : pathname === item.path || pathname.startsWith(item.path + "/"))
-            : false;
-          const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
-          return (
-            <Tooltip key={item.path} title={item.label} placement="right">
-              <ListItemButton
-                selected={isActive}
-                onClick={() => handleNav(item.path)}
-                sx={{
-                  justifyContent: "center",
-                  px: 0,
-                  py: 1,
-                  minHeight: 40,
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 0, color: isActive ? "primary.main" : "text.secondary" }}>
-                  <Badge badgeContent={badgeCount} color="warning" max={99}>
-                    {item.icon}
-                  </Badge>
-                </ListItemIcon>
-              </ListItemButton>
-            </Tooltip>
-          );
-        })}
-      </List>
+      <Box component="nav" aria-label="Main navigation" sx={{ width: "100%" }}>
+        <List sx={{ p: 0, width: "100%" }}>
+          {visibleNavItems.map((item) => {
+            const isActive = pathname
+              ? (item.activePrefix
+                  ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
+                  : pathname === item.path || pathname.startsWith(item.path + "/"))
+              : false;
+            const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
+            return (
+              <Tooltip key={item.path} title={item.label} placement="right">
+                <ListItemButton
+                  selected={isActive}
+                  onClick={() => handleNav(item.path)}
+                  aria-current={isActive ? "page" : undefined}
+                  aria-label={item.label}
+                  sx={{
+                    justifyContent: "center",
+                    px: 0,
+                    py: 1,
+                    minHeight: 44,
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 0, color: isActive ? "primary.main" : "text.secondary" }}>
+                    <Badge badgeContent={badgeCount} color="warning" max={99}>
+                      {item.icon}
+                    </Badge>
+                  </ListItemIcon>
+                </ListItemButton>
+              </Tooltip>
+            );
+          })}
+        </List>
+      </Box>
       {session?.user && (
         <Box sx={{ mt: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, pb: 0.5 }}>
           <Tooltip title={session.user.name ?? "User"} placement="right">
@@ -311,12 +323,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const fullDrawerContent = (
     <>
       <Box sx={{ px: 2.5, py: 2.5, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Box
-          component="img"
-          src="/leo-icon.svg"
-          alt="LEO"
-          sx={{ width: 32, height: 32 }}
-        />
+        <IconButton
+          aria-label="LEO by Mizaic - go to home"
+          onClick={() => handleNav(homeRoute)}
+          sx={{ p: 0.5 }}
+        >
+          <Box
+            component="img"
+            src="/leo-icon.svg"
+            alt=""
+            aria-hidden="true"
+            sx={{ width: 32, height: 32 }}
+          />
+        </IconButton>
         <Typography component="span" sx={{ fontSize: "1rem", lineHeight: 1.3, color: "text.primary", fontWeight: 600 }}>
           LEO
           <br />
@@ -330,19 +349,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {(organizations.length > 0 || isPlatformAdmin) && (
         <Box sx={{ px: 1.5, py: 1.5 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+          <Box
+            component="label"
+            htmlFor="leo-org-select"
+            sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}
+          >
             <BusinessOutlinedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500, letterSpacing: 0.5 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: 0.5 }}>
               ORGANISATION
             </Typography>
           </Box>
           <FormControl fullWidth size="small">
             <Select
+              id="leo-org-select"
+              inputProps={{ "aria-label": "Select organisation" }}
               value={viewAll ? "__all__" : (currentOrg?.id ?? "")}
               onChange={(e) => switchOrg(e.target.value as string)}
               displayEmpty
               sx={{
-                fontSize: "0.8rem",
+                fontSize: "0.9rem",
                 bgcolor: "action.hover",
                 borderRadius: 2,
                 "& .MuiSelect-select": { py: 0.75, px: 1.5 },
@@ -351,7 +376,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               }}
             >
               {isPlatformAdmin && (
-                <MenuItem value="__all__" sx={{ fontSize: "0.8rem" }}>
+                <MenuItem value="__all__" sx={{ fontSize: "0.9rem" }}>
                   All Organisations
                 </MenuItem>
               )}
@@ -362,7 +387,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   }),
                 )
                 .map((org) => (
-                  <MenuItem key={org.id} value={org.id} sx={{ fontSize: "0.8rem" }}>
+                  <MenuItem key={org.id} value={org.id} sx={{ fontSize: "0.9rem" }}>
                     {org.shortName || org.name}
                   </MenuItem>
                 ))}

@@ -1,0 +1,61 @@
+# -- DO-LEO-AI-123 -- Specialty-scoped staging implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-123"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-126"]
+    user_needs: ["UN-LEO-AI-052"]
+    risks_addressed: ["R-LEO-AI-086"]
+    verification_tests: ["VT-LEO-AI-121"]
+
+  specification:
+    title: "libs/clinical_scoping specialty markers + staging subgraph integration"
+    description: |
+      Creates libs/clinical_scoping/specialty_markers.py exposing
+      SPECIALTY_MARKERS, specialty_for, and filter_rows_by_specialty.
+      Updates staging_enrichment.py to use a 90-day post-diagnosis
+      window and to filter evidence rows via the specialty marker
+      before TNM / explicit-stage extraction.
+    acceptance_criteria:
+      - criterion: "marker library"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          libs/clinical_scoping.filter_rows_by_specialty returns only
+          rows whose text matches the cancer_type's regex; falls back
+          to unfiltered rows when none match.
+      - criterion: "post-diagnosis window"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          _choose_window returns (diagnosis_date, diagnosis_date+90d).
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/clinical_scoping/specialty_markers.py"
+        description: "SPECIALTY_MARKERS regex dict, specialty_for, filter_rows_by_specialty"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/staging_enrichment.py"
+        description: "_choose_window + enrich_staging filter integration"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 120
+      key_functions: ["filter_rows_by_specialty", "_choose_window", "enrich_staging"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Stage derivation feeds cancer-pathway dashboards and audit exports"
+    risk_control_measures:
+      - "Cancer-type specialty marker filters out cross-cancer evidence"
+      - "Fixed 90-day post-diagnosis window bounds temporal drift"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

@@ -1,0 +1,117 @@
+# -- UN-LEO-AI-065 -- Patient-facing inclusive user experience
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-065"
+  title: "Patients can use LEO-facing surfaces to check their own pathway, read their safety-netting advice, and complete well-being activities without clinical training"
+  description: |
+    Any LEO surface that a patient can reach (portal landing, mail
+    notifications, safety-netting information, well-being activities,
+    and sign-in) must be usable by a patient with no clinical
+    background, including patients as young as 8 years old or as old as
+    80, patients with low digital confidence, and patients using
+    assistive technology (screen readers, voice control, large text,
+    high contrast).
+
+    Today the product is built for NHS staff. Every user need in the
+    Atlas is written for a clinical, coding, ops, or engineering
+    persona. With the introduction of patient-touchable routes under
+    /portal, /mail, /safety-netting, /games, /care/wellbeing, and
+    /sign-in, the product now needs an explicit patient persona so the
+    design can be verified against patient outcomes and accessibility
+    law (Equality Act 2010, Web Accessibility Directive 2018, NHS
+    Service Standard).
+
+  stakeholder:
+    type: "end_user"
+    role: "Patient"
+    organization: "NHS patient population served by LEO subscribing organisations"
+
+  priority: "MUST"
+
+  rationale: |
+    LEO surfaces that a patient can reach must not discriminate by age,
+    literacy, language, or disability. Without an explicit patient
+    persona in Design Controls, every screen decision is made against
+    clinician-skewed criteria (jargon acceptable, small density, fast
+    task completion). That produces surfaces that exclude real
+    patients. A patient user need anchors acceptance criteria around
+    readability (<=age 9-11 reading level), target size, contrast,
+    keyboard and screen-reader support, and "what-is-this" explanation
+    for every clinical term.
+
+  benefit: "LEO becomes legally and clinically safe to expose to patients. Equality Act 2010, WCAG 2.1 AA, and NHS Service Standard compliance become enforceable through the normal DI/DO/VT loop."
+
+  use_case: |
+    1. An 80-year-old patient receives a safety-netting email, follows
+       the link to LEO, signs in, and reads the advice without help
+       from a clinician.
+    2. A 14-year-old patient views their own test result in the portal,
+       taps a "What is this?" affordance next to "microalbuminuria",
+       and reads a plain-language definition.
+    3. A patient with low vision increases browser zoom to 200% and
+       everything still fits and is still reachable by keyboard.
+    4. A patient with a screen reader completes a well-being activity
+       without needing sighted assistance.
+
+  current_solution: "No patient-facing surface is validated against a patient persona today. Copy is clinical, target sizes are optimised for density, density mode is fixed, no inline glossary affordance exists."
+
+  pain_points:
+    - "Clinical jargon is used without explanation (e.g. microalbuminuria, haematuria, referral criteria met)"
+    - "Body font size is 14-16px with no user-controlled density"
+    - "Target sizes can be under 44x44 CSS pixels, difficult for touch users with dexterity issues"
+    - "No Why/How/What framework on any screen; users cannot tell what the page is for"
+    - "No reduced-motion handling; animations may distress users with vestibular disorders"
+    - "Contrast is variable; some small chips and captions fall below WCAG AA"
+    - "No consistent 'learn more' or glossary affordance for clinical terms"
+
+  acceptance_criteria:
+    - "Every patient-reachable screen passes WCAG 2.1 AA (axe automated scan plus manual keyboard and screen reader check)"
+    - "Body copy on patient-reachable screens is Flesch-Kincaid Grade <=9"
+    - "Target sizes on patient-reachable screens are >=44x44 CSS pixels"
+    - "Density mode defaults to Spacious for patient-reachable screens"
+    - "Every clinical term on a patient-reachable screen has a GlossaryTerm or HelpPopover affordance with a plain-language definition"
+    - "Every patient-reachable screen has a PageIntro answering Why am I here, How do I do it, What will happen next"
+    - "prefers-reduced-motion and prefers-color-scheme are respected globally"
+    - "Keyboard-only navigation completes the canonical task on every patient-reachable screen"
+
+  success_metrics:
+    - metric: "axe automated violations (critical + serious) per patient-reachable screen"
+      target: "0"
+      baseline: "Not measured"
+    - metric: "Flesch-Kincaid Grade for patient-reachable body copy"
+      target: "<=9"
+      baseline: "Not measured"
+    - metric: "Patient task completion rate on canonical scenarios (moderated usability test)"
+      target: ">=90%"
+      baseline: "Not measured"
+    - metric: "Smallest interactive target on patient-reachable screens"
+      target: ">=44x44 CSS pixels"
+      baseline: "Variable, some <24px"
+
+  regulatory_impact: "high"
+  safety_impact: "high"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "Equality Act 2010 s.20 reasonable adjustments"
+    - "Public Sector Bodies (Websites and Mobile Applications) Accessibility Regulations 2018"
+    - "NHS Service Standard Principles 3, 5, 7"
+    - "WCAG 2.1 AA"
+
+  related_standards:
+    - "WCAG 2.1 AA"
+    - "EN 301 549"
+    - "IEC 62366-1:2015 usability engineering"
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+
+  metadata:
+    created_by: "UX redesign programme 2026-04"
+    created_date: "2026-04-16"
+    status: "draft"
+
+  design_inputs: ["DI-LEO-AI-118", "DI-LEO-AI-119", "DI-LEO-AI-120", "DI-LEO-AI-121"]
+  validation_tests: []
+
+  tags: ["patient", "accessibility", "inclusive-design", "wcag", "age-8-to-80", "ui-redesign"]

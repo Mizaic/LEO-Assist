@@ -23,6 +23,12 @@ def _parse_int_set(raw: str, default: frozenset[int]) -> frozenset[int]:
 SAME_EPISODE_DAYS = int(os.getenv("EPISODE_SAME_EPISODE_DAYS", "180"))
 DIAG_LOOKBACK_DAYS = int(os.getenv("EPISODE_DIAG_LOOKBACK_DAYS", "180"))
 
+# DI-LEO-AI-124: minimum days between a referral anchor and a diagnosis
+# anchor for the referral to be considered the trigger for that diagnosis.
+# Prevents diagnosis-encounter text from being mis-classified as a fresh
+# referral and overshadowing the earlier authoritative PRISM anchor.
+MIN_REFERRAL_TO_DIAG_DAYS = int(os.getenv("EPISODE_MIN_REFERRAL_TO_DIAG_DAYS", "3"))
+
 # Auto-close thresholds (days)
 STALE_HARD_DAYS = int(os.getenv("EPISODE_STALE_HARD_DAYS", "365"))
 STALE_POST_SPECIALIST_DAYS = int(os.getenv("EPISODE_STALE_POST_SPECIALIST_DAYS", "90"))

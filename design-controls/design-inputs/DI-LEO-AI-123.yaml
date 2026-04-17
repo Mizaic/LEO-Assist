@@ -1,0 +1,106 @@
+# -- DI-LEO-AI-123 -- Coding review inclusive redesign and module split
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-123"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-067", "UN-LEO-AI-068"]
+  requirement: >
+    The coding-review bulk case modal SHALL be split into
+    multiple modules, each no longer than 500 lines of code, and
+    SHALL expose plain-language explanations via the shared
+    PageIntro, GlossaryTerm, and HelpPopover primitives so that
+    a junior trainee can understand, for any given case, why it
+    needs review, what each SNOMED term means in everyday words,
+    and what will happen when they accept, code differently, or
+    suppress.
+  rationale: >
+    CodingReviewCasesModal.tsx is currently 1123 lines in one
+    file, which makes it hard to reason about, test, or review
+    safely. It also uses clinical terms like 'assertion',
+    'semantic tag mismatch', 'suppress', and 'NER entity type'
+    without in-product explanation, which is a safety risk for
+    new operators who must make the coding decision. Splitting
+    the file and adding plain-language affordances reduces both
+    cognitive load and defect risk.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          CodingReviewCasesModal.tsx is split into five modules:
+          CodingReviewCasesModal.tsx (dialog shell),
+          CaseCard.tsx (per-case UI),
+          EncounterContextPanel.tsx (sibling entities),
+          codingReviewUtils.ts (safety / phrase helpers +
+          keyframes), and codingReviewCopy.ts (plain-language
+          strings + PageIntro copy). Each new file is at most
+          500 lines.
+      - type: "functional"
+        spec: >
+          The dialog renders a PageIntro keyed to
+          screenId='coding-review-cases' with copy at
+          Flesch-Kincaid Grade <=9.
+      - type: "safety"
+        spec: >
+          Every clinical term surfaced in the modal title, chips,
+          alerts, and buttons (assertion, semantic tag,
+          entity_label, SNOMED concept, declined, absent,
+          planned, hypothetical) renders as a GlossaryTerm where
+          first seen, and each term has a glossary entry with
+          plain-language copy at FK grade <=9.
+      - type: "safety"
+        spec: >
+          The suppress form surfaces a HelpPopover explaining
+          what 'suppressing' means and when NOT to suppress
+          (when the finding IS present but worded unusually).
+          The popover title is written in plain English.
+    constraints:
+      - type: "performance"
+        spec: >
+          The split MUST not change the public API of
+          CodingReviewCasesModal: the component takes the same
+          Props {item, open, onClose, onAllResolved, initialCases,
+          prefilledResults} and preserves all existing
+          behaviours (batch resolve, accept-all, per-case Ask
+          LEO, suppress form, entity-label correction,
+          assertion correction).
+    dependencies: ["DI-LEO-AI-118", "DI-LEO-AI-121", "DI-LEO-AI-122"]
+    downstream_impacts:
+      - "services/ui/src/components/operations/CodingReviewCasesModal.tsx"
+      - "services/ui/src/components/operations/CaseCard.tsx"
+      - "services/ui/src/components/operations/EncounterContextPanel.tsx"
+      - "services/ui/src/components/operations/codingReviewUtils.ts"
+      - "services/ui/src/components/operations/codingReviewCopy.ts"
+      - "services/ui/src/lib/glossary.ts"
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js + MUI"
+      file_structure:
+        - "services/ui/src/components/operations/CodingReviewCasesModal.tsx"
+        - "services/ui/src/components/operations/CaseCard.tsx"
+        - "services/ui/src/components/operations/EncounterContextPanel.tsx"
+        - "services/ui/src/components/operations/codingReviewUtils.ts"
+        - "services/ui/src/components/operations/codingReviewCopy.ts"
+      estimated_loc: 1200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-118 cases pass: every resulting file <=500
+      LOC; CodingReviewCasesModal Props signature is unchanged;
+      PageIntro renders with screenId='coding-review-cases' and
+      FK grade <=9 on all shipped copy; glossary entries exist
+      for 'assertion', 'semantic tag', 'suppress', and each
+      assertion option label and each passes FK grade <=9.
+
+    test_protocol: "VT-LEO-AI-118"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-083"]
+  tags:
+    - "coding-review"
+    - "inclusive-design"
+    - "explanation-pattern"
+    - "module-split"
+    - "patient-safety"

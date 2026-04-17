@@ -1,0 +1,84 @@
+# -- R-LEO-AI-087 -- Safety-net alerts lost or silently unactionable
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-087"
+  title: "Safety-net alerts are detected but invisible to reviewers, or acknowledge/action requests silently succeed with no effect"
+
+  hazard:
+    description: >
+      The safety-net subgraph detects per-patient risk signals but
+      never persists them as SafetyNetAlert nodes, and/or the
+      analytics router matches alerts by a non-canonical key so that
+      acknowledge and action requests return HTTP 200 while updating
+      zero rows.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A primary-care reviewer opens the safety-netting worklist and sees
+    no pending alerts, even when the pipeline has detected missing
+    safety-netting advice or an excessive referral wait for one of
+    their patients. Alternatively, the reviewer clicks 'mark actioned'
+    and the UI confirms success, but the underlying alert is never
+    acknowledged because the MATCH clause looked up a.id instead of
+    a.alert_id. Follow-up escalation never fires and the patient's
+    at-risk status is never reviewed.
+
+  harm:
+    description: >
+      Delayed clinical review of patients with missing safety netting
+      or overdue follow-up, which directly contributes to diagnostic
+      delay in cancer and other safety-critical pathways.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 2
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        persist_safety_net_alerts writes every detected signal as a
+        SafetyNetAlert node linked to the Patient via
+        HAS_SAFETY_NET_ALERT (and to the EpisodeOfCare when scoped).
+        The analytics dashboards router reads and writes alerts via
+        the canonical alert_id key. MERGE semantics keep repeat runs
+        idempotent.
+      implemented_by: ["DI-LEO-AI-127"]
+      verified_by: ["VT-LEO-AI-122"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Persistence on every subgraph run plus canonical-key router
+      queries mean detected signals are always visible and
+      acknowledgements always affect the intended row. Residual risk
+      is limited to detection errors upstream in the subgraph, which
+      are covered by the detector's own verification tests.
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly sample of patients with known safety-net triggers to
+      confirm the corresponding SafetyNetAlert exists and can be
+      acknowledged end-to-end.
+    metrics:
+      - "Percentage of detected signals with a persisted SafetyNetAlert"
+      - "Percentage of acknowledge requests where rows_affected = 1"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Analytics layer architectural review 2026-04"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "safety-netting"
+      - "persistence"
+      - "key-consistency"

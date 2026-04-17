@@ -1,0 +1,106 @@
+# -- R-LEO-AI-078 -- Low-contrast text or motion in UI leads to missed safety information
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-078"
+  title: "Users with low vision, colour-blindness, age-related sight loss, or vestibular sensitivity cannot read or safely perceive clinical information rendered in LEO because the UI uses low-contrast colours, sub-minimum font sizes, or motion that cannot be disabled"
+
+  hazard:
+    description: >
+      The LEO UI uses a hardcoded 14px body font, chips at 0.65rem
+      (approximately 10px), and historically banned low-contrast
+      greys. Motion is always on. As a result, users with visual or
+      vestibular impairment, including older clinicians and
+      patients exposed to patient-reachable screens, cannot reliably
+      read safety-netting advice, coding assertions, or status
+      signals; or they experience motion-induced discomfort that
+      causes them to look away during a critical moment.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinician with age-related macular degeneration reviews a list
+    of coded encounters with small grey chips indicating assertion
+    (e.g. "refuted", "not present"). The chip text is at 10px with a
+    contrast ratio below 3:1. The clinician misses an "absent"
+    marker on a significant-finding code and approves the record,
+    causing a false-positive to propagate. Or: a patient with a
+    vestibular disorder reads safety-netting advice on a page with
+    an animated banner that cannot be disabled, looks away, and
+    misses the red-flag symptom list.
+
+  harm:
+    description: >
+      Clinical decisions are made on misread or missed information.
+      Safety-netting advice is not absorbed by the patient. For
+      children, older patients, and patients with disability, the
+      product is de-facto unusable, constituting discrimination
+      under the Equality Act 2010 and posing a direct
+      patient-safety risk.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Introduce a single typed design-token layer
+        (DI-LEO-AI-118) that guarantees WCAG AA contrast,
+        minimum 16px body text, minimum 12px chip/caption,
+        >=3px focus ring with >=3:1 contrast, and full
+        prefers-reduced-motion support. All UI components are
+        refactored to consume tokens.
+      implemented_by: ["DI-LEO-AI-118"]
+      verified_by: ["VT-LEO-AI-113"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        CI gate: jest unit test rejects any CONTRAST_PAIR that
+        computes below 4.5:1 for normal text or 3:1 for large
+        text, and fails the build if axe-core finds a critical
+        or serious a11y violation on any patient-reachable
+        Playwright route.
+      implemented_by: ["DI-LEO-AI-118", "DI-LEO-AI-120"]
+      verified_by: ["VT-LEO-AI-113", "VT-LEO-AI-115"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      After token enforcement and CI gating, every contrast and
+      motion defect must be fixed before merge. Residual risk
+      covers pages that render user-generated HTML (e.g.
+      imported PDFs) where the design tokens do not govern the
+      content. Those paths are handled by separate escalation
+      flows and human review.
+
+  monitoring:
+    monitoring_plan: >
+      Monitor axe-core violation counts per build in CI. Alert if
+      any critical or serious violation appears on a
+      patient-reachable screen. Run quarterly usability checks
+      with older clinicians and low-vision participants.
+    metrics:
+      - "axe-core critical violations per build (target 0)"
+      - "axe-core serious violations per build (target 0)"
+      - "Reported 'cannot read' support tickets per month (target downward)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "UX redesign programme 2026-04 inclusive design review"
+    identified_date: "2026-04-16"
+    status: "analyzed"
+    tags:
+      - "accessibility"
+      - "contrast"
+      - "motion"
+      - "ui-foundation"
+      - "patient-safety"

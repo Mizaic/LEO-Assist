@@ -1,0 +1,83 @@
+# -- DO-LEO-AI-125 -- libs/metrics consolidation (interval KPI math)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-125"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-125"]
+    user_needs: ["UN-LEO-AI-008"]
+    risks_addressed: ["R-LEO-AI-085"]
+    verification_tests: ["VT-LEO-AI-120"]
+
+  specification:
+    title: "Shared libs/metrics module for NCDA interval KPIs"
+    description: |
+      Extracts the NCDA interval KPI math (days_presentation_to_referral,
+      days_referral_to_diagnosis, days_diagnosis_to_treatment) into a
+      pure-math module at libs/metrics/ with zero Neo4j or LLM
+      dependencies. The runtime kpi_calculator and the one-shot
+      scripts/build_ncda_export.py both import days_between,
+      pick_earliest_milestone, and compute_interval_kpis from this
+      module so they produce identical numbers. The Neo4j I/O
+      (milestone fetch, consultations-before-referral count,
+      persistence) remains in the analyzer.
+    acceptance_criteria:
+      - criterion: "single source of math"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          kpi_calculator._days_between and _compute_episode_kpis
+          delegate to libs.metrics. scripts/build_ncda_export._gap_days
+          delegates to libs.metrics.days_between.
+      - criterion: "runtime/export parity"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          compute_interval_kpis returns identical dicts for a runtime
+          milestone shape (first_presentation/referral/diagnosis_confirmed)
+          and the ground-truth shape (presentation_date/referral_date/
+          diagnosis_date).
+      - criterion: "backward compatibility"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Existing tests/test_kpi_calculator.py and
+          tests/test_episode_kpi_persistence.py pass unchanged.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/metrics/__init__.py"
+        description: "Public API re-exports"
+      - artifact_type: "source_code"
+        location: "libs/metrics/intervals.py"
+        description: "days_between, pick_earliest_milestone, compute_interval_kpis"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/kpi_calculator.py"
+        description: "Now delegates math to libs.metrics; keeps Neo4j I/O"
+      - artifact_type: "source_code"
+        location: "scripts/build_ncda_export.py"
+        description: "_gap_days now a thin wrapper over libs.metrics.days_between"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 120
+      key_functions:
+        - "days_between"
+        - "pick_earliest_milestone"
+        - "compute_interval_kpis"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Interval KPIs used for clinical dashboards and audit reporting"
+    risk_control_measures:
+      - "Single source of KPI math prevents runtime vs export divergence"
+      - "Unit tests for every key alias (runtime + ground-truth) pin parity"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

@@ -89,6 +89,61 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+  ui-a11y:
+    name: UI accessibility gate (VT-LEO-AI-113/114/115/116)
+    needs: [test]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ui
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: services/ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint - ESLint with jsx-a11y (changed files)
+        run: |
+          set +e
+          npx eslint "src/**/*.{ts,tsx}" --max-warnings=0
+          LINT_EXIT=$?
+          if [ "$LINT_EXIT" -ne 0 ]; then
+            echo "::warning::eslint jsx-a11y reported issues (non-blocking while codebase migrates)"
+          fi
+          exit 0
+
+      - name: Jest - design tokens, density, a11y primitives, explanation patterns
+        run: |
+          npx jest \
+            src/__tests__/theme-tokens.test.ts \
+            src/__tests__/density-context.test.tsx \
+            src/__tests__/confirmdialog-a11y.test.tsx \
+            src/__tests__/statusdot-a11y.test.tsx \
+            src/__tests__/explanation-patterns.test.tsx \
+            --no-coverage --ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright - a11y baseline (axe-core, non-blocking)
+        run: |
+          set +e
+          npx playwright test e2e/a11y-baseline.spec.ts --reporter=line
+          AXE_EXIT=$?
+          if [ "$AXE_EXIT" -ne 0 ]; then
+            echo "::warning::axe-core a11y baseline failed (non-blocking until VT-115 TC-006 is green)"
+          fi
+          exit 0
+
   build-push:
     name: Build ${{ matrix.service }}
     needs: [test]

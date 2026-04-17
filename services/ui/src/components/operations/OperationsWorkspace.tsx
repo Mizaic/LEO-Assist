@@ -15,11 +15,19 @@ import ModelTrainingOutlinedIcon from "@mui/icons-material/ModelTrainingOutlined
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import RocketLaunchOutlinedIcon from "@mui/icons-material/RocketLaunchOutlined";
 import TrackChangesOutlinedIcon from "@mui/icons-material/TrackChangesOutlined";
-import StatusDot from "./StatusDot";
+import { StatusDot } from "@/components/ui/StatusDot";
+import PageIntro from "@/components/ui/PageIntro";
+import type { HealthStatus } from "@/theme/tokens";
 import RunSection from "./RunSection";
 import TrainSection from "./TrainSection";
 import ModelLifecyclePanel from "./ModelLifecyclePanel";
 import QualitySection from "./QualitySection";
+
+export const OPERATIONS_INTRO = {
+  why: "This is the control room for the AI. You manage, improve, and monitor it here.",
+  how: "Work the four steps from top to bottom. Start with training data, check how the AI is doing, make a new version live, and run patients through when you need to.",
+  what: "When you open a step, it shows the tools and status for that step. The banner at the top tells you what to do next.",
+} as const;
 
 // -- Types -------------------------------------------------------------------
 
@@ -33,6 +41,13 @@ interface QuickStats {
 type SectionKey = "train" | "quality" | "deploy" | "process";
 
 type StatusVariant = "ok" | "warn" | "error" | "neutral";
+
+const STATUS_TO_HEALTH: Record<StatusVariant, HealthStatus> = {
+  ok: "healthy",
+  warn: "warning",
+  error: "error",
+  neutral: "neutral",
+};
 
 interface SectionStatus {
   label: string;
@@ -210,7 +225,11 @@ function SectionRow({
             gap={0.75}
             sx={{ mt: 0.25 }}
           >
-            <StatusDot variant={statusVariant} size={7} />
+            <StatusDot
+              status={STATUS_TO_HEALTH[statusVariant]}
+              reason={statusLabel}
+              size={10}
+            />
             <Typography
               variant="caption"
               color="text.secondary"
@@ -352,6 +371,14 @@ export default function OperationsWorkspace({ initialTab }: Props) {
       {/* -- Main content ---------------------------------------------------- */}
       <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 800, mx: "auto" }}>
         <Stack gap={2}>
+
+          <PageIntro
+            screenId="admin-operations"
+            why={OPERATIONS_INTRO.why}
+            how={OPERATIONS_INTRO.how}
+            what={OPERATIONS_INTRO.what}
+            headingLevel={2}
+          />
 
           {/* Context banner */}
           {statsError ? (

@@ -28,6 +28,45 @@ import EpisodesByTypeChart from "@/components/dashboard/EpisodesByTypeChart";
 import DiagnosedByTypeChart from "@/components/dashboard/DiagnosedByTypeChart";
 import SafetyNetAlertsSummary from "@/components/dashboard/SafetyNetAlertsSummary";
 import LLMSpendPanel from "@/components/dashboard/LLMSpendPanel";
+import PageIntro from "@/components/ui/PageIntro";
+
+// Plain-language intro copy. Every string must read at Flesch-Kincaid
+// grade <=9 (DI-LEO-AI-128, verified in VT-LEO-AI-123).
+export const CARE_OVERVIEW_INTRO = {
+  why: "Care Overview is where you track cancer referrals and find cases that need help.",
+  how: "Pick a date at the top. The cards show new referrals, open cases, and new cancer diagnoses.",
+  what: "Scroll down for charts, waiting times, and safety alerts. Open an alert to help the patient.",
+} as const;
+
+// Sentence-case summary card labels. Kept short so they read as labels,
+// not shouty tracked text.
+export const CARE_OVERVIEW_SUMMARY_LABELS = {
+  referrals: "Cancer referrals",
+  active: "Active cases",
+  confirmed: "Confirmed cancers",
+  alerts: "Safety alerts",
+} as const;
+
+// Plain-language chart descriptions. All must read at Flesch-Kincaid
+// grade <=9 (VT-LEO-AI-123 TC-004).
+export const CARE_OVERVIEW_CHART_COPY = {
+  referrals: {
+    title: "Referrals by cancer type",
+    description: "How many people were referred, grouped by the suspected cancer type.",
+  },
+  diagnosed: {
+    title: "Confirmed cancers by type",
+    description: "People whose cancer has been confirmed, grouped by type.",
+  },
+  kpis: {
+    title: "Average waiting times",
+    description: "Average days between stages of the cancer pathway.",
+  },
+  alerts: {
+    title: "Recent safety alerts",
+    description: "Patients who may need a follow up check.",
+  },
+} as const;
 
 export default function DashboardPage() {
   const orgId = useOrgId();
@@ -126,10 +165,19 @@ export default function DashboardPage() {
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "hidden" }}>
 
-      {/* ── Page title ─────────────────────────────────────────────── */}
+      {/* -- Page title ------------------------------------------------ */}
       <Typography variant="h5" component="h1" sx={{ mb: 2, fontWeight: 700 }}>
         Overview
       </Typography>
+
+      {/* -- Plain-language intro (DI-LEO-AI-128) ---------------------- */}
+      <PageIntro
+        screenId="care-overview"
+        why={CARE_OVERVIEW_INTRO.why}
+        how={CARE_OVERVIEW_INTRO.how}
+        what={CARE_OVERVIEW_INTRO.what}
+        headingLevel={2}
+      />
 
       {/* ── Date filter bar ─────────────────────────────────────────── */}
       <Box
@@ -238,32 +286,32 @@ export default function DashboardPage() {
       <Grid container spacing={2.5} sx={{ mb: 3 }} component="section" aria-label="Summary figures">
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Cancer Referrals"
-            description="Total number of cancer referral pathways recorded"
+            label={CARE_OVERVIEW_SUMMARY_LABELS.referrals}
+            description="Total cancer referral pathways we have on record."
             value={loading ? undefined : totalEpisodes}
             color="#1D4ED8"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Active Cases"
-            description="Referrals still open and being tracked"
+            label={CARE_OVERVIEW_SUMMARY_LABELS.active}
+            description="Referrals still open and being tracked."
             value={loading ? undefined : activeEpisodes}
             color="#0D7C6F"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Confirmed Cancers"
-            description="Referrals where cancer has been confirmed"
+            label={CARE_OVERVIEW_SUMMARY_LABELS.confirmed}
+            description="Referrals where cancer has been confirmed."
             value={loading ? undefined : totalDiagnosed}
             color="#15803D"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Safety Alerts"
-            description="Patients who may need follow-up action"
+            label={CARE_OVERVIEW_SUMMARY_LABELS.alerts}
+            description="Patients who may need a follow up check."
             value={loading ? undefined : alerts.length}
             color="#92400E"
             badge={criticalAlerts > 0 ? `${criticalAlerts} urgent` : undefined}
@@ -277,10 +325,10 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" component="h2" sx={{ mb: 0.5, fontSize: "1rem", fontWeight: 700 }}>
-                Referrals by Cancer Type
+                {CARE_OVERVIEW_CHART_COPY.referrals.title}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: "0.8rem" }}>
-                How many people were referred, grouped by suspected cancer type
+                {CARE_OVERVIEW_CHART_COPY.referrals.description}
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={280} aria-label="Loading referrals chart" />
@@ -300,10 +348,10 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" component="h2" sx={{ mb: 0.5, fontSize: "1rem", fontWeight: 700 }}>
-                Confirmed Cancers by Type
+                {CARE_OVERVIEW_CHART_COPY.diagnosed.title}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: "0.8rem" }}>
-                Referrals where the cancer diagnosis has been confirmed
+                {CARE_OVERVIEW_CHART_COPY.diagnosed.description}
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={280} aria-label="Loading confirmed cancers chart" />
@@ -327,10 +375,10 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" component="h2" sx={{ mb: 0.5, fontSize: "1rem", fontWeight: 700 }}>
-                Average Waiting Times
+                {CARE_OVERVIEW_CHART_COPY.kpis.title}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: "0.8rem" }}>
-                Average number of days between key stages of the cancer pathway
+                {CARE_OVERVIEW_CHART_COPY.kpis.description}
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={240} aria-label="Loading waiting times" />
@@ -346,12 +394,12 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" component="h2" sx={{ mb: 0.5, fontSize: "1rem", fontWeight: 700 }}>
-                Recent Safety Alerts
+                {CARE_OVERVIEW_CHART_COPY.alerts.title}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: "0.8rem" }}>
-                Patients who may need follow-up based on clinical guidelines
+                {CARE_OVERVIEW_CHART_COPY.alerts.description}
                 {isFiltered && (
-                  <> &mdash; shown regardless of the referral date filter above</>
+                  <> Shown regardless of the date filter above.</>
                 )}
               </Typography>
               {loading ? (
@@ -398,7 +446,12 @@ function StatCard({
       <CardContent sx={{ py: 2.5 }}>
         <Typography
           variant="body2"
-          sx={{ color: "text.secondary", mb: 0.25, fontSize: "0.78rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}
+          sx={{
+            color: "text.secondary",
+            mb: 0.25,
+            fontSize: "0.8125rem",
+            fontWeight: 600,
+          }}
         >
           {label}
         </Typography>

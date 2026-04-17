@@ -693,9 +693,11 @@ export default function TermSearch({
           autoFocus
           fullWidth
           size="small"
-          placeholder="Search SNOMED terms..."
+          label="Search SNOMED terms"
+          placeholder="e.g. type 2 diabetes"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
+          inputProps={{ "aria-label": "Search SNOMED terms" }}
           slotProps={{
             input: {
               startAdornment: (

@@ -1,0 +1,89 @@
+# -- DI-LEO-AI-119 -- Density modes (Compact, Comfortable, Spacious)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-119"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-065", "UN-LEO-AI-068"]
+  requirement: >
+    The LEO UI SHALL expose three density modes - Compact,
+    Comfortable (default for staff), and Spacious (default for
+    patient-reachable routes) - controlled by a DensityProvider
+    React context whose value is driven by a user preference
+    persisted to the browser (localStorage key 'leo-density') and
+    read at app-root. Every primitive component (Button, Chip, Input,
+    Table row, ListItem, Card) MUST resolve its padding, min-height,
+    and font-size from the active density tier. Patient-reachable
+    routes under /portal, /mail, /safety-netting, /games,
+    /care/wellbeing, and /sign-in MUST default to Spacious.
+    Spacious MUST guarantee >=44x44 CSS pixel touch targets.
+  rationale: >
+    Different users need different defaults. Junior staff and
+    patient-reachable surfaces benefit from Spacious. Experienced
+    ops and admin users prefer Compact to see more rows. A single
+    hardcoded density optimised for one persona excludes the
+    others. A density layer lets the same component render
+    safely for any persona without separate components.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          DensityProvider exports a DensityContext with value
+          'compact' | 'comfortable' | 'spacious', a default
+          derived from (a) the current route (patient-reachable
+          -> 'spacious'), then (b) localStorage 'leo-density',
+          then (c) 'comfortable'.
+      - type: "functional"
+        spec: >
+          Primitive components read density via useDensity() and
+          select padding/min-height from a density map exported
+          from theme/tokens.ts.
+      - type: "safety"
+        spec: >
+          For density='spacious', every primitive's computed
+          min-height is >=44px and padding supports a 44x44
+          touch target.
+      - type: "functional"
+        spec: >
+          Settings page exposes a density toggle. Selection
+          writes to localStorage and immediately re-renders the
+          tree.
+      - type: "functional"
+        spec: >
+          Patient-reachable routes ignore localStorage 'compact'
+          and force 'spacious' to prevent accidental downshift.
+    constraints:
+      - type: "performance"
+        spec: >
+          Density switching MUST NOT remount the page tree; it
+          MUST be handled via context re-render only.
+    dependencies: ["DI-LEO-AI-118"]
+    downstream_impacts:
+      - "services/ui/src/context/DensityContext.tsx"
+      - "services/ui/src/components/ui/ (all primitives)"
+      - "services/ui/src/app/settings/page.tsx"
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js + MUI"
+      file_structure:
+        - "services/ui/src/context/DensityContext.tsx"
+        - "services/ui/src/theme/tokens.ts"
+        - "services/ui/src/components/ui/Button.tsx"
+      estimated_loc: 180
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-114 cases pass: context default rules, Settings
+      persistence, patient-route override, Spacious >=44px target.
+
+    test_protocol: "VT-LEO-AI-114"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-079"]
+  tags:
+    - "density"
+    - "accessibility"
+    - "touch-target"
+    - "patient-safety"

@@ -189,7 +189,10 @@ describe("RuleReviewSection", () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
     await waitFor(() => {
-      expect(screen.getByText(/Refer patients with unexplained rectal bleeding\./i)).toBeInTheDocument();
+      expect(
+        screen.getAllByText(/Refer patients with unexplained rectal bleeding\./i)
+          .length,
+      ).toBeGreaterThan(0);
     });
   });
 

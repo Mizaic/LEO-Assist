@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import DashboardPage from "../page";
 import { AnalyticsDateFilterProvider } from "@/context/AnalyticsDateFilterContext";
 import {
+  fetchAuditSummary,
   fetchEpisodeSummary,
   fetchDiagnosedSummary,
   fetchKPIBenchmarks,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/analyticsApi";
 
 jest.mock("@/lib/analyticsApi", () => ({
+  fetchAuditSummary: jest.fn(),
   fetchEpisodeSummary: jest.fn(),
   fetchDiagnosedSummary: jest.fn(),
   fetchKPIBenchmarks: jest.fn(),
@@ -50,6 +52,11 @@ function renderDashboard() {
 
 describe("DashboardPage", () => {
   beforeEach(() => {
+    (fetchAuditSummary as jest.Mock).mockResolvedValue({
+      total_episodes: 0,
+      active_episodes: 0,
+      confirmed_cancers: 0,
+    });
     (fetchEpisodeSummary as jest.Mock).mockResolvedValue([]);
     (fetchDiagnosedSummary as jest.Mock).mockResolvedValue([]);
     (fetchKPIBenchmarks as jest.Mock).mockResolvedValue([{}]);

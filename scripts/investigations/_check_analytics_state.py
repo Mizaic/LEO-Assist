@@ -20,11 +20,6 @@ LABELS = [
     "AuditRun",
     "DriftMetric",
     "SafetyNetAlert",
-    "CSSAlert",
-    "CancerEpisode",
-    "PathwayTimepoint",
-    "CaseSummary",
-    "QualityCheckRun",
     "EpisodeOfCare",
 ]
 

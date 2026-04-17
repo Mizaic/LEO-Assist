@@ -1,0 +1,89 @@
+# -- DO-LEO-AI-111 -- LLM extractor v2: spans, assertion, confidence, qualifiers
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-111"
+  version: "2.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-112", "DI-LEO-AI-113"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-003"]
+    verification_tests: ["VT-LEO-AI-112", "VT-LEO-AI-113"]
+
+  specification:
+    title: "LLM extractor paths updated for span resolution, self-rated assertion, self-rated confidence, and clinical-qualifier preservation"
+    description: |
+      Both LLM extractor implementations (the coding_worker extractor and
+      the WorkflowEngine subgraph extractor) are updated to:
+
+      - Call the shared SpanResolver (DO-LEO-AI-110) so every extracted
+        term carries accurate absolute character offsets into the
+        encounter text.
+      - Parse the LLM's emitted ``assertion`` value into the
+        ExtractionItem / ExtractedTerm assertion field, clamping to the
+        controlled vocabulary and defaulting to ``present`` when missing.
+      - Parse the LLM's self-rated ``confidence`` in [0, 1], clamping to
+        valid range and defaulting to 1.0 when missing.
+      - Receive updated system prompt instructions that tell the LLM to
+        preserve clinical qualifiers (onset, chronicity, certainty,
+        laterality) in the ``lookup_term`` field, and to emit assertion
+        and confidence as required fields.
+
+    acceptance_criteria:
+      - criterion: "spans are resolved"
+        type: "functional"
+        measurement: "Test"
+        target: "extracted items carry encounter-absolute span_start/span_end"
+      - criterion: "assertion parsed from LLM"
+        type: "functional"
+        measurement: "Test"
+        target: "parser reads assertion from JSON; unknown values fall back to 'present'"
+      - criterion: "confidence parsed and clamped"
+        type: "functional"
+        measurement: "Test"
+        target: "parser reads confidence from JSON; out-of-range values clamped to [0, 1]"
+      - criterion: "qualifier preservation"
+        type: "functional"
+        measurement: "Inspection + few-shot eval"
+        target: "lookup_term retains onset/chronicity/certainty/laterality qualifiers present in source text"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/llm_extractor.py"
+        description: "ExtractedTerm dataclass + _parse_terms + extracted_term_to_item"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/_extractor.py"
+        description: "Workflow extractor using SpanResolver and assertion/confidence normalisation"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/extraction_v1.py"
+        description: "System prompt with qualifier preservation, assertion and confidence rules"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 240
+      key_functions:
+        - "_parse_terms"
+        - "_parse_assertion"
+        - "_parse_confidence"
+        - "extracted_term_to_item"
+        - "_normalise_assertion"
+        - "_normalise_confidence"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Accurate spans are required for ConText and scope guard to behave correctly."
+      - "LLM assertion is a secondary signal; ConText remains authoritative for the final assertion."
+    risk_control_measures:
+      - "Assertion values are clamped to the controlled vocabulary; unknown inputs default to 'present'."
+      - "Confidence values are clamped to [0, 1]; missing values default to 1.0."
+      - "Assertion parity check (DO-LEO-AI-113) flags disagreements between LLM and ConText."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

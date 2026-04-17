@@ -48,7 +48,9 @@ describe("TermSearch", () => {
         onCorrection={mockOnCorrection}
       />
     );
-    expect(screen.getByText("Search SNOMED terms")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Search SNOMED terms").length,
+    ).toBeGreaterThan(0);
   });
 
   it("renders search input with placeholder", () => {
@@ -59,7 +61,9 @@ describe("TermSearch", () => {
         onCorrection={mockOnCorrection}
       />
     );
-    expect(screen.getByPlaceholderText(/Search SNOMED terms/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: /Search SNOMED terms/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders Cancel button", () => {
@@ -96,7 +100,10 @@ describe("TermSearch", () => {
         onCorrection={mockOnCorrection}
       />
     );
-    await user.type(screen.getByPlaceholderText(/Search SNOMED terms/), "dia");
+    await user.type(
+      screen.getByRole("textbox", { name: /Search SNOMED terms/i }),
+      "dia",
+    );
     await waitFor(
       () => {
         expect(mockSearchTerms).toHaveBeenCalledWith("dia", 15, undefined);
@@ -115,7 +122,10 @@ describe("TermSearch", () => {
         onCorrection={mockOnCorrection}
       />
     );
-    await user.type(screen.getByPlaceholderText(/Search SNOMED terms/), "diab");
+    await user.type(
+      screen.getByRole("textbox", { name: /Search SNOMED terms/i }),
+      "diab",
+    );
     await waitFor(() => {
       expect(screen.getByText("Diabetes mellitus")).toBeInTheDocument();
     });
@@ -132,7 +142,10 @@ describe("TermSearch", () => {
         onCorrection={mockOnCorrection}
       />
     );
-    await user.type(screen.getByPlaceholderText(/Search SNOMED terms/), "diab");
+    await user.type(
+      screen.getByRole("textbox", { name: /Search SNOMED terms/i }),
+      "diab",
+    );
     await waitFor(() => {
       expect(screen.getByText("Diabetes mellitus")).toBeInTheDocument();
     });
@@ -175,7 +188,10 @@ describe("TermSearch", () => {
         onCorrection={mockOnCorrection}
       />
     );
-    await user.type(screen.getByPlaceholderText(/Search SNOMED terms/), "xyz");
+    await user.type(
+      screen.getByRole("textbox", { name: /Search SNOMED terms/i }),
+      "xyz",
+    );
     await waitFor(() => {
       expect(screen.getByText("No results")).toBeInTheDocument();
     });

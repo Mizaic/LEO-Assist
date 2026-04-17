@@ -99,6 +99,12 @@ def _find_best_referral(
         gap = diag_date - r_date
         if gap < timedelta(0) or gap > timedelta(days=cfg.DIAG_LOOKBACK_DAYS):
             continue
+        # DI-LEO-AI-124: require a minimum plausible gap so diagnosis-
+        # encounter text containing fast-track language is not picked
+        # up as a fresh referral. Candidates inside the gap are
+        # skipped; diagnosis-led grouping then looks further back.
+        if gap < timedelta(days=cfg.MIN_REFERRAL_TO_DIAG_DAYS):
+            continue
         ref_key = _extract_condition_key_from_anchor(ref)
         if (
             diag_key not in ("unknown",)

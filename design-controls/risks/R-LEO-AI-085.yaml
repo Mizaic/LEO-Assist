@@ -1,0 +1,71 @@
+# -- R-LEO-AI-085 -- Dashboard KPI drift
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-085"
+  title: "Different LEO dashboards report different NCDA interval KPIs for the same episode"
+
+  hazard:
+    description: >
+      Interval KPI values diverge across the pathway dashboard, the
+      operations dashboard and the exported NCDA spreadsheet because
+      each surface recomputes intervals from milestone edges with
+      slightly different filters, tie-breaks or units.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical quality lead reviews two dashboards side-by-side and sees
+    conflicting days-to-referral or days-to-treatment numbers. They
+    either lose trust in the system and disengage, or act on the number
+    from whichever dashboard they visited first, making a quality-
+    improvement decision on data that is silently inconsistent.
+
+  harm:
+    description: >
+      Quality-improvement action is taken on inconsistent interval data,
+      producing misdirected service change or misclassified cases.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        NCDA interval KPIs are computed once by calculate_kpis as part of
+        build_episodes and persisted as named properties on the
+        EpisodeOfCare. Every dashboard and export reads the same field.
+      implemented_by: ["DI-LEO-AI-125"]
+      verified_by: ["VT-LEO-AI-120"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Single-source persistence eliminates drift across dashboards.
+      Detection is improved because divergence would require a bug in
+      one calculation path rather than in many.
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly reconciliation check compares NCDA export KPIs against
+      dashboard KPIs for a sample of patients.
+    metrics:
+      - "Percentage of episodes whose dashboard KPIs differ from stored properties"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Analytics layer architectural review 2026-04"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "analytics"
+      - "kpi-consistency"

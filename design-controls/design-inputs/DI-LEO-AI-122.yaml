@@ -1,0 +1,88 @@
+# -- DI-LEO-AI-122 -- Operations workspace inclusive redesign
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-122"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-067", "UN-LEO-AI-068"]
+  requirement: >
+    The Operations workspace (/admin/operations) SHALL introduce
+    the shared PageIntro primitive so that, on first load, a
+    junior staff member sees a plain-language explanation of why
+    they are on this page, how the four-section workflow fits
+    together, and what will happen next. The workspace SHALL
+    migrate its local StatusDot to the shared
+    components/ui/StatusDot so status is encoded by both colour
+    and shape. All section row triggers SHALL meet WCAG 2.1 AA
+    focus visibility and announce their open/closed state to
+    assistive technology via aria-expanded.
+  rationale: >
+    The operations area is the highest-traffic staff surface and
+    the entry point for all model training and deployment work.
+    Junior trainees and older clinicians currently have no in-product
+    explanation of the four-step workflow. Adding a PageIntro and
+    standardising status encoding gives every operator, regardless
+    of experience or vision, a clear mental model of what this page
+    is for and what to do next.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          OperationsWorkspace renders a PageIntro block as the
+          first child of its scroll container, keyed by
+          screenId='admin-operations', with 'why', 'how', and
+          'what' copy each at Flesch-Kincaid Grade level 9 or
+          below.
+      - type: "functional"
+        spec: >
+          All StatusDot imports inside
+          services/ui/src/components/operations/*.tsx resolve to
+          '@/components/ui/StatusDot' (shape + colour encoded)
+          and the local components/operations/StatusDot.tsx file
+          is deleted.
+      - type: "safety"
+        spec: >
+          Every section-row trigger renders with aria-expanded,
+          aria-controls and focus-visible outline that passes
+          computeContrastRatio() against its background, ratio
+          greater than or equal to 3:1.
+    constraints:
+      - type: "performance"
+        spec: >
+          PageIntro must not block render of the context banner
+          or the four section cards; collapsed state hydrates
+          from localStorage without suspending.
+    dependencies: ["DI-LEO-AI-118", "DI-LEO-AI-120", "DI-LEO-AI-121"]
+    downstream_impacts:
+      - "services/ui/src/components/operations/OperationsWorkspace.tsx"
+      - "services/ui/src/components/operations/StatusDot.tsx"
+      - "services/ui/src/components/operations/TrainSection.tsx"
+      - "services/ui/src/components/operations/RunSection.tsx"
+      - "services/ui/src/components/operations/ReviewSection.tsx"
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js + MUI"
+      file_structure:
+        - "services/ui/src/components/operations/OperationsWorkspace.tsx"
+      estimated_loc: 60
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-117 cases pass: PageIntro renders with
+      screenId='admin-operations' and FK grade <=9 on all three
+      strings; no imports of './StatusDot' remain in
+      services/ui/src/components/operations/; every SectionRow
+      trigger exposes aria-expanded and aria-controls matching
+      the controlled region id.
+
+    test_protocol: "VT-LEO-AI-117"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-082"]
+  tags:
+    - "operations"
+    - "inclusive-design"
+    - "explanation-pattern"
+    - "accessibility"

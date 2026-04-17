@@ -1,0 +1,92 @@
+# -- DO-LEO-AI-115 -- Inclusive design tokens implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-115"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-118"]
+    user_needs: ["UN-LEO-AI-065", "UN-LEO-AI-068"]
+    risks_addressed: ["R-LEO-AI-078"]
+    verification_tests: ["VT-LEO-AI-113"]
+
+  specification:
+    title: "Token source of truth for LEO UI: theme.ts, theme/tokens.ts, theme/tokens.css"
+    description: |
+      - theme/tokens.ts exports TYPE_SCALE, SPACING, RADIUS, MOTION,
+        FOCUS_RING, and CONTRAST_PAIRS objects. Each pair is a
+        {fg, bg, role} triplet with >=4.5:1 computed contrast.
+      - theme.ts consumes tokens.ts, adds h1..h6 typography
+        overrides with minimum 16px body, and enables focus-visible
+        outlines that meet size and contrast.
+      - theme/tokens.css emits each token as a CSS custom property
+        under :root and inside @media (prefers-reduced-motion:
+        reduce) to zero non-essential animation duration and
+        inside @media (prefers-color-scheme: dark) to swap colour
+        pairs. It is imported once in layout.tsx.
+      - layout.tsx sets html.lang and html.dir; globals.css keeps
+        print rules, removes the hardcoded 14px from .skip-link,
+        adds prefers-reduced-motion overrides.
+
+    acceptance_criteria:
+      - criterion: "Typography overrides present"
+        type: "functional"
+        measurement: "Test"
+        target: "theme.typography.h1..h6 each define fontSize and fontWeight"
+      - criterion: "Contrast pairs meet WCAG AA"
+        type: "safety"
+        measurement: "Test"
+        target: "Every pair in CONTRAST_PAIRS computes >=4.5:1 for normal text, >=3:1 for large text and non-text"
+      - criterion: "Focus ring meets size and contrast"
+        type: "safety"
+        measurement: "Test"
+        target: "FOCUS_RING.width>=3 and computed contrast against #F8FAFC >=3:1"
+      - criterion: "Reduced motion respected"
+        type: "functional"
+        measurement: "Test"
+        target: "jsdom simulation of prefers-reduced-motion sets --leo-motion-duration-fast to 0ms"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/theme/tokens.ts"
+        description: "TYPE_SCALE, SPACING, RADIUS, MOTION, FOCUS_RING, CONTRAST_PAIRS"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/theme/tokens.css"
+        description: "CSS custom properties, prefers-reduced-motion, prefers-color-scheme"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/theme.ts"
+        description: "MUI theme consuming tokens.ts with typography overrides"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/layout.tsx"
+        description: "html.lang, html.dir, tokens.css import"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/globals.css"
+        description: "skip-link fix, prefers-reduced-motion overrides"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 320
+      key_functions:
+        - "TYPE_SCALE"
+        - "CONTRAST_PAIRS"
+        - "FOCUS_RING"
+        - "computeContrastRatio"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Contrast and focus ring tokens gate visual accessibility of every patient- and staff-reachable screen."
+    risk_control_measures:
+      - "Token contrast is unit-tested; a CI-gated test rejects any non-compliant pair."
+      - "Reduced motion is honoured at the token layer so no component can accidentally opt out."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

@@ -6,13 +6,41 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+
+interface StatCardProps {
+  title: string;
+  value: number | undefined;
+  caption: string;
+  loading?: boolean;
+}
+
+function StatCard({ title, value, caption, loading }: StatCardProps) {
+  return (
+    <Card variant="outlined" sx={{ flex: 1, minWidth: 180 }}>
+      <CardContent>
+        <Typography variant="overline" color="text.secondary">
+          {title}
+        </Typography>
+        {loading ? (
+          <Skeleton height={32} width={80} />
+        ) : (
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            {value?.toLocaleString() ?? "--"}
+          </Typography>
+        )}
+        <Typography variant="caption" color="text.secondary">
+          {caption}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
 
 // -- Types -------------------------------------------------------------------
 
@@ -124,37 +152,71 @@ export default function TrainSection() {
         </Alert>
       )}
 
+      <Stack
+        direction="row"
+        gap={1}
+        role="tablist"
+        aria-label="Training tabs"
+      >
+        <Button
+          component={Link}
+          href="/admin/knowledge?tab=training-data"
+          variant="contained"
+          size="small"
+          role="tab"
+        >
+          Teach the AI
+        </Button>
+        <Button
+          component={Link}
+          href="/admin/knowledge?tab=label-verification"
+          variant="outlined"
+          size="small"
+          role="tab"
+        >
+          Check the labels
+        </Button>
+      </Stack>
+
+      <Stack direction="row" gap={1} flexWrap="wrap">
+        <StatCard
+          title="Teaching examples"
+          value={goldStats?.total}
+          caption="Examples that help the AI learn."
+          loading={!goldStats}
+        />
+        <StatCard
+          title="Checked records"
+          value={goldStats?.high_quality}
+          caption="Records a person has signed off."
+          loading={!goldStats}
+        />
+        <StatCard
+          title="Need attention"
+          value={
+            goldStats
+              ? Math.max(0, goldStats.total - goldStats.high_quality)
+              : undefined
+          }
+          caption="Records still waiting for a human check."
+          loading={!goldStats}
+        />
+      </Stack>
+
       <Card variant="outlined">
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             Gold training data
           </Typography>
-          {goldStats ? (
-            <Stack direction="row" gap={1} sx={{ mt: 1 }} flexWrap="wrap">
-              <Chip
-                color="primary"
-                size="small"
-                label={`${goldStats.total.toLocaleString()} gold labels`}
-              />
-              <Chip
-                size="small"
-                label={`${goldStats.high_quality.toLocaleString()} high quality`}
-              />
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`Avg quality: ${
-                  goldStats.avg_quality_score == null
-                    ? "--"
-                    : goldStats.avg_quality_score.toFixed(3)
-                }`}
-              />
-            </Stack>
-          ) : (
-            <Skeleton sx={{ mt: 1 }} height={24} width={260} />
-          )}
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Manage label corrections and approvals in the gold dataset workspace.
+            {goldStats?.avg_quality_score != null && (
+              <>
+                {" "}
+                Average quality score:{" "}
+                {goldStats.avg_quality_score.toFixed(3)}.
+              </>
+            )}
           </Typography>
           <Button
             component={Link}

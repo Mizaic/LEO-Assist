@@ -1,11 +1,12 @@
 "use client";
 
+import { useId } from "react";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import Typography from "@mui/material/Typography";
 
 interface Props {
   title: string;
@@ -17,6 +18,13 @@ interface Props {
   onCancel: () => void;
 }
 
+/**
+ * Accessible confirmation dialog.
+ *
+ * aria-labelledby and aria-describedby are wired via generated useId() so
+ * screen readers announce both the title and the body on open.
+ * See DI-LEO-AI-120 and VT-LEO-AI-115.
+ */
 export default function ConfirmDialog({
   title,
   body,
@@ -26,11 +34,22 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
+  const titleId = useId();
+  const bodyId = useId();
   return (
-    <Dialog open onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>{title}</DialogTitle>
+    <Dialog
+      open
+      onClose={onCancel}
+      maxWidth="xs"
+      fullWidth
+      aria-labelledby={titleId}
+      aria-describedby={bodyId}
+    >
+      <DialogTitle id={titleId}>{title}</DialogTitle>
       <DialogContent>
-        <Typography color="text.secondary">{body}</Typography>
+        <DialogContentText id={bodyId} color="text.secondary">
+          {body}
+        </DialogContentText>
       </DialogContent>
       <DialogActions>
         <Button variant="text" color="inherit" onClick={onCancel}>
@@ -40,6 +59,7 @@ export default function ConfirmDialog({
           variant="contained"
           color={variant === "danger" ? "error" : "primary"}
           onClick={onConfirm}
+          autoFocus
         >
           {confirmLabel}
         </Button>

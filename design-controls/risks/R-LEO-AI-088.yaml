@@ -1,0 +1,99 @@
+# -- R-LEO-AI-088 -- Care Overview misread by junior staff or older clinician
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-088"
+  title: >
+    A junior staff member or older clinician misreads the Care
+    Overview page and either misses a safety-netting alert or
+    misinterprets a summary figure.
+
+  hazard:
+    description: >
+      The Care Overview page is the first screen shown to every
+      clinical user. Without an in-product plain-language
+      explanation, a new receptionist, junior GP, or older partner
+      may not know which card shows unactioned safety alerts, may
+      not notice that the date filter only applies to referrals
+      (not to alerts), or may read an uppercase caption as label
+      ornament and skip its meaning.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A user opens /dashboard, sees four summary cards and two
+    chart rows, and either (a) ignores the safety-alerts card
+    because its badge is small and uppercase, or (b) applies a
+    date filter and believes it has filtered the safety-alerts
+    list too, then concludes there are no alerts to action.
+
+  harm:
+    description: >
+      A patient with an unactioned safety-net alert waits longer
+      than the NICE-recommended window for follow-up. A clinical
+      lead under-estimates the volume of open cases because a
+      chart description was misread.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "information_for_safety"
+      description: >
+        A PageIntro on /dashboard explains in plain English why
+        the page exists, how to read the four cards and two chart
+        rows, and what the date filter does (and does not)
+        change. Copy is written at Flesch-Kincaid Grade <=9.
+      implemented_by: ["DI-LEO-AI-128"]
+      verified_by: ["VT-LEO-AI-123"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Summary StatCard labels are rendered in sentence case at
+        12px minimum, so they remain readable at 125% browser
+        zoom and no longer read as decorative tracking. The large
+        numeric focal point is unchanged.
+      implemented_by: ["DI-LEO-AI-128"]
+      verified_by: ["VT-LEO-AI-123"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With a PageIntro explaining the page layout, the date
+      filter scope, and the location of safety alerts, and with
+      sentence-case labels at a readable size, the probability of
+      a junior or older user misreading the overview drops
+      substantially. The Safety Alerts card retains its urgent
+      chip and the alerts panel stays independent of the date
+      filter.
+
+  monitoring:
+    monitoring_plan: >
+      Track the proportion of unactioned safety-net alerts older
+      than 24 hours per practice and the median time from alert
+      creation to first-view on the Care Overview. Both metrics
+      should improve after the redesign lands.
+    metrics:
+      - "unacknowledged_alerts_over_24h"
+      - "median_time_to_first_view_dashboard"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave C inclusive redesign review"
+    identified_date: "2026-04-16"
+    status: "analyzed"
+    tags:
+      - "care-overview"
+      - "dashboard"
+      - "inclusive-design"
+      - "usability"
+      - "patient-safety"

@@ -711,3 +711,32 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | Design Output | DO-LEO-AI-109 | draft | Extended link_observable_value_units in post_processing.py |
 | Risk | R-LEO-AI-077 | analyzed | Observable value left empty for string or pre-entity results - downstream abnormal detection degraded |
 | Verification Test | VT-LEO-AI-111 | passed | Four unit tests: string entity after, string entity before, numeric raw-text, string raw-text |
+
+| User Need | UN-LEO-AI-065 | draft | Patient-facing LEO surfaces usable ages 8 to 80 at WCAG 2.1 AA |
+| User Need | UN-LEO-AI-066 | draft | Carer-facing LEO surfaces make patient context and permission scope explicit |
+| User Need | UN-LEO-AI-067 | draft | Junior / trainee staff can self-onboard through in-product explanation |
+| User Need | UN-LEO-AI-068 | draft | Older clinicians work at full speed with larger default text, high contrast, and keyboard alternatives |
+| Design Input | DI-LEO-AI-118 | draft | Inclusive design token system (type, space, radius, motion, focus, density, contrast pairs) |
+| Design Input | DI-LEO-AI-119 | draft | Density modes with >=44px touch targets on patient-reachable routes |
+| Design Input | DI-LEO-AI-120 | draft | Global WCAG 2.1 AA baseline across AppShell and primitives with eslint-a11y and axe-core gates |
+| Design Input | DI-LEO-AI-121 | draft | Explanation pattern framework (PageIntro, HelpPopover, CoachMark, ProgressiveReveal, GlossaryTerm) and FK grade <=9 gate |
+| Design Output | DO-LEO-AI-115 | draft | services/ui/src/theme/{tokens.ts, tokens.css} and theme.ts consume tokens with AA pairs |
+| Design Output | DO-LEO-AI-116 | draft | DensityProvider + useDensity/useDensityTokens with localStorage and patient-route override |
+| Design Output | DO-LEO-AI-117 | draft | AppShell landmarks, ConfirmDialog aria, StatusDot shape encoding, eslint and axe-core CI wiring |
+| Design Output | DO-LEO-AI-118 | draft | Explanation pattern components plus glossary.ts and readability.ts utilities |
+| Risk | R-LEO-AI-078 | analyzed | Low-contrast text or unchecked motion causes missed safety information |
+| Risk | R-LEO-AI-079 | analyzed | Dense UI causes mis-taps for touch / low-dexterity users |
+| Risk | R-LEO-AI-080 | analyzed | Assistive-tech users cannot perceive navigation state or status information |
+| Risk | R-LEO-AI-081 | analyzed | Patients and juniors misunderstand clinical terms without in-product explanation |
+| Verification Test | VT-LEO-AI-113 | passed | 5 Jest cases: token groups, WCAG AA pairs, focus ring, readable typography, tokens.css |
+| Verification Test | VT-LEO-AI-114 | passed | 5 Jest cases: density defaults, patient-route override, 44px target, persistence, staff preference |
+| Verification Test | VT-LEO-AI-115 | partial_pass | 5 Jest cases pass; axe-core e2e wired and pending CI run |
+| Verification Test | VT-LEO-AI-116 | passed | 6 Jest cases: PageIntro, HelpPopover, ProgressiveReveal, GlossaryTerm known+unknown, FK grade gate |
+| Design Input | DI-LEO-AI-122 | draft | OperationsWorkspace inclusive redesign (PageIntro, shared StatusDot, aria-expanded/controls on SectionRow) |
+| Design Output | DO-LEO-AI-119 | draft | OperationsWorkspace.tsx renders PageIntro screenId=admin-operations, local StatusDot removed, SectionRow aria linkage |
+| Risk | R-LEO-AI-082 | analyzed | Operations workspace misread by junior staff or older clinicians due to jargon and colour-only status cues |
+| Verification Test | VT-LEO-AI-117 | passed | 7 Jest cases: PageIntro renders with h2, collapse persists, why/how/what FK <=9, SectionRow aria toggle, local StatusDot removed |
+| Design Input | DI-LEO-AI-123 | draft | CodingReviewCasesModal split into eight modules each <=500 LOC with PageIntro + GlossaryTerm + HelpPopover |
+| Design Output | DO-LEO-AI-120 | draft | CodingReviewCasesModal.tsx (389) + CodingReviewCasesModalTitle.tsx (213) + CaseCard.tsx (461) + CaseCardLeoResult.tsx (174) + CaseCardSuppressForm.tsx (175) + EncounterContextPanel.tsx (133) + codingReviewUtils.ts (135) + codingReviewCopy.ts (44); glossary expanded with six new terms |
+| Risk | R-LEO-AI-083 | analyzed | Junior operator makes wrong coding-review decision due to unexplained clinical terms |
+| Verification Test | VT-LEO-AI-118 | passed | 19 Jest cases: eight split modules <=500 LOC, CODING_REVIEW_INTRO FK <=9, seven glossary terms <=9, CodingReviewCasesModal empty-state Props preserved |

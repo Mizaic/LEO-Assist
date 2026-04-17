@@ -8,6 +8,14 @@ if (typeof global.TextEncoder === "undefined") {
   global.TextDecoder = TextDecoder as typeof global.TextDecoder;
 }
 
+if (typeof (global as any).ResizeObserver === "undefined") {
+  (global as any).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 jest.mock("react-virtuoso", () => {
   const Virtuoso = ({ data, itemContent, ...rest }: any) =>
     React.createElement(

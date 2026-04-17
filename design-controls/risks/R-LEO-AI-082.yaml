@@ -1,0 +1,96 @@
+# -- R-LEO-AI-082 -- Operations workspace misread by junior staff
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-082"
+  title: >
+    A junior trainee or older clinician misreads the Operations
+    workspace and either skips a quality alert or triggers a
+    training run they did not intend.
+
+  hazard:
+    description: >
+      The Operations workspace orchestrates model training,
+      deployment, and quality review. Without clear in-product
+      explanation, a new operator may not understand that the
+      page is the entry point for all four steps, may dismiss
+      the context banner by accident, or may fail to spot a
+      status dot because it is encoded only by colour.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    An operator with low experience, low vision, or atypical
+    colour perception opens /admin/operations, sees four
+    unlabelled accordion rows, and either (a) ignores an
+    unacknowledged quality alert, or (b) opens 'Make it live'
+    before the model has finished training, causing a premature
+    promotion.
+
+  harm:
+    description: >
+      A coding error introduced by a not-yet-validated model
+      propagates into patient records before a reviewer catches
+      it. A missed quality alert delays remediation of a
+      systematic coding drift.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "information_for_safety"
+      description: >
+        A PageIntro on /admin/operations explains why the page
+        exists, how the four sections fit together, and what
+        will happen next. Copy is written at Flesch-Kincaid
+        Grade <=9 so it is readable by non-specialists.
+      implemented_by: ["DI-LEO-AI-122"]
+      verified_by: ["VT-LEO-AI-117"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        StatusDot is unified with the shared shape-encoded
+        primitive, so status on each section header is
+        recognisable without colour perception.
+      implemented_by: ["DI-LEO-AI-122", "DI-LEO-AI-118"]
+      verified_by: ["VT-LEO-AI-117", "VT-LEO-AI-113"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With PageIntro explaining the workflow and StatusDot
+      encoded by shape as well as colour, the probability of a
+      new operator misreading the page drops substantially. The
+      existing context banner already routes the operator to
+      the most urgent action.
+
+  monitoring:
+    monitoring_plan: >
+      Track the rate of incorrect deploy attempts (canary
+      promoted before training completed) per month and the
+      proportion of unacknowledged quality alerts older than 24
+      hours. Both metrics should trend down after PageIntro
+      lands.
+    metrics:
+      - "deploy_out_of_order_per_month"
+      - "unacknowledged_alerts_over_24h"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave B inclusive redesign review"
+    identified_date: "2026-04-16"
+    status: "analyzed"
+    tags:
+      - "operations"
+      - "inclusive-design"
+      - "usability"
+      - "patient-safety"
