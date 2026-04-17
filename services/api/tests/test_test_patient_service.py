@@ -205,6 +205,101 @@ def test_confirm_and_save_creates_and_writes_expectations(
     assert client.run.call_count == 3
 
 
+# -- update_patient --------------------------------------------------------
+
+
+def test_update_patient_rewrites_profile_and_expectations() -> None:
+    """Happy path: UPDATE_TEST_PATIENT then one WRITE_EXPECTED_RESULT
+    per kept expectation (rule_id-less entries are dropped, matching
+    the create flow)."""
+    client = MagicMock()
+    # First call (UPDATE) returns one row -> patient exists.
+    client.run.side_effect = [
+        [{"id": "tp_existing"}],
+        [{"rule_id": "r1"}],
+        [{"rule_id": "r2"}],
+    ]
+    payload = PatientPayload(
+        codes=["100", "200"], age=71, sex="female", name="Edited"
+    )
+    result = svc.update_patient(
+        client,
+        patient_id="tp_existing",
+        payload=payload,
+        expectations=[
+            {"rule_id": "r1", "fires": True, "matched_branch_node_ids": ["n1"]},
+            {"rule_id": "r2", "fires": False},
+            {"rule_id": "", "fires": True},  # dropped
+        ],
+        updated_by="user@test",
+        ruleset_version="v2",
+    )
+    assert result == {
+        "id": "tp_existing",
+        "updated": True,
+        "expectations_written": 2,
+    }
+    # 1 UPDATE + 2 WRITE_EXPECTED_RESULT calls.
+    assert client.run.call_count == 3
+    # First call is the UPDATE_TEST_PATIENT cypher with the new
+    # profile values + the patient_id from the URL.
+    update_call_kwargs = client.run.call_args_list[0].kwargs
+    assert update_call_kwargs["id"] == "tp_existing"
+    assert update_call_kwargs["codes"] == ["100", "200"]
+    assert update_call_kwargs["age"] == 71
+    assert update_call_kwargs["sex"] == "female"
+    assert update_call_kwargs["name"] == "Edited"
+    assert update_call_kwargs["updated_by"] == "user@test"
+    # content_hash recomputed from the new payload.
+    assert update_call_kwargs["content_hash"] == payload.content_hash()
+
+
+def test_update_patient_404_when_match_returns_no_rows() -> None:
+    """When the Cypher MATCH finds nothing (no patient with that id)
+    the service must return updated=False and skip the expectation
+    writes -- the router translates updated=False into HTTP 404."""
+    client = MagicMock()
+    client.run.return_value = []
+    payload = PatientPayload(codes=["1"], age=70, sex="male")
+    result = svc.update_patient(
+        client,
+        patient_id="tp_missing",
+        payload=payload,
+        expectations=[{"rule_id": "r1", "fires": True}],
+        updated_by="user@test",
+    )
+    assert result == {
+        "id": "tp_missing",
+        "updated": False,
+        "expectations_written": 0,
+    }
+    # No expectation writes happened because the patient does not exist.
+    assert client.run.call_count == 1
+
+
+def test_update_patient_clears_expectations_when_list_is_empty() -> None:
+    """Editing a patient down to zero expectations is allowed; the
+    UPDATE Cypher already DELETEs the existing rels, so we just don't
+    call WRITE_EXPECTED_RESULT at all."""
+    client = MagicMock()
+    client.run.return_value = [{"id": "tp_existing"}]
+    payload = PatientPayload(codes=["1"], age=70, sex="male")
+    result = svc.update_patient(
+        client,
+        patient_id="tp_existing",
+        payload=payload,
+        expectations=[],
+        updated_by="user@test",
+    )
+    assert result == {
+        "id": "tp_existing",
+        "updated": True,
+        "expectations_written": 0,
+    }
+    # Only the UPDATE call ran; no WRITE_EXPECTED_RESULT writes.
+    assert client.run.call_count == 1
+
+
 # -- diff_replay -----------------------------------------------------------
 
 

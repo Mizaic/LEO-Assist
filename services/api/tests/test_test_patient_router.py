@@ -88,6 +88,96 @@ def test_save_routes_through_to_service(client: TestClient) -> None:
     assert body["created"] is True
 
 
+# -- update / PATCH --------------------------------------------------------
+
+
+def test_update_routes_through_to_service(client: TestClient) -> None:
+    payload = {
+        "patient": {
+            "codes": ["100", "200"],
+            "age": 71,
+            "sex": "female",
+            "name": "Edited patient",
+        },
+        "expectations": [
+            {"rule_id": "r1", "fires": False, "matched_branch_node_ids": []}
+        ],
+    }
+    fake_service = MagicMock(
+        return_value={
+            "id": "tp_existing",
+            "updated": True,
+            "expectations_written": 1,
+        }
+    )
+    with patch(
+        "app.routers.test_patients.test_patient_service.update_patient",
+        fake_service,
+    ), patch("app.routers.test_patients._client", return_value=MagicMock()):
+        resp = client.patch(
+            "/guidance/test-patients/tp_existing", json=payload
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == {
+        "id": "tp_existing",
+        "updated": True,
+        "expectations_written": 1,
+    }
+    # Service was called with the parsed payload + id from the URL.
+    kwargs = fake_service.call_args.kwargs
+    assert kwargs["patient_id"] == "tp_existing"
+    assert kwargs["expectations"] == [
+        {"rule_id": "r1", "fires": False, "matched_branch_node_ids": []}
+    ]
+    assert kwargs["payload"].codes == ["100", "200"]
+    assert kwargs["payload"].name == "Edited patient"
+
+
+def test_update_404_when_patient_missing(client: TestClient) -> None:
+    payload = {
+        "patient": {"codes": ["100"]},
+        "expectations": [],
+    }
+    with patch(
+        "app.routers.test_patients.test_patient_service.update_patient",
+        return_value={
+            "id": "tp_missing",
+            "updated": False,
+            "expectations_written": 0,
+        },
+    ), patch("app.routers.test_patients._client", return_value=MagicMock()):
+        resp = client.patch(
+            "/guidance/test-patients/tp_missing", json=payload
+        )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()
+
+
+def test_update_accepts_empty_expectations(client: TestClient) -> None:
+    """Editing a patient down to zero assertions is permitted -- the
+    UI surfaces this as 'no assertions' instead of silently passing."""
+    payload = {
+        "patient": {"codes": ["100"], "age": 70, "sex": "male"},
+        "expectations": [],
+    }
+    fake_service = MagicMock(
+        return_value={
+            "id": "tp1",
+            "updated": True,
+            "expectations_written": 0,
+        }
+    )
+    with patch(
+        "app.routers.test_patients.test_patient_service.update_patient",
+        fake_service,
+    ), patch("app.routers.test_patients._client", return_value=MagicMock()):
+        resp = client.patch("/guidance/test-patients/tp1", json=payload)
+    assert resp.status_code == 200
+    assert resp.json()["expectations_written"] == 0
+    assert fake_service.call_args.kwargs["expectations"] == []
+
+
 # -- delete + 404 ----------------------------------------------------------
 
 

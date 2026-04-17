@@ -149,6 +149,31 @@ RETURN count(*) AS deleted
 """
 
 
+# Update a test patient's profile in place AND clear its existing
+# EXPECTED_RESULT relationships so the caller can rewrite them.
+# Returns one row when the patient exists, zero rows otherwise (the
+# service layer translates that into a 404).  The expectation rewrite
+# is a separate WRITE_EXPECTED_RESULT loop driven by the service
+# (matching the create flow), so empty-expectation updates are
+# still well-defined.
+UPDATE_TEST_PATIENT = """
+MATCH (tp:TestPatient { id: $id })
+SET tp.name              = $name,
+    tp.description       = $description,
+    tp.codes             = $codes,
+    tp.age               = $age,
+    tp.sex               = $sex,
+    tp.pathway_id        = $pathway_id,
+    tp.content_hash      = $content_hash,
+    tp.updated_at        = datetime(),
+    tp.updated_by        = $updated_by
+WITH tp
+OPTIONAL MATCH (tp)-[er:EXPECTED_RESULT]->()
+DELETE er
+RETURN tp.id AS id
+"""
+
+
 # Collect rules in a scope.  Used by both the generator (to know what
 # to synthesise fixtures for) and replay (to know what to evaluate).
 #

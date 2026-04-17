@@ -8,6 +8,7 @@ Endpoints:
   POST   /guidance/test-patients             -- save (after dry-run)
   GET    /guidance/test-patients             -- list with scope filter
   GET    /guidance/test-patients/{id}        -- detail
+  PATCH  /guidance/test-patients/{id}        -- update profile + expectations
   DELETE /guidance/test-patients/{id}
   POST   /guidance/test-patients/generate    -- auto-generate happy/fail/boundary
   POST   /guidance/test-patients/replay      -- regression replay
@@ -89,6 +90,22 @@ class SaveRequest(BaseModel):
     scope_id: str = "default"
     ruleset_version: str | None = None
     skip_if_exists: bool = True
+
+
+class UpdateRequest(BaseModel):
+    """Body for ``PATCH /test-patients/{id}``.
+
+    The reviewer is editing a saved patient.  The full new profile +
+    expectation list is supplied -- the service rewrites both
+    atomically (DELETE existing EXPECTED_RESULT rels, then write the
+    new ones), so the saved patient ends up exactly as described
+    here. Empty ``expectations`` is allowed (the patient ends up
+    with no assertions, which makes replay a no-op for that row).
+    """
+
+    patient: PatientBody
+    expectations: list[ExpectationBody] = Field(default_factory=list)
+    ruleset_version: str | None = None
 
 
 class GenerateRequest(BaseModel):
@@ -293,6 +310,37 @@ def get_patient(
         if not row:
             raise HTTPException(status_code=404, detail="Test patient not found")
         return row
+    finally:
+        client.close()
+
+
+@router.patch("/test-patients/{patient_id}")
+def update_patient_route(
+    patient_id: str,
+    body: UpdateRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Replace a saved patient's profile + expectations in one call.
+
+    Returns ``{id, updated, expectations_written}`` on success. Raises
+    404 when ``patient_id`` does not exist (the Cypher MATCH returned
+    zero rows so nothing was changed).
+    """
+    client = _client()
+    try:
+        result = test_patient_service.update_patient(
+            client,
+            patient_id=patient_id,
+            payload=body.patient.to_payload(),
+            expectations=[exp.model_dump() for exp in body.expectations],
+            updated_by=getattr(scope, "user_email", "") or "unknown",
+            ruleset_version=body.ruleset_version,
+        )
+        if not result.get("updated"):
+            raise HTTPException(
+                status_code=404, detail="Test patient not found"
+            )
+        return result
     finally:
         client.close()
 

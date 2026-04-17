@@ -11,6 +11,10 @@ const SCRUBBER_PATH = resolve(
   __dirname,
   "../../components/mission-control/EncounterTimelineScrubber.tsx"
 );
+const HISTOGRAM_BAR_PATH = resolve(
+  __dirname,
+  "../../components/mission-control/TimelineHistogramBar.tsx"
+);
 const POPOVER_PATH = resolve(
   __dirname,
   "../../components/mission-control/TimelineBinPopover.tsx"
@@ -34,9 +38,10 @@ function readSource(path: string): string {
 
 describe("EncounterTimelineScrubber static source - VT-LEO-AI-173", () => {
   const src = readSource(SCRUBBER_PATH);
+  const barSrc = readSource(HISTOGRAM_BAR_PATH);
 
   test("VT-173-TC-008: active bar wraps motion.div with layoutId='timeline-active-bin'", () => {
-    expect(src).toMatch(/layoutId=["']timeline-active-bin["']/);
+    expect(barSrc).toMatch(/layoutId=["']timeline-active-bin["']/);
   });
 
   test("VT-173-TC-009: imports useMotion from @leo/design-system", () => {
@@ -54,7 +59,7 @@ describe("EncounterTimelineScrubber static source - VT-LEO-AI-173", () => {
   test("scrubber uses framer-motion AnimatePresence and motion primitives", () => {
     expect(src).toMatch(/from\s*["']framer-motion["']/);
     expect(src).toMatch(/AnimatePresence/);
-    expect(src).toMatch(/fm\.div/);
+    expect(barSrc).toMatch(/fm\.div/);
   });
 
   test("scrubber exposes data-testid for episode window band", () => {
@@ -165,8 +170,9 @@ describe("EncounterTimelineScrubber focus-band invariants - VT-LEO-AI-173", () =
   });
 
   test("VT-173-TC-020: scrubber renders a focus band when zoomed and marks out-of-focus bars", () => {
+    const barSrc = readSource(HISTOGRAM_BAR_PATH);
     expect(src).toMatch(/data-testid=["']timeline-focus-band["']/);
-    expect(src).toMatch(/data-in-focus=\{isOutOfFocus\s*\?\s*["']false["']\s*:\s*["']true["']\}/);
+    expect(barSrc).toMatch(/data-in-focus=\{isOutOfFocus\s*\?\s*["']false["']\s*:\s*["']true["']\}/);
   });
 });
 

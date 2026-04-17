@@ -240,6 +240,7 @@
     - "services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx"
     - "services/ui/src/components/mission-control/TimelineBinPopover.tsx"
     - "services/ui/src/components/mission-control/TimelineRangeBrush.tsx"
+    - "services/ui/src/components/mission-control/TimelineHistogramBar.tsx"
     - "services/ui/src/components/mission-control/timelineBins.ts"
     - "services/ui/src/components/mission-control/EncounterCodesPanel.tsx"
     - "services/ui/src/components/mission-control/EncounterCard.tsx"
@@ -255,6 +256,7 @@
       - "services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx"
       - "services/ui/src/components/mission-control/TimelineBinPopover.tsx"
       - "services/ui/src/components/mission-control/TimelineRangeBrush.tsx"
+      - "services/ui/src/components/mission-control/TimelineHistogramBar.tsx"
       - "services/ui/src/components/mission-control/timelineBins.ts"
       - "services/ui/src/components/mission-control/EncounterTextTab.tsx"
       - "services/ui/src/components/mission-control/EncounterCodesPanel.tsx"
@@ -263,7 +265,7 @@
       - "services/ui/src/components/mission-control/useEncounterLoad.ts"
       - "services/ui/src/components/mission-control/encounterTextUtils.tsx"
       - "services/ui/src/components/mission-control/encounterStyles.ts"
-    estimated_loc: 800
+    estimated_loc: 850
 
   verification:
     method: "Test"

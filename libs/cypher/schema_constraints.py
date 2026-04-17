@@ -76,6 +76,15 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE INDEX audit_event_prompt_hash IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.extraction_prompt_hash)",
     "CREATE INDEX audit_event_prompt_name IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.extraction_prompt_name)",
     "CREATE INDEX audit_event_provider IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.extraction_provider)",
+    # SBAR Assessment node and DocumentReference Chunk schema (DI-LEO-AI-185, DI-LEO-AI-187)
+    "CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
+    "CREATE INDEX chunk_document_reference IF NOT EXISTS FOR (c:Chunk) ON (c.document_reference_id)",
+    "CREATE INDEX chunk_sha256 IF NOT EXISTS FOR (c:Chunk) ON (c.sha256)",
+    "CREATE CONSTRAINT assessment_id IF NOT EXISTS FOR (a:Assessment) REQUIRE a.id IS UNIQUE",
+    "CREATE INDEX assessment_run_id IF NOT EXISTS FOR (a:Assessment) ON (a.run_id)",
+    "CREATE INDEX assessment_status IF NOT EXISTS FOR (a:Assessment) ON (a.status)",
+    "CREATE INDEX assessment_type IF NOT EXISTS FOR (a:Assessment) ON (a.type)",
+    "CREATE INDEX assessment_created_at IF NOT EXISTS FOR (a:Assessment) ON (a.created_at)",
 ]
 
 from libs.cypher.test_patient_queries import TEST_PATIENT_CONSTRAINTS

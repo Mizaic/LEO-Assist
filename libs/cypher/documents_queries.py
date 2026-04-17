@@ -109,9 +109,13 @@ def _build_upsert_query(
             "<-[:HAS_ENCOUNTER]-(p:Patient)"
         )
     else:
+        # For Chunk sources, the Patient-level shortcut is opportunistic:
+        # the chunk's parent DocumentReference is not always linked back
+        # to a Patient yet. Use OPTIONAL MATCH so missing shortcut paths
+        # do not block the :DOCUMENTS write.
         match_clause = (
-            "MATCH (src:Chunk {id: $source_id})"
-            "<-[:HAS_CHUNK]-(:DocumentReference)"
+            "MATCH (src:Chunk {id: $source_id}) "
+            "OPTIONAL MATCH (src)<-[:HAS_CHUNK]-(:DocumentReference)"
             "<-[:HAS_DOCUMENT_REFERENCE]-(p:Patient)"
         )
 
@@ -149,7 +153,7 @@ SET r.coded_at         = datetime(),
     r.evidence_end     = $evidence_end,
     r.sentence_index   = $sentence_index,
     r.holdout          = $holdout
-FOREACH (_ IN CASE WHEN $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
+FOREACH (_ IN CASE WHEN p IS NOT NULL AND $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
   MERGE (p)-[:{rel_type}]->(s)
 )
 """

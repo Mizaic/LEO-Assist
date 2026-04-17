@@ -1217,6 +1217,41 @@ function GoldLabelDetailDialog({
     Array<{ path: string; relType: string; midX: number; midY: number }>
   >([]);
 
+  // Belt-and-braces resync: callers SHOULD pass `key={item.label_id}` so the
+  // dialog remounts per record (the lazy useState initialisers above only
+  // run on mount). If they forget, this effect re-derives `entities` and
+  // `rejectedRelationKeys` from the new `item.entities_json`, preventing the
+  // class of bug where the previous candidate's entities leak into the next
+  // one (DI-LEO-AI-185, R-LEO-AI-179).
+  const prevLabelIdRef = useRef(item.label_id);
+  useEffect(() => {
+    if (prevLabelIdRef.current === item.label_id) return;
+    prevLabelIdRef.current = item.label_id;
+    const parsed = parseEntities(item.entities_json);
+    setEntities(parsed);
+    const nextRejected: Record<string, string> = {};
+    for (const [srcIdx, entity] of parsed.entries()) {
+      for (const rej of entity.rejected_relations ?? []) {
+        const targetIdx = parsed.findIndex((e) => e.text === rej.target_text);
+        if (targetIdx >= 0) {
+          nextRejected[`${srcIdx}:${rej.type}:${targetIdx}`] = rej.reason;
+        }
+      }
+    }
+    setRejectedRelationKeys(nextRejected);
+    setSuggestions({});
+    setTermDrafts({});
+    setSfDrafts({});
+    setSfMsg({});
+    setSfExpandedIdx(null);
+    setLookupTarget(null);
+    setSaveError(null);
+    setSaveMsg(null);
+    setNewEntityText("");
+    setShowDeleteConfirm(false);
+    setSuppressOnDelete(false);
+  }, [item.label_id, item.entities_json]);
+
   function copyToClipboard(text: string, key: string) {
     void navigator.clipboard.writeText(text).then(() => {
       setCopiedKey(key);
@@ -4094,6 +4129,7 @@ export default function GoldDatasetPanel() {
       {/* Detail dialog */}
       {selectedItem && tab === "gold" && (
         <GoldLabelDetailDialog
+          key={`gold-${(selectedItem as GoldLabel).label_id}`}
           item={selectedItem as GoldLabel}
           onClose={() => setSelectedItem(null)}
           onEntitiesChanged={() => void silentRefreshList()}
@@ -4102,6 +4138,7 @@ export default function GoldDatasetPanel() {
       )}
       {selectedItem && tab === "synthetic" && (
         <GoldLabelDetailDialog
+          key={`syn-${(selectedItem as GoldLabel).label_id}`}
           item={selectedItem as GoldLabel}
           onClose={() => setSelectedItem(null)}
           onEntitiesChanged={() => void silentRefreshList()}
@@ -4137,6 +4174,7 @@ export default function GoldDatasetPanel() {
       )}
       {candidateGoldLabel && (
         <GoldLabelDetailDialog
+          key={`cand-${candidateGoldLabel.label_id}-${candidateGoldLabel.candidate_id ?? ""}`}
           item={candidateGoldLabel}
           onClose={() => setCandidateGoldLabel(null)}
           onEntitiesChanged={() => void silentRefreshList()}
@@ -4180,6 +4218,7 @@ export default function GoldDatasetPanel() {
       />
       {similarCandidateLabel && (
         <GoldLabelDetailDialog
+          key={`sim-${similarCandidateLabel.label_id}-${similarCandidateLabel.candidate_id ?? ""}`}
           item={similarCandidateLabel}
           onClose={() => setSimilarCandidateLabel(null)}
           onEntitiesChanged={() => void silentRefreshList()}

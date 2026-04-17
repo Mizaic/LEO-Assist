@@ -30,11 +30,12 @@ import ConceptSearchPanel from "../EditRuleDialog/ConceptSearchPanel";
 import { friendlyTerm } from "../EditRuleDialog/copy";
 import type { LogicCriterion } from "../EditRuleDialog/types";
 
-import { dryRun, savePatient } from "./api";
+import { dryRun, savePatient, updatePatient } from "./api";
 import type {
   DryRunResponse,
   ExpectationInput,
   PatientPayload,
+  TestPatient,
 } from "./types";
 
 interface SearchHit {
@@ -49,6 +50,19 @@ interface Props {
   initialPatient?: Partial<PatientPayload>;
   initialExpectations?: ExpectationInput[];
   onSaved?: (id: string) => void;
+  /**
+   * When set, the dialog runs in EDIT mode against this patient:
+   *   - title + button copy switch to "Edit / Save changes"
+   *   - the form seeds from the saved patient and its expectations
+   *   - Save calls PATCH /test-patients/{id} instead of POST
+   *   - Save is enabled without a fresh dry-run -- the patient was
+   *     already validated when first saved; the reviewer is allowed
+   *     to keep the existing expectations
+   *
+   * When undefined the dialog behaves exactly as the original
+   * "Build a patient" flow.
+   */
+  editingPatient?: TestPatient | null;
 }
 
 type Decision = "fires" | "no_fire" | "skip";
@@ -63,6 +77,68 @@ const EMPTY_PATIENT: PatientPayload = {
   generation_source: "manual",
 };
 
+function seedPatient(
+  editingPatient: TestPatient | null | undefined,
+  initialPatient: Partial<PatientPayload> | undefined,
+): PatientPayload {
+  if (editingPatient) {
+    return {
+      codes: [...editingPatient.codes],
+      age: editingPatient.age,
+      sex: editingPatient.sex,
+      pathway_id: editingPatient.pathway_id,
+      name: editingPatient.name || "",
+      description: editingPatient.description || "",
+      generation_source: editingPatient.generation_source || "manual",
+    };
+  }
+  return { ...EMPTY_PATIENT, ...initialPatient };
+}
+
+function seedDecisions(
+  editingPatient: TestPatient | null | undefined,
+  initialExpectations: ExpectationInput[] | undefined,
+): Record<string, Decision> {
+  const out: Record<string, Decision> = {};
+  if (editingPatient) {
+    editingPatient.expectations.forEach((e) => {
+      out[e.rule_id] = e.fires ? "fires" : "no_fire";
+    });
+    return out;
+  }
+  (initialExpectations || []).forEach((e) => {
+    out[e.rule_id] = e.fires ? "fires" : "no_fire";
+  });
+  return out;
+}
+
+/**
+ * In edit mode the reviewer can save without re-running the dry run.
+ * In that case ``decisions`` is keyed only by the rule ids the
+ * reviewer toggled in the UI; we marry those decisions back up to
+ * the saved expectations to keep ``matched_branch_node_ids`` (which
+ * the dialog never edits directly) intact.
+ */
+function buildExpectationsWithoutDryRun(
+  decisions: Record<string, Decision>,
+  editingPatient: TestPatient,
+): ExpectationInput[] {
+  const savedById = new Map(
+    editingPatient.expectations.map((e) => [e.rule_id, e]),
+  );
+  const out: ExpectationInput[] = [];
+  Object.entries(decisions).forEach(([ruleId, dec]) => {
+    if (dec === "skip") return;
+    const saved = savedById.get(ruleId);
+    out.push({
+      rule_id: ruleId,
+      fires: dec === "fires",
+      matched_branch_node_ids: saved?.matched_branch_node_ids || [],
+    });
+  });
+  return out;
+}
+
 export default function BuildPatientDialog({
   open,
   onClose,
@@ -70,14 +146,17 @@ export default function BuildPatientDialog({
   initialPatient,
   initialExpectations,
   onSaved,
+  editingPatient,
 }: Props) {
-  const [patient, setPatient] = useState<PatientPayload>({
-    ...EMPTY_PATIENT,
-    ...initialPatient,
-  });
+  const isEdit = !!editingPatient;
+  const [patient, setPatient] = useState<PatientPayload>(() =>
+    seedPatient(editingPatient, initialPatient),
+  );
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [dryRunResult, setDryRunResult] = useState<DryRunResponse | null>(null);
-  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
+  const [decisions, setDecisions] = useState<Record<string, Decision>>(() =>
+    seedDecisions(editingPatient, initialExpectations),
+  );
   const [loadingDryRun, setLoadingDryRun] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,16 +175,18 @@ export default function BuildPatientDialog({
       clearAutoClose();
       return;
     }
-    setPatient({ ...EMPTY_PATIENT, ...initialPatient });
+    setPatient(seedPatient(editingPatient, initialPatient));
     setDryRunResult(null);
-    const seed: Record<string, Decision> = {};
-    (initialExpectations || []).forEach((e) => {
-      seed[e.rule_id] = e.fires ? "fires" : "no_fire";
-    });
-    setDecisions(seed);
+    setDecisions(seedDecisions(editingPatient, initialExpectations));
     setError(null);
     setSaveResult(null);
-  }, [open, initialPatient, initialExpectations, clearAutoClose]);
+  }, [
+    open,
+    initialPatient,
+    initialExpectations,
+    editingPatient,
+    clearAutoClose,
+  ]);
 
   useEffect(() => clearAutoClose, [clearAutoClose]);
 
@@ -180,6 +261,31 @@ export default function BuildPatientDialog({
     setSaving(true);
     setError(null);
     try {
+      if (isEdit && editingPatient) {
+        // Edit mode: PATCH the existing patient + replace its
+        // expectations.  When the reviewer hasn't run a fresh
+        // dry-run we fall back to the saved expectations they
+        // already had (decisions seeded from editingPatient).
+        const editExpectations =
+          dryRunResult !== null
+            ? expectations
+            : buildExpectationsWithoutDryRun(decisions, editingPatient);
+        const result = await updatePatient(editingPatient.id, {
+          patient,
+          expectations: editExpectations,
+          ruleset_version: dryRunResult?.ruleset_version || null,
+        });
+        setSaveResult(
+          `Updated ${result.id} with ${result.expectations_written} expectation(s). Closing...`,
+        );
+        if (onSaved) onSaved(result.id);
+        clearAutoClose();
+        autoCloseTimer.current = setTimeout(() => {
+          autoCloseTimer.current = null;
+          onClose();
+        }, 1500);
+        return;
+      }
       const result = await savePatient({
         patient,
         guideline_id: guidelineId,
@@ -211,9 +317,12 @@ export default function BuildPatientDialog({
       setSaving(false);
     }
   }, [
+    isEdit,
+    editingPatient,
     patient,
     guidelineId,
     expectations,
+    decisions,
     dryRunResult,
     onSaved,
     onClose,
@@ -225,17 +334,22 @@ export default function BuildPatientDialog({
     return hit ? friendlyTerm(hit.preferred_term) : cid;
   };
 
-  const canSave = !!dryRunResult && !saving && expectations.length >= 0;
+  // In edit mode the patient already exists, so we don't gate save
+  // behind a fresh dry-run -- the reviewer might just be tweaking
+  // the name or age and want to keep their saved expectations.
+  const canSave = (isEdit || !!dryRunResult) && !saving;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Build a test patient</DialogTitle>
+      <DialogTitle>
+        {isEdit ? "Edit test patient" : "Build a test patient"}
+      </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
-            Pick the symptoms or signs this patient has, set their age and sex,
-            then run a dry run to see which rules they match. You can then save
-            the patient as a test for future updates.
+            {isEdit
+              ? "Update this patient's symptoms, age, sex or name, then save. Run a dry run if you want to refresh the rule expectations -- otherwise the existing expectations are kept."
+              : "Pick the symptoms or signs this patient has, set their age and sex, then run a dry run to see which rules they match. You can then save the patient as a test for future updates."}
           </Typography>
 
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
@@ -318,7 +432,9 @@ export default function BuildPatientDialog({
               {loadingDryRun ? "Running..." : "Dry run"}
             </Button>
             <Typography variant="caption" color="text.secondary">
-              Save is locked until you run the patient at least once.
+              {isEdit
+                ? "Save is enabled. Re-running the dry run lets you refresh which rules this patient asserts."
+                : "Save is locked until you run the patient at least once."}
             </Typography>
           </Stack>
 
@@ -366,7 +482,11 @@ export default function BuildPatientDialog({
           disabled={!canSave}
           startIcon={saving ? <CircularProgress size={16} /> : undefined}
         >
-          {saving ? "Saving..." : "Save patient"}
+          {saving
+            ? "Saving..."
+            : isEdit
+              ? "Save changes"
+              : "Save patient"}
         </Button>
       </DialogActions>
     </Dialog>

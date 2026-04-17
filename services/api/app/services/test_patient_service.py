@@ -33,6 +33,7 @@ from libs.cypher.test_patient_queries import (
     LIST_REPLAY_REPORTS,
     LIST_RULES_IN_SCOPE,
     LIST_TEST_PATIENTS,
+    UPDATE_TEST_PATIENT,
     WRITE_EXPECTED_RESULT,
     WRITE_REPLAY_REPORT,
 )
@@ -536,6 +537,66 @@ def get_patient(client: CodingGraphClient, *, patient_id: str) -> dict | None:
 def delete_patient(client: CodingGraphClient, *, patient_id: str) -> int:
     rows = client.run(DELETE_TEST_PATIENT, id=patient_id)
     return int(rows[0]["deleted"]) if rows else 0
+
+
+def update_patient(
+    client: CodingGraphClient,
+    *,
+    patient_id: str,
+    payload: PatientPayload,
+    expectations: list[dict],
+    updated_by: str,
+    ruleset_version: str | None = None,
+) -> dict:
+    """Update a saved test patient's profile and replace its expectations.
+
+    Updates name / description / codes / age / sex / pathway_id /
+    content_hash on the TestPatient node, deletes every existing
+    EXPECTED_RESULT relationship, then writes the supplied
+    ``expectations`` afresh.  Empty expectation list is allowed (the
+    patient is left with no assertions, which makes replay a no-op
+    for that patient -- the UI surfaces this as "no assertions").
+
+    Returns ``{id, updated, expectations_written}``.  When the
+    patient does not exist ``updated`` is False and the caller (the
+    router) translates that into a 404.
+    """
+    rows = client.run(
+        UPDATE_TEST_PATIENT,
+        id=patient_id,
+        name=payload.name or _default_name(payload),
+        description=payload.description or "",
+        codes=payload.normalised_codes(),
+        age=payload.age,
+        sex=payload.sex,
+        pathway_id=payload.pathway_id,
+        content_hash=payload.content_hash(),
+        updated_by=updated_by,
+    )
+    if not rows:
+        return {"id": patient_id, "updated": False, "expectations_written": 0}
+    written = 0
+    for exp in expectations:
+        rid = exp.get("rule_id")
+        if not rid:
+            continue
+        client.run(
+            WRITE_EXPECTED_RESULT,
+            test_patient_id=patient_id,
+            rule_id=rid,
+            fires=bool(exp.get("fires")),
+            matched_branch_node_ids=list(
+                exp.get("matched_branch_node_ids") or []
+            ),
+            ruleset_version=ruleset_version or "",
+            snapshot_by=updated_by,
+        )
+        written += 1
+    return {
+        "id": patient_id,
+        "updated": True,
+        "expectations_written": written,
+    }
 
 
 # ---------------------------------------------------------------------------

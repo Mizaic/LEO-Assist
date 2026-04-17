@@ -88,6 +88,36 @@ export function deletePatient(id: string): Promise<{ deleted: number }> {
   });
 }
 
+/**
+ * Body for ``PATCH /test-patients/{id}``. The reviewer is editing a
+ * saved patient -- the new full profile + the new full expectation
+ * list are sent, and the backend rewrites both atomically.
+ *
+ * Empty ``expectations`` is allowed and means "this patient has no
+ * assertions", which the replay dialog surfaces as the warning
+ * "no assertions" intent chip.
+ */
+export interface UpdateBody {
+  patient: PatientPayload;
+  expectations: Array<{
+    rule_id: string;
+    fires: boolean;
+    matched_branch_node_ids: string[];
+  }>;
+  ruleset_version?: string | null;
+}
+
+export function updatePatient(
+  id: string,
+  body: UpdateBody,
+): Promise<{ id: string; updated: boolean; expectations_written: number }> {
+  return request(`/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
 export interface GenerateBody {
   scope_type: "rule" | "branch" | "guideline" | "all";
   guideline_id?: string;
