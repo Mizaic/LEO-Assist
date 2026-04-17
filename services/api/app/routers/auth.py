@@ -33,6 +33,11 @@ from libs.audit.security_log import (
     emit_token_rejected,
 )
 from libs.auth.practitioner_org_context import fetch_practitioner_org_context
+from libs.auth.role_state import (
+    RoleNotAllowedError,
+    fetch_role_state,
+    set_selected_role,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -448,17 +453,29 @@ def logout(request: Request, response: Response):
     return resp
 
 
+def _unauth_session_payload() -> dict:
+    return {
+        "user": None,
+        "isPlatformAdmin": False,
+        "organizations": [],
+        "selected_role": None,
+        "allowed_roles": [],
+    }
+
+
 @router.get("/session")
 def get_session(request: Request):
-    """Return current session (user info, orgs). Used by frontend to check auth.
+    """Return current session (user info, orgs, role). Used by frontend.
     Returns 200 with user: null when not authenticated (avoids 401/CORS issues).
     """
     session_id = request.cookies.get(COOKIE_NAME)
     if not session_id:
-        return {"user": None, "isPlatformAdmin": False, "organizations": []}
+        return _unauth_session_payload()
     data = load_session(session_id)
     if not data:
-        return {"user": None, "isPlatformAdmin": False, "organizations": []}
+        return _unauth_session_payload()
+    email = (data.get("email") or "").lower().strip()
+    role_state = fetch_role_state(email) if email else None
     return {
         "user": {
             "email": data.get("email"),
@@ -467,4 +484,41 @@ def get_session(request: Request):
         "isPlatformAdmin": data.get("is_platform_admin", False),
         "organizations": data.get("organizations", []),
         "idleTimeoutMinutes": data.get("idle_timeout_minutes", 30),
+        "selected_role": role_state.selected_role if role_state else None,
+        "allowed_roles": list(role_state.allowed_roles) if role_state else [],
+    }
+
+
+@router.patch("/session/role")
+async def patch_session_role(request: Request):
+    """Set the current practitioner's selected UI role.
+
+    Body: ``{"role": "<role-name>"}``. Writes an append-only
+    ``(:RoleSwitch)`` audit node and returns the updated role state.
+    Rejects with 403 if the role is not in the practitioner's
+    ``HAS_ROLE`` set. See DI-LEO-AI-129 / VT-LEO-AI-125.
+    """
+    session_id = request.cookies.get(COOKIE_NAME)
+    if not session_id:
+        raise HTTPException(status_code=401, detail="not_authenticated")
+    data = load_session(session_id)
+    if not data:
+        raise HTTPException(status_code=401, detail="session_expired")
+    email = (data.get("email") or "").lower().strip()
+    if not email:
+        raise HTTPException(status_code=401, detail="no_email")
+    payload = await request.json()
+    role = (payload or {}).get("role")
+    if not isinstance(role, str) or not role:
+        raise HTTPException(status_code=400, detail="missing_role")
+    try:
+        new_state = set_selected_role(email, role, session_id)
+    except RoleNotAllowedError:
+        raise HTTPException(status_code=403, detail="role_not_allowed")
+    except Exception as exc:
+        logger.warning("role_switch.failed email=%s err=%s", email, exc)
+        raise HTTPException(status_code=500, detail="role_switch_failed")
+    return {
+        "selected_role": new_state.selected_role,
+        "allowed_roles": list(new_state.allowed_roles),
     }

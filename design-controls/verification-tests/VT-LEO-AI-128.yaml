@@ -1,0 +1,76 @@
+# -- VT-LEO-AI-128 -- next/font typography + subtitle un-monospace
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-128"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-132"]
+    risks: []
+
+  metadata:
+    title: "next/font DM Sans applied and subtitles not monospaced"
+    description: >
+      Verifies that services/ui/src/app/layout.tsx applies dmSans from
+      @leo/design-system/fonts and that the theme subtitle1 and
+      subtitle2 variants have been converted to DM Sans 600.
+    test_level: "inspection"
+    test_type: "functional"
+    safety_class: "A"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/design-system-fonts.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-128-TC-001"
+      case_name: "dmSans loader exported"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "import { dmSans, jetBrainsMono } from '@leo/design-system'"
+          expected_result: "Both exist; dmSans has className, variable, style fields"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "typeof dmSans.className === 'string'"
+
+    - case_id: "VT-128-TC-002"
+      case_name: "Theme subtitles un-monospaced"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Inspect services/ui/src/theme.ts source"
+          expected_result: "subtitle1.fontFamily and subtitle2.fontFamily match /DM Sans|dm-sans|var\\(--font-dm-sans\\)/; NEITHER references JetBrains Mono"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "No occurrence of 'JetBrains Mono' in subtitle1 or subtitle2 blocks"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-128/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-128-EXEC-001"
+      executed_at: "2026-04-17"
+      executed_by: "phase-1-foundation"
+      environment: "development"
+      result: "pass"
+      notes: >
+        jest src/__tests__/design-system-fonts.test.ts -> passed. Verifies
+        next/font DM Sans + JetBrains Mono exported, layout.tsx wires the
+        CSS variables onto <html>, and subtitle1/subtitle2 no longer use
+        JetBrains Mono in theme.ts.

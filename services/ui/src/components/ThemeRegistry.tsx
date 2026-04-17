@@ -6,8 +6,10 @@ import { useServerInsertedHTML } from "next/navigation";
 import { CacheProvider } from "@emotion/react";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import theme from "@/theme";
+import { createLeoTheme } from "@leo/design-system/theme";
 import { SnackbarProvider } from "@/context/SnackbarContext";
+
+const theme = createLeoTheme();
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
   const [{ cache, flush }] = React.useState(() => {

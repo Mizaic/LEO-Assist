@@ -23,6 +23,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from libs.analytics import confirmed_cancer_where
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
 from libs.redis_client.rebuild_status import get_rebuild_status
@@ -71,9 +72,14 @@ class ReviewRequest(BaseModel):
 def _apply_pathway_filter(
     base: str, params: dict, pathway_filter: str
 ) -> tuple[str, dict]:
-    """Append pathway status WHERE clause to base match."""
+    """Append pathway status WHERE clause to base match.
+
+    'confirmed' uses the canonical NCDA confirmed-cancer cohort so the
+    Mission Control patient list stays aligned with the /audit/summary
+    headline (DI-LEO-AI-134).
+    """
     if pathway_filter == "confirmed":
-        base = base.rstrip() + " AND ep.status = 'completed' "
+        base = base.rstrip() + f" AND {confirmed_cancer_where('ep')} "
     elif pathway_filter == "closures":
         statuses = ", ".join(f"'{s}'" for s in _CLOSURE_STATUSES)
         base = base.rstrip() + f" AND ep.status IN [{statuses}] "
@@ -389,14 +395,20 @@ def _patient_only_query(
 
 
 def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
-    """Return (query, params) for the 6 Mission Control KPI aggregation."""
+    """Return (query, params) for the 6 Mission Control KPI aggregation.
+
+    confirmed_cancer uses the canonical NCDA cohort helper so this
+    count agrees with /audit/summary.confirmed_cancers and
+    /audit/cancer-stage (DI-LEO-AI-134).
+    """
+    confirmed = confirmed_cancer_where("ep")
     q = (
         f"{base}"
         "WITH ep, p "
         "RETURN "
         "  count(DISTINCT p) AS total_patients, "
-        "  count(DISTINCT CASE WHEN ep.status = 'completed' "
-        "    AND coalesce(ep.letter_inferred_benign, false) = false THEN ep END) AS confirmed_cancer, "
+        f"  count(DISTINCT CASE WHEN ({confirmed}) THEN ep END) "
+        "    AS confirmed_cancer, "
         "  count(DISTINCT CASE WHEN ep.status IN "
         f"    {_CLOSURE_STATUSES!r} THEN ep END) AS pathway_closures, "
         "  percentileCont(toFloat(ep.diagnostic_interval_days), 0.5) AS median_diagnostic_interval_days, "

@@ -54,8 +54,61 @@ def test_specialty_markers_cover_major_cancer_types():
         ),
         (
             "breast",
-            ["breast lump palpated", "nipple discharge", "mammogram abnormal"],
+            [
+                "breast lump palpated",
+                "nipple discharge",
+                "mammogram abnormal",
+                "DCIS on core biopsy",
+                "invasive ductal carcinoma grade 2",
+                "ER+ve HER2 negative",
+                "Ca breast follow-up",
+            ],
             ["PSA high", "dysphagia"],
+        ),
+        (
+            "stomach",
+            [
+                "Carcinoma of stomach (X78gA)",
+                "gastric ca diagnosis",
+                "OGD performed last week",
+                "gastroscopy for IDA",
+            ],
+            ["PSA elevated", "rectal bleeding"],
+        ),
+        (
+            "non_site_specific",
+            [
+                "2WW referral fast track",
+                "two-week wait pathway",
+                "suspected cancer concerns",
+                "non-specific signs of cancer",
+                "vague symptom screening",
+            ],
+            ["mammogram normal", "PSA 1.2"],
+        ),
+        (
+            "head_and_neck",
+            [
+                "neck lump noted on examination",
+                "neck swelling for 6 weeks",
+                "hoarse voice",
+                "ENT referral",
+            ],
+            ["PSA elevated", "mammogram normal"],
+        ),
+        (
+            "leukaemia",
+            [
+                "AML relapse",
+                "CML chronic phase",
+                "CLL watch and wait",
+                "myeloblasts in peripheral blood",
+            ],
+            [
+                "ALL patients receive a follow-up",
+                "Was ALL stable",
+                "blast crisis not relevant here",
+            ],
         ),
         (
             "lung",

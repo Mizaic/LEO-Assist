@@ -1,0 +1,69 @@
+# -- DI-LEO-AI-129 -- Practitioner role model (selected_role, allowed_roles, RoleSwitch audit)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-129"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-069"]
+  requirement: >
+    The system SHALL expose each practitioner's selected UI role and
+    the set of roles they are allowed to use. Switching role SHALL
+    update the Practitioner node and write an append-only audit node
+    capturing who switched, from which role, to which role, when, and
+    under which session.
+
+  rationale: >
+    Role-first interaction design (UN-069) needs a durable source of
+    truth. Existing (:Practitioner)-[:HAS_ROLE]->(:Role) edges already
+    express capability; a selected_role property captures the user's
+    current UI preference and an append-only (:RoleSwitch) audit node
+    satisfies the IEC 62304 and ISO 13485 audit trail requirement.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "(:Practitioner) exposes allowed_roles (list of role.name from HAS_ROLE) and selected_role (single string)"
+      - type: "functional"
+        spec: "GET /auth/session response includes selected_role and allowed_roles fields"
+      - type: "functional"
+        spec: "PATCH /auth/session/role {role} updates Practitioner.selected_role iff role is in allowed_roles"
+      - type: "safety"
+        spec: "Every successful role switch writes a (:RoleSwitch {id, at, from, to, session_id, practitioner_email}) node linked to the practitioner"
+      - type: "safety"
+        spec: "(:RoleSwitch) nodes are append-only; no UPDATE or DELETE path is exposed"
+      - type: "functional"
+        spec: "Canonical roles seeded in (:Role): clinician, staff, qa_ra_lead, platform_admin"
+    constraints:
+      - type: "safety"
+        spec: "Role never gates data access; existing API permissions remain authoritative"
+    dependencies: []
+    downstream_impacts:
+      - "AppShell nav filtering"
+      - "Landing route redirect logic"
+      - "Audit trail queries (admin / QA exports)"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI + Neo4j async driver"
+      file_structure:
+        - "services/api/app/routers/auth.py"
+        - "libs/cypher/admin_queries.py"
+        - "libs/auth/practitioner_org_context.py"
+      estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      pytest integration covers: session payload carries selected_role
+      and allowed_roles; PATCH /auth/session/role updates the node and
+      creates an audit (:RoleSwitch); PATCH is rejected with 403 if the
+      role is not in allowed_roles; seeded canonical roles exist.
+    test_protocol: "VT-LEO-AI-125"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-089"
+    - "R-LEO-AI-091"
+  tags:
+    - "role-first"
+    - "auth"
+    - "audit-trail"

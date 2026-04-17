@@ -13,6 +13,7 @@ import { EvaluateStage } from "@/components/console/EvaluateStage";
 import { DeployStage } from "@/components/console/DeployStage";
 import { MonitorStage } from "@/components/console/MonitorStage";
 import { STAGE_COLORS } from "@/theme/tokens";
+import AreaIntro from "@/components/AreaIntro";
 
 const STAGE_KEYS = ["DISCOVER", "CURATE", "TRAIN", "EVALUATE", "DEPLOY", "MONITOR"] as const;
 
@@ -73,11 +74,12 @@ export default function ConsolePage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <AreaIntro area="operations" />
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
         Intelligence Console
       </Typography>
       <Typography sx={{ color: "text.secondary", mb: 2.5, fontSize: "0.9rem" }}>
-        The AI learning loop — from encounter to deployed model.
+        The AI learning loop - from encounter to deployed model.
       </Typography>
 
       {/* Smart nudge */}

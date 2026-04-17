@@ -3,12 +3,17 @@
 Each ``_q_*`` function takes (base_cypher, params, client) and returns
 the section-specific payload.  They are called by ``_run_multi_scope``
 for practice, alliance, and england scopes.
+
+Cohort selection goes through libs.analytics.cohorts so that every
+audit endpoint agrees on what 'confirmed cancer episode' means
+(DI-LEO-AI-134, R-LEO-AI-092).
 """
 
 from __future__ import annotations
 
 from typing import Optional
 
+from libs.analytics import confirmed_cancer_where
 from libs.neo4j_client.client import PatientGraphClient
 
 _SAFE_BIRTH_DATE = (
@@ -51,7 +56,7 @@ def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
     exclusion = ", ".join(_NCDA_EXCLUDED)
     rows = client.run(
         f"{base}"
-        "AND ep.status = 'completed' "
+        f"AND {confirmed_cancer_where('ep')} "
         "AND ep.cancer_type IS NOT NULL "
         f"AND NOT ep.cancer_type IN [{exclusion}] "
         "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS n "
@@ -77,11 +82,7 @@ def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
 def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict:
     confirmed_base = (
         f"{base}"
-        "AND ep.status = 'completed' "
-        "OPTIONAL MATCH (enc:Encounter)-[r:IS_PART_OF]->(ep) "
-        "  WHERE r.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
-        "WITH ep, count(enc) AS dx_count "
-        "WHERE dx_count > 0 "
+        f"AND {confirmed_cancer_where('ep')} "
     )
 
     rows = client.run(

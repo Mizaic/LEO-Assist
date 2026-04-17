@@ -23,6 +23,10 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Query
 
+from libs.analytics import (
+    confirmed_cancer_where,
+    suspected_cancer_referral_where,
+)
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -105,10 +109,7 @@ def audit_summary(
             "    ELSE date(toString(ep.first_presentation_date)) "
             "  END AS first_presentation_date_value, "
             "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
-            "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred, "
-            "  (ep.status = 'completed' "
-            "   AND coalesce(ep.letter_inferred_benign, false) = false) AS "
-            "is_confirmed "
+            "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
             "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc2:Encounter) "
             "  WHERE enc2.date IS NOT NULL "
             "    AND ep.referral_date IS NOT NULL "
@@ -125,10 +126,24 @@ def audit_summary(
             "     ep.safety_netting_recorded AS sn, "
             "     effective_diag_date AS diag_date, "
             "     diag_is_inferred, "
-            "     is_confirmed, "
             "     count(DISTINCT enc2) AS consultation_count "
             "RETURN ep_status, fp_date, ref_date, sn, "
-            "diag_date, diag_is_inferred, is_confirmed, consultation_count",
+            "diag_date, diag_is_inferred, consultation_count",
+            **params,
+        )
+
+        # Canonical confirmed-cancer count -- single source of truth.
+        # See DI-LEO-AI-134 / R-LEO-AI-092.
+        confirmed_rows = client.run(
+            f"{base}"
+            f"AND {confirmed_cancer_where('ep')} "
+            "RETURN count(DISTINCT ep) AS n",
+            **params,
+        )
+        via_2ww_rows = client.run(
+            f"{base}"
+            f"AND {suspected_cancer_referral_where('ep')} "
+            "RETURN count(DISTINCT ep) AS n",
             **params,
         )
 
@@ -156,9 +171,14 @@ def audit_summary(
 
         total = len(rows)
         active = sum(1 for r in rows if r.get("ep_status") not in _CLOSED)
-        # Keep this aligned with the overview dashboard's "Confirmed Cancers"
-        # card so both views show the same headline count for the same filters.
-        confirmed = sum(1 for r in rows if r.get("is_confirmed") is True)
+        # Headline 'Confirmed Cancers' uses the NCDA canonical cohort:
+        # completed episode + not letter-inferred-benign + has a
+        # diagnosis-milestone encounter. A second field surfaces the
+        # narrower '2WW-route' subset alongside.
+        confirmed = int((confirmed_rows[0] or {}).get("n") or 0) if confirmed_rows else 0
+        confirmed_via_2ww = (
+            int((via_2ww_rows[0] or {}).get("n") or 0) if via_2ww_rows else 0
+        )
 
         pci_vals = sorted(
             v
@@ -188,6 +208,7 @@ def audit_summary(
             "total_episodes": total,
             "active_episodes": active,
             "confirmed_cancers": confirmed,
+            "confirmed_cancers_via_2ww": confirmed_via_2ww,
             "median_pci_days": (round(_median(pci_vals), 1) if pci_vals else None),
             "median_di_days": (round(_median(di_vals), 1) if di_vals else None),
             "avg_consultations": (

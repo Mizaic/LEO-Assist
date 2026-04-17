@@ -1,0 +1,80 @@
+# -- DI-LEO-AI-138 -- Broadened breast specialty marker for 2WW detection
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-138"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-019"]
+  requirement: >
+    SPECIALTY_MARKERS['breast'] in libs/clinical_scoping/specialty_markers.py
+    SHALL match every UK-primary-care clinical surface form that
+    reliably indicates the breast pathway, including: 'triple
+    assessment', 'breast clinic', 'nipple discharge', 'family history
+    of breast cancer', fibroadenoma references, 'ductal carcinoma',
+    'lobular carcinoma', 'areola', and 'sentinel lymph node biopsy'.
+    The extended regex SHALL achieve >= 90% recall on a corpus of 20
+    real 2025 breast encounter texts sampled from the dev graph and
+    SHALL NOT falsely match generic 'chest' / 'thorax' / non-breast
+    contexts.
+  rationale: >
+    Post-fix investigation on 2026-04-17 identified 14 'genuinely
+    unreferred' confirmed-cancer episodes in 2025; 7 of those 14
+    (50%) are tagged cancer_type='breast', suggesting the current
+    breast regex misses a meaningful fraction of breast 2WW referral
+    letters. The existing regex matches 'breast', 'nipple',
+    'mammogra', 'mastectom', 'lumpectom', 'oncoplas', 'DCIS',
+    'LCIS', invasive ductal/lobular, 'HER2', ER/PR status, and 'Ca
+    breast' - but not the common triple-assessment / breast-clinic /
+    family-history phrasing that dominates general practice referral
+    notes. Broadening the regex is the cheapest fix for this subset
+    and is a prerequisite for DI-LEO-AI-137's evidence-wins merge
+    policy to work correctly on breast pathways (the merge policy
+    depends on the marker firing on diagnosis text).
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          The updated breast regex matches >= 18 of 20 curated
+          positive samples (>= 90% recall).
+      - type: "functional"
+        spec: >
+          The updated breast regex does NOT match any of 10 curated
+          negative samples (chest pain, thoracic cage, breastfeeding
+          only, etc.).
+      - type: "safety"
+        spec: >
+          No previously-matching surface form loses coverage (zero
+          regression on the 12 existing positive anchors encoded in
+          the current regex).
+    constraints:
+      - type: "performance"
+        spec: >
+          Compiled regex evaluation stays sub-millisecond on a 2 KB
+          encounter text (no catastrophic backtracking).
+    dependencies: ["DI-LEO-AI-126"]
+    downstream_impacts:
+      - "libs/clinical_scoping/specialty_markers.py"
+      - "Episode builder evidence-wins merge (DI-LEO-AI-137)"
+      - "NCDA breast pathway detection"
+    technical_details:
+      language: "Python"
+      framework: "re (stdlib)"
+      file_structure:
+        - "libs/clinical_scoping/specialty_markers.py"
+      estimated_loc: 30
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-134 cases pass: >= 18/20 positive match rate, 0
+      negative matches, 12/12 legacy anchor preservation.
+    test_protocol: "VT-LEO-AI-134"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-094"]
+  tags:
+    - "specialty-markers"
+    - "breast"
+    - "ncda"
+    - "regex"

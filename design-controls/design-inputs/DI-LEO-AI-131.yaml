@@ -1,0 +1,66 @@
+# -- DI-LEO-AI-131 -- Motion layer (framer-motion, reduced-motion honouring)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-131"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-069", "UN-LEO-AI-067", "UN-LEO-AI-068"]
+  requirement: >
+    The system SHALL expose a single motion layer built on
+    framer-motion, with pre-canned transitions (default 180 ms
+    ease-out, 220 ms spring for route change, 120 ms for hover and
+    focus). All motion SHALL be gated by the browser's
+    `prefers-reduced-motion` media query so users who have requested
+    reduced motion receive an instant state change with no animation.
+
+  rationale: >
+    Smooth context transitions improve perceived performance and help
+    users follow navigation changes, but vestibular disorders and some
+    cognitive conditions make animation actively harmful. A single
+    `MotionProvider` + `useMotion()` hook means every animated surface
+    honours reduced motion by construction.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "@leo/design-system exports MotionProvider, useMotion(), and a transitions module"
+      - type: "functional"
+        spec: "useMotion() returns { reducedMotion: boolean, transitions } where reducedMotion mirrors window.matchMedia('(prefers-reduced-motion: reduce)').matches"
+      - type: "safety"
+        spec: "When reducedMotion is true, all pre-canned transitions collapse to duration 0 and bypass spring"
+      - type: "functional"
+        spec: "framer-motion is added as a dependency of services/ui"
+    constraints:
+      - type: "performance"
+        spec: "Motion provider does not subscribe to a media query listener in SSR; it is mounted only client-side"
+    dependencies:
+      - "DI-LEO-AI-130"
+    downstream_impacts:
+      - "Route transitions"
+      - "Modal + popover animations"
+      - "ProgressiveReveal primitive"
+    technical_details:
+      language: "TypeScript"
+      framework: "React 19 + framer-motion"
+      file_structure:
+        - "services/design-system/src/motion/MotionProvider.tsx"
+        - "services/design-system/src/motion/useMotion.ts"
+        - "services/design-system/src/motion/transitions.ts"
+      estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      Jest: useMotion() hook returns { reducedMotion: true } when
+      matchMedia reports reduce, and transitions in that state have
+      duration: 0. Integration: a MotionSurface inside MotionProvider
+      renders without throwing.
+    test_protocol: "VT-LEO-AI-127"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-090"
+  tags:
+    - "motion"
+    - "accessibility"
+    - "design-system"

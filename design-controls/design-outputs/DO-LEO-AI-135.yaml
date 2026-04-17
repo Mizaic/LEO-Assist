@@ -1,0 +1,77 @@
+# -- DO-LEO-AI-135 -- Unified work queue backend, API, and UI
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-135"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-138"]
+    user_needs: ["UN-LEO-AI-070"]
+    risks_addressed: ["R-LEO-AI-095"]
+    verification_tests: ["VT-LEO-AI-134"]
+
+  specification:
+    title: "/work unified task queue (Cypher UNION, FastAPI, Next.js page, design-system primitive)"
+    description: |
+      Implements DI-LEO-AI-138 end-to-end: Cypher UNION across three
+      node labels, Python service that normalises each source into a
+      common task row shape, FastAPI endpoints /work/tasks and
+      /work/counts, TaskQueue primitive in @leo/design-system, and a
+      Next.js /work route that lands staff users on the unified queue.
+    acceptance_criteria:
+      - criterion: "Single Cypher union"
+        type: "functional"
+        measurement: "Inspection + Test"
+        target: >
+          GET_UNIFIED_WORK_TASKS contains a CALL { ... UNION ... } block
+          across CodingReview, SafetyNetAlert, GoldLabel.
+      - criterion: "API response shape"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Response carries tasks[] and counts_by_source{coding_review,
+          safety_net_alert, gold_label}.
+      - criterion: "Readability"
+        type: "usability"
+        measurement: "Test"
+        target: "Every task summary grades <=9 on readingAgeGrade()."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/cypher/work_queue_queries.py"
+        description: "Module-level Cypher strings GET_UNIFIED_WORK_TASKS and COUNT_WORK_TASKS_BY_SOURCE"
+      - artifact_type: "source_code"
+        location: "libs/work/queue.py"
+        description: "get_work_tasks + get_work_counts service functions"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/work.py"
+        description: "FastAPI router with /work/tasks and /work/counts"
+      - artifact_type: "source_code"
+        location: "services/design-system/src/primitives/TaskQueue.tsx"
+        description: "Unified list primitive"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/work/page.tsx"
+        description: "Next.js /work route"
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 520
+      key_functions:
+        - "get_work_tasks"
+        - "get_work_counts"
+        - "TaskQueue"
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures:
+      - "Deep-link resolve_url preserves the existing resolver as the sole writer"
+      - "Queue is read-only; it never mutates source nodes"
+      - "Per-source counts shown alongside filtered view so staff cannot miss a rising source"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

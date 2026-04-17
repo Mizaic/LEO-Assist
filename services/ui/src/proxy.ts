@@ -51,6 +51,7 @@ function pipelineWorker(): string {
 const EXACT_ROUTES: Record<string, () => string> = {
   "/auth/logout": () => `${coreApi()}/auth/logout`,
   "/auth/session": () => `${coreApi()}/auth/session`,
+  "/auth/session/role": () => `${coreApi()}/auth/session/role`,
   "/api/patients": () => `${coreApi()}/patients`,
   "/api/prompts": () => `${coreApi()}/prompts`,
 };
@@ -73,6 +74,7 @@ const PREFIX_RULES: PrefixRule[] = [
   // ── Core API — all other pipeline endpoints (production runs, stats, etc.) ──
   { prefix: "/api/pipeline/", rewrite: (r) => `${coreApi()}/pipeline/${r}` },
   { prefix: "/api/review/", rewrite: (r) => `${coreApi()}/review/${r}` },
+  { prefix: "/api/work/", rewrite: (r) => `${coreApi()}/work/${r}` },
   { prefix: "/api/exports/", rewrite: (r) => `${coreApi()}/exports/${r}` },
   { prefix: "/api/games/", rewrite: (r) => `${coreApi()}/games/${r}` },
   {
@@ -191,10 +193,12 @@ export const config = {
     "/api/mail/:path*",
     "/auth/logout",
     "/auth/session",
+    "/auth/session/role",
     "/api/proxy/:path*",
     "/api/patients/:path*",
     "/api/pipeline/:path*",
     "/api/review/:path*",
+    "/api/work/:path*",
     "/api/exports/:path*",
     "/api/games/:path*",
     "/api/terminology/:path*",

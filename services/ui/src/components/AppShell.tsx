@@ -48,9 +48,9 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
-import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
+import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import LinearProgress from "@mui/material/LinearProgress";
 import Chip from "@mui/material/Chip";
 import { useAuth } from "@/lib/authContext";
@@ -103,6 +103,9 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
     label: "Knowledge",
     path: "/admin/knowledge",
     icon: <StorageOutlinedIcon />,
+    // Phase 2 IA merge (DI-LEO-AI-135): /admin/clinical has been folded
+    // into Knowledge as three extra tabs. Legacy routes still surface
+    // here so the nav highlight stays correct while the redirect runs.
     activePrefix: [
       "/admin/knowledge",
       "/admin/gold-dataset",
@@ -110,13 +113,6 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
       "/admin/context-rules",
       "/admin/prompts",
       "/admin/guidance",
-    ],
-  },
-  {
-    label: "Clinical",
-    path: "/admin/clinical",
-    icon: <LocalHospitalOutlinedIcon />,
-    activePrefix: [
       "/admin/clinical",
       "/admin/pathways",
       "/admin/domains",
@@ -185,7 +181,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const badgeCounts: Record<string, number> = {};
 
-  const navItemsForMode = uiMode === "care" ? CARE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+  const baseNavItems = uiMode === "care" ? CARE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+
+  // DI-LEO-AI-138: add a "My Work" entry that surfaces the unified task
+  // queue. The role-first shell is the shipped experience (Phase 6
+  // removed the rollout flag), so staff always see the queue promoted
+  // to the top and every other role still reaches it near the end.
+  const selectedRole = session?.selectedRole ?? null;
+  const workNavItem: NavItem = {
+    label: "My Work",
+    path: "/work",
+    icon: <InboxOutlinedIcon />,
+    activePrefix: ["/work"],
+  };
+  const navItemsForMode: NavItem[] =
+    selectedRole === "staff"
+      ? [workNavItem, ...baseNavItems]
+      : [...baseNavItems, workNavItem];
 
   const visibleNavItems = navItemsForMode.filter((item) => !item.adminOnly || isPlatformAdmin);
 

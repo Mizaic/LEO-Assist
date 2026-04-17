@@ -1,0 +1,87 @@
+# -- DO-LEO-AI-132 -- Knowledge hub: unified admin reference-data section
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-132"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-135"]
+    user_needs: ["UN-LEO-AI-069"]
+    risks_addressed: ["R-LEO-AI-093"]
+    verification_tests: ["VT-LEO-AI-131"]
+
+  specification:
+    title: "Knowledge hub: merged admin Clinical + Knowledge pages"
+    description: |
+      Consolidates the admin "Clinical Setup" page and the admin
+      "Knowledge" page into a single 8-tab page at /admin/knowledge.
+      Deletes /admin/clinical and adds permanent redirects from every
+      legacy URL (/admin/clinical, /admin/clinical?tab=<k>,
+      /admin/pathways, /admin/domains, /admin/terminology) to the
+      matching /admin/knowledge?tab=<k>. Updates AppShell ADMIN_NAV_ITEMS
+      to remove the Clinical nav item and fold its route coverage into
+      the Knowledge activePrefix. Extends the admin-url-audit Jest test
+      with '/admin/clinical' so re-introductions fail CI.
+
+    acceptance_criteria:
+      - criterion: "Unified tab list"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          /admin/knowledge renders 8 tabs (training-data, surface-forms,
+          context-rules, ai-instructions, clinical-guidelines, pathways,
+          domains, terminology) in that order.
+      - criterion: "Legacy redirects"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          next.config.mjs redirects every legacy URL to the matching
+          /admin/knowledge?tab=<k> with permanent: true.
+      - criterion: "Nav consolidation"
+        type: "functional"
+        measurement: "Inspection + Test"
+        target: >
+          AppShell ADMIN_NAV_ITEMS length reduced by one; no item labeled
+          "Clinical"; Knowledge activePrefix covers all legacy paths.
+      - criterion: "URL audit"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          admin-url-audit.test.ts reports zero violations when
+          /admin/clinical is added to DEPRECATED_PATTERNS.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/knowledge/page.tsx"
+        description: "KnowledgePage: 8-tab hub, lazy-loads each tab via next/dynamic"
+      - artifact_type: "source_code"
+        location: "services/ui/next.config.mjs"
+        description: "Permanent redirects for /admin/clinical* -> /admin/knowledge"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/AppShell.tsx"
+        description: "ADMIN_NAV_ITEMS: remove Clinical, extend Knowledge activePrefix"
+      - artifact_type: "source_code"
+        location: "services/ui/src/__tests__/admin-url-audit.test.ts"
+        description: "Add /admin/clinical to DEPRECATED_PATTERNS"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 120
+      key_functions:
+        - "KnowledgePage"
+        - "nextConfig.redirects"
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures:
+      - "Permanent redirects preserve bookmarked and shared links"
+      - "Knowledge activePrefix keeps the correct nav item highlighted during the redirect"
+      - "admin-url-audit test fails CI if new code reintroduces /admin/clinical"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

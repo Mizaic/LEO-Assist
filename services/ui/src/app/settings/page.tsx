@@ -15,6 +15,7 @@ import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import AreaIntro from "@/components/AreaIntro";
 
 interface SettingsCard {
   id: string;
@@ -77,6 +78,7 @@ export default function SettingsPage() {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
+      <AreaIntro area="settings" />
       <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
         Settings
       </Typography>

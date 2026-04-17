@@ -9,9 +9,10 @@
  *   /admin/context-rules -> /admin/knowledge?tab=context-rules
  *   /admin/prompts (standalone nav) -> /admin/knowledge?tab=ai-instructions
  *   /admin/guidance -> /admin/knowledge?tab=clinical-guidelines
- *   /admin/pathways (standalone nav) -> /admin/clinical?tab=pathways
- *   /admin/domains -> /admin/clinical?tab=domains
- *   /admin/terminology -> /admin/clinical?tab=terminology
+ *   /admin/clinical (merged into Knowledge) -> /admin/knowledge
+ *   /admin/pathways (standalone nav) -> /admin/knowledge?tab=pathways
+ *   /admin/domains -> /admin/knowledge?tab=domains
+ *   /admin/terminology -> /admin/knowledge?tab=terminology
  *   /admin/billing -> /admin/platform?tab=billing
  *   /admin/models -> /admin/platform?tab=model-config
  *   /admin/data-quality -> /admin/platform?tab=data-quality
@@ -34,6 +35,8 @@ const DEPRECATED_PATTERNS = [
   '"/admin/surface-forms"',
   '"/admin/context-rules"',
   '"/admin/guidance"',
+  '"/admin/clinical"',
+  '"/admin/clinical?',
   '"/admin/pathways"',
   '"/admin/domains"',
   '"/admin/terminology"',
@@ -65,6 +68,9 @@ const ALLOWED_FILES = new Set([
   "components/AppShell.tsx",
   // This audit file itself
   "__tests__/admin-url-audit.test.ts",
+  // Phase 2 IA merge verification test: asserts redirects for the legacy
+  // /admin/clinical URLs, so references to those URLs are expected here.
+  "__tests__/knowledge-hub-merge.test.ts",
 ]);
 
 // -- Helpers -----------------------------------------------------------------

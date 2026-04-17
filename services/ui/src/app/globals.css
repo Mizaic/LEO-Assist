@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+/*
+ * DI-LEO-AI-140: Google Fonts @import removed. DM Sans + JetBrains
+ * Mono are now loaded once via next/font/google (see
+ * services/ui/src/lib/fonts.ts) and exposed through CSS variables on
+ * <html>. That path is the only way we ship fonts -- no network
+ * fetch, no FOUT, no duplicate download.
+ */
 
 html {
   font-size: 16px;

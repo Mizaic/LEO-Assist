@@ -2,6 +2,7 @@
 module.exports = {
   testEnvironment: "jsdom",
   roots: ["<rootDir>/src"],
+  moduleDirectories: ["node_modules", "<rootDir>/node_modules"],
   transform: {
     "^.+\\.tsx?$": [
       "ts-jest",
@@ -13,6 +14,12 @@ module.exports = {
   },
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@leo/design-system$": "<rootDir>/../design-system/src/index.ts",
+    "^@leo/design-system/(.*)$": "<rootDir>/../design-system/src/$1",
+    "^react$": "<rootDir>/node_modules/react",
+    "^react/(.*)$": "<rootDir>/node_modules/react/$1",
+    "^react-dom$": "<rootDir>/node_modules/react-dom",
+    "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
     "\\.(png|jpg|jpeg|gif|svg|webp)$": "<rootDir>/src/__mocks__/fileMock.ts",
   },

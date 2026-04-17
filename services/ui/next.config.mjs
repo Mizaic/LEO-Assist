@@ -13,6 +13,11 @@ try {
 } catch {
   appRoot = path.resolve(__dirname);
 }
+// Monorepo root. We point Turbopack here so npm-workspace-hoisted packages
+// (next, @leo/design-system, etc.) resolve cleanly from either workspace.
+// Without this, Turbopack fails with "we couldn't find next/package.json"
+// because npm workspaces hoist to the repo root, not services/ui.
+const monorepoRoot = path.resolve(__dirname, "../..");
 const secretsDir = path.resolve(__dirname, "../../secrets");
 
 function loadEnvFile(filePath) {
@@ -42,16 +47,23 @@ loadEnvFile(path.join(secretsDir, ".env.config"));
 loadEnvFile(path.join(secretsDir, ".env.secrets"));
 loadEnvFile(path.join(secretsDir, ".env"));
 
+// DI-LEO-AI-140: the NEXT_PUBLIC_ROLE_FIRST rollout flag was removed
+// in Phase 6. The role-first shell is the only shipped experience, so
+// there is no switch to read here. Any lingering value in the
+// environment is ignored by the shell.
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  transpilePackages: ["@leo/design-system"],
   allowedDevOrigins: ["http://127.0.0.1:3000", "http://172.27.0.1:3000", "http://localhost:3000"],
   // Keep tracing root aligned with turbopack.root (Next warns if they differ).
-  outputFileTracingRoot: appRoot,
+  outputFileTracingRoot: monorepoRoot,
   turbopack: {
-    // Pin root to this app directory to avoid lockfile-based inference.
-    root: appRoot,
+    // Pin root to the monorepo root so workspace packages (@leo/design-system)
+    // and hoisted dependencies (next, react) resolve cleanly.
+    root: monorepoRoot,
   },
   experimental: {
     proxyTimeout: 300_000, // 5 minutes – extraction pipelines can take 60s+
@@ -87,10 +99,13 @@ const nextConfig = {
       { source: "/admin/prompts", destination: "/admin/knowledge?tab=ai-instructions", permanent: true },
       { source: "/admin/prompts/:path*", destination: "/admin/knowledge?tab=ai-instructions", permanent: false },
       { source: "/admin/guidance", destination: "/admin/knowledge?tab=clinical-guidelines", permanent: true },
-      // Clinical
-      { source: "/admin/pathways", destination: "/admin/clinical?tab=pathways", permanent: true },
-      { source: "/admin/domains", destination: "/admin/clinical?tab=domains", permanent: true },
-      { source: "/admin/terminology", destination: "/admin/clinical?tab=terminology", permanent: true },
+      // Clinical -> Knowledge (Phase 2 IA merge, DI-LEO-AI-135 / R-LEO-AI-093)
+      // /admin/clinical has been folded into /admin/knowledge. Every legacy
+      // URL is a permanent redirect so bookmarks self-heal on first click.
+      { source: "/admin/clinical", destination: "/admin/knowledge", permanent: true },
+      { source: "/admin/pathways", destination: "/admin/knowledge?tab=pathways", permanent: true },
+      { source: "/admin/domains", destination: "/admin/knowledge?tab=domains", permanent: true },
+      { source: "/admin/terminology", destination: "/admin/knowledge?tab=terminology", permanent: true },
       // Platform
       { source: "/admin/billing", destination: "/admin/platform?tab=billing", permanent: true },
       { source: "/admin/models", destination: "/admin/platform?tab=model-config", permanent: true },

@@ -1,0 +1,86 @@
+# -- DO-LEO-AI-137 -- Phase 6 cleanup design output
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-137"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-140"]
+    user_needs: ["UN-LEO-AI-069"]
+    risks_addressed: []
+    verification_tests: ["VT-LEO-AI-136"]
+
+  specification:
+    title: "Role-first rollout flag removed; duplicate primitives deleted; font @import removed; sx colour-literal lint rule added"
+    description: |
+      Closing move for Wave D. The NEXT_PUBLIC_ROLE_FIRST flag is
+      physically removed from next.config.mjs, RoleShellProvider, and
+      AppShell -- the role-first shell is the only codepath. The
+      duplicate MUI-backed ProgressiveReveal in components/ui/ is
+      deleted in favour of the design-system primitive. The Google
+      Fonts @import that predated next/font is removed from
+      globals.css (DM Sans + JetBrains Mono already load via
+      next/font/google). eslint.config.mjs now carries a
+      no-restricted-syntax rule that flags hex / rgb / hsl colour
+      literals inside JSX sx props so new contributions stay on the
+      token system.
+    acceptance_criteria:
+      - criterion: "Flag removed from config and code"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-136 TC-001 passes"
+      - criterion: "Duplicate ProgressiveReveal deleted"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-136 TC-002 passes"
+      - criterion: "Google Fonts @import removed"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-136 TC-003 passes"
+      - criterion: "sx colour-literal rule active"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-136 TC-004 passes"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/next.config.mjs"
+        description: "Flag seed + env block removed"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/RoleShellProvider.tsx"
+        description: "ROLE_FIRST_ENABLED constant and gate branch removed"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/AppShell.tsx"
+        description: "roleFirstEnabled local removed; staff promotion unconditional"
+        storage_location: "git"
+      - artifact_type: "deletion"
+        location: "services/ui/src/components/ui/ProgressiveReveal.tsx"
+        description: "Duplicate MUI primitive deleted; callers migrated to @leo/design-system"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/globals.css"
+        description: "Google Fonts @import removed (fonts load via next/font)"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/eslint.config.mjs"
+        description: "no-restricted-syntax rule flagging sx colour literals"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript + JavaScript + CSS"
+      loc: 120
+      key_functions: []
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures:
+      - "Static source assertions guard every deletion / removal so the cleanup cannot silently revert."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

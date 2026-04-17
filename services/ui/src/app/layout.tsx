@@ -8,6 +8,8 @@ import { AnalyticsDateFilterProvider } from "@/context/AnalyticsDateFilterContex
 import { DensityProvider } from "@/context/DensityContext";
 import AppShell from "@/components/AppShell";
 import AuthProviderWrapper from "@/components/AuthProviderWrapper";
+import RoleShellProvider from "@/components/RoleShellProvider";
+import { dmSans, jetBrainsMono } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "LEO by Mizaic",
@@ -21,23 +23,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" dir="ltr">
+    <html
+      lang="en"
+      dir="ltr"
+      className={`${dmSans.variable} ${jetBrainsMono.variable}`}
+    >
       <body>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
         <AuthProviderWrapper>
-          <ThemeRegistry>
-            <DensityProvider>
-              <OrgProvider>
-                <AnalyticsDateFilterProvider>
-                  <PipelineProvider>
-                    <AppShell>{children}</AppShell>
-                  </PipelineProvider>
-                </AnalyticsDateFilterProvider>
-              </OrgProvider>
-            </DensityProvider>
-          </ThemeRegistry>
+          <RoleShellProvider>
+            <ThemeRegistry>
+              <DensityProvider>
+                <OrgProvider>
+                  <AnalyticsDateFilterProvider>
+                    <PipelineProvider>
+                      <AppShell>{children}</AppShell>
+                    </PipelineProvider>
+                  </AnalyticsDateFilterProvider>
+                </OrgProvider>
+              </DensityProvider>
+            </ThemeRegistry>
+          </RoleShellProvider>
         </AuthProviderWrapper>
       </body>
     </html>

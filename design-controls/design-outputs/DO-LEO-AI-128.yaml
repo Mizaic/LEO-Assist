@@ -1,0 +1,60 @@
+# -- DO-LEO-AI-128 -- Motion layer (framer-motion + reduced-motion gate)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-128"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-131"]
+    user_needs: ["UN-LEO-AI-069"]
+    risks_addressed: ["R-LEO-AI-090"]
+    verification_tests: ["VT-LEO-AI-127"]
+
+  specification:
+    title: "MotionProvider, useMotion, and pre-canned transitions"
+    description: |
+      Adds framer-motion as a services/ui dependency. Introduces
+      @leo/design-system/motion exporting MotionProvider and
+      useMotion() that returns { reducedMotion, transitions }.
+      Transitions collapse to duration 0 when reducedMotion is true.
+    acceptance_criteria:
+      - criterion: "Reduced motion honoured"
+        type: "safety"
+        measurement: "Test"
+        target: "useMotion() returns reducedMotion=true when matchMedia('(prefers-reduced-motion: reduce)').matches"
+      - criterion: "Transitions collapse"
+        type: "safety"
+        measurement: "Test"
+        target: "transitions.default.duration === 0 when reducedMotion is true"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/design-system/src/motion/MotionProvider.tsx"
+        description: "Context provider"
+      - artifact_type: "source_code"
+        location: "services/design-system/src/motion/useMotion.ts"
+        description: "Hook + reducedMotion detection"
+      - artifact_type: "source_code"
+        location: "services/design-system/src/motion/transitions.ts"
+        description: "Default / spring / hover transitions"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 120
+      key_functions:
+        - "MotionProvider"
+        - "useMotion"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "reduced-motion gate"
+    risk_control_measures:
+      - "useMotion() checks prefers-reduced-motion on mount and on media query change (R-090)"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

@@ -1,0 +1,87 @@
+# -- R-LEO-AI-093 -- Broken bookmarks / stale links after admin IA merge
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-093"
+  title: "Users lose access to admin reference pages because bookmarked links break when /admin/clinical is removed"
+
+  hazard:
+    description: >
+      Merging /admin/clinical into /admin/knowledge removes the old
+      route. If a user has bookmarked /admin/clinical or received a
+      shared link like /admin/clinical?tab=terminology, the link would
+      404 after the change.
+    category: "usability"
+
+  hazardous_situation: >
+    A coder or audit staff member returns on Monday morning, clicks
+    their bookmark to /admin/clinical?tab=terminology (where they were
+    working on Friday), and sees a 404. They cannot finish the
+    terminology review on time, so the weekly coding queue slips.
+
+  harm:
+    description: >
+      Delay to the coding-review workflow. No clinical harm (the
+      information is still reachable via Knowledge), but productivity
+      impact and user trust in the product are degraded.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Permanent (HTTP 308) redirects in next.config.mjs translate every
+        legacy /admin/clinical, /admin/pathways, /admin/domains,
+        /admin/terminology URL to the matching /admin/knowledge?tab=<k>.
+        Browsers and search engines follow 308s automatically and update
+        their history, so the bookmark self-heals on first click.
+      implemented_by: ["DI-LEO-AI-135"]
+      verified_by: ["VT-LEO-AI-131"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        The admin-url-audit Jest test fails CI if any file under src/
+        re-introduces a hardcoded /admin/clinical reference, preventing
+        silent regressions.
+      implemented_by: ["DI-LEO-AI-135"]
+      verified_by: ["VT-LEO-AI-131"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Permanent redirects mean the bookmark is self-healing on first
+      click. The audit test prevents regressions. No clinical data is
+      affected. Residual risk is limited to a brief moment of
+      "which URL am I on?" confusion the first time a bookmarked link is
+      visited.
+
+  monitoring:
+    monitoring_plan: >
+      Server logs watched for a spike in 404 rates on /admin/clinical*
+      in the first two weeks after release. If observed, the redirect
+      rule is checked and the broken URL surfaced in a weekly ops review.
+    metrics:
+      - "Count of 404 responses with /admin/clinical prefix per week (should be 0)"
+      - "Count of 308 responses from /admin/clinical* per week (expected to trend to 0)"
+    review_frequency: "Weekly for first month, then monthly"
+
+  metadata:
+    identified_by: "Phase 2 IA-merge design review"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "information-architecture"
+      - "role-first"
+      - "admin"
+      - "links"

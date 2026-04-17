@@ -1,0 +1,82 @@
+# -- DO-LEO-AI-130 -- RoleGate, RolePicker, RoleSwitcher primitives
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-130"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-133"]
+    user_needs: ["UN-LEO-AI-069"]
+    risks_addressed: ["R-LEO-AI-089", "R-LEO-AI-091"]
+    verification_tests: ["VT-LEO-AI-129"]
+
+  specification:
+    title: "Role-first shell primitives + feature flag"
+    description: |
+      Adds @leo/design-system/roles exporting RoleContext,
+      RoleProvider, RoleGate, RolePicker, RoleSwitcher, useRole(),
+      and a navMap. AppShell wraps its children in RoleProvider and
+      filters its left nav by the active role when the feature flag
+      NEXT_PUBLIC_ROLE_FIRST is 'on'.
+    acceptance_criteria:
+      - criterion: "Picker shows on first load"
+        type: "functional"
+        measurement: "Test"
+        target: "RolePicker renders when session.selectedRole is null"
+      - criterion: "Switcher shows for multi-role"
+        type: "functional"
+        measurement: "Test"
+        target: "RoleSwitcher renders only when allowedRoles.length > 1"
+      - criterion: "Nav scoped by role"
+        type: "functional"
+        measurement: "Test"
+        target: "AppShell renders only nav items in the role's primary set when flag is on"
+      - criterion: "Feature flag default off"
+        type: "safety"
+        measurement: "Inspection"
+        target: "NEXT_PUBLIC_ROLE_FIRST defaults to 'off' and the existing shell is preserved"
+      - criterion: "Accessibility"
+        type: "safety"
+        measurement: "Test"
+        target: "RolePicker has role=dialog, aria-modal=true, focus is trapped"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/design-system/src/roles/RoleContext.tsx"
+        description: "Context + useRole() hook"
+      - artifact_type: "source_code"
+        location: "services/design-system/src/roles/RolePicker.tsx"
+        description: "First-load role selection dialog"
+      - artifact_type: "source_code"
+        location: "services/design-system/src/roles/RoleSwitcher.tsx"
+        description: "Top-right switcher for multi-role users"
+      - artifact_type: "source_code"
+        location: "services/design-system/src/roles/navMap.ts"
+        description: "role -> { primary[], advanced[] } mapping"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/AppShell.tsx"
+        description: "Wraps children in RoleProvider; role-scoped nav behind feature flag"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 450
+      key_functions:
+        - "RoleProvider"
+        - "useRole"
+        - "RolePicker"
+        - "RoleSwitcher"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Fallback to legacy shell if /auth/session fails"
+    risk_control_measures:
+      - "Role cannot be set to a value not in allowed_roles (R-089)"
+      - "Feature flag off by default avoids mid-safety-task shell change (R-091)"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

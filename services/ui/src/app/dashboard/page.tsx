@@ -29,6 +29,7 @@ import DiagnosedByTypeChart from "@/components/dashboard/DiagnosedByTypeChart";
 import SafetyNetAlertsSummary from "@/components/dashboard/SafetyNetAlertsSummary";
 import LLMSpendPanel from "@/components/dashboard/LLMSpendPanel";
 import PageIntro from "@/components/ui/PageIntro";
+import AreaIntro from "@/components/AreaIntro";
 
 // Plain-language intro copy. Every string must read at Flesch-Kincaid
 // grade <=9 (DI-LEO-AI-128, verified in VT-LEO-AI-123).
@@ -164,6 +165,7 @@ export default function DashboardPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "hidden" }}>
+      <AreaIntro area="care-overview" />
 
       {/* -- Page title ------------------------------------------------ */}
       <Typography variant="h5" component="h1" sx={{ mb: 2, fontWeight: 700 }}>

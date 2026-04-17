@@ -754,6 +754,8 @@ Safety constraints enforced:
 | Design Input | DI-LEO-AI-124 | draft | Milestone temporal integrity: MIN_REFERRAL_TO_DIAG_DAYS gap + PRISM authoritative primacy over generic text referrals |
 | Design Input | DI-LEO-AI-127 | draft | Safety-net alert persistence with Patient edge + canonical alert_id in analytics router |
 | Design Output | DO-LEO-AI-124 | draft | services/analysis_worker/app/analyzers/safety_net_persistence.py; subgraph wiring; dashboards.py alert_id cleanup |
+| Design Output | DO-LEO-AI-125 | approved | libs/metrics consolidation; kpi_calculator and ncda export delegate to shared interval KPI math |
+| Verification Test | VT-LEO-AI-124 | passed | 17 pytest cases: cardinality/join integrity, schema validity, distribution tripwires, interval KPI parity between clean_episode_ground_truth.json and ncda_export.json via libs.metrics |
 | Risk | R-LEO-AI-087 | analyzed | Safety-net alerts lost (never persisted) or silently unactionable (router matches wrong key) |
 | Verification Test | VT-LEO-AI-122 | passed | 11 pytest cases: persistence, Patient edge, FOR_EPISODE link, idempotency, alert_id in router SELECT/MATCH/SET, subgraph wiring |
 | Design Output | DO-LEO-AI-121 | draft | _config.MIN_REFERRAL_TO_DIAG_DAYS; _grouping._find_best_referral gap guard; anchor_detector._RE_REFERRAL_PRISM + referral_subtype dedupe |
@@ -792,6 +794,18 @@ Safety constraints enforced:
 | DI-LEO-AI-127 | Safety-net alert persistence + canonical alert_id (VT passed 2026-04-16) | R-LEO-AI-087 | VT-LEO-AI-122 |
 | DI-LEO-AI-122 | OperationsWorkspace inclusive redesign (PageIntro, shared StatusDot, aria-expanded) - VT passed 2026-04-16 | R-LEO-AI-082 | VT-LEO-AI-117 |
 | DI-LEO-AI-123 | CodingReviewCasesModal split (8 modules <=500 LOC) + PageIntro/GlossaryTerm/HelpPopover - VT passed 2026-04-16 | R-LEO-AI-083 | VT-LEO-AI-118 |
+| DI-LEO-AI-134 | Canonical NCDA 'Confirmed Cancer' cohort across analytics (libs/analytics/cohorts.py, DO-LEO-AI-131) - VT passed 2026-04-17 | R-LEO-AI-092 | VT-LEO-AI-130 |
+| DI-LEO-AI-129 | Role-first Practitioner.selected_role + allowed_roles + RoleSwitch audit (DO-LEO-AI-126) - VT passed 2026-04-17 | R-LEO-AI-089, R-LEO-AI-091 | VT-LEO-AI-125 |
+| DI-LEO-AI-130 | @leo/design-system npm workspace package with tokens (DO-LEO-AI-127) - VT passed 2026-04-17 | R-LEO-AI-089 | VT-LEO-AI-126 |
+| DI-LEO-AI-131 | MotionProvider + prefers-reduced-motion gate (DO-LEO-AI-128) - VT passed 2026-04-17 | R-LEO-AI-090 | VT-LEO-AI-127 |
+| DI-LEO-AI-132 | next/font DM Sans + JetBrains Mono; un-monospace subtitles (DO-LEO-AI-129) - VT passed 2026-04-17 | R-LEO-AI-089 | VT-LEO-AI-128 |
+| DI-LEO-AI-133 | RoleGate + RolePicker + RoleSwitcher primitives with NEXT_PUBLIC_ROLE_FIRST flag (DO-LEO-AI-130) - VT passed 2026-04-17 | R-LEO-AI-089, R-LEO-AI-091 | VT-LEO-AI-129 |
+| DI-LEO-AI-135 | Merge /admin/clinical into /admin/knowledge, 301 redirects, nav consolidation (DO-LEO-AI-132) - VT passed 2026-04-17 | R-LEO-AI-093 | VT-LEO-AI-131 |
+| DI-LEO-AI-136 | Role-first Knowledge primitives in @leo/design-system: IntroCard + StatHero + ProgressiveReveal + KnowledgePageLayout (DO-LEO-AI-133) - VT passed 2026-04-17 | R-LEO-AI-094 | VT-LEO-AI-132 |
+| DI-LEO-AI-137 | Migrate every Knowledge tab onto KnowledgePageLayout with role-aware copy (DO-LEO-AI-134) - VT passed 2026-04-17 | R-LEO-AI-094 | VT-LEO-AI-133 |
+| DI-LEO-AI-138 | Unified /work task queue: Cypher UNION across CodingReview + SafetyNetAlert + TrainingCandidate, FastAPI /work/tasks + /work/counts, TaskQueue design-system primitive, /work Next.js page, AppShell nav promotion for staff (DO-LEO-AI-135) - VT passed 2026-04-17 | R-LEO-AI-095 | VT-LEO-AI-134 |
+| DI-LEO-AI-139 | Role-first intro copy across all nine landing pages (Care Overview, Operations, Pathway Explorer, Platform, Users, Portal, Support, Settings, Work); centralised AREA_INTRO_COPY map with default FK <=9 + role coverage; AreaIntro wrapper; NEXT_PUBLIC_ROLE_FIRST shipped enabled by default (DO-LEO-AI-136) - VT passed 2026-04-17 | R-LEO-AI-094 | VT-LEO-AI-135 |
+| DI-LEO-AI-140 | Phase 6 zero-tech-debt cleanup: NEXT_PUBLIC_ROLE_FIRST rollout flag deleted from next.config.mjs / RoleShellProvider / AppShell; duplicate services/ui/src/components/ui/ProgressiveReveal.tsx deleted and callers migrated to @leo/design-system; Google Fonts @import removed from globals.css (next/font handles fonts); eslint.config.mjs carries no-restricted-syntax rule flagging sx colour literals (DO-LEO-AI-137) - VT passed 2026-04-17 | (none) | VT-LEO-AI-136 |
 
 ---
 

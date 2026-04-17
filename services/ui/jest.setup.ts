@@ -2,6 +2,9 @@ import "@testing-library/jest-dom";
 import React from "react";
 import { TextEncoder, TextDecoder } from "util";
 
+// Enable React 18 act() support for createRoot-based tests.
+(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
 global.fetch = jest.fn();
 if (typeof global.TextEncoder === "undefined") {
   global.TextEncoder = TextEncoder;

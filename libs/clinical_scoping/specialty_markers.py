@@ -25,7 +25,10 @@ logger = logging.getLogger(__name__)
 # gracefully fall back to unfiltered matching (see filter_rows_by_specialty).
 SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
     "breast": re.compile(
-        r"\bbreast\b|\bnipple\b|mammogra|mastectom|lumpectom|oncoplas",
+        r"\bbreast\b|\bnipple\b|mammogra|mastectom|lumpectom|oncoplas"
+        r"|\bDCIS\b|\bLCIS\b|invasive\s+(?:ductal|lobular)"
+        r"|\bHER2\b|oestrogen\s+receptor|\bER\s*[+\-/]\s*ve\b"
+        r"|\bPR\s*[+\-/]\s*ve\b|Ca\s+breast",
         re.I,
     ),
     "lung": re.compile(
@@ -70,7 +73,8 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
     "head_and_neck": re.compile(
         r"head\s+and\s+neck|head.?and.?neck|\bENT\b|ear.?nose.?throat"
         r"|laryng|pharyng|oropharyn|hypopharyn|nasopharyn|tonsil|salivary"
-        r"|parotid|hoarse|tongue|oral\s+cavity|thyroid",
+        r"|parotid|hoarse|tongue|oral\s+cavity|thyroid"
+        r"|neck\s+(?:lump|swelling|mass|node)",
         re.I,
     ),
     "thyroid": re.compile(
@@ -118,7 +122,9 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
         re.I,
     ),
     "leukaemia": re.compile(
-        r"leuka?emi|\bAML\b|\bALL\b|\bCML\b|\bCLL\b|blast",
+        r"leuka?emi|\bAML\b|\bCML\b|\bCLL\b"
+        r"|\bALL\s+(?:leukaemia|leukemia)\b"
+        r"|lymphoblast|myeloblast|\bblasts?\s+(?:in|seen|present)\b",
         re.I,
     ),
     "myeloma": re.compile(
@@ -134,7 +140,8 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
         re.I,
     ),
     "stomach": re.compile(
-        r"\bgastric\b|\bstomach\b",
+        r"\bgastric\b|\bstomach\b|Ca\s+(?:of\s+)?stomach|gastroscop"
+        r"|\bOGD\b",
         re.I,
     ),
     "liver": re.compile(
@@ -164,7 +171,8 @@ SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
     ),
     "non_site_specific": re.compile(
         r"non.?site.?specific|\bNSS\b|unexplained\s+weight|vague\s+symptom"
-        r"|fast\s+track",
+        r"|fast\s+track|\b2WW\b|two.?week.?wait|suspected\s+cancer"
+        r"|non.?specific\s+(?:signs|symptoms)",
         re.I,
     ),
     "childrens_tumour": re.compile(

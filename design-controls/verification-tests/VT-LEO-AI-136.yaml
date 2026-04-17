@@ -1,0 +1,107 @@
+- id: "VT-LEO-AI-136"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-140"]
+    risks: []
+
+  metadata:
+    title: "Phase 6 cleanup verification (flag, duplicates, fonts, lint)"
+    description: >
+      Pins the Phase 6 zero-tech-debt cleanup: the role-first rollout
+      flag is gone from code and config, the duplicate
+      ProgressiveReveal is deleted, globals.css no longer imports
+      Google Fonts, and eslint.config.mjs carries the sx
+      colour-literal rule.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "A"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/phase6-cleanup.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-136-TC-001"
+      case_name: "NEXT_PUBLIC_ROLE_FIRST flag removed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read next.config.mjs, RoleShellProvider.tsx, AppShell.tsx"
+          expected_result: >
+            None of the three files contain a NEXT_PUBLIC_ROLE_FIRST
+            process.env read or assignment; the role-first shell is
+            unconditional.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "phase6-cleanup.test.ts TC-001 passes"
+
+    - case_id: "VT-136-TC-002"
+      case_name: "Duplicate ProgressiveReveal deleted"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Check filesystem"
+          expected_result: >
+            services/ui/src/components/ui/ProgressiveReveal.tsx does
+            NOT exist; the two callers import
+            `ProgressiveReveal` from @leo/design-system.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "phase6-cleanup.test.ts TC-002 passes"
+
+    - case_id: "VT-136-TC-003"
+      case_name: "Google Fonts @import removed"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/app/globals.css"
+          expected_result: >
+            The file contains no
+            `@import url('https://fonts.googleapis.com/...')` line.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "phase6-cleanup.test.ts TC-003 passes"
+
+    - case_id: "VT-136-TC-004"
+      case_name: "sx colour-literal ESLint rule in place"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/eslint.config.mjs"
+          expected_result: >
+            eslint.config.mjs defines a `no-restricted-syntax`
+            rule whose selector targets JSXAttribute[name.name='sx']
+            and whose message tells contributors to use the token
+            system. The rule fires on both hex and rgb/hsl
+            literals.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "phase6-cleanup.test.ts TC-004 passes"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-136/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-136-2026-04-17-001"
+      executed_at: "2026-04-17T00:00:00Z"
+      executor: "rob.smith@mizaic.ai"
+      environment: "local-dev"
+      result: "pass"
+      jest_summary: "pass -- phase6-cleanup.test.ts"
+      notes: "Source-level checks for TC-001..TC-004."

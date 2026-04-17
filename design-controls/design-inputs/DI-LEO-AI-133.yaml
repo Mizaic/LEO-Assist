@@ -1,0 +1,83 @@
+# -- DI-LEO-AI-133 -- RoleGate, RolePicker, RoleSwitcher primitives
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-133"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-069"]
+  requirement: >
+    The system SHALL provide three primitives in @leo/design-system:
+    (1) RoleGate context provider that exposes the current role,
+    allowed roles, and a switchRole() function; (2) RolePicker modal
+    shown on first load when selected_role is null; (3) RoleSwitcher
+    control that appears in the app shell for multi-role users. The
+    app shell SHALL filter left-nav items based on the active role's
+    primary set, with demoted items placed inside a single "Advanced"
+    tray. A feature flag SHALL allow the role-first shell to be
+    rolled out independently.
+
+  rationale: >
+    These three primitives make the role-first model visible to users.
+    Keeping them in the design-system package means any surface
+    (UI service today, other services tomorrow) can opt in. The
+    feature flag avoids a breaking shell change during rollout.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "RoleGate reads { selected_role, allowed_roles } from /auth/session and exposes them via useRole()"
+      - type: "functional"
+        spec: "RolePicker renders if selected_role is null and the user is authenticated"
+      - type: "functional"
+        spec: "RolePicker calls PATCH /auth/session/role with the chosen role; on success the modal closes"
+      - type: "functional"
+        spec: "RoleSwitcher renders only when allowed_roles.length > 1"
+      - type: "functional"
+        spec: "RoleSwitcher's onChange calls switchRole(nextRole) which PATCHes and refetches the session"
+      - type: "functional"
+        spec: "AppShell nav filters visibleNavItems by the active role's primary set; remaining items are collected into an Advanced tray"
+      - type: "functional"
+        spec: "Feature flag NEXT_PUBLIC_ROLE_FIRST (default 'off') gates the role-first shell behaviour"
+      - type: "safety"
+        spec: "If /auth/session fails, RoleGate falls back to the legacy shell and logs a warning (never renders an empty app)"
+    constraints:
+      - type: "safety"
+        spec: "RolePicker has role='dialog', aria-modal='true', and traps focus on the first interactive element"
+      - type: "safety"
+        spec: "RoleSwitcher is keyboard reachable and exposes aria-label='Switch role'"
+    dependencies:
+      - "DI-LEO-AI-129"
+      - "DI-LEO-AI-130"
+    downstream_impacts:
+      - "AppShell behaviour"
+      - "Landing redirect logic"
+      - "Later phases' knowledge pages (they consume useRole())"
+    technical_details:
+      language: "TypeScript"
+      framework: "React 19 + MUI"
+      file_structure:
+        - "services/design-system/src/roles/RoleContext.tsx"
+        - "services/design-system/src/roles/RoleGate.tsx"
+        - "services/design-system/src/roles/RolePicker.tsx"
+        - "services/design-system/src/roles/RoleSwitcher.tsx"
+        - "services/design-system/src/roles/navMap.ts"
+        - "services/ui/src/components/AppShell.tsx"
+      estimated_loc: 450
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      Jest: RoleGate fetches session and exposes role via useRole();
+      RolePicker renders when selected_role is null; RolePicker calls
+      PATCH on confirm; RoleSwitcher only renders for multi-role users;
+      AppShell renders role-scoped nav; feature flag toggles the shell.
+    test_protocol: "VT-LEO-AI-129"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-089"
+    - "R-LEO-AI-091"
+  tags:
+    - "role-first"
+    - "accessibility"
+    - "app-shell"

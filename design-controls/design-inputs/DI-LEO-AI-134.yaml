@@ -1,0 +1,119 @@
+# -- DI-LEO-AI-134 -- Canonical NCDA 'Confirmed Cancer' cohort across analytics
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-134"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-019"]
+  requirement: >
+    Every NCDA analytics endpoint (summary, cancer-type, cancer-stage,
+    demographics, place-of-presentation, consultations, investigations,
+    referrals, intervals, safety-netting, avoidable-delays,
+    comorbidities, and the overview / mission-control dashboards) SHALL
+    count and filter 'confirmed cancer episodes' using a SINGLE
+    canonical cohort definition sourced from libs.analytics.cohorts.
+    The canonical definition is:
+
+      ep.status = 'completed'
+      AND coalesce(ep.letter_inferred_benign, false) = false
+      AND EXISTS a linked Encounter with [:IS_PART_OF {milestone_type:
+          IN ['diagnosis','diagnosis_confirmed']}]
+
+    No endpoint SHALL inline its own status / benign / milestone filter
+    set. A second, distinct helper suspected_cancer_referral_where()
+    SHALL expose the narrower '2WW-route diagnoses' cohort (canonical
+    cohort AND has a referral milestone encounter) for the small number
+    of metrics that specifically measure primary-care referral
+    completeness; this helper SHALL be clearly labelled wherever
+    surfaced on the UI.
+  rationale: >
+    Live investigation on 2026-04-17 found six different definitions of
+    'confirmed cancer' across the analytics layer. On the same
+    dashboard, the headline 'Confirmed Cancers' card returned 17 while
+    the Stage-at-Diagnosis chart returned 91 for an identical filter
+    window. Both numbers are internally correct Cypher against their
+    own criteria, but the inconsistency is a data-integrity defect for
+    a regulated cancer audit product: clinical users cannot trust any
+    single number if adjacent numbers disagree. Fixing this at one
+    canonical point (libs.analytics.cohorts) is the same pattern we
+    used for interval KPI math in DI-LEO-AI-125 and is the only way to
+    prevent drift as new endpoints are added.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs.analytics.cohorts exposes confirmed_cancer_where() and
+          suspected_cancer_referral_where() that each return a Cypher
+          WHERE / EXISTS snippet string (no side effects), plus
+          constants CONFIRMED_CANCER_CLAUSE and
+          SUSPECTED_CANCER_REFERRAL_CLAUSE.
+      - type: "functional"
+        spec: >
+          Every analytics router function that filters episodes by
+          'confirmed cancer' status imports and uses
+          confirmed_cancer_where(); no router file retains its own
+          ep.status = 'completed' AND letter_inferred_benign inline
+          filter.
+      - type: "functional"
+        spec: >
+          The /audit/summary endpoint's confirmed_cancers field equals
+          the record count used by /audit/cancer-stage,
+          /audit/cancer-type (after exclusions), and the overview
+          dashboard's confirmed_cancer tile for the same org_id /
+          date_from / date_to parameters.
+      - type: "safety"
+        spec: >
+          The headline metric card that previously showed the '17'
+          pathway-only cohort SHALL either use the canonical
+          confirmed_cancer cohort (displaying 91 in the 2025 baseline
+          dataset) or be relabelled '2WW-route diagnoses' with a
+          tooltip explaining the narrower definition.
+    constraints:
+      - type: "performance"
+        spec: >
+          The canonical cohort helper must not add more than a single
+          EXISTS subquery per episode row compared with the current
+          inline definition (no measurable query-plan regression).
+    dependencies: ["DI-LEO-AI-125"]
+    downstream_impacts:
+      - "services/analytics_api/app/routers/audit.py"
+      - "services/analytics_api/app/routers/_audit_sections.py"
+      - "services/analytics_api/app/routers/_audit_intervals.py"
+      - "services/analytics_api/app/routers/dashboards.py"
+      - "services/analytics_api/app/routers/mission_control.py"
+      - "services/analytics_api/app/routers/benchmarks.py"
+      - "services/ui (NCDA summary / overview cards)"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI + Neo4j"
+      file_structure:
+        - "libs/analytics/__init__.py"
+        - "libs/analytics/cohorts.py"
+        - "services/analytics_api/app/routers/audit.py"
+        - "services/analytics_api/app/routers/_audit_sections.py"
+        - "services/analytics_api/app/routers/_audit_intervals.py"
+        - "services/analytics_api/app/routers/dashboards.py"
+        - "services/analytics_api/app/routers/mission_control.py"
+        - "services/analytics_api/app/routers/benchmarks.py"
+      estimated_loc: 220
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-130 cases pass: cohort helper returns expected
+      Cypher fragments; a live parity test asserts that
+      /audit/summary.confirmed_cancers, /audit/cancer-stage total,
+      /audit/cancer-type total (pre-exclusion), and
+      /dashboards/overview.confirmed_cancer all agree within the same
+      filter window; a regression test pins the 2025 baseline count to
+      the diagnosis-milestone definition.
+    test_protocol: "VT-LEO-AI-130"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-092"]
+  tags:
+    - "ncda"
+    - "analytics"
+    - "cohort-definition"
+    - "headline-metric"

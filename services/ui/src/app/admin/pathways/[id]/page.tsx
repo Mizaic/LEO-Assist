@@ -4771,7 +4771,7 @@ export default function PathwayBuilderPage() {
     setSaveError(null);
     try {
       await api.delete(`/fhir/PlanDefinition/${planId}`);
-      router.push("/admin/clinical?tab=pathways");
+      router.push("/admin/knowledge?tab=pathways");
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to delete pathway");
     } finally {
@@ -4898,7 +4898,7 @@ export default function PathwayBuilderPage() {
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider", overflowX: "auto", flexShrink: 0 }}>
-        <IconButton size="small" onClick={() => router.push("/admin/clinical?tab=pathways")} sx={{ flexShrink: 0 }}><ArrowBackIcon /></IconButton>
+        <IconButton size="small" onClick={() => router.push("/admin/knowledge?tab=pathways")} sx={{ flexShrink: 0 }}><ArrowBackIcon /></IconButton>
         <TextField
           size="small" placeholder="Pathway name" value={planName}
           onChange={(e) => setPlanName(e.target.value)} sx={{ width: 200, flexShrink: 0 }}

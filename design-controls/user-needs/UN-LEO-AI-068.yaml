@@ -91,7 +91,7 @@
     created_date: "2026-04-16"
     status: "draft"
 
-  design_inputs: ["DI-LEO-AI-118", "DI-LEO-AI-119", "DI-LEO-AI-120", "DI-LEO-AI-122", "DI-LEO-AI-123", "DI-LEO-AI-128"]
+  design_inputs: ["DI-LEO-AI-118", "DI-LEO-AI-119", "DI-LEO-AI-120", "DI-LEO-AI-122", "DI-LEO-AI-123", "DI-LEO-AI-128", "DI-LEO-AI-130", "DI-LEO-AI-131", "DI-LEO-AI-132"]
   validation_tests: []
 
   tags: ["senior-clinician", "low-vision", "low-dexterity", "accessibility", "density", "ui-redesign"]

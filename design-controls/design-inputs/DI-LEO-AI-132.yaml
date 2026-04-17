@@ -1,0 +1,64 @@
+# -- DI-LEO-AI-132 -- next/font typography + monospace retirement
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-132"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-069", "UN-LEO-AI-067", "UN-LEO-AI-068"]
+  requirement: >
+    The system SHALL load DM Sans via `next/font/google` (preload,
+    subset, self-hosted) and use it for all body, heading, and
+    subtitle typography. Monospace (JetBrains Mono) SHALL be reserved
+    for `<code>`, `<kbd>`, and raw SNOMED identifiers; subtitle1 and
+    subtitle2 variants SHALL switch from mono to DM Sans 600.
+
+  rationale: >
+    Fonts are currently loaded via a render-blocking `@import` in
+    globals.css, which causes a FOUT and "ugly font" feedback. MUI's
+    subtitle1 / subtitle2 use JetBrains Mono, which is hostile to
+    clinical labels (reads as "code" to a clinician). Moving to
+    next/font removes the blocking import, stops font swapping, and
+    returns clinical copy to a humanist sans.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "@leo/design-system exports `dmSans` and `jetBrainsMono` loaders from next/font/google"
+      - type: "functional"
+        spec: "services/ui/src/app/layout.tsx applies dmSans.className to <body> or <html>"
+      - type: "functional"
+        spec: "Theme typography subtitle1 and subtitle2 use DM Sans 600 (not JetBrains Mono)"
+      - type: "functional"
+        spec: "Phase 6 removes the @import url() line from services/ui/src/app/globals.css"
+    constraints:
+      - type: "performance"
+        spec: "Fonts are self-hosted via next/font; no external runtime request to fonts.googleapis.com"
+    dependencies:
+      - "DI-LEO-AI-130"
+    downstream_impacts:
+      - "Every page's typography"
+      - "Existing MUI theme typography variants"
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js 15"
+      file_structure:
+        - "services/design-system/src/fonts/index.ts"
+        - "services/ui/src/app/layout.tsx"
+        - "services/ui/src/theme.ts"
+        - "services/ui/src/app/globals.css"
+      estimated_loc: 60
+
+  verification:
+    method: "Inspection"
+    phase: "OQ"
+    acceptance: >
+      Inspection: grep confirms dmSans is imported in layout.tsx; theme
+      subtitle1/subtitle2 no longer reference FONT_MONO. Phase 6: grep
+      confirms no `@import` remains in globals.css.
+    test_protocol: "VT-LEO-AI-128"
+
+  safety_class: "A"
+  risks: []
+  tags:
+    - "typography"
+    - "design-system"
+    - "performance"

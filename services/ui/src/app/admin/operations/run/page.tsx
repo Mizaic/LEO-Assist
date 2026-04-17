@@ -858,7 +858,7 @@ export default function RunAIPage() {
           <Alert severity="warning">
             No pipelines set up yet.{" "}
             <Box component="span" sx={{ textDecoration: "underline", cursor: "pointer" }}
-              onClick={() => router.push("/admin/clinical?tab=pathways")}>
+              onClick={() => router.push("/admin/knowledge?tab=pathways")}>
               Go to Pathways to create one.
             </Box>
           </Alert>

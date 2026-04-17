@@ -8,6 +8,8 @@ import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 
+import AreaIntro from "@/components/AreaIntro";
+
 const BillingPage = dynamic(() => import("@/app/admin/billing/page"), { ssr: false });
 const ModelsPage = dynamic(() => import("@/app/admin/models/page"), { ssr: false });
 const DataQualityPage = dynamic(() => import("@/app/admin/data-quality/page"), { ssr: false });
@@ -34,6 +36,7 @@ export default function PlatformPage() {
   return (
     <Box sx={{ minHeight: "100vh" }}>
       <Box sx={{ px: 3, pt: 3, pb: 0, borderBottom: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+        <AreaIntro area="platform" />
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1.5 }}>
           Platform
         </Typography>

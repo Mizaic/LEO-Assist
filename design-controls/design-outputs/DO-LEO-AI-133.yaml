@@ -1,0 +1,164 @@
+# -- DO-LEO-AI-133 -- Episode builder fallback-claim + evidence-wins merge
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-133"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-136", "DI-LEO-AI-137"]
+    user_needs: ["UN-LEO-AI-006", "UN-LEO-AI-019"]
+    risks_addressed: ["R-LEO-AI-094", "R-LEO-AI-095"]
+    verification_tests: ["VT-LEO-AI-132", "VT-LEO-AI-133"]
+
+  specification:
+    title: "Episode builder fallback referral-claim and evidence-wins merge"
+    description: |
+      Two correlated updates to the episode-builder package:
+
+      1. Two-pass referral matching: strict same-site Pass 1 followed
+         by site-agnostic Pass 2 for diagnoses that remain floating.
+         ep.referral_match_method tags every episode with
+         'strict_site' | 'fallback_any_site' | 'none'. When Pass 2
+         still leaves a diagnosis floating, ep.referral_date is
+         NULL (never back-filled from the diagnosis date) and
+         ep.referral_inferred is false.
+
+      2. Evidence-wins duplicate merging: per-patient referral-date
+         clustering (including NSS episodes), text corroboration of
+         cancer_type against the diagnosis_confirmed encounter text,
+         and a new MOVE_LINKS_Q Cypher query that migrates every
+         IS_PART_OF edge from duplicates to the primary, preserving
+         milestone_type.
+
+      Together these changes bring the canonical confirmed-cancer
+      count in line with the true patient cohort and raise the
+      2WW-route subset to reflect UK primary-care reality.
+    acceptance_criteria:
+      - criterion: "pass1_unchanged_behaviour"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Strict-match path remains byte-identical to current
+          behaviour; all existing tests in tests/test_episode_builder*
+          pass after the refactor.
+      - criterion: "pass2_fallback_claim"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Unit test: patient with a site-'unknown' referral on day 0
+          and a 'breast' diagnosis on day 30 produces ONE closed
+          episode with cancer_type='breast', referral_match_method=
+          'fallback_any_site', both milestones linked.
+      - criterion: "honest_referral_date"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Unit test: patient with a diagnosis-only group and no
+          referral produces an episode with referral_date=NULL,
+          referral_inferred=false, referral_match_method='none'.
+      - criterion: "evidence_wins_merge"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Unit test: synthetic patient with breast + bladder eps on
+          the same referral date; diagnosis text mentions 'right
+          breast carcinoma'; post-merge graph has breast episode
+          active with all IS_PART_OF edges from both sources,
+          bladder episode status='merged' merged_into=breast.
+      - criterion: "ambiguous_cluster_preserved"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Unit test: cluster whose diagnosis text mentions neither
+          candidate cancer_type is left untouched; no write to
+          graph; logger.warning emitted.
+      - criterion: "edge_migration_complete"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Cypher-level test: after MOVE_LINKS_Q, zero IS_PART_OF
+          edges remain on the duplicate; all milestone_types present
+          on the primary.
+      - criterion: "idempotency"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Rebuild-twice parity: same input corpus produces identical
+          EpisodeOfCare node count on a second run (no fixed-point
+          bug).
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_grouping.py"
+        description: >
+          Renames _find_best_referral to
+          _find_best_site_matched_referral; adds
+          _find_any_referral_in_window (Pass 2) and a two-pass loop
+          in _build_diagnosis_led_groups that tags every
+          _EpisodeSpec with referral_match_method.
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_types.py"
+        description: >
+          _EpisodeSpec gains a referral_match_method: str field
+          ('strict_site' | 'fallback_any_site' | 'none').
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+        description: >
+          _build_closed_episode stops synthesising ep.referral_date
+          from the diagnosis date when ref_anchors is empty.
+          Honest-NULL semantics.
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_persistence.py"
+        description: >
+          Plumbs referral_match_method and referral_inferred through
+          the persistence boundary.
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+        description: >
+          MERGE_EPISODE writes referral_match_method +
+          referral_inferred; new MOVE_LINKS_Q moves IS_PART_OF
+          edges from duplicate to primary.
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_auto_close.py"
+        description: >
+          Renames _merge_same_site_duplicates to
+          _merge_same_day_clusters; clusters include NSS; consults
+          libs/episodes/duplicate_resolver for text evidence; moves
+          edges via MOVE_LINKS_Q before MARK_MERGED_Q.
+      - artifact_type: "source_code"
+        location: "libs/episodes/duplicate_resolver.py"
+        description: >
+          New module: load_diagnosis_text_for_episode,
+          pick_evidence_winner, module-level tests.
+      - artifact_type: "source_code"
+        location: "libs/episodes/__init__.py"
+        description: "Package init."
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 340
+      key_functions:
+        - "_find_best_site_matched_referral"
+        - "_find_any_referral_in_window"
+        - "_build_diagnosis_led_groups"
+        - "_merge_same_day_clusters"
+        - "pick_evidence_winner"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Referral-milestone completeness for NCDA 2WW reporting"
+      - "Episode count denominator for clinical audit"
+      - "Reversibility of automatic merges"
+    risk_control_measures:
+      - "Ambiguous clusters are skipped, never merged destructively"
+      - "Edge migration preserves milestone_type; nothing lost"
+      - "MARK_MERGED_Q audit fields (merged_into, merge_reasoning) enable reversal"
+      - "ep.referral_match_method distinguishes strict vs fallback for audit"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

@@ -1,0 +1,665 @@
+{
+  "UN-0374FE26": {
+    "title": "Clinical coders need free-text encounter narratives automatically coded to SNOMED CT",
+    "di_count": 10,
+    "dis": [
+      "DI-80DD8A47",
+      "DI-F0B8A7B0",
+      "DI-12015DBC",
+      "DI-88C8BBCD",
+      "DI-9D967259",
+      "DI-1795254D",
+      "DI-4247C7E5",
+      "DI-375C7EB1",
+      "DI-7A7BFA0C",
+      "DI-31126C6C"
+    ]
+  },
+  "UN-06388412": {
+    "title": "Clinical content managers need to maintain the ConText assertion rules that determine whether extracted entities are present, absent, or uncertain",
+    "di_count": 4,
+    "dis": [
+      "DI-DFAF200B",
+      "DI-F298AE65",
+      "DI-48C13EB6",
+      "DI-48AD06E5"
+    ]
+  },
+  "UN-06FD3F7D": {
+    "title": "Clinician reviewing investigation results needs guideline escalation thresholds and comparable result trajectories to avoid missing actionable findings",
+    "di_count": 3,
+    "dis": [
+      "DI-E609C4E5",
+      "DI-79509E39",
+      "DI-49A8F570"
+    ]
+  },
+  "UN-06FDC315": {
+    "title": "Knowledge Base Author managing ICD-10 and OPCS alignment needs structured release diffing with separate mandatory sign-off for secondary uses data mappings",
+    "di_count": 1,
+    "dis": [
+      "DI-337D44DE"
+    ]
+  },
+  "UN-07AB5B97": {
+    "title": "Developer building a regulated product on LEO Core AI needs audit documentation and API-level traceability to satisfy their own IEC 62304 and DCB0129 obligations",
+    "di_count": 3,
+    "dis": [
+      "DI-7D9096CA",
+      "DI-0D26BE1B",
+      "DI-5E721A71"
+    ]
+  },
+  "UN-12EEF12D": {
+    "title": "Clinical content managers need NICE publications automatically ingested and catalogued with coverage status against active pathway rules",
+    "di_count": 2,
+    "dis": [
+      "DI-9843D732",
+      "DI-E19F72DB"
+    ]
+  },
+  "UN-14FA847A": {
+    "title": "NLP engineers need the NER model to classify the same text span under multiple SNOMED semantic types simultaneously",
+    "di_count": 6,
+    "dis": [
+      "DI-C899D282",
+      "DI-EE80C271",
+      "DI-DC61F5B6",
+      "DI-6EFD68D0",
+      "DI-378F987A",
+      "DI-6E6C9336"
+    ]
+  },
+  "UN-16116C5F": {
+    "title": "Platform administrators need a structured guided onboarding workflow to provision new healthcare organisations safely",
+    "di_count": 2,
+    "dis": [
+      "DI-C58E5515",
+      "DI-1987BCF5"
+    ]
+  },
+  "UN-16E151CB": {
+    "title": "Mizaic clinical reviewer assessing a guideline update needs to verify source accuracy and implementation safety as independently evidenced decisions",
+    "di_count": 2,
+    "dis": [
+      "DI-1E8D8678",
+      "DI-F3EFEA88"
+    ]
+  },
+  "UN-17724530": {
+    "title": "Mizaic clinical reviewer approval process must enforce credential scoping and conflict of interest controls to constitute genuine clinical governance",
+    "di_count": 2,
+    "dis": [
+      "DI-DB62EF12",
+      "DI-5EECDA58"
+    ]
+  },
+  "UN-1A6F1E0E": {
+    "title": "Clinician discussing treatment options needs guideline recommendations and real-world outcome context to support informed shared decision-making",
+    "di_count": 2,
+    "dis": [
+      "DI-76C86329",
+      "DI-82D5359B"
+    ]
+  },
+  "UN-1AC15812": {
+    "title": "NLP engineers need automated AI-assisted auditing of training labels with safe auto-fix and human review routing",
+    "di_count": 3,
+    "dis": [
+      "DI-54D00E21",
+      "DI-922114AE",
+      "DI-CFA65509"
+    ]
+  },
+  "UN-21D88B69": {
+    "title": "Developer maintaining a product built on LEO Core AI needs a predictable versioning and deprecation policy to plan upgrade work",
+    "di_count": 2,
+    "dis": [
+      "DI-B0832A64",
+      "DI-DC8465F1"
+    ]
+  },
+  "UN-2266BDAE": {
+    "title": "Clinician reviewing a patient after treatment needs expected recovery markers and comparable recovery trajectories to identify early signals of non-response or recurrence",
+    "di_count": 2,
+    "dis": [
+      "DI-BD826FA6",
+      "DI-49403C92"
+    ]
+  },
+  "UN-299200A0": {
+    "title": "Audit teams need interpretable benchmark comparison charts in audit report outputs",
+    "di_count": 2,
+    "dis": [
+      "DI-916BD8C8",
+      "DI-7C53CC70"
+    ]
+  },
+  "UN-2C01CF40": {
+    "title": "Audit team leads need completed episodes automatically validated for quality issues before reporting",
+    "di_count": 4,
+    "dis": [
+      "DI-C7A810AA",
+      "DI-A0579B64",
+      "DI-620FE631",
+      "DI-1206D9E8"
+    ]
+  },
+  "UN-2C6E6933": {
+    "title": "Engineering leads need the platform to follow Mizaic standard architecture and engineering design principles consistently across all services",
+    "di_count": 6,
+    "dis": [
+      "DI-A90B19EB",
+      "DI-2C56591B",
+      "DI-6EBF12F1",
+      "DI-932C270C",
+      "DI-3FDBB57B",
+      "DI-693FFEEA"
+    ]
+  },
+  "UN-319F33F0": {
+    "title": "Knowledge Base Author needs a consolidated currency dashboard showing verified status and next review date for every active content component as exportable post-market surveillance evidence",
+    "di_count": 2,
+    "dis": [
+      "DI-E5609239",
+      "DI-2F157317"
+    ]
+  },
+  "UN-3376B57D": {
+    "title": "Technical administrators need a unified Intelligence Console showing the AI learning loop status and next best action",
+    "di_count": 2,
+    "dis": [
+      "DI-5E7E8CEF",
+      "DI-BE09736F"
+    ]
+  },
+  "UN-395B630E": {
+    "title": "Developer integrating long-running operations needs a consistent async job pattern with predictable status lifecycle and notification options",
+    "di_count": 3,
+    "dis": [
+      "DI-A2EF241F",
+      "DI-AAF6635D",
+      "DI-CB07829F"
+    ]
+  },
+  "UN-407F090F": {
+    "title": "Knowledge Base Author needs a structured authoring environment with mandatory source traceability and staged release control for every guideline entry",
+    "di_count": 2,
+    "dis": [
+      "DI-48ACD153",
+      "DI-80579DCC"
+    ]
+  },
+  "UN-412D1ECD": {
+    "title": "Platform must enforce physical database-level separation of patient data between tenants with automated provisioning and deprovision",
+    "di_count": 2,
+    "dis": [
+      "DI-87CCCB18",
+      "DI-AF5A1668"
+    ]
+  },
+  "UN-459367FA": {
+    "title": "Clinicians need abnormal investigation results and clinical red flags automatically surfaced with a tracked follow-up worklist",
+    "di_count": 5,
+    "dis": [
+      "DI-0E215ADE",
+      "DI-520A8674",
+      "DI-4C73DC01",
+      "DI-21E93377",
+      "DI-B46AD5CE"
+    ]
+  },
+  "UN-47B82B96": {
+    "title": "Clinical informaticians need a guided research workspace to investigate populations and analyse pathway bottlenecks without data science skills",
+    "di_count": 4,
+    "dis": [
+      "DI-93162C3C",
+      "DI-58988BF2",
+      "DI-DD67ACFF",
+      "DI-9DCBC4BA"
+    ]
+  },
+  "UN-4AEB2F29": {
+    "title": "Knowledge Base Author managing SNOMED CT alignment needs automated release diffing and a mandatory resolution gate before each new release is activated",
+    "di_count": 2,
+    "dis": [
+      "DI-553F50A2",
+      "DI-B193C816"
+    ]
+  },
+  "UN-4BD56518": {
+    "title": "Knowledge Base Author withdrawing a superseded guideline needs full dependency enumeration and mandatory resolution before deprecation can proceed",
+    "di_count": 2,
+    "dis": [
+      "DI-F1A768AE",
+      "DI-FC4CA3C1"
+    ]
+  },
+  "UN-4DCD5891": {
+    "title": "Platform administrators need configuration validation and test mode before activating pipeline changes",
+    "di_count": 2,
+    "dis": [
+      "DI-F2C18D2E",
+      "DI-ACB587DD"
+    ]
+  },
+  "UN-5236129E": {
+    "title": "NLP engineers need active learning prioritisation, per-entity F1 metrics, golden evaluation set, and warm-start training",
+    "di_count": 3,
+    "dis": [
+      "DI-37B3DC71",
+      "DI-E7AFFDA5",
+      "DI-CE0A08E5"
+    ]
+  },
+  "UN-55011459": {
+    "title": "Clinical reviewers need a structured queue where every AI proposal must be validated before becoming final audit data",
+    "di_count": 2,
+    "dis": [
+      "DI-E83828A9",
+      "DI-890BE989"
+    ]
+  },
+  "UN-575E8DCB": {
+    "title": "Clinical reviewers need plain-language AI interpretation of coded audit findings",
+    "di_count": 5,
+    "dis": [
+      "DI-69C29EEF",
+      "DI-A3107424",
+      "DI-DA7584D8",
+      "DI-604767B1",
+      "DI-66F1B177"
+    ]
+  },
+  "UN-5C67AAD9": {
+    "title": "Pathway coordinators need pathway intervals automatically calculated against programme waiting time targets",
+    "di_count": 4,
+    "dis": [
+      "DI-B9109EF5",
+      "DI-EE4E6477",
+      "DI-620FE631",
+      "DI-F3FD2B63"
+    ]
+  },
+  "UN-66396DEA": {
+    "title": "Clinical teams need to define and manage patient cohorts by clinical and demographic criteria for audit, research, and benchmarking",
+    "di_count": 2,
+    "dis": [
+      "DI-FE3FFE50",
+      "DI-14AE0A4C"
+    ]
+  },
+  "UN-67663AAF": {
+    "title": "Clinician preparing a clinic list needs pathway stage context and comparable patient profiles to prioritise preparation time",
+    "di_count": 2,
+    "dis": [
+      "DI-6D2B03E0",
+      "DI-CF03E4EA"
+    ]
+  },
+  "UN-6C8AEB83": {
+    "title": "AI engineering teams need every coding override categorised by error type for model improvement",
+    "di_count": 3,
+    "dis": [
+      "DI-FFCD4F96",
+      "DI-770FD74A",
+      "DI-425CA252"
+    ]
+  },
+  "UN-6D46C832": {
+    "title": "Clinical content managers need AI-assisted extraction of structured pathway decision rules from guideline text with mandatory clinical reviewer approval",
+    "di_count": 2,
+    "dis": [
+      "DI-147C8EF0",
+      "DI-F94EB13F"
+    ]
+  },
+  "UN-70A35225": {
+    "title": "NLP engineers need a de-identified labelled training corpus with a protected holdout evaluation set",
+    "di_count": 3,
+    "dis": [
+      "DI-BB64E479",
+      "DI-452D4303",
+      "DI-AE477327"
+    ]
+  },
+  "UN-718B7AF3": {
+    "title": "Developer beginning integration needs a complete, versioned API specification available before writing any code",
+    "di_count": 2,
+    "dis": [
+      "DI-DD2307E8",
+      "DI-D31B359D"
+    ]
+  },
+  "UN-7294050B": {
+    "title": "Platform administrators need a data quality engine with configurable rules, per-episode results, and an exportable governance sitrep",
+    "di_count": 2,
+    "dis": [
+      "DI-FC80B65A",
+      "DI-E6A32FF5"
+    ]
+  },
+  "UN-785DFCDE": {
+    "title": "Mizaic clinical reviewer needs a structured change queue with risk-prioritised triage so nothing unapproved reaches a live patient pipeline",
+    "di_count": 2,
+    "dis": [
+      "DI-7C5EC850",
+      "DI-636D331A"
+    ]
+  },
+  "UN-7D740697": {
+    "title": "Mizaic clinical reviewer assessing a coding correction needs full dependency mapping and terminology validation before approving a code change",
+    "di_count": 6,
+    "dis": [
+      "DI-1B8AC856",
+      "DI-13F340B9",
+      "DI-22F4E3CE",
+      "DI-04105500",
+      "DI-4221A226",
+      "DI-26CBDB16"
+    ]
+  },
+  "UN-83D9A46D": {
+    "title": "NLP engineers need ontology-grounded relation linking to connect extracted findings to body sites, disorders, and procedures",
+    "di_count": 6,
+    "dis": [
+      "DI-3EA60D5A",
+      "DI-3035F221",
+      "DI-2D9F5064",
+      "DI-08DE2CF3",
+      "DI-80BD2F86",
+      "DI-318B864C"
+    ]
+  },
+  "UN-8659DD53": {
+    "title": "Clinical safety officers need the review interface to require active evidence engagement to prevent automation bias",
+    "di_count": 4,
+    "dis": [
+      "DI-E83828A9",
+      "DI-22D862B0",
+      "DI-A23D11FA",
+      "DI-5ADEC3D1"
+    ]
+  },
+  "UN-8663A98C": {
+    "title": "NLP engineers need encounter classification rules and model to be manageable and testable via the platform without code changes",
+    "di_count": 2,
+    "dis": [
+      "DI-8CE01B3E",
+      "DI-0ADE6A8E"
+    ]
+  },
+  "UN-87632C9E": {
+    "title": "Operations teams need continuous coding quality monitoring with automated regression alerts",
+    "di_count": 5,
+    "dis": [
+      "DI-D6A7A44F",
+      "DI-5A802C83",
+      "DI-5E1BA369",
+      "DI-1126FFD1",
+      "DI-3613871E"
+    ]
+  },
+  "UN-87CB1498": {
+    "title": "Knowledge Base Author needs automated alerting when authoritative guideline sources publish updates relevant to LEO-managed pathways",
+    "di_count": 2,
+    "dis": [
+      "DI-ED3A89F5",
+      "DI-EF37BDF9"
+    ]
+  },
+  "UN-9206EFF0": {
+    "title": "Clinician reviewing a referral needs pathway criteria and comparable referral outcomes to support consistent triage decisions",
+    "di_count": 2,
+    "dis": [
+      "DI-6C5D77CA",
+      "DI-37B52693"
+    ]
+  },
+  "UN-9396A2FA": {
+    "title": "Clinician preparing a case for MDT needs a structured summary aligned to pathway requirements and comparable MDT decisions",
+    "di_count": 2,
+    "dis": [
+      "DI-DBC2399F",
+      "DI-45F83183"
+    ]
+  },
+  "UN-94833CA3": {
+    "title": "Downstream products need LEO Core AI clinical outputs exposed as standard FHIR R4 resources conformant to UK Core profiles",
+    "di_count": 2,
+    "dis": [
+      "DI-710D5213",
+      "DI-BDFF6DA7"
+    ]
+  },
+  "UN-9A7C2AA3": {
+    "title": "Developer validating an integration needs a sandbox environment with synthetic clinical data, fault injection, and full production parity",
+    "di_count": 2,
+    "dis": [
+      "DI-99A33896",
+      "DI-B8674FBF"
+    ]
+  },
+  "UN-9E66C163": {
+    "title": "Platform administrators need to configure new audit programmes without code changes",
+    "di_count": 2,
+    "dis": [
+      "DI-CD931485",
+      "DI-702F4583"
+    ]
+  },
+  "UN-A031A603": {
+    "title": "Developer implementing authentication needs a standards-compliant auth model with documented token lifecycle and scope definitions",
+    "di_count": 2,
+    "dis": [
+      "DI-2E40F292",
+      "DI-4DBE1A18"
+    ]
+  },
+  "UN-A412610D": {
+    "title": "Knowledge Base Author tracking NICE output needs structured assessment of Technology Appraisals and Quality Standards with time-bound change requests for mandatory implementation obligations",
+    "di_count": 3,
+    "dis": [
+      "DI-ED0D477A",
+      "DI-6B085C04",
+      "DI-44802DF3"
+    ]
+  },
+  "UN-A949A642": {
+    "title": "Any clinician-facing output must surface the completeness and reliability of the underlying data before a decision is made",
+    "di_count": 7,
+    "dis": [
+      "DI-CB3DF3E1",
+      "DI-0D7DCC52",
+      "DI-900CB621",
+      "DI-098D2C0D",
+      "DI-88F20177",
+      "DI-B95A73E9",
+      "DI-00E16F9E"
+    ]
+  },
+  "UN-AE5B5691": {
+    "title": "NLP engineers need a canary rollout mechanism for new NER model versions with automatic halt on regression",
+    "di_count": 2,
+    "dis": [
+      "DI-7D710C52",
+      "DI-A557AE91"
+    ]
+  },
+  "UN-AE5D7812": {
+    "title": "Operations teams need automated detection of longitudinal drift in coding patterns with root cause labelling and escalating alerts",
+    "di_count": 2,
+    "dis": [
+      "DI-B1E0EE52",
+      "DI-37315D03"
+    ]
+  },
+  "UN-AFFA1FB3": {
+    "title": "Clinicians need an AI-generated SBAR clinical summary from the coded record for handover and MDT use",
+    "di_count": 3,
+    "dis": [
+      "DI-8804DA01",
+      "DI-30D9CC61",
+      "DI-740BE510"
+    ]
+  },
+  "UN-B2C85448": {
+    "title": "Clinical reviewers and auditors need every AI-extracted entity linked to its source text phrase with immutable provenance",
+    "di_count": 8,
+    "dis": [
+      "DI-23822663",
+      "DI-6A0B55A4",
+      "DI-4F67189B",
+      "DI-080A2454",
+      "DI-B2512CB3",
+      "DI-E81545BE",
+      "DI-09E26C1D",
+      "DI-A0C90595"
+    ]
+  },
+  "UN-B70ACD96": {
+    "title": "Clinical audit teams need patient records automatically shortlisted for programme relevance",
+    "di_count": 6,
+    "dis": [
+      "DI-10BB41E9",
+      "DI-620FE631",
+      "DI-1795254D",
+      "DI-1501326A",
+      "DI-143F69EB",
+      "DI-4746A178"
+    ]
+  },
+  "UN-B9FDC3CA": {
+    "title": "Clinical content managers need to maintain the surface form dictionary mapping free-text expressions to SNOMED concepts",
+    "di_count": 2,
+    "dis": [
+      "DI-9FD54AD6",
+      "DI-30D95132"
+    ]
+  },
+  "UN-BB817C74": {
+    "title": "Operations teams need a real-time dashboard showing pipeline throughput, queue status, and data quality indicators across all active programmes",
+    "di_count": 2,
+    "dis": [
+      "DI-067E471A",
+      "DI-69CE20C1"
+    ]
+  },
+  "UN-C2F187E9": {
+    "title": "Data protection leads need patient identifiers automatically removed from clinical text before transmission to external AI services",
+    "di_count": 4,
+    "dis": [
+      "DI-F66A7239",
+      "DI-155BB31E",
+      "DI-84F44836",
+      "DI-250F32EC"
+    ]
+  },
+  "UN-D92EB141": {
+    "title": "Clinical leads need population-level pathway performance dashboards with national benchmark comparison",
+    "di_count": 3,
+    "dis": [
+      "DI-35494904",
+      "DI-94359E76",
+      "DI-BA2C8F3E"
+    ]
+  },
+  "UN-E6195868": {
+    "title": "Knowledge Base Author managing ODS reference data needs automated weekly synchronisation with mandatory resolution of retired codes before they affect routing or pathway attribution",
+    "di_count": 3,
+    "dis": [
+      "DI-D56020B0",
+      "DI-DA811F61",
+      "DI-634258FE"
+    ]
+  },
+  "UN-E8A5B04A": {
+    "title": "Clinical content managers need a maintainable reference range library covering normal, borderline, and critical thresholds per investigation type",
+    "di_count": 3,
+    "dis": [
+      "DI-E7609DD8",
+      "DI-C5A523A7",
+      "DI-340279C1"
+    ]
+  },
+  "UN-EA93F7B7": {
+    "title": "Mizaic clinical reviewer needs assurance that approved changes are deployed without post-approval modification through an integrity-checked deployment gate",
+    "di_count": 2,
+    "dis": [
+      "DI-6EA84931",
+      "DI-EC27E4E7"
+    ]
+  },
+  "UN-ED00ED74": {
+    "title": "Mizaic clinical reviewer recording a decision needs a structured approval workflow with mandatory rationale, immutable audit record, and hard deployment gate",
+    "di_count": 3,
+    "dis": [
+      "DI-C2F1FF32",
+      "DI-8FDE6740",
+      "DI-D49BCE55"
+    ]
+  },
+  "UN-F2372DE0": {
+    "title": "Developer handling integration failures needs a structured, consistent error response schema with sufficient diagnostic information",
+    "di_count": 2,
+    "dis": [
+      "DI-6654FB0E",
+      "DI-990C0AFA"
+    ]
+  },
+  "UN-F3300833": {
+    "title": "Clinician ordering investigations needs guideline recommendations and comparable ordering patterns to reduce unwarranted variation",
+    "di_count": 2,
+    "dis": [
+      "DI-6079EC71",
+      "DI-F235845B"
+    ]
+  },
+  "UN-F6A0C5BA": {
+    "title": "Mizaic clinical reviewer assessing a proposed change needs a systematic clinical impact assessment to make a defensible approval decision",
+    "di_count": 3,
+    "dis": [
+      "DI-59F2B21E",
+      "DI-0C8FBAF7",
+      "DI-BC39B803"
+    ]
+  },
+  "UN-F8E1F0D0": {
+    "title": "Mizaic clinical reviewer needs a complete tamper-evident audit trail of all review decisions exportable for regulatory inspection and post-market surveillance",
+    "di_count": 2,
+    "dis": [
+      "DI-0A5CC384",
+      "DI-B88F2A76"
+    ]
+  },
+  "UN-FB2DA651": {
+    "title": "Platform administrators need AI spend tracking and configurable pricing per tenant",
+    "di_count": 2,
+    "dis": [
+      "DI-F407CC45",
+      "DI-19B08FFC"
+    ]
+  },
+  "UN-FBBFD5CB": {
+    "title": "Clinical quality reviewers need coded encounters automatically checked against programme guidelines",
+    "di_count": 4,
+    "dis": [
+      "DI-7913344A",
+      "DI-AA8014F9",
+      "DI-5E25E872",
+      "DI-2AFF691F"
+    ]
+  },
+  "UN-FC99D533": {
+    "title": "Clinical auditors need related encounters automatically grouped into structured clinical episodes",
+    "di_count": 6,
+    "dis": [
+      "DI-37DDAADE",
+      "DI-736B698B",
+      "DI-4885D9FF",
+      "DI-8C236A1A",
+      "DI-FF9C74E2",
+      "DI-BD696225"
+    ]
+  }
+}

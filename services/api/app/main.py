@@ -55,6 +55,7 @@ from app.routers.patients import router as patients_router
 from app.routers.pipeline import router as pipeline_router
 from app.routers.proxy import router as proxy_router
 from app.routers.review import router as review_router
+from app.routers.work import router as work_router
 from app.routers.terminology import router as terminology_router
 from app.routers.terminology_admin import router as terminology_admin_router
 from app.routers.events import router as events_router
@@ -300,6 +301,7 @@ app.include_router(proxy_router)
 app.include_router(patients_router)
 app.include_router(pipeline_router)
 app.include_router(review_router)
+app.include_router(work_router)
 app.include_router(audit_router)
 app.include_router(exports_router)
 app.include_router(terminology_router)

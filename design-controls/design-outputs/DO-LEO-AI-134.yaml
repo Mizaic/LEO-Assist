@@ -1,0 +1,76 @@
+# -- DO-LEO-AI-134 -- Broadened breast specialty marker regex
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-134"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-138"]
+    user_needs: ["UN-LEO-AI-019"]
+    risks_addressed: ["R-LEO-AI-094"]
+    verification_tests: ["VT-LEO-AI-134"]
+
+  specification:
+    title: "Broadened breast specialty marker"
+    description: |
+      Extend SPECIALTY_MARKERS['breast'] in
+      libs/clinical_scoping/specialty_markers.py to cover common UK
+      primary-care surface forms missed by the current regex. The
+      extension focuses on routine clinic referral language that
+      dominates 2WW breast letters and on pathology-confirmation
+      phrasing that appears in diagnosis notes.
+    acceptance_criteria:
+      - criterion: "legacy_coverage_preserved"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          All 12 legacy anchors (breast, nipple, mammogra,
+          mastectom, lumpectom, oncoplas, DCIS, LCIS, invasive
+          ductal/lobular, HER2, ER/PR status, Ca breast) still
+          match.
+      - criterion: "new_coverage"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          The updated regex matches: 'triple assessment', 'breast
+          clinic', 'nipple discharge', 'family history of breast
+          cancer', 'fibroadenoma', 'ductal carcinoma', 'lobular
+          carcinoma', 'areola', 'sentinel lymph node biopsy'.
+      - criterion: "no_false_positives"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Curated negative corpus (chest pain, thoracic cage,
+          breastfeeding only, pectoral wall, sternum) does NOT match.
+      - criterion: "real_text_recall"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          >= 18 of 20 curated positive samples drawn from 2025
+          dev-graph breast encounter text match.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/clinical_scoping/specialty_markers.py"
+        description: "Updated compile-time regex for 'breast'."
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 30
+      key_functions:
+        - "SPECIALTY_MARKERS (breast entry)"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Breast-pathway 2WW detection for NCDA reporting"
+    risk_control_measures:
+      - "Negative corpus guards against false-positive body-site matches"
+      - "Legacy anchor regression test prevents coverage loss"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

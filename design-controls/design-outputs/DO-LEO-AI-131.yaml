@@ -1,0 +1,103 @@
+# -- DO-LEO-AI-131 -- libs/analytics/cohorts.py canonical NCDA cohort helpers
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-131"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-134"]
+    user_needs: ["UN-LEO-AI-019"]
+    risks_addressed: ["R-LEO-AI-092"]
+    verification_tests: ["VT-LEO-AI-130"]
+
+  specification:
+    title: "libs/analytics/cohorts.py canonical NCDA cohort definition"
+    description: |
+      A pure-Cypher-text helper library that returns the single
+      authoritative WHERE / EXISTS clauses used across every NCDA
+      analytics endpoint to identify a 'confirmed cancer episode'
+      and a '2WW-route diagnosis'. No Neo4j session, LLM, or HTTP
+      dependency; consumed by audit.py, _audit_sections.py,
+      _audit_intervals.py, dashboards.py, mission_control.py, and
+      benchmarks.py.
+    acceptance_criteria:
+      - criterion: "canonical_confirmed_cancer_clause"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          confirmed_cancer_where() returns a Cypher fragment matching
+          exactly: status='completed' AND NOT letter_inferred_benign
+          AND EXISTS diagnosis-milestone encounter.
+      - criterion: "suspected_cancer_referral_clause"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          suspected_cancer_referral_where() returns the canonical
+          confirmed_cancer clause extended with an EXISTS referral-
+          milestone encounter, for the '2WW-route diagnoses' metric.
+      - criterion: "endpoints_parity"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Integration test with a synthetic graph asserts
+          /audit/summary.confirmed_cancers, /audit/cancer-stage total,
+          /audit/cancer-type sum-of-n (pre-exclusion), and the
+          /dashboards/overview confirmed_cancer tile are all equal.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/analytics/cohorts.py"
+        description: >
+          Pure-text Cypher helpers: CONFIRMED_CANCER_CLAUSE,
+          SUSPECTED_CANCER_REFERRAL_CLAUSE, confirmed_cancer_where(),
+          suspected_cancer_referral_where(), plus a docstring
+          describing the canonical definition.
+      - artifact_type: "source_code"
+        location: "libs/analytics/__init__.py"
+        description: "Re-exports the public cohort helpers."
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/_audit_sections.py"
+        description: >
+          _q_cancer_type and _q_cancer_stage rewritten to compose the
+          canonical confirmed_cancer clause; no inline status /
+          milestone filters remain.
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/audit.py"
+        description: >
+          audit_summary computes is_confirmed from the canonical
+          helper; the confirmed_cancers count equals the
+          cancer-stage denominator.
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/dashboards.py"
+        description: >
+          Overview + stage endpoints reuse the canonical cohort.
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/mission_control.py"
+        description: "confirmed_cancer tile uses canonical cohort."
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/_audit_intervals.py"
+        description: >
+          INFERRED_CANCER_DIAG_CASE composes the canonical confirmed-
+          cancer predicate where applicable.
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 220
+      key_functions:
+        - "confirmed_cancer_where"
+        - "suspected_cancer_referral_where"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Single authoritative cohort definition for all clinical audit counts"
+    risk_control_measures:
+      - "Parity test pins all endpoint counts to the same denominator"
+      - "Helper is pure-text; no silent data reshaping"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

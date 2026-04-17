@@ -15,6 +15,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from libs.analytics import confirmed_cancer_where
 from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -397,14 +398,19 @@ def episode_diagnosed(
     date_from: Optional[str] = Query(default=None),
     date_to: Optional[str] = Query(default=None),
 ):
-    """Confirmed diagnoses grouped by cancer type, with optional date range and org filters.
+    """Confirmed cancer diagnoses grouped by cancer type.
 
-    Only includes pathways that have a linked referral milestone.
+    Uses the canonical NCDA cohort: completed episode + not letter-
+    inferred-benign + has a diagnosis-milestone encounter
+    (DI-LEO-AI-134).  This is the NCDA publication definition and
+    agrees with the /audit/summary confirmed_cancers headline and the
+    /audit/cancer-stage chart.
     """
     scope = _coerce_scope(scope)
     client = PatientGraphClient()
     date_frag, date_params = _date_where(date_from, date_to)
     scope_frag, scope_params = _scope_filter(scope)
+    cohort = confirmed_cancer_where("ep")
     try:
         effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
         if effective_org:
@@ -416,12 +422,7 @@ def episode_diagnosed(
                 "WHERE (orgNode.id = $org) OR (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
                 "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-                f"WHERE ep.status = 'completed' AND ep.referral_date IS NOT NULL "
-                "  AND coalesce(ep.letter_inferred_benign, false) = false "
-                "  AND EXISTS { "
-                "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
-                "    WHERE r.milestone_type = 'referral' "
-                "  } "
+                f"WHERE {cohort} "
                 f"{date_frag} "
                 "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS count "
                 "ORDER BY count DESC",
@@ -430,12 +431,7 @@ def episode_diagnosed(
             )
         return client.run(
             "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            f"WHERE ep.status = 'completed' AND ep.referral_date IS NOT NULL "
-            "  AND coalesce(ep.letter_inferred_benign, false) = false "
-            "  AND EXISTS { "
-            "    MATCH (:Encounter)-[r:IS_PART_OF]->(ep) "
-            "    WHERE r.milestone_type = 'referral' "
-            "  } "
+            f"WHERE {cohort} "
             f"{scope_frag}{date_frag} "
             "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS count "
             "ORDER BY count DESC",

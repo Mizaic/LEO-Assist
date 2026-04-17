@@ -12,7 +12,7 @@
 
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import theme from "@/theme";
+import { createLeoTheme } from "@leo/design-system/theme";
 import {
   CONTRAST_PAIRS,
   DENSITY_MAP,
@@ -29,6 +29,8 @@ function remToPx(value: string): number {
   if (value.endsWith("px")) return parseFloat(value);
   return Number.NaN;
 }
+
+const theme = createLeoTheme();
 
 describe("VT-LEO-AI-113 tokens", () => {
   test("TC-001 exports the six required token groups", () => {

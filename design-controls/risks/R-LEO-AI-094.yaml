@@ -1,0 +1,90 @@
+# -- R-LEO-AI-094 -- Intro copy hides required information or confuses users
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-094"
+  title: "Users miss required information or take the wrong action because role-aware Knowledge intro copy is unclear, too long, or missing for their role"
+
+  hazard:
+    description: >
+      IntroCard ships plain-English copy per role. If the copy is wrong,
+      missing for a role, or uses jargon the user cannot parse, they may
+      take the wrong action in the knowledge-curation flow (for example
+      promoting the wrong rule, or deleting a term they still need).
+    category: "usability"
+
+  hazardous_situation: >
+    A junior coder (staff role) opens /admin/knowledge?tab=context-rules
+    and reads an IntroCard that assumes prior knowledge of ConText
+    negation rules. They tick "approve" on a rule they do not
+    understand, and the rule propagates a false-negative assertion into
+    the coded dataset used for QOF reporting.
+
+  harm:
+    description: >
+      Incorrect QOF report numbers for a reporting period until the
+      rule is caught in a later QA sweep. No direct clinical harm (rules
+      do not silently alter a patient's SNOMED codes without review),
+      but loss of trust in the audit outputs.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 3
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        IntroCard copy for every tab ships a default block plus one
+        block per canonical role. Copy grades <= 9 on Flesch-Kincaid
+        (health-literacy.mdc). Tests fail CI if copy exceeds the grade
+        or any role is missing.
+      implemented_by: ["DI-LEO-AI-136", "DI-LEO-AI-137"]
+      verified_by: ["VT-LEO-AI-132", "VT-LEO-AI-133"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        QA/RA review every Knowledge copy block change before release.
+        A test pins the number of roles covered (4 + default) so adding
+        a new tab without its copy fails CI.
+      implemented_by: ["DI-LEO-AI-137"]
+      verified_by: ["VT-LEO-AI-133"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With mandatory FK grade <= 9, role coverage gate, and QA review,
+      misleading copy is caught before release. Residual risk is limited
+      to edge cases where a reader's context-specific vocabulary
+      differs from the general-English FK model -- caught by the
+      quarterly user review cycle defined in UN-LEO-AI-069.
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly user feedback review from each of the four role
+      personas. Weekly axe-core sweep for WCAG 2.1 AA in the knowledge
+      area. FK readability CI gate on every PR touching the copy map.
+    metrics:
+      - "% of Knowledge copy blocks below FK grade 9 (target 100%)"
+      - "axe-core violations on /admin/knowledge (target 0 critical/serious)"
+      - "Role coverage count per tab (target >=5: default + 4 roles)"
+    review_frequency: "Weekly for axe/CI, quarterly for user research"
+
+  metadata:
+    identified_by: "Phase 3 Knowledge redesign review"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "role-first"
+      - "health-literacy"
+      - "knowledge"
+      - "copy"
+      - "progressive-disclosure"

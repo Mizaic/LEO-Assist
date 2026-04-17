@@ -24,16 +24,24 @@ from services.analysis_worker.app.analyzers.anchor_detector import detect_anchor
 from services.analysis_worker.app.analyzers.episode_builder import build_episodes
 
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
+load_dotenv(ROOT / "secrets" / ".env.secrets", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
 
 _START_DATE = "2010-01-01"
 _END_DATE = "2030-12-31"
 
-_Q_PATIENTS = """
+_Q_PATIENTS_WITH_EPISODES = """
 MATCH (ep:EpisodeOfCare)
 WHERE ep.patient_id IS NOT NULL
 RETURN DISTINCT toString(ep.patient_id) AS patient_id
+ORDER BY patient_id
+"""
+
+_Q_PATIENTS_WITH_ENCOUNTERS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(:Encounter)
+WHERE p.id IS NOT NULL
+RETURN DISTINCT toString(p.id) AS patient_id
 ORDER BY patient_id
 """
 
@@ -76,10 +84,20 @@ async def _run_patient(
     return result.episodes_created, len(result.errors), staging_errors
 
 
-async def main(domain_id: str, limit: int | None, clear_existing: bool) -> None:
+async def main(
+    domain_id: str,
+    limit: int | None,
+    clear_existing: bool,
+    all_patients: bool,
+) -> None:
     client = PatientGraphClient()
     try:
-        rows = client.run(_Q_PATIENTS) or []
+        query = (
+            _Q_PATIENTS_WITH_ENCOUNTERS
+            if all_patients
+            else _Q_PATIENTS_WITH_EPISODES
+        )
+        rows = client.run(query) or []
         patient_ids = [
             str(r.get("patient_id") or "") for r in rows if r.get("patient_id")
         ]
@@ -138,5 +156,21 @@ if __name__ == "__main__":
         action="store_true",
         help="Do not delete existing episodes before rebuild.",
     )
+    parser.add_argument(
+        "--all-patients",
+        action="store_true",
+        help=(
+            "Source patient list from Patient nodes that have encounters "
+            "rather than from existing EpisodeOfCare rows. Use this after a "
+            "full EpisodeOfCare wipe."
+        ),
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.domain_id, args.limit, not args.keep_existing))
+    asyncio.run(
+        main(
+            args.domain_id,
+            args.limit,
+            not args.keep_existing,
+            args.all_patients,
+        )
+    )

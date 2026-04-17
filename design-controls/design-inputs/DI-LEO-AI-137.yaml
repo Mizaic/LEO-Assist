@@ -1,0 +1,129 @@
+# -- DI-LEO-AI-137 -- Evidence-wins duplicate-episode merge with edge migration
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-137"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-006", "UN-LEO-AI-019"]
+  requirement: >
+    The episode builder SHALL detect same-patient duplicate episodes
+    whose referral_dates fall within SAME_EPISODE_DAYS of each other
+    and merge them evidence-wins: the surviving (primary) episode is
+    the one whose cancer_type is corroborated by the text of its
+    diagnosis_confirmed encounters under the libs.clinical_scoping
+    specialty markers. On merge, every IS_PART_OF edge (every
+    milestone_type) SHALL be moved from the duplicate to the primary
+    via a new MOVE_LINKS_Q Cypher query, the duplicate SHALL be
+    marked status='merged' with merged_into set to the primary's
+    episode_id, and a human-readable merge_reasoning SHALL be
+    recorded. When the evidence is ambiguous (no single episode's
+    cancer_type appears in the diagnosis text, or multiple candidates
+    do), the merge SHALL be skipped and a warning logged so the
+    cluster is preserved for human review. non_site_specific episodes
+    SHALL participate in clustering, since NSS shadows are the single
+    largest source of fragmentation today.
+  rationale: >
+    On 2026-04-17 the live graph showed 91 confirmed-cancer episodes
+    in 2025 arising from only 60 unique patients (1.52 eps/patient).
+    35% of patients have >=2 parallel episodes on the same referral
+    date because a single pathway matches multiple specialty markers
+    (e.g. patient 4181221113 on 2025-02-24: breast AND bladder on the
+    same day; patient 4200186896 on 2025-05-12: leukaemia AND
+    melanoma). The current _merge_same_site_duplicates only clusters
+    within identical cancer_type and skips NSS entirely, so these
+    duplicate-type clusters are never detected. Additionally, when
+    it does merge, MARK_MERGED_Q leaves IS_PART_OF edges on the
+    retired episode, causing downstream existence checks to miss
+    evidence that has 'moved'. The manual /analytics/episodes/merge
+    endpoint already moves edges; automatic merges must do the same.
+    Evidence-wins (text corroboration from the diagnosis encounter)
+    is the only safe rule: a specialty marker that fires on a
+    diagnosis note is a much stronger signal than a marker that only
+    fired on a referral letter or a past family history reference.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Clusters episodes by referral_date within SAME_EPISODE_DAYS
+          per patient, including non_site_specific episodes.
+      - type: "functional"
+        spec: >
+          For each cluster of >=2 eps, loads the text of each
+          episode's diagnosis_confirmed encounters and runs the
+          specialty markers; winner is the single episode whose
+          cancer_type regex fires on its own diagnosis text.
+      - type: "functional"
+        spec: >
+          Tie-breakers applied in order when >1 episode is
+          text-corroborated: (a) episode with the treatment_started
+          milestone; (b) earliest first_date.
+      - type: "safety"
+        spec: >
+          When no deterministic winner exists, the merge is skipped;
+          logger.warning records the patient_id and cluster members
+          for human review; no destructive write occurs.
+      - type: "functional"
+        spec: >
+          MOVE_LINKS_Q moves every IS_PART_OF edge from each
+          duplicate to the primary, preserving milestone_type, tagging
+          r.linked_by='merge_duplicate' and r.linked_at=datetime().
+          After the move, no IS_PART_OF edge remains on any
+          duplicate episode.
+      - type: "functional"
+        spec: >
+          After MOVE_LINKS_Q, MARK_MERGED_Q sets duplicate.status =
+          'merged', duplicate.merged_into = primary.episode_id, and
+          writes human-readable merge_reasoning including the text
+          evidence that decided the winner.
+      - type: "safety"
+        spec: >
+          All merges are reversible via (duplicate.merged_into,
+          r.linked_by='merge_duplicate') without external
+          provenance.
+    constraints:
+      - type: "performance"
+        spec: >
+          Per-patient text fetch is bounded by the existing episode
+          count; no N+1 graph scan.
+      - type: "safety"
+        spec: >
+          A duplicate cluster containing two episodes both
+          text-corroborated MUST NOT merge unless tie-breakers (a)
+          or (b) resolve unambiguously.
+    dependencies: ["DI-LEO-AI-011", "DI-LEO-AI-126"]
+    downstream_impacts:
+      - "services/analysis_worker/app/analyzers/episode_builder/_auto_close.py"
+      - "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+      - "libs/episodes/duplicate_resolver.py (new)"
+      - "NCDA dashboard counts (expected 91 -> 60-70 after rebuild)"
+    technical_details:
+      language: "Python"
+      framework: "Neo4j"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/episode_builder/_auto_close.py"
+        - "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+        - "libs/episodes/duplicate_resolver.py"
+        - "libs/episodes/__init__.py"
+      estimated_loc: 220
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-LEO-AI-133 cases pass: synthetic patient with a breast
+      + bladder same-day cluster resolves to breast only, with the
+      bladder episode marked 'merged'; all IS_PART_OF edges relocated
+      to the breast primary; ambiguous-evidence cluster is skipped
+      with a warning; idempotency (second rebuild leaves counts
+      identical). After full rebuild on the 2025 dev-graph snapshot
+      the canonical confirmed-cancer episode count falls to between
+      60 and 75 (from baseline 91).
+    test_protocol: "VT-LEO-AI-133"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-094", "R-LEO-AI-095"]
+  tags:
+    - "episode-builder"
+    - "ncda"
+    - "duplicate-merge"
+    - "data-integrity"

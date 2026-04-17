@@ -34,6 +34,8 @@ export interface Session {
   isPlatformAdmin: boolean;
   organizations: OrgInfo[];
   idleTimeoutMinutes: number;
+  selectedRole: string | null;
+  allowedRoles: string[];
 }
 
 interface AuthContextValue {
@@ -62,6 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isPlatformAdmin: data.isPlatformAdmin ?? false,
           organizations: data.organizations ?? [],
           idleTimeoutMinutes: data.idleTimeoutMinutes ?? 30,
+          selectedRole: data.selected_role ?? null,
+          allowedRoles: Array.isArray(data.allowed_roles)
+            ? data.allowed_roles
+            : [],
         });
         setStatus("authenticated");
       } else {

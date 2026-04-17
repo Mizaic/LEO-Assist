@@ -740,3 +740,25 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | Design Output | DO-LEO-AI-120 | draft | CodingReviewCasesModal.tsx (389) + CodingReviewCasesModalTitle.tsx (213) + CaseCard.tsx (461) + CaseCardLeoResult.tsx (174) + CaseCardSuppressForm.tsx (175) + EncounterContextPanel.tsx (133) + codingReviewUtils.ts (135) + codingReviewCopy.ts (44); glossary expanded with six new terms |
 | Risk | R-LEO-AI-083 | analyzed | Junior operator makes wrong coding-review decision due to unexplained clinical terms |
 | Verification Test | VT-LEO-AI-118 | passed | 19 Jest cases: eight split modules <=500 LOC, CODING_REVIEW_INTRO FK <=9, seven glossary terms <=9, CodingReviewCasesModal empty-state Props preserved |
+| Design Input | DI-LEO-AI-124 | draft | Milestone temporal integrity: MIN_REFERRAL_TO_DIAG_DAYS gap + PRISM authoritative primacy over generic text referrals |
+| Design Output | DO-LEO-AI-121 | draft | _config.MIN_REFERRAL_TO_DIAG_DAYS; _grouping._find_best_referral gap guard; anchor_detector._RE_REFERRAL_PRISM + referral_subtype dedupe |
+| Risk | R-LEO-AI-084 | analyzed | False same-day referral-to-diagnosis interval misleads quality improvement decisions |
+| Verification Test | VT-LEO-AI-119 | passed | 11 pytest cases: same-day skip, earlier-referral preference, env override, PRISM regex positive/negative, PRISM primacy, generic fallback, parametrised gap checks |
+| Design Input | DI-LEO-AI-125 | draft | NCDA interval KPIs computed and persisted as named properties on every EpisodeOfCare with prerequisite milestones |
+| Design Output | DO-LEO-AI-122 | draft | kpi_calculator.calculate_kpis wired into build_episodes; _DIAGNOSIS_MILESTONES / _TREATMENT_MILESTONES accept canonical + legacy keys; MATCH-only persistence |
+| Design Output | DO-LEO-AI-125 | approved | libs/metrics consolidation; kpi_calculator and scripts/build_ncda_export.py delegate to shared interval KPI math |
+| Risk | R-LEO-AI-085 | analyzed | Inconsistent interval KPIs across dashboards when computed ad-hoc per router |
+| Verification Test | VT-LEO-AI-120 | passed | Covers complete milestone set, missing milestones, idempotency, build_episodes integration, null-safety; 37 cases including libs/metrics parity |
+| Design Input | DI-LEO-AI-126 | draft | Staging enrichment uses diagnosis + 90 day window and filters evidence rows by cancer-type specialty markers |
+| Design Output | DO-LEO-AI-123 | draft | libs/clinical_scoping specialty markers; staging_enrichment._choose_window and filter_rows_by_specialty integration |
+| Risk | R-LEO-AI-086 | analyzed | Staging cross-contamination between concurrent cancer pathways for the same patient |
+| Verification Test | VT-LEO-AI-121 | passed | Marker coverage, window calculation, filtering, fallback when no rows match marker |
+| Design Input | DI-LEO-AI-127 | draft | Safety-net alert persistence with Patient edge + canonical alert_id in analytics router |
+| Design Output | DO-LEO-AI-124 | draft | services/analysis_worker/app/analyzers/safety_net_persistence.py; subgraph wiring; dashboards.py alert_id cleanup |
+| Risk | R-LEO-AI-087 | analyzed | Safety-net alerts lost (never persisted) or silently unactionable (router matches wrong key) |
+| Verification Test | VT-LEO-AI-122 | passed | 11 pytest cases: persistence, Patient edge, FOR_EPISODE link, idempotency, alert_id in router SELECT/MATCH/SET, subgraph wiring |
+| Verification Test | VT-LEO-AI-124 | passed | 17 pytest cases: NCDA ground-truth regression harness - cardinality/join integrity, schema validity, distribution tripwires, interval KPI parity via libs.metrics |
+| Design Input | DI-LEO-AI-134 | draft | Canonical NCDA 'Confirmed Cancer' cohort shared by every analytics endpoint via libs.analytics.cohorts |
+| Design Output | DO-LEO-AI-131 | draft | libs/analytics/cohorts.py helpers; audit.py, _audit_sections.py, dashboards.py, mission_control.py refactored to use canonical cohort |
+| Risk | R-LEO-AI-092 | mitigated | Divergent 'confirmed cancer' definitions gave 17 vs 91 on the same NCDA dashboard; consolidated to the NCDA publication cohort |
+| Verification Test | VT-LEO-AI-130 | passed | 14 pytest cases: cohort-helper unit tests, router-import enforcement, live 91 baseline pin for 2025 (passed 2026-04-17) |

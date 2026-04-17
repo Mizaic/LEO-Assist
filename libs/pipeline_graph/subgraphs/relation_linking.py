@@ -203,8 +203,19 @@ def _merge_model_and_llm(
     model_rows: list[dict[str, Any]],
     llm_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    """Merge model and LLM rows, preserving extraction method provenance.
+
+    Per DI-2D9F5064 (runtime relation linking method disclosure), every merged
+    relation carries `extraction_method` = "model" | "llm" | "model+llm" so
+    reviewers can calibrate scepticism. When both sources produce the same
+    (head, tail, type) the higher-confidence row wins and method becomes
+    "model+llm".
+    """
     merged: dict[tuple[int, int, str], dict[str, Any]] = {}
-    for row in model_rows + llm_rows:
+    tagged: list[tuple[dict[str, Any], str]] = (
+        [(r, "model") for r in model_rows] + [(r, "llm") for r in llm_rows]
+    )
+    for row, method in tagged:
         if not isinstance(row, dict):
             continue
         h = row.get("head_idx")
@@ -215,13 +226,28 @@ def _merge_model_and_llm(
         key = (h, t, relation_type)
         confidence = float(row.get("confidence") or 0.0)
         prev = merged.get(key)
-        if prev is None or float(prev.get("confidence") or 0.0) < confidence:
+        if prev is None:
             merged[key] = {
                 "head_idx": h,
                 "tail_idx": t,
                 "type": relation_type,
                 "confidence": confidence,
+                "extraction_method": method,
             }
+            continue
+        combined_method = prev.get("extraction_method") or method
+        if combined_method != method:
+            combined_method = "model+llm"
+        if float(prev.get("confidence") or 0.0) < confidence:
+            merged[key] = {
+                "head_idx": h,
+                "tail_idx": t,
+                "type": relation_type,
+                "confidence": confidence,
+                "extraction_method": combined_method,
+            }
+        else:
+            prev["extraction_method"] = combined_method
     return list(merged.values())
 
 
@@ -264,6 +290,7 @@ def _apply_relation_linking(state: RelationLinkState) -> dict[str, Any]:
             "target_text": str(tail.get("text") or ""),
             "target_idx": tail_idx,
             "confidence": float(row.get("confidence") or 0.6),
+            "extraction_method": str(row.get("extraction_method") or "model"),
         }
         canonical = canonicalise_relations(head_relations + [relation], len(entities))
         if len(canonical) == len(head_relations):

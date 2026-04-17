@@ -19,6 +19,8 @@
     automation_framework: "pytest"
     test_file_paths:
       - "tests/test_episode_kpi_persistence.py"
+      - "tests/test_metrics_intervals.py"
+      - "tests/test_kpi_calculator.py"
 
   test_environment:
     environment_type: "development"
@@ -98,3 +100,20 @@
       result: "pass"
       notes: >
         pytest tests/test_episode_kpi_persistence.py -v ran green.
+    - execution_id: "VT-120-EXEC-20260416-002"
+      executed_on: "2026-04-16"
+      executed_by: "ci-pytest"
+      environment: "local-dev"
+      result: "pass"
+      total_cases: 37
+      passed: 37
+      failed: 0
+      notes: >
+        Post-DO-LEO-AI-125 consolidation: pytest
+        tests/test_metrics_intervals.py tests/test_kpi_calculator.py
+        tests/test_episode_kpi_persistence.py. 37/37 passed. Confirms
+        the runtime analyzer and scripts/build_ncda_export.py both
+        delegate to libs/metrics and produce identical interval
+        numbers for the runtime (first_presentation/referral/
+        diagnosis_confirmed) and ground-truth (presentation_date/
+        referral_date/diagnosis_date) key shapes.

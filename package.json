@@ -1,0 +1,10 @@
+{
+  "name": "leo-ai-core-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "description": "LEO-AI-CORE monorepo. Top-level manifest exists to declare workspaces for JS/TS services. Python services are unaffected.",
+  "workspaces": [
+    "services/ui",
+    "services/design-system"
+  ]
+}

@@ -6,7 +6,7 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import PageIntro from "@/components/ui/PageIntro";
 import HelpPopover from "@/components/ui/HelpPopover";
-import ProgressiveReveal from "@/components/ui/ProgressiveReveal";
+import { ProgressiveReveal } from "@leo/design-system";
 import GlossaryTerm from "@/components/ui/GlossaryTerm";
 import { GLOSSARY } from "@/lib/glossary";
 import { fleschKincaidGrade } from "@/lib/readability";

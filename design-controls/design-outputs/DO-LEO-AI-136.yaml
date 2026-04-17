@@ -1,0 +1,85 @@
+# -- DO-LEO-AI-136 -- Role-first landing layout across every area
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-136"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-139"]
+    user_needs: ["UN-LEO-AI-069", "UN-LEO-AI-070"]
+    risks_addressed: ["R-LEO-AI-094"]
+    verification_tests: ["VT-LEO-AI-135"]
+
+  specification:
+    title: "Centralised area intro copy + KnowledgePageLayout rollout + feature flag default"
+    description: |
+      Implements DI-LEO-AI-139. Adds services/ui/src/lib/areaCopy.ts
+      with role-aware intro copy for all 9 major areas, wraps every
+      target landing page in KnowledgePageLayout, and flips the
+      NEXT_PUBLIC_ROLE_FIRST default in next.config.mjs so the
+      role-first shell ships to all users.
+    acceptance_criteria:
+      - criterion: "All 9 areas land inside KnowledgePageLayout"
+        type: "functional"
+        measurement: "Test"
+        target: "Jest source-level assertions confirm the import and wrap in each page"
+      - criterion: "Default copy grades <=9"
+        type: "usability"
+        measurement: "Test"
+        target: "readingAgeGrade() <= 9 on every default block"
+      - criterion: "Role-first flag on"
+        type: "functional"
+        measurement: "Inspection + Test"
+        target: "next.config.mjs env.NEXT_PUBLIC_ROLE_FIRST === '1'"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/areaCopy.ts"
+        description: "Centralised role-aware intro copy map"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/care/dashboard/page.tsx"
+        description: "Care Overview landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/console/page.tsx"
+        description: "Operations console landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathway-explorer/page.tsx"
+        description: "Pathway Explorer landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/platform/page.tsx"
+        description: "Platform landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/users/page.tsx"
+        description: "Users landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/portal/page.tsx"
+        description: "Portal landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/support/page.tsx"
+        description: "Support landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/settings/page.tsx"
+        description: "Settings landing page wrap"
+      - artifact_type: "source_code"
+        location: "services/ui/next.config.mjs"
+        description: "Enables NEXT_PUBLIC_ROLE_FIRST by default"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 280
+      key_functions:
+        - "AREA_INTRO_COPY"
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures:
+      - "Copy blocks graded at FK <=9 so the intro never confuses a reader"
+      - "KnowledgePageLayout wraps, it does not replace, so every page retains all its existing controls"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

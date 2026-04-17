@@ -262,6 +262,39 @@ def _span_to_assertion(span: Span) -> str:
     return "present"
 
 
+def _trigger_window_from_span(span: Span) -> dict[str, Any] | None:
+    """Extract verbatim trigger text + offsets from the first ConText modifier.
+
+    Supports DI-23822663: reviewers must be able to read the text the assertion
+    model evaluated, without re-reading the full document. medspaCy attaches
+    ``Span._.modifiers`` (list of ConTextModifier) to each target span when a
+    non-default assertion fires. We capture the first modifier's text and
+    absolute character offsets so downstream writers can persist them.
+
+    Returns None when no modifier is available (e.g. default "present").
+    """
+    modifiers = getattr(span._, "modifiers", None) or []
+    for modifier in modifiers:
+        mod_span = getattr(modifier, "modifier_span", None)
+        if mod_span is None:
+            mod_span = getattr(modifier, "span", None)
+        if mod_span is None:
+            continue
+        start = getattr(mod_span, "start_char", None)
+        end = getattr(mod_span, "end_char", None)
+        text = getattr(mod_span, "text", None)
+        if start is None or end is None or text is None:
+            continue
+        category = getattr(modifier, "category", "") or ""
+        return {
+            "assertion_trigger_text": text,
+            "assertion_trigger_start": int(start),
+            "assertion_trigger_end": int(end),
+            "assertion_trigger_category": str(category),
+        }
+    return None
+
+
 def _make_pending_spans(
     doc: spacy.tokens.Doc,
     items: list[ExtractionItem],
@@ -357,10 +390,16 @@ def apply_context_detection_to_dicts(
             doc.ents = [span for _, span in current_pass]
             doc = context_pipe(doc)
             ent_assertion = {span.start: _span_to_assertion(span) for span in doc.ents}
+            ent_trigger = {
+                span.start: _trigger_window_from_span(span) for span in doc.ents
+            }
             for item_idx, span in current_pass:
                 assertion = ent_assertion.get(span.start, "present")
                 if assertion != "present":
                     entities[item_idx]["assertion"] = assertion
+                    trigger = ent_trigger.get(span.start)
+                    if trigger is not None:
+                        entities[item_idx].update(trigger)
     except Exception:
         logger.error(
             "ConText dict detection FAILED for %d entities -- aborting",

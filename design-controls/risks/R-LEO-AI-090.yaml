@@ -1,0 +1,81 @@
+# -- R-LEO-AI-090 -- Motion triggers vestibular reaction
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-090"
+  title: "Animated transitions cause dizziness or nausea for users with vestibular disorders"
+
+  hazard:
+    description: >
+      Smooth route transitions, modal pop-ins, and springy stat-card
+      reveals are pleasant for many users but can cause dizziness,
+      nausea, or migraine in users with vestibular disorders or
+      photosensitive conditions.
+    category: "usability"
+
+  hazardous_situation: >
+    A user with a vestibular disorder opens LEO after enabling
+    reduced motion at the OS level. The app animates every route
+    change and modal, ignoring the preference, triggering symptoms
+    that prevent the user from completing their task.
+
+  harm:
+    description: >
+      Short-term physical discomfort (dizziness, nausea) and loss of
+      ability to use the product for the duration of the episode. No
+      direct patient harm but a meaningful accessibility failure.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        All motion is wrapped by useMotion(), which returns
+        reducedMotion: true when window.matchMedia
+        ('(prefers-reduced-motion: reduce)').matches. In that state,
+        pre-canned transitions collapse to duration 0.
+      implemented_by: ["DI-LEO-AI-131"]
+      verified_by: ["VT-LEO-AI-127"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        useMotion subscribes to change events on the media query so a
+        user who toggles the preference during a session sees the
+        change take effect immediately without reload.
+      implemented_by: ["DI-LEO-AI-131"]
+      verified_by: ["VT-LEO-AI-127"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 1
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the reduced-motion gate in place, users who opt out of
+      animation at the OS level never see an animated transition in
+      LEO. WCAG 2.1 success criterion 2.3.3 is met.
+
+  monitoring:
+    monitoring_plan: >
+      Playwright + axe-core sweep runs on every migrated page with
+      `prefers-reduced-motion: reduce` emulated. Any non-zero duration
+      transition in that state blocks the build.
+    metrics:
+      - "reduced_motion_violations_per_build"
+    review_frequency: "Per release"
+
+  metadata:
+    identified_by: "Wave D accessibility review"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "accessibility"
+      - "motion"
